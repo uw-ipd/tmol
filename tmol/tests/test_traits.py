@@ -1,4 +1,6 @@
 import unittest
+import traitlets
+from traitlets import TraitError
 
 import numpy
 
@@ -15,7 +17,7 @@ class testShapeSpec(unittest.TestCase):
 
             def __getitem__(self, v):
                 with self.case.assertRaises(
-                        ValueError, msg=repr(v)):
+                        TraitError, msg=repr(v)):
                     v = s[v]
                     self.case.fail(repr(v))
 
@@ -70,6 +72,8 @@ class testShapeSpec(unittest.TestCase):
                 ]
 
         invalid_specs = [
+                inv[::1],
+                inv[:,::1],
                 inv[3:],
                 inv["test"],
                 inv[1, "test"],
@@ -92,7 +96,7 @@ class testShapeSpec(unittest.TestCase):
         spec.validate(array)
 
     def assertInvalid(self, spec, array, msg = None):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TraitError):
             spec.validate(array)
             self.fail("spec: %r matched invalid array shape: %s" % (spec, array.shape))
 

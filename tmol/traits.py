@@ -47,6 +47,7 @@ Or a standard, ordering/density:
 
 import numpy
 import traitlets
+from traitlets import Bool, Int, List, Instance, HasTraits, validate, TraitError
 
 
 class SpecGenerator:
@@ -56,77 +57,58 @@ class SpecGenerator:
 
         return ShapeSpec(list(args))
 
-class Dim(traitlets.HasTraits):
-    size = traitlets.Int(None, allow_none=True)
-    contig = traitlets.Bool(False)
-    dense  = traitlets.Bool(False)
-    implied = traitlets.Bool(False)
+class Dim(HasTraits):
+    size = Int(None, allow_none=True)
+    @validate("size")
+    def _valid_size(self, proposal):
+        size = proposal['value']
+        if size is not None and size <= 0:
+            raise TraitError('size must be >= 1', size)
 
-    def __init__(self, size=None, contig=False, dense=False, implied=False):
-        if isinstance(size, int):
-            if not size >= 1:
-                raise ValueError("Invalid size.", size)
-            v = None
-        else:
-            v = size
+        return size
+
+    implied = Bool(False)
+
+    def __init__(self, size=None, implied=False):
+        if size is Ellipsis:
             size = None
-
-        if isinstance(v, slice):
-            if v.start is not None:
-                raise ValueError("Invalid slice.", v)
-
-            if v.stop is None:
-                size = None
-            else:
-                if not v.stop >= 1:
-                    raise ValueError("Invalid slice.", v)
-
-                size = v.stop
-
-            if v.step is None:
-                contig = False
-            else:
-                if v.step == 1:
-                    contig = True
-                    dense = True
-                elif v.step == 1j:
-                    contig = False
-                    dense = True
-                else:
-                    raise ValueError("Invalid slice.", v)
-        elif isinstance(v, type(Ellipsis)):
-            size = None
-            contig = False
-            dense = False
             implied = True
-        elif isinstance(v, Dim):
+        elif isinstance(size, slice):
+            if size.start is not None:
+                raise TraitError("Invalid slice.", size)
+            if size.step is not None:
+                raise TraitError("Invalid slice.", size)
+            size = size.stop
+        elif isinstance(size, Dim):
             size = v.size
-            contig = v.contig
             implied = v.implied
-        elif v is None:
-            pass
-        else:
-            raise ValueError("Unknown value type.", v)
 
-        traitlets.HasTraits.__init__(self, size=size, contig=contig, dense=dense, implied=implied)
+        HasTraits.__init__(self, size=size, implied=implied)
 
     def __repr__(self):
-        return "Dim(size={size}, contig={contig}, implied={implied})".format(**self._trait_values)
+        return "Dim(size={size}, implied={implied})".format(**self._trait_values)
 
-class ShapeSpec(traitlets.HasTraits):
-    dims = traitlets.List(traitlets.Instance(Dim),minlen=1)
+    def _repr_pretty_(self, p, cycle):
+        assert not cycle
+
+        if self.size is not None:
+            p.pretty(size)
+            if self.implied:
+                p.text("*")
+        elif not self.implied:
+            p.text(":")
+        else:
+            p.text("...")
+
+class ShapeSpec(HasTraits):
+    dims = List(Instance(Dim), minlen=1)
 
     def __init__(self, dims):
         dims = list(map(Dim, dims))
 
         if any(e.implied for e in dims[1:]):
-            raise ValueError("Invalid dims", dims)
-        if dims[0].contig and any(d.contig for d in dims[1:]):
-            raise ValueError("Invalid extra contiguous dims", dims)
-        if dims[-1].contig and any(d.contig for d in dims[:-1]):
-            raise ValueError("Invalid extra contiguous dims", dims)
-
-        traitlets.HasTraits.__init__(self, dims=dims)
+            raise TraitError("Invalid dims", dims)
+        HasTraits.__init__(self, dims=dims)
 
     def validate(self, array):
         dims = list(self.dims)
@@ -134,35 +116,36 @@ class ShapeSpec(traitlets.HasTraits):
 
         if len(dims) < len(adims):
             if dims[0].implied is not True:
-                raise ValueError("No implied broadcast in dims", dims, adims)
+                raise TraitError("No implied broadcast in dims", dims, adims)
 
             dims = [Dim(implied=True)] * (len(adims) - len(dims)) + dims
         elif len(dims) > len(adims):
             if not len(dims) - len(adims) == 1:
-                raise ValueError("Not enough array dims", dims, adims)
+                raise TraitError("Not enough array dims", dims, adims)
             elif not dims[0].implied:
-                raise ValueError("No implied broadcast in dims", dims, adims)
+                raise TraitError("No implied broadcast in dims", dims, adims)
             dims = dims[1:]
 
         assert len(dims) == len(adims)
 
         for d, a in zip(dims, adims):
             if d.size and a is not d.size:
-                raise ValueError("Invalid dimension size.", d, a)
-
-        if any(d.contig or d.dense for d in dims):
-            raise NotImplementedError
+                raise TraitError("Invalid dimension size.", d, a)
 
         return True
 
-    def matches(self, array):
-        try:
-            self.validate(array)
-        except ValueError:
-            return False
-
     def __repr__(self):
         return "[%s]" % ",".join(map(repr, self.dims))
+
+    def _repr_pretty_(self, p, cycle):
+        assert not cycle
+
+        p.text("[")
+        for i, d in enumerate(self.dims):
+            if idx:
+                p.text(',')
+            p.pretty(d)
+        p.text("]")
 
 import unittest
 
@@ -177,7 +160,7 @@ class testShapeSpec(unittest.TestCase):
 
             def __getitem__(self, v):
                 with self.case.assertRaises(
-                        ValueError, msg=repr(v)):
+                        TraitError, msg=repr(v)):
                     v = s[v]
                     self.case.fail(repr(v))
 
