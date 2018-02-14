@@ -7,7 +7,5 @@ except ImportError:
     warnings.warn("Unable to import faulthandler, install for compiled-module traceback support.")
     pass
 
-import tmol.tests
-
-result = tmol.tests.test()
-sys.exit(not result.wasSuccessful())
+from ..tests import run
+sys.exit(not run().wasSuccessful())

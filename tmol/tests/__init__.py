@@ -1,5 +1,6 @@
 import unittest
 
-
-def test():
-    return unittest.TextTestRunner().run(unittest.defaultTestLoader.discover("tmol.tests"))
+def run():
+    return unittest.TextTestRunner().run(
+        unittest.defaultTestLoader.discover(__name__)
+    )
