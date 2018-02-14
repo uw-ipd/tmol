@@ -3,7 +3,6 @@
 set -e
 set -x
 
-# Install basic dependencies
 TORCH_TARGET_VERSION="0ef1038"
 
 conda env update -f environment.yml
@@ -22,3 +21,5 @@ export NO_CUDA=1
 git clean -xd -i
 git checkout $TORCH_TARGET_VERSION
 python setup.py install
+
+pip install -e .
