@@ -4,12 +4,11 @@ from traitlets import TraitError
 
 import numpy
 
-import tmol.traits
+import tmol.traits.shape
 
 class testShapeSpec(unittest.TestCase):
     def test(self):
-        s = tmol.traits.SpecGenerator()
-        a = numpy.empty
+        s = tmol.traits.shape.SpecGenerator()
 
         class AssertInvalidSpec:
             def __init__(self, case):
@@ -27,46 +26,38 @@ class testShapeSpec(unittest.TestCase):
                 # ndim and shape
                 {
                     "spec" : s[:],
-                    "valid" : [a(1), a(10)],
-                    "invalid" : [a(()), a((2,2)), a((10, 10, 10))],
+                    "valid" : [(1,), (10,)],
+                    "invalid" : [(), (2,2), (10, 10, 10)],
                     },
                 {
                     "spec" : s[:,:],
-                    "valid" : [a((10,3)), a((2,2)), a((1, 10))],
-                    "invalid" : [a((1,)), a((3,)), a((10, 10, 3))],
+                    "valid" : [(10,3), (2,2), (1, 10)],
+                    "invalid" : [(1,), (3,), (10, 10, 3)],
                     },
                 {
                     "spec" : s[3],
-                    "valid" : [a(3)],
-                    "invalid" : [a(1), a((1,3)), a((3, 3))]
+                    "valid" : [(3,)],
+                    "invalid" : [(1,), (1,3), (3, 3)]
                     },
                 {
                     "spec" : s[:,3],
-                    "valid" : [a((1,3)), a((3,3)), a((10, 3))],
-                    "invalid" : [
-                        a(1), a(3), a((3,1)), a((1, 1, 1))
-                        ]
+                    "valid" : [(1,3), (3,3), (10, 3)],
+                    "invalid" : [ (1,), (3,), (3,1), (1, 1, 1) ]
                     },
                 {
                     "spec" : s[1,3],
-                    "valid" : [a((1,3))],
-                    "invalid" : [
-                        a(3), a((3, 3)), a((3,1)), a((1, 3, 3))
-                        ]
+                    "valid" : [(1,3)],
+                    "invalid" : [ (3,), (3, 3), (3,1), (1, 3, 3) ]
                     },
                 {
                     "spec" : s[...,3],
-                    "valid" : [a(3), a((100, 1, 3)), a((1,3))],
-                    "invalid" : [
-                        a((3, 1)), a((1))
-                        ]
+                    "valid" : [(3,), (100, 1, 3), (1,3)],
+                    "invalid" : [ (3, 1), (1,) ]
                     },
                 {
                     "spec" : s[...,:,3],
-                    "valid" : [a((100, 1, 3)), a((1,3))],
-                    "invalid" : [
-                        a((3, 1)), a((1)), a(3),
-                        ]
+                    "valid" : [(100, 1, 3), (1,3)],
+                    "invalid" : [ (3, 1), (1,), (3,)]
                     },
 
                 ]

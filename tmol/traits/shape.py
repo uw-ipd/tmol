@@ -110,9 +110,9 @@ class ShapeSpec(HasTraits):
             raise TraitError("Invalid dims", dims)
         HasTraits.__init__(self, dims=dims)
 
-    def validate(self, array):
+    def validate(self, shape):
         dims = list(self.dims)
-        adims = list(array.shape)
+        adims = list(shape)
 
         if len(dims) < len(adims):
             if dims[0].implied is not True:
@@ -121,7 +121,7 @@ class ShapeSpec(HasTraits):
             dims = [Dim(implied=True)] * (len(adims) - len(dims)) + dims
         elif len(dims) > len(adims):
             if not len(dims) - len(adims) == 1:
-                raise TraitError("Not enough array dims", dims, adims)
+                raise TraitError("Not enough dims", dims, adims)
             elif not dims[0].implied:
                 raise TraitError("No implied broadcast in dims", dims, adims)
             dims = dims[1:]
@@ -149,107 +149,3 @@ class ShapeSpec(HasTraits):
 
 import unittest
 
-class testShapeSpec(unittest.TestCase):
-    def test(self):
-        s = SpecGenerator()
-        a = numpy.empty
-
-        class AssertInvalidSpec:
-            def __init__(self, case):
-                self.case = case
-
-            def __getitem__(self, v):
-                with self.case.assertRaises(
-                        TraitError, msg=repr(v)):
-                    v = s[v]
-                    self.case.fail(repr(v))
-
-        inv = AssertInvalidSpec(self)
-
-        examples = [
-                # ndim and shape
-                {
-                    "spec" : s[:],
-                    "valid" : [a(1), a(10)],
-                    "invalid" : [a(()), a((2,2)), a((10, 10, 10))],
-                    },
-                {
-                    "spec" : s[:,:],
-                    "valid" : [a((10,3)), a((2,2)), a((1, 10))],
-                    "invalid" : [a((1,)), a((3,)), a((10, 10, 3))],
-                    },
-                {
-                    "spec" : s[3],
-                    "valid" : [a(3)],
-                    "invalid" : [a(1), a((1,3)), a((3, 3))]
-                    },
-                {
-                    "spec" : s[:,3],
-                    "valid" : [a((1,3)), a((3,3)), a((10, 3))],
-                    "invalid" : [
-                        a(1), a(3), a((3,1)), a((1, 1, 1))
-                        ]
-                    },
-                {
-                    "spec" : s[1,3],
-                    "valid" : [a((1,3))],
-                    "invalid" : [
-                        a(3), a((3, 3)), a((3,1)), a((1, 3, 3))
-                        ]
-                    },
-                {
-                    "spec" : s[...,3],
-                    "valid" : [a(3), a((100, 1, 3)), a((1,3))],
-                    "invalid" : [
-                        a((3, 1)), a((1))
-                        ]
-                    },
-                {
-                    "spec" : s[...,:,3],
-                    "valid" : [a((100, 1, 3)), a((1,3))],
-                    "invalid" : [
-                        a((3, 1)), a((1)), a(3),
-                        ]
-                    },
-
-                ]
-
-        invalid_specs = [
-                inv[3:],
-                inv["test"],
-                inv[1, "test"],
-                inv[::1, ::1],
-                inv[3, ...],
-                inv[..., ...],
-                ]
-
-        for e in examples:
-            spec = e["spec"]
-
-            for v in e["valid"]:
-                self.assertValid(spec, v)
-
-            for v in e["invalid"]:
-                self.assertInvalid(spec, v)
-
-
-    def assertValid(self, spec, array, msg = None):
-        spec.validate(array)
-
-    def assertInvalid(self, spec, array, msg = None):
-        with self.assertRaises(ValueError):
-            spec.validate(array)
-            self.fail("spec: %r matched invalid array shape: %s" % (spec, array.shape))
-
-import toolz
-if __name__ == "__main__":
-    unittest.main()
-    # test_cases =[
-        # case(name)
-        # for name, case in globals().items()
-        # if isinstance(case, type) and issubclass(case, unittest.TestCase) and name.startswith("test")
-        # for name in unittest.getTestCaseNames(case, "test")
-    # ]
-
-
-    # unittest.runner.TextTestRunner().run(unittest.TestSuite(test_cases))
