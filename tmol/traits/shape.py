@@ -47,7 +47,11 @@ Or a standard, ordering/density:
 
 import numpy
 import traitlets
-from traitlets import Bool, Int, List, Instance, HasTraits, validate, TraitError
+from traitlets import (
+    Bool, Int, List, Instance,
+    HasTraits, validate,
+    TraitError
+    )
 
 
 class SpecGenerator:
@@ -146,6 +150,3 @@ class ShapeSpec(HasTraits):
                 p.text(',')
             p.pretty(d)
         p.text("]")
-
-import unittest
-
