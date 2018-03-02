@@ -1,9 +1,11 @@
+
 name: tmol
 dependencies:
   # Core dev requirements
   - python=3.5
   - ipython
   - ipykernel
+  - jupyter
   - numpy
   - pandas
   - h5py
