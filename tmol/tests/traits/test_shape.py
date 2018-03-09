@@ -1,14 +1,15 @@
 import unittest
 import traitlets
-from traitlets import TraitError
+from traitlets import TraitError, HasTraits
 
 import numpy
 
-import tmol.traits.shape
+import tmol.traits
+import tmol.traits.shape_traits
 
 class testShapeSpec(unittest.TestCase):
     def test(self):
-        s = tmol.traits.shape.SpecGenerator()
+        s = tmol.traits.shape_traits.SpecGenerator()
 
         class AssertInvalidSpec:
             def __init__(self, case):
@@ -91,5 +92,31 @@ class testShapeSpec(unittest.TestCase):
             spec.validate(array)
             self.fail("spec: %r matched invalid array shape: %s" % (spec, array.shape))
 
+    def test_traitlets(self):
+        class TType(HasTraits):
+            coord = tmol.traits.Array(dtype=float).valid(tmol.traits.shape[3])
+            coords = tmol.traits.Array(dtype=float).valid(tmol.traits.shape[:,3])
+
+        t = TType()
+        t.coord = list(range(3))
+        numpy.testing.assert_allclose(t.coord, numpy.arange(3))
+        self.assertEqual(t.coord.dtype, numpy.float)
+
+        t.coords = [list(range(3))]
+        numpy.testing.assert_allclose(t.coords, numpy.arange(3).reshape((1, 3)))
+        self.assertEqual(t.coords.dtype, numpy.float)
+
+        with self.assertRaises(TraitError):
+            t.coords = list(range(3))
+
+        class InvalidTType(HasTraits):
+            coord = tmol.traits.Array(numpy.empty(10), dtype=float).valid(tmol.traits.shape[3])
+
+        it = InvalidTType()
+        with self.assertRaises(TraitError):
+            it.coord
+
 if __name__ == "__main__":
     unittest.main()
+
+

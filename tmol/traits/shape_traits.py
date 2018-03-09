@@ -62,7 +62,7 @@ class SpecGenerator:
         return ShapeSpec(list(args))
 
 class Dim(HasTraits):
-    size = Int(None, allow_none=True)
+    size = Int(None, allow_none =True)
     @validate("size")
     def _valid_size(self, proposal):
         size = proposal['value']
@@ -96,7 +96,7 @@ class Dim(HasTraits):
         assert not cycle
 
         if self.size is not None:
-            p.pretty(size)
+            p.pretty(self.size)
             if self.implied:
                 p.text("*")
         elif not self.implied:
@@ -138,6 +138,14 @@ class ShapeSpec(HasTraits):
 
         return True
 
+    def __call__(self, trait, value):
+        """Validate shape for given array."""
+        try:
+            self.validate(value.shape)
+            return value
+        except TraitError:
+            raise TraitError("Invalid shape: {} expected: {}".format(value.shape, self))
+
     def __repr__(self):
         return "[%s]" % ",".join(map(repr, self.dims))
 
@@ -145,7 +153,7 @@ class ShapeSpec(HasTraits):
         assert not cycle
 
         p.text("[")
-        for i, d in enumerate(self.dims):
+        for idx, d in enumerate(self.dims):
             if idx:
                 p.text(',')
             p.pretty(d)
