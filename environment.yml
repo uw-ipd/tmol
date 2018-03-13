@@ -21,4 +21,5 @@ dependencies:
   - cffi
   - setuptools
   - pip:
-    - traittypes
+    - attrs
+    - properties

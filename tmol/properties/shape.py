@@ -46,13 +46,8 @@ Or a standard, ordering/density:
 """
 
 import numpy
-import traitlets
-from traitlets import (
-    Bool, Int, List, Instance,
-    HasTraits, validate,
-    TraitError
-    )
-
+import attr
+from attr.validators import optional, instance_of, in_
 
 class SpecGenerator:
     def __getitem__(cls, args):
@@ -61,80 +56,89 @@ class SpecGenerator:
 
         return ShapeSpec(list(args))
 
-class Dim(HasTraits):
-    size = Int(None, allow_none =True)
-    @validate("size")
-    def _valid_size(self, proposal):
-        size = proposal['value']
-        if size is not None and size <= 0:
-            raise TraitError('size must be >= 1', size)
+spec = SpecGenerator()
 
-        return size
-
-    implied = Bool(False)
-
-    def __init__(self, size=None, implied=False):
-        if size is Ellipsis:
-            size = None
-            implied = True
+@attr.s(frozen=True, slots=True)
+class Dim:
+    @staticmethod
+    def _to_size(size):
+        if size in (None, Ellipsis):
+            return size
         elif isinstance(size, slice):
             if size.start is not None:
-                raise TraitError("Invalid slice.", size)
+                raise ValueError("Invalid slice.", size)
             if size.step is not None:
-                raise TraitError("Invalid slice.", size)
-            size = size.stop
-        elif isinstance(size, Dim):
-            size = v.size
-            implied = v.implied
-
-        HasTraits.__init__(self, size=size, implied=implied)
-
-    def __repr__(self):
-        return "Dim(size={size}, implied={implied})".format(**self._trait_values)
-
-    def _repr_pretty_(self, p, cycle):
-        assert not cycle
-
-        if self.size is not None:
-            p.pretty(self.size)
-            if self.implied:
-                p.text("*")
-        elif not self.implied:
-            p.text(":")
+                raise ValueError("Invalid slice.", size)
+            return size.stop
         else:
-            p.text("...")
+            return int(size)
 
-class ShapeSpec(HasTraits):
-    dims = List(Instance(Dim), minlen=1)
+    size = attr.ib(converter=_to_size.__func__)
+
+    @size.validator
+    def _valid_size(self, _, size):
+        if size is None:
+            return
+        elif size is Ellipsis:
+            return
+        else:
+            if not isinstance(size, int) or size < 1:
+                raise ValueError('size must be None, Ellipsis, or >1', size)
+
+    def __str__(self):
+        if self.size is Ellipsis:
+            return "..."
+        elif self.size is None:
+            return ":"
+        else:
+            return str(self.size)
+
+
+@attr.s(slots=True, frozen=True)
+class ShapeSpec:
+
+
+    @staticmethod
+    def _to_dims(dims):
+        return list(map(Dim, dims))
+
+    dims = attr.ib(converter=_to_dims.__func__)
+    
+    @dims.validator
+    def _valid_dims(self, _, dims):
+        if len(dims) < 1:
+            raise ValueError("Must have at least one dim.")
+        if any(e.size is Ellipsis for e in dims[1:]):
+            raise ValueError("Invalid dims", dims)
+
+    @classmethod
+    def create(cls, dims):
+        cls(dims=list(map(Dim, dims)))
 
     def __init__(self, dims):
         dims = list(map(Dim, dims))
-
-        if any(e.implied for e in dims[1:]):
-            raise TraitError("Invalid dims", dims)
-        HasTraits.__init__(self, dims=dims)
 
     def validate(self, shape):
         dims = list(self.dims)
         adims = list(shape)
 
         if len(dims) < len(adims):
-            if dims[0].implied is not True:
-                raise TraitError("No implied broadcast in dims", dims, adims)
+            if dims[0].size is not Ellipsis:
+                raise ValueError("No implied broadcast in dims", dims, adims)
 
-            dims = [Dim(implied=True)] * (len(adims) - len(dims)) + dims
+            dims = [Dim(Ellipsis)] * (len(adims) - len(dims)) + dims
         elif len(dims) > len(adims):
             if not len(dims) - len(adims) == 1:
-                raise TraitError("Not enough dims", dims, adims)
-            elif not dims[0].implied:
-                raise TraitError("No implied broadcast in dims", dims, adims)
+                raise ValueError("Not enough dims", dims, adims)
+            elif not dims[0].size is Ellipsis:
+                raise ValueError("No implied broadcast in dims", dims, adims)
             dims = dims[1:]
 
         assert len(dims) == len(adims)
 
         for d, a in zip(dims, adims):
-            if d.size and a is not d.size:
-                raise TraitError("Invalid dimension size.", d, a)
+            if d.size and d.size is not Ellipsis and d.size is not a:
+                raise ValueError("Invalid dimension size.", d, a)
 
         return True
 
@@ -143,18 +147,14 @@ class ShapeSpec(HasTraits):
         try:
             self.validate(value.shape)
             return value
-        except TraitError:
-            raise TraitError("Invalid shape: {} expected: {}".format(value.shape, self))
+        except ValueError:
+            raise ValueError("Invalid shape: {} expected: {}".format(value.shape, self))
 
-    def __repr__(self):
-        return "[%s]" % ",".join(map(repr, self.dims))
+
+    def __str__(self):
+        return "[{}]".format(",".join(map(str, self.dims)))
 
     def _repr_pretty_(self, p, cycle):
         assert not cycle
 
-        p.text("[")
-        for idx, d in enumerate(self.dims):
-            if idx:
-                p.text(',')
-            p.pretty(d)
-        p.text("]")
+        p.text(str(self))
