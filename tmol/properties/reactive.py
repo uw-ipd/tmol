@@ -13,6 +13,7 @@ Inter-property dependencies must be *explictly* declared to support forward inva
 import six
 import properties
 from toolz import get_in
+from ._util import rename_code_object
 
 class CachedProperty(properties.basic.DynamicProperty):
     def get_property(self):
@@ -96,6 +97,12 @@ class DerivedProperty(properties.basic.DynamicProperty):
 
         def fdel(self):
             self._set(scope.name, properties.undefined)
+
+        suffix = "_" + scope.name
+
+        fget = rename_code_object(fget, "fget_" + scope.name)
+        fset = rename_code_object(fset, "fset_" + scope.name)
+        fdel = rename_code_object(fdel, "fdel_" + scope.name)
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=scope.sphinx())
     
