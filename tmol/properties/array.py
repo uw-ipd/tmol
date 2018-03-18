@@ -1,7 +1,13 @@
+import copy
+
+import torch
+import torch.autograd
 import numpy
+
 import properties.basic
 
-from .shape import spec, ShapeSpec
+from .shape import ShapeSpec
+from ..properties import eq_by_is
 
 
 class Array(properties.basic.Property):
@@ -18,14 +24,14 @@ class Array(properties.basic.Property):
 
     class_info = 'a numpy array'
 
-    CASTING_OPTIONS = {None, 'equiv', 'safe', 'same_kind', 'unsafe'}
+    CAST_OPTIONS = {None, 'equiv', 'safe', 'same_kind', 'unsafe'}
 
     @property
-    def casting(self):
-        return getattr(self, '_casting', "safe")
+    def cast(self):
+        return getattr(self, '_cast', "safe")
 
-    @casting.setter
-    def casting(self, value):
+    @cast.setter
+    def cast(self, value):
         if value is True:
             value = "unsafe"
         if value is "no":
@@ -33,13 +39,13 @@ class Array(properties.basic.Property):
         if not value:
             value = None
 
-        if not value in self.CASTING_OPTIONS:
+        if not value in self.CAST_OPTIONS:
             raise ValueError(
-                "Invalid casting: {} options: {}".format(
-                value, self.CASTING_OPTIONS
+                "Invalid cast: {} options: {}".format(
+                value, self.CAST_OPTIONS
             ))
 
-        self._casting = value
+        self._cast = value
 
     @property
     def dtype(self):
@@ -56,7 +62,7 @@ class Array(properties.basic.Property):
 
     @property
     def shape(self):
-        return getattr(self, '_shape', spec[...])
+        return getattr(self, '_shape', ShapeSpec([Ellipsis]))
 
     @shape.setter
     def shape(self, value):
@@ -65,29 +71,34 @@ class Array(properties.basic.Property):
 
         self._shape = value
 
+    def __getitem__(self, shape):
+        if not isinstance(shape, tuple):
+            shape = (shape,)
+
+        shape = ShapeSpec(shape)
+
+        new_prop = copy.copy(self)
+        new_prop.shape = shape
+        return new_prop
+
     @property
     def info(self):
-        if self.shape is None:
-            shape_info = '[...]'
-        else:
-            shape_info = str(self.shape)
-
-        return '{info} of {type} with shape {shp}'.format(
-            info=self.class_info,
-            type=', '.join([str(t) for t in self.dtype]),
-            shp=shape_info,
+        return '{class_info}(shape={shape}, dtype={dtype})'.format(
+            class_info=self.class_info,
+            dtype=', '.join([str(t) for t in self.dtype]),
+            shape=str(self.shape),
         )
 
     def validate(self, instance, value):
-        if self.casting and not isinstance(value, numpy.ndarray):
+        if self.cast and not isinstance(value, numpy.ndarray):
             value = numpy.array(value)
 
         for dt in self.dtype:
             if value.dtype == dt:
                 break
         else:
-            if self.casting:
-                value = value.astype(self.dtype[0], casting=self.casting)
+            if self.cast:
+                value = value.astype(self.dtype[0], casting=self.cast if self.cast else "no")
             else:
                 raise ValueError(
                     "Invalid dtype: {} candidates: {}".format(
@@ -98,17 +109,8 @@ class Array(properties.basic.Property):
 
         return value
 
-    def equal(self, value_a, value_b):
-        try:
-            if value_a.__class__ is not value_b.__class__:
-                return False
-            nan_mask = ~np.isnan(value_a)
-            if not np.array_equal(nan_mask, ~np.isnan(value_b)):
-                return False
-            return np.allclose(value_a[nan_mask], value_b[nan_mask], atol=TOL)
-        except TypeError:
-            return False
-
+    def equal(self, a, b):
+        return a is b
 
     @staticmethod
     def to_json(value, **kwargs):
@@ -117,3 +119,17 @@ class Array(properties.basic.Property):
     @staticmethod
     def from_json(value, **kwargs):
         raise NotImplementedError()
+
+class TensorT(properties.Instance):
+    def __init__(self, doc, *args, **kwargs):
+        super(TensorT, self).__init__(doc, instance_class = torch.Tensor)
+
+    def equal(self, a, b):
+        return a is b
+
+class VariableT(properties.Instance):
+    def __init__(self, doc, *args, **kwargs):
+        super(VariableT, self).__init__(doc, instance_class = torch.autograd.Variable)
+
+    def equal(self, a, b):
+        return a is b
