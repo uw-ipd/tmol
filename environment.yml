@@ -1,7 +1,7 @@
 name: tmol
 dependencies:
   # Core dev requirements
-  - python=3.5
+  - python=3.6
   - ipython
   - ipykernel
   - seaborn

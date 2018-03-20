@@ -44,23 +44,19 @@ class ScoreGraph(properties.HasProperties):
     
     @derived_from(("dist", "lj_interaction_weight"), VariableT("inter-atomic lj score"))
     def lj(self):
-        ind = torch.autograd.Variable(torch.Tensor(numpy.arange(self.coords.shape[0])), requires_grad=False)
-        ind_a = ind.view((-1, 1))
-        ind_b = ind.view((1, -1))
-        
         fd = (self.r_m / self.dist)
         fd2 = fd * fd
         fd6 = fd2 * fd2 * fd2
         fd12 = fd6 * fd6
-        
-        raw_lj = torch.where(
-            ind_a != ind_b,
-            self.epsilon * (fd12  - 3 * fd6),
+
+        lj = self.lj_interaction_weight * (self.epsilon * (fd12  - 3 * fd6))
+
+        return torch.where(
+            self.lj_interaction_weight > 0,
+            lj,
             torch.autograd.Variable(torch.Tensor([0.0]), requires_grad=False)
         )
-        
-        return raw_lj * torch.autograd.Variable(self.lj_interaction_weight, requires_grad=False)
-    
+
     @derived_from("lj", TensorT("inter-atomic total score"))
     def atom_scores(self):
         return torch.sum(self.lj.data, dim=-1)
@@ -68,6 +64,11 @@ class ScoreGraph(properties.HasProperties):
     @derived_from("lj", VariableT("system total score"))
     def total_score(self):
         return torch.sum(self.lj)
+    
+    def step(self):
+        """Recalculate total_score and gradients wrt/ coords. Does not clear coord grads."""
 
-TensorT = lambda d: properties.Instance(d, instance_class=torch.Tensor)
-VariableT = lambda d: properties.Instance(d, instance_class=torch.autograd.Variable)
+        self._notify(dict(name="coords", prev=getattr(self, "coords"), mode="observe_set"))
+
+        self.total_score.backward()
+        return self.total_score
