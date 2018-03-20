@@ -5,6 +5,7 @@ pandas>=0.18
 requests>=2.0
 scipy>=0.18
 toolz>=0.9.0
-torch>=0.4.0a0+0ef1038
 properties>=0.4.0
-attrs
+attrs>=17
+torch==0.4.0a0+1936753
+https://storage.googleapis.com/protein-design-ipd-public/wheelhouse/torch-0.4.0a0%2B1936753-cp35-cp35m-linux_x86_64.whl

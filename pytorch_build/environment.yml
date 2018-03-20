@@ -1,0 +1,12 @@
+name: pytorch_build
+dependencies:
+  - python=3.5
+  - numpy
+  - pyyaml
+  - nomkl
+  - setuptools 
+  - cmake
+  - cffi
+  - typing
+  - pip:
+    - ninja

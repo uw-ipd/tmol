@@ -13,13 +13,9 @@ dependencies:
   - numba
   - requests
   - toolz
+  - openblas
 
-  # Torch source-install requirements
-  - pyyaml
-  - mkl==11.3.3
-  - cmake
-  - cffi
-  - setuptools
   - pip:
     - attrs
     - properties
+    - https://storage.googleapis.com/protein-design-ipd-public/wheelhouse/torch-0.4.0a0%2B1936753-cp35-cp35m-linux_x86_64.whl
