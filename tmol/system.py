@@ -6,12 +6,14 @@ import properties
 import tmol.io.pdb_parsing as pdb_parsing
 from tmol.utility.array import coordinate_array_to_atoms, atom_array_to_coordinates
 
+from properties import List
 from tmol.properties.array import Array
 from tmol.properties import eq_by_is
 from tmol.properties.reactive import derived_from
 
 class FixedNamedAtomSystem(properties.HasProperties):
     atoms = ["N", "CA", "C", "O"]
+    atom_types = ["Nbb", "CAbb", "CObb", "OCbb"]
     bonds = [
         (("N", "CA", 0)),
         (("CA", "C", 0)),
@@ -23,10 +25,13 @@ class FixedNamedAtomSystem(properties.HasProperties):
         "Atomic coordinates",
         dtype="f4", cast="unsafe")[:,3]
 
+    types = List("Per-atom types.")
+
     bond_graph = eq_by_is(properties.Instance(
         "Inter-atomic bonds",
         scipy.sparse.spmatrix)
     )
+
 
     @property
     def atom_coords(self):
@@ -50,6 +55,7 @@ class FixedNamedAtomSystem(properties.HasProperties):
                 atom_buffer[i][a] = atoms.loc[ri, a][["x", "y", "z"]].values
 
         self.coords = atom_array_to_coordinates(atom_buffer)
+        self.types = self.atom_types * len(atom_buffer)
         self.bond_graph = self.generate_bonds(len(atom_buffer))
 
         return self
@@ -106,3 +112,4 @@ class FixedNamedAtomSystem(properties.HasProperties):
             atom_records["b"] = b
 
         return pdb_parsing.to_pdb(atom_records.ravel())
+
