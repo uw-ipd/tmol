@@ -24,22 +24,28 @@ import numpy
 from os import path
 
 atom_record_dtype = numpy.dtype([
-    ("model_name", numpy.str, 64),
-    ("model"     , numpy.int),
+
     ("record_name", numpy.str, 6),
-    ("atomi"     , numpy.int),
-    ("atomn"     , numpy.str, 4),
-    ("location"  , numpy.str, 1),
-    ("resn"      , numpy.str, 3),
-    ("chain"     , numpy.str, 1),
-    ("resi"      , numpy.int),
-    ("insert"    , numpy.str, 1),
-    ("x"         , numpy.float),
-    ("y"         , numpy.float),
-    ("z"         , numpy.float),
-    ("occupancy" , numpy.float),
-    ("b"         , numpy.float)
-    ])
+
+    ("modeli",    numpy.int),
+    ("chaini",    numpy.int),
+    ("resi",      numpy.int),
+    ("atomi",     numpy.int),
+
+    ("model",     numpy.str, 64),
+    ("chain",     numpy.str, 1),
+    ("resn",      numpy.str, 3),
+    ("atomn",     numpy.str, 4),
+
+    ("x",         numpy.float),
+    ("y",         numpy.float),
+    ("z",         numpy.float),
+
+    ("location",  numpy.str, 1),
+    ("insert",    numpy.str, 1),
+    ("occupancy", numpy.float),
+    ("b",         numpy.float)
+])
 
 def parse_pdb(pdb_lines):
     """Parses pdb file into atom records.
@@ -55,28 +61,53 @@ def parse_pdb(pdb_lines):
             # Split single strings by line
             pdb_lines = pdb_lines.split("\n")
 
-    line = 0
-    model_num = 0
     model_name = ""
 
     atom_lines = []
-    model_numbers = []
+
+    chain_breaks = []
+
+    model_breaks = []
     model_names = []
 
+    # Accumulate atom lines, flagging model/chain breaks on the
+    # last atom of the model/chain
     for l in pdb_lines:
         if l.startswith("MODEL"):
-            if line != 0:
-                model_num += 1
+            if model_breaks:
+                model_breaks[-1] = True
+
+            if chain_breaks:
+                chain_breaks[-1] = True
+
             model_name = l[6:].strip()
-            line += 1
+        elif l.startswith("TER"):
+            if chain_breaks:
+                chain_breaks[-1] = True
         elif l.startswith("ATOM  "):
             atom_lines.append(l)
-            model_numbers.append(model_num)
+
+            chain_breaks.append(False)
+
             model_names.append(model_name)
+            model_breaks.append(False)
 
     entries = parse_atom_lines(atom_lines)
-    entries["model"] = model_numbers
-    entries["model_name"] = model_names
+
+    #Mark additional breaks if the chain code changes.
+    chain_breaks = numpy.array(chain_breaks, dtype=bool)
+    chain_breaks[:-1][entries["chain"][:-1] != entries["chain"][1:]] = True
+
+    model_breaks = numpy.array(model_breaks, dtype=bool)
+
+    def end_flags_to_segment_idx(end_flags):
+        starts = numpy.zeros_like(end_flags, dtype=bool)
+        starts[1:] = end_flags[:-1]
+        return numpy.cumsum(starts)
+
+    entries["model"] = model_names
+    entries["modeli"] = end_flags_to_segment_idx(model_breaks)
+    entries["chaini"] = end_flags_to_segment_idx(chain_breaks)
 
     return pandas.DataFrame(entries)
 
@@ -145,7 +176,7 @@ def to_pdb_lines(atom_records):
     if not isinstance(atom_records, pandas.DataFrame):
         atom_records = pandas.DataFrame(atom_records)
 
-    for model_name, records in atom_records.groupby("model_name"):
+    for model_name, records in atom_records.groupby("model"):
         yield "MODEL {}\n".format(model_name)
 
         for l in to_atom_lines(r for _, r in records.iterrows()):
