@@ -23,7 +23,7 @@ class ScoreGraph(LJLKScoreGraph, properties.HasProperties):
                 "inter-atomic bond graph",
                 instance_class=scipy.sparse.spmatrix))
     coords = VariableT("source atomic coordinates")
-    types = List("atomic types")
+    types = Array("atomic types", dtype=object)[:]
 
     @derived_from("bond_graph", Array("inter-atomic minimum bonded path length", dtype="f4")[:,:])
     def bonded_path_length(self):

@@ -25,7 +25,7 @@ class FixedNamedAtomSystem(properties.HasProperties):
         "Atomic coordinates",
         dtype="f4", cast="unsafe")[:,3]
 
-    types = List("Per-atom types.")
+    types = Array("Per-atom types.", dtype=object)[:]
 
     bond_graph = eq_by_is(properties.Instance(
         "Inter-atomic bonds",
@@ -55,7 +55,7 @@ class FixedNamedAtomSystem(properties.HasProperties):
                 atom_buffer[i][a] = atoms.loc[ri, a][["x", "y", "z"]].values
 
         self.coords = atom_array_to_coordinates(atom_buffer)
-        self.types = self.atom_types * len(atom_buffer)
+        self.types = numpy.array(self.atom_types * len(atom_buffer))
         self.bond_graph = self.generate_bonds(len(atom_buffer))
 
         return self
