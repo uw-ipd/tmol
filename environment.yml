@@ -2,12 +2,8 @@ name: tmol
 dependencies:
   # Core dev requirements
   - python=3.6
-  - ipython
-  - ipykernel
-  - seaborn
   - numpy
   - pandas
-  - h5py
   - scipy
   - biopython
   - numba
@@ -18,3 +14,4 @@ dependencies:
   - pip:
     - attrs
     - properties
+    - frozendict
