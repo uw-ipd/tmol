@@ -1,5 +1,6 @@
 import io
 import re
+import glob
 from toolz import curry
 from toolz.curried import first, filter, map, compose
 
@@ -7,10 +8,12 @@ import pandas
 import numpy
 
 import properties
-from properties import HasProperties, String, Instance
+from properties import HasProperties, String, Instance, Dictionary
 
 from tmol.properties.reactive import cached, derived_from
 from tmol.properties.array import Array
+
+from tmol.io.flatfiledb import FlatFileDB
 
 class AtomProperties(properties.HasProperties):
     source = properties.String("atom properties table")
@@ -69,6 +72,19 @@ class AtomProperties(properties.HasProperties):
             index = self.table.index
         )
 
+
+class Residues(properties.HasProperties):
+    source = String("Residue source directory.")
+
+    @cached(Dictionary("residue data tables, by unique residue name"))
+    def by_name(self):
+        result = {}
+        for inf in glob.glob(f"{self.source}/*.params"):
+            rdb = FlatFileDB.read(inf)
+            resn = rdb["NAME"]["name"].values[0]
+            result[resn] = rdb
+        return result
+
 class ChemicalDatabase(HasProperties):
     source = String("Database source file.")
 
@@ -76,3 +92,6 @@ class ChemicalDatabase(HasProperties):
     def atom_properties(self):
         return AtomProperties(source = f"{self.source}/atom_properties.txt")
 
+    @cached(Instance("residue type database", Residues))
+    def residues(self):
+        return Residues(source = f"{self.source}/l-caa")
