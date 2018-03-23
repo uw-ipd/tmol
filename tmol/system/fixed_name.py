@@ -3,6 +3,7 @@ import scipy.sparse
 
 import properties
 
+import tmol.io.generic
 import tmol.io.pdb_parsing as pdb_parsing
 from tmol.utility.array import coordinate_array_to_atoms, atom_array_to_coordinates
 
@@ -10,6 +11,8 @@ from properties import List
 from tmol.properties.array import Array
 from tmol.properties import eq_by_is
 from tmol.properties.reactive import derived_from
+
+import tmol.viewer
 
 class FixedNamedAtomSystem(properties.HasProperties):
     atoms = ["N", "CA", "C", "O"]
@@ -113,3 +116,6 @@ class FixedNamedAtomSystem(properties.HasProperties):
 
         return pdb_parsing.to_pdb(atom_records.ravel())
 
+@tmol.io.generic.to_pdb.register(FixedNamedAtomSystem)
+def system_to_pdb(system):
+    return system.to_pdb()

@@ -5,10 +5,10 @@ import torch
 import torch.autograd
 
 
-from properties import List, Dictionary, StringChoice
+from properties import  Dictionary, StringChoice
+
 from tmol.properties.reactive import derived_from
 from tmol.properties.array import Array, VariableT, TensorT
-from tmol.properties import eq_by_is
 from tmol.database import ChemicalDatabase
 
 import tmol.genericnumeric as gn
@@ -40,13 +40,19 @@ pair_param_dtype = numpy.dtype([
 class LJLKScoreGraph(properties.HasProperties):
     chemical_db = properties.Instance("parameter database", ChemicalDatabase)
 
-    @derived_from(("chemical_db"),
-        Array("per-atom-type lk/lj score parameters", dtype=param_dtype)[:])
+    @derived_from(("chemical_db"), Array(
+        "per-atom-type lk/lj score parameters, last entry (-1) is nan-filled for a 'dummy' value",
+        dtype=param_dtype)[:]
+    )
     def type_ljlk_params(self):
-        result = numpy.empty(len(self.chemical_db.atom_properties.table), dtype=param_dtype)
+        result = numpy.full(
+            len(self.chemical_db.atom_properties.table) + 1,
+            numpy.nan,
+            dtype=param_dtype,
+        )
 
         for n in result.dtype.names:
-            result[n] = self.chemical_db.atom_properties.table[n]
+            result[n][:-1] = self.chemical_db.atom_properties.table[n]
 
         return result
 
@@ -102,20 +108,36 @@ class LJLKScoreGraph(properties.HasProperties):
         return type_pair_params
 
 
-    @derived_from("bonded_path_length", TensorT("lj&lk interaction weight, bonded cutoff"))
+    @derived_from(
+        ("bonded_path_length", "atom_types", "real_atoms"),
+        TensorT("lj&lk interaction weight, bonded cutoff")
+    )
     def ljlk_interaction_weight(self):
         result = numpy.ones_like(self.bonded_path_length, dtype="f4")
         result[self.bonded_path_length < 4] = 0
         result[self.bonded_path_length == 4] = .2
+
+        # TODO extract into abstract logic?
+        result[~self.real_atoms,:] = 0
+        result[:,~self.real_atoms] = 0
+
         return torch.Tensor(result)
 
-    @derived_from(("chemical_db", "type_pair_ljlk_params", "types"),
+    @derived_from(("chemical_db", "type_pair_ljlk_params", "atom_types"),
         Dictionary("pairwise lj/lk parameters",
             key_prop = StringChoice("param", pair_param_dtype.names),
             value_prop = TensorT("pairwise parameter tensor")
         ))
     def ljlk_pair_params(self):
-        type_indices = self.chemical_db.atom_properties.name_to_idx[self.types].values
+
+        # Lookup atom time indicies in the source atom properties table via index
+        # Use "reindex" so "None" entries in the type array convert to 'nan' index,
+        # then remask this into the -1 dummy index in the atom parameters array.
+        type_indices = numpy.where(
+            self.real_atoms,
+            self.chemical_db.atom_properties.name_to_idx.reindex(self.atom_types),
+            [-1]
+        ).astype(int)
 
         pair_parameters = self.type_pair_ljlk_params[
             type_indices.reshape((-1, 1)), 
