@@ -1,17 +1,16 @@
-import properties
 import numpy
 
 import torch
 import torch.autograd
 
-
 from properties import  Dictionary, StringChoice
 
 from tmol.properties.reactive import derived_from
 from tmol.properties.array import Array, VariableT, TensorT
-from tmol.database import ChemicalDatabase
 
 import tmol.genericnumeric as gn
+
+from .blocked_distance import BlockedInteratomicDistanceGraph
 
 param_dtype = numpy.dtype([
     ("lj_radius", numpy.float),
@@ -37,14 +36,13 @@ pair_param_dtype = numpy.dtype([
     ("lk_inv_lambda2", numpy.float)
 ])
 
-class LJLKScoreGraph(properties.HasProperties):
-    chemical_db = properties.Instance("parameter database", ChemicalDatabase)
+class LJLKScoreGraph(BlockedInteratomicDistanceGraph):
 
     @derived_from(("chemical_db"), Array(
         "per-atom-type lk/lj score parameters, last entry (-1) is nan-filled for a 'dummy' value",
         dtype=param_dtype)[:]
     )
-    def type_ljlk_params(self):
+    def _type_ljlk_params(self):
         result = numpy.full(
             len(self.chemical_db.atom_properties.table) + 1,
             numpy.nan,
@@ -56,12 +54,12 @@ class LJLKScoreGraph(properties.HasProperties):
 
         return result
 
-    @derived_from(("chemical_db", "type_ljlk_params",),
+    @derived_from(("chemical_db", "_type_ljlk_params",),
         Array("per-atom-pair-type lk/lj score parameters", dtype=pair_param_dtype)[:,:])
-    def type_pair_ljlk_params(self):
+    def _type_pair_ljlk_params(self):
 
-        a = self.type_ljlk_params.reshape((-1, 1))
-        b = self.type_ljlk_params.reshape((1, -1))
+        a = self._type_ljlk_params.reshape((-1, 1))
+        b = self._type_ljlk_params.reshape((1, -1))
 
         # update derived parameters
         # could 1/2 this calculation
@@ -107,6 +105,46 @@ class LJLKScoreGraph(properties.HasProperties):
 
         return type_pair_params
 
+    @derived_from(("chemical_db", "type_pair_ljlk_params", "atom_types"),
+        Dictionary("pairwise lj/lk parameters",
+            key_prop = StringChoice("param", pair_param_dtype.names),
+            value_prop = TensorT("pairwise parameter tensor")
+        ))
+    def type_pair_ljlk_params(self):
+        return {
+            n : torch.Tensor(self._type_pair_ljlk_params[n])
+            for n in self._type_pair_ljlk_params.dtype.names
+        }
+
+    @derived_from(("chemical_db", "atom_types"),
+        TensorT("per-atom type indices in parameter arrays"))
+    def _atom_type_indicies(self):
+        # Lookup atom time indicies in the source atom properties table via index
+        # Use "reindex" so "None" entries in the type array convert to 'nan' index,
+        # then remask this into the -1 dummy index in the atom parameters array.
+        return torch.LongTensor(numpy.where(
+            self.real_atoms,
+            self.chemical_db.atom_properties.name_to_idx.reindex(self.atom_types),
+            [-1]
+        ))
+
+    def _pair_param(self, param_name, ind_i, ind_j=None):
+        if ind_j is None:
+            ind_i, ind_j = ind_i[0], ind_i[1]
+
+        return (
+            self.type_pair_ljlk_params
+                [param_name]
+                [self._atom_type_indicies[ind_i], self._atom_type_indicies[ind_j]]
+        )
+
+    def _pair_interaction_weight(self, ind_i, ind_j=None):
+        if ind_j is None:
+            ind_i, ind_j = ind_i[0], ind_i[1]
+
+        return (
+            self.ljlk_interaction_weight[ind_i, ind_j]
+        )
 
     @derived_from(
         ("bonded_path_length", "atom_types", "real_atoms"),
@@ -123,77 +161,55 @@ class LJLKScoreGraph(properties.HasProperties):
 
         return torch.Tensor(result)
 
-    @derived_from(("chemical_db", "type_pair_ljlk_params", "atom_types"),
-        Dictionary("pairwise lj/lk parameters",
-            key_prop = StringChoice("param", pair_param_dtype.names),
-            value_prop = TensorT("pairwise parameter tensor")
-        ))
-    def ljlk_pair_params(self):
-
-        # Lookup atom time indicies in the source atom properties table via index
-        # Use "reindex" so "None" entries in the type array convert to 'nan' index,
-        # then remask this into the -1 dummy index in the atom parameters array.
-        type_indices = numpy.where(
-            self.real_atoms,
-            self.chemical_db.atom_properties.name_to_idx.reindex(self.atom_types),
-            [-1]
-        ).astype(int)
-
-        pair_parameters = self.type_pair_ljlk_params[
-            type_indices.reshape((-1, 1)), 
-            type_indices.reshape((1, -1))
-        ]
-
-        return {
-            n : torch.Tensor(pair_parameters[n])
-            for n in pair_parameters.dtype.names
-        }
-
-    @derived_from(("dist"), VariableT("1 / dist^2"))
-    def invdist2(self):
-        return 1 / (self.dist*self.dist)
+    @derived_from(("atom_pair_dist"), VariableT("1 / dist^2"))
+    def atom_pair_invdist2(self):
+        return 1 / (self.atom_pair_dist * self.atom_pair_dist)
 
     @derived_from(
-        ("invdist2", "ljlk_pair_params", "ljlk_interaction_weight"),
+        ("atom_pair_dist", "atom_types", "chemical_db", "bond_graph"),
         VariableT("inter-atomic lj score"))
     def lj(self):
         # lj
         # NOTE:
         #   - no sr or lr smoothing, no lr shift to 0
         #   - no split into atr/rep
-        invdist2 = self.invdist2
+        invdist2 = self.atom_pair_invdist2
         invdist6 = invdist2*invdist2*invdist2
         invdist12 = invdist6*invdist6
 
-        lj = (self.ljlk_interaction_weight * (
-                self.ljlk_pair_params["lj_r12_coeff"] * invdist12 +
-                self.ljlk_pair_params["lj_r6_coeff"] * invdist6
+        interaction_weight = self._pair_interaction_weight(self.atom_pair_inds)
+        lj_r12_coeff = self._pair_param("lj_r12_coeff", self.atom_pair_inds)
+        lj_r6_coeff = self._pair_param("lj_r6_coeff", self.atom_pair_inds)
+
+        lj = (interaction_weight * (
+                lj_r12_coeff * invdist12 +
+                lj_r6_coeff * invdist6
         ))
 
-        return torch.where(
-            self.ljlk_interaction_weight > 0,
-            lj,
+        return lj.where(
+            interaction_weight > 0,
             torch.autograd.Variable(torch.Tensor([0.0]), requires_grad=False)
         )
 
     @derived_from(
-        ("dist", "invdist2", "ljlk_pair_params", "ljlk_interaction_weight"),
+        ("atom_pair_dist", "atom_types", "chemical_db", "bond_graph"),
         VariableT("inter-atomic lk score"))
     def lk(self):
         # lk -- for now, non-smoothed version
-        dis1 = self.dist - self.ljlk_pair_params["lj_rad1"];
-        dis2 = self.dist - self.ljlk_pair_params["lj_rad2"];
+        dis1 = self.atom_pair_dist - self._pair_param("lj_rad1", self.atom_pair_inds)
+        dis2 = self.atom_pair_dist - self._pair_param("lj_rad2", self.atom_pair_inds)
 
-        x1 = dis1 * dis1 * self.ljlk_pair_params["lk_inv_lambda1"];
-        x2 = dis2 * dis2 * self.ljlk_pair_params["lk_inv_lambda2"];
+        x1 = dis1 * dis1 * self._pair_param("lk_inv_lambda1", self.atom_pair_inds)
+        x2 = dis2 * dis2 * self._pair_param("lk_inv_lambda2", self.atom_pair_inds)
 
-        lk = self.ljlk_interaction_weight * self.invdist2 * (
-            gn.exp(-x1) * self.ljlk_pair_params["lk_coeff1"] +
-            gn.exp(-x2) * self.ljlk_pair_params["lk_coeff2"]
+        interaction_weight = self._pair_interaction_weight(self.atom_pair_inds)
+
+        lk = interaction_weight * self.atom_pair_invdist2 * (
+            gn.exp(-x1) * self._pair_param("lk_coeff1", self.atom_pair_inds) +
+            gn.exp(-x2) * self._pair_param("lk_coeff2", self.atom_pair_inds)
         )
 
-        return torch.where(
-            self.ljlk_interaction_weight > 0,
-            lk,
+        return lk.where(
+            interaction_weight > 0,
             torch.autograd.Variable(torch.Tensor([0.0]), requires_grad=False)
         )
