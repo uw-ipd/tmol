@@ -4,17 +4,24 @@ import torch
 from IPython.display import display
 
 import tmol.extern.py3dmol as py3dmol
-from tmol.io.generic import to_pdb
+from tmol.io.generic import to_pdb, to_cdjson
 
 class SystemViewer:
+    transforms = {
+            "cdjson" : to_cdjson,
+            "pdb" : to_pdb
+    }
 
-    def __init__(self, system):
+    def __init__(self, system, style={"sphere": {}}, mode="cdjson"):
         self.system = system
+        if isinstance(style, str):
+            style = {style : {}}
+        self.style = style
+        self.mode = mode
+
+        self.data = None
+
         self.view = py3dmol.view(1200, 600)
-
-        self.system = system
-
-        self.pdb = None
 
         self.update()
         self.view.zoomTo()
@@ -23,9 +30,9 @@ class SystemViewer:
     def update(self):
         self.view.clear()
 
-        self.pdb = to_pdb(self.system)
+        self.data = self.transforms[self.mode](self.system)
 
-        self.view.addModel(self.pdb, "pdb")
-        self.view.setStyle({"sphere" : {}})
+        self.view.addModel(self.data, self.mode)
+        self.view.setStyle(self.style)
 
         display(self.view.update())

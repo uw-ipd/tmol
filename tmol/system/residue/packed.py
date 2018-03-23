@@ -7,6 +7,7 @@ import scipy
 from tmol.properties.array import Array
 from tmol.properties.reactive import derived_from
 from tmol.properties import eq_by_is
+import tmol.io.generic
 
 @attr.s(slots=True, frozen=True)
 class Residue:
@@ -134,3 +135,24 @@ class PackedResidueSystem(prop.HasProperties):
         self.validate()
 
         return self
+
+
+@tmol.io.generic.to_cdjson.register(Residue)
+def residue_to_cdjson(res):
+    coords = res.coords
+    elems = [a.atom_type[0] for a in res.residue_type.atoms]
+    bonds = [
+        (res.residue_type.atom_to_idx[b], res.residue_type.atom_to_idx[e])
+        for b, e in res.residue_type.bonds
+    ]
+
+    return tmol.io.generic.pack_cdjson(coords, elems, bonds)
+
+@tmol.io.generic.to_cdjson.register(PackedResidueSystem)
+def score_graph_to_cdjson(system):
+    coords = system.coords
+    elems = [t[0] if t else "x" for t in  system.atom_types]
+    bond_graph = system.bond_graph.tocoo()
+    bonds = zip(bond_graph.row, bond_graph.col)
+
+    return tmol.io.generic.pack_cdjson(coords, elems, bonds)

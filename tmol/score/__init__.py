@@ -62,3 +62,12 @@ def score_graph_to_pdb(score_graph):
     #atom_records["b"] = atom_scores[render_atoms]
 
     return pdb_parsing.to_pdb(atom_records)
+
+@tmol.io.generic.to_cdjson.register(BondedAtomScoreGraph)
+def score_graph_to_cdjson(score_graph):
+    coords = score_graph.coords.detach().numpy()
+    elems = map(lambda t: t[0] if t else "x", score_graph.atom_types)
+    bond_graph = score_graph.bond_graph.tocoo()
+    bonds = zip(bond_graph.row, bond_graph.col)
+
+    return tmol.io.generic.pack_cdjson(coords, elems, bonds)
