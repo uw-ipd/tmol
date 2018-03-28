@@ -6,6 +6,8 @@ import subprocess
 import re
 
 def git_version():
+    return "5a41d6b44a2"
+
     git_describe = subprocess.check_output(
             ["git", "describe", "--long", "--tags", "--match", "[0-9]*"]
         ).strip().decode()
