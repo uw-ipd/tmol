@@ -1,8 +1,11 @@
 import os
+from glob import glob
 
-def get(pdbid):
-    root = os.path.dirname(__file__)
-    dfile = os.path.join(root, pdbid.upper() + ".pdb")
+from tmol.tests.data.util import LazyFileMapping
 
-    with open(dfile, "r") as f:
-        return f.read()
+data = LazyFileMapping.from_list(
+    glob(os.path.dirname(__file__) + "/*.pdb"),
+    norm = lambda f: os.path.basename(f).split(".")[0].upper()
+)
+
+get = data.__getitem__
