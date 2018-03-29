@@ -29,18 +29,6 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
     def atom_pair_inds(self):
         raise NotImplementedError()
 
-    @property
-    def atom_pair_dist(self):
-        raise NotImplementedError()
-
-class NaiveInteratomicDistanceGraph(InteratomicDistanceGraphBase):
-    @derived_from(
-        ("system_size"),
-        VariableT("index pairs for all atom pairs"))
-    def atom_pair_inds(self):
-        return torch.stack(tuple(map(torch.LongTensor,
-            numpy.triu_indices(self.system_size))))
-
     @derived_from(
         ("coords", "atom_pair_inds"),
         VariableT("inter-atomic pairwise distance within threshold distance"))
@@ -53,9 +41,18 @@ class NaiveInteratomicDistanceGraph(InteratomicDistanceGraphBase):
 
         return dist
 
+class NaiveInteratomicDistanceGraph(InteratomicDistanceGraphBase):
+    @derived_from(
+        ("system_size"),
+        VariableT("index pairs for all atom pairs"))
+    def atom_pair_inds(self):
+        return torch.stack(tuple(map(torch.LongTensor,
+            numpy.triu_indices(self.system_size))))
+
 class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
     atom_pair_block_size = properties.Integer(
-        "atom block size for block-neighbor optimization", min=1, cast=True, default=8)
+        "atom block size for block-neighbor optimization",
+        min=1, max=255, cast=True, default=8)
 
     @property
     def interatomic_threshold_distance(self):
@@ -67,84 +64,64 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
     @derived_from(("coords", "atom_pair_block_size"),
         VariableT("atomic coordinate blocks"))
     def coord_blocks(self):
-        return self.nan_to_num(self.coords).reshape(-1, self.atom_pair_block_size, 3)
-
-    @derived_from(("system_size", "atom_pair_block_size"),
-        VariableT("a"))
-    def atom_idx_blocks(self):
-        return torch.LongTensor(numpy.arange(self.system_size)).reshape(
-                -1, self.atom_pair_block_size)
+        return self.coords.reshape(-1, self.atom_pair_block_size, 3)
 
     @derived_from(("system_size", "atom_pair_block_size"),
         VariableT("a"))
     def block_triu_indices(self):
-        return torch.stack(tuple(map(torch.LongTensor(numpy.triu_indices(self.system_size, k=1)))))
+        return torch.stack(tuple(map(torch.LongTensor,
+            numpy.triu_indices(self.system_size / self.atom_pair_block_size, k=1))))
 
     @derived_from(("system_size", "atom_pair_block_size"),
         VariableT("a"))
     def block_tril_indices(self):
-        return torch.stack(tuple(map(torch.LongTensor(numpy.tril_indices(self.system_size, k=1)))))
-
-    @derived_from(("coords", "atom_pair_block_size"),
-        VariableT("indicies of atom blocks potentially within threshold distance"))
-    def block_interactions(self):
-        bs = self.atom_pair_block_size
-
-        raw_blocked_atom_mask = self.real_atoms.reshape(-1, bs)
-        valid_blocks = raw_blocked_atom_mask.sum(dim=-1).nonzero().squeeze()
-
-        coord_blocks = self.coord_blocks[valid_blocks]
-        atom_mask = raw_blocked_atom_mask[valid_blocks]
-        atoms_per_block = atom_mask.sum(dim=-1).float()
-
-        block_centers = coord_blocks.sum(dim=1) / torch.Tensor(atoms_per_block.reshape((-1, 1)))
-
-        block_radii = (
-            (coord_blocks - block_centers.reshape((-1, 1, 3)))
-            .norm(dim=-1)
-            .where(atom_mask, torch.Tensor([0.0]))
-            .max(dim=-1)[0]
-        )
-
-        interblock_center_dist = (
-            (block_centers.reshape((-1, 1, 3)) - block_centers.reshape((1, -1, 3)))
-            .norm(dim=-1)
-        )
-
-        interblock_min_atomic_dist = (
-            interblock_center_dist - (block_radii.reshape((-1, 1)) + block_radii.reshape((1, -1))))
-
-        return valid_blocks[
-            (interblock_min_atomic_dist < self.interatomic_threshold_distance).nonzero()
-        ]
+        return torch.stack(tuple(map(torch.LongTensor,
+            numpy.tril_indices(self.system_size / self.atom_pair_block_size, k=1))))
 
     @derived_from(
-        ("atom_idx_blocks", "block_interactions"),
+        ("coords", "atom_pair_block_size", "atom_pair_distance_thresholds"),
         VariableT("index pairs for all pairs potentially within interaction distance threshold"))
     def atom_pair_inds(self):
         bs = self.atom_pair_block_size
-        b_ind = self.block_interactions.transpose(0, 1)
-        ai_b = self.atom_idx_blocks
+        nb = int(self.coords.shape[0] / bs)
 
-        blocked_from = ai_b[b_ind[0]].reshape((-1, bs, 1)).repeat((1, 1, bs)).reshape(-1)
-        blocked_to = ai_b[b_ind[1]].reshape((-1, 1, bs)).repeat((1, bs, 1)).reshape(-1)
+        raw_coords = self.coords.detach()
 
-        return torch.stack((blocked_from, blocked_to))
+        c_isnan = torch.isnan(raw_coords)
+        coords = raw_coords.where(~c_isnan, torch.Tensor([0]))
 
-    @derived_from(
-        ("coords", "coord_blocks", "block_interactions"),
-        VariableT("inter-atomic pairwise distance within threshold distance"))
-    def atom_pair_dist(self):
-        bs = self.atom_pair_block_size
-        b_ind = self.block_interactions.transpose(0, 1)
-        c_b = self.coord_blocks
+        nonnan_atoms = (c_isnan.sum(dim=-1) == 0)
+        atoms_per_block = nonnan_atoms.reshape(nb, bs).sum(dim=-1).type(torch.float)
+        nonnan_blocks = atoms_per_block > 0
 
-        blocked_from = c_b[b_ind[0]].reshape((-1, bs, 1, 3))
-        blocked_to = c_b[b_ind[1]].reshape((-1, 1, bs, 3))
+        block_centers = coords.reshape((nb, bs, 3)).sum(dim=-2) / atoms_per_block.reshape((nb, 1)).expand((-1, 3))
+        block_radii = (
+            (coords.reshape((nb, bs, 3)) - block_centers.reshape((nb, 1, 3)))
+                .norm(dim=-1)
+                .where(nonnan_atoms.reshape((nb, bs)), torch.Tensor([0]))
+                .max(dim=1)[0]
+        )
 
-        blocked_dist = (blocked_from - blocked_to).norm(dim=-1)
+        interblock_triu_ind = self.block_triu_indices[:,
+             (nonnan_blocks[self.block_triu_indices].sum(dim=0) == 2).nonzero().squeeze(dim=-1)]
 
-        dist = blocked_dist.reshape(-1)
-        dist.register_hook(self.nan_to_num)
+        interblock_triu_dist = (block_centers[interblock_triu_ind[0]] - block_centers[interblock_triu_ind[1]]).norm(dim=-1)
+        interblock_triu_min_atomic_dist = interblock_triu_dist - block_radii[interblock_triu_ind].sum(dim=0)
 
-        return dist
+        interblock_triu_matches = interblock_triu_ind[:,
+              (interblock_triu_min_atomic_dist < self.interatomic_threshold_distance).nonzero().squeeze(dim=-1)]
+
+        interblock_atom_pair_ind = (
+            ((interblock_triu_matches.reshape((2, -1, 1, 1)) * bs) +
+             torch.LongTensor(numpy.mgrid[:bs,:bs]).reshape((2, 1, bs, bs)))
+            .reshape(2, -1)
+        )
+
+        intrablock_triu = torch.stack(tuple(map(torch.LongTensor, numpy.triu_indices(bs))))
+        intrablock_atom_pair_ind = (
+            (intrablock_triu.reshape(2, 1, -1) +
+             (torch.LongTensor(numpy.arange(nb)).reshape(1, nb, 1) * bs))
+            .reshape(2, -1)
+        )
+
+        return torch.cat((intrablock_atom_pair_ind, interblock_atom_pair_ind), dim=-1)
