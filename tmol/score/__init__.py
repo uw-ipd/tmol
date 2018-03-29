@@ -17,7 +17,7 @@ import tmol.io.generic
 import tmol.io.pdb_parsing as pdb_parsing
 
 from .bonded_atom import BondedAtomScoreGraph
-from .blocked_distance import BlockedInteratomicDistanceGraph
+from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
 
 @functools.singledispatch
@@ -29,7 +29,12 @@ def system_graph_params(system, drop_missing_atoms=False):
     if drop_missing_atoms:
         atom_types[numpy.any(numpy.isnan( system.coords ), axis=-1)] = None
 
-    return dict(bond_graph = bond_graph, coords=coords, atom_types=atom_types)
+    return dict(
+        system_size=len(coords),
+        bond_graph=bond_graph,
+        coords=coords,
+        atom_types=atom_types
+    )
 
 
 class ScoreGraph(

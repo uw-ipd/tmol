@@ -3,6 +3,7 @@ import numpy
 import torch
 import torch.autograd
 
+import properties
 from properties import  Dictionary, StringChoice
 
 from tmol.properties.reactive import derived_from
@@ -10,7 +11,7 @@ from tmol.properties.array import Array, VariableT, TensorT
 
 import tmol.genericnumeric as gn
 
-from .blocked_distance import BlockedInteratomicDistanceGraph
+from .interatomic_distance import InteratomicDistanceGraphBase
 
 param_dtype = numpy.dtype([
     ("lj_radius", numpy.float),
@@ -36,7 +37,12 @@ pair_param_dtype = numpy.dtype([
     ("lk_inv_lambda2", numpy.float)
 ])
 
-class LJLKScoreGraph(BlockedInteratomicDistanceGraph):
+class LJLKScoreGraph(InteratomicDistanceGraphBase):
+
+    def __init__(self, **kwargs):
+        self.score_components.add("total_lk")
+        self.score_components.app("total_lj")
+        super().__init__(**kwargs)
 
     @derived_from(("chemical_db"), Array(
         "per-atom-type lk/lj score parameters, last entry (-1) is nan-filled for a 'dummy' value",
@@ -213,3 +219,12 @@ class LJLKScoreGraph(BlockedInteratomicDistanceGraph):
             interaction_weight > 0,
             torch.autograd.Variable(torch.Tensor([0.0]), requires_grad=False)
         )
+
+
+    @derived_from("lj", VariableT("total inter-atomic lj"))
+    def total_lj(self):
+        return self.lj.sum()
+
+    @derived_from("lk", VariableT("total inter-atomic lk"))
+    def total_lk(self):
+        return self.lk.sum()

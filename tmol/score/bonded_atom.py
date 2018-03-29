@@ -5,7 +5,7 @@ import numpy
 
 import scipy.sparse
 
-from tmol.properties.reactive import derived_from
+from tmol.properties.reactive import derived_from, cached
 from tmol.properties.array import Array, VariableT, TensorT
 from tmol.properties import eq_by_is
 
@@ -18,6 +18,8 @@ class BondedAtomScoreGraph(properties.HasProperties):
             ~numpy.isnan(var.detach()),
             torch.Tensor([0.0])
         )
+
+    system_size = properties.Integer("number of atoms in system", min=1, cast=True)
 
     bond_graph = eq_by_is(properties.Instance(
         "inter-atomic bond graph",
@@ -41,14 +43,22 @@ class BondedAtomScoreGraph(properties.HasProperties):
             unweighted=True
         ).astype("f4")
 
-    @derived_from(("lj", "lk"), TensorT("inter-atomic total score"))
-    def atom_scores(self):
-        raise NotImplementedError()
-        return torch.sum((self.lj + self.lk).data, dim=-1)
+    score_components = properties.Set(
+        "total score components",
+        prop=properties.String("attribute name of scalar tensor property"),
+        default = set(),
+        observe_mutations = True
+    )
 
-    @derived_from(("lj", "lk"), VariableT("system total score"))
+    @cached(VariableT("sum of score_components"))
     def total_score(self):
-        return torch.sum(self.lj + self.lk)
+        assert len(self.score_components) > 0
+        return sum(getattr(self, component) for component in self.score_components)
+
+    @properties.observer(properties.everything)
+    def on_change(self, change):
+        if change["name"] in self.score_components:
+            self._set("total_score", properties.undefined)
 
     def step(self):
         """Recalculate total_score and gradients wrt/ coords. Does not clear coord grads."""
