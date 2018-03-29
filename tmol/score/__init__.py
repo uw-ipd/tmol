@@ -19,11 +19,12 @@ import tmol.io.pdb_parsing as pdb_parsing
 from .bonded_atom import BondedAtomScoreGraph
 from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
+from .types import RealTensor
 
 @functools.singledispatch
 def system_graph_params(system, drop_missing_atoms=False):
     bond_graph = system.bond_graph
-    coords = torch.autograd.Variable(torch.Tensor(system.coords), requires_grad=True)
+    coords = torch.autograd.Variable(RealTensor(system.coords), requires_grad=True)
     atom_types = system.atom_types.copy()
 
     if drop_missing_atoms:

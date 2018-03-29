@@ -9,14 +9,17 @@ from tmol.properties.reactive import derived_from, cached
 from tmol.properties.array import Array, VariableT, TensorT
 from tmol.properties import eq_by_is
 
+import tmol.database
 from tmol.database import ChemicalDatabase
+
+from .types import RealTensor
 
 class BondedAtomScoreGraph(properties.HasProperties):
     @staticmethod
     def nan_to_num(var):
         return var.where(
             ~numpy.isnan(var.detach()),
-            torch.Tensor([0.0])
+            RealTensor([0.0])
         )
 
     system_size = properties.Integer("number of atoms in system", min=1, cast=True)
@@ -29,7 +32,8 @@ class BondedAtomScoreGraph(properties.HasProperties):
 
     atom_types = Array("atomic types", dtype=object)[:]
 
-    chemical_db = properties.Instance("parameter database", ChemicalDatabase)
+    chemical_db = properties.Instance("parameter database", ChemicalDatabase,
+            default=tmol.database.basic)
 
     @derived_from("atom_types", VariableT("mask of 'real' atom indicies"))
     def real_atoms(self):

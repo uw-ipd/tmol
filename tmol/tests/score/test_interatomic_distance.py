@@ -61,6 +61,14 @@ class TestInteratomicDistance(unittest.TestCase):
         class BlockedGraph(ThresholdDistanceCount, BlockedInteratomicDistanceGraph):
             pass
 
+        scipy_distance = pdist(test_structure.coords)
+        scipy_count = numpy.count_nonzero(scipy_distance < 6.0)
+
+        self.assertEqual(
+            scipy_count,
+            NaiveGraph(**test_params).total_score,
+        )
+
         self.assertEqual(
             NaiveGraph(**test_params).total_score,
             BlockedGraph(**test_params).total_score,
