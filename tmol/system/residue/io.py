@@ -11,7 +11,7 @@ import tmol.database.chemical
 from .restypes import AtomType, ResidueType
 from .packed import Residue
 
-import logging
+from tmol.utility.log import LoggerMixin
 
 def residue_type_from_database(tbls):
     """Create residue type from database tables."""
@@ -38,8 +38,12 @@ def residue_type_from_database(tbls):
     )
 
 
-class ResidueReader(properties.HasProperties):
-    residue_db = properties.Instance("source chemical db", tmol.database.chemical.Residues)
+class ResidueReader(properties.HasProperties, LoggerMixin):
+    residue_db = properties.Instance(
+        "source chemical db",
+        tmol.database.chemical.Residues,
+        default = tmol.database.basic.residues
+    )
     
     @cached(properties.Dictionary("residue types from db by 3-letter code"))
     def residue_types(self):
@@ -53,7 +57,8 @@ class ResidueReader(properties.HasProperties):
         atomns = set(atomns)
         
         candidate_types = self.residue_types.get(resn, [])
-        logging.debug(f"resolved candidate_types resn: {resn} types:{[t.name for t in candidate_types]}")
+        self.logger.debug(
+            f"resolved candidate_types resn: {resn} types:{[t.name for t in candidate_types]}")
         
         if not candidate_types:
             raise ValueError(f"Unknown residue name: {resn}")
@@ -63,14 +68,14 @@ class ResidueReader(properties.HasProperties):
         ]
         
         if len(candidate_types) == 1:
-            logging.debug("unambiguous residue type")
+            self.logger.debug("unambiguous residue type")
             best_idx = 0
         else:
-            logging.debug(f"ambiguous residue types: {[t.name for t in candidate_types]}")
+            self.logger.debug(f"ambiguous residue types: {[t.name for t in candidate_types]}")
             best_idx = min(range(len(candidate_types)), key = lambda i: len(missing_atoms[i]))
 
         if missing_atoms[best_idx]:
-            logging.warning(f"missing atoms in input: {missing_atoms[best_idx]}")
+            self.logger.info(f"missing atoms in input: {missing_atoms[best_idx]}")
         return candidate_types[best_idx]
     
     def parse_atom_block(self, atoms):
@@ -84,7 +89,7 @@ class ResidueReader(properties.HasProperties):
             if atomn in res.residue_type.atom_to_idx:
                 res.atom_coords[atomn] = coord.values
             else:
-                logging.warning(f"unknown atom name: {atomn}")
+                self.logger.info(f"unknown atom name: {atomn}")
         return res
     
     def parse_pdb(self, source_pdb):
