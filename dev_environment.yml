@@ -7,3 +7,6 @@ dependencies:
   - seaborn
   - h5py
   - flake8
+  - pip:
+    - pytest
+    - pytest-watch
