@@ -209,8 +209,8 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
         dis_rad2 = thresh_dis - lj_lk_pair_data["lj_rad2"]
         x_thresh2 = ( dis_rad2 * dis_rad2 ) * lj_lk_pair_data["lk_inv_lambda2_2"]
 
-        spline_close1_y0 = (np.exp(-x_thresh1) * lj_lk_pair_data["lk_coeff1"] * inv_thresh_dis2);
-        spline_close2_y0 = (np.exp(-x_thresh2) * lj_lk_pair_data["lk_coeff2"] * inv_thresh_dis2);
+        spline_close1_y0 = (gn.exp(-x_thresh1) * lj_lk_pair_data["lk_coeff1"] * inv_thresh_dis2);
+        spline_close2_y0 = (gn.exp(-x_thresh2) * lj_lk_pair_data["lk_coeff2"] * inv_thresh_dis2);
         lj_lk_pair_data["lk_spline_close_y0"] = spline_close1_y0 + spline_close2_y0
 
         ##
@@ -225,12 +225,12 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
 
         dis_rad_x1 = lj_lk_pair_data["lk_spline_close_x1"] - lj_lk_pair_data["lj_rad1"]
         x_x1 = ( dis_rad_x1 * dis_rad_x1 ) * lj_lk_pair_data["lk_inv_lambda2_1"]
-        y_1 = np.exp(-x_x1) * lj_lk_pair_data["lk_coeff1"] * invdist2_close
+        y_1 = gn.exp(-x_x1) * lj_lk_pair_data["lk_coeff1"] * invdist2_close
         dy_1 = -2 * ( dis_rad_x1 * lj_lk_pair_data["lk_inv_lambda2_1"] + invdist_close ) * y_1
 
         dis_rad_x2 = lj_lk_pair_data["lk_spline_close_x1"] - lj_lk_pair_data["lj_rad2"]
         x_x2 = ( dis_rad_x2 * dis_rad_x2 ) * lj_lk_pair_data["lk_inv_lambda2_2"]
-        y_2 = np.exp(-x_x2) * lj_lk_pair_data["lk_coeff2"] * invdist2_close
+        y_2 = gn.exp(-x_x2) * lj_lk_pair_data["lk_coeff2"] * invdist2_close
         dy_2 = -2 * ( dis_rad_x2 * lj_lk_pair_data["lk_inv_lambda2_2"] + invdist_close ) * y_2
 
         lj_lk_pair_data["lk_spline_close_y1"] = (y_1 + y_2)
@@ -243,12 +243,12 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
 
         dis_rad_x3 = global_params["spline_start"] - lj_lk_pair_data["lj_rad1"]
         x_x3 = ( dis_rad_x3 * dis_rad_x3 ) * lj_lk_pair_data["lk_inv_lambda2_1"]
-        y_3 = np.exp(-x_x3) * lj_lk_pair_data["lk_coeff1"] * invdist2_far
+        y_3 = gn.exp(-x_x3) * lj_lk_pair_data["lk_coeff1"] * invdist2_far
         dy_3 = -2 * ( dis_rad_x3 * lj_lk_pair_data["lk_inv_lambda2_1"] + invdist_far ) * y_3
 
         dis_rad_x4 = global_params["spline_start"] - lj_lk_pair_data["lj_rad2"]
         x_x4 = ( dis_rad_x4 * dis_rad_x4 ) * lj_lk_pair_data["lk_inv_lambda2_2"]
-        y_4 = np.exp(-x_x4) * lj_lk_pair_data["lk_coeff2"] * invdist2_far
+        y_4 = gn.exp(-x_x4) * lj_lk_pair_data["lk_coeff2"] * invdist2_far
         dy_4 = -2 * ( dis_rad_x4 * lj_lk_pair_data["lk_inv_lambda2_2"] + invdist_far ) * y_4
 
         lj_lk_pair_data["lk_spline_far_y0"] = (y_3 + y_4)
@@ -379,26 +379,72 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
         ("atom_pair_dist", "atom_types", "chemical_db", "bond_graph"),
         VariableT("inter-atomic lk score"))
     def lk(self):
-        # lk -- for now, non-smoothed version
-        # dis1 = self.atom_pair_dist - self._pair_param("lj_rad1", self.atom_pair_inds)
-        # dis2 = self.atom_pair_dist - self._pair_param("lj_rad2", self.atom_pair_inds)
+        ##
+        # lk
+        dists = self.atom_pair_dist
+        invdist2 = self.atom_pair_invdist2
+        lj_lk_globals = self.global_ljlk_params
 
-        # x1 = dis1 * dis1 * self._pair_param("lk_inv_lambda1", self.atom_pair_inds)
-        # x2 = dis2 * dis2 * self._pair_param("lk_inv_lambda2", self.atom_pair_inds)
+        flat_selector = (dists < self._pair_param("lk_spline_close_x0"))
+        flat_component    = self._pair_param("lk_spline_close_y0")
+
+        # "near" spline part
+        # we sum both spline coeffs together rather than summing splines
+        near_spline_selector = (
+            (dists >= self._pair_param("lk_spline_close_x0")) &
+            (dists < self._pair_param("lk_spline_close_x1"))
+        )
+        x = dists
+        x0 = self._pair_param("lk_spline_close_x0")
+        x1 = self._pair_param("lk_spline_close_x1")
+        y0 = self._pair_param("lk_spline_close_y0")
+        y1 = self._pair_param("lk_spline_close_y1")
+        dy1 = self._pair_param("lk_spline_close_dy1")
+        u0 = (3.0/(x1-x0))*((y1-y0)/(x1-x0))
+        u1 = (3.0/(x1-x0))*(dy1 - (y1-y0)/(x1-x0))
+        near_spline_component = ((x-x1)*((x-x0)*(u1*(x0-x) + u0*(x-x1)) + 3*y0)) / (3*(x0-x1))
+
+        # analytic LK part
+        analytic_selector = (
+            (dists >= self._pair_param("lk_spline_close_x1")) &
+            (dists < lj_lk_globals["spline_start"])
+        )
+
+        dis1 = dists - self._pair_param("lj_rad1")
+        dis2 = dists - self._pair_param("lj_rad2")
+        x1 = dis1 * dis1 * self._pair_param("lk_inv_lambda2_1")
+        x2 = dis2 * dis2 * self._pair_param("lk_inv_lambda2_2")
+        analytic_component = invdist2 * (
+            gn.exp(-x1) * self._pair_param("lk_coeff1") +
+            gn.exp(-x2) * self._pair_param("lk_coeff2")
+        )
+
+        # "far" spline  part
+        # we sum both spline coeffs together rather than summing splines
+        x0 = lj_lk_globals["spline_start"]
+        x1 = lj_lk_globals["max_dis"]
+        far_spline_selector = ((dists >= x0) & (dists < x1))
+        x = dists
+        y0 = self._pair_param("lk_spline_far_y0")
+        dy0 = self._pair_param("lk_spline_far_dy0")
+        u0 = (3.0/(x1-x0))*((-y0)/(x1-x0) - dy0)
+        u1 = (3.0/(x1-x0))*( y0/(x1-x0))
+        far_spline_component = ((x-x1)*((x-x0)*(u1*(x0-x) + u0*(x-x1)) + 3*y0)) / (3*(x0-x1))
+
+        raw_lk = (
+            (flat_component * flat_selector.type(RealTensor)) +
+            (near_spline_component * near_spline_selector.type(RealTensor)) +
+            (analytic_component * analytic_selector.type(RealTensor)) +
+            (far_spline_component * far_spline_selector.type(RealTensor))
+        )
 
         interaction_weight = self._pair_interaction_weight(self.atom_pair_inds)
 
-        # lk = interaction_weight * self.atom_pair_invdist2 * (
-            # gn.exp(-x1) * self._pair_param("lk_coeff1", self.atom_pair_inds) +
-            # gn.exp(-x2) * self._pair_param("lk_coeff2", self.atom_pair_inds)
-        # )
-
         return torch.where(
             interaction_weight > 0,
-            torch.autograd.Variable(RealTensor([0.0]), requires_grad=False),
+            interaction_weight * raw_lk,
             torch.autograd.Variable(RealTensor([0.0]), requires_grad=False)
         )
-
 
     @derived_from("lj", VariableT("total inter-atomic lj"))
     def total_lj(self):

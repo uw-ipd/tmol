@@ -31,7 +31,8 @@ class TestLJLK(unittest.TestCase):
             rtol = 5e-3
         )
 
-        self.assertAlmostEqual(
-            float(tmol.score.ScoreGraph(**test_params).total_lk),
-            expected_scores["lk"]
+        numpy.testing.assert_allclose(
+            tmol.score.ScoreGraph(**test_params).total_lk.detach(),
+            expected_scores["lk"],
+            rtol = 5e-3
         )
