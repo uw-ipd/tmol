@@ -40,11 +40,12 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
             self.coords[self.atom_pair_inds[0]] - self.coords[self.atom_pair_inds[1]]
         ).norm(dim=-1)
 
-        dist.register_hook(self.nan_to_num)
+        if dist.requires_grad:
+            dist.register_hook(self.nan_to_num)
 
         return dist
 
-    
+
     def atom_pair_to_dense(self, atom_pair_term, null_value=numpy.nan):
         sp = scipy.sparse.coo_matrix(
             (atom_pair_term, tuple(self.atom_pair_inds)),

@@ -22,9 +22,9 @@ from .ljlk import LJLKScoreGraph
 from .types import RealTensor
 
 @functools.singledispatch
-def system_graph_params(system, drop_missing_atoms=False):
+def system_graph_params(system, drop_missing_atoms=False, requires_grad=True):
     bond_graph = system.bond_graph
-    coords = torch.autograd.Variable(RealTensor(system.coords), requires_grad=True)
+    coords = torch.autograd.Variable(RealTensor(system.coords), requires_grad=requires_grad)
     atom_types = system.atom_types.copy()
 
     if drop_missing_atoms:
