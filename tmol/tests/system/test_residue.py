@@ -7,7 +7,10 @@ from tmol.system.residue import ResidueReader, PackedResidueSystem
 
 class testResidueSystem(unittest.TestCase):
     def test_smoke_io(self):
-        for tname, pdb in test_pdbs.items():
+        test_names = ["1QYS", "1UBQ"]
+
+        for tname in test_names:
+            pdb = test_pdbs[tname]
             residues = ResidueReader().parse_pdb(pdb)
             system = PackedResidueSystem().from_residues(residues)
 
