@@ -26,6 +26,29 @@ class ChemicalDatabase(properties.HasProperties):
             }},
             'lower_connect' : {'type': 'string', 'required' : True},
             'upper_connect' : {'type': 'string', 'required' : True},
+            'hbond': {"type" : "dict", "required" : False, "schema": {
+              'donors': {'type': 'list', "schema" : { "type" : "dict", "schema": {
+                  'd' : {'type': 'string', 'required' : True},
+                  'h' : {'type': 'string', 'required' : True},
+              }}},
+              'acceptors': {"type" : "dict", "schema": {
+                  "ring" : {'type': 'list', "schema" : { "type" : "dict", "schema": {
+                      'a' : {'type': 'string', 'required' : True},
+                      'b' : {'type': 'string', 'required' : True}
+                  }}},
+                  "sp2" : {'type': 'list', "schema" : { "type" : "dict", "schema": {
+                      'a' : {'type': 'string', 'required' : True},
+                      'b' : {'type': 'string', 'required' : True},
+                      'b0' : {'type': 'string', 'required' : True},
+                  }}},
+                  "sp3" : {'type': 'list', "schema" : { "type" : "dict", "schema": {
+                      'a' : {'type': 'string', 'required' : True},
+                      'b' : {'type': 'string', 'required' : True},
+                      'b0a' : {'type': 'string', 'required' : True},
+                      'b0b' : {'type': 'string', 'required' : True},
+                  }}},
+              }},
+            }},
           }
         }
       }

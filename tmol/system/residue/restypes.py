@@ -26,15 +26,64 @@ class AtomType(AttrMapping):
     name = attr.ib()
     atom_type = attr.ib()
 
+
+@attr.s(slots=True, frozen=True)
+class HBondDonor(AttrMapping):
+    d = attr.ib()
+    h = attr.ib()
+
+
+@attr.s(slots=True, frozen=True)
+class HBondRingAcceptor(AttrMapping):
+    a = attr.ib()
+    b = attr.ib()
+
+
+@attr.s(slots=True, frozen=True)
+class HBondSP2Acceptor(AttrMapping):
+    a = attr.ib()
+    b = attr.ib()
+    b0 = attr.ib()
+
+
+@attr.s(slots=True, frozen=True)
+class HBondSP3Acceptor(AttrMapping):
+    a = attr.ib()
+    b = attr.ib()
+    b0a = attr.ib()
+    b0b = attr.ib()
+
+
+@attr.s(slots=True, frozen=True)
+class HBondAcceptorGroups(AttrMapping):
+    ring = attr.ib(converter=compose(tuple, map(HBondRingAcceptor.from_dict)), default=[])
+    sp2 = attr.ib(converter=compose(tuple, map(HBondSP2Acceptor.from_dict)), default=[])
+    sp3 = attr.ib(converter=compose(tuple, map(HBondSP3Acceptor.from_dict)), default=[])
+
+
+@attr.s(slots=True, frozen=True)
+class HBondData(AttrMapping):
+    donors = attr.ib(
+        converter=compose(tuple, map(HBondDonor.from_dict)),
+        default=[]
+    )
+    acceptors = attr.ib(
+        converter=HBondAcceptorGroups.from_dict,
+        default=HBondAcceptorGroups()
+    )
+
+
 @attr.s(slots=True, frozen=True)
 class ResidueType(AttrMapping):
     name : str = attr.ib(converter=str)
     name3 : str = attr.ib(converter=str)
-    atoms = attr.ib(converter=compose(list, map(AtomType.from_dict)))
-    bonds = attr.ib(converter=compose(map(tuple)))
+    atoms = attr.ib(converter=compose(tuple, map(AtomType.from_dict)))
+    bonds = attr.ib(converter=compose(tuple, map(tuple)))
 
     lower_connect = attr.ib(converter=str)
     upper_connect = attr.ib(converter=str)
+
+    hbond = attr.ib(converter=HBondData.from_dict, default=HBondData())
 
     atom_to_idx = attr.ib()
     @atom_to_idx.default

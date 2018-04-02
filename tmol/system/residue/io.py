@@ -14,31 +14,6 @@ from .packed import Residue
 
 from tmol.utility.log import LoggerMixin
 
-def residue_type_from_database(tbls):
-    """Create residue type from database tables."""
-    name = just_one(tbls["NAME"]["name"].values)
-    aa = just_one(tbls["AA"]["name"].values)
-
-    atoms = tuple(
-        AtomType(fq_name = f"{name}.{atom['name']}", **atom)
-        for atom in tbls["ATOM"].to_dict("records")
-    )
-
-    bonds = tuple(map(tuple, tbls["BOND"][["atom_a", "atom_b"]].values))
-
-    lower_connect = just_one(tbls["LOWER_CONNECT"]["name"].values)
-    upper_connect = just_one(tbls["UPPER_CONNECT"]["name"].values)
-
-    return ResidueType(
-        name=name,
-        aa=aa,
-        atoms=atoms,
-        bonds=bonds,
-        lower_connect=lower_connect,
-        upper_connect=upper_connect
-    )
-
-
 class ResidueReader(properties.HasProperties, LoggerMixin):
     chemical_db : ChemicalDatabase = properties.Instance(
         "source chemical db",
