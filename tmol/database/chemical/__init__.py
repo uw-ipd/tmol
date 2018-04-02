@@ -1,97 +1,52 @@
-import io
-import re
-import glob
-from toolz import curry
-from toolz.curried import first, filter, map, compose
-
-import pandas
-import numpy
-
+import os
+import yaml
+import cerberus
 import properties
-from properties import HasProperties, String, Instance, Dictionary
+import pprint
 
-from tmol.properties.reactive import cached, derived_from
-from tmol.properties.array import Array
 
-from tmol.io.flatfiledb import FlatFileDB
-
-class AtomProperties(properties.HasProperties):
-    source = properties.String("atom properties table")
-
-    @properties.File("source file", mode="r")
-    def source_file(self):
-        return self.source
-
-    @cached(properties.List("source property lines"))
-    def lines(self):
-        sub = curry(re.sub)
-
-        filters = compose(
-            str.strip,
-            sub("#.*", "")
-        )
-
-        return list(filter(None, map(filters, self.source_file.readlines())))
-
-    @cached(Instance("atom properties, index by atom type name", pandas.DataFrame))
-    def table(self):
-        table_width = len(self.lines[0])
-        table_lines = [l[:table_width] for l in self.lines]
-
-        header_widths = [l + 1 for l in map(len, table_lines[0].split())]
-        header_widths = [5, 6, header_widths[2] - 1] + header_widths[3:] 
-        table = pandas.read_fwf(io.StringIO("\n".join(table_lines)), colspecs=None, widths=header_widths)
-
-        for col in table_lines[0].split()[2:]:
-            assert table.dtypes[col] == float
-
-        cols = {c : c.lower() for c in table.columns}
-        cols["ATOM"] = "elem"
-
-        table = table.rename(columns=cols)
-
-        tags = [l[table_width:].split() for l in self.lines[1:]]
-
-        tag_mapping = {
-            "is_donor" : "DONOR",
-            "is_acceptor" : "ACCEPTOR",
-            "is_polarh" : "POLAR_H",
-            "is_hydroxyl" : "HYDROXYL",
+class ChemicalDatabase(properties.HasProperties):
+    parameter_schema = {
+      "atom_types" : {
+        "type" : "list",
+      },
+      "residues" : {
+        "type" : "list",
+        "schema" : {
+          "type" : "dict",
+          "schema" : {
+            'name' : {'type': 'string', 'required' : True},
+            'name3': {'type': 'string' },
+            'atoms': {'type': 'list', 'required' : True, "schema" : { "type" : "dict", "schema": {
+                'name' : {'type': 'string', 'required' : True},
+                'atom_type' : {'type': 'string', 'required' : True},
+            }}},
+            'bonds': {'type': 'list', 'required' : True, "schema" : {
+                "type" : "list", "minlength" : 2, "maxlength" : 2,
+            }},
+            'lower_connect' : {'type': 'string', 'required' : True},
+            'upper_connect' : {'type': 'string', 'required' : True},
+          }
         }
+      }
+    }
 
-        for t, at in tag_mapping.items():
-            table[t] = [at in ts for ts in tags]
+    parameters = properties.Dictionary("chemical datatypes")
 
-        return table.set_index("name")
+    @classmethod
+    def load(cls, path):
+        path = os.path.join(path, "chemical.yaml")
+        with open(path, "r") as infile:
+            raw = yaml.load(infile)
 
-    @derived_from("table",
-        properties.Instance("atom type name to atom type index mapping", pandas.Series))
-    def name_to_idx(self):
-        return pandas.Series(
-            data = numpy.arange(len(self.table.index)),
-            index = self.table.index
+        validator = cerberus.Validator(cls.parameter_schema)
+        parameters = validator.validated(raw)
+        if validator.errors:
+            raise ValueError(
+                f"Error loading database source: {path}:\n" +
+                pprint.pformat(validator.errors, indent=2)
+            )
+
+        return cls(
+            parameters = parameters,
         )
-
-
-class Residues(properties.HasProperties):
-    source = String("Residue source directory.")
-
-    @cached(Dictionary("residue data tables, by unique residue name"))
-    def by_name(self):
-        result = {}
-        for inf in glob.glob(f"{self.source}/*.params"):
-            rdb = FlatFileDB.read(inf)
-            resn = rdb["NAME"]["name"].values[0]
-            result[resn] = rdb
-        return result
-
-class ChemicalDatabase(HasProperties):
-    source = String("Database source file.")
-
-    @cached(Instance("atom properties table", AtomProperties))
-    def atom_properties(self):
-        return AtomProperties(source = f"{self.source}/atom_properties.txt")
-
-    @cached(Instance("residue type database", Residues))
-    def residues(self):
-        return Residues(source = f"{self.source}/l-caa")

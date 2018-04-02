@@ -1,5 +1,6 @@
 from frozendict import frozendict
 from toolz.curried import concat, map
+from toolz import compose
 import attr
 
 import numpy
@@ -7,24 +8,33 @@ import numpy
 import collections
 
 class AttrMapping(collections.abc.Mapping):
+    @classmethod
+    def from_dict(cls, d):
+        return cls(**d)
+
     def __getitem__(self, k):
         return getattr(self, k)
-    
+
     def __iter__(self):
         return iter(self.__slots__)
-    
+
     def __len__(self):
         return len(self.__slots__)
 
 @attr.s(slots=True, frozen=True)
-class ResidueType(AttrMapping):
+class AtomType(AttrMapping):
     name = attr.ib()
-    aa = attr.ib()
-    atoms = attr.ib()
-    bonds = attr.ib()
+    atom_type = attr.ib()
 
-    lower_connect = attr.ib()
-    upper_connect = attr.ib()
+@attr.s(slots=True, frozen=True)
+class ResidueType(AttrMapping):
+    name : str = attr.ib(converter=str)
+    name3 : str = attr.ib(converter=str)
+    atoms = attr.ib(converter=compose(list, map(AtomType.from_dict)))
+    bonds = attr.ib(converter=compose(map(tuple)))
+
+    lower_connect = attr.ib(converter=str)
+    upper_connect = attr.ib(converter=str)
 
     atom_to_idx = attr.ib()
     @atom_to_idx.default
@@ -60,14 +70,6 @@ class ResidueType(AttrMapping):
     @upper_connect_idx.default
     def _setup_upper_connect_idx(self):
         return self.atom_to_idx[self.upper_connect]
-    
+
     def _repr_pretty_(self, p, cycle):
         p.text(f'ResidueType(name={self.name},...)')
-
-
-@attr.s(slots=True, frozen=True)
-class AtomType(AttrMapping):
-    fq_name = attr.ib()
-    name = attr.ib()
-    atom_type = attr.ib()
-

@@ -12,7 +12,7 @@ class ParameterDatabase(properties.HasProperties):
     def load(cls, path=os.path.dirname(__file__)):
         return cls(
             scoring  = ScoringDatabase.load(os.path.join(path, "scoring")),
-            chemical = ChemicalDatabase(source = os.path.join(path, "basic"))
+            chemical = ChemicalDatabase.load(os.path.join(path, "chemical"))
         )
 
 default = ParameterDatabase.load()

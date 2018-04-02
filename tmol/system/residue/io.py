@@ -7,6 +7,7 @@ from toolz.curried import groupby
 from tmol.utility import unique_val, just_one
 import tmol.io.pdb_parsing as pdb_parsing
 import tmol.database.chemical
+from tmol.database.chemical import ChemicalDatabase
 
 from .restypes import AtomType, ResidueType
 from .packed import Residue
@@ -39,20 +40,20 @@ def residue_type_from_database(tbls):
 
 
 class ResidueReader(properties.HasProperties, LoggerMixin):
-    residue_db = properties.Instance(
+    chemical_db : ChemicalDatabase = properties.Instance(
         "source chemical db",
-        tmol.database.chemical.Residues,
-        default = tmol.database.default.chemical.residues
+        ChemicalDatabase,
+        default = tmol.database.default.chemical,
     )
-    
+
     @cached(properties.Dictionary("residue types from db by 3-letter code"))
     def residue_types(self):
         return groupby(
-            lambda restype: restype.aa,
-            map(residue_type_from_database, self.residue_db.by_name.values())
+            lambda restype: restype.name3,
+            [ResidueType(**r) for r in self.chemical_db.parameters["residues"]]
         )
-    
-    
+
+
     def resolve_type(self, resn, atomns):
         atomns = set(atomns)
         

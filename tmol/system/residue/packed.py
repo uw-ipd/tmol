@@ -39,17 +39,17 @@ class Residue:
             p.pretty(self.coords)
 
 class PackedResidueSystem(prop.HasProperties):
-    
+
     block_size = prop.Integer(
         "coord buffer block size, residue start indicies are aligned to block boundries",
         default=8, min=1, cast=True
     )
-    
+
     residues = prop.List(
         "residue objects packed into system",
         prop=prop.Instance("attached residue", Residue)
     )
-    
+
     start_ind = Array(
         "residue start indicies within `coords`",
         dtype=int)[:]
