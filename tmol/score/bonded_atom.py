@@ -9,9 +9,6 @@ from tmol.properties.reactive import derived_from, cached
 from tmol.properties.array import Array, VariableT, TensorT
 from tmol.properties import eq_by_is
 
-import tmol.database
-from tmol.database import ChemicalDatabase
-
 from .types import RealTensor
 
 class BondedAtomScoreGraph(properties.HasProperties):
@@ -31,9 +28,6 @@ class BondedAtomScoreGraph(properties.HasProperties):
     coords = VariableT("source atomic coordinates")
 
     atom_types = Array("atomic types", dtype=object)[:]
-
-    chemical_db = properties.Instance("parameter database", ChemicalDatabase,
-            default=tmol.database.basic)
 
     @derived_from("atom_types", VariableT("mask of 'real' atom indicies"))
     def real_atoms(self):

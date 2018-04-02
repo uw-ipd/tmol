@@ -42,7 +42,7 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
     residue_db = properties.Instance(
         "source chemical db",
         tmol.database.chemical.Residues,
-        default = tmol.database.basic.residues
+        default = tmol.database.default.chemical.residues
     )
     
     @cached(properties.Dictionary("residue types from db by 3-letter code"))

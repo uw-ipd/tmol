@@ -1,8 +1,18 @@
-import json
 import os
+import properties
 
 from .chemical import ChemicalDatabase
+from .scoring  import ScoringDatabase
 
-basedir = os.path.dirname(__file__)
+class ParameterDatabase(properties.HasProperties):
+    scoring  : ScoringDatabase  = properties.Instance("scoring databases", ScoringDatabase)
+    chemical : ChemicalDatabase = properties.Instance("chemical composition", ChemicalDatabase)
 
-basic = ChemicalDatabase(source = f"{basedir}/basic")
+    @classmethod
+    def load(cls, path=os.path.dirname(__file__)):
+        return cls(
+            scoring  = ScoringDatabase.load(os.path.join(path, "scoring")),
+            chemical = ChemicalDatabase(source = os.path.join(path, "basic"))
+        )
+
+default = ParameterDatabase.load()

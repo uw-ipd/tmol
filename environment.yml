@@ -9,9 +9,11 @@ dependencies:
   - numba
   - requests
   - toolz
+  - pyyaml
   - asford::pytorch-cpu
 
   - pip:
     - attrs
     - properties
     - frozendict
+    - Cerberus
