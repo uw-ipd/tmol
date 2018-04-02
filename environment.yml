@@ -2,6 +2,7 @@ name: tmol
 dependencies:
   # Core dev requirements
   - python=3.6
+  - ipython
   - numpy
   - pandas
   - scipy
