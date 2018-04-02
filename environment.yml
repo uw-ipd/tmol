@@ -5,11 +5,11 @@ dependencies:
   - numpy
   - pandas
   - scipy
-  - biopython
   - numba
   - requests
   - toolz
   - pyyaml
+  - pytest
   - asford::pytorch-cpu
 
   - pip:

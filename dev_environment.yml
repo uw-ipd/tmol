@@ -5,8 +5,7 @@ dependencies:
   - ipython
   - ipykernel
   - seaborn
-  - h5py
+  - biopython
   - flake8
   - pip:
-    - pytest
     - pytest-watch

@@ -14,7 +14,6 @@ install:
 
   # Replace dep1 dep2 ... with your dependencies
   - conda env update -f environment.yml
-  - conda env update -f dev_environment.yml
   - source activate tmol
 
 script:
