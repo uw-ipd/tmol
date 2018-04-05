@@ -6,8 +6,7 @@ import numpy
 import scipy.sparse
 
 from tmol.properties.reactive import derived_from, cached
-from tmol.properties.array import Array, VariableT, TensorT
-from tmol.properties import eq_by_is
+from tmol.properties.array import Array, VariableT
 
 from .types import RealTensor
 
@@ -21,22 +20,25 @@ class BondedAtomScoreGraph(properties.HasProperties):
 
     system_size = properties.Integer("number of atoms in system", min=1, cast=True)
 
-    bond_graph = eq_by_is(properties.Instance(
-        "inter-atomic bond graph",
-        instance_class=scipy.sparse.spmatrix))
-
     coords = VariableT("source atomic coordinates")
 
     atom_types = Array("atomic types", dtype=object)[:]
+
+    bonds = Array(
+        "inter-atomic bond indices",
+        dtype=int, cast="unsafe")[:,2]
 
     @derived_from("atom_types", VariableT("mask of 'real' atom indicies"))
     def real_atoms(self):
         return torch.ByteTensor((self.atom_types != None).astype(numpy.ubyte))
 
-    @derived_from("bond_graph", Array("inter-atomic minimum bonded path length", dtype="f4")[:,:])
+    @derived_from("bonds", Array("inter-atomic minimum bonded path length", dtype="f4")[:,:])
     def bonded_path_length(self):
         return scipy.sparse.csgraph.shortest_path(
-            self.bond_graph,
+            scipy.sparse.coo_matrix(
+                (numpy.ones(self.bonds.shape[0], dtype=bool), (self.bonds[:,0], self.bonds[:,1])),
+                shape=(self.system_size, self.system_size)
+            ),
             directed=False,
             unweighted=True
         ).astype("f4")

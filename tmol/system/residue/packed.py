@@ -60,10 +60,9 @@ class PackedResidueSystem(prop.HasProperties):
         "atomic coordinate buffer, nan-filled in 'unused' regions",
         dtype=float, cast="unsafe")[:,3]
 
-    bond_graph = eq_by_is(prop.Instance(
-        "Inter-atomic bonds",
-        scipy.sparse.spmatrix)
-    )
+    bonds = Array(
+        "inter-atomic bond indices",
+        dtype=int, cast="unsafe")[:,2]
 
     @derived_from(
         ("residues", "start_ind", "system_size"),
@@ -125,12 +124,7 @@ class PackedResidueSystem(prop.HasProperties):
         self.system_size = buffer_size
 
         self.coords = cbuff
-        self.bond_graph = scipy.sparse.coo_matrix((
-                numpy.ones(len(bonds), dtype=bool),
-                (bonds[:,0], bonds[:,1])
-            ),
-            shape=(len(cbuff), len(cbuff))
-        )
+        self.bonds = bonds
 
         self.validate()
 
@@ -152,7 +146,6 @@ def residue_to_cdjson(res):
 def score_graph_to_cdjson(system):
     coords = system.coords
     elems = [t[0] if t else "x" for t in  system.atom_types]
-    bond_graph = system.bond_graph.tocoo()
-    bonds = zip(bond_graph.row, bond_graph.col)
+    bonds = list(map(tuple(system.bonds)))
 
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)

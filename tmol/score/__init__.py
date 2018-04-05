@@ -23,7 +23,7 @@ from .types import RealTensor
 
 @functools.singledispatch
 def system_graph_params(system, drop_missing_atoms=False, requires_grad=True):
-    bond_graph = system.bond_graph
+    bonds = system.bonds
     coords = torch.autograd.Variable(RealTensor(system.coords), requires_grad=requires_grad)
     atom_types = system.atom_types.copy()
 
@@ -32,7 +32,7 @@ def system_graph_params(system, drop_missing_atoms=False, requires_grad=True):
 
     return dict(
         system_size=len(coords),
-        bond_graph=bond_graph,
+        bonds=bonds,
         coords=coords,
         atom_types=atom_types
     )
@@ -73,7 +73,6 @@ def score_graph_to_pdb(score_graph):
 def score_graph_to_cdjson(score_graph):
     coords = score_graph.coords.detach().numpy()
     elems = map(lambda t: t[0] if t else "x", score_graph.atom_types)
-    bond_graph = score_graph.bond_graph.tocoo()
-    bonds = zip(bond_graph.row, bond_graph.col)
+    bonds = list(map(tuple, score_graph.bonds))
 
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)

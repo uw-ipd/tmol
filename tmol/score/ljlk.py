@@ -422,7 +422,7 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
         return RealTensor(result)
 
     @derived_from(
-        ("atom_pair_dist", "atom_types", "chemical_db", "bond_graph"),
+        ("atom_pair_dist", "atom_types", "chemical_db", "bonds"),
         VariableT("inter-atomic lj score"))
     def lj(self):
 
@@ -462,7 +462,7 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
         # repE *= lj_lk_pair_params["weights"]
 
     @derived_from(
-        ("atom_pair_dist", "atom_types", "chemical_db", "bond_graph"),
+        ("atom_pair_dist", "atom_types", "chemical_db", "bonds"),
         VariableT("inter-atomic lk score"))
     def lk(self):
 
