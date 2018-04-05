@@ -10,10 +10,11 @@ import tmol.io.pdb_parsing as pdb_parsing
 import tmol.database.chemical
 from tmol.database.chemical import ChemicalDatabase
 
-from .restypes import ResidueType
-from .packed import Residue
+from .restypes import ResidueType, Residue
+from .packed import PackedResidueSystem
 
 from tmol.utility.log import LoggerMixin
+import tmol.io.generic
 
 class ResidueReader(properties.HasProperties, LoggerMixin):
     chemical_db : ChemicalDatabase = properties.Instance(
@@ -85,3 +86,31 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
             for (m, c, resi), atoms
             in atom_records.groupby(["modeli", "chaini", "resi"])
         ]
+
+
+def read_pdb(pdb_string : str, **kwargs) -> PackedResidueSystem:
+    res = (
+        ResidueReader()
+        .parse_pdb(pdb_string)
+    )
+
+    return PackedResidueSystem(**kwargs).from_residues(res)
+
+@tmol.io.generic.to_cdjson.register(Residue)
+def residue_to_cdjson(res):
+    coords = res.coords
+    elems = [a.atom_type[0] for a in res.residue_type.atoms]
+    bonds = [
+        (res.residue_type.atom_to_idx[b], res.residue_type.atom_to_idx[e])
+        for b, e in res.residue_type.bonds
+    ]
+
+    return tmol.io.generic.pack_cdjson(coords, elems, bonds)
+
+@tmol.io.generic.to_cdjson.register(PackedResidueSystem)
+def packed_system_to_cdjson(system):
+    coords = system.coords
+    elems = [t[0] if t else "x" for t in  system.atom_types]
+    bonds = list(map(tuple(system.bonds)))
+
+    return tmol.io.generic.pack_cdjson(coords, elems, bonds)

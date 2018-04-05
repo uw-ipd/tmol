@@ -6,6 +6,8 @@ import properties
 from scipy.spatial.distance import pdist, squareform
 
 import tmol.system.residue
+from tmol.system.residue.io import read_pdb
+
 import tmol.score.bonded_atom
 from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase,
@@ -32,7 +34,7 @@ class ThresholdDistanceCount(InteratomicDistanceGraphBase):
 
 class TestInteratomicDistance(unittest.TestCase):
     def test_naive_distance_calculation(self):
-        test_structure = tmol.system.residue.read_pdb(test_pdbs["1ubq"])
+        test_structure = read_pdb(test_pdbs["1ubq"])
         test_params = tmol.score.system_graph_params(
             test_structure,
             drop_missing_atoms=True
@@ -49,7 +51,7 @@ class TestInteratomicDistance(unittest.TestCase):
         )
 
     def test_block_distance_by_naive(self):
-        test_structure = tmol.system.residue.read_pdb(test_pdbs["1ubq"])
+        test_structure = read_pdb(test_pdbs["1ubq"])
         test_params = tmol.score.system_graph_params(
             test_structure,
             drop_missing_atoms=True

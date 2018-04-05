@@ -1,66 +1,37 @@
-import properties as prop
-
-import attr
-import numpy
-import scipy
-
+from properties import HasProperties, List, Integer, Instance
 from tmol.properties.array import Array
 from tmol.properties.reactive import derived_from
-from tmol.properties import eq_by_is
-import tmol.io.generic
 
-@attr.s(slots=True, frozen=True)
-class Residue:
-    residue_type = attr.ib()
-    coords = attr.ib()
-    @coords.default
-    def _coord_buffer(self):
-        return numpy.full((len(self.residue_type.atoms), 3), numpy.nan, dtype=float)
-    
-    @property
-    def atom_coords(self):
-        return self.coords.reshape(-1).view(self.residue_type.coord_dtype)
-    
-    def attach_to(self, coord_buffer):
-        assert coord_buffer.shape == self.coords.shape
-        assert coord_buffer.dtype == self.coords.dtype
-        
-        coord_buffer[:] = self.coords
-        
-        return attr.evolve(self, coords = coord_buffer)
-    
-    def _repr_pretty_(self, p, cycle):
-        p.text("Residue")
-        with p.group(1,"(", ")"):
-            p.text("type=")
-            p.pretty(self.residue_type)
-            p.text(", coords=")
-            p.break_()
-            p.pretty(self.coords)
+import numpy
 
-class PackedResidueSystem(prop.HasProperties):
+from typing import Sequence
 
-    block_size = prop.Integer(
+
+from .restypes import Residue
+
+class PackedResidueSystem(HasProperties):
+
+    block_size : int = Integer(
         "coord buffer block size, residue start indicies are aligned to block boundries",
         default=8, min=1, cast=True
     )
 
-    residues = prop.List(
+    residues : Sequence[Residue]  = List(
         "residue objects packed into system",
-        prop=prop.Instance("attached residue", Residue)
+        prop=Instance("attached residue", Residue)
     )
 
-    start_ind = Array(
+    start_ind : Sequence[int] = Array(
         "residue start indicies within `coords`",
         dtype=int)[:]
 
-    system_size = prop.Integer("total system size")
+    system_size : int = Integer("total system size")
 
-    coords = Array(
+    coords : numpy.ndarray = Array(
         "atomic coordinate buffer, nan-filled in 'unused' regions",
         dtype=float, cast="unsafe")[:,3]
 
-    bonds = Array(
+    bonds : numpy.ndarray = Array(
         "inter-atomic bond indices",
         dtype=int, cast="unsafe")[:,2]
 
@@ -129,23 +100,3 @@ class PackedResidueSystem(prop.HasProperties):
         self.validate()
 
         return self
-
-
-@tmol.io.generic.to_cdjson.register(Residue)
-def residue_to_cdjson(res):
-    coords = res.coords
-    elems = [a.atom_type[0] for a in res.residue_type.atoms]
-    bonds = [
-        (res.residue_type.atom_to_idx[b], res.residue_type.atom_to_idx[e])
-        for b, e in res.residue_type.bonds
-    ]
-
-    return tmol.io.generic.pack_cdjson(coords, elems, bonds)
-
-@tmol.io.generic.to_cdjson.register(PackedResidueSystem)
-def score_graph_to_cdjson(system):
-    coords = system.coords
-    elems = [t[0] if t else "x" for t in  system.atom_types]
-    bonds = list(map(tuple(system.bonds)))
-
-    return tmol.io.generic.pack_cdjson(coords, elems, bonds)

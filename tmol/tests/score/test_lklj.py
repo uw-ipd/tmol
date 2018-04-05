@@ -8,13 +8,14 @@ import tmol.system.residue
 import tmol.score
 
 from tmol.tests.data.pdb import data as test_pdbs
+from tmol.system.residue.io import read_pdb
 
 class TestLJLK(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_numpyros_comparison(self):
         test_pdb = test_pdbs["1ubq"]
-        test_structure = tmol.system.residue.read_pdb(test_pdb)
+        test_structure = read_pdb(test_pdb)
 
         test_params = tmol.score.system_graph_params(
             test_structure,
@@ -41,7 +42,7 @@ class TestLJLK(unittest.TestCase):
         )
 
     def test_baseline_comparison(self):
-        test_structure = tmol.system.residue.read_pdb(test_pdbs["1ubq"])
+        test_structure = read_pdb(test_pdbs["1ubq"])
 
         test_params = tmol.score.system_graph_params(
             test_structure,

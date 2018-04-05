@@ -1,9 +1,7 @@
 import unittest
-import numpy
 
 from tmol.tests.data.pdb import data as test_pdbs
-
-from tmol.system.residue import ResidueReader, PackedResidueSystem
+from tmol.system.residue.io import read_pdb
 
 class testResidueSystem(unittest.TestCase):
     def test_smoke_io(self):
@@ -11,8 +9,7 @@ class testResidueSystem(unittest.TestCase):
 
         for tname in test_names:
             pdb = test_pdbs[tname]
-            residues = ResidueReader().parse_pdb(pdb)
-            system = PackedResidueSystem().from_residues(residues)
+            system = read_pdb(pdb)
 
 if __name__ == "__main__":
     unittest.main()
