@@ -35,8 +35,8 @@ class HBondElementAnalysis(properties.HasProperties):
     donor_dtype = numpy.dtype([("d", int), ("h", int)])
     donors = Array("Identified donor atom indices.", dtype=donor_dtype)[:]
 
-    acceptor_dtype = numpy.dtype([("a", int), ("b", int), ("b0", int)])
-    acceptors = Array("Identified acceptor atom indices.", dtype=acceptor_dtype)[:]
+    sp2_acceptor_dtype = numpy.dtype([("a", int), ("b", int), ("b0", int)])
+    sp2_acceptors = Array("Identified sp2 acceptor atom indices.", dtype=sp2_acceptor_dtype)[:]
 
     @classmethod
     def setup(cls, atom_types, bonds):
@@ -64,19 +64,21 @@ class HBondElementAnalysis(properties.HasProperties):
                 .view(self.donor_dtype).squeeze(axis=-1)
         )
 
-        acceptor_types = pandas.DataFrame.from_records(cattr.unstructure(self.hbond_database.acceptors))
-        ab_table = pandas.merge(
-            acceptor_types, bond_table,
+        sp2_acceptor_types = pandas.DataFrame.from_records(cattr.unstructure(
+            self.hbond_database.sp2_acceptors
+        ))
+        sp2_ab_table = pandas.merge(
+            sp2_acceptor_types, bond_table,
             how="inner", left_on=["a", "b"], right_on=["i_t", "j_t"]
         )
-        bb0_table = pandas.merge(
-            acceptor_types, bond_table.rename(inc_cols, axis="columns"),
+        sp2_bb0_table = pandas.merge(
+            sp2_acceptor_types, bond_table.rename(inc_cols, axis="columns"),
             how="inner", left_on=["b", "b0"], right_on=["j_t", "k_t"]
         )
-        acceptor_table = pandas.merge(ab_table, bb0_table)
-        self.acceptors = (
-            acceptor_table[["i_i", "j_i", "k_i"]].values.copy()
-            .view(self.acceptor_dtype).squeeze(axis=-1)
+        sp2_acceptor_table = pandas.merge(sp2_ab_table, sp2_bb0_table)
+        self.sp2_acceptors = (
+            sp2_acceptor_table[["i_i", "j_i", "k_i"]].values.copy()
+            .view(self.sp2_acceptor_dtype).squeeze(axis=-1)
         )
 
         return self

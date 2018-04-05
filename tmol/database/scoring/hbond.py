@@ -5,25 +5,25 @@ import yaml
 from typing import Tuple
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class HBondGlobalParams:
+class GlobalParams:
     max_dis : float
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class HBondDonorAtoms:
+class DonorAtoms:
     d : str
     h : str
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class HBondAcceptorAtoms:
+class SP2AcceptorAtoms:
     a : str
     b : str
     b0 : str
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondDatabase:
-    global_parameters : HBondGlobalParams
-    donors : Tuple[HBondDonorAtoms, ...]
-    acceptors : Tuple[HBondAcceptorAtoms, ...]
+    global_parameters : GlobalParams
+    donors : Tuple[DonorAtoms, ...]
+    sp2_acceptors : Tuple[SP2AcceptorAtoms, ...]
 
     @classmethod
     def from_file(cls, path):

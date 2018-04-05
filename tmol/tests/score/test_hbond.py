@@ -25,4 +25,4 @@ class TestHBond(unittest.TestCase):
                 assert ni + ri in bb_donor
 
         assert len(hbe.donors)    == len([r for r in sys.residues if r.residue_type.name3 != "PRO"])
-        assert len(hbe.acceptors) == len(sys.residues)
+        assert len(hbe.sp2_acceptors) == len(sys.residues)
