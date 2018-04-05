@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple
+from typing import Tuple
 
 import attr
 import cattr
@@ -16,15 +16,15 @@ class Atom:
 class Residue:
     name  : str
     name3 : str
-    atoms : Sequence[Atom]
-    bonds : Sequence[Tuple[str, str]]
+    atoms : Tuple[Atom, ...]
+    bonds : Tuple[Tuple[str, str], ...]
     lower_connect : str
     upper_connect : str
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase(properties.HasProperties):
-    atom_types : Sequence[str]
-    residues : Sequence[Residue]
+    atom_types : Tuple[str, ...]
+    residues : Tuple[Residue, ...]
 
     @classmethod
     def from_file(cls, path):

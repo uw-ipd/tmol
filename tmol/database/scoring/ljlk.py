@@ -3,7 +3,7 @@ import yaml
 import attr
 import cattr
 
-from typing import Sequence
+from typing import Tuple
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LJLKGlobalParameters:
@@ -32,7 +32,7 @@ class LJLKAtomTypeParameters:
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class LJLKDatabase:
     global_parameters : LJLKGlobalParameters
-    atom_type_parameters : Sequence[LJLKAtomTypeParameters]
+    atom_type_parameters : Tuple[LJLKAtomTypeParameters, ...]
 
     @classmethod
     def from_file(cls, path):

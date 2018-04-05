@@ -2,7 +2,7 @@ import attr
 import cattr
 import yaml
 
-from typing import Sequence
+from typing import Tuple
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondGlobalParams:
@@ -22,8 +22,8 @@ class HBondAcceptorAtoms:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondDatabase:
     global_parameters : HBondGlobalParams
-    donors : Sequence[HBondDonorAtoms]
-    acceptors : Sequence[HBondAcceptorAtoms]
+    donors : Tuple[HBondDonorAtoms, ...]
+    acceptors : Tuple[HBondAcceptorAtoms, ...]
 
     @classmethod
     def from_file(cls, path):
