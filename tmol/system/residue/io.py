@@ -1,4 +1,5 @@
 import toolz
+import cattr
 import properties
 from tmol.properties.reactive import cached
 
@@ -9,7 +10,7 @@ import tmol.io.pdb_parsing as pdb_parsing
 import tmol.database.chemical
 from tmol.database.chemical import ChemicalDatabase
 
-from .restypes import AtomType, ResidueType
+from .restypes import ResidueType
 from .packed import Residue
 
 from tmol.utility.log import LoggerMixin
@@ -25,24 +26,27 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
     def residue_types(self):
         return groupby(
             lambda restype: restype.name3,
-            [ResidueType(**r) for r in self.chemical_db.parameters["residues"]]
+            (
+                cattr.structure(cattr.unstructure(r), ResidueType)
+                for r in self.chemical_db.residues
+            )
         )
 
 
     def resolve_type(self, resn, atomns):
         atomns = set(atomns)
-        
+
         candidate_types = self.residue_types.get(resn, [])
         self.logger.debug(
             f"resolved candidate_types resn: {resn} types:{[t.name for t in candidate_types]}")
-        
+
         if not candidate_types:
             raise ValueError(f"Unknown residue name: {resn}")
         missing_atoms = [
             set(a.name for a in t.atoms).difference(atomns)
             for t in candidate_types
         ]
-        
+
         if len(candidate_types) == 1:
             self.logger.debug("unambiguous residue type")
             best_idx = 0
@@ -53,12 +57,12 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
         if missing_atoms[best_idx]:
             self.logger.info(f"missing atoms in input: {missing_atoms[best_idx]}")
         return candidate_types[best_idx]
-    
+
     def parse_atom_block(self, atoms):
         residue_name = unique_val(atoms.resn)
         atom_coords = atoms.set_index("atomn", verify_integrity=True)[["x", "y", "z"]]
         residue_type = self.resolve_type(residue_name, atom_coords.index)
-        
+
         res = Residue(residue_type = residue_type)
 
         for atomn, coord in atom_coords.iterrows():
@@ -67,17 +71,17 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
             else:
                 self.logger.info(f"unknown atom name: {atomn}")
         return res
-    
+
     def parse_pdb(self, source_pdb):
         """Resolve list of residue objects from input pdb."""
 
         atom_records = pdb_parsing.parse_pdb(source_pdb)
-        
+
         assert atom_records["modeli"].nunique() == 1
         assert atom_records["chaini"].nunique() == 1
-        
+
         return [
             self.parse_atom_block(atoms)
-            for (m, c, resi), atoms 
+            for (m, c, resi), atoms
             in atom_records.groupby(["modeli", "chaini", "resi"])
         ]

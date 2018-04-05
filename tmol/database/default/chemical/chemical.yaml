@@ -55,12 +55,6 @@ residues:
     - [  CB,  3HB]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  ARG
     name3: ARG
     atoms:
@@ -114,12 +108,6 @@ residues:
     - [ NH2, 2HH2]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  ASN
     name3: ASN
     atoms:
@@ -153,12 +141,6 @@ residues:
     - [ ND2, 2HD2]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  ASP
     name3: ASP
     atoms:
@@ -188,12 +170,6 @@ residues:
     - [  CG,  OD2]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  CYS
     name3: CYS
     atoms:
@@ -220,12 +196,6 @@ residues:
     - [  SG,   HG]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  GLN
     name3: GLN
     atoms:
@@ -265,12 +235,6 @@ residues:
     - [ NE2, 2HE2]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  GLU
     name3: GLU
     atoms:
@@ -306,12 +270,6 @@ residues:
     - [  CG,  2HG]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  GLY
     name3: GLY
     atoms:
@@ -331,12 +289,6 @@ residues:
     - [  CA,  2HA]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  HIS
     name3: HIS
     atoms:
@@ -377,12 +329,6 @@ residues:
     - [ CE1,  HE1]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  HIS_D
     name3: HIS
     atoms:
@@ -423,12 +369,6 @@ residues:
     - [ ND1,  HD1]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  ILE
     name3: ILE
     atoms:
@@ -472,12 +412,6 @@ residues:
     - [ CD1, 3HD1]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  LEU
     name3: LEU
     atoms:
@@ -521,12 +455,6 @@ residues:
     - [ CD2, 3HD2]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  LYS
     name3: LYS
     atoms:
@@ -576,12 +504,6 @@ residues:
     - [  NZ,  3HZ]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  MET
     name3: MET
     atoms:
@@ -621,12 +543,6 @@ residues:
     - [  CE,  3HE]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  PHE
     name3: PHE
     atoms:
@@ -673,12 +589,6 @@ residues:
     - [  CZ,   HZ]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  PRO
     name3: PRO
     atoms:
@@ -713,12 +623,6 @@ residues:
     - [  CD,    N]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  SER
     name3: SER
     atoms:
@@ -746,12 +650,6 @@ residues:
     - [  OG,   HG]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  THR
     name3: THR
     atoms:
@@ -785,12 +683,6 @@ residues:
     - [ CG2, 3HG2]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  TRP
     name3: TRP
     atoms:
@@ -846,12 +738,6 @@ residues:
     - [ CH2,  HH2]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  TYR
     name3: TYR
     atoms:
@@ -901,12 +787,6 @@ residues:
     - [  OH,   HH]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }
   - name:  VAL
     name3: VAL
     atoms:
@@ -945,9 +825,3 @@ residues:
     - [ CG2, 3HG2]
     lower_connect: N
     upper_connect: C
-    hbond:
-      donors:
-        - { d: N, h: H }
-      acceptors:
-        sp2:
-         - { a: O, b: C, b0: N }

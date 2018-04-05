@@ -1,3 +1,7 @@
+import cattr
+
+import pandas
+
 from toolz.dicttoolz import merge, valmap
 import numpy
 import numpy as np
@@ -17,28 +21,6 @@ from .types import RealTensor
 
 import tmol.database
 from tmol.database.scoring import LJLKDatabase
-
-global_param_dtype = np.dtype([
-    ("max_dis", np.float),
-    ("spline_start", np.float),
-    ("lj_switch_dis2sigma", np.float),
-    ("lj_hbond_dis", np.float),
-    ("lj_hbond_OH_donor_dis", np.float),
-    ("lj_hbond_hdis", np.float),
-    ("lk_min_dis2sigma", np.float)
-])
-
-param_dtype = np.dtype([
-    ("lj_radius", np.float),
-    ("lj_wdepth", np.float),
-    ("lk_dgfree", np.float),
-    ("lk_lambda", np.float),
-    ("lk_volume", np.float),
-    ("is_donor", np.bool),
-    ("is_acceptor", np.bool),
-    ("is_hydroxyl", np.bool),
-    ("is_polarh", np.bool)
-])
 
 pair_param_dtype = np.dtype([
     ("lj_rad1", np.float),
@@ -351,39 +333,27 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
         super().__init__(**kwargs)
         self.score_components.add("total_lk")
         self.score_components.add("total_lj")
-        self.atom_pair_dist_thresholds.add(
-            self.ljlk_database.parameters["global_parameters"]["max_dis"])
+        self.atom_pair_dist_thresholds.add(self.ljlk_database.global_parameters.max_dis)
 
-    @cached(
-        Dictionary("global lj/lk parameters",
-            key_prop = StringChoice("param", global_param_dtype.names),
-            value_prop = TensorT("parameter tensor")
-        ))
-    def global_ljlk_params(self):
-        return valmap(lambda v: RealTensor([v]), self.ljlk_database.parameters["global_parameters"])
-
-    @derived_from(("ljlk_database"), Array(
+    @derived_from(("ljlk_database"), Instance(
         "per-atom-type lk/lj score parameters, last entry (-1) is nan-filled for a 'dummy' value",
-        dtype=param_dtype)[:]
-    )
+        pandas.DataFrame))
     def _type_ljlk_params(self):
-        result = numpy.full(
-            len(self.ljlk_database.atom_type_table) + 1,
-            numpy.nan,
-            dtype=param_dtype,
-        )
+        param_records = pandas.DataFrame.from_records(cattr.unstructure(
+                self.ljlk_database.atom_type_parameters
+            ))
 
-        for n in result.dtype.names:
-            result[n][:-1] = self.ljlk_database.atom_type_table[n]
+        nan_record = numpy.full(1, numpy.nan, param_records.to_records(index=False).dtype)
+        param_records.loc[len(param_records)] = pandas.DataFrame.from_records(nan_record).loc[0]
 
-        return result
+        return param_records
 
     @derived_from(("ljlk_database", "_type_ljlk_params",),
         Array("per-atom-pair-type lk/lj score parameters", dtype=pair_param_dtype)[:,:])
     def _type_pair_ljlk_params(self):
         return render_ljlk_pair_parameters(
-            global_params = self.ljlk_database.parameters["global_parameters"],
-            params = self._type_ljlk_params
+            global_params = cattr.unstructure(self.ljlk_database.global_parameters),
+            params = self._type_ljlk_params.to_records()
         )
 
     @derived_from(("_type_pair_ljlk_params"),
@@ -397,13 +367,21 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
             for n in self._type_pair_ljlk_params.dtype.names
         }
 
+    @derived_from("_type_ljlk_params",
+        Instance("Index of atom type indicies by atom type name", pandas.Series))
+    def name_to_idx(self):
+        return pandas.Series(
+            data=numpy.arange(len(self._type_ljlk_params) - 1),
+            index=self._type_ljlk_params["name"].values[:-1]
+        )
+
     @derived_from(("ljlk_database", "atom_types"),
         VariableT("per-atom type indices in parameter arrays"))
     def _atom_type_indicies(self):
         # Lookup atom time indicies in the source atom properties table via index
         # Use "reindex" so "None" entries in the type array convert to 'nan' index,
         # then remask this into the -1 dummy index in the atom parameters array.
-        idx = self.ljlk_database.name_to_idx.reindex(self.atom_types)
+        idx = self.name_to_idx.reindex(self.atom_types)
 
         return torch.LongTensor(numpy.where(numpy.isnan(idx), [-1], idx))
 
@@ -463,7 +441,7 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
             "lj_spline_dy0",
         )}
 
-        global_parameters = { n : self.global_ljlk_params[n] for n in (
+        global_parameters = { n : getattr(self.ljlk_database.global_parameters, n) for n in (
             "lj_switch_dis2sigma",
             "spline_start",
             "max_dis",
@@ -509,7 +487,7 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
             "lk_spline_far_y0",
         )}
 
-        global_parameters = { n : self.global_ljlk_params[n] for n in (
+        global_parameters = { n : getattr(self.ljlk_database.global_parameters, n) for n in (
             "spline_start",
             "max_dis",
         )}

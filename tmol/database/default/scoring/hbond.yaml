@@ -1,0 +1,6 @@
+global_parameters: 
+  max_dis : 6.0
+donors:
+  - { d: Nbb, h: HNbb }
+acceptors:
+  - { a: OCbb, b: CObb, b0: CAbb }
