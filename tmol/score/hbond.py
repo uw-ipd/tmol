@@ -1,29 +1,60 @@
 import cattr
 import properties
-from properties import Instance, Dictionary, StringChoice
+from properties import Instance
+import torch
 
 import numpy
 import pandas
 
 from tmol.properties.array import VariableT, Array
-from tmol.properties.reactive import cached
+from tmol.properties.reactive import derived_from
 
 from .interatomic_distance import InteratomicDistanceGraphBase
 
 import tmol.database
 from tmol.database.scoring import HBondDatabase
 
+def hbond_donor_sp2_score(
+    # Input coordinates
+    d,
+    h,
+    a,
+    b,
+    b0,
 
-class HBondScoreGraph(InteratomicDistanceGraphBase):
+    # Global score parameters
+    max_dis
+):
+    d_a_dist = (d.reshape((-1, 1, 3)) - a.reshape((1, -1, 3))).norm(dim=-1)
+    return (d_a_dist < max_dis).type(d.dtype)
 
-    hbond_database: HBondDatabase = Instance(
-        "ljlk parameter database", HBondDatabase, default=tmol.database.default.scoring.hbond)
+def hbond_donor_sp3_score(
+    # Input coordinates
+    d,
+    h,
+    a,
+    b,
+    b0,
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.atom_pair_dist_thresholds.add(
-            self.hond_database.parameters["global_parameters"]["max_dis"])
+    # Global score parameters
+    max_dis
+):
+    d_a_dist = (d.reshape((-1, 1, 3)) - a.reshape((1, -1, 3))).norm(dim=-1)
+    return (d_a_dist < max_dis).type(d.dtype)
 
+def hbond_donor_ring_score(
+    # Input coordinates
+    d,
+    h,
+    a,
+    b,
+    bp,
+
+    # Global score parameters
+    max_dis
+):
+    d_a_dist = (d.reshape((-1, 1, 3)) - a.reshape((1, -1, 3))).norm(dim=-1)
+    return (d_a_dist < max_dis).type(d.dtype)
 
 class HBondElementAnalysis(properties.HasProperties):
     hbond_database: HBondDatabase = Instance(
@@ -37,6 +68,12 @@ class HBondElementAnalysis(properties.HasProperties):
 
     sp2_acceptor_dtype = numpy.dtype([("a", int), ("b", int), ("b0", int), ("acceptor_type", object)])
     sp2_acceptors = Array("Identified sp2 acceptor atom indices.", dtype=sp2_acceptor_dtype)[:]
+
+    sp3_acceptor_dtype = numpy.dtype([("a", int), ("b", int), ("b0", int), ("acceptor_type", object)])
+    sp3_acceptors = Array("Identified sp3 acceptor atom indices.", dtype=sp3_acceptor_dtype)[:]
+
+    ring_acceptor_dtype = numpy.dtype([("a", int), ("b", int), ("bp", int), ("acceptor_type", object)])
+    ring_acceptors = Array("Identified ring acceptor atom indices.", dtype=ring_acceptor_dtype)[:]
 
     def setup(self):
         self : HBondElementAnalysis
@@ -123,3 +160,62 @@ class HBondElementAnalysis(properties.HasProperties):
                 ring_acceptor_table[list(ring_pairs)].rename(columns=ring_pairs))
 
         return self
+
+class HBondScoreGraph(InteratomicDistanceGraphBase):
+
+    hbond_database: HBondDatabase = Instance(
+        "ljlk parameter database", HBondDatabase, default=tmol.database.default.scoring.hbond)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.atom_pair_dist_thresholds.add(
+            self.hbond_database.global_parameters.max_dis)
+        self.score_components.add("total_hbond")
+
+    @derived_from(("hbond_database", "atom_types", "bonds"),
+        Instance("hbond score elements in target =graph", HBondElementAnalysis))
+    def hbond_elements(self) -> HBondElementAnalysis:
+        return HBondElementAnalysis(
+                hbond_database = self.hbond_database,
+                atom_types = self.atom_types,
+                bonds = self.bonds
+            ).setup()
+
+    @derived_from(("coords", "hbond_elements"), VariableT("donor-sp2 hbond scores"))
+    def donor_sp2_hbond(self):
+        return hbond_donor_sp2_score(
+            d = self.coords[self.hbond_elements.donors["d"]],
+            h = self.coords[self.hbond_elements.donors["h"]],
+            a = self.coords[self.hbond_elements.sp2_acceptors["a"]],
+            b = self.coords[self.hbond_elements.sp2_acceptors["b"]],
+            b0 = self.coords[self.hbond_elements.sp2_acceptors["b0"]],
+            max_dis = self.hbond_database.global_parameters.max_dis,
+        )
+
+    @derived_from(("coords", "hbond_elements"), VariableT("donor-sp3 hbond scores"))
+    def donor_sp3_hbond(self):
+        return hbond_donor_sp3_score(
+            d = self.coords[self.hbond_elements.donors["d"]],
+            h = self.coords[self.hbond_elements.donors["h"]],
+            a = self.coords[self.hbond_elements.sp3_acceptors["a"]],
+            b = self.coords[self.hbond_elements.sp3_acceptors["b"]],
+            b0 = self.coords[self.hbond_elements.sp3_acceptors["b0"]],
+            max_dis = self.hbond_database.global_parameters.max_dis,
+        )
+
+    @derived_from(("coords", "hbond_elements"), VariableT("donor-ring hbond scores"))
+    def donor_ring_hbond(self):
+        return hbond_donor_ring_score(
+            d = self.coords[self.hbond_elements.donors["d"]],
+            h = self.coords[self.hbond_elements.donors["h"]],
+            a = self.coords[self.hbond_elements.ring_acceptors["a"]],
+            b = self.coords[self.hbond_elements.ring_acceptors["b"]],
+            bp = self.coords[self.hbond_elements.ring_acceptors["bp"]],
+            max_dis = self.hbond_database.global_parameters.max_dis,
+        )
+
+    @derived_from(
+        ("donor_sp2_hbond", "donor_sp3_hbond", "donor_ring_hbond"),
+        VariableT("total hbond score"))
+    def total_hbond(self):
+        return self.donor_sp2_hbond.sum() + self.donor_sp3_hbond.sum() + self.donor_ring_hbond.sum()
