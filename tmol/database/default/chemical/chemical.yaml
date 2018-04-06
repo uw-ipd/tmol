@@ -7,7 +7,9 @@ atom_types:
   - CH3
   - aroC
   - Ntrp
+  - NtrpDepro
   - Nhis
+  - NhisPro
   - NtrR
   - NH2O
   - Nlys
@@ -178,7 +180,7 @@ residues:
     - { *n: C   ,  *t: CObb }
     - { *n: O   ,  *t: OCbb }
     - { *n: CB  ,  *t: CH2  }
-    - { *n: SG  ,  *t: SH   }
+    - { *n: SG  ,  *t: SH1  }
     - { *n: H   ,  *t: HNbb }
     - { *n: HA  ,  *t: Hapo }
     - { *n: 1HB ,  *t: Hapo }
@@ -338,16 +340,16 @@ residues:
     - { *n: O   ,  *t: OCbb }
     - { *n: CB  ,  *t: CH2  }
     - { *n: CG  ,  *t: CH0  }
-    - { *n: ND1 ,  *t: Nhis }
+    - { *n: ND1 ,  *t: NhisPro }
     - { *n: CD2 ,  *t: aroC }
     - { *n: CE1 ,  *t: aroC }
-    - { *n: NE2 ,  *t: Ntrp }
+    - { *n: NE2 ,  *t: NtrpDepro }
     - { *n: H   ,  *t: HNbb }
     - { *n: HA  ,  *t: Hapo }
     - { *n: 1HB ,  *t: Hapo }
     - { *n: 2HB ,  *t: Hapo }
     - { *n: HD2 ,  *t: Hapo }
-    - { *n: HE2 ,  *t: Hapo }
+    - { *n: HE1 ,  *t: Hapo }
     - { *n: HD1 ,  *t: Hpol }
     bonds:
     - [   N,   CA]
@@ -365,7 +367,7 @@ residues:
     - [ CD2,  NE2]
     - [ CD2,  HD2]
     - [ CE1,  NE2]
-    - [ NE2,  HE2]
+    - [ CE1,  HE1]
     - [ ND1,  HD1]
     lower_connect: N
     upper_connect: C

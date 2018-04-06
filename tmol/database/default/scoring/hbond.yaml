@@ -1,6 +1,34 @@
 global_parameters: 
   max_dis : 6.0
-donors:
-  - { d: Nbb, h: HNbb }
-sp2_acceptors:
-  - { a: OCbb, b: CObb, b0: CAbb }
+atom_groups:
+  donors:
+    - { d: Nbb, h: HNbb, donor_type: hbdon_PBA }
+    - { d: NtrR, h: Hpol, donor_type: hbdon_UNK }
+    - { d: Ntrp, h: Hpol, donor_type: hbdon_UNK }
+    - { d: NhisPro, h: Hpol, donor_type: hbdon_UNK }
+    - { d: Narg, h: Hpol, donor_type: hbdon_UNK }
+    - { d: NH2O, h: Hpol, donor_type: hbdon_UNK }
+    - { d: Nlys, h: Hpol, donor_type: hbdon_UNK }
+    - { d: OH, h: Hpol, donor_type: hbdon_UNK }
+  sp2_acceptors:
+    - { a: OCbb, b: CObb, b0: CAbb, acceptor_type: hbacc_PBA }
+    - { a: ONH2, b: CNH2, b0: NH2O, acceptor_type: hbacc_SP2_UNK }
+    - { a: OOC,  b: COO,  b0: CH2,  acceptor_type: hbacc_SP2_UNK }
+  sp3_acceptors:
+    - { a: OH, b: CH2, b0: Hpol, acceptor_type: hbacc_SP3_UNK }
+    - { a: OH, b: CH1, b0: Hpol, acceptor_type: hbacc_SP3_UNK }
+    - { a: OH, b: CH0, b0: Hpol, acceptor_type: hbacc_SP3_UNK }
+  ring_acceptors:
+    - { a: Nhis, b: aroC, bp: CH0, acceptor_type: hbacc_RING_UNK }
+    - { a: NtrpDepro, b: aroC, bp: aroC, acceptor_type: hbacc_RING_UNK }
+chemical_types:
+  donors:
+    - hbdon_PBA # protein backbone amide
+    - hbdon_UNK # protein backbone amide
+  sp2_acceptors:
+    - hbacc_PBA # protein backbone amide
+    - hbacc_SP2_UNK # protein backbone amide
+  sp3_acceptors:
+    - hbacc_SP3_UNK
+  ring_acceptors:
+    - hbacc_RING_UNK

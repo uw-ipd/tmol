@@ -64,7 +64,7 @@ class TestInteratomicDistance(unittest.TestCase):
             pass
 
         scipy_distance = pdist(test_structure.coords)
-        scipy_count = numpy.count_nonzero(scipy_distance < 6.0)
+        scipy_count = numpy.count_nonzero(scipy_distance[~numpy.isnan(scipy_distance)] < 6.0)
 
         self.assertEqual(
             scipy_count,
