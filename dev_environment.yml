@@ -9,3 +9,4 @@ dependencies:
   - flake8
   - pip:
     - pytest-watch
+    - pdbpp
