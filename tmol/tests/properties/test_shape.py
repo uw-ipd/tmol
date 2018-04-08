@@ -90,6 +90,3 @@ class testShapeSpec(unittest.TestCase):
             spec.validate(array)
             self.fail("spec: %r matched invalid array shape: %s" % (spec, array.shape))
 
-
-if __name__ == "__main__":
-    unittest.main()

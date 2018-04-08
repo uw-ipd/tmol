@@ -10,6 +10,3 @@ class testResidueSystem(unittest.TestCase):
         for tname in test_names:
             pdb = test_pdbs[tname]
             system = read_pdb(pdb)
-
-if __name__ == "__main__":
-    unittest.main()

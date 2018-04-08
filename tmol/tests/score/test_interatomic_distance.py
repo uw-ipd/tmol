@@ -75,6 +75,3 @@ class TestInteratomicDistance(unittest.TestCase):
             NaiveGraph(**test_params).total_score,
             BlockedGraph(**test_params).total_score,
         )
-
-if __name__ == "__main__":
-    unittest.main()

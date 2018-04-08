@@ -39,6 +39,3 @@ class testArrayProperty(unittest.TestCase):
                         default = numpy.empty(10),
                         dtype = float,
                         shape = spec[3])
-
-if __name__ == "__main__":
-    unittest.main()

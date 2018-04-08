@@ -74,6 +74,3 @@ class TestReactiveProperties(unittest.TestCase):
         self.assertCountEqual(tp._backend.keys(), ["raw_text", "norm_text", "word_counts"])
         self.assertEqual(len(get_in(["raw_text", "observe_set"], tp._listeners)), 1)
         self.assertEqual(len(get_in(["norm_text", "observe_set"], tp._listeners)), 1)
-
-if __name__ == "__main__":
-        unittest.main()
