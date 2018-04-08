@@ -1,0 +1,43 @@
+package:
+  name: pytorch-cpu
+  version: "0.4.0a0+1936753"
+
+source:
+   git_url: https://github.com/pytorch/pytorch
+   git_rev: "1936753"
+
+requirements:
+  build:
+    - python
+    - nomkl
+    - numpy 1.13.*
+    - setuptools
+    - pyyaml
+    - cffi
+
+  run:
+    - python
+    - numpy >=1.13
+    - cffi
+    - openblas >=0.2.20
+
+build:
+  number: 0
+  detect_binary_files_with_prefix: False
+
+test:
+ imports:
+    - torch
+ source_files:
+   - test
+ commands:
+   - OMP_NUM_THREADS=4 ./test/run_test.sh
+
+
+about:
+  home: http://pytorch.org/
+  license: BSD 3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: PyTorch is an optimized tensor library for deep learning using GPUs and CPUs.
+
