@@ -6,16 +6,18 @@ atom_types:
   - CH2
   - CH3
   - aroC
-  - Ntrp
-  - NtrpDepro
-  - Nhis
-  - NhisPro
+  - Ntrp #Tryp indole or pyrrole
+  - NhisD #Near in His imidazole
+  - NhisDDepro
+  - NhisE #Far in His imidazole
+  - NhisEDepro
   - NtrR
   - NH2O
   - Nlys
   - Narg
   - Npro
   - OH
+  - OHphenol
   - ONH2
   - OOC
   - S
@@ -300,10 +302,12 @@ residues:
     - { *n: O   ,  *t: OCbb }
     - { *n: CB  ,  *t: CH2  }
     - { *n: CG  ,  *t: CH0  }
-    - { *n: ND1 ,  *t: Nhis }
+    - { *n: ND1 ,  *t: NhisDDepro }
+
     - { *n: CD2 ,  *t: aroC }
     - { *n: CE1 ,  *t: aroC }
-    - { *n: NE2 ,  *t: Ntrp }
+    - { *n: NE2 ,  *t: NhisE }
+
     - { *n: H   ,  *t: HNbb }
     - { *n: HA  ,  *t: Hapo }
     - { *n: 1HB ,  *t: Hapo }
@@ -340,10 +344,11 @@ residues:
     - { *n: O   ,  *t: OCbb }
     - { *n: CB  ,  *t: CH2  }
     - { *n: CG  ,  *t: CH0  }
-    - { *n: ND1 ,  *t: NhisPro }
+    - { *n: ND1 ,  *t: NhisD}
     - { *n: CD2 ,  *t: aroC }
     - { *n: CE1 ,  *t: aroC }
-    - { *n: NE2 ,  *t: NtrpDepro }
+    - { *n: NE2 ,  *t: NhisEDepro }
+    #- { *n: NE2 ,  *t: NtrpDepro }
     - { *n: H   ,  *t: HNbb }
     - { *n: HA  ,  *t: Hapo }
     - { *n: 1HB ,  *t: Hapo }
@@ -754,7 +759,7 @@ residues:
     - { *n: CE1 ,  *t: aroC }
     - { *n: CE2 ,  *t: aroC }
     - { *n: CZ  ,  *t: CH0  }
-    - { *n: OH  ,  *t: OH   }
+    - { *n: OH  ,  *t: OHphenol   }
     - { *n: H   ,  *t: HNbb }
     - { *n: HA  ,  *t: Hapo }
     - { *n: 1HB ,  *t: Hapo }

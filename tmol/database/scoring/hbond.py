@@ -14,7 +14,7 @@ class GlobalParams:
 class DonorAtoms:
     d: str
     h: str
-    donor_type: str = "hbdon_generic"
+    donor_type: str
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -57,11 +57,49 @@ class ChemicalTypes:
     ring_acceptors: Tuple[str, ...]
 
 
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class PolynomialParameters:
+    name: str
+    dimension: str
+    xmin: float
+    xmax: float
+    min_val: float
+    max_val: float
+    root1: float
+    root2: float
+    degree: int
+    c_a: float
+    c_b: float
+    c_c: float
+    c_d: float
+    c_e: float
+    c_f: float
+    c_g: float
+    c_h: float
+    c_i: float
+    c_j: float
+    c_k: float
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class PairParameters:
+    don_chem_type: str
+    acc_chem_type: str
+    AHdist: str
+    cosBAH_short: str
+    cosBAH_long: str
+    cosBAH2_long: str
+    cosAHD_short: str
+    cosAHD_long: str
+
+
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondDatabase:
     global_parameters: GlobalParams
     atom_groups: AtomGroups
     chemical_types: ChemicalTypes
+    polynomial_parameters: Tuple[PolynomialParameters]
+    pair_parameters: Tuple[PairParameters]
 
     @classmethod
     def from_file(cls, path):

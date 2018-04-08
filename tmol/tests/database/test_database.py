@@ -1,4 +1,5 @@
 import unittest
+from collections import Counter
 
 class TestDatabase(unittest.TestCase):
     def test_residue_defs(self):
@@ -10,6 +11,18 @@ class TestDatabase(unittest.TestCase):
         for r in default.chemical.residues:
             for a in r.atoms:
                 assert a.atom_type in atom_types, f"Invalid atom type. res: {r.name3} atom: {a}"
+
+    def test_ljlk_defs(self):
+        from tmol.database import default
+
+        db = default.scoring.ljlk
+        atom_type_counts = Counter(n.name for n in db.atom_type_parameters)
+
+        for at in atom_type_counts:
+            assert atom_type_counts[at] == 1, f"Duplicate ljlk type parameter: {at}"
+
+        for at in db.atom_type_parameters:
+            assert at.name in default.chemical.atom_types
 
     def test_hbond_defs(self):
         from tmol.database import default
