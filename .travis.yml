@@ -25,7 +25,7 @@ install:
   - pip install -r requirements.tests.txt
 
 script:
-  ./setup.py test --addopts --cov=./
+  ./setup.py test --addopts --cov=./tmol
 
 after_success:
   - codecov -F pytest -t $CODECOV_TOKEN
