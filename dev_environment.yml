@@ -11,5 +11,6 @@ dependencies:
   - pytest
   - pytest-cov
   - pip:
+    - yapf
     - pytest-watch
     - pdbpp
