@@ -1,0 +1,834 @@
+atom_types:
+  - CNH2
+  - COO
+  - CH0
+  - CH1
+  - CH2
+  - CH3
+  - aroC
+  - Ntrp #Tryp indole or pyrrole
+  - NhisD #Near in His imidazole
+  - NhisDDepro
+  - NhisE #Far in His imidazole
+  - NhisEDepro
+  - NtrR
+  - NH2O
+  - Nlys
+  - Narg
+  - Npro
+  - OH
+  - OHphenol
+  - ONH2
+  - OOC
+  - S
+  - SH1
+  - Nbb
+  - CAbb
+  - CObb
+  - OCbb
+  - Hpol
+  - HS
+  - Hapo
+  - Haro
+  - HNbb
+  - HOH
+
+residues:
+  - name:  ALA
+    name3: ALA
+    atoms:
+    - { &n name: N,  &t atom_type: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH3  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: 3HB ,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CB,  3HB]
+    lower_connect: N
+    upper_connect: C
+  - name:  ARG
+    name3: ARG
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH2  }
+    - { *n: CD  ,  *t: CH2  }
+    - { *n: NE  ,  *t: NtrR }
+    - { *n: CZ  ,  *t: aroC }
+    - { *n: NH1 ,  *t: Narg }
+    - { *n: NH2 ,  *t: Narg }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: 1HG ,  *t: Hapo }
+    - { *n: 2HG ,  *t: Hapo }
+    - { *n: 1HD ,  *t: Hapo }
+    - { *n: 2HD ,  *t: Hapo }
+    - { *n: HE  ,  *t: Hpol }
+    - { *n: 1HH1,  *t: Hpol }
+    - { *n: 2HH1,  *t: Hpol }
+    - { *n: 1HH2,  *t: Hpol }
+    - { *n: 2HH2,  *t: Hpol }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,   CD]
+    - [  CG,  1HG]
+    - [  CG,  2HG]
+    - [  CD,   NE]
+    - [  CD,  1HD]
+    - [  CD,  2HD]
+    - [  NE,   CZ]
+    - [  NE,   HE]
+    - [  CZ,  NH1]
+    - [  CZ,  NH2]
+    - [ NH1, 1HH1]
+    - [ NH1, 2HH1]
+    - [ NH2, 1HH2]
+    - [ NH2, 2HH2]
+    lower_connect: N
+    upper_connect: C
+  - name:  ASN
+    name3: ASN
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CNH2 }
+    - { *n: OD1 ,  *t: ONH2 }
+    - { *n: ND2 ,  *t: NH2O }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: 1HD2,  *t: Hpol }
+    - { *n: 2HD2,  *t: Hpol }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,  OD1]
+    - [  CG,  ND2]
+    - [ ND2, 1HD2]
+    - [ ND2, 2HD2]
+    lower_connect: N
+    upper_connect: C
+  - name:  ASP
+    name3: ASP
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: COO  }
+    - { *n: OD1 ,  *t: OOC  }
+    - { *n: OD2 ,  *t: OOC  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,  OD1]
+    - [  CG,  OD2]
+    lower_connect: N
+    upper_connect: C
+  - name:  CYS
+    name3: CYS
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: SG  ,  *t: SH1  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: HG  ,  *t: HS   }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   HA]
+    - [  CB,   SG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  SG,   HG]
+    lower_connect: N
+    upper_connect: C
+  - name:  GLN
+    name3: GLN
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH2  }
+    - { *n: CD  ,  *t: CNH2 }
+    - { *n: OE1 ,  *t: ONH2 }
+    - { *n: NE2 ,  *t: NH2O }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: 1HG ,  *t: Hapo }
+    - { *n: 2HG ,  *t: Hapo }
+    - { *n: 1HE2,  *t: Hpol }
+    - { *n: 2HE2,  *t: Hpol }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,   CD]
+    - [  CG,  1HG]
+    - [  CG,  2HG]
+    - [  CD,  OE1]
+    - [  CD,  NE2]
+    - [ NE2, 1HE2]
+    - [ NE2, 2HE2]
+    lower_connect: N
+    upper_connect: C
+  - name:  GLU
+    name3: GLU
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH2  }
+    - { *n: CD  ,  *t: COO  }
+    - { *n: OE1 ,  *t: OOC  }
+    - { *n: OE2 ,  *t: OOC  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: 1HG ,  *t: Hapo }
+    - { *n: 2HG ,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,   CD]
+    - [  CD,  OE1]
+    - [  CD,  OE2]
+    - [  CG,  1HG]
+    - [  CG,  2HG]
+    lower_connect: N
+    upper_connect: C
+  - name:  GLY
+    name3: GLY
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: 1HA ,  *t: Hapo }
+    - { *n: 2HA ,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,  1HA]
+    - [  CA,  2HA]
+    lower_connect: N
+    upper_connect: C
+  - name:  HIS
+    name3: HIS
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH0  }
+    - { *n: ND1 ,  *t: NhisDDepro }
+
+    - { *n: CD2 ,  *t: aroC }
+    - { *n: CE1 ,  *t: aroC }
+    - { *n: NE2 ,  *t: NhisE }
+
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: HE1 ,  *t: Hapo }
+    - { *n: HD2 ,  *t: Hapo }
+    - { *n: HE2 ,  *t: Hpol }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,  ND1]
+    - [  CG,  CD2]
+    - [ ND1,  CE1]
+    - [ CD2,  NE2]
+    - [ CD2,  HD2]
+    - [ CE1,  NE2]
+    - [ NE2,  HE2]
+    - [ CE1,  HE1]
+    lower_connect: N
+    upper_connect: C
+  - name:  HIS_D
+    name3: HIS
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH0  }
+    - { *n: ND1 ,  *t: NhisD}
+    - { *n: CD2 ,  *t: aroC }
+    - { *n: CE1 ,  *t: aroC }
+    - { *n: NE2 ,  *t: NhisEDepro }
+    #- { *n: NE2 ,  *t: NtrpDepro }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: HD2 ,  *t: Hapo }
+    - { *n: HE1 ,  *t: Hapo }
+    - { *n: HD1 ,  *t: Hpol }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,  ND1]
+    - [  CG,  CD2]
+    - [ ND1,  CE1]
+    - [ CD2,  NE2]
+    - [ CD2,  HD2]
+    - [ CE1,  NE2]
+    - [ CE1,  HE1]
+    - [ ND1,  HD1]
+    lower_connect: N
+    upper_connect: C
+  - name:  ILE
+    name3: ILE
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH1  }
+    - { *n: CG1 ,  *t: CH2  }
+    - { *n: CG2 ,  *t: CH3  }
+    - { *n: CD1 ,  *t: CH3  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: HB  ,  *t: Hapo }
+    - { *n: 1HG1,  *t: Hapo }
+    - { *n: 2HG1,  *t: Hapo }
+    - { *n: 1HG2,  *t: Hapo }
+    - { *n: 2HG2,  *t: Hapo }
+    - { *n: 3HG2,  *t: Hapo }
+    - { *n: 1HD1,  *t: Hapo }
+    - { *n: 2HD1,  *t: Hapo }
+    - { *n: 3HD1,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,  CG1]
+    - [  CB,  CG2]
+    - [  CB,   HB]
+    - [ CG1,  CD1]
+    - [ CG1, 1HG1]
+    - [ CG1, 2HG1]
+    - [ CG2, 1HG2]
+    - [ CG2, 2HG2]
+    - [ CG2, 3HG2]
+    - [ CD1, 1HD1]
+    - [ CD1, 2HD1]
+    - [ CD1, 3HD1]
+    lower_connect: N
+    upper_connect: C
+  - name:  LEU
+    name3: LEU
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH1  }
+    - { *n: CD1 ,  *t: CH3  }
+    - { *n: CD2 ,  *t: CH3  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: HG  ,  *t: Hapo }
+    - { *n: 1HD1,  *t: Hapo }
+    - { *n: 2HD1,  *t: Hapo }
+    - { *n: 3HD1,  *t: Hapo }
+    - { *n: 1HD2,  *t: Hapo }
+    - { *n: 2HD2,  *t: Hapo }
+    - { *n: 3HD2,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,  CD1]
+    - [  CG,  CD2]
+    - [  CG,   HG]
+    - [ CD1, 1HD1]
+    - [ CD1, 2HD1]
+    - [ CD1, 3HD1]
+    - [ CD2, 1HD2]
+    - [ CD2, 2HD2]
+    - [ CD2, 3HD2]
+    lower_connect: N
+    upper_connect: C
+  - name:  LYS
+    name3: LYS
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH2  }
+    - { *n: CD  ,  *t: CH2  }
+    - { *n: CE  ,  *t: CH2  }
+    - { *n: NZ  ,  *t: Nlys }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: 1HG ,  *t: Hapo }
+    - { *n: 2HG ,  *t: Hapo }
+    - { *n: 1HD ,  *t: Hapo }
+    - { *n: 2HD ,  *t: Hapo }
+    - { *n: 1HE ,  *t: Hapo }
+    - { *n: 2HE ,  *t: Hapo }
+    - { *n: 1HZ ,  *t: Hpol }
+    - { *n: 2HZ ,  *t: Hpol }
+    - { *n: 3HZ ,  *t: Hpol }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,   CD]
+    - [  CG,  1HG]
+    - [  CG,  2HG]
+    - [  CD,   CE]
+    - [  CD,  1HD]
+    - [  CD,  2HD]
+    - [  CE,   NZ]
+    - [  CE,  1HE]
+    - [  CE,  2HE]
+    - [  NZ,  1HZ]
+    - [  NZ,  2HZ]
+    - [  NZ,  3HZ]
+    lower_connect: N
+    upper_connect: C
+  - name:  MET
+    name3: MET
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH2  }
+    - { *n: SD  ,  *t: S    }
+    - { *n: CE  ,  *t: CH3  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: 1HG ,  *t: Hapo }
+    - { *n: 2HG ,  *t: Hapo }
+    - { *n: 1HE ,  *t: Hapo }
+    - { *n: 2HE ,  *t: Hapo }
+    - { *n: 3HE ,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,   SD]
+    - [  CG,  1HG]
+    - [  CG,  2HG]
+    - [  SD,   CE]
+    - [  CE,  1HE]
+    - [  CE,  2HE]
+    - [  CE,  3HE]
+    lower_connect: N
+    upper_connect: C
+  - name:  PHE
+    name3: PHE
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH0  }
+    - { *n: CD1 ,  *t: aroC }
+    - { *n: CD2 ,  *t: aroC }
+    - { *n: CE1 ,  *t: aroC }
+    - { *n: CE2 ,  *t: aroC }
+    - { *n: CZ  ,  *t: aroC }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: HD1 ,  *t: Haro }
+    - { *n: HD2 ,  *t: Haro }
+    - { *n: HE1 ,  *t: Haro }
+    - { *n: HE2 ,  *t: Haro }
+    - { *n: HZ  ,  *t: Haro }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,  CD1]
+    - [  CG,  CD2]
+    - [ CD1,  CE1]
+    - [ CD2,  CE2]
+    - [ CE1,   CZ]
+    - [ CE2,   CZ]
+    - [ CD1,  HD1]
+    - [ CD2,  HD2]
+    - [ CE1,  HE1]
+    - [ CE2,  HE2]
+    - [  CZ,   HZ]
+    lower_connect: N
+    upper_connect: C
+  - name:  PRO
+    name3: PRO
+    atoms:
+    - { *n: N   ,  *t: Npro }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH2  }
+    - { *n: CD  ,  *t: CH2  }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: 1HG ,  *t: Hapo }
+    - { *n: 2HG ,  *t: Hapo }
+    - { *n: 1HD ,  *t: Hapo }
+    - { *n: 2HD ,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,   CD]
+    - [  CG,  1HG]
+    - [  CG,  2HG]
+    - [  CD,  1HD]
+    - [  CD,  2HD]
+    - [  CD,    N]
+    lower_connect: N
+    upper_connect: C
+  - name:  SER
+    name3: SER
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: OG  ,  *t: OH   }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: HG  ,  *t: Hpol }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   OG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  OG,   HG]
+    lower_connect: N
+    upper_connect: C
+  - name:  THR
+    name3: THR
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH1  }
+    - { *n: OG1 ,  *t: OH   }
+    - { *n: CG2 ,  *t: CH3  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: HB  ,  *t: Hapo }
+    - { *n: HG1 ,  *t: Hpol }
+    - { *n: 1HG2,  *t: Hapo }
+    - { *n: 2HG2,  *t: Hapo }
+    - { *n: 3HG2,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,  OG1]
+    - [  CB,  CG2]
+    - [  CB,   HB]
+    - [ OG1,  HG1]
+    - [ CG2, 1HG2]
+    - [ CG2, 2HG2]
+    - [ CG2, 3HG2]
+    lower_connect: N
+    upper_connect: C
+  - name:  TRP
+    name3: TRP
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH0  }
+    - { *n: CD1 ,  *t: aroC }
+    - { *n: CD2 ,  *t: CH0  }
+    - { *n: NE1 ,  *t: Ntrp }
+    - { *n: CE2 ,  *t: CH0  }
+    - { *n: CE3 ,  *t: aroC }
+    - { *n: CZ2 ,  *t: aroC }
+    - { *n: CZ3 ,  *t: aroC }
+    - { *n: CH2 ,  *t: aroC }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: HD1 ,  *t: Haro }
+    - { *n: HE1 ,  *t: Hpol }
+    - { *n: HE3 ,  *t: Haro }
+    - { *n: HZ2 ,  *t: Haro }
+    - { *n: HZ3 ,  *t: Haro }
+    - { *n: HH2 ,  *t: Haro }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,  CD1]
+    - [  CG,  CD2]
+    - [ CD1,  NE1]
+    - [ CD2,  CE2]
+    - [ CD2,  CE3]
+    - [ NE1,  CE2]
+    - [ CE2,  CZ2]
+    - [ CE3,  CZ3]
+    - [ CZ2,  CH2]
+    - [ CZ3,  CH2]
+    - [ CD1,  HD1]
+    - [ NE1,  HE1]
+    - [ CE3,  HE3]
+    - [ CZ2,  HZ2]
+    - [ CZ3,  HZ3]
+    - [ CH2,  HH2]
+    lower_connect: N
+    upper_connect: C
+  - name:  TYR
+    name3: TYR
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH2  }
+    - { *n: CG  ,  *t: CH0  }
+    - { *n: CD1 ,  *t: aroC }
+    - { *n: CD2 ,  *t: aroC }
+    - { *n: CE1 ,  *t: aroC }
+    - { *n: CE2 ,  *t: aroC }
+    - { *n: CZ  ,  *t: CH0  }
+    - { *n: OH  ,  *t: OHphenol   }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: 1HB ,  *t: Hapo }
+    - { *n: 2HB ,  *t: Hapo }
+    - { *n: HD1 ,  *t: Haro }
+    - { *n: HD2 ,  *t: Haro }
+    - { *n: HE1 ,  *t: Haro }
+    - { *n: HE2 ,  *t: Haro }
+    - { *n: HH  ,  *t: Hpol }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [   C,    O]
+    - [  CB,   CG]
+    - [  CB,  1HB]
+    - [  CB,  2HB]
+    - [  CG,  CD1]
+    - [  CG,  CD2]
+    - [ CD1,  CE1]
+    - [ CD1,  HD1]
+    - [ CD2,  CE2]
+    - [ CD2,  HD2]
+    - [ CE1,   CZ]
+    - [ CE1,  HE1]
+    - [ CE2,   CZ]
+    - [ CE2,  HE2]
+    - [  CZ,   OH]
+    - [  OH,   HH]
+    lower_connect: N
+    upper_connect: C
+  - name:  VAL
+    name3: VAL
+    atoms:
+    - { *n: N   ,  *t: Nbb  }
+    - { *n: CA  ,  *t: CAbb }
+    - { *n: C   ,  *t: CObb }
+    - { *n: O   ,  *t: OCbb }
+    - { *n: CB  ,  *t: CH1  }
+    - { *n: CG1 ,  *t: CH3  }
+    - { *n: CG2 ,  *t: CH3  }
+    - { *n: H   ,  *t: HNbb }
+    - { *n: HA  ,  *t: Hapo }
+    - { *n: HB  ,  *t: Hapo }
+    - { *n: 1HG1,  *t: Hapo }
+    - { *n: 2HG1,  *t: Hapo }
+    - { *n: 3HG1,  *t: Hapo }
+    - { *n: 1HG2,  *t: Hapo }
+    - { *n: 2HG2,  *t: Hapo }
+    - { *n: 3HG2,  *t: Hapo }
+    bonds:
+    - [   N,   CA]
+    - [   N,    H]
+    - [  CA,    C]
+    - [   C,    O]
+    - [  CA,   CB]
+    - [  CA,   HA]
+    - [   C,    O]
+    - [  CB,  CG1]
+    - [  CB,  CG2]
+    - [  CB,   HB]
+    - [ CG1, 1HG1]
+    - [ CG1, 2HG1]
+    - [ CG1, 3HG1]
+    - [ CG2, 1HG2]
+    - [ CG2, 2HG2]
+    - [ CG2, 3HG2]
+    lower_connect: N
+    upper_connect: C
