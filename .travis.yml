@@ -24,7 +24,7 @@ install:
   - source activate tmol
 
 script:
-  ./setup.py test --addopts --cov=./tmol
+  ./setup.py test --addopts --cov=./
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -F pytest -t $CODECOV_TOKEN
