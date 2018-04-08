@@ -22,9 +22,10 @@ install:
   - conda clean -tipsy
 
   - source activate tmol
+  - pip install -r requirements.tests.txt
 
 script:
   ./setup.py test --addopts --cov=./
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash) -F pytest -t $CODECOV_TOKEN
+  - codecov -F pytest -t $CODECOV_TOKEN
