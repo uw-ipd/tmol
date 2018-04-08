@@ -1,0 +1,30 @@
+language: python
+python:
+  - "3.6"
+cache:
+  directories:
+    # Cache conda pkg directory
+    - $HOME/miniconda/pkgs
+install:
+  - sudo apt-get update
+
+  # Install and update conda
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -u -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda info -a
+
+  # Install and update test environment
+  - conda env update -f environment.yml
+  - conda clean -tipsy
+
+  - source activate tmol
+
+script:
+  ./setup.py test --addopts --cov=./tmol
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -F pytest -t $CODECOV_TOKEN

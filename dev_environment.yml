@@ -1,0 +1,15 @@
+name: tmol
+dependencies:
+  # Development and test packages
+  - python=3.6
+  - ipython
+  - ipykernel
+  - numba
+  - seaborn
+  - biopython
+  - flake8
+  - pytest
+  - pytest-cov
+  - pip:
+    - pytest-watch
+    - pdbpp

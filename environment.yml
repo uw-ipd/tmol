@@ -1,21 +1,18 @@
 name: tmol
 dependencies:
   # Core dev requirements
-  - python=3.5
+  - python=3.6
   - ipython
-  - ipykernel
   - numpy
   - pandas
-  - h5py
   - scipy
-  - biopython
-  - numba
   - requests
   - toolz
-
-  # Torch source-install requirements
   - pyyaml
-  - mkl==11.3.3
-  - cmake
-  - cffi
-  - setuptools
+  - asford::pytorch-cpu
+
+  - pip:
+    - attrs
+    - cattrs
+    - properties
+    - frozendict
