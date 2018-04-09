@@ -2,7 +2,7 @@ import attr
 import cattr
 import yaml
 
-from typing import Tuple
+from typing import Tuple, List
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -98,8 +98,8 @@ class HBondDatabase:
     global_parameters: GlobalParams
     atom_groups: AtomGroups
     chemical_types: ChemicalTypes
-    polynomial_parameters: Tuple[PolynomialParameters]
-    pair_parameters: Tuple[PairParameters]
+    polynomial_parameters: Tuple[PolynomialParameters, ...]
+    pair_parameters: Tuple[PairParameters, ...]
 
     @classmethod
     def from_file(cls, path):

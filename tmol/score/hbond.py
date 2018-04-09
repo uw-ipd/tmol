@@ -164,7 +164,7 @@ class HBondElementAnalysis(properties.HasProperties):
 class HBondScoreGraph(InteratomicDistanceGraphBase):
 
     hbond_database: HBondDatabase = Instance(
-        "ljlk parameter database", HBondDatabase, default=tmol.database.default.scoring.hbond)
+        "hbond parameter database", HBondDatabase, default=tmol.database.default.scoring.hbond)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
