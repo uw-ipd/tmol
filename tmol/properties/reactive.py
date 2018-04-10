@@ -15,20 +15,21 @@ import properties
 from toolz import get_in
 from ._util import rename_code_object
 
+
 class CachedProperty(properties.basic.DynamicProperty):
     def get_property(self):
         scope = self
 
         def fget(self):
-            if not scope.name in self._backend:
+            if scope.name not in self._backend:
                 value = scope.func(self)
                 if value is properties.undefined:
                     return None
                 value = scope.validate(self, value)
-                
+
                 self._set(scope.name, value)
-                
-            return self._get(scope.name) 
+
+            return self._get(scope.name)
 
         def fset(self, value):
             raise AttributeError("cannot set attribute")
@@ -38,17 +39,19 @@ class CachedProperty(properties.basic.DynamicProperty):
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=scope.sphinx())
 
+
 def cached(prop):
     def _wrap(f):
         return CachedProperty(doc=prop.doc, prop=prop, func=f)
-    
+
     return _wrap
+
 
 class DerivedProperty(properties.basic.DynamicProperty):
     @property
     def dependencies(self):
         return getattr(self, "_dependencies")
-    
+
     @dependencies.setter
     def dependencies(self, value):
         if not isinstance(value, (tuple, list, set)):
@@ -57,40 +60,46 @@ class DerivedProperty(properties.basic.DynamicProperty):
             if not isinstance(val, six.string_types):
                 raise TypeError('Observed names must be strings')
         self._dependencies = value
-    
+
     def __init__(self, dependencies, doc, func, prop, **kwargs):
         self.dependencies = dependencies
-        self.obs = properties.handlers.Observer(self.dependencies, "observe_set")(self.clear)
-        
-        properties.basic.DynamicProperty.__init__(self, doc, func, prop, **kwargs)
-        
+        self.obs = properties.handlers.Observer(
+            self.dependencies, "observe_set"
+        )(self.clear)
+
+        properties.basic.DynamicProperty.__init__(
+            self, doc, func, prop, **kwargs
+        )
+
     def clear(self, instance, _):
         instance.__delattr__(self.name)
-        
+
     def get_property(self):
         scope = self
-            
+
         def fget(self):
-            if not scope.name in self._backend:
+            if scope.name not in self._backend:
                 value = scope.func(self)
                 if value is properties.undefined:
                     return None
                 value = scope.validate(self, value)
-                
+
                 self._set(scope.name, value)
-                
+
                 has_observers = all(
                     any(
-                        scope.obs is o 
-                        for o in get_in([name, scope.obs.mode], self._listeners, ())
-                    )
-                    for name in scope.obs.names
+                        scope.obs is o for o in get_in(
+                            [name, scope.obs.mode],
+                            self._listeners,
+                            (),
+                        )
+                    ) for name in scope.obs.names
                 )
-                
+
                 if not has_observers:
                     properties.handlers._set_listener(self, scope.obs)
-                
-            return self._get(scope.name) 
+
+            return self._get(scope.name)
 
         def fset(self, value):
             raise AttributeError("cannot set attribute")
@@ -98,16 +107,15 @@ class DerivedProperty(properties.basic.DynamicProperty):
         def fdel(self):
             self._set(scope.name, properties.undefined)
 
-        suffix = "_" + scope.name
-
         fget = rename_code_object(fget, "fget_" + scope.name)
         fset = rename_code_object(fset, "fset_" + scope.name)
         fdel = rename_code_object(fdel, "fdel_" + scope.name)
 
         return property(fget=fget, fset=fset, fdel=fdel, doc=scope.sphinx())
-    
+
+
 def derived_from(dependencies, prop):
     def _wrap(f):
         return DerivedProperty(dependencies, doc=prop.doc, prop=prop, func=f)
-    
+
     return _wrap

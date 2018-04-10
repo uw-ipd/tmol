@@ -45,18 +45,19 @@ Or a standard, ordering/density:
 - `[:,4,4].dense(2).order('c')` - ndim 3, shape (n, 4,4), 2-dense, c-contiguous
 """
 
-import numpy
 import attr
-from attr.validators import optional, instance_of, in_
+
 
 class SpecGenerator:
     def __getitem__(cls, args):
         if not isinstance(args, tuple):
-            args = (args,)
+            args = (args, )
 
         return ShapeSpec(list(args))
 
+
 spec = SpecGenerator()
+
 
 @attr.s(frozen=True, slots=True)
 class Dim:
@@ -96,14 +97,12 @@ class Dim:
 
 @attr.s(slots=True, frozen=True)
 class ShapeSpec:
-
-
     @staticmethod
     def _to_dims(dims):
         return list(map(Dim, dims))
 
     dims = attr.ib(converter=_to_dims.__func__)
-    
+
     @dims.validator
     def _valid_dims(self, _, dims):
         if len(dims) < 1:
@@ -148,8 +147,7 @@ class ShapeSpec:
             self.validate(value.shape)
             return value
         except ValueError:
-            raise ValueError("Invalid shape: {} expected: {}".format(value.shape, self))
-
+            raise ValueError(f"Invalid shape: {value.shape} expected: {self}")
 
     def __str__(self):
         return "[{}]".format(",".join(map(str, self.dims)))

@@ -1,21 +1,16 @@
-import functools
-import torch
-
 from IPython.display import display
 
 import tmol.extern.py3dmol as py3dmol
 from tmol.io.generic import to_pdb, to_cdjson
 
+
 class SystemViewer:
-    transforms = {
-            "cdjson" : to_cdjson,
-            "pdb" : to_pdb
-    }
+    transforms = {"cdjson": to_cdjson, "pdb": to_pdb}
 
     def __init__(self, system, style={"sphere": {}}, mode="cdjson"):
         self.system = system
         if isinstance(style, str):
-            style = {style : {}}
+            style = {style: {}}
         self.style = style
         self.mode = mode
 

@@ -5,6 +5,7 @@ import torch
 
 from torch.autograd import Variable
 
+
 @singledispatch
 def exp(x, out=None):
     """The exponential of the elements of :attr:`x`.
@@ -17,5 +18,6 @@ def exp(x, out=None):
     out (Tensor, optional): the output tensor
     """
     return numpy.exp(x, out=out)
+
 
 exp.register(Variable)(torch.exp)

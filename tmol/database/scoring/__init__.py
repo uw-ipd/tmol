@@ -12,4 +12,5 @@ class ScoringDatabase:
     @classmethod
     def from_file(cls, path=os.path.dirname(__file__)):
         return cls(
-            ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")))
+            ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml"))
+        )
