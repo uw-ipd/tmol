@@ -1,3 +1,5 @@
 pytest>=3.5
 pytest-cov>=2.5
 codecov
+yapf
+flake8
