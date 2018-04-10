@@ -45,14 +45,16 @@ class TestScoringDatabase(unittest.TestCase):
             assert pair.cosBAH_long in poly_params
             assert pair.cosBAH_short in poly_params
 
-        pair_params = set(
-            (p.don_chem_type, p.acc_chem_type) for p in db.pair_parameters)
+        pair_params = set((p.don_chem_type, p.acc_chem_type)
+                          for p in db.pair_parameters)
         assert len(pair_params) == len(db.pair_parameters)
 
         donor_types = list(db.chemical_types.donors)
-        acceptor_types = (list(db.chemical_types.sp2_acceptors) +
-                          list(db.chemical_types.sp3_acceptors) +
-                          list(db.chemical_types.ring_acceptors))
+        acceptor_types = (
+            list(db.chemical_types.sp2_acceptors) +
+            list(db.chemical_types.sp3_acceptors) +
+            list(db.chemical_types.ring_acceptors)
+        )
 
         for d, a in itertools.product(donor_types, acceptor_types):
             assert (d, a) in pair_params

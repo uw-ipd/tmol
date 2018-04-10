@@ -2,7 +2,7 @@ import attr
 import cattr
 import yaml
 
-from typing import Tuple, List
+from typing import Tuple
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
