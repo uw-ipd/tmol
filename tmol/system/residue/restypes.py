@@ -33,8 +33,7 @@ class ResidueType(tmol.database.chemical.Residue, AttrMapping):
     def _setup_atom_to_idx(self):
         return frozendict((a.name, i) for i, a in enumerate(self.atoms))
 
-
-    qualified_atom_types : Tuple[str] = attr.ib()
+    qualified_atom_types: Tuple[str] = attr.ib()
 
     @qualified_atom_types.default
     def _setup_qualified_atom_types(self):
@@ -52,7 +51,9 @@ class ResidueType(tmol.database.chemical.Residue, AttrMapping):
     def _setup_bond_indicies(self):
         bondi = compose(list, sorted, set, concat)(
             [(ai, bi), (bi, ai)]
-            for ai, bi in map(map(self.atom_to_idx.get), self.bonds))
+            for ai, bi
+            in map(map(self.atom_to_idx.get), self.bonds)
+        )  # yapf: disable
 
         bond_array = numpy.array(bondi)
         bond_array.flags.writeable = False
@@ -82,7 +83,10 @@ class Residue:
     @coords.default
     def _coord_buffer(self):
         return numpy.full(
-            (len(self.residue_type.atoms), 3), numpy.nan, dtype=float)
+            (len(self.residue_type.atoms), 3),
+            numpy.nan,
+            dtype=float,
+        )
 
     @property
     def atom_coords(self) -> numpy.ndarray:

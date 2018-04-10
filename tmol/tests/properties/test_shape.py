@@ -1,9 +1,8 @@
 import unittest
 
-import numpy
-
 import tmol.properties
 import tmol.properties.shape
+
 
 class testShapeSpec(unittest.TestCase):
     def test(self):
@@ -14,63 +13,64 @@ class testShapeSpec(unittest.TestCase):
                 self.case = case
 
             def __getitem__(self, v):
-                with self.case.assertRaises(
-                        ValueError, msg=repr(v)):
+                with self.case.assertRaises(ValueError, msg=repr(v)):
                     v = s[v]
                     self.case.fail(repr(v))
+                return None
 
         inv = AssertInvalidSpec(self)
 
-        examples = [
-                # ndim and shape
-                {
-                    "spec" : s[:],
-                    "valid" : [(1,), (10,)],
-                    "invalid" : [(), (2,2), (10, 10, 10)],
-                    },
-                {
-                    "spec" : s[:,:],
-                    "valid" : [(10,3), (2,2), (1, 10)],
-                    "invalid" : [(1,), (3,), (10, 10, 3)],
-                    },
-                {
-                    "spec" : s[3],
-                    "valid" : [(3,)],
-                    "invalid" : [(1,), (1,3), (3, 3)]
-                    },
-                {
-                    "spec" : s[:,3],
-                    "valid" : [(1,3), (3,3), (10, 3)],
-                    "invalid" : [ (1,), (3,), (3,1), (1, 1, 1) ]
-                    },
-                {
-                    "spec" : s[1,3],
-                    "valid" : [(1,3)],
-                    "invalid" : [ (3,), (3, 3), (3,1), (1, 3, 3) ]
-                    },
-                {
-                    "spec" : s[...,3],
-                    "valid" : [(3,), (100, 1, 3), (1,3)],
-                    "invalid" : [ (3, 1), (1,) ]
-                    },
-                {
-                    "spec" : s[...,:,3],
-                    "valid" : [(100, 1, 3), (1,3)],
-                    "invalid" : [ (3, 1), (1,), (3,)]
-                    },
-
-                ]
-
         invalid_specs = [
-                inv[::1],
-                inv[:,::1],
-                inv[3:],
-                inv["test"],
-                inv[1, "test"],
-                inv[::1, ::1],
-                inv[3, ...],
-                inv[..., ...],
-                ]
+            inv[::1],
+            inv[:, ::1],
+            inv[3:],
+            inv["test"],
+            inv[1, "test"],
+            inv[::1, ::1],
+            inv[3, ...],
+            inv[..., ...],
+        ]
+
+        assert not any(invalid_specs)
+
+        examples = [
+            # ndim and shape
+            {
+                "spec": s[:],
+                "valid": [(1, ), (10, )],
+                "invalid": [(), (2, 2), (10, 10, 10)],
+            },
+            {
+                "spec": s[:, :],
+                "valid": [(10, 3), (2, 2), (1, 10)],
+                "invalid": [(1, ), (3, ), (10, 10, 3)],
+            },
+            {
+                "spec": s[3],
+                "valid": [(3, )],
+                "invalid": [(1, ), (1, 3), (3, 3)]
+            },
+            {
+                "spec": s[:, 3],
+                "valid": [(1, 3), (3, 3), (10, 3)],
+                "invalid": [(1, ), (3, ), (3, 1), (1, 1, 1)]
+            },
+            {
+                "spec": s[1, 3],
+                "valid": [(1, 3)],
+                "invalid": [(3, ), (3, 3), (3, 1), (1, 3, 3)]
+            },
+            {
+                "spec": s[..., 3],
+                "valid": [(3, ), (100, 1, 3), (1, 3)],
+                "invalid": [(3, 1), (1, )]
+            },
+            {
+                "spec": s[..., :, 3],
+                "valid": [(100, 1, 3), (1, 3)],
+                "invalid": [(3, 1), (1, ), (3, )]
+            },
+        ]
 
         for e in examples:
             spec = e["spec"]
@@ -81,12 +81,13 @@ class testShapeSpec(unittest.TestCase):
             for v in e["invalid"]:
                 self.assertInvalid(spec, v)
 
-
-    def assertValid(self, spec, array, msg = None):
+    def assertValid(self, spec, array, msg=None):
         spec.validate(array)
 
-    def assertInvalid(self, spec, array, msg = None):
+    def assertInvalid(self, spec, array, msg=None):
         with self.assertRaises(ValueError):
             spec.validate(array)
-            self.fail("spec: %r matched invalid array shape: %s" % (spec, array.shape))
-
+            self.fail(
+                "spec: %r matched invalid array shape: %s" %
+                (spec, array.shape)
+            )

@@ -71,17 +71,24 @@ def extend_structured_array(source_array, extension_dtype):
     if not extension_dtype.names:
         raise ValueError("extension_dtype must be structured")
 
-    intersecting_names = set(source_array.dtype.names).intersection(set(extension_dtype.names))
+    intersecting_names = (
+        set(source_array.dtype.names).intersection(set(extension_dtype.names))
+    )
     if intersecting_names:
-        raise ValueError("Extension contained existing names: %s" % intersecting_names)
+        raise ValueError(
+            "Extension contained existing names: %s" % intersecting_names
+        )
 
-    result = numpy.zeros_like(source_array, dtype=source_array.dtype.descr + extension_dtype.descr)
+    result = numpy.zeros_like(
+        source_array, dtype=source_array.dtype.descr + extension_dtype.descr
+    )
 
     rbuf = numpy.ndarray(
         shape=result.shape,
         dtype=source_array.dtype,
         buffer=result.data,
-        strides=result.strides)
+        strides=result.strides
+    )
     rbuf[:] = source_array
 
     return result
@@ -102,30 +109,32 @@ def structured_array_to_basic(in_array):
     """
 
     if not in_array.dtype.fields:
-        raise ValueError(
-            "in_array must be structured", in_array.dtype)
+        raise ValueError("in_array must be structured", in_array.dtype)
 
     field_dtype = set(f[0] for f in in_array.dtype.fields.values())
     if len(field_dtype) > 1:
         raise ValueError(
-            "in_array must be of homogenous field dtype", in_array.dtype)
+            "in_array must be of homogenous field dtype", in_array.dtype
+        )
     field_dtype = field_dtype.pop()
 
     if not field_dtype.subdtype:
         expected_dtype = field_dtype
-        expected_shape = in_array.shape + (len(in_array.dtype.fields),)
+        expected_shape = in_array.shape + (len(in_array.dtype.fields), )
     else:
         expected_dtype = field_dtype.subdtype[0]
-        expected_shape = in_array.shape + (len(in_array.dtype.fields),) + field_dtype.subdtype[1]
+        expected_shape = in_array.shape + (len(in_array.dtype.fields
+                                               ), ) + field_dtype.subdtype[1]
 
-    return numpy.ascontiguousarray(in_array).view(dtype=expected_dtype).reshape(expected_shape)
+    return numpy.ascontiguousarray(in_array).view(dtype=expected_dtype
+                                                  ).reshape(expected_shape)
 
 
 def basic_array_to_structured(in_array, field_names, field_dtype=None):
     """Convert basic array to structured array with fields of homogenous dtype."""
 
     if isinstance(field_names, str):
-        field_names = (field_names,)
+        field_names = (field_names, )
 
     if field_dtype is None:
         field_dtype = in_array.dtype
@@ -136,29 +145,43 @@ def basic_array_to_structured(in_array, field_names, field_dtype=None):
     if not field_dtype.subdtype:
         minor_shape = (len(field_names), )
     else:
-        minor_shape = (len(field_names),) + field_dtype.subdtype[1]
+        minor_shape = (len(field_names), ) + field_dtype.subdtype[1]
 
     if in_array.shape[-len(minor_shape):] != minor_shape:
         raise ValueError(
-            "in_array of invalid minor axis shape", in_array.shape[-len(minor_shape):])
+            "in_array of invalid minor axis shape",
+            in_array.shape[-len(minor_shape):]
+        )
 
     expected_shape = in_array.shape[:-len(minor_shape)]
-    return in_array.reshape(expected_shape + (-1,)).view(result_dtype)
+    return in_array.reshape(expected_shape + (-1, )).view(result_dtype)
 
 
 def atom_array_to_coordinates(atom_array):
     """Convert structured array of named atomic positions to coordinate buffer."""
-    return structured_array_to_basic(atom_array).reshape(atom_array.shape[:-1] + (-1, 3))
+    return structured_array_to_basic(atom_array).reshape(
+        atom_array.shape[:-1] + (-1, 3)
+    )
 
 
 def coordinate_array_to_atoms(coordinate_array, atom_names):
     """Convert coordinate buffer into structured array of named atomic positions."""
     return basic_array_to_structured(
-        coordinate_array.reshape(coordinate_array.shape[:-2] + (-1, len(atom_names), 3)),
-        field_names=atom_names, field_dtype=(coordinate_array.dtype, (3,))).squeeze(-1)
+        coordinate_array.
+        reshape(coordinate_array.shape[:-2] + (-1, len(atom_names), 3)),
+        field_names=atom_names,
+        field_dtype=(coordinate_array.dtype, (3, ))
+    ).squeeze(-1)
 
 
-def rolling_window(array, window=(0,), asteps=None, wsteps=None, axes=None, toend=True):
+def rolling_window(
+        array,
+        window=(0, ),
+        asteps=None,
+        wsteps=None,
+        axes=None,
+        toend=True,
+):
     """Create a view of `array` which for every point gives the n-dimensional
     neighbourhood of size window. New dimensions are added at the end of
     `array` or after the corresponding original dimension.
@@ -253,15 +276,21 @@ def rolling_window(array, window=(0,), asteps=None, wsteps=None, axes=None, toen
     if numpy.any(window < 0):
         raise ValueError("All elements of `window` must be larger then 1.")
     if len(array.shape) < len(window):
-        raise ValueError("`window` length must be less or equal `array` dimension.")
+        raise ValueError(
+            "`window` length must be less or equal `array` dimension."
+        )
 
     _asteps = numpy.ones_like(orig_shape)
     if asteps is not None:
         asteps = numpy.atleast_1d(asteps)
         if asteps.ndim != 1:
-            raise ValueError("`asteps` must be either a scalar or one dimensional.")
+            raise ValueError(
+                "`asteps` must be either a scalar or one dimensional."
+            )
         if len(asteps) > array.ndim:
-            raise ValueError("`asteps` cannot be longer then the `array` dimension.")
+            raise ValueError(
+                "`asteps` cannot be longer then the `array` dimension."
+            )
         # does not enforce alignment, so that steps can be same as window too.
         _asteps[-len(asteps):] = asteps
 
@@ -278,12 +307,15 @@ def rolling_window(array, window=(0,), asteps=None, wsteps=None, axes=None, toen
             raise ValueError("All elements of `wsteps` must be larger then 0.")
 
         _wsteps[:] = wsteps
-        _wsteps[window == 0] = 1  # make sure that steps are 1 for non-existing dims.
+        _wsteps[window == 0
+                ] = 1  # make sure that steps are 1 for non-existing dims.
     wsteps = _wsteps
 
     # Check that the window would not be larger then the original:
     if numpy.any(orig_shape[-len(window):] < window * wsteps):
-        raise ValueError("`window` * `wsteps` larger then `array` in at least one dimension.")
+        raise ValueError(
+            "`window` * `wsteps` larger then `array` in at least one dimension."
+        )
 
     new_shape = orig_shape  # just renaming...
 
@@ -324,4 +356,6 @@ def rolling_window(array, window=(0,), asteps=None, wsteps=None, axes=None, toen
     new_strides = new_strides[new_shape != 0]
     new_shape = new_shape[new_shape != 0]
 
-    return numpy.lib.stride_tricks.as_strided(array, shape=new_shape, strides=new_strides)
+    return numpy.lib.stride_tricks.as_strided(
+        array, shape=new_shape, strides=new_strides
+    )

@@ -1,3 +1,4 @@
+# flake8: noqa: E2
 """Utility functions for converting pdb files to/from atom records.
 
 Atom records are DataFrames with the records:
@@ -24,28 +25,24 @@ import numpy
 from os import path
 
 atom_record_dtype = numpy.dtype([
-
     ("record_name", numpy.str, 6),
+    ("modeli",      numpy.int),
+    ("chaini",      numpy.int),
+    ("resi",        numpy.int),
+    ("atomi",       numpy.int),
+    ("model",       numpy.str, 64),
+    ("chain",       numpy.str, 1),
+    ("resn",        numpy.str, 3),
+    ("atomn",       numpy.str, 4),
+    ("x",           numpy.float),
+    ("y",           numpy.float),
+    ("z",           numpy.float),
+    ("location",    numpy.str, 1),
+    ("insert",      numpy.str, 1),
+    ("occupancy",   numpy.float),
+    ("b",           numpy.float)
+])  # yapf: disable
 
-    ("modeli",    numpy.int),
-    ("chaini",    numpy.int),
-    ("resi",      numpy.int),
-    ("atomi",     numpy.int),
-
-    ("model",     numpy.str, 64),
-    ("chain",     numpy.str, 1),
-    ("resn",      numpy.str, 3),
-    ("atomn",     numpy.str, 4),
-
-    ("x",         numpy.float),
-    ("y",         numpy.float),
-    ("z",         numpy.float),
-
-    ("location",  numpy.str, 1),
-    ("insert",    numpy.str, 1),
-    ("occupancy", numpy.float),
-    ("b",         numpy.float)
-])
 
 def parse_pdb(pdb_lines):
     """Parses pdb file into atom records.
@@ -94,7 +91,7 @@ def parse_pdb(pdb_lines):
 
     entries = parse_atom_lines(atom_lines)
 
-    #Mark additional breaks if the chain code changes.
+    # Mark additional breaks if the chain code changes.
     chain_breaks = numpy.array(chain_breaks, dtype=bool)
     chain_breaks[:-1][entries["chain"][:-1] != entries["chain"][1:]] = True
 
@@ -110,6 +107,7 @@ def parse_pdb(pdb_lines):
     entries["chaini"] = end_flags_to_segment_idx(chain_breaks)
 
     return pandas.DataFrame(entries)
+
 
 def parse_atom_lines(lines):
     """ Parses an array of pdb ATOM records into a dict of field arrays.
@@ -132,13 +130,14 @@ def parse_atom_lines(lines):
     79 - 80        LString(2)      Charge on the atom.
     """
     results = numpy.empty(len(lines), dtype=atom_record_dtype)
+    #  yapf: disable
 
     results["record_name"] = numpy.vectorize(lambda s: (s[0:6])           , otypes = [numpy.str])(lines)
     results["atomi"]       = numpy.vectorize(lambda s: int(s[6:11])       , otypes = [numpy.int])(lines)
-    #atomn are directly compared in modeling software, specifically rosetta, without
-    #stripping whitespace, however most users use whitespace-insensitive comparisons
+    # atomn are directly compared in modeling software, specifically rosetta, without
+    # stripping whitespace, however most users use whitespace-insensitive comparisons
     #
-    #atomn will be reformatted to pdb standard during output
+    # atomn will be reformatted to pdb standard during output
     results["atomn"]       = numpy.vectorize(lambda s: str.strip(s[12:16]), otypes = [numpy.str])(lines)
     results["location"]    = numpy.vectorize(lambda s: str.strip(s[16:17]), otypes = [numpy.str])(lines)
     results["resn"]        = numpy.vectorize(lambda s: str.strip(s[17:20]), otypes = [numpy.str])(lines)
@@ -150,15 +149,18 @@ def parse_atom_lines(lines):
     results["z"]           = numpy.vectorize(lambda s: float(s[46:54])    , otypes = [numpy.float])(lines)
     results["occupancy"]   = numpy.vectorize(lambda s: float(s[54:60])    , otypes = [numpy.float])(lines)
     results["b"]           = numpy.vectorize(lambda s: float(s[60:66])    , otypes = [numpy.float])(lines)
-    #results["segi"]       = numpy.vectorize(lambda s: str.strip(s[72:76]), otypes = [numpy.str])(lines)
-    #results["element"]    = numpy.vectorize(lambda s: str.strip(s[76:78]), otypes = [numpy.str])(lines)
-    #results["charge"]     = numpy.vectorize(lambda s: float(s[78:80]), otypes     = [numpy.float])(lines)
+    # results["segi"]       = numpy.vectorize(lambda s: str.strip(s[72:76]), otypes = [numpy.str])(lines)
+    # results["element"]    = numpy.vectorize(lambda s: str.strip(s[76:78]), otypes = [numpy.str])(lines)
+    # results["charge"]     = numpy.vectorize(lambda s: float(s[78:80]), otypes     = [numpy.float])(lines)
+    #  yapf: enable
 
     return results
+
 
 def to_pdb(atom_records):
     """ Atom record DataFrame as pdb text."""
     return "".join(to_pdb_lines(atom_records))
+
 
 def format_atomn(atomn):
     """ Formats atomn via pdb standard.
@@ -168,7 +170,8 @@ def format_atomn(atomn):
     if atomn.startswith(("H", "C", "N", "O", "S")) and len(atomn) < 4:
         return " {0:<3}".format(atomn)
     else:
-        return  "{0:<4}".format(atomn)
+        return "{0:<4}".format(atomn)
+
 
 def to_pdb_lines(atom_records):
     """ Yields atom record DataFrame as pdb lines."""
@@ -185,24 +188,27 @@ def to_pdb_lines(atom_records):
         yield "TER\n"
         yield "ENDMDL\n"
 
+
 def to_atom_lines(atom_records):
     """Convert atom records into ATOM lines."""
     for r in atom_records:
         yield _atom_record_format.format(
-                atomi     = r["atomi"],
-                atomn     = format_atomn(r["atomn"]),
-                location  = r["location"],
-                resn      = r["resn"],
-                chain     = r["chain"],
-                resi      = r["resi"],
-                insert    = r["insert"],
-                x         = r["x"],
-                y         = r["y"],
-                z         = r["z"],
-                occupancy = r["occupancy"],
-                b         = r["b"])
+            atomi=r["atomi"],
+            atomn=format_atomn(r["atomn"]),
+            location=r["location"],
+            resn=r["resn"],
+            chain=r["chain"],
+            resi=r["resi"],
+            insert=r["insert"],
+            x=r["x"],
+            y=r["y"],
+            z=r["z"],
+            occupancy=r["occupancy"],
+            b=r["b"]
+        )
 
 
-
-_atom_record_format = "ATOM  {atomi:5d} {atomn:^4}{location:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   {x:8.3f}{y:8.3f}{z:8.3f}{occupancy:6.2f}{b:6.2f}\n"
-
+_atom_record_format = (
+    "ATOM  {atomi:5d} {atomn:^4}{location:^1}{resn:3s} {chain:1}{resi:4d}{insert:1s}   "
+    "{x:8.3f}{y:8.3f}{z:8.3f}{occupancy:6.2f}{b:6.2f}\n"
+)
