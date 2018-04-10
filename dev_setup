@@ -8,6 +8,8 @@ set -x
 conda env update -f environment.yml
 conda env update -f dev_environment.yml
 
+set +e
 pushd .git/hooks
 ln -s ../../.post-checkout post-checkout
+ln -s ../../.pre-commit pre-commit
 popd
