@@ -9,9 +9,12 @@ dependencies:
   - numpy
   - pandas
   - scipy
+  - numba
   - requests
   - toolz
   - pyyaml
+  - pytest
+  - pytest-cov
   - asford::pytorch-cpu
 
   - pip:

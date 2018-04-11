@@ -5,10 +5,6 @@ cache:
   directories:
     # Cache conda pkg directory
     - $HOME/miniconda/pkgs
-before_cache:
-  - conda clean -tipsy
-  - rm -f $HOME/miniconda/pkgs/urls.txt
-
 install:
   - sudo apt-get update
 
@@ -23,12 +19,13 @@ install:
 
   # Install and update test environment
   - conda env update -f environment.yml
+  - conda clean -tipsy
 
   - source activate tmol
-  - pip install -r requirements.tests.txt
 
 script:
-  ./setup.py test --addopts --cov=./tmol
+  pytest tmol --cov=./
 
 after_success:
-  - codecov -F pytest -t $CODECOV_TOKEN
+  - bash <(curl -s https://codecov.io/bash) -F pytest -t $CODECOV_TOKEN
+

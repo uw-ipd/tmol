@@ -36,6 +36,8 @@ setup(
     version=git_version(),
     packages=['tmol'],
     setup_requires=pytest_runner,
-    tests_require=[l.strip() for l in open("requirements.tests.txt").readlines()],
+    tests_require=[
+        "pytest",
+    ],
     install_requires=[l.strip() for l in open("requirements.txt").readlines()],
     zip_safe=False)
