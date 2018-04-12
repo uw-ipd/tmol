@@ -12,3 +12,5 @@ class TestChemicalDatabase(unittest.TestCase):
             for a in r.atoms:
                 assert a.atom_type in atom_types, f"Invalid atom type. res: {r.name3} atom: {a}"
 
+if __name__ == "__main__" :
+    unittest.main()

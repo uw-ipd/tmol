@@ -13,6 +13,16 @@ class Atom:
     atom_type : str
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class Icoor:
+    name : str
+    phi  : float
+    theta: float
+    d    : float
+    parent : str
+    grand_parent : str
+    great_grand_parent : str
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Residue:
     name  : str
     name3 : str
@@ -20,6 +30,7 @@ class Residue:
     bonds : Tuple[Tuple[str, str], ...]
     lower_connect : str
     upper_connect : str
+    icoor : Tuple[Icoor,...]
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase(properties.HasProperties):
