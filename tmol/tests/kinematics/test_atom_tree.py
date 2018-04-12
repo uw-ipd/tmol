@@ -1,6 +1,8 @@
 import unittest
 from collections import Counter
 import tmol.kinematics.AtomTree as atree
+import numpy
+import math
 
 class TestAtomTree(unittest.TestCase):
     def test_homogeneous_transform_default_ctor(self):
@@ -22,5 +24,109 @@ class TestAtomTree(unittest.TestCase):
         self.assertEqual( ht.frame[3,1], 0 )
         self.assertEqual( ht.frame[3,2], 0 )
 
-if __name__ == "__main__" :
-    unittest.main()
+    def test_homogeneous_transform_from_three_points( self ) :
+        p1 = numpy.array( [0., 2.,  0. ] )
+        p2 = numpy.array( [0., 0., -1. ] )
+        p3 = numpy.array( [0., 0.,  0. ] )
+        ht = atree.HomogeneousTransform.from_coords( p1, p2, p3 )
+        # we should get back something very close to the identiy matrix
+        self.assertAlmostEqual( ht.frame[0,0], 1 )
+        self.assertAlmostEqual( ht.frame[1,1], 1 )
+        self.assertAlmostEqual( ht.frame[2,2], 1 )
+        self.assertAlmostEqual( ht.frame[3,3], 1 )
+        self.assertAlmostEqual( ht.frame[0,1], 0 )
+        self.assertAlmostEqual( ht.frame[0,2], 0 )
+        self.assertAlmostEqual( ht.frame[0,3], 0 )
+        self.assertAlmostEqual( ht.frame[1,0], 0 )
+        self.assertAlmostEqual( ht.frame[1,2], 0 )
+        self.assertAlmostEqual( ht.frame[1,3], 0 )
+        self.assertAlmostEqual( ht.frame[2,0], 0 )
+        self.assertAlmostEqual( ht.frame[2,1], 0 )
+        self.assertAlmostEqual( ht.frame[2,3], 0 )
+        self.assertAlmostEqual( ht.frame[3,0], 0 )
+        self.assertAlmostEqual( ht.frame[3,1], 0 )
+        self.assertAlmostEqual( ht.frame[3,2], 0 )
+
+    def test_homogeneous_transform_x_axis_rotation( self ) :
+        ''' Positive rotation about the x axis swings y up into positive z, and 
+        z down into negative y'''
+        ht = atree.HomogeneousTransform()
+        ht.set_rotation_x( 60 / 180 * numpy.pi )
+        self.assertEqual( ht.frame[0,0], 1 )
+        self.assertEqual( ht.frame[1,0], 0 )
+        self.assertEqual( ht.frame[2,0], 0 )
+        self.assertEqual( ht.frame[3,0], 0 )
+        self.assertEqual( ht.frame[0,1], 0 )
+        self.assertAlmostEqual( ht.frame[1,1], 0.5 )
+        self.assertAlmostEqual( ht.frame[2,1], math.sqrt(3)/2 )
+        self.assertEqual( ht.frame[3,1], 0 )
+        self.assertEqual( ht.frame[0,2], 0 )
+        self.assertAlmostEqual( ht.frame[1,2], -math.sqrt(3)/2 )
+        self.assertAlmostEqual( ht.frame[2,2], 0.5 )
+        self.assertEqual( ht.frame[3,2], 0 )
+        self.assertEqual( ht.frame[0,3], 0 )
+        self.assertEqual( ht.frame[1,3], 0 )
+        self.assertEqual( ht.frame[2,3], 0 )
+        self.assertEqual( ht.frame[3,3], 1 )
+
+    def test_homogeneous_transform_y_axis_rotation( self ) :
+        ''' Positive rotation about the y axis swings z into positive x and x into negative z'''
+        ht = atree.HomogeneousTransform()
+        ht.set_rotation_y( 60 / 180 * numpy.pi )
+        half = 0.5
+        root_three_over_two = math.sqrt(3)/2
+        self.assertAlmostEqual( ht.frame[0,0], half )
+        self.assertEqual( ht.frame[1,0], 0 )
+        self.assertAlmostEqual( ht.frame[2,0], -root_three_over_two )
+        self.assertEqual( ht.frame[3,0], 0 )
+        self.assertEqual( ht.frame[0,1], 0 )
+        self.assertEqual( ht.frame[1,1], 1 )
+        self.assertEqual( ht.frame[2,1], 0 )
+        self.assertEqual( ht.frame[3,1], 0 )
+        self.assertAlmostEqual( ht.frame[0,2], root_three_over_two )
+        self.assertEqual( ht.frame[1,2], 0 )
+        self.assertAlmostEqual( ht.frame[2,2], half )
+        self.assertEqual( ht.frame[3,2], 0 )
+        self.assertEqual( ht.frame[0,3], 0 )
+        self.assertEqual( ht.frame[1,3], 0 )
+        self.assertEqual( ht.frame[2,3], 0 )
+        self.assertEqual( ht.frame[3,3], 1 )
+
+    def test_homogeneous_transform_z_axis_rotation( self ) :
+        ''' Positive rotation about the z axis sends x into positive y and y into negative x'''
+        ht = atree.HomogeneousTransform()
+        ht.set_rotation_z( 60 / 180 * numpy.pi )
+        half = 0.5
+        root_three_over_two = math.sqrt(3)/2
+        self.assertAlmostEqual( ht.frame[0,0], half )
+        self.assertAlmostEqual( ht.frame[1,0], root_three_over_two )
+        self.assertEqual( ht.frame[2,0], 0 )
+        self.assertEqual( ht.frame[3,0], 0 )
+        self.assertAlmostEqual( ht.frame[0,1], -root_three_over_two )
+        self.assertAlmostEqual( ht.frame[1,1], half )
+        self.assertEqual( ht.frame[2,1], 0 )
+        self.assertEqual( ht.frame[3,1], 0 )
+        self.assertEqual( ht.frame[0,2], 0 )
+        self.assertEqual( ht.frame[1,2], 0 )
+        self.assertEqual( ht.frame[2,2], 1 )
+        self.assertEqual( ht.frame[3,2], 0 )
+        self.assertEqual( ht.frame[0,3], 0 )
+        self.assertEqual( ht.frame[1,3], 0 )
+        self.assertEqual( ht.frame[2,3], 0 )
+        self.assertEqual( ht.frame[3,3], 1 )
+
+    def test_walk_via_ht_multiplication( self ) :
+        origin = atree.HomogeneousTransform()
+        # let's put p2 in yz plane
+        ht_xrot1 = atree.HomogeneousTransform.xrot( -30 / 180 * numpy.pi )
+        print("ht_xrot1\n",ht_xrot1)
+        ht_transz1 = atree.HomogeneousTransform.ztrans(2.5)
+        print("ht_transz1\n",ht_transz1)
+        ht2 = origin * ht_xrot1 * ht_transz1
+        print("ht2")
+        print(ht2)
+        p2 = ht2.frame[0:3,3]
+        
+        self.assertEqual( p2[0], 0 )
+        self.assertAlmostEqual( p2[1], 2.5 * 0.5 )
+        self.assertAlmostEqual( p2[2], 2.5 * math.sqrt(3)/2 )
