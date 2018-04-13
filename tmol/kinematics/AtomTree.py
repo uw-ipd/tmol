@@ -148,6 +148,7 @@ class HomogeneousTransform :
     def __imul__( self, other ) :
         newframe = numpy.matmul( self.frame, other.frame )
         self.frame = newframe
+        return self
 
     def __str__( self ) :
         buff = []
@@ -158,7 +159,10 @@ class HomogeneousTransform :
         return "\n".join(buff)
 
 class TreeAtom :
-    def refold( parent_ht = None ) :
+    def update_xyz( self, parent_ht = None ) :
+        raise NotImplementedError;
+
+    def update_internal_coords( self, parent_ht = None ) :
         raise NotImplementedError;
 
 @attr.s( auto_attribs=True, slots=True )
@@ -170,6 +174,52 @@ class BondedAtom( TreeAtom ) :
     xyz : typing.Tuple[ float, float, float ] = ( 0, 0, 0 )
     children : typing.List[ TreeAtom ] = attr.Factory(list)
 
-    def refold( parent_ht = None ) :
-        pass
-    
+    def update_xyz( self, parent_ht = None ) :
+        if parent_ht is None :
+            parent_ht = HomogeneousTransform() # identity
+        dihedral_rotation_ht = HomogeneousTransform.zrot( self.phi )
+        # modify the parent_ht with the dihedral rotation here
+        parent_ht *= dihedral_rotation_ht
+        bond_angle_rotation_ht = HomogeneousTransform.xrot( -1 * self.theta )
+        trans_ht = HomogeneousTransform.ztrans( self.d )
+        new_ht = parent_ht * bond_angle_rotation_ht * trans_ht;
+        xyz = new_ht.frame[0:3,3]
+        for child in self.children :
+            update_xyz( new_ht )
+
+
+    def update_internal_coords( self, parent_ht = None ) :
+        if parent_ht is None :
+            parent_ht = HomogeneousTransform() # identity
+        #print( "parent_ht" ); print( parent_ht )
+        w = numpy.array( self.xyz ) - numpy.array( parent_ht.frame[0:3,3] )
+        self.d = numpy.linalg.norm( w )
+        if self.d <= 1e-6 :
+            self.d = 0
+            self.theta = 0
+            self.phi = 0
+        else :
+            w /= self.d
+            zdot = numpy.dot( w, parent_ht.frame[0:3,2] )
+            # hacky version with coordinates in general position!
+            # look at BondedAtom.cc for the three cases dependent on x's value (aka zdot here)
+            self.theta = math.acos( zdot )
+
+            # finally, we need the rotation about the z axis so that the coordinate will be in
+            # the yz plane
+            xdot = numpy.dot( w, parent_ht.frame[0:3,0] )
+            ydot = numpy.dot( w, parent_ht.frame[0:3,1] )
+            self.phi = math.atan2( -xdot, ydot )
+
+        # modify the parent ht so that younger siblings will have their offset phi readily
+        # calculated
+        parent_ht *= HomogeneousTransform.zrot( self.phi )
+        #print( "parent_ht(again)" ); print( parent_ht )
+        new_ht = parent_ht * HomogeneousTransform.xrot( -self.theta ) * HomogeneousTransform.ztrans( self.d )
+
+        print( "d", self.d, "theta", self.theta, "phi", self.phi )
+
+        for child in self.children :
+            child.update_internal_coords( new_ht )
+
+
