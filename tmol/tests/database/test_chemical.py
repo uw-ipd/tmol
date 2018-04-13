@@ -8,9 +8,7 @@ class TestChemicalDatabase(unittest.TestCase):
         atom_types = set(default.chemical.atom_types)
         assert len(default.chemical.atom_types) == len(atom_types), "Duplicate atom types."
 
+        atypenames = [ x[0] for x in atom_types ]
         for r in default.chemical.residues:
             for a in r.atoms:
-                assert a.atom_type in atom_types, f"Invalid atom type. res: {r.name3} atom: {a}"
-
-if __name__ == "__main__" :
-    unittest.main()
+                assert a.atom_type in atypenames, f"Invalid atom type. res: {r.name3} atom: {a}"

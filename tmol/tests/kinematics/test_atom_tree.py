@@ -1,8 +1,16 @@
 import unittest
 from collections import Counter
 import tmol.kinematics.AtomTree as atree
+from tmol.tests.data.pdb import data as test_pdbs
+import tmol.system.residue.io as pdbio
 import numpy
 import math
+
+def print_tree( root, depth = 0 ) :
+    print ( " " * depth, root.name, root.xyz, root.phi, root.theta, root.d )
+    for atom in root.children :
+        print_tree( atom, depth+1 )
+
 
 class TestAtomTree(unittest.TestCase):
     def test_homogeneous_transform_default_ctor(self):
@@ -155,3 +163,13 @@ class TestAtomTree(unittest.TestCase):
         root.update_internal_coords()
 
         self.assertEqual( child3.d, numpy.linalg.norm( numpy.array(p4) - numpy.array(p3) ) )
+
+
+    def test_construct_residue_tree( self ) :
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] )
+        root, atom_pointers = atree.create_residue_tree( res_reader.chemical_db, residues[0].residue_type, "N" )
+        atree.set_coords( residues[0], atom_pointers )
+        root.update_internal_coords()
+        #print_tree( root )
+        

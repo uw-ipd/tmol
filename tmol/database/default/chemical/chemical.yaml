@@ -1,37 +1,37 @@
 atom_types:
-  - CNH2
-  - COO
-  - CH0
-  - CH1
-  - CH2
-  - CH3
-  - aroC
-  - Ntrp #Tryp indole or pyrrole
-  - NhisD #Near in His imidazole
-  - NhisDDepro
-  - NhisE #Far in His imidazole
-  - NhisEDepro
-  - NtrR
-  - NH2O
-  - Nlys
-  - Narg
-  - Npro
-  - OH
-  - OHphenol
-  - ONH2
-  - OOC
-  - S
-  - SH1
-  - Nbb
-  - CAbb
-  - CObb
-  - OCbb
-  - Hpol
-  - HS
-  - Hapo
-  - Haro
-  - HNbb
-  - HOH
+  - [ CNH2,       C ]
+  - [ COO,        C ]
+  - [ CH0,        C ]
+  - [ CH1,        C ]
+  - [ CH2,        C ]
+  - [ CH3,        C ]
+  - [ aroC,       C ]
+  - [ Ntrp,       N ] #Tryp indole or pyrrole
+  - [ NhisD,      N ] #Near in His imidazole
+  - [ NhisDDepro, N ]
+  - [ NhisE,      N ] #Far in His imidazole
+  - [ NhisEDepro, N ]
+  - [ NtrR,       N ]
+  - [ NH2O,       N ]
+  - [ Nlys,       N ]
+  - [ Narg,       N ]
+  - [ Npro,       N ]
+  - [ OH,         O ]
+  - [ OHphenol,   O ]
+  - [ ONH2,       O ]
+  - [ OOC,        O ]
+  - [ S,          S ]
+  - [ SH1,        S ]
+  - [ Nbb,        N ]
+  - [ CAbb,       C ]
+  - [ CObb,       C ]
+  - [ OCbb,       O ]
+  - [ Hpol,       H ]
+  - [ HS,         H ]
+  - [ Hapo,       H ]
+  - [ Haro,       H ]
+  - [ HNbb,       H ]
+  - [ HOH,        H ]
 
 residues:
   - name:  ALA
@@ -72,6 +72,12 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.900000, d:  1.090078, *p:  CA, *gp:   N, *ggp:     CB }
     - { *n: LOWER, phi: -150.000000, theta:   58.300003, d:  1.328685, *p:   N, *gp:  CA, *ggp:      C }
     - { *n:     H, phi: -180.000000, theta:   60.849998, d:  1.010000, *p:   N, *gp:  CA, *ggp:  LOWER }
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi: []
   - name:  ARG
     name3: ARG
     atoms:
@@ -152,8 +158,16 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:  1.090421, *p:   CA, *gp:   N, *ggp:     CB }
     - { *n: LOWER, phi: -149.999939, theta:   58.300037, d:  1.328685, *p:    N, *gp:  CA, *ggp:      C }
     - { *n:     H, phi: -179.999969, theta:   60.849937, d:  1.010001, *p:    N, *gp:  CA, *ggp:  LOWER }
-
-
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG    CD ]
+    - [    CB    CG    CD    NE ]
+    - [    CG    CD    NE    CZ ]
   - name:  ASN
     name3: ASN
     atoms:
@@ -204,6 +218,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.091156, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000015, theta:   58.300072, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000, theta:   60.849964, d:    1.009999, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG   OD1 ]
   - name:  ASP
     name3: ASP
     atoms:
@@ -248,6 +270,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.090385, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000015, theta:   58.300011, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000, theta:   60.849979, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG   OD1 ]
   - name:  CYS
     name3: CYS
     atoms:
@@ -288,6 +318,14 @@ residues:
     - { *n:    HA, phi:      -119.0, theta:   71.500000, d:    1.090059, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi:      -150.0, theta:   58.299995, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:       180.0, theta:   60.849998, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    SG ]
+    - [    CA    CB    SG    HG ]
   - name:  GLN
     name3: GLN
     atoms:
@@ -347,6 +385,15 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.089870, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000031, theta:   58.300022, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000, theta:   60.850025, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG    CD ]
+    - [    CB    CG    CD   OE1 ]
   - name:  GLU
     name3: GLU
     atoms:
@@ -400,6 +447,15 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.090506, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -149.999985, theta:   58.299995, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000, theta:   60.850025, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG    CD ]
+    - [    CB    CG    CD   OE1 ]
   - name:  GLY
     name3: GLY
     atoms:
@@ -429,6 +485,12 @@ residues:
     - { *n:   2HA, phi:  117.200000, theta:   70.500000, d:    1.089353, *p:    CA, *gp:     N, *ggp:   1HA}
     - { *n: LOWER, phi: -150.000015, theta:   58.300003, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000, theta:   60.850040, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi: []
   - name:  HIS
     name3: HIS
     atoms:
@@ -491,6 +553,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   70.500000, d:    1.089618, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -149.999969, theta:   58.300014, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999985, theta:   60.850006, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG   ND1 ]
   - name:  HIS_D
     name3: HIS
     atoms:
@@ -552,6 +622,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   70.500000, d:    1.089614, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -149.999908, theta:   58.300098, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999939, theta:   60.850052, d:    1.010001, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG   ND1 ]
   - name:  ILE
     name3: ILE
     atoms:
@@ -617,6 +695,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.089328, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000015, theta:   58.300030, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999985, theta:   60.849998, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB   CG1 ]
+    - [    CA    CB   CG1   CD1 ]
   - name:  LEU
     name3: LEU
     atoms:
@@ -682,6 +768,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.089438, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -149.999985, theta:   58.299976, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000, theta:   60.849979, d:    1.009999, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG   CD1 ]
   - name:  LYS
     name3: LYS
     atoms:
@@ -756,6 +850,16 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.090528, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -149.999969, theta:   58.300011, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999985, theta:   60.849998, d:    1.010001, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG    CD ]
+    - [    CB    CG    CD    CE ]
+    - [    CG    CD    CE    NZ ]
   - name:  MET
     name3: MET
     atoms:
@@ -815,6 +919,15 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.089824, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000046, theta:   58.300003, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999985, theta:   60.850040, d:    1.010001, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG    SD ]
+    - [    CB    CG    SD    CE ]
   - name:  PHE
     name3: PHE
     atoms:
@@ -884,6 +997,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.090899, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000031, theta:   58.300003, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000, theta:   60.850014, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG   CD1 ]
   - name:  PRO
     name3: PRO
     atoms:
@@ -927,7 +1048,6 @@ residues:
     - { *n:    CB, phi: -119.700000, theta:   77.000000, d:    1.532000, *p:    CA, *gp:     N, *ggp:     C}
     - { *n:    CG, phi:   30.000000, theta:   75.800000, d:    1.490600, *p:    CB, *gp:    CA, *ggp:     N}
     - { *n:    CD, phi:  -33.900000, theta:   75.600000, d:    1.505500, *p:    CG, *gp:    CB, *ggp:    CA}
-    - { *n:    NV, phi:    0.000000, theta:   77.300000, d:    1.475400, *p:    CD, *gp:    CG, *ggp:     N}
     - { *n:   1HD, phi:  119.000000, theta:   70.500000, d:    1.100000, *p:    CD, *gp:    CG, *ggp:    NV}
     - { *n:   2HD, phi:  121.500000, theta:   70.500000, d:    1.100000, *p:    CD, *gp:    CG, *ggp:   1HD}
     - { *n:   1HG, phi:  121.200000, theta:   69.800000, d:    1.100000, *p:    CG, *gp:    CB, *ggp:    CD}
@@ -936,6 +1056,15 @@ residues:
     - { *n:   2HB, phi:  117.600000, theta:   70.000000, d:    1.100000, *p:    CB, *gp:    CA, *ggp:   1HB}
     - { *n:    HA, phi: -118.000000, theta:   70.800000, d:    1.100000, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000000, theta:   58.299934, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond :
+    - [ N, CD ]
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG    CD ]
   - name:  SER
     name3: SER
     atoms:
@@ -977,6 +1106,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.090924, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000000, theta:   58.299988, d:    1.328684, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999969, theta:   60.849979, d:    1.009999, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    OG ]
+    - [    CA    CB    OG    HG ]
   - name:  THR
     name3: THR
     atoms:
@@ -1027,6 +1164,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.090258, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -149.999969, theta:   58.300030, d:    1.328684, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000, theta:   60.849979, d:    1.010000, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB   OG1 ]
+    - [    CA    CB   OG1   HG1 ]
   - name:  TRP
     name3: TRP
     atoms:
@@ -1109,6 +1254,14 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.089883, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000046, theta:   58.299980, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999878, theta:   60.850006, d:    1.010001, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG   CD1 ]
   - name:  TYR
     name3: TYR
     atoms:
@@ -1182,6 +1335,15 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.090319, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -150.000107, theta:   58.299919, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999924, theta:   60.849972, d:    1.010001, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB    CG ]
+    - [    CA    CB    CG   CD1 ]
+    - [   CE2    CZ    OH    HH ]
   - name:  VAL
     name3: VAL
     atoms:
@@ -1239,3 +1401,10 @@ residues:
     - { *n:    HA, phi: -119.000000, theta:   71.500000, d:    1.090646, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n: LOWER, phi: -149.999924, theta:   58.299995, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000, theta:   60.849918, d:    1.009999, *p:     N, *gp:    CA, *ggp: LOWER}
+    mainchain :
+    - N
+    - CA
+    - C
+    cutbond : []
+    chi:
+    - [     N    CA    CB   CG1 ]

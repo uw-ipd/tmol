@@ -31,10 +31,13 @@ class Residue:
     lower_connect : str
     upper_connect : str
     icoor : Tuple[Icoor,...]
+    mainchain : Tuple[str,...]
+    cutbond : Tuple[ Tuple[str,str], ... ]
+    chi : Tuple[ Tuple[str,str,str,str], ... ]
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase(properties.HasProperties):
-    atom_types : Tuple[str, ...]
+    atom_types : Tuple[Tuple[str,str], ...]
     residues : Tuple[Residue, ...]
 
     @classmethod
