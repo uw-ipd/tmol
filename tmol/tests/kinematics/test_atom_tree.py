@@ -119,14 +119,39 @@ class TestAtomTree(unittest.TestCase):
         origin = atree.HomogeneousTransform()
         # let's put p2 in yz plane
         ht_xrot1 = atree.HomogeneousTransform.xrot( -30 / 180 * numpy.pi )
-        print("ht_xrot1\n",ht_xrot1)
+        #print("ht_xrot1\n",ht_xrot1)
         ht_transz1 = atree.HomogeneousTransform.ztrans(2.5)
-        print("ht_transz1\n",ht_transz1)
+        #print("ht_transz1\n",ht_transz1)
         ht2 = origin * ht_xrot1 * ht_transz1
-        print("ht2")
-        print(ht2)
+        #print("ht2")
+        #print(ht2)
         p2 = ht2.frame[0:3,3]
         
         self.assertEqual( p2[0], 0 )
         self.assertAlmostEqual( p2[1], 2.5 * 0.5 )
         self.assertAlmostEqual( p2[2], 2.5 * math.sqrt(3)/2 )
+
+    def test_measure_internal_coords_simple_system( self ) :
+        p1 = ( 0, 0, 0 )
+        p2 = ( 0, 0, 2.5 )
+        p3 = ( 0, 1.25, 3.75 )
+        p4 = ( 1.5, 2.75, 4.25 )
+
+        root = atree.BondedAtom()
+        root.xyz = p1
+        child1 = atree.BondedAtom()
+        child1.parent = root
+        child1.xyz = p2
+        root.children.append( child1 )
+        child2 = atree.BondedAtom()
+        child2.parent = child1
+        child2.xyz = p3
+        child1.children.append( child2 )
+        child3 = atree.BondedAtom()
+        child3.parent = child2
+        child3.xyz = p4
+        child2.children.append( child3 )
+
+        root.update_internal_coords()
+
+        self.assertEqual( child3.d, numpy.linalg.norm( numpy.array(p4) - numpy.array(p3) ) )
