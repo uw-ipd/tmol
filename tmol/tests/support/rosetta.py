@@ -1,21 +1,15 @@
 import os
-import toolz
+import importlib
+import pytest
 
-try:
-    import pyrosetta
-except ImportError:
-    pyrosetta = None
+pyrosetta_available = True if importlib.util.find_spec("pyrosetta") else False
 
-if "ROSETTA_DATABASE" in os.environ:
-    normpath = toolz.compose(
-        os.path.abspath,
-        os.path.expanduser,
-        os.path.expandvars,
-    )
-    rosetta_database = normpath(os.environ.get("ROSETTA_DATABASE"))
-elif pyrosetta is not None:
-    rosetta_database = os.path.join(
-        os.path.dirname(pyrosetta.__file__), "database"
-    )
-else:
-    rosetta_database = None
+requires_pyrosetta = pytest.mark.skipif(
+    not rosetta_database_available, "Requires rosetta database."
+)
+
+rosetta_database_available = pyrosetta_available or "ROSETTA_DATABASE" in os.environ
+
+requires_rosetta_database = pytest.mark.skipif(
+    not rosetta_database_available, "Requires rosetta database."
+)
