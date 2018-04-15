@@ -16,4 +16,5 @@ dependencies:
     - yapf
     - pytest-watch
     - pytest-instafail
+    - pytest-faulthandler
     - pdbpp
