@@ -2,7 +2,8 @@ version: 2
 jobs:
    build:
      docker:
-       - image: ubuntu:16.04
+       - image: continuumio/miniconda3
      steps:
        - checkout
-       - run: echo "hello world $USER"
+       - run: echo "hello world"
+       - run: conda --version
