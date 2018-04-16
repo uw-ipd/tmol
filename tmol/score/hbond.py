@@ -285,6 +285,8 @@ class HBondElementAnalysis(properties.HasProperties):
             self.donors = df_to_struct(
                 donor_table[list(donor_pairs)].rename(columns=donor_pairs)
             )
+        else:
+            self.donors = numpy.empty(0, self.donor_dtype)
 
         if self.hbond_database.atom_groups.sp2_acceptors:
             sp2_acceptor_types = pandas.DataFrame.from_records(
@@ -316,6 +318,8 @@ class HBondElementAnalysis(properties.HasProperties):
             self.sp2_acceptors = df_to_struct(
                 sp2_acceptor_table[list(sp2_pairs)].rename(columns=sp2_pairs)
             )
+        else:
+            self.sp2_acceptors = numpy.empty(0, self.sp2_acceptor_dtype)
 
         if self.hbond_database.atom_groups.sp3_acceptors:
             sp3_acceptor_types = pandas.DataFrame.from_records(
@@ -347,6 +351,8 @@ class HBondElementAnalysis(properties.HasProperties):
             self.sp3_acceptors = df_to_struct(
                 sp3_acceptor_table[list(sp3_pairs)].rename(columns=sp3_pairs)
             )
+        else:
+            self.sp3_acceptors = numpy.empty(0, self.sp3_acceptor_dtype)
 
         if self.hbond_database.atom_groups.ring_acceptors:
             ring_acceptor_types = pandas.DataFrame.from_records(
@@ -380,6 +386,8 @@ class HBondElementAnalysis(properties.HasProperties):
                     columns=ring_pairs
                 )
             )
+        else:
+            self.ring_acceptors = numpy.empty(0, self.ring_acceptor_dtype)
 
         return self
 
@@ -512,11 +520,15 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
                       HBondElementAnalysis
                   ))
     def hbond_elements(self) -> HBondElementAnalysis:
-        return HBondElementAnalysis(
+        analysis = HBondElementAnalysis(
             hbond_database=self.hbond_database,
             atom_types=self.atom_types,
             bonds=self.bonds
         ).setup()
+
+        analysis.validate()
+
+        return analysis
 
     @derived_from(
         "hbond_elements",
@@ -648,6 +660,9 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         VariableT("donor-sp2 hbond scores"),
     )
     def donor_sp2_hbond(self):
+        if len(self.donor_sp2_pairs) == 0:
+            return self.coords.new(0)
+
         coord_params = dict(
             d=self.coords[self.donor_sp2_pairs["d"]],
             h=self.coords[self.donor_sp2_pairs["h"]],
@@ -671,6 +686,9 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         VariableT("donor-sp3 hbond scores"),
     )
     def donor_sp3_hbond(self):
+        if len(self.donor_sp3_pairs) == 0:
+            return self.coords.new(0)
+
         coord_params = dict(
             d=self.coords[self.donor_sp3_pairs["d"]],
             h=self.coords[self.donor_sp3_pairs["h"]],
@@ -694,6 +712,9 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         VariableT("donor-ring hbond scores"),
     )
     def donor_ring_hbond(self):
+        if len(self.donor_ring_pairs) == 0:
+            return self.coords.new(0)
+
         coord_params = dict(
             d=self.coords[self.donor_ring_pairs["d"]],
             h=self.coords[self.donor_ring_pairs["h"]],
