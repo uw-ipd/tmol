@@ -3,6 +3,7 @@ from collections import Counter
 import tmol.kinematics.AtomTree as atree
 from tmol.tests.data.pdb import data as test_pdbs
 import tmol.system.residue.io as pdbio
+import tmol.io.pdb_parsing as pdb_parsing
 import numpy
 import math
 
@@ -168,8 +169,39 @@ class TestAtomTree(unittest.TestCase):
     def test_construct_residue_tree( self ) :
         res_reader = pdbio.ResidueReader()
         residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] )
-        root, atom_pointers = atree.create_residue_tree( res_reader.chemical_db, residues[0].residue_type, "N" )
+        root, atom_pointers = atree.create_residue_tree( res_reader.chemical_db, \
+                                                             residues[0].residue_type, 0, "N" )
         atree.set_coords( residues[0], atom_pointers )
         root.update_internal_coords()
         #print_tree( root )
-        
+    
+    def test_construct_whole_structure_atom_tree( self ) :
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] ) 
+        root, atom_pointer_list = atree.tree_from_residues( res_reader.chemical_db, residues )
+
+        # now set a new chi1 for residue 1 and refold
+        atom_pointer_list[ 0 ][ "CG" ].phi = math.pi
+        root.update_xyz()
+
+        #print( "chi1 end: ", atom_pointer_list[ 0 ][ "CG" ].phi, atom_pointer_list[ 0 ][ "CG" ].xyz )
+        final_cg_ideal = numpy.array( [ 24.01077925,  25.87729449, 3.88653434 ] )
+        final_cg_actual = numpy.array( atom_pointer_list[ 0 ][ "CG" ].xyz )
+        self.assertAlmostEqual( numpy.linalg.norm( final_cg_actual - final_cg_ideal ), 0.0 )
+
+        # dump the pdb to look at it
+        #atom_records = pdb_parsing.parse_pdb( test_pdbs[ "1UBQ" ] )
+        #for atname in atom_pointer_list[0] :
+        #    at_node = atom_pointer_list[0][ atname ]
+        #    found = False
+        #    for ind in range(len(atom_records)) :
+        #        if atom_records.loc[ ind, "resi" ] == 1 and atom_records.loc[ ind, "chain" ] == "A" \
+        #                and atom_records.loc[ ind, "atomn" ] == atname :
+        #            atom_records.loc[ ind, [ "x", "y", "z" ]] = at_node.xyz
+        #            found = True
+        #            break
+        #    assert( found )
+        #with open( "test_refold.pdb", "w" ) as fid :
+        #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
+            
+                    

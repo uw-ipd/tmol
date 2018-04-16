@@ -185,9 +185,9 @@ class BondedAtom( TreeAtom ) :
         bond_angle_rotation_ht = HomogeneousTransform.xrot( -1 * self.theta )
         trans_ht = HomogeneousTransform.ztrans( self.d )
         new_ht = parent_ht * bond_angle_rotation_ht * trans_ht;
-        xyz = new_ht.frame[0:3,3]
+        self.xyz = new_ht.frame[0:3,3]
         for child in self.children :
-            update_xyz( new_ht )
+            child.update_xyz( new_ht )
 
 
     def update_internal_coords( self, parent_ht = None ) :
@@ -219,11 +219,15 @@ class BondedAtom( TreeAtom ) :
         #print( "parent_ht(again)" ); print( parent_ht )
         new_ht = parent_ht * HomogeneousTransform.xrot( -self.theta ) * HomogeneousTransform.ztrans( self.d )
 
-        # print( "d", self.d, "theta", self.theta, "phi", self.phi )
+        #print( "d", self.d, "theta", self.theta, "phi", self.phi )
 
         for child in self.children :
             child.update_internal_coords( new_ht )
 
+@attr.s( auto_attribs=True, slots=True, hash=False )
+class AtomTree :
+    root : TreeAtom
+    atom_pointer_list : typing.List[ typing.Dict[ str, TreeAtom ] ]
 
 def create_links_simple( residue_type, links ) :
     for at in residue_type.atoms :
@@ -338,7 +342,7 @@ def add_atom( root_atom, ordered_links, atom_pointers ) :
         child.parent = tree_node
     return tree_node
 
-def create_residue_tree( chem_db, residue_type, root_atom ) :
+def create_residue_tree( chem_db, residue_type, res_index, root_atom ) :
     full_links = {}
     create_links_simple( residue_type, full_links )
     ordered_links = {}
@@ -351,6 +355,7 @@ def create_residue_tree( chem_db, residue_type, root_atom ) :
     root = add_atom( root_atom, ordered_links, atom_pointers )
     for at in atom_pointers :
         atom_pointers[ at ].name = at
+        atom_pointers[ at ].res_index = res_index
     return ( root, atom_pointers )
 
 def set_coords( residue, atom_pointers ) :
@@ -366,8 +371,9 @@ def tree_from_residues( chem_db, residues ) :
     atom_pointers_list = []
     last_residue = None
     first_root = None
-    for residue in residues :
-        root, atom_pointers = create_residue_tree( chem_db, residue.residue_type, \
+    for ind, residue in enumerate( residues ) :
+        #print( "tree from residues", ind )
+        root, atom_pointers = create_residue_tree( chem_db, residue.residue_type, ind, \
                                                    residue.residue_type.lower_connect )
         set_coords( residue, atom_pointers )
         if last_residue :
@@ -377,6 +383,7 @@ def tree_from_residues( chem_db, residues ) :
         if not first_root :
             first_root = root
         last_residue = residue
-    root.update_internal_coords()
+        atom_pointers_list.append( atom_pointers )
+    first_root.update_internal_coords()
     return first_root, atom_pointers_list
     
