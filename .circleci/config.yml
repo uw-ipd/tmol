@@ -23,6 +23,7 @@ jobs:
             - /opt/conda/pkgs
             - ~/.conda/pkgs
           key: v1-conda-{{ checksum "environment.yml" }}
+          background: true
 
       - run:
           name: Write status.
@@ -38,12 +39,14 @@ jobs:
             source activate tmol
             ./setup.py test --addopts -k 'not linting' --cov=./tmol 2>&1 | tee report/test.log
             codecov -F pytest
+          background: true
 
       - run:
           name: Run linting.
           command: |
             source activate tmol
             ./setup.py test --addopts -k 'linting' 2>&1 | tee report/linting.log
+          background: true
             
       - store_artifacts:
           path: report
