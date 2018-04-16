@@ -10,7 +10,7 @@ jobs:
           keys:
             - v1-conda-{{ checksum "environment.yml" }}
       - run:
-          name: Install dependencies.
+          name: Install dependencies
           command: |
             conda info -a
             conda config --set always_yes yes --set changeps1 no
@@ -26,7 +26,7 @@ jobs:
           background: true
 
       - run:
-          name: Write status.
+          name: Log configuration
           command: |
             source activate tmol
             mkdir -p report
@@ -34,7 +34,7 @@ jobs:
             conda list | tee report/conda.list.log
 
       - run:
-          name: Run tests.
+          name: Run tests
           command: |
             source activate tmol
 
