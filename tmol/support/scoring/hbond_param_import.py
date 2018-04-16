@@ -180,12 +180,12 @@ class RosettaHBParams:
 
     @acceptor_types.default
     def _load_acceptor_types(self):
-        acceptor_table = reduce(pandas.merge)(
+        acceptor_table = reduce(pandas.merge)((
             self.tables.HBAccChemType.drop(["id"], axis="columns"),
             pandas.DataFrame({"name": self.target_acceptors}),
             self.tables.HBAccHybridization[["acc_chem_type", "hybridization"]]
                 .rename(columns={"acc_chem_type": "name"}),
-        )  # yapf: disable
+        ))  # yapf: disable
 
         assert len(acceptor_table) == len(self.target_acceptors)
         return acceptor_table
@@ -200,7 +200,7 @@ class RosettaHBParams:
         #     self.acceptor_types["name"].to_frame("acc_chem_type").assign(idx=0)
         # ).drop("idx", axis="columns")
 
-        pair_params = reduce(pandas.merge)(
+        pair_params = reduce(pandas.merge)((
             self.tables.HBEval
                 .drop(
                     filter(lambda c: c.endswith("fade"), self.tables.HBEval.columns),
@@ -209,7 +209,7 @@ class RosettaHBParams:
                 .drop_duplicates(),
             self.donor_types["name"].to_frame("don_chem_type"),
             self.acceptor_types["name"].to_frame("acc_chem_type"),
-        )  # yapf: disable
+        ))  # yapf: disable
 
         assert len(pair_params.groupby(["don_chem_type", "acc_chem_type"])) == \
                len(self.target_acceptors) * len(self.target_donors)
