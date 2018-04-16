@@ -30,7 +30,8 @@ jobs:
             source activate tmol
             mkdir -p report
             conda info -a | tee report/conda_info.log
-            pytest 2>&1 | tee report/pytest.log
+            ./setup.py test --addopts --cov=./tmol 2>&1 | tee report/test.log
+            codecov -F pytest
             
       - store_artifacts:
           path: report

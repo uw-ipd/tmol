@@ -1,2 +1,4 @@
 ignore:
   - "tmol/extern"
+codecov:
+  token: e026c394-ddc8-4181-9239-504619c1d7e6
