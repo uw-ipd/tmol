@@ -181,12 +181,13 @@ class TestAtomTree(unittest.TestCase):
         root, atom_pointer_list = atree.tree_from_residues( res_reader.chemical_db, residues )
 
         # now set a new chi1 for residue 1 and refold
-        atom_pointer_list[ 0 ][ "CG" ].phi = math.pi
+        indCG = residues[0].residue_type.atom_to_idx[ "CG" ]
+        atom_pointer_list[ 0 ][ indCG ].phi = math.pi
         root.update_xyz()
 
-        #print( "chi1 end: ", atom_pointer_list[ 0 ][ "CG" ].phi, atom_pointer_list[ 0 ][ "CG" ].xyz )
+        #print( "chi1 end: ", atom_pointer_list[ 0 ][ indCG ].phi, atom_pointer_list[ 0 ][ indCG ].xyz )
         final_cg_ideal = numpy.array( [ 24.01077925,  25.87729449, 3.88653434 ] )
-        final_cg_actual = numpy.array( atom_pointer_list[ 0 ][ "CG" ].xyz )
+        final_cg_actual = numpy.array( atom_pointer_list[ 0 ][ indCG ].xyz )
         self.assertAlmostEqual( numpy.linalg.norm( final_cg_actual - final_cg_ideal ), 0.0 )
 
         # dump the pdb to look at it
