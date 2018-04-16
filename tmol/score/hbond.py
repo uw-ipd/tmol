@@ -14,6 +14,7 @@ import pandas
 from tmol.properties.array import VariableT, Array
 from tmol.properties.reactive import derived_from
 
+from .bonded_atom import ScoreComponentAttributes
 from .interatomic_distance import InteratomicDistanceGraphBase
 
 import tmol.database
@@ -505,7 +506,9 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         self.atom_pair_dist_thresholds.add(
             self.hbond_database.global_parameters.max_dis
         )
-        self.score_components.add("total_hbond")
+        self.score_components.add(
+            ScoreComponentAttributes("hbond", "total_hbond", None)
+        )
 
     @derived_from(
         "hbond_database",

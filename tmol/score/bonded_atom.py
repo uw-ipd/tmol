@@ -1,3 +1,4 @@
+import attr
 import properties
 
 import torch
@@ -9,6 +10,13 @@ from tmol.properties.reactive import derived_from, cached
 from tmol.properties.array import Array, VariableT
 
 from .types import RealTensor
+
+
+@attr.s(slots=True, frozen=True, auto_attribs=True, cmp=True)
+class ScoreComponentAttributes:
+    name: str
+    total: str
+    atomic: str
 
 
 class BondedAtomScoreGraph(properties.HasProperties):
@@ -51,21 +59,31 @@ class BondedAtomScoreGraph(properties.HasProperties):
 
     score_components = properties.Set(
         "total score components",
-        prop=properties.String("attribute name of scalar tensor property"),
+        prop=properties.Instance(
+            "Score component property accessor", ScoreComponentAttributes
+        ),
         default=set(),
         observe_mutations=True
     )
+
+    @derived_from(
+        "score_components",
+        properties.Set("total score component property names"),
+    )
+    def total_score_components(self):
+        return set(c.total for c in self.score_components)
 
     @cached(VariableT("sum of score_components"))
     def total_score(self):
         assert len(self.score_components) > 0
         return sum(
-            getattr(self, component) for component in self.score_components
+            getattr(self, component.total)
+            for component in self.score_components
         )
 
     @properties.observer(properties.everything)
     def on_change(self, change):
-        if change["name"] in self.score_components:
+        if change["name"] in self.total_score_components:
             self._set("total_score", properties.undefined)
 
     def step(self):
