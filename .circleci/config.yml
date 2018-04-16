@@ -37,17 +37,15 @@ jobs:
           name: Run tests.
           command: |
             source activate tmol
-            ./setup.py test --addopts -k 'not linting' --cov=./tmol 2>&1 | tee report/test.log
-            codecov -F pytest
-          background: true
 
-      - run:
-          name: Run linting.
-          command: |
-            source activate tmol
-            ./setup.py test --addopts -k 'linting' 2>&1 | tee report/linting.log
-          background: true
-            
+            failed=0
+
+            (pytest -k 'not linting' --cov=./tmol 2>&1 | tee report/test.log) || failed=1
+            (pytest -k 'linting' 2>&1 | tee report/linting.log) || failed=1
+            codecov -F pytest
+
+            exit $failed
+
       - store_artifacts:
           path: report
           destination: report
