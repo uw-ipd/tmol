@@ -74,6 +74,23 @@ class ResidueType(tmol.database.chemical.Residue, AttrMapping):
     def _repr_pretty_(self, p, cycle):
         p.text(f'ResidueType(name={self.name},...)')
 
+    mainchain_inds : Tuple[ int ] = attr.ib()
+
+    @mainchain_inds.default
+    def _setup_mainchain_inds( self ) :
+        return [ self.atom_to_idx[ atname ] for atname in self.mainchain ]
+
+    cutbond_inds: Tuple[ Tuple[ int, int ], ... ] = attr.ib()
+
+    @cutbond_inds.default
+    def _setup_cutbond_inds( self ) :
+        return [ [ self.atom_to_idx[ atname ] for atname in atname_pair ] for atname_pair in self.cutbond ]
+
+    chi_inds : Tuple[ Tuple[ int, int, int, int ], ... ] = attr.ib()
+
+    @chi_inds.default
+    def _setup_chi_inds( self ):
+        return [ tuple( self.atom_to_idx[ atname ] for atname in x ) for x in self.chi ]
 
 @attr.s(slots=True, frozen=True)
 class Residue:
