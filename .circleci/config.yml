@@ -1,0 +1,51 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: continuumio/miniconda3
+    working_directory: ~/workspace
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-conda-{{ checksum "environment.yml" }}
+      - run:
+          name: Install dependencies
+          command: |
+            conda info -a
+            conda config --set always_yes yes --set changeps1 no
+            conda env update -f environment.yml
+            source activate tmol
+            pip install -r requirements.tests.txt
+            conda clean -tipsy
+      - save_cache:
+          paths:
+            - /opt/conda/pkgs
+            - ~/.conda/pkgs
+          key: v1-conda-{{ checksum "environment.yml" }}
+          background: true
+
+      - run:
+          name: Log configuration
+          command: |
+            source activate tmol
+            mkdir -p report
+            conda info -a | tee report/conda.info.log
+            conda list | tee report/conda.list.log
+
+      - run:
+          name: Run tests
+          command: |
+            source activate tmol
+
+            failed=0
+
+            (pytest -v -k 'not linting' --cov=./tmol 2>&1 | tee report/test.log) || failed=1
+            (pytest -v -k 'linting' 2>&1 | tee report/linting.log) || failed=1
+            codecov -F pytest
+
+            exit $failed
+
+      - store_artifacts:
+          path: report
+          destination: report

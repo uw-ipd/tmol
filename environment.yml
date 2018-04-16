@@ -9,7 +9,7 @@ dependencies:
   - requests
   - toolz
   - pyyaml
-  - asford::pytorch-cpu
+  - asford::pytorch-cpu=0.4.0a0+1936753
 
   - pip:
     - attrs
