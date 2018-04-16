@@ -164,10 +164,10 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG    CD ]
-    - [    CB    CG    CD    NE ]
-    - [    CG    CD    NE    CZ ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,    CD ]
+    - [    CB,    CG,    CD,    NE ]
+    - [    CG,    CD,    NE,    CZ ]
   - name:  ASN
     name3: ASN
     atoms:
@@ -224,8 +224,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG   OD1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,   OD1 ]
   - name:  ASP
     name3: ASP
     atoms:
@@ -276,8 +276,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG   OD1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,   OD1 ]
   - name:  CYS
     name3: CYS
     atoms:
@@ -324,8 +324,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    SG ]
-    - [    CA    CB    SG    HG ]
+    - [     N,    CA,    CB,    SG ]
+    - [    CA,    CB,    SG,    HG ]
   - name:  GLN
     name3: GLN
     atoms:
@@ -391,9 +391,9 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG    CD ]
-    - [    CB    CG    CD   OE1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,    CD ]
+    - [    CB,    CG,    CD,   OE1 ]
   - name:  GLU
     name3: GLU
     atoms:
@@ -453,9 +453,9 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG    CD ]
-    - [    CB    CG    CD   OE1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,    CD ]
+    - [    CB,    CG,    CD,   OE1 ]
   - name:  GLY
     name3: GLY
     atoms:
@@ -559,8 +559,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG   ND1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,   ND1 ]
   - name:  HIS_D
     name3: HIS
     atoms:
@@ -628,8 +628,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG   ND1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,   ND1 ]
   - name:  ILE
     name3: ILE
     atoms:
@@ -701,8 +701,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB   CG1 ]
-    - [    CA    CB   CG1   CD1 ]
+    - [     N,    CA,    CB,   CG1 ]
+    - [    CA,    CB,   CG1,   CD1 ]
   - name:  LEU
     name3: LEU
     atoms:
@@ -774,8 +774,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG   CD1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,   CD1 ]
   - name:  LYS
     name3: LYS
     atoms:
@@ -856,10 +856,10 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG    CD ]
-    - [    CB    CG    CD    CE ]
-    - [    CG    CD    CE    NZ ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,    CD ]
+    - [    CB,    CG,    CD,    CE ]
+    - [    CG,    CD,    CE,    NZ ]
   - name:  MET
     name3: MET
     atoms:
@@ -925,9 +925,9 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG    SD ]
-    - [    CB    CG    SD    CE ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,    SD ]
+    - [    CB,    CG,    SD,    CE ]
   - name:  PHE
     name3: PHE
     atoms:
@@ -1003,8 +1003,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG   CD1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,   CD1 ]
   - name:  PRO
     name3: PRO
     atoms:
@@ -1063,8 +1063,8 @@ residues:
     cutbond :
     - [ N, CD ]
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG    CD ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,    CD ]
   - name:  SER
     name3: SER
     atoms:
@@ -1112,8 +1112,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    OG ]
-    - [    CA    CB    OG    HG ]
+    - [     N,    CA,    CB,    OG ]
+    - [    CA,    CB,    OG,    HG ]
   - name:  THR
     name3: THR
     atoms:
@@ -1170,8 +1170,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB   OG1 ]
-    - [    CA    CB   OG1   HG1 ]
+    - [     N,    CA,    CB,   OG1 ]
+    - [    CA,    CB,   OG1,   HG1 ]
   - name:  TRP
     name3: TRP
     atoms:
@@ -1260,8 +1260,8 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG   CD1 ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,   CD1 ]
   - name:  TYR
     name3: TYR
     atoms:
@@ -1341,9 +1341,9 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB    CG ]
-    - [    CA    CB    CG   CD1 ]
-    - [   CE2    CZ    OH    HH ]
+    - [     N,    CA,    CB,    CG ]
+    - [    CA,    CB,    CG,   CD1 ]
+    - [   CE2,    CZ,    OH,    HH ]
   - name:  VAL
     name3: VAL
     atoms:
@@ -1407,4 +1407,4 @@ residues:
     - C
     cutbond : []
     chi:
-    - [     N    CA    CB   CG1 ]
+    - [     N,    CA,    CB,   CG1 ]
