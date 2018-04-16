@@ -5,4 +5,4 @@ jobs:
        - image: ubuntu:16.04
      steps:
        - checkout
-       - run: echo "hello world 2"
+       - run: echo "hello world $USER"
