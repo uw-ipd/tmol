@@ -2,6 +2,7 @@ import typing
 import attr
 import numpy
 import math
+import tmol.system.residue.restypes
 
 class HomogeneousTransform :
 
@@ -158,6 +159,11 @@ class HomogeneousTransform :
         buff.append( " ".join( [ "%10.3f" % x for x in self.frame[3,:] ] ) )
         return "\n".join(buff)
 
+@attr.s( auto_attribs=True, slots=True )
+class AtomID :
+    res :    int = 0
+    atomno : int = 0
+
 class TreeAtom :
     def update_xyz( self, parent_ht = None ) :
         raise NotImplementedError;
@@ -167,8 +173,7 @@ class TreeAtom :
 
 @attr.s( auto_attribs=True, slots=True )
 class BondedAtom( TreeAtom ) :
-    name : str = ""
-    res_index : int = 0
+    atomid: AtomID = attr.Factory( AtomID )
     parent : TreeAtom = None
     phi : float = 0
     theta : float = 0
@@ -230,14 +235,14 @@ class AtomTree :
     atom_pointer_list : typing.List[ typing.Dict[ str, TreeAtom ] ]
 
 def create_links_simple( residue_type, links ) :
-    for at in residue_type.atoms :
-        links[ at.name ] = []
     
-    for at1,at2 in residue_type.bonds :
+    for i in range(len(residue_type.bond_indices)) :
         # don't add cut-bond pairs
+        at1,at2 = residue_type.bond_indices[i,:]
         if (at1,at2) in residue_type.cutbond : continue
+        if (at2,at1) in residue_type.cutbond : continue
         links[ at1 ].append( at2 )
-        links[ at2 ].append( at1 )
+
     return links
 
 def is_chi( residue_type, atom ) :
@@ -247,120 +252,120 @@ def is_chi( residue_type, atom ) :
     return False
 
 # assumes that atom is a member of residue_type
-def is_hydrogen( chem_db, residue_type, atom ) :
-    atom_type = [ x.atom_type for x in residue_type.atoms if x.name == atom ][ 0 ]
+def is_hydrogen( chem_db, residue_type, atom_index ) :
+    atom_type = residue_type.atoms[ atom_index ].atom_type
     element = [ x[1] for x in chem_db.atom_types if x[0] == atom_type ][ 0 ]
     return element == "H"
 
 def chi_continuation( residue_type, query_at1, query_at2 ) :
     ''' Return true if the query-at2 neighbor of currently-focused query-at1 continues a chi dihedral
-    that query-at1 is part of'''
-    for at1, at2, at3, at4 in residue_type.chi :
+    that query-at1 is part of. residue_type should be of type tmol.structure.restypes.ResidueType; query_at1
+    and query_at2 should both be integers'''
+    for at1, at2, at3, at4 in residue_type.chi_inds :
         if query_at1 == at3 and query_at2 == at4 : return True
         if query_at1 == at2 and query_at1 == at1 : return True
     return False
 
 def chi_interruption( residue_type, done, query_at1, query_at2 ) :
-    ''' Return true if the query-at2 neighbor of currently-focused query-at1 would interrupt
-    the construction of a chi dihdedral'''
-    for at1, at2, at3, at4 in residue_type.chi :
+    ''' Return true if the query-at2 neighbor of currently-focused query-at1 would interrupt the construction
+    of a chi dihdedral. residue_type should be of type tmol.structure.restypes.ResidueType; query_at1
+    and query_at2 should both be integers'''
+    for at1, at2, at3, at4 in residue_type.chi_inds :
         if query_at1 == at3 and query_at2 == at4 : return False
         if query_at1 == at2 and query_at1 == at1 : return False
-    for at1, at2, at3, at4 in residue_type.chi :
+    for at1, at2, at3, at4 in residue_type.chi_inds :
         if query_at2 == at2 and query_at1 != at1 and qeury_at1 != at3 : return True
         if query_at2 == at3 and query_at1 != at2 and qeury_at1 != at4 : return True
-        if query_at2 == at1 and at4 in done : return True
-        if query_at2 == at4 and at1 in done : return True
+        if query_at2 == at1 and done[ at4 ] : return True
+        if query_at2 == at4 and done[ at1 ] : return True
     return False
     
 
-def setup_atom_links( root_atom, full_links, done, chem_db, residue_type, new_links ) :
+def setup_atom_links( root_atom_index, full_links, done, chem_db, residue_type, new_links ) :
     ''' recursive function for deciding which atoms to put ino the atom tree in which order;
     ripped from R3'''
-    done.add( root_atom )
-    neighbs = full_links[root_atom]
+    done[ root_atom_index ] = True
+    neighbs = full_links[root_atom_index]
     n_neighbs = len( neighbs )
-    root_links = new_links[ root_atom ]
+    root_links = new_links[ root_atom_index ]
     if n_neighbs == 1 :
-        if neighbs[0] not in done :
+        if not done[ neighbs[0] ]  :
             root_links.append( neighbs[0] )
             setup_atom_links( neighbs[0], full_links, done, chem_db, residue_type, new_links )
         return
     # next priority: mainchain
     for neighb in neighbs :
-        if neighb in done : continue
-        if neighb in residue_type.mainchain :
+        if done[ neighb ] : continue
+        if neighb in residue_type.mainchain_inds :
             root_links.append( neighb )
             setup_atom_links( neighb, full_links, done, chem_db, residue_type, new_links )
     # next priority: within a chi angle and heavy
-    root_is_chi = is_chi( residue_type, root_atom )
+    root_is_chi = is_chi( residue_type, root_atom_index )
     for neighb in neighbs :
-        if neighb in done : continue
-        if root_is_chi and is_chi( residue_type, neighb ) and chi_continuation( residue_type, root_atom, neighb ) and not is_hydrogen( chem_db, residue_type, neighb ) :
+        if done[ neighb ] : continue
+        if root_is_chi and is_chi( residue_type, neighb ) and chi_continuation( residue_type, root_atom_index, neighb ) and not is_hydrogen( chem_db, residue_type, neighb ) :
             root_links.append( neighb )
             setup_atom_links( neighb, full_links, done, chem_db, residue_type, new_links )
 
     # next priority: any heavyatom chi
     for neighb in neighbs :
-        if neighb in done : continue
+        if done[ neighb ] : continue
         if is_chi( residue_type, neighb ) and not is_hydrogen( chem_db, residue_type, neighb ) :
             root_links.append( neighb )
             setup_atom_links( neighb, full_links, done, chem_db, residue_type, new_links )
 
     # next priority: any chi -- could be hydrogen
     for neighb in neighbs :
-        if neighb in done : continue
+        if done[ neighb ] : continue
         if is_chi( residue_type, neighb ) :
             root_links.append( neighb )
             setup_atom_links( neighb, full_links, done, chem_db, residue_type, new_links )
 
     # next priority: heavy atoms
     for neighb in neighbs :
-        if neighb in done : continue
-        if is_chi( residue_type, neighb ) and chi_interruption( residue_type, done, root_atom, neighb ) : continue
+        if done[ neighb ] : continue
+        if is_chi( residue_type, neighb ) and chi_interruption( residue_type, done, root_atom_index, neighb ) : continue
         if not is_hydrogen( chem_db, residue_type, neighb ) :
             root_links.append( neighb )
             setup_atom_links( neighb, full_links, done, chem_db, residue_type, new_links )
 
     # lowest priority: hydrogens
     for neighb in neighbs :
-        if neighb in done : continue
-        if is_chi( residue_type, neighb ) and chi_interruption( residue_type, done, root_atom, neighb ) : continue
+        if done[ neighb ] : continue
+        if is_chi( residue_type, neighb ) and chi_interruption( residue_type, done, root_atom_index, neighb ) : continue
         root_links.append( neighb )
         setup_atom_links( neighb, full_links, done, chem_db, residue_type, new_links )        
         
             
-def add_atom( root_atom, ordered_links, atom_pointers ) :
+def add_atom( root_atom_index, ordered_links, atom_pointers ) :
     ''' Creates a set of BondedAtoms (no JumpAtoms yet!) given the tree-structured
     ordered_links dictionary and puts them into the atom_pointers map'''
     tree_node = BondedAtom()
-    atom_pointers[ root_atom ] = tree_node
-    for child in ordered_links[ root_atom ] :
-        if child in atom_pointers : continue
+    atom_pointers[ root_atom_index ] = tree_node
+    for child in ordered_links[ root_atom_index ] :
+        if atom_pointers[ child ] is not None : continue
         tree_node.children.append( add_atom( child, ordered_links, atom_pointers ) )
     for child in tree_node.children :
         child.parent = tree_node
     return tree_node
 
 def create_residue_tree( chem_db, residue_type, res_index, root_atom ) :
-    full_links = {}
+    full_links = [ [] for x in range(len(residue_type.atoms) ) ]
     create_links_simple( residue_type, full_links )
-    ordered_links = {}
-    for atom in residue_type.atoms :
-        ordered_links[ atom.name ] = []
-    done = set([])
-    setup_atom_links( root_atom, full_links, done, chem_db, residue_type, ordered_links )
+    ordered_links = [ [] for x in range(len(residue_type.atoms ) ) ]
+    done = [ False ] * len( residue_type.atoms )
+    root_atom_index = residue_type.atom_to_idx[ root_atom ]
+    setup_atom_links( root_atom_index, full_links, done, chem_db, residue_type, ordered_links )
 
-    atom_pointers = {}
-    root = add_atom( root_atom, ordered_links, atom_pointers )
-    for at in atom_pointers :
-        atom_pointers[ at ].name = at
-        atom_pointers[ at ].res_index = res_index
+    atom_pointers = [ None ] * len(residue_type.atoms )
+    root = add_atom( root_atom_index, ordered_links, atom_pointers )
+    for atom_index, at in enumerate( atom_pointers ) :
+        at.atomid = AtomID( res_index, atom_index )
     return ( root, atom_pointers )
 
 def set_coords( residue, atom_pointers ) :
-    for i, atom in enumerate( residue.residue_type.atoms ) :
-        atom_pointers[ atom.name ].xyz = residue.coords[ i ]
+    for i in range(len( residue.coords )) :
+        atom_pointers[ i ].xyz = residue.coords[ i ]
 
 
 # does this belong in the kinematic layer, or perhaps instead, in the
@@ -377,7 +382,7 @@ def tree_from_residues( chem_db, residues ) :
                                                    residue.residue_type.lower_connect )
         set_coords( residue, atom_pointers )
         if last_residue :
-            upper_connect_last = atom_pointers_list[ -1 ][ last_residue.residue_type.upper_connect ]
+            upper_connect_last = atom_pointers_list[ -1 ][ last_residue.residue_type.atom_to_idx[ last_residue.residue_type.upper_connect ] ]
             upper_connect_last.children.insert( 0, root )
             root.parent = upper_connect_last
         if not first_root :
