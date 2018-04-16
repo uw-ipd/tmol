@@ -6,7 +6,6 @@ jobs:
     working_directory: ~/workspace
     steps:
       - checkout
-      # Download and cache dependencies
       - restore_cache:
           keys:
             - v1-dependencies-{{ checksum "environment.yml" }}
@@ -16,26 +15,22 @@ jobs:
           command: |
             conda info -a
             conda config --set always_yes yes --set changeps1 no
-            #conda env create -n tmol
-            #conda env update -f environment.yml
-            #source activate tmol
-            #pip install -r requirements.tests.txt
-            #conda clean -tipsy
-      #- save_cache:
-          #paths:
-            #- ./venv
-          #key: v1-dependencies-{{ checksum "requirements.txt" }}
+            conda env update -f environment.yml
+            source activate tmol
+            pip install -r requirements.tests.txt
+            conda clean -tipsy
+      - save_cache:
+          paths:
+            - ~/.conda/pkgs
+          key: v1-dependencies-{{ checksum "environment.yml" }}
       - run:
           name: Run tests.
           command: |
-            mkdir -p pytest-report
-            conda info -a > pytest-report/conda_info.txt
-            #conda info -a
-            #conda env update -f environment.yml
-            #source activate tmol
-            #pip install -r requirements.tests.txt
-            #conda clean -tipsy
+            source activate tmol
+            mkdir -p report
+            conda info -a | tee report/conda_info.log
+            pytest 2>&1 | tee report/pytest.log
             
       - store_artifacts:
-          path: pytest-report
-          destination: pytest-report
+          path: report
+          destination: report
