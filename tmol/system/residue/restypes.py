@@ -46,10 +46,10 @@ class ResidueType(tmol.database.chemical.Residue, AttrMapping):
     def _setup_coord_dtype(self):
         return numpy.dtype([(a.name, float, 3) for a in self.atoms])
 
-    bond_indicies: numpy.ndarray = attr.ib()
+    bond_indices: numpy.ndarray = attr.ib()
 
-    @bond_indicies.default
-    def _setup_bond_indicies(self):
+    @bond_indices.default
+    def _setup_bond_indices(self):
         bondi = compose(list, sorted, set, concat)(
             [(ai, bi), (bi, ai)]
             for ai, bi in map(map(self.atom_to_idx.get), self.bonds))
@@ -77,19 +77,19 @@ class ResidueType(tmol.database.chemical.Residue, AttrMapping):
 
     @mainchain_inds.default
     def _setup_mainchain_inds( self ) :
-        return [ self.atom_to_idx[ atname ] for atname in self.mainchain ]
+        return map( self.atom_to_idx.get, self.mainchain )
 
     cutbond_inds: Tuple[ Tuple[ int, int ], ... ] = attr.ib()
 
     @cutbond_inds.default
     def _setup_cutbond_inds( self ) :
-        return [ [ self.atom_to_idx[ atname ] for atname in atname_pair ] for atname_pair in self.cutbond ]
+        return map( map(self.atom_to_idx.get),  self.cutbond )
 
     chi_inds : Tuple[ Tuple[ int, int, int, int ], ... ] = attr.ib()
 
     @chi_inds.default
     def _setup_chi_inds( self ):
-        return [ tuple( self.atom_to_idx[ atname ] for atname in x ) for x in self.chi ]
+        return map( map( self.atom_to_idx.get ), self.chi )
 
 @attr.s(slots=True, frozen=True)
 class Residue:

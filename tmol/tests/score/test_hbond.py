@@ -87,7 +87,7 @@ class TestHBond(unittest.TestCase):
 
         for t in types:
             atom_types = numpy.array([a.atom_type for a in t.atoms])
-            bonds = t.bond_indicies
+            bonds = t.bond_indices
 
             hbe = HBondElementAnalysis(atom_types=atom_types, bonds=bonds).setup()
             identified_donors = set(hbe.donors["d"])
