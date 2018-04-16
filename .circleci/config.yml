@@ -21,6 +21,7 @@ jobs:
             conda clean -tipsy
       - save_cache:
           paths:
+            - /opt/conda/pkgs
             - ~/.conda/pkgs
           key: v1-dependencies-{{ checksum "environment.yml" }}
       - run:
