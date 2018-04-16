@@ -1,9 +1,41 @@
 version: 2
 jobs:
-   build:
-     docker:
-       - image: continuumio/miniconda3
-     steps:
-       - checkout
-       - run: echo "hello world"
-       - run: conda --version
+  build:
+    docker:
+      - image: continuumio/miniconda3
+    working_directory: ~/workspace
+    steps:
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "environment.yml" }}
+            - v1-dependencies-
+      - run:
+          name: Install dependencies.
+          command: |
+            conda info -a
+            conda config --set always_yes yes --set changeps1 no
+            #conda env create -n tmol
+            #conda env update -f environment.yml
+            #source activate tmol
+            #pip install -r requirements.tests.txt
+            #conda clean -tipsy
+      #- save_cache:
+          #paths:
+            #- ./venv
+          #key: v1-dependencies-{{ checksum "requirements.txt" }}
+      - run:
+          name: Run tests.
+          command: |
+            mkdir -p pytest-report
+            conda info -a > pytest-report/conda_info.txt
+            #conda info -a
+            #conda env update -f environment.yml
+            #source activate tmol
+            #pip install -r requirements.tests.txt
+            #conda clean -tipsy
+            
+      - store_artifacts:
+          path: pytest-report
+          destination: pytest-report
