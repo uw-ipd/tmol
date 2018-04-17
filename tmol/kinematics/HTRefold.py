@@ -1,6 +1,7 @@
 import tmol.kinematics.AtomTree as atree
 import attr
 import typing
+import math
 
 # module for defining a parallelizable refold method in terms of segmented scan of
 # matrix multiplications. The first phase of implementation is getting the CPU-based
@@ -56,6 +57,9 @@ def cpu_htrefold( residues, tree, refold_data, atoms_for_controlling_torsions, r
     hts = [ atree.HomogeneousTransform() for x in refold_data ]
     # root ht is in fact the identity transform
     for ii, iidat in enumerate( refold_data ) :
+        iiatid = refold_index_2_atomid[ ii ]
+        print( ii, iidat.controlling_torsion, 180.0 / math.pi * ( torsions[ iidat.controlling_torsion ] if iidat.controlling_torsion >= 0 else 0.0 ), residues[ iiatid.res ].residue_type.atoms[ iiatid.atomno ].name )
+               
         phi = iidat.phi_offset + ( torsions[ iidat.controlling_torsion ] if iidat.controlling_torsion >= 0 else 0.0 )
         parent_ht = hts[ iidat.parent_index if iidat.parent_index >= 0 else ii-1 ]
         phi_ht = atree.HomogeneousTransform.zrot( phi )
@@ -151,7 +155,9 @@ def number_torsions( tree ) :
     natoms = sum( [ len(x) for x in tree.atom_pointer_list ] )
 
     atom_ids_for_torsions = []
-    torsion_index = number_torsions_recursive( tree.root, torsion_ids_and_offsets, -1, atom_ids_for_torsions )
+    torsion_ids_and_offsets[ tree.root.atomid.res ][ tree.root.atomid.atomno ] = ( tree.root.phi, 0.0 )
+    atom_ids_for_torsions.append( tree.root.atomid )
+    torsion_index = number_torsions_recursive( tree.root, torsion_ids_and_offsets, 0, atom_ids_for_torsions )
     return atom_ids_for_torsions, torsion_ids_and_offsets
            
 
@@ -161,7 +167,7 @@ def number_torsions_recursive( root_node, torsion_ids_and_offsets, torsion_index
     accumulated_offset = 0.0
     for child in root_node.children :
         if first :
-            atom_ids_for_torsions.append( root_node.atomid )
+            atom_ids_for_torsions.append( child.atomid )
             torsion_index += 1
             first = False
             torsion_ids_and_offsets[ child.atomid.res ][ child.atomid.atomno ] = ( torsion_index, 0.0 )
