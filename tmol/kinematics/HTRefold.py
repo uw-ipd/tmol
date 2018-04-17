@@ -155,7 +155,7 @@ def number_torsions( tree ) :
     natoms = sum( [ len(x) for x in tree.atom_pointer_list ] )
 
     atom_ids_for_torsions = []
-    torsion_ids_and_offsets[ tree.root.atomid.res ][ tree.root.atomid.atomno ] = ( tree.root.phi, 0.0 )
+    torsion_ids_and_offsets[ tree.root.atomid.res ][ tree.root.atomid.atomno ] = ( 0, 0.0 )
     atom_ids_for_torsions.append( tree.root.atomid )
     torsion_index = number_torsions_recursive( tree.root, torsion_ids_and_offsets, 0, atom_ids_for_torsions )
     return atom_ids_for_torsions, torsion_ids_and_offsets
@@ -190,6 +190,8 @@ def fill_atom_refold_data( tree, refold_index_2_atomid, atomid_2_refold_index, t
             if parent_id.res != -1 :
                 ii_data.parent_index = atomid_2_refold_index[ parent_id.res ][ parent_id.atomno ]
         refold_data[ ii ] = ii_data
+        #if ii == 0 :
+        #    print( "root refold data:", ii_data, iinode.phi, iinode.theta, iinode.d )
     refold_data[ 0 ].parent_index = 0 # set the root as its own parent
     return refold_data
 
