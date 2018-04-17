@@ -743,3 +743,53 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
     def total_hbond(self):
         return self.donor_sp2_hbond.sum() + self.donor_sp3_hbond.sum(
         ) + self.donor_ring_hbond.sum()
+
+    @derived_from(
+        "hbond_elements",
+        VariableT("Donor atom indices, all hbond types."),
+    )
+    def hbond_donor_ind(self):
+        return torch.LongTensor(
+            numpy.concatenate((
+                self.donor_sp2_pairs["d"],
+                self.donor_sp3_pairs["d"],
+                self.donor_ring_pairs["d"],
+            ))
+        )
+
+    @derived_from(
+        "hbond_elements",
+        VariableT("Hydrogen atom indices, all hbond types."),
+    )
+    def hbond_h_ind(self):
+        return torch.LongTensor(
+            numpy.concatenate((
+                self.donor_sp2_pairs["h"],
+                self.donor_sp3_pairs["h"],
+                self.donor_ring_pairs["h"],
+            ))
+        )
+
+    @derived_from(
+        "hbond_elements",
+        VariableT("Acceptor atom indices, all hbond types."),
+    )
+    def hbond_acceptor_ind(self):
+        return torch.LongTensor(
+            numpy.concatenate((
+                self.donor_sp2_pairs["a"],
+                self.donor_sp3_pairs["a"],
+                self.donor_ring_pairs["a"],
+            ))
+        )
+
+    @derived_from(
+        ("donor_sp2_hbond", "donor_sp3_hbond", "donor_ring_hbond"),
+        VariableT("total hbond score"),
+    )
+    def hbond_scores(self):
+        return torch.cat((
+            self.donor_sp2_hbond,
+            self.donor_sp3_hbond,
+            self.donor_ring_hbond,
+        ))

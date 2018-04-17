@@ -11,6 +11,7 @@ import tmol.io.pdb_parsing as pdb_parsing
 from .bonded_atom import BondedAtomScoreGraph
 from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
+from .hbond import HBondScoreGraph
 from .types import RealTensor
 
 
@@ -34,6 +35,7 @@ def system_graph_params(system, drop_missing_atoms=False, requires_grad=True):
 
 
 class ScoreGraph(
+        HBondScoreGraph,
         LJLKScoreGraph,
         BlockedInteratomicDistanceGraph,
         BondedAtomScoreGraph,

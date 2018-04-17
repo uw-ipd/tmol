@@ -23,7 +23,7 @@ class PackedResidueSystem(HasProperties):
         prop=Instance("attached residue", Residue)
     )
 
-    start_ind: Sequence[int] = Array(
+    res_start_ind: Sequence[int] = Array(
         "residue start indicies within `coords`", dtype=int
     )[:]
 
@@ -40,13 +40,13 @@ class PackedResidueSystem(HasProperties):
     )[:, 2]
 
     @derived_from(
-        ("residues", "start_ind", "system_size"),
+        ("residues", "res_start_ind", "system_size"),
         Array("atom type tags", dtype=object)[:],
     )
     def atom_types(self):
         types = numpy.full(self.system_size, None, dtype=object)
 
-        for si, res in zip(self.start_ind, self.residues):
+        for si, res in zip(self.res_start_ind, self.residues):
             types[si:si + len(res.residue_type.atoms)] = [
                 a.atom_type for a in res.residue_type.atoms
             ]
@@ -101,7 +101,7 @@ class PackedResidueSystem(HasProperties):
         ])
 
         self.residues = attached_res
-        self.start_ind = segment_starts
+        self.res_start_ind = segment_starts
         self.system_size = buffer_size
 
         self.coords = cbuff
@@ -110,3 +110,13 @@ class PackedResidueSystem(HasProperties):
         self.validate()
 
         return self
+
+    def atom_to_block_ind(self, atom_ind: numpy.ndarray) -> numpy.ndarray:
+        """Convert atom index array into block index."""
+        return (atom_ind / self.block_size).astype(int)
+
+    def atom_to_res_ind(self, atom_ind: numpy.ndarray) -> numpy.ndarray:
+        """Convert atom index array into residue index."""
+        return (
+            numpy.searchsorted(self.res_start_ind, atom_ind, side="right") - 1
+        )
