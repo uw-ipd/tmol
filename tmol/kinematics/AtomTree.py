@@ -161,8 +161,8 @@ class HomogeneousTransform :
 
 @attr.s( auto_attribs=True, slots=True )
 class AtomID :
-    res :    int = 0
-    atomno : int = 0
+    res :    int = -1
+    atomno : int = -1
 
 class TreeAtom :
     def update_xyz( self, parent_ht = None ) :
@@ -229,10 +229,14 @@ class BondedAtom( TreeAtom ) :
         for child in self.children :
             child.update_internal_coords( new_ht )
 
-@attr.s( auto_attribs=True, slots=True, hash=False )
+@attr.s( auto_attribs=True, slots=True )
 class AtomTree :
     root : TreeAtom
-    atom_pointer_list : typing.List[ typing.Dict[ str, TreeAtom ] ]
+    atom_pointer_list : typing.List[ typing.List[ TreeAtom ] ]
+    def update_xyz( self, ) :
+        self.root.update_xyz()
+    def node( self, atid ) :
+        return self.atom_pointer_list[ atid.res ][ atid.atomno ]
 
 def create_links_simple( residue_type, links ) :
     
@@ -390,5 +394,5 @@ def tree_from_residues( chem_db, residues ) :
         last_residue = residue
         atom_pointers_list.append( atom_pointers )
     first_root.update_internal_coords()
-    return first_root, atom_pointers_list
+    return AtomTree( first_root, atom_pointers_list )
     
