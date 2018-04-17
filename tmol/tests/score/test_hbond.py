@@ -14,6 +14,8 @@ from tmol.system.residue.io import read_pdb
 from tmol.score.hbond import HBondElementAnalysis, HBondScoreGraph
 from tmol.tests.data.pdb import data as test_pdbs
 
+from ..support.rosetta import requires_pyrosetta
+
 
 def test_bb_identification(bb_hbond_database):
     tsys = read_pdb(test_pdbs["1ubq"])
@@ -72,7 +74,7 @@ def test_bb_dummy_score(bb_hbond_database):
     )
     hbond_elements = hbond_graph.hbond_elements
 
-    d_i = hbond_elements.donors["d"].reshape((-1, 1))
+    h_i = hbond_elements.donors["h"].reshape((-1, 1))
     sp2_i = hbond_elements.sp2_acceptors["a"].reshape((1, -1))
     sp3_i = hbond_elements.sp3_acceptors["a"].reshape((1, -1))
     ring_i = hbond_elements.ring_acceptors["a"].reshape((1, -1))
@@ -80,9 +82,9 @@ def test_bb_dummy_score(bb_hbond_database):
     max_dis = hbond_graph.hbond_database.global_parameters.max_dis
 
     total_count = (
-        numpy.count_nonzero(atom_pair_distances[d_i, sp2_i] <= max_dis) +
-        numpy.count_nonzero(atom_pair_distances[d_i, sp3_i] <= max_dis) +
-        numpy.count_nonzero(atom_pair_distances[d_i, ring_i] <= max_dis)
+        numpy.count_nonzero(atom_pair_distances[h_i, sp2_i] <= max_dis) +
+        numpy.count_nonzero(atom_pair_distances[h_i, sp3_i] <= max_dis) +
+        numpy.count_nonzero(atom_pair_distances[h_i, ring_i] <= max_dis)
     )
 
     assert total_count == hbond_graph.total_hbond
@@ -99,7 +101,7 @@ def test_dummy_score():
     hbond_graph = HBondScoreGraph(**test_params)
     hbond_elements = hbond_graph.hbond_elements
 
-    d_i = hbond_elements.donors["d"].reshape((-1, 1))
+    h_i = hbond_elements.donors["h"].reshape((-1, 1))
     sp2_i = hbond_elements.sp2_acceptors["a"].reshape((1, -1))
     sp3_i = hbond_elements.sp3_acceptors["a"].reshape((1, -1))
     ring_i = hbond_elements.ring_acceptors["a"].reshape((1, -1))
@@ -107,9 +109,9 @@ def test_dummy_score():
     max_dis = hbond_graph.hbond_database.global_parameters.max_dis
 
     total_count = (
-        numpy.count_nonzero(atom_pair_distances[d_i, sp2_i] <= max_dis) +
-        numpy.count_nonzero(atom_pair_distances[d_i, sp3_i] <= max_dis) +
-        numpy.count_nonzero(atom_pair_distances[d_i, ring_i] <= max_dis)
+        numpy.count_nonzero(atom_pair_distances[h_i, sp2_i] <= max_dis) +
+        numpy.count_nonzero(atom_pair_distances[h_i, sp3_i] <= max_dis) +
+        numpy.count_nonzero(atom_pair_distances[h_i, ring_i] <= max_dis)
     )
 
     assert total_count == hbond_graph.total_hbond
@@ -148,10 +150,43 @@ def test_identification_by_ljlk_types():
                     f"Unidentified acceptor. res: {t.name} atom:{t.atoms[ai]}"
 
 
+@requires_pyrosetta
+def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
+    from tmol.support.scoring.rosetta import PoseScoreWrapper
+
+    rosetta_system = (PoseScoreWrapper.from_pdbstring(test_pdbs["1ubq"]))
+    test_system = (
+        tmol.system.residue.packed.PackedResidueSystem()
+        .from_residues(rosetta_system.tmol_residues)
+    )  # yapf: disable
+
+    hbond_graph = HBondScoreGraph(
+        hbond_database=bb_hbond_database,
+        **tmol.score.system_graph_params(test_system, requires_grad=False)
+    )
+
+    rosetta_bb_hbonds = rosetta_system.hbonds.set_index(["a_atom", "h_atom"]
+                                                        ).loc[["O", "H"]]
+    rosetta_bb_pairs = set(
+        map(tuple, rosetta_bb_hbonds[["h_res", "a_res"]].values)
+    )
+
+    bb_hbonds = pandas.DataFrame.from_dict(
+        dict(
+            h_res=test_system.atom_to_res_ind(hbond_graph.hbond_h_ind),
+            a_res=test_system.atom_to_res_ind(hbond_graph.hbond_acceptor_ind),
+            score=hbond_graph.hbond_scores,
+        )
+    ).query("score != 0")
+    bb_pairs = set(map(tuple, bb_hbonds[["h_res", "a_res"]].values))
+
+    assert rosetta_bb_pairs == bb_pairs
+
+
 bb_hbond_config = yaml.load(
     """
     global_parameters:
-        max_dis : 6.0
+        max_dis : 3.2
     atom_groups:
         donors:
             - { d: Nbb, h: HNbb, donor_type: hbdon_PBA }

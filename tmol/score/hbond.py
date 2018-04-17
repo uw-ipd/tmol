@@ -76,20 +76,20 @@ def hbond_donor_sp2_score(
         # Global score parameters
         max_dis
 ):
-    h_d_vec = (d - h)
-    h_d_dist = h_d_vec.norm(dim=-1)
-    h_d_unit = h_d_vec / h_d_dist.unsqueeze(dim=-1)
+    # h_d_vec = (d - h)
+    # h_d_dist = h_d_vec.norm(dim=-1)
+    # h_d_unit = h_d_vec / h_d_dist.unsqueeze(dim=-1)
 
     a_h_vec = (h - a)
     a_h_dist = a_h_vec.norm(dim=-1)
-    a_h_unit = a_h_vec / a_h_dist.unsqueeze(dim=-1)
+    # a_h_unit = a_h_vec / a_h_dist.unsqueeze(dim=-1)
 
-    b_a_vec = (a - b)
-    b_a_dist = b_a_vec.norm(dim=-1)
-    b_a_unit = b_a_vec / b_a_dist.unsqueeze(dim=-1)
+    # b_a_vec = (a - b)
+    # b_a_dist = b_a_vec.norm(dim=-1)
+    # b_a_unit = b_a_vec / b_a_dist.unsqueeze(dim=-1)
 
-    d_a_dist = (d - a).norm(dim=-1)
-    return (d_a_dist < max_dis).type(d.dtype)
+    # d_a_dist = (d - a).norm(dim=-1)
+    return (a_h_dist < max_dis).type(d.dtype)
 
 
 def hbond_donor_sp3_score(
@@ -147,8 +147,10 @@ def hbond_donor_sp3_score(
         # Global score parameters
         max_dis
 ):
-    d_a_dist = (d - a).norm(dim=-1)
-    return (d_a_dist < max_dis).type(d.dtype)
+    a_h_vec = (h - a)
+    a_h_dist = a_h_vec.norm(dim=-1)
+
+    return (a_h_dist < max_dis).type(d.dtype)
 
 
 def hbond_donor_ring_score(
@@ -206,8 +208,10 @@ def hbond_donor_ring_score(
         # Global score parameters
         max_dis
 ):
-    d_a_dist = (d - a).norm(dim=-1)
-    return (d_a_dist < max_dis).type(d.dtype)
+    a_h_vec = (h - a)
+    a_h_dist = a_h_vec.norm(dim=-1)
+
+    return (a_h_dist < max_dis).type(d.dtype)
 
 
 class HBondElementAnalysis(properties.HasProperties):
