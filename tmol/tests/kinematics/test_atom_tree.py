@@ -1,6 +1,7 @@
 import unittest
 from collections import Counter
 import tmol.kinematics.AtomTree as atree
+import tmol.kinematics.HTRefold as htrefold
 from tmol.tests.data.pdb import data as test_pdbs
 import tmol.system.residue.io as pdbio
 import tmol.io.pdb_parsing as pdb_parsing
@@ -178,16 +179,16 @@ class TestAtomTree(unittest.TestCase):
     def test_construct_whole_structure_atom_tree( self ) :
         res_reader = pdbio.ResidueReader()
         residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] ) 
-        root, atom_pointer_list = atree.tree_from_residues( res_reader.chemical_db, residues )
+        tree = atree.tree_from_residues( res_reader.chemical_db, residues )
 
         # now set a new chi1 for residue 1 and refold
         indCG = residues[0].residue_type.atom_to_idx[ "CG" ]
-        atom_pointer_list[ 0 ][ indCG ].phi = math.pi
-        root.update_xyz()
+        tree.atom_pointer_list[ 0 ][ indCG ].phi = math.pi
+        tree.update_xyz()
 
         #print( "chi1 end: ", atom_pointer_list[ 0 ][ indCG ].phi, atom_pointer_list[ 0 ][ indCG ].xyz )
         final_cg_ideal = numpy.array( [ 24.01077925,  25.87729449, 3.88653434 ] )
-        final_cg_actual = numpy.array( atom_pointer_list[ 0 ][ indCG ].xyz )
+        final_cg_actual = numpy.array( tree.atom_pointer_list[ 0 ][ indCG ].xyz )
         self.assertAlmostEqual( numpy.linalg.norm( final_cg_actual - final_cg_ideal ), 0.0 )
 
         # dump the pdb to look at it
@@ -206,3 +207,27 @@ class TestAtomTree(unittest.TestCase):
         #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
             
                     
+    def test_atomtree_refold_info_setup( self ) :
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] )
+        tree = atree.tree_from_residues( res_reader.chemical_db, residues )
+        
+        ordered_roots, refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index = \
+            htrefold.initialize_ht_refold_data( residues, tree )
+
+        htrefold.cpu_htrefold( residues, tree, refold_data, atoms_for_controlling_torsions, \
+                      refold_index_2_atomid, atomid_2_refold_index )
+
+        # let's dump the new coordinates
+        atom_records = pdb_parsing.parse_pdb( test_pdbs[ "1UBQ" ] )
+        for ii, res in enumerate( residues ) :
+            for jj in range( res.coords.shape[0] ) :
+                iijj_atname = res.residue_type.atoms[ jj ].name
+                # oh, god, there has to be a better way!
+                for kk in range( len( atom_records )) :
+                    if atom_records.loc[ kk, "resi" ] == ii+1 and \
+                            atom_records.loc[ kk, "chain" ] == "A" and \
+                            atom_records.loc[ kk, "atomn" ] == iijj_atname :                        
+                        atom_records.loc[ kk, [ "x", "y", "z" ]] = res.coords[jj]
+        with open( "test_refold2.pdb", "w" ) as fid :
+            fid.writelines( pdb_parsing.to_pdb( atom_records ) )
