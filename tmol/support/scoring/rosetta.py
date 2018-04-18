@@ -1,18 +1,14 @@
-import pyrosetta.rosetta as rosetta
-
-import pyrosetta.distributed.io as io
-import pyrosetta.distributed.tasks.score as score
-import pyrosetta.distributed.packed_pose as packed_pose
-
 import toolz
-
-import tmol.support.rosetta.init  # noqa
+import pickle
 
 import attr
+
+import numpy
 import pandas
 
 
 def strip_variants(pose):
+    import pyrosetta.distributed.packed_pose as packed_pose
     pose = packed_pose.to_pose(pose)
 
     import pyrosetta.rosetta.core as core
@@ -20,29 +16,25 @@ def strip_variants(pose):
         for t in r.type().variant_type_enums():
             core.pose.remove_variant_type_from_pose_residue(pose, t, i + 1)
 
-    return packed_pose.to_packed(pose)
+    return pose
 
 
 @attr.s(slots=True)
 class PoseScoreWrapper:
+
+    pickled_pose: str = attr.ib()
+    rosetta_version: str = attr.ib()
+    atoms: pandas.DataFrame = attr.ib()
+    residue_scores: numpy.ndarray = attr.ib()
+    total_scores: numpy.ndarray = attr.ib()
+    hbonds: pandas.DataFrame = attr.ib()
+
     @classmethod
-    def from_pdbstring(cls, pdbstring):
-        return toolz.compose(
-            cls,
-            score.ScorePoseTask(),
-            strip_variants,
-            io.pose_from_pdbstring,
-        )(pdbstring)
+    def from_pose(cls, pose):
+        from tmol.support.rosetta.init import pyrosetta
+        pyrosetta.get_score_function()(pose)
 
-    pose = attr.ib(converter=packed_pose.to_packed)
-
-    atoms = attr.ib()
-
-    @atoms.default
-    def _load_atoms(self):
-        pose = self.pose.pose
-
-        return pandas.DataFrame.from_records([
+        atoms = pandas.DataFrame.from_records([
             dict(
                 chaini=pose.chain(ri + 1),
                 resi=ri + 1,
@@ -57,28 +49,15 @@ class PoseScoreWrapper:
             for ai in range(r.natoms())
         ])
 
-    residue_scores = attr.ib()
+        residue_scores = pose.energies().residue_total_energies_array()
+        total_scores = pose.energies().total_energies_array()
 
-    @residue_scores.default
-    def _load_residue_scores(self):
-        return self.pose.pose.energies().residue_total_energies_array()
+        hbset = pyrosetta.rosetta.core.scoring.hbonds.HBondSet()
+        pyrosetta.rosetta.core.scoring.hbonds.fill_hbond_set(
+            pose, False, hbset
+        )
 
-    total_scores = attr.ib()
-
-    @total_scores.default
-    def _load_total_scores(self):
-        return self.pose.pose.energies().total_energies_array()
-
-    hbonds = attr.ib()
-
-    @hbonds.default
-    def _load_hbonds(self):
-        pose = self.pose.pose
-
-        hbset = rosetta.core.scoring.hbonds.HBondSet()
-        rosetta.core.scoring.hbonds.fill_hbond_set(pose, False, hbset)
-
-        return pandas.DataFrame.from_records([{
+        hbonds = pandas.DataFrame.from_records([{
             "a_res": hbond.acc_res() - 1,
             "a_atom":
                 pose.residue(hbond.acc_res()).atom_name(hbond.acc_atm())
@@ -90,6 +69,25 @@ class PoseScoreWrapper:
             "energy": hbond.energy(),
         } for hbond in (hbset.hbond(i + 1) for i in range(hbset.nhbonds()))])
 
+        import pyrosetta
+        pyrosetta.distributed.packed_pose.PackedPose
+
+        return cls(
+            rosetta_version=pyrosetta.rosetta.utility.Version.version(),
+            pickled_pose=pickle.dumps(pose),
+            atoms=atoms,
+            residue_scores=residue_scores,
+            total_scores=total_scores,
+            hbonds=hbonds,
+        )
+
+    @classmethod
+    def from_pdbstring(cls, pdbstring):
+        from pyrosetta.distributed.io import pose_from_pdbstring
+        return cls.from_pose(
+            toolz.compose(strip_variants, pose_from_pdbstring)(pdbstring)
+        )
+
     @property
     def tmol_residues(self):
         from tmol.system.residue.io import ResidueReader
@@ -99,3 +97,9 @@ class PoseScoreWrapper:
             reader.parse_atom_block(atoms)
             for (chaini, resi), atoms in self.atoms.groupby(["chaini", "resi"])
         ]
+
+    @property
+    def pose(self):
+        import tmol.support.rosetta.init  # noqa Import to ensure init.
+
+        return pickle.loads(self.pickled_pose)
