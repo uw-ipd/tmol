@@ -40,11 +40,14 @@ jobs:
 
             failed=0
 
-            (pytest -v -k 'not linting' --cov=./tmol 2>&1 | tee report/test.log) || failed=1
-            (pytest -v -k 'linting' 2>&1 | tee report/linting.log) || failed=1
+            (pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test.xml 2>&1 | tee report/test.log) || failed=1
+            (pytest -v -k 'linting' 2>&1 --junitxml=report/linting.xml | tee report/linting.log) || failed=1
             codecov -F pytest
 
             exit $failed
+
+      - store_test_results:
+          path: report
 
       - store_artifacts:
           path: report
