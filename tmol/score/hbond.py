@@ -457,19 +457,17 @@ class HBondParamResolver:
     def _init_param_tensors(self):
         # {term : {param : tensor}}
         normalized_param_tensors: Dict[str, Dict[str, torch.Tensor]] = {
-            t: toolz.dicttoolz.merge(
-                {
-                    "coeffs":
-                    compose(torch.Tensor, numpy.nan_to_num)(
-                        params[["c_" + i for i in "abcdefghijk"]].values
-                    )  # yapf: disable
-                },
-                {
-                    t: torch.Tensor(params[t])
-                    for t in
-                    ("max_val", "min_val", "root1", "root2", "xmax", "xmin")
-                }
-            )
+            t: toolz.dicttoolz.merge({
+                "coeffs":
+                    compose(
+                        torch.Tensor,
+                        numpy.nan_to_num,
+                    )(params[["c_" + i for i in "abcdefghijk"]].values)
+            }, {
+                t: torch.Tensor(params[t])
+                for t in
+                ("max_val", "min_val", "root1", "root2", "xmax", "xmin")
+            })
             for t, params in self.param_lookup.groupby(level="term")
         }
 
