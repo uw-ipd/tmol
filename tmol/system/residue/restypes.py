@@ -1,43 +1,20 @@
 from frozendict import frozendict
 from toolz.curried import concat, map, compose
-from typing import Mapping, Tuple
+from typing import Mapping
 import attr
 
 import numpy
 
-import collections
-
 import tmol.database.chemical
 
 
-class AttrMapping(collections.abc.Mapping):
-    @classmethod
-    def from_dict(cls, d):
-        return cls(**d)
-
-    def __getitem__(self, k):
-        return getattr(self, k)
-
-    def __iter__(self):
-        return iter(self.__slots__)
-
-    def __len__(self):
-        return len(self.__slots__)
-
-
 @attr.s(slots=True, frozen=True)
-class ResidueType(tmol.database.chemical.Residue, AttrMapping):
+class ResidueType(tmol.database.chemical.Residue):
     atom_to_idx: Mapping[str, int] = attr.ib()
 
     @atom_to_idx.default
     def _setup_atom_to_idx(self):
         return frozendict((a.name, i) for i, a in enumerate(self.atoms))
-
-    qualified_atom_types: Tuple[str] = attr.ib()
-
-    @qualified_atom_types.default
-    def _setup_qualified_atom_types(self):
-        return tuple("/".join((self.name, a.atom_type)) for a in self.atoms)
 
     coord_dtype: numpy.dtype = attr.ib()
 
@@ -103,7 +80,7 @@ class Residue:
     def _repr_pretty_(self, p, cycle):
         p.text("Residue")
         with p.group(1, "(", ")"):
-            p.text("type=")
+            p.text("residue_type=")
             p.pretty(self.residue_type)
             p.text(", coords=")
             p.break_()
