@@ -13,13 +13,12 @@ from tmol.score.interatomic_distance import NaiveInteratomicDistanceGraph
 
 from tmol.system.residue.io import read_pdb
 from tmol.score.hbond import HBondElementAnalysis, HBondScoreGraph
-from tmol.tests.data.pdb import data as test_pdbs
-
-from ..support.rosetta import requires_pyrosetta
+import tmol.tests.data.rosetta_baseline as rosetta_baseline
+import tmol.tests.data.pdb as test_pdbs
 
 
 def test_bb_identification(bb_hbond_database):
-    tsys = read_pdb(test_pdbs["1ubq"])
+    tsys = read_pdb(test_pdbs.data["1ubq"])
 
     donors = []
     acceptors = []
@@ -62,7 +61,7 @@ def test_bb_identification(bb_hbond_database):
 
 
 def test_bb_dummy_score(bb_hbond_database):
-    tsys = read_pdb(test_pdbs["1ubq"])
+    tsys = read_pdb(test_pdbs.data["1ubq"])
     test_params = tmol.score.system_graph_params(tsys, requires_grad=False)
 
     atom_pair_distances = scipy.spatial.distance.squareform(
@@ -92,7 +91,7 @@ def test_bb_dummy_score(bb_hbond_database):
 
 
 def test_dummy_score():
-    tsys = read_pdb(test_pdbs["1ubq"])
+    tsys = read_pdb(test_pdbs.data["1ubq"])
     test_params = tmol.score.system_graph_params(tsys, requires_grad=False)
 
     atom_pair_distances = scipy.spatial.distance.squareform(
@@ -151,11 +150,8 @@ def test_identification_by_ljlk_types():
                     f"Unidentified acceptor. res: {t.name} atom:{t.atoms[ai]}"
 
 
-@requires_pyrosetta
 def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
-    from tmol.support.scoring.rosetta import PoseScoreWrapper
-
-    rosetta_system = PoseScoreWrapper.from_pdbstring(test_pdbs["1ubq"])
+    rosetta_system = rosetta_baseline.data["1ubq"]
 
     test_system = (
         tmol.system.residue.packed.PackedResidueSystem()
