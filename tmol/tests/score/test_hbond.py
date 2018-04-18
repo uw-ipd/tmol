@@ -1,3 +1,4 @@
+import toolz
 import yaml
 import cattr
 import pandas
@@ -154,33 +155,68 @@ def test_identification_by_ljlk_types():
 def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
     from tmol.support.scoring.rosetta import PoseScoreWrapper
 
-    rosetta_system = (PoseScoreWrapper.from_pdbstring(test_pdbs["1ubq"]))
+    rosetta_system = PoseScoreWrapper.from_pdbstring(test_pdbs["1ubq"])
+
     test_system = (
         tmol.system.residue.packed.PackedResidueSystem()
         .from_residues(rosetta_system.tmol_residues)
     )  # yapf: disable
-
     hbond_graph = HBondScoreGraph(
         hbond_database=bb_hbond_database,
         **tmol.score.system_graph_params(test_system, requires_grad=False)
     )
 
-    rosetta_bb_hbonds = rosetta_system.hbonds.set_index(["a_atom", "h_atom"]
-                                                        ).loc[["O", "H"]]
-    rosetta_bb_pairs = set(
-        map(tuple, rosetta_bb_hbonds[["h_res", "a_res"]].values)
+    # Extract list of hbonds from packed system into summary table
+    # via atom metadata
+    h_i = hbond_graph.hbond_h_ind
+    a_i = hbond_graph.hbond_acceptor_ind
+    tmol_hbonds = pandas.DataFrame.from_dict({
+        "h": h_i,
+        "a": a_i,
+        "h_res": test_system.atom_metadata["residue_index"][h_i],
+        "h_atom": test_system.atom_metadata["atom_name"][h_i],
+        "a_res": test_system.atom_metadata["residue_index"][a_i],
+        "a_atom": test_system.atom_metadata["atom_name"][a_i],
+        "score": hbond_graph.hbond_scores,
+    }).query("score != 0").set_index(["a", "h"])
+    del h_i, a_i
+
+    # Merge with named atom index to get atom indicies in packed system
+    # hbonds columns: ["a_atom", "a_res", "h_atom", "h_res", "energy"]
+    named_atom_index = (
+        pandas.DataFrame(test_system.atom_metadata)
+        .set_index(["residue_index", "atom_name"])["atom_index"]
     )
+    rosetta_hbonds = toolz.curried.reduce(pandas.merge)((
+        (
+            rosetta_system.hbonds.set_index(["a_atom", "h_atom"])
+            .loc["O", "H"].reset_index()
+        ),
+        (
+            named_atom_index.rename_axis(["a_res", "a_atom"])
+            .to_frame("a").reset_index()
+        ),
+        (
+            named_atom_index.rename_axis(["h_res", "h_atom"])
+            .to_frame("h").reset_index()
+        ),
+    )).set_index(["a", "h"])
 
-    bb_hbonds = pandas.DataFrame.from_dict(
-        dict(
-            h_res=test_system.atom_to_res_ind(hbond_graph.hbond_h_ind),
-            a_res=test_system.atom_to_res_ind(hbond_graph.hbond_acceptor_ind),
-            score=hbond_graph.hbond_scores,
-        )
-    ).query("score != 0")
-    bb_pairs = set(map(tuple, bb_hbonds[["h_res", "a_res"]].values))
+    # Extract subsets via index operations.
+    rosetta_not_tmol = rosetta_hbonds.loc[
+        (rosetta_hbonds.index.difference(tmol_hbonds.index))
+    ]
+    tmol_not_rosetta = tmol_hbonds.loc[
+        (tmol_hbonds.index.difference(rosetta_hbonds.index))
+    ]
 
-    assert rosetta_bb_pairs == bb_pairs
+    # Report difference via set operator.
+    assert set(rosetta_hbonds.index.tolist()
+               ) == set(tmol_hbonds.index.tolist()), (
+                   f"Mismatched bb hbond identification:\n"
+                   f"unidentified:\n{rosetta_not_tmol}\n"
+                   f"extra:\n{tmol_not_rosetta}"
+               )
 
 
 bb_hbond_config = yaml.load(

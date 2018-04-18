@@ -78,18 +78,17 @@ class PoseScoreWrapper:
         hbset = rosetta.core.scoring.hbonds.HBondSet()
         rosetta.core.scoring.hbonds.fill_hbond_set(pose, False, hbset)
 
-        return pandas.DataFrame.from_records([
-            dict(
-                a_res=hbond.acc_res() - 1,
-                a_atom=pose.residue(hbond.acc_res()
-                                    ).atom_name(hbond.acc_atm()).strip(),
-                h_res=hbond.don_res() - 1,
-                h_atom=pose.residue(hbond.don_res()
-                                    ).atom_name(hbond.don_hatm()).strip(),
-                energy=hbond.energy(),
-            )
-            for hbond in (hbset.hbond(i + 1) for i in range(hbset.nhbonds()))
-        ])
+        return pandas.DataFrame.from_records([{
+            "a_res": hbond.acc_res() - 1,
+            "a_atom":
+                pose.residue(hbond.acc_res()).atom_name(hbond.acc_atm())
+                .strip(),
+            "h_res": hbond.don_res() - 1,
+            "h_atom":
+                pose.residue(hbond.don_res()).atom_name(hbond.don_hatm())
+                .strip(),
+            "energy": hbond.energy(),
+        } for hbond in (hbset.hbond(i + 1) for i in range(hbset.nhbonds()))])
 
     @property
     def tmol_residues(self):
