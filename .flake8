@@ -1,9 +1,9 @@
 [flake8]
-ignore = E501,E12,E24,E25
+ignore = E501,E12,E24,E25,E26
 # See http://pep8.readthedocs.io/en/latest/intro.html#error-codes
 # Handle a number of formatting issues with YAPF
 # E501 - line length
 # E12 - continuation indent
 # E24 - inline spaces
 # E25 - op spaces
-# E266 - Comment format
+# E26 - Comment spacing format
