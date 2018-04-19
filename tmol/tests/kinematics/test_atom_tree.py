@@ -14,6 +14,14 @@ def print_tree( residues, root, depth = 0 ) :
     for atom in root.children :
         print_tree( residues, atom, depth+1 )
 
+def print_res1_tree( residues, root, depth = 0 ) :
+    if root.atomid.res != 0 :
+        return
+    print ( " " * depth, residues[ root.atomid.res ].residue_type.atoms[ root.atomid.atomno ].name, \
+                root.xyz, root.phi, root.theta, root.d )
+    for atom in root.children :
+        print_res1_tree( residues, atom, depth+1 )
+
 
 class TestAtomTree(unittest.TestCase):
     def test_homogeneous_transform_default_ctor(self):
@@ -211,7 +219,7 @@ class TestAtomTree(unittest.TestCase):
                                                              residues[0].residue_type, 0, "N" )
         atree.set_coords( residues[0], atom_pointers )
         root.update_internal_coords()
-        print_tree( residues, root )
+        #print_tree( residues, root )
     
     def test_construct_whole_structure_atom_tree( self ) :
         res_reader = pdbio.ResidueReader()
@@ -223,25 +231,28 @@ class TestAtomTree(unittest.TestCase):
         tree.atom_pointer_list[ 0 ][ indCG ].phi = math.pi
         tree.update_xyz()
 
-        #print( "chi1 end: ", tree.atom_pointer_list[ 0 ][ indCG ].phi, tree.atom_pointer_list[ 0 ][ indCG ].xyz )
+        cgat = tree.atom_pointer_list[ 0 ][ indCG ]
+        print( "chi1 end: ", cgat.phi, cgat.theta, cgat.d, cgat.xyz )
         final_cg_ideal = numpy.array( [ 24.01077925,  25.87729449, 3.88653434 ] )
         final_cg_actual = numpy.array( tree.atom_pointer_list[ 0 ][ indCG ].xyz )
+        #print_res1_tree( residues, tree.root )
         self.assertAlmostEqual( numpy.linalg.norm( final_cg_actual - final_cg_ideal ), 0.0 )
 
         # dump the pdb to look at it
-        atom_records = pdb_parsing.parse_pdb( test_pdbs[ "1UBQ" ] )
-        for atname in atom_pointer_list[0] :
-            at_node = atom_pointer_list[0][ atname ]
-            found = False
-            for ind in range(len(atom_records)) :
-                if atom_records.loc[ ind, "resi" ] == 1 and atom_records.loc[ ind, "chain" ] == "A" \
-                        and atom_records.loc[ ind, "atomn" ] == atname :
-                    atom_records.loc[ ind, [ "x", "y", "z" ]] = at_node.xyz
-                    found = True
-                    break
-            assert( found )
-        with open( "test_refold3.pdb", "w" ) as fid :
-            fid.writelines( pdb_parsing.to_pdb( atom_records ) )
+        #atom_records = pdb_parsing.parse_pdb( test_pdbs[ "1UBQ" ] )
+        #for at_node in tree.atom_pointer_list[0] :
+        #    #at_node = tree.atom_pointer_list[0][ atname ]
+        #    atname = residues[ at_node.atomid.res ].residue_type.atoms[ at_node.atomid.atomno ].name
+        #    found = False
+        #    for ind in range(len(atom_records)) :
+        #        if atom_records.loc[ ind, "resi" ] == 1 and atom_records.loc[ ind, "chain" ] == "A" \
+        #                and atom_records.loc[ ind, "atomn" ] == atname :
+        #            atom_records.loc[ ind, [ "x", "y", "z" ]] = at_node.xyz
+        #            found = True
+        #            break
+        #    assert( found )
+        #with open( "test_refold3.pdb", "w" ) as fid :
+        #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
             
                     
     def test_atomtree_refold_info_setup( self ) :
