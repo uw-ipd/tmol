@@ -193,6 +193,8 @@ class BondedAtom( TreeAtom ) :
     def update_xyz( self, parent_ht = None ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform() # identity
+        elif self.atomid.res == 0 :
+            print( "parent ht:"); print( parent_ht );
         dihedral_rotation_ht = HomogeneousTransform.xrot( self.phi )
         # modify the parent_ht with the dihedral rotation here
         parent_ht *= dihedral_rotation_ht
@@ -208,7 +210,7 @@ class BondedAtom( TreeAtom ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform() # identity
         #print( "parent_ht" ); print( parent_ht )
-        w = numpy.array( self.xyz ) - numpy.array( parent_ht.frame[0:3,1] )
+        w = numpy.array( self.xyz ) - numpy.array( parent_ht.frame[0:3,3] )
         self.d = numpy.linalg.norm( w )
         if self.d <= 1e-6 :
             self.d = 0
@@ -229,9 +231,9 @@ class BondedAtom( TreeAtom ) :
 
         # modify the parent ht so that younger siblings will have their offset phi readily
         # calculated
-        parent_ht *= HomogeneousTransform.zrot( self.phi )
+        parent_ht *= HomogeneousTransform.xrot( self.phi )
         #print( "parent_ht(again)" ); print( parent_ht )
-        new_ht = parent_ht * HomogeneousTransform.xrot( -self.theta ) * HomogeneousTransform.ztrans( self.d )
+        new_ht = parent_ht * HomogeneousTransform.zrot( self.theta ) * HomogeneousTransform.xtrans( self.d )
 
         #print( "d", self.d, "theta", self.theta, "phi", self.phi )
 
