@@ -8,10 +8,11 @@ import tmol.io.pdb_parsing as pdb_parsing
 import numpy
 import math
 
-def print_tree( root, depth = 0 ) :
-    print ( " " * depth, root.name, root.xyz, root.phi, root.theta, root.d )
+def print_tree( residues, root, depth = 0 ) :
+    print ( " " * depth, residues[ root.atomid.res ].residue_type.atoms[ root.atomid.atomno ].name, \
+                root.xyz, root.phi, root.theta, root.d )
     for atom in root.children :
-        print_tree( atom, depth+1 )
+        print_tree( residues, atom, depth+1 )
 
 
 class TestAtomTree(unittest.TestCase):
@@ -35,27 +36,63 @@ class TestAtomTree(unittest.TestCase):
         self.assertEqual( ht.frame[3,2], 0 )
 
     def test_homogeneous_transform_from_three_points( self ) :
-        p1 = numpy.array( [0., 2.,  0. ] )
-        p2 = numpy.array( [0., 0., -1. ] )
-        p3 = numpy.array( [0., 0.,  0. ] )
-        ht = atree.HomogeneousTransform.from_coords( p1, p2, p3 )
+        p1 = numpy.array( [1., 1.,  1. ] )
+        p2 = numpy.array( [0., 1.,  1. ] )
+        p3 = numpy.array( [1., 3.,  1. ] )
+        ht = atree.HomogeneousTransform.from_three_coords( p1, p2, p3 )
         # we should get back something very close to the identiy matrix
+        # xaxis
         self.assertAlmostEqual( ht.frame[0,0], 1 )
-        self.assertAlmostEqual( ht.frame[1,1], 1 )
-        self.assertAlmostEqual( ht.frame[2,2], 1 )
-        self.assertAlmostEqual( ht.frame[3,3], 1 )
-        self.assertAlmostEqual( ht.frame[0,1], 0 )
-        self.assertAlmostEqual( ht.frame[0,2], 0 )
-        self.assertAlmostEqual( ht.frame[0,3], 0 )
         self.assertAlmostEqual( ht.frame[1,0], 0 )
-        self.assertAlmostEqual( ht.frame[1,2], 0 )
-        self.assertAlmostEqual( ht.frame[1,3], 0 )
         self.assertAlmostEqual( ht.frame[2,0], 0 )
-        self.assertAlmostEqual( ht.frame[2,1], 0 )
-        self.assertAlmostEqual( ht.frame[2,3], 0 )
         self.assertAlmostEqual( ht.frame[3,0], 0 )
+        # yaxis
+        self.assertAlmostEqual( ht.frame[0,1], 0 )
+        self.assertAlmostEqual( ht.frame[1,1], 1 )
+        self.assertAlmostEqual( ht.frame[2,1], 0 )
         self.assertAlmostEqual( ht.frame[3,1], 0 )
+
+        # zaxis
+        self.assertAlmostEqual( ht.frame[0,2], 0 )
+        self.assertAlmostEqual( ht.frame[1,2], 0 )
+        self.assertAlmostEqual( ht.frame[2,2], 1 )
         self.assertAlmostEqual( ht.frame[3,2], 0 )
+
+        # coordinate
+        self.assertAlmostEqual( ht.frame[0,3], 0 )
+        self.assertAlmostEqual( ht.frame[1,3], 1 )
+        self.assertAlmostEqual( ht.frame[2,3], 1 )
+        self.assertAlmostEqual( ht.frame[3,3], 1 )
+
+    def test_homogeneous_transform_from_four_points( self ) :
+        p1 = numpy.array( [1., 1.,  1. ] )
+        p2 = numpy.array( [0., 1.,  1. ] )
+        p3 = numpy.array( [1., 3.,  1. ] )
+        c  = numpy.array( [2., 2.,  2. ] )
+        ht = atree.HomogeneousTransform.from_four_coords( c, p1, p2, p3 )
+        # we should get back something very close to the identiy matrix
+        # xaxis
+        self.assertAlmostEqual( ht.frame[0,0], 1 )
+        self.assertAlmostEqual( ht.frame[1,0], 0 )
+        self.assertAlmostEqual( ht.frame[2,0], 0 )
+        self.assertAlmostEqual( ht.frame[3,0], 0 )
+        # yaxis
+        self.assertAlmostEqual( ht.frame[0,1], 0 )
+        self.assertAlmostEqual( ht.frame[1,1], 1 )
+        self.assertAlmostEqual( ht.frame[2,1], 0 )
+        self.assertAlmostEqual( ht.frame[3,1], 0 )
+
+        # zaxis
+        self.assertAlmostEqual( ht.frame[0,2], 0 )
+        self.assertAlmostEqual( ht.frame[1,2], 0 )
+        self.assertAlmostEqual( ht.frame[2,2], 1 )
+        self.assertAlmostEqual( ht.frame[3,2], 0 )
+
+        # coordinate
+        self.assertAlmostEqual( ht.frame[0,3], 2 )
+        self.assertAlmostEqual( ht.frame[1,3], 2 )
+        self.assertAlmostEqual( ht.frame[2,3], 2 )
+        self.assertAlmostEqual( ht.frame[3,3], 1 )
 
     def test_homogeneous_transform_x_axis_rotation( self ) :
         ''' Positive rotation about the x axis swings y up into positive z, and 
@@ -174,7 +211,7 @@ class TestAtomTree(unittest.TestCase):
                                                              residues[0].residue_type, 0, "N" )
         atree.set_coords( residues[0], atom_pointers )
         root.update_internal_coords()
-        #print_tree( root )
+        print_tree( residues, root )
     
     def test_construct_whole_structure_atom_tree( self ) :
         res_reader = pdbio.ResidueReader()
@@ -186,25 +223,25 @@ class TestAtomTree(unittest.TestCase):
         tree.atom_pointer_list[ 0 ][ indCG ].phi = math.pi
         tree.update_xyz()
 
-        #print( "chi1 end: ", atom_pointer_list[ 0 ][ indCG ].phi, atom_pointer_list[ 0 ][ indCG ].xyz )
+        #print( "chi1 end: ", tree.atom_pointer_list[ 0 ][ indCG ].phi, tree.atom_pointer_list[ 0 ][ indCG ].xyz )
         final_cg_ideal = numpy.array( [ 24.01077925,  25.87729449, 3.88653434 ] )
         final_cg_actual = numpy.array( tree.atom_pointer_list[ 0 ][ indCG ].xyz )
         self.assertAlmostEqual( numpy.linalg.norm( final_cg_actual - final_cg_ideal ), 0.0 )
 
         # dump the pdb to look at it
-        #atom_records = pdb_parsing.parse_pdb( test_pdbs[ "1UBQ" ] )
-        #for atname in atom_pointer_list[0] :
-        #    at_node = atom_pointer_list[0][ atname ]
-        #    found = False
-        #    for ind in range(len(atom_records)) :
-        #        if atom_records.loc[ ind, "resi" ] == 1 and atom_records.loc[ ind, "chain" ] == "A" \
-        #                and atom_records.loc[ ind, "atomn" ] == atname :
-        #            atom_records.loc[ ind, [ "x", "y", "z" ]] = at_node.xyz
-        #            found = True
-        #            break
-        #    assert( found )
-        #with open( "test_refold.pdb", "w" ) as fid :
-        #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
+        atom_records = pdb_parsing.parse_pdb( test_pdbs[ "1UBQ" ] )
+        for atname in atom_pointer_list[0] :
+            at_node = atom_pointer_list[0][ atname ]
+            found = False
+            for ind in range(len(atom_records)) :
+                if atom_records.loc[ ind, "resi" ] == 1 and atom_records.loc[ ind, "chain" ] == "A" \
+                        and atom_records.loc[ ind, "atomn" ] == atname :
+                    atom_records.loc[ ind, [ "x", "y", "z" ]] = at_node.xyz
+                    found = True
+                    break
+            assert( found )
+        with open( "test_refold3.pdb", "w" ) as fid :
+            fid.writelines( pdb_parsing.to_pdb( atom_records ) )
             
                     
     def test_atomtree_refold_info_setup( self ) :
