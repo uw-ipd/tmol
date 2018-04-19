@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+"""Fixup pytest junit reports to propertly escape multiline error messages.
+
+Workaround for pytest issue 1218:
+
+https://github.com/pytest-dev/pytest/issues/1218
+
+Could be resolved via update to peform escaping:
+https://github.com/pytest-dev/pytest/blob/master/_pytest/junitxml.py#L193
+"""
 
 import re
 import argparse
@@ -26,6 +35,7 @@ def main():
     for f in args.filename:
         with open(f) as inf:
             contents = inf.read()
+
         contents = re.sub(
             failure_message,
             escape_failure,
