@@ -326,8 +326,6 @@ def backwardKin(kintree, coords):
     jumpSelector[0] = False
     dofs[jumpSelector, :9] = InvJumpTransforms(localHTs[jumpSelector, :9])
 
-    print(dofs[0:3, :])
-
     return (HTs, dofs)
 
 

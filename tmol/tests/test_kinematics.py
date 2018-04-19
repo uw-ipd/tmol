@@ -139,24 +139,20 @@ def test_derivs(kintree, coords):
     NATOMS, _ = coords.shape
     HTs, dofs = backwardKin(kintree, coords)
 
-    bonds = numpy.hstack([
+    bond_blocks = [
         numpy.arange(4, 8),
         numpy.arange(9, 13),
         numpy.arange(14, 18),
         numpy.arange(19, 23)
-    ])
-
-    jumps = [8, 13, 18]
-
-    bond_dofs = dofs[bonds, :3]
+    ]
+    jumps = numpy.array([b[-1] for b in bond_blocks[:-1]])
+    bonds_after_bond = numpy.concatenate([b[1:] for b in bond_blocks])
+    bonds_after_jump = numpy.array([b[0] for b in bond_blocks])
 
     # Compute analytic derivs
     dsc_dx = numpy.zeros([NATOMS, 3])
     dsc_dx[3:, :] = dscore(kintree[3:], coords[3:, :])
     dsc_dtors_analytic = resolveDerivs(kintree, dofs, HTs, dsc_dx)
-
-    bond_derivs_analytic = dsc_dtors_analytic[bonds, 0:3]
-    jump_derivs_analytic = dsc_dtors_analytic[jumps, 0:6]
 
     # Compute numeric derivs
     dsc_dtors_numeric = numpy.zeros([NATOMS, 9])
@@ -172,12 +168,17 @@ def test_derivs(kintree, coords):
 
             dsc_dtors_numeric[i, j] = (sc_p - sc_m) / 0.00002
 
-    bond_derivs_numeric = dsc_dtors_numeric[bonds, 0:3]
-    jump_derivs_numeric = dsc_dtors_numeric[jumps, 0:6]
+    aderiv = dsc_dtors_analytic
+    nderiv = dsc_dtors_numeric
 
     numpy.testing.assert_allclose(
-        bond_derivs_analytic, bond_derivs_numeric, rtol=1e-03, atol=1e-9
+        aderiv[jumps, :6], nderiv[jumps, :6], atol=1e-9
     )
+
     numpy.testing.assert_allclose(
-        jump_derivs_analytic, jump_derivs_numeric, rtol=1e-03, atol=1e-9
+        aderiv[bonds_after_bond, :3], nderiv[bonds_after_bond, :3], atol=1e-9
+    )
+
+    numpy.testing.assert_allclose(
+        aderiv[bonds_after_jump, :3], nderiv[bonds_after_jump, :3], atol=1e-9
     )
