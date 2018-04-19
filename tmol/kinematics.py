@@ -331,20 +331,21 @@ def HTs_from_frames(
     """xyzs -> HTs"""
     natoms = Cs.shape[0]
 
+    def unit_norm(v):
+        return v / numpy.linalg.norm(v, axis=-1, keepdims=True)
+
     Ms = numpy.zeros([natoms, 4, 4])
 
-    Ms[:, :3, 0] = Xs - Ys
-    Ms[:, :3, 0] = (
-        Ms[:, :3, 0] /
-        numpy.sqrt(numpy.square(Ms[:, :3, 0]).sum(axis=1)[:, numpy.newaxis])
-    )
-    Ms[:, :3, 2] = numpy.cross(Ms[:, :3, 0], Zs - Xs)
-    Ms[:, :3, 2] = (
-        Ms[:, :3, 2] /
-        numpy.sqrt(numpy.square(Ms[:, :3, 2]).sum(axis=1)[:, numpy.newaxis])
-    )
-    Ms[:, :3, 1] = numpy.cross(Ms[:, :3, 2], Ms[:, :3, 0])
-    Ms[:, :3, 3] = Cs
+    xaxis = Ms[:, :3, 0]
+    yaxis = Ms[:, :3, 1]
+    zaxis = Ms[:, :3, 2]
+    center = Ms[:, :3, 3]
+
+    xaxis[:] = unit_norm(Xs - Ys)
+    zaxis[:] = unit_norm(numpy.cross(xaxis, Zs - Xs))
+    yaxis[:] = unit_norm(numpy.cross(zaxis, xaxis))
+    center[:] = Cs
+
     Ms[:, 3, 3] = 1
 
     return (Ms)
@@ -363,8 +364,10 @@ def backwardKin(kintree: KinTree, coords: VecArray):
 
     # 1) global HTs
     HTs = HTs_from_frames(
-        coords, coords[frames[:, 0], :], coords[frames[:, 1], :],
-        coords[frames[:, 2], :]
+        coords,
+        coords[frames[:, 0], :],
+        coords[frames[:, 1], :],
+        coords[frames[:, 2], :],
     )
 
     # 2) local HTs
