@@ -482,10 +482,9 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
     def lj(self):
 
         pair_parameters = {
-            "dist":
-            self.atom_pair_dist,
+            "dist": self.atom_pair_dist,
             "interaction_weight":
-            self._pair_interaction_weight(self.atom_pair_inds)
+                self._pair_interaction_weight(self.atom_pair_inds)
         }
 
         type_pair_parameters = {
@@ -529,10 +528,9 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
     def lk(self):
 
         pair_parameters = {
-            "dist":
-            self.atom_pair_dist,
+            "dist": self.atom_pair_dist,
             "interaction_weight":
-            self._pair_interaction_weight(self.atom_pair_inds)
+                self._pair_interaction_weight(self.atom_pair_inds)
         }
 
         type_pair_parameters = {
