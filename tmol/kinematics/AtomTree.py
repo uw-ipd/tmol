@@ -7,8 +7,11 @@ import tmol.system.residue.restypes
 class HomogeneousTransform :
 
     @staticmethod
-    def from_coords( p1, p2, p3 ) :
+    def from_three_coords( p1, p2, p3 ) :
         return HomogeneousTransform( p1=p1, p2=p2, p3=p3 )
+
+    def from_four_coords( c, p1, p2, p3 ) :
+        return HomogeneousTransform( p1=p1, p2=p2, p3=p3, c=c )
 
     @staticmethod
     def from_frame( frame ) :
@@ -56,30 +59,35 @@ class HomogeneousTransform :
         ht.set_translation_z( d )
         return ht
 
-    def __init__( self, input_frame=None, p1=None, p2=None, p3=None ) :
+    def __init__( self, input_frame=None, p1=None, p2=None, p3=None, c=None ) :
         if input_frame is not None :
             assert input_frame.shape[ 0 ] == 4
             assert input_frame.shape[ 1 ] == 4
             self.frame = input_frame
         elif p1 is not None and p2 is not None and p3 is not None :
-            # define a right handed coordinate frame located at p3 with the z along
-            # the vector from p2 to p3, and p1 lying in the yz plane
+            # define a right handed coordinate frame located at either p2 or c
+            # with the x axis pointing at p1 from p2, the y axis in the p1, p2, p3 plane
+            # and p3 orthogonal to x and y
             assert len(p1) == 3
             assert len(p2) == 3
             assert len(p3) == 3
             self.frame = numpy.eye(4)
-            v23 = p3 - p2
-            v23 = v23/numpy.linalg.norm( v23 )
-            self.frame[0:3,2] = v23
-            v21 = p1 - p2
-            dotprod = numpy.dot( v21, v23 )
-            v21 -= dotprod * v23;
-            v21 = v21/numpy.linalg.norm(v21)
-            self.frame[0:3,1] = v21
-            xaxis = numpy.cross( v21, v23 )
+            v12 = p1 - p2
+            xaxis = v12/numpy.linalg.norm( v12 )
             self.frame[0:3,0] = xaxis
+            v31 = p3 - p1
+            zaxis = numpy.cross( xaxis, v31 )
+            zaxis = zaxis/numpy.linalg.norm(zaxis)
+            self.frame[0:3,2] = zaxis
+            yaxis = numpy.cross( zaxis, xaxis )
+            self.frame[0:3,0] = xaxis
+            if c is not None :
+                self.frame[0:3,3] = c
+            else :
+                self.frame[0:3,3] = p2
         else :
             self.frame = numpy.eye(4)
+        #print("frame"); print( self.frame )
 
     def set_rotation_x( self, theta ) :
         '''Set a rotation about the x axis; theta should be in radians'''
@@ -180,15 +188,16 @@ class BondedAtom( TreeAtom ) :
     d : float = 0
     xyz : typing.Tuple[ float, float, float ] = ( 0, 0, 0 )
     children : typing.List[ TreeAtom ] = attr.Factory(list)
+    is_jump : bool = False
 
     def update_xyz( self, parent_ht = None ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform() # identity
-        dihedral_rotation_ht = HomogeneousTransform.zrot( self.phi )
+        dihedral_rotation_ht = HomogeneousTransform.xrot( self.phi )
         # modify the parent_ht with the dihedral rotation here
         parent_ht *= dihedral_rotation_ht
-        bond_angle_rotation_ht = HomogeneousTransform.xrot( -1 * self.theta )
-        trans_ht = HomogeneousTransform.ztrans( self.d )
+        bond_angle_rotation_ht = HomogeneousTransform.zrot( self.theta )
+        trans_ht = HomogeneousTransform.xtrans( self.d )
         new_ht = parent_ht * bond_angle_rotation_ht * trans_ht;
         self.xyz = new_ht.frame[0:3,3]
         for child in self.children :
@@ -199,7 +208,7 @@ class BondedAtom( TreeAtom ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform() # identity
         #print( "parent_ht" ); print( parent_ht )
-        w = numpy.array( self.xyz ) - numpy.array( parent_ht.frame[0:3,3] )
+        w = numpy.array( self.xyz ) - numpy.array( parent_ht.frame[0:3,1] )
         self.d = numpy.linalg.norm( w )
         if self.d <= 1e-6 :
             self.d = 0
@@ -207,16 +216,16 @@ class BondedAtom( TreeAtom ) :
             self.phi = 0
         else :
             w /= self.d
-            zdot = numpy.dot( w, parent_ht.frame[0:3,2] )
-            # hacky version with coordinates in general position!
-            # look at BondedAtom.cc for the three cases dependent on x's value (aka zdot here)
-            self.theta = math.acos( zdot )
-
-            # finally, we need the rotation about the z axis so that the coordinate will be in
-            # the yz plane
             xdot = numpy.dot( w, parent_ht.frame[0:3,0] )
+            # hacky version with coordinates in general position!
+            # look at BondedAtom.cc for the three cases dependent on x's value (aka xdot here)
+            self.theta = math.acos( xdot )
+
+            # finally, we need the rotation about the x axis so that the coordinate will be in
+            # the xy plane
             ydot = numpy.dot( w, parent_ht.frame[0:3,1] )
-            self.phi = math.atan2( -xdot, ydot )
+            zdot = numpy.dot( w, parent_ht.frame[0:3,2] )
+            self.phi = math.atan2( zdot, ydot )
 
         # modify the parent ht so that younger siblings will have their offset phi readily
         # calculated
@@ -228,6 +237,52 @@ class BondedAtom( TreeAtom ) :
 
         for child in self.children :
             child.update_internal_coords( new_ht )
+
+@attr.s( auto_attribs=True, slots=True )
+class JumpAtom( TreeAtom ) :
+    atomid: AtomID = attr.Factory( AtomID )
+    parent: TreeAtom = None
+    rb : typing.List[ float ] = [ 0, 0, 0 ]
+    rot_delta : typing.List[ float ] = [ 0, 0, 0 ]
+    rot : typing.List[ float ] = [ 0, 0, 0 ]
+    xyz : typing.Tuple[ float, float, float ] = ( 0, 0, 0 )
+    children : typing.List[ TreeAtom ] = attr.Factory(list)
+    is_jump : bool = True
+    
+    def update_xyz( self, parent_ht = None ) :
+        if parent_ht is None :
+            parent_ht = HomogeneousTransform() # identity transform
+        
+
+    def update_internal_coords( self, parent_ht = None ) :
+        if parent_ht is None :
+            parent_ht = HomogeneousTransform()
+        rb = xyz
+        rot_delta[0] = 0; rot_delta[1] = 0; rot_delta[2] = 0;
+        # build the HT at the downstream atoms:
+        p2 = self.child1_coord()
+        p3 = self.child2_coord()
+    
+    def get_stub( self ) :
+        if self.stub_defined() :
+            p1 = self.xyz
+            nonjump_children = [ x for x in children if not x.is_jump ][0]
+            p2 = nonjump_children[0].xyz
+            p3 = nonjump_children[1].xyz if len( nonjump_xyz ) > 1 else [ child.xyz for child in nononjump_children[0].children if not child.is_jump ][0]
+            return HomogeneousTransform.from_four_coords( self.xyz, p2, p1, p3 )
+
+    def stub_defined( self ) :
+        count_non_jump = 0
+        for child in self.children :
+            if not child.is_jump :
+                count_non_jump += 1
+        if child < 2 :
+            for child in self.children :
+                if not child.is_jump :
+                    for childs_child in child.children :
+                        if not childs_child.is_jump :
+                            count_non_jump += 1
+        return count_non_jump >= 2
 
 @attr.s( auto_attribs=True, slots=True )
 class AtomTree :
