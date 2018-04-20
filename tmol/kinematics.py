@@ -1,6 +1,7 @@
 import numpy
 import enum
 
+import typing
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
@@ -11,12 +12,6 @@ class DOFType(enum.IntEnum):
     jump = enum.auto()
 
 
-HTArray = NDArray(float)[:, 4, 4]
-VecArray = NDArray(float)[:, 3]
-BondDOFArray = NDArray(float)[:, 3]
-JumpDOFArray = NDArray(float)[:, 9]
-DOFArray = NDArray(float)[:, 9]
-
 # data structure describing the atom-level kinematics of a molecular system
 kintree_node_dtype = numpy.dtype([
     ("atom_name", numpy.str, 4),
@@ -25,18 +20,27 @@ kintree_node_dtype = numpy.dtype([
     ("parent", numpy.int),
     ("frame", numpy.int, 3),
 ])
-
 KinTree = NDArray(kintree_node_dtype)[:]
+
+HTArray = NDArray(float)[:, 4, 4]
+VecArray = NDArray(float)[:, 3]
+
+DOFArray = NDArray(float)[:, 9]
+BondDOFArray = NDArray(float)[:, 3]
+JumpDOFArray = NDArray(float)[:, 9]
 
 
 @validate_args
-def HTinv(HTs: HTArray):
+def HTinv(HTs: HTArray) -> HTArray:
     """helper to quickly invert a HT"""
     N = HTs.shape[0]
     HTinvs = numpy.tile(numpy.identity(4), (N, 1, 1))
     HTinvs[:, :3, :3] = numpy.transpose(HTs[:, :3, :3], (0, 2, 1))
-    HTinvs[:, :3, 3
-           ] = -numpy.einsum('aij,aj->ai', HTinvs[:, :3, :3], HTs[:, :3, 3])
+    HTinvs[:, :3, 3] = -numpy.einsum(
+        'aij,aj->ai',
+        HTinvs[:, :3, :3],
+        HTs[:, :3, 3],
+    )
     return HTinvs
 
 
@@ -46,7 +50,7 @@ def SegScan(
         parents: NDArray(int)[:],
         operator,
         verbose=False,
-):
+) -> numpy.ndarray:
     """segmented scan code for passing:
 
     - HT's down the atom tree
@@ -75,7 +79,7 @@ def HTcollect(
         HTs: HTArray,
         ptrs: NDArray(int)[:],
         toCalc: NDArray(bool)[:],
-):
+) -> None:
     """segmented scan "down" operator: aggregate HTs"""
     HTs[toCalc] = numpy.matmul(HTs[ptrs][toCalc], HTs[toCalc])
 
@@ -85,13 +89,13 @@ def Fscollect(
         fs: VecArray,
         ptrs: NDArray(int)[:],
         toCalc: NDArray(bool)[:],
-):
+) -> None:
     """segmented scan "up" operator: aggregate f1/f2s"""
     numpy.add.at(fs, ptrs[toCalc], fs[toCalc])
 
 
 @validate_args
-def JumpTransforms(dofs: DOFArray):
+def JumpTransforms(dofs: DOFArray) -> HTArray:
     """JUMP dofs -> HTs
 
     jump dofs are _9_ parameters:
@@ -155,7 +159,7 @@ def JumpTransforms(dofs: DOFArray):
 
 
 @validate_args
-def InvJumpTransforms(Ms: HTArray):
+def InvJumpTransforms(Ms: HTArray) -> JumpDOFArray:
     """HTs -> JUMP dofs
 
     this function will always assign rotational delta = 0
@@ -200,11 +204,11 @@ def JumpDerivatives(
         Mparents: HTArray,
         f1s: VecArray,
         f2s: VecArray,
-):
+) -> JumpDOFArray:
     """compute JUMP derivatives from f1/f2"""
     # trans dofs
     njumpatoms = dofs.shape[0]
-    dsc_ddofs = numpy.zeros([njumpatoms, 6])
+    dsc_ddofs = numpy.zeros([njumpatoms, 9])
     x_axes = Mparents[:, 0:3, 0]
     y_axes = Mparents[:, 0:3, 1]
     z_axes = Mparents[:, 0:3, 2]
@@ -250,7 +254,7 @@ def JumpDerivatives(
 
 
 @validate_args
-def BondTransforms(dofs: BondDOFArray):
+def BondTransforms(dofs: BondDOFArray) -> HTArray:
     """BOND dofs -> HTs"""
     natoms = dofs.shape[0]
 
@@ -278,7 +282,7 @@ def BondTransforms(dofs: BondDOFArray):
 
 
 @validate_args
-def InvBondTransforms(Ms: HTArray):
+def InvBondTransforms(Ms: HTArray) -> BondDOFArray:
     """HTs -> BOND dofs"""
     nbondatoms = Ms.shape[0]
 
@@ -297,7 +301,7 @@ def BondDerivatives(
         Mparents: HTArray,
         f1s: VecArray,
         f2s: VecArray,
-):
+) -> BondDOFArray:
     """compute BOND derivatives from f1/f2"""
     nbondatoms = dofs.shape[0]
 
@@ -327,7 +331,7 @@ def HTs_from_frames(
         Xs: VecArray,
         Ys: VecArray,
         Zs: VecArray,
-):
+) -> HTArray:
     """xyzs -> HTs"""
     natoms = Cs.shape[0]
 
@@ -352,7 +356,7 @@ def HTs_from_frames(
 
 
 @validate_args
-def backwardKin(kintree: KinTree, coords: VecArray):
+def backwardKin(kintree: KinTree, coords: VecArray) -> typing.Tuple:
     """xyzs -> HTs, dofs
 
       - "backward" kinematics
@@ -389,7 +393,7 @@ def backwardKin(kintree: KinTree, coords: VecArray):
 
 
 @validate_args
-def forwardKin(kintree: KinTree, dofs: DOFArray):
+def forwardKin(kintree: KinTree, dofs: DOFArray) -> typing.Tuple:
     """dofs -> HTs, xyzs
 
       - "forward" kinematics
@@ -421,7 +425,7 @@ def resolveDerivs(
         dofs: DOFArray,
         HTs: HTArray,
         dsc_dx: VecArray,
-):
+) -> DOFArray:
     """xyz derivs -> dof derivs
 
     - derivative mapping using Abe and Go approach
@@ -451,7 +455,7 @@ def resolveDerivs(
         f2s[bondSelector, :],
     )
     jumpSelector = (kintree["doftype"] == DOFType.jump)
-    dsc_ddofs[jumpSelector, 0:6] = JumpDerivatives(
+    dsc_ddofs[jumpSelector, 0:9] = JumpDerivatives(
         dofs[jumpSelector, :],
         HTs[jumpSelector, :, :],
         HTs[parents[jumpSelector], :, :],
