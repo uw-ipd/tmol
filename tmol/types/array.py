@@ -5,6 +5,8 @@ import numpy
 
 from .shape import Shape
 
+from .functional import get_converter, get_validator
+
 
 class Casting(enum.Enum):
     """Casting specifications for array types, see ndarray.astype."""
@@ -59,3 +61,13 @@ class NDArray:
         self.validate(value)
 
         return value
+
+
+@get_validator.register(NDArray)
+def validate_ndarray(ndarray_type):
+    return ndarray_type.validate
+
+
+@get_converter.register(NDArray)
+def convert_ndarray(ndarray_type):
+    return ndarray_type.convert
