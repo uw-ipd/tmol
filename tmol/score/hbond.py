@@ -32,64 +32,24 @@ def hbond_donor_sp2_score(
         # type pair parameters
         AHdist_xmin,
         AHdist_xmax,
-        AHdist_min_val,
-        AHdist_max_val,
-        AHdist_root1,
-        AHdist_root2,
         AHdist_coeffs,
-        cosBAH_short_xmin,
-        cosBAH_short_xmax,
-        cosBAH_short_min_val,
-        cosBAH_short_max_val,
-        cosBAH_short_root1,
-        cosBAH_short_root2,
-        cosBAH_short_coeffs,
-        cosBAH_long_xmin,
-        cosBAH_long_xmax,
-        cosBAH_long_min_val,
-        cosBAH_long_max_val,
-        cosBAH_long_root1,
-        cosBAH_long_root2,
-        cosBAH_long_coeffs,
-        cosBAH2_long_xmin,
-        cosBAH2_long_xmax,
-        cosBAH2_long_min_val,
-        cosBAH2_long_max_val,
-        cosBAH2_long_root1,
-        cosBAH2_long_root2,
-        cosBAH2_long_coeffs,
-        cosAHD_short_xmin,
-        cosAHD_short_xmax,
-        cosAHD_short_min_val,
-        cosAHD_short_max_val,
-        cosAHD_short_root1,
-        cosAHD_short_root2,
-        cosAHD_short_coeffs,
-        cosAHD_long_xmin,
-        cosAHD_long_xmax,
-        cosAHD_long_min_val,
-        cosAHD_long_max_val,
-        cosAHD_long_root1,
-        cosAHD_long_root2,
-        cosAHD_long_coeffs,
+        cosBAH_xmin,
+        cosBAH_xmax,
+        cosBAH_coeffs,
+        cosAHD_xmin,
+        cosAHD_xmax,
+        cosAHD_coeffs,
 
         # Global score parameters
         max_dis
 ):
-    # h_d_vec = (d - h)
-    # h_d_dist = h_d_vec.norm(dim=-1)
-    # h_d_unit = h_d_vec / h_d_dist.unsqueeze(dim=-1)
+    ## Using R3 nomenclature
+    D = (d - h).norm(dim=-1)
+    AHD = (d - h).norm(dim=-1)
+    BAH = (d - h).norm(dim=-1)
+    chi = (d - h).norm(dim=-1)
 
-    a_h_vec = (h - a)
-    a_h_dist = a_h_vec.norm(dim=-1)
-    # a_h_unit = a_h_vec / a_h_dist.unsqueeze(dim=-1)
-
-    # b_a_vec = (a - b)
-    # b_a_dist = b_a_vec.norm(dim=-1)
-    # b_a_unit = b_a_vec / b_a_dist.unsqueeze(dim=-1)
-
-    # d_a_dist = (d - a).norm(dim=-1)
-    return (a_h_dist < max_dis).type(d.dtype)
+    return 1.0
 
 
 def hbond_donor_sp3_score(
@@ -103,46 +63,13 @@ def hbond_donor_sp3_score(
         # type pair parameters
         AHdist_xmin,
         AHdist_xmax,
-        AHdist_min_val,
-        AHdist_max_val,
-        AHdist_root1,
-        AHdist_root2,
         AHdist_coeffs,
-        cosBAH_short_xmin,
-        cosBAH_short_xmax,
-        cosBAH_short_min_val,
-        cosBAH_short_max_val,
-        cosBAH_short_root1,
-        cosBAH_short_root2,
-        cosBAH_short_coeffs,
-        cosBAH_long_xmin,
-        cosBAH_long_xmax,
-        cosBAH_long_min_val,
-        cosBAH_long_max_val,
-        cosBAH_long_root1,
-        cosBAH_long_root2,
-        cosBAH_long_coeffs,
-        cosBAH2_long_xmin,
-        cosBAH2_long_xmax,
-        cosBAH2_long_min_val,
-        cosBAH2_long_max_val,
-        cosBAH2_long_root1,
-        cosBAH2_long_root2,
-        cosBAH2_long_coeffs,
-        cosAHD_short_xmin,
-        cosAHD_short_xmax,
-        cosAHD_short_min_val,
-        cosAHD_short_max_val,
-        cosAHD_short_root1,
-        cosAHD_short_root2,
-        cosAHD_short_coeffs,
-        cosAHD_long_xmin,
-        cosAHD_long_xmax,
-        cosAHD_long_min_val,
-        cosAHD_long_max_val,
-        cosAHD_long_root1,
-        cosAHD_long_root2,
-        cosAHD_long_coeffs,
+        cosBAH_xmin,
+        cosBAH_xmax,
+        cosBAH_coeffs,
+        cosAHD_xmin,
+        cosAHD_xmax,
+        cosAHD_coeffs,
 
         # Global score parameters
         max_dis
@@ -164,46 +91,13 @@ def hbond_donor_ring_score(
         # type pair parameters
         AHdist_xmin,
         AHdist_xmax,
-        AHdist_min_val,
-        AHdist_max_val,
-        AHdist_root1,
-        AHdist_root2,
         AHdist_coeffs,
-        cosBAH_short_xmin,
-        cosBAH_short_xmax,
-        cosBAH_short_min_val,
-        cosBAH_short_max_val,
-        cosBAH_short_root1,
-        cosBAH_short_root2,
-        cosBAH_short_coeffs,
-        cosBAH_long_xmin,
-        cosBAH_long_xmax,
-        cosBAH_long_min_val,
-        cosBAH_long_max_val,
-        cosBAH_long_root1,
-        cosBAH_long_root2,
-        cosBAH_long_coeffs,
-        cosBAH2_long_xmin,
-        cosBAH2_long_xmax,
-        cosBAH2_long_min_val,
-        cosBAH2_long_max_val,
-        cosBAH2_long_root1,
-        cosBAH2_long_root2,
-        cosBAH2_long_coeffs,
-        cosAHD_short_xmin,
-        cosAHD_short_xmax,
-        cosAHD_short_min_val,
-        cosAHD_short_max_val,
-        cosAHD_short_root1,
-        cosAHD_short_root2,
-        cosAHD_short_coeffs,
-        cosAHD_long_xmin,
-        cosAHD_long_xmax,
-        cosAHD_long_min_val,
-        cosAHD_long_max_val,
-        cosAHD_long_root1,
-        cosAHD_long_root2,
-        cosAHD_long_coeffs,
+        cosBAH_xmin,
+        cosBAH_xmax,
+        cosBAH_coeffs,
+        cosAHD_xmin,
+        cosAHD_xmax,
+        cosAHD_coeffs,
 
         # Global score parameters
         max_dis
@@ -463,11 +357,8 @@ class HBondParamResolver:
                         torch.Tensor,
                         numpy.nan_to_num,
                     )(params[["c_" + i for i in "abcdefghijk"]].values)
-            }, {
-                t: torch.Tensor(params[t])
-                for t in
-                ("max_val", "min_val", "root1", "root2", "xmax", "xmin")
-            })
+            }, {t: torch.Tensor(params[t])
+                for t in ("xmax", "xmin")})
             for t, params in self.param_lookup.groupby(level="term")
         }
 

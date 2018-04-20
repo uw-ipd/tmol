@@ -57,16 +57,18 @@ class ChemicalTypes:
     ring_acceptors: Tuple[str, ...]
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class HbondWeights:
+    name: str
+    weight: float
+
+
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PolynomialParameters:
     name: str
     dimension: str
     xmin: float
     xmax: float
-    min_val: float
-    max_val: float
-    root1: float
-    root2: float
     degree: int
     c_a: float
     c_b: float
@@ -86,11 +88,8 @@ class PairParameters:
     don_chem_type: str
     acc_chem_type: str
     AHdist: str
-    cosBAH_short: str
-    cosBAH_long: str
-    cosBAH2_long: str
-    cosAHD_short: str
-    cosAHD_long: str
+    cosBAH: str
+    cosAHD: str
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -98,6 +97,7 @@ class HBondDatabase:
     global_parameters: GlobalParams
     atom_groups: AtomGroups
     chemical_types: ChemicalTypes
+    hbond_weights: Tuple[HbondWeights, ...]
     polynomial_parameters: Tuple[PolynomialParameters, ...]
     pair_parameters: Tuple[PairParameters, ...]
 

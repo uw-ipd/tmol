@@ -237,20 +237,18 @@ bb_hbond_config = yaml.load(
       - don_chem_type: hbdon_PBA
         acc_chem_type: hbacc_PBA
         AHdist: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6
-        cosBAH_short: poly_cosBAH_off
-        cosBAH_long: poly_cosBAH_off
-        cosBAH2_long: poly_cosBAH_flat_neg0p5
-        cosAHD_short: poly_AHD_1j
-        cosAHD_long: poly_AHD_1j
+        cosBAH: poly_cosBAH_off
+        cosAHD: poly_AHD_1j
+    hbond_weights:
+      - name: hbdon_PBA
+        weight: 1.00
+      - name: hbacc_PBA
+        weight: 1.00
     polynomial_parameters:
       - name: poly_cosBAH_off
         dimension: hbgd_cosBAH
         xmin: -1234.0
         xmax: 1.1
-        min_val: 1.1
-        max_val: 1.1
-        root1: 0.0
-        root2: 1.01
         degree: 1
         c_a: 0.0
         c_b: nan
@@ -267,10 +265,6 @@ bb_hbond_config = yaml.load(
         dimension: hbgd_cosBAH
         xmin: -1234.0
         xmax: 1.1
-        min_val: 1.1
-        max_val: 1.1
-        root1: 0.0
-        root2: 1.01
         degree: 1
         c_a: -0.5
         c_b: nan
@@ -287,10 +281,6 @@ bb_hbond_config = yaml.load(
         dimension: hbgd_AHD
         xmin: 1.1435646388
         xmax: 3.1416
-        min_val: 1.1
-        max_val: 1.1
-        root1: 0.7256433000000001
-        root2: nan
         degree: 10
         c_a: 0.47683259
         c_b: -9.54524724
