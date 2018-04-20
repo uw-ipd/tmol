@@ -80,7 +80,7 @@ class HomogeneousTransform :
             zaxis = zaxis/numpy.linalg.norm(zaxis)
             self.frame[0:3,2] = zaxis
             yaxis = numpy.cross( zaxis, xaxis )
-            self.frame[0:3,0] = xaxis
+            self.frame[0:3,1] = yaxis
             if c is not None :
                 self.frame[0:3,3] = c
             else :
@@ -167,6 +167,12 @@ class HomogeneousTransform :
         buff.append( " ".join( [ "%10.3f" % x for x in self.frame[3,:] ] ) )
         return "\n".join(buff)
 
+    def inverse( self ) :
+        ht_res = HomogeneousTransform()
+        ht_res.frame[0:3,0:3] = self.frame[0:3,0:3].transpose()
+        ht_res.frame[0:3,3] = numpy.dot(ht_res.frame[0:3,0:3], self.frame[0:3,3] )
+        return ht_res
+
 @attr.s( auto_attribs=True, slots=True )
 class AtomID :
     res :    int = -1
@@ -193,7 +199,8 @@ class BondedAtom( TreeAtom ) :
     def update_xyz( self, parent_ht = None ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform() # identity
-        elif self.atomid.res == 0 :
+        elif self.atomid.res == 1 :
+            print( "Update XYZ", self.atomid )
             print( "parent ht:"); print( parent_ht );
         dihedral_rotation_ht = HomogeneousTransform.xrot( self.phi )
         # modify the parent_ht with the dihedral rotation here
@@ -221,14 +228,25 @@ class BondedAtom( TreeAtom ) :
             xdot = numpy.dot( w, parent_ht.frame[0:3,0] )
             # hacky version with coordinates in general position!
             # look at BondedAtom.cc for the three cases dependent on x's value (aka xdot here)
-            self.theta = math.acos( xdot )
+            if xdot >= 1 - 1e-6 :
+                self.theta = 0
+                self.phi = 0
+            elif xdot < -1 + 1e-6 :
+                self.theta = pi
+                self.phi = 0
+            else :
+                self.theta = math.acos( xdot )
+                # finally, we need the rotation about the x axis so that the coordinate will be in
+                # the xy plane
+                ydot = numpy.dot( w, parent_ht.frame[0:3,1] )
+                zdot = numpy.dot( w, parent_ht.frame[0:3,2] )
+                self.phi = math.atan2( zdot, ydot )
 
-            # finally, we need the rotation about the x axis so that the coordinate will be in
-            # the xy plane
-            ydot = numpy.dot( w, parent_ht.frame[0:3,1] )
-            zdot = numpy.dot( w, parent_ht.frame[0:3,2] )
-            self.phi = math.atan2( zdot, ydot )
-
+        if self.atomid.res == 1 :
+            print( "Update internal coords" )
+            print( "Atom: ", self.atomid )
+            print( "parent ht:"); print( parent_ht );
+            print( "d", self.d, "theta", self.theta, "phi", self.phi )
         # modify the parent ht so that younger siblings will have their offset phi readily
         # calculated
         parent_ht *= HomogeneousTransform.xrot( self.phi )
@@ -254,23 +272,82 @@ class JumpAtom( TreeAtom ) :
     def update_xyz( self, parent_ht = None ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform() # identity transform
-        
 
-    def update_internal_coords( self, parent_ht = None ) :
+        ht_deltas = HomogeneousTransform.zrot(self.rot_delta[2]) * \
+            HomogeneousTransform.yrot(self.rot_delta[1]) * \
+            HomogeneousTransform.xrot(self.rot_delta[0] ) * \
+            HomogeneousTransform.xtrans(self.rb[0]) * \
+            HomogeneousTransform.ytrans(self.rb[1]) * \
+            HomogeneousTransform.ztrans(self.rb[2])
+
+        ht_r_global = HomogeneousTransform.zrot(self.rot[2] ) * \
+            HomogeneousTransform.yrot(self.rot[1] ) * \
+            HomogeneousTransform.xrot(self.rot[0] )
+
+        ht = parent_ht * ht_deltas * ht_r_global
+        xyz = ht.frame[0:3,3]
+        print("jump ht:" ); print(ht)
+        for child in self.children :
+            child.update_xyz( ht )
+
+    def update_internal_coords( self, parent_ht = None ) :        
         if parent_ht is None :
             parent_ht = HomogeneousTransform()
-        rb = xyz
-        rot_delta[0] = 0; rot_delta[1] = 0; rot_delta[2] = 0;
+        self.rot_delta[0] = 0; self.rot_delta[1] = 0; self.rot_delta[2] = 0;
         # build the HT at the downstream atoms:
-        p2 = self.child1_coord()
-        p3 = self.child2_coord()
+        dest = self.get_ht_from_childrens_coords()
+        transform = parent_ht.inverse() * dest;
+        self.rb = transform.frame[0:3,3]
+        
+        df = transform.frame
+        # code below lifted directly from Frank
+        cys = numpy.sqrt(df[0,0]*df[0,0] + df[1,0]*df[1,0])
+        print( "cys?", cys )
+        if cys < 4*numpy.finfo(float).eps  :
+            self.rot[0] = numpy.arctan2( -df[1,2], df[1,1] )
+            self.rot[1] = numpy.arctan2( -df[2,0], cys     )
+            self.rot[2] = 0;
+        else :
+            self.rot[0] = numpy.arctan2(  df[2,1], df[2,2] )
+            self.rot[1] = numpy.arctan2( -df[2,0], cys     )
+            self.rot[2] = numpy.arctan2(  df[1,0], df[0,0] )
+
+
+        # TEMP -- let's make sure that the dofs we just measured give us back
+        # the ht we are looking for:
+        ht_deltas = HomogeneousTransform.zrot(self.rot_delta[2]) * \
+            HomogeneousTransform.yrot(self.rot_delta[1]) * \
+            HomogeneousTransform.xrot(self.rot_delta[0] ) * \
+            HomogeneousTransform.xtrans(self.rb[0]) * \
+            HomogeneousTransform.ytrans(self.rb[1]) * \
+            HomogeneousTransform.ztrans(self.rb[2])
+
+        ht_r_global = HomogeneousTransform.zrot(self.rot[2] ) * \
+            HomogeneousTransform.yrot(self.rot[1] ) * \
+            HomogeneousTransform.xrot(self.rot[0] )
+
+        ht = parent_ht * ht_deltas * ht_r_global
+        print( "Update internal coords", self.atomid )
+        print( "target transform" )
+        print( transform )
+        print( "obtained transform" )
+        print( ht_deltas * ht_r_global )
+        print( "ht dest", self.atomid )
+        print( dest )
+        print( "self.rb", self.rb, "self.rot", self.rot )
+        print( "ht from dofs:" )
+        print( ht )
+
+
+        for child in self.children :
+            child.update_internal_coords( dest )
     
-    def get_stub( self ) :
+    def get_ht_from_childrens_coords( self ) :
         if self.stub_defined() :
             p1 = self.xyz
-            nonjump_children = [ x for x in children if not x.is_jump ][0]
+            nonjump_children = [ x for x in self.children if not x.is_jump ]
             p2 = nonjump_children[0].xyz
-            p3 = nonjump_children[1].xyz if len( nonjump_xyz ) > 1 else [ child.xyz for child in nononjump_children[0].children if not child.is_jump ][0]
+            p3 = nonjump_children[1].xyz if len( nonjump_children ) > 1 else [ child.xyz for child in nonjump_children[0].children if not child.is_jump ][0]
             return HomogeneousTransform.from_four_coords( self.xyz, p2, p1, p3 )
 
     def stub_defined( self ) :
@@ -278,7 +355,7 @@ class JumpAtom( TreeAtom ) :
         for child in self.children :
             if not child.is_jump :
                 count_non_jump += 1
-        if child < 2 :
+        if count_non_jump < 2 :
             for child in self.children :
                 if not child.is_jump :
                     for childs_child in child.children :
