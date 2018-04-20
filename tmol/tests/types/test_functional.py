@@ -167,3 +167,24 @@ def test_func_conversion(example):
     for args, kwargs in invalid:
         with pytest.raises((TypeError, ValueError)):
             func(*args, **kwargs)
+
+
+def test_return_annotation():
+    def ret_valid(a: int, b: int) -> int:
+        return a + b
+
+    def ret_invalid(a: int, b: int) -> str:
+        return a + b
+
+    def ret_none(a: int, b: int):
+        return a + b
+
+    assert validate_args(ret_valid)(1, 2) == 3
+    assert validate_args(ret_none)(1, 2) == 3
+
+    with pytest.raises(TypeError):
+        validate_args(ret_invalid)(1, 2)
+
+    assert convert_args(ret_valid)(1, 2) == 3
+    assert convert_args(ret_none)(1, 2) == 3
+    assert convert_args(ret_invalid)(1, 2) == "3"

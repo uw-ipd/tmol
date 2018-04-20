@@ -30,13 +30,24 @@ def validate_args(f):
         bound = f._signature.bind(*args, **kwargs)
         bound.apply_defaults()
 
-        for n, v in f._validators.items():
-            try:
-                v(bound.arguments[n])
-            except Exception as vexec:
-                raise TypeError(f"Invalid argument: {n}") from vexec
+        for n, val in bound.arguments.items():
+            validator = f._validators.get(n, None)
+            if validator:
+                try:
+                    validator(val)
+                except Exception as vexec:
+                    raise TypeError(f"Invalid argument: {n}") from vexec
 
-        return f(*args, **kwargs)
+        retval = f(*args, **kwargs)
+
+        validator = f._validators.get("return", None)
+        if validator:
+            try:
+                validator(retval)
+            except Exception as vexec:
+                raise TypeError(f"Invalid return value") from vexec
+
+        return retval
 
     return decorate(f, validate_f)
 
@@ -65,12 +76,22 @@ def convert_args(f):
         bound = f._signature.bind(*args, **kwargs)
         bound.apply_defaults()
 
-        for n, v in f._converters.items():
-            try:
-                bound.arguments[n] = v(bound.arguments[n])
-            except Exception as vexec:
-                raise TypeError(f"Invalid argument: {n}") from vexec
+        for n, val in bound.arguments.items():
+            converter = f._converters.get(n, None)
+            if converter:
+                try:
+                    bound.arguments[n] = converter(val)
+                except Exception as vexec:
+                    raise TypeError(f"Invalid argument: {n}") from vexec
 
-        return f(*bound.args, **bound.kwargs)
+        retval = f(*bound.args, **bound.kwargs)
+
+        converter = f._converters.get("return", None)
+        if converter:
+            try:
+                retval = converter(retval)
+            except Exception as vexec:
+                raise TypeError(f"Invalid return value") from vexec
+        return retval
 
     return decorate(f, convert_f)
