@@ -58,7 +58,7 @@ def cpu_htrefold( residues, tree, refold_data, atoms_for_controlling_torsions, r
     # root ht is in fact the identity transform
     for ii, iidat in enumerate( refold_data ) :
         iiatid = refold_index_2_atomid[ ii ]
-        print( ii, iidat.controlling_torsion, 180.0 / math.pi * ( torsions[ iidat.controlling_torsion ] if iidat.controlling_torsion >= 0 else 0.0 ), residues[ iiatid.res ].residue_type.atoms[ iiatid.atomno ].name )
+        #print( ii, iidat.controlling_torsion, 180.0 / math.pi * ( torsions[ iidat.controlling_torsion ] if iidat.controlling_torsion >= 0 else 0.0 ), residues[ iiatid.res ].residue_type.atoms[ iiatid.atomno ].name )
                
         phi = iidat.phi_offset + ( torsions[ iidat.controlling_torsion ] if iidat.controlling_torsion >= 0 else 0.0 )
         parent_ht = hts[ iidat.parent_index if iidat.parent_index >= 0 else ii-1 ]

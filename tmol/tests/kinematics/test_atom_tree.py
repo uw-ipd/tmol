@@ -243,7 +243,7 @@ class TestAtomTree(unittest.TestCase):
         tree.update_xyz()
 
         cgat = tree.atom_pointer_list[ 0 ][ indCG ]
-        print( "chi1 end: ", cgat.phi, cgat.theta, cgat.d, cgat.xyz )
+        #print( "chi1 end: ", cgat.phi, cgat.theta, cgat.d, cgat.xyz )
         final_cg_ideal = numpy.array( [ 24.01077925,  25.87729449, 3.88653434 ] )
         final_cg_actual = numpy.array( tree.atom_pointer_list[ 0 ][ indCG ].xyz )
         #print_res1_tree( residues, tree.root )
