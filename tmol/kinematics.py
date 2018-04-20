@@ -1,8 +1,17 @@
 import numpy
 
+from tmol.types.functional import validate_args
+from tmol.types.array import NDArray
+
 # doftypes
 BOND = 1
 JUMP = 2
+
+HTArray = NDArray(float)[:, 4, 4]
+VecArray = NDArray(float)[:, 3]
+BondDOFArray = NDArray(float)[:, 3]
+JumpDOFArray = NDArray(float)[:, 9]
+DOFArray = NDArray(float)[:, 9]
 
 # data structure describing the atom-level kinematics of a molecular system
 kintree_node_dtype = numpy.dtype([
@@ -13,8 +22,11 @@ kintree_node_dtype = numpy.dtype([
     ("frame", numpy.int, 3),
 ])
 
+KinTree = NDArray(kintree_node_dtype)[:]
 
-def HTinv(HTs):
+
+@validate_args
+def HTinv(HTs: HTArray):
     """helper to quickly invert a HT"""
     N = HTs.shape[0]
     HTinvs = numpy.tile(numpy.identity(4), (N, 1, 1))
@@ -24,15 +36,22 @@ def HTinv(HTs):
     return HTinvs
 
 
-def SegScan(data, parents, operator, verbose=False):
+@validate_args
+def SegScan(
+        data: numpy.ndarray,
+        parents: NDArray(int)[:],
+        operator,
+        verbose=False,
+):
     """segmented scan code for passing:
 
     - HT's down the atom tree
     - derivs up the atom tree
     """
     nelts = data.shape[0]
-    N = numpy.ceil(numpy.log2(nelts)
-                   )  # this might result in several extra rounds...
+
+    # this might result in several extra rounds...
+    N = numpy.ceil(numpy.log2(nelts))
 
     backPointers = parents
     prevBackPointers = numpy.arange(nelts)
@@ -47,17 +66,28 @@ def SegScan(data, parents, operator, verbose=False):
     return (retval)
 
 
-def HTcollect(HTs, ptrs, toCalc):
+@validate_args
+def HTcollect(
+        HTs: HTArray,
+        ptrs: NDArray(int)[:],
+        toCalc: NDArray(bool)[:],
+):
     """segmented scan "down" operator: aggregate HTs"""
     HTs[toCalc] = numpy.matmul(HTs[ptrs][toCalc], HTs[toCalc])
 
 
-def Fscollect(fs, ptrs, toCalc):
+@validate_args
+def Fscollect(
+        fs: VecArray,
+        ptrs: NDArray(int)[:],
+        toCalc: NDArray(bool)[:],
+):
     """segmented scan "up" operator: aggregate f1/f2s"""
     numpy.add.at(fs, ptrs[toCalc], fs[toCalc])
 
 
-def JumpTransforms(dofs):
+@validate_args
+def JumpTransforms(dofs: DOFArray):
     """JUMP dofs -> HTs
 
     jump dofs are _9_ parameters:
@@ -120,7 +150,8 @@ def JumpTransforms(dofs):
     return Ms
 
 
-def InvJumpTransforms(Ms):
+@validate_args
+def InvJumpTransforms(Ms: HTArray):
     """HTs -> JUMP dofs
 
     this function will always assign rotational delta = 0
@@ -158,7 +189,14 @@ def InvJumpTransforms(Ms):
     return dofs
 
 
-def JumpDerivatives(dofs, Ms, Mparents, f1s, f2s):
+@validate_args
+def JumpDerivatives(
+        dofs: DOFArray,
+        Ms: HTArray,
+        Mparents: HTArray,
+        f1s: VecArray,
+        f2s: VecArray,
+):
     """compute JUMP derivatives from f1/f2"""
     # trans dofs
     njumpatoms = dofs.shape[0]
@@ -207,7 +245,8 @@ def JumpDerivatives(dofs, Ms, Mparents, f1s, f2s):
     return dsc_ddofs
 
 
-def BondTransforms(dofs):
+@validate_args
+def BondTransforms(dofs: BondDOFArray):
     """BOND dofs -> HTs"""
     natoms = dofs.shape[0]
 
@@ -234,7 +273,8 @@ def BondTransforms(dofs):
     return Ms
 
 
-def InvBondTransforms(Ms):
+@validate_args
+def InvBondTransforms(Ms: HTArray):
     """HTs -> BOND dofs"""
     nbondatoms = Ms.shape[0]
 
@@ -246,7 +286,14 @@ def InvBondTransforms(Ms):
     return dofs
 
 
-def BondDerivatives(dofs, Ms, Mparents, f1s, f2s):
+@validate_args
+def BondDerivatives(
+        dofs: BondDOFArray,
+        Ms: HTArray,
+        Mparents: HTArray,
+        f1s: VecArray,
+        f2s: VecArray,
+):
     """compute BOND derivatives from f1/f2"""
     nbondatoms = dofs.shape[0]
 
@@ -270,7 +317,13 @@ def BondDerivatives(dofs, Ms, Mparents, f1s, f2s):
     return dsc_ddofs
 
 
-def HTs_from_frames(Cs, Xs, Ys, Zs):
+@validate_args
+def HTs_from_frames(
+        Cs: VecArray,
+        Xs: VecArray,
+        Ys: VecArray,
+        Zs: VecArray,
+):
     """xyzs -> HTs"""
     natoms = Cs.shape[0]
 
@@ -293,7 +346,8 @@ def HTs_from_frames(Cs, Xs, Ys, Zs):
     return (Ms)
 
 
-def backwardKin(kintree, coords):
+@validate_args
+def backwardKin(kintree: KinTree, coords: VecArray):
     """xyzs -> HTs, dofs
 
       - "backward" kinematics
@@ -318,7 +372,7 @@ def backwardKin(kintree, coords):
 
     bondSelector = (kintree["doftype"] == BOND)
     bondSelector[0] = False
-    dofs[bondSelector, :3] = InvBondTransforms(localHTs[bondSelector, :3])
+    dofs[bondSelector, :3] = InvBondTransforms(localHTs[bondSelector])
 
     jumpSelector = (kintree["doftype"] == JUMP)
     jumpSelector[0] = False
@@ -327,7 +381,8 @@ def backwardKin(kintree, coords):
     return (HTs, dofs)
 
 
-def forwardKin(kintree, dofs):
+@validate_args
+def forwardKin(kintree: KinTree, dofs: DOFArray):
     """dofs -> HTs, xyzs
 
       - "forward" kinematics
@@ -353,7 +408,13 @@ def forwardKin(kintree, dofs):
     return (HTs, coords)
 
 
-def resolveDerivs(kintree, dofs, HTs, dsc_dx):
+@validate_args
+def resolveDerivs(
+        kintree: KinTree,
+        dofs: DOFArray,
+        HTs: HTArray,
+        dsc_dx: VecArray,
+):
     """xyz derivs -> dof derivs
 
     - derivative mapping using Abe and Go approach
@@ -376,7 +437,7 @@ def resolveDerivs(kintree, dofs, HTs, dsc_dx):
     dsc_ddofs = numpy.zeros([natoms, 9])
     bondSelector = (kintree["doftype"] == BOND)
     dsc_ddofs[bondSelector, 0:3] = BondDerivatives(
-        dofs[bondSelector, :],
+        dofs[bondSelector, :3],
         HTs[bondSelector, :, :],
         HTs[parents[bondSelector], :, :],
         f1s[bondSelector, :],
@@ -392,25 +453,3 @@ def resolveDerivs(kintree, dofs, HTs, dsc_dx):
     )
 
     return dsc_ddofs
-
-
-def writePDB(kintree, coords):
-    """debugging: dump a PDB-like file"""
-    atom_record_format = "ATOM  {:5d} {:^4}{:^1}{:3s} {:1}{:4d}{:1s}   {:8.3f}{:8.3f}{:8.3f}{:6.2f}{:6.2f}"
-    for i in numpy.arange(len(kintree)):
-        print(
-            atom_record_format.format(
-                i + 1,
-                kintree["atom_name"][i],
-                " ",
-                "ALA",
-                "A",
-                kintree["resnum"][i],
-                " ",
-                coords[i, 0],
-                coords[i, 1],
-                coords[i, 2],
-                1,
-                0,
-            )
-        )
