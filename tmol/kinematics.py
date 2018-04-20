@@ -258,15 +258,13 @@ def BondDerivatives(dofs, Ms, Mparents, f1s, f2s):
     dsc_ddofs = numpy.zeros([nbondatoms, 3])
 
     dsc_ddofs[:, 0] = numpy.einsum('ij, ij->i', d_axes, f2s)
-    dsc_ddofs[:, 1] = (
-        -numpy.sign(dofs[:, 1]) * (
-            numpy.einsum('ij, ij->i', theta_axes, f1s) +
-            numpy.einsum('ij, ij->i', numpy.cross(theta_axes, end_pos), f2s)
-        )
+    dsc_ddofs[:, 1] = -1 * (
+        numpy.einsum('ij, ij->i', theta_axes, f1s) +
+        numpy.einsum('ij, ij->i', numpy.cross(theta_axes, end_pos), f2s)
     )
-    dsc_ddofs[:, 2] = (
-        -numpy.einsum('ij, ij->i', phi_axes, f1s) +
-        -numpy.einsum('ij, ij->i', numpy.cross(phi_axes, end_pos), f2s)
+    dsc_ddofs[:, 2] = -1 * (
+        numpy.einsum('ij, ij->i', phi_axes, f1s) +
+        numpy.einsum('ij, ij->i', numpy.cross(phi_axes, end_pos), f2s)
     )
 
     return dsc_ddofs
