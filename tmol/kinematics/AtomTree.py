@@ -199,16 +199,16 @@ class BondedAtom( TreeAtom ) :
     def update_xyz( self, parent_ht = None ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform() # identity
-        elif self.atomid.res == 1 :
-            print( "Update XYZ", self.atomid )
-            print( "parent ht:"); print( parent_ht );
+        #elif self.atomid.res == 1 :
+        #    print( "Update XYZ", self.atomid )
+        #    print( "parent ht:"); print( parent_ht );
         dihedral_rotation_ht = HomogeneousTransform.xrot( self.phi )
         # modify the parent_ht with the dihedral rotation here
         parent_ht *= dihedral_rotation_ht
         bond_angle_rotation_ht = HomogeneousTransform.zrot( self.theta )
         trans_ht = HomogeneousTransform.xtrans( self.d )
         new_ht = parent_ht * bond_angle_rotation_ht * trans_ht;
-        self.xyz = new_ht.frame[0:3,3]
+        self.xyz = tuple( new_ht.frame[0:3,3] )
         for child in self.children :
             child.update_xyz( new_ht )
 
@@ -242,15 +242,15 @@ class BondedAtom( TreeAtom ) :
                 zdot = numpy.dot( w, parent_ht.frame[0:3,2] )
                 self.phi = math.atan2( zdot, ydot )
 
-        if self.atomid.res == 1 :
-            print( "Update internal coords" )
-            print( "Atom: ", self.atomid )
-            print( "parent ht:"); print( parent_ht );
-            print( "d", self.d, "theta", self.theta, "phi", self.phi )
+        #if self.atomid.res == 1 :
+        #    print( "Update internal coords" )
+        #    print( "Atom: ", self.atomid )
+        #    print( "parent ht:"); print( parent_ht );
+        #    print( "d", self.d, "theta", self.theta, "phi", self.phi )
         # modify the parent ht so that younger siblings will have their offset phi readily
         # calculated
         parent_ht *= HomogeneousTransform.xrot( self.phi )
-        #print( "parent_ht(again)" ); print( parent_ht )
+        #print( "parent_ht(again)", self.atomid ); print( parent_ht )
         new_ht = parent_ht * HomogeneousTransform.zrot( self.theta ) * HomogeneousTransform.xtrans( self.d )
 
         #print( "d", self.d, "theta", self.theta, "phi", self.phi )
@@ -262,17 +262,19 @@ class BondedAtom( TreeAtom ) :
 class JumpAtom( TreeAtom ) :
     atomid: AtomID = attr.Factory( AtomID )
     parent: TreeAtom = None
-    rb : typing.List[ float ] = [ 0, 0, 0 ]
-    rot_delta : typing.List[ float ] = [ 0, 0, 0 ]
-    rot : typing.List[ float ] = [ 0, 0, 0 ]
+    rb : typing.List[ float ] = attr.Factory(lambda:[0,0,0])
+    rot_delta : typing.List[ float ] = attr.Factory(lambda:[0,0,0])
+    rot : typing.List[ float ] = attr.Factory(lambda:[0,0,0])
     xyz : typing.Tuple[ float, float, float ] = ( 0, 0, 0 )
     children : typing.List[ TreeAtom ] = attr.Factory(list)
     is_jump : bool = True
-    
+
     def update_xyz( self, parent_ht = None ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform() # identity transform
 
+        #print( "Update XYZ: parent HT for ", self.atomid, self.rot_delta, self.rb, self.rot  )
+        #print( parent_ht )
         ht_deltas = HomogeneousTransform.zrot(self.rot_delta[2]) * \
             HomogeneousTransform.yrot(self.rot_delta[1]) * \
             HomogeneousTransform.xrot(self.rot_delta[0] ) * \
@@ -285,24 +287,28 @@ class JumpAtom( TreeAtom ) :
             HomogeneousTransform.xrot(self.rot[0] )
 
         ht = parent_ht * ht_deltas * ht_r_global
-        xyz = ht.frame[0:3,3]
-        print("jump ht:" ); print(ht)
+        self.xyz = tuple( ht.frame[0:3,3] )
+
+        #print("Update XYZ",self.atomid,"jump ht:" ); print(ht)
+        #print( "ht_deltas" ); print( ht_deltas );
+        #print( "ht_r_global" ); print( ht_r_global );
+
         for child in self.children :
             child.update_xyz( ht )
 
-    def update_internal_coords( self, parent_ht = None ) :        
+    def update_internal_coords( self, parent_ht = None ) :
         if parent_ht is None :
             parent_ht = HomogeneousTransform()
         self.rot_delta[0] = 0; self.rot_delta[1] = 0; self.rot_delta[2] = 0;
         # build the HT at the downstream atoms:
         dest = self.get_ht_from_childrens_coords()
         transform = parent_ht.inverse() * dest;
-        self.rb = transform.frame[0:3,3]
-        
+        self.rb = transform.frame[0:3,3].copy()
+
         df = transform.frame
         # code below lifted directly from Frank
         cys = numpy.sqrt(df[0,0]*df[0,0] + df[1,0]*df[1,0])
-        print( "cys?", cys )
+        #print( "cys?", cys )
         if cys < 4*numpy.finfo(float).eps  :
             self.rot[0] = numpy.arctan2( -df[1,2], df[1,1] )
             self.rot[1] = numpy.arctan2( -df[2,0], cys     )
@@ -315,35 +321,38 @@ class JumpAtom( TreeAtom ) :
 
         # TEMP -- let's make sure that the dofs we just measured give us back
         # the ht we are looking for:
-        ht_deltas = HomogeneousTransform.zrot(self.rot_delta[2]) * \
-            HomogeneousTransform.yrot(self.rot_delta[1]) * \
-            HomogeneousTransform.xrot(self.rot_delta[0] ) * \
-            HomogeneousTransform.xtrans(self.rb[0]) * \
-            HomogeneousTransform.ytrans(self.rb[1]) * \
-            HomogeneousTransform.ztrans(self.rb[2])
-
-        ht_r_global = HomogeneousTransform.zrot(self.rot[2] ) * \
-            HomogeneousTransform.yrot(self.rot[1] ) * \
-            HomogeneousTransform.xrot(self.rot[0] )
-
-        ht = parent_ht * ht_deltas * ht_r_global
-        print( "Update internal coords", self.atomid )
-        print( "target transform" )
-        print( transform )
-        print( "obtained transform" )
-        print( ht_deltas * ht_r_global )
-        print( "ht dest", self.atomid )
-        print( dest )
-        print( "self.rb", self.rb, "self.rot", self.rot )
-        print( "ht from dofs:" )
-        print( ht )
-        print( "parent times parent inv?" )
-        print( parent_ht * parent_ht.inverse() )
-
+        #ht_deltas = HomogeneousTransform.zrot(self.rot_delta[2]) * \
+        #    HomogeneousTransform.yrot(self.rot_delta[1]) * \
+        #    HomogeneousTransform.xrot(self.rot_delta[0] ) * \
+        #    HomogeneousTransform.xtrans(self.rb[0]) * \
+        #    HomogeneousTransform.ytrans(self.rb[1]) * \
+        #    HomogeneousTransform.ztrans(self.rb[2])
+        #
+        #ht_r_global = HomogeneousTransform.zrot(self.rot[2] ) * \
+        #    HomogeneousTransform.yrot(self.rot[1] ) * \
+        #    HomogeneousTransform.xrot(self.rot[0] )
+        #
+        #ht = parent_ht * ht_deltas * ht_r_global
+        #print( "Update internal coords", self.atomid, hex(id(self.atomid)), self.rot_delta, self.rb, self.rot, hex(id(self.rot)) )
+        #print( "target transform" )
+        #print( transform )
+        #print( "obtained transform" )
+        #print( ht_deltas * ht_r_global )
+        #print( "ht dest", self.atomid )
+        #print( dest )
+        #print( "self.rb", self.rb, "self.rot", self.rot )
+        #print( "ht from dofs:" )
+        #print( ht )
+        #print( "parent times parent inv?" )
+        #print( parent_ht * parent_ht.inverse() )
+        #print( "ht_deltas" ); print( ht_deltas );
+        #print( "ht_r_global" ); print( ht_r_global );
 
         for child in self.children :
             child.update_internal_coords( dest )
-    
+
+        #print( "Exiting update internal coords", self.atomid, self.rot_delta, self.rb, self.rot )
+
     def get_ht_from_childrens_coords( self ) :
         if self.stub_defined() :
             p1 = self.xyz
@@ -375,7 +384,7 @@ class AtomTree :
         return self.atom_pointer_list[ atid.res ][ atid.atomno ]
 
 def create_links_simple( residue_type, links ) :
-    
+
     for i in range(len(residue_type.bond_indices)) :
         # don't add cut-bond pairs
         at1,at2 = residue_type.bond_indices[i,:]
@@ -419,7 +428,7 @@ def chi_interruption( residue_type, done, query_at1, query_at2 ) :
         if query_at2 == at1 and done[ at4 ] : return True
         if query_at2 == at4 and done[ at1 ] : return True
     return False
-    
+
 
 def setup_atom_links( root_atom_index, full_links, done, chem_db, residue_type, new_links ) :
     ''' recursive function for deciding which atoms to put ino the atom tree in which order;
@@ -474,9 +483,9 @@ def setup_atom_links( root_atom_index, full_links, done, chem_db, residue_type, 
         if done[ neighb ] : continue
         if is_chi( residue_type, neighb ) and chi_interruption( residue_type, done, root_atom_index, neighb ) : continue
         root_links.append( neighb )
-        setup_atom_links( neighb, full_links, done, chem_db, residue_type, new_links )        
-        
-            
+        setup_atom_links( neighb, full_links, done, chem_db, residue_type, new_links )
+
+
 def add_atom( root_atom_index, ordered_links, atom_pointers ) :
     ''' Creates a set of BondedAtoms (no JumpAtoms yet!) given the tree-structured
     ordered_links dictionary and puts them into the atom_pointers map'''
@@ -531,4 +540,4 @@ def tree_from_residues( chem_db, residues ) :
         atom_pointers_list.append( atom_pointers )
     first_root.update_internal_coords()
     return AtomTree( first_root, atom_pointers_list )
-    
+
