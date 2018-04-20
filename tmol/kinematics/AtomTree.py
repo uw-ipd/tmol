@@ -170,7 +170,7 @@ class HomogeneousTransform :
     def inverse( self ) :
         ht_res = HomogeneousTransform()
         ht_res.frame[0:3,0:3] = self.frame[0:3,0:3].transpose()
-        ht_res.frame[0:3,3] = numpy.dot(ht_res.frame[0:3,0:3], self.frame[0:3,3] )
+        ht_res.frame[0:3,3] = -1 * numpy.dot(self.frame[0:3,3],self.frame[0:3,0:3])
         return ht_res
 
 @attr.s( auto_attribs=True, slots=True )
@@ -337,6 +337,8 @@ class JumpAtom( TreeAtom ) :
         print( "self.rb", self.rb, "self.rot", self.rot )
         print( "ht from dofs:" )
         print( ht )
+        print( "parent times parent inv?" )
+        print( parent_ht * parent_ht.inverse() )
 
 
         for child in self.children :
