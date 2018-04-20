@@ -2,7 +2,6 @@ import attr
 import numpy
 import enum
 
-import typing
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
@@ -412,8 +411,19 @@ def backwardKin(kintree: KinTree, coords: VecArray) -> BackKinResult:
     return BackKinResult.create(HTs, dofs)
 
 
+@attr.s(frozen=True, auto_attribs=True)
+class ForwardKinResult:
+    @classmethod
+    @validate_args
+    def create(cls, hts: HTArray, coords: VecArray):
+        return cls(hts, coords)
+
+    hts: HTArray
+    coords: VecArray
+
+
 @validate_args
-def forwardKin(kintree: KinTree, dofs: DOFArray) -> typing.Tuple:
+def forwardKin(kintree: KinTree, dofs: DOFArray) -> ForwardKinResult:
     """dofs -> HTs, xyzs
 
       - "forward" kinematics
@@ -436,7 +446,7 @@ def forwardKin(kintree: KinTree, dofs: DOFArray) -> typing.Tuple:
 
     coords = numpy.zeros([natoms, 3])
     coords = numpy.matmul(HTs, [0, 0, 0, 1])[:, :3]
-    return (HTs, coords)
+    return ForwardKinResult.create(HTs, coords)
 
 
 @validate_args

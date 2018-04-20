@@ -196,14 +196,14 @@ def test_score_smoketest(kintree, coords):
 
 def test_interconversion(kintree, coords):
     dofs = backwardKin(kintree, coords).dofs
-    HTs, re_coords = forwardKin(kintree, dofs)
-    numpy.testing.assert_allclose(coords, re_coords, atol=1e-9)
+    refold_coords = forwardKin(kintree, dofs).coords
+    numpy.testing.assert_allclose(coords, refold_coords, atol=1e-9)
 
 
 def test_perturb(kintree, coords):
     dofs = backwardKin(kintree, coords).dofs
 
-    (HTs, pcoords) = forwardKin(kintree, dofs)
+    pcoords = forwardKin(kintree, dofs).coords
     assert numpy.allclose(coords, pcoords)
 
     def coord_changed(a, b, atol=1e-3):
@@ -212,7 +212,7 @@ def test_perturb(kintree, coords):
     # Translate jump dof
     t_dofs = dofs.copy()
     t_dofs["jump"][8, :3] += [0.02] * 3
-    (HTs, pcoords) = forwardKin(kintree, t_dofs)
+    pcoords = forwardKin(kintree, t_dofs).coords
 
     numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
     assert numpy.all(coord_changed(pcoords[8:13], coords[8:13]))
@@ -223,7 +223,7 @@ def test_perturb(kintree, coords):
     rd_dofs = dofs.copy()
     numpy.testing.assert_allclose(rd_dofs["jump"][8, 3:6], [0, 0, 0])
     rd_dofs["jump"][8, 3:6] += [.1, .2, .3]
-    (HTs, pcoords) = forwardKin(kintree, rd_dofs)
+    pcoords = forwardKin(kintree, rd_dofs).coords
     numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
     numpy.testing.assert_allclose(pcoords[8], coords[8])
     assert numpy.all(
@@ -235,7 +235,7 @@ def test_perturb(kintree, coords):
     # Rotate jump dof
     r_dofs = dofs.copy()
     r_dofs["jump"][8, 6:9] += [.1, .2, .3]
-    (HTs, pcoords) = forwardKin(kintree, r_dofs)
+    pcoords = forwardKin(kintree, r_dofs).coords
     numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
     numpy.testing.assert_allclose(pcoords[8], coords[8])
     assert numpy.all(
@@ -283,10 +283,10 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
 
         for j in range(ndof):
             dofs["raw"][i, j] += 0.00001
-            (HTs, coordsAlt) = forwardKin(kintree, dofs)
+            coordsAlt = forwardKin(kintree, dofs).coords
             sc_p = score(kintree[3:], coordsAlt[3:, :])
             dofs["raw"][i, j] -= 0.00002
-            (HTs, coordsAlt) = forwardKin(kintree, dofs)
+            coordsAlt = forwardKin(kintree, dofs).coords
             sc_m = score(kintree[3:], coordsAlt[3:, :])
             dofs["raw"][i, j] += 0.00001
 
