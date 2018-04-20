@@ -278,18 +278,18 @@ class TestAtomTree(unittest.TestCase):
                       refold_index_2_atomid, atomid_2_refold_index )
 
         # let's dump the new coordinates
-        atom_records = pdb_parsing.parse_pdb( test_pdbs[ "1UBQ" ] )
-        for ii, res in enumerate( residues ) :
-            for jj in range( res.coords.shape[0] ) :
-                iijj_atname = res.residue_type.atoms[ jj ].name
-                # oh, god, there has to be a better way!
-                for kk in range( len( atom_records )) :
-                    if atom_records.loc[ kk, "resi" ] == ii+1 and \
-                            atom_records.loc[ kk, "chain" ] == "A" and \
-                            atom_records.loc[ kk, "atomn" ] == iijj_atname :                        
-                        atom_records.loc[ kk, [ "x", "y", "z" ]] = res.coords[jj]
-        with open( "test_refold2.pdb", "w" ) as fid :
-            fid.writelines( pdb_parsing.to_pdb( atom_records ) )
+        #atom_records = pdb_parsing.parse_pdb( test_pdbs[ "1UBQ" ] )
+        #for ii, res in enumerate( residues ) :
+        #    for jj in range( res.coords.shape[0] ) :
+        #        iijj_atname = res.residue_type.atoms[ jj ].name
+        #        # oh, god, there has to be a better way!
+        #        for kk in range( len( atom_records )) :
+        #            if atom_records.loc[ kk, "resi" ] == ii+1 and \
+        #                    atom_records.loc[ kk, "chain" ] == "A" and \
+        #                    atom_records.loc[ kk, "atomn" ] == iijj_atname :                        
+        #                atom_records.loc[ kk, [ "x", "y", "z" ]] = res.coords[jj]
+        #with open( "test_refold2.pdb", "w" ) as fid :
+        #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
 
     def test_atomtree_w_jump_atoms( self ) :
         NATOMS=23
@@ -383,8 +383,10 @@ class TestAtomTree(unittest.TestCase):
             node.xyz = coords[ii,:]
 
         nodes[0].update_internal_coords()
-        print_tree_no_names( nodes[0] )
+        #print_tree_no_names( nodes[0] )
 
         nodes[0].update_xyz()
-        print_tree_no_names( nodes[0] )
-        
+        #print_tree_no_names( nodes[0] )
+
+        for ii, node in enumerate( nodes ) :
+            self.assertAlmostEqual( numpy.linalg.norm( numpy.array(node.xyz) - coords[ii,:] ), 0 )
