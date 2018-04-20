@@ -4,19 +4,19 @@ import numpy
 import properties
 
 from tmol.properties.array import Array
-from tmol.properties.shape import spec
+from tmol.types.shape import Shape
 
 
 class testArrayProperty(unittest.TestCase):
     def test_prop(self):
         class TType(properties.HasProperties):
-            coord = Array("a single coord", dtype=float, shape=spec[3])
-            coords = Array("coords", dtype=float, shape=spec[:, 3])
+            coord = Array("a single coord", dtype=float, shape=Shape.spec[3])
+            coords = Array("coords", dtype=float, shape=Shape.spec[:, 3])
             dcoord = Array(
                 "a coord with default",
                 default=list(range(10)),
                 dtype=int,
-                shape=spec[10]
+                shape=Shape.spec[10]
             )
 
         t = TType()
@@ -45,5 +45,5 @@ class testArrayProperty(unittest.TestCase):
                     "coord",
                     default=numpy.empty(10),
                     dtype=float,
-                    shape=spec[3]
+                    shape=Shape.spec[3]
                 )

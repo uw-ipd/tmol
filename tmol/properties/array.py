@@ -6,7 +6,7 @@ import numpy
 
 import properties.basic
 
-from .shape import ShapeSpec
+from ..types.shape import Shape
 
 
 class Array(properties.basic.Property):
@@ -15,7 +15,7 @@ class Array(properties.basic.Property):
     **Available keywords** (in addition to those inherited from
     :ref:`Property <property>`):
 
-    * **shape** - Tuple or ShapeSpec that describes the
+    * **shape** - Tuple or Shape that describes the
       allowed shape of the array.
     * **dtype** - Allowed data type for the array.
     * **cast** - Cast data as if needed.
@@ -62,12 +62,12 @@ class Array(properties.basic.Property):
 
     @property
     def shape(self):
-        return getattr(self, '_shape', ShapeSpec([Ellipsis]))
+        return getattr(self, '_shape', Shape.spec[...])
 
     @shape.setter
     def shape(self, value):
-        if not isinstance(value, ShapeSpec):
-            value = ShapeSpec(value)
+        if not isinstance(value, Shape):
+            value = Shape(value)
 
         self._shape = value
 
@@ -75,7 +75,7 @@ class Array(properties.basic.Property):
         if not isinstance(shape, tuple):
             shape = (shape, )
 
-        shape = ShapeSpec(shape)
+        shape = Shape(shape)
 
         new_prop = copy.copy(self)
         new_prop.shape = shape
