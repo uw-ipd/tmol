@@ -1,6 +1,5 @@
 from properties import HasProperties, List, Integer, Instance
 from tmol.properties.array import Array
-from tmol.properties.reactive import derived_from
 
 import numpy
 
@@ -23,7 +22,7 @@ class PackedResidueSystem(HasProperties):
         prop=Instance("attached residue", Residue)
     )
 
-    start_ind: Sequence[int] = Array(
+    res_start_ind: Sequence[int] = Array(
         "residue start indicies within `coords`", dtype=int
     )[:]
 
@@ -39,19 +38,17 @@ class PackedResidueSystem(HasProperties):
         "inter-atomic bond indices", dtype=int, cast="unsafe"
     )[:, 2]
 
-    @derived_from(
-        ("residues", "start_ind", "system_size"),
-        Array("atom type tags", dtype=object)[:],
-    )
-    def atom_types(self):
-        types = numpy.full(self.system_size, None, dtype=object)
+    atom_metadata_dtype = numpy.dtype([
+        ("residue_name", object),
+        ("atom_name", object),
+        ("atom_type", object),
+        ("atom_index", object),
+        ("residue_index", float),
+    ])
 
-        for si, res in zip(self.start_ind, self.residues):
-            types[si:si + len(res.residue_type.atoms)] = [
-                a.atom_type for a in res.residue_type.atoms
-            ]
-
-        return types
+    atom_metadata: numpy.ndarray = Array(
+        "atom metada", dtype=atom_metadata_dtype
+    )[:]
 
     @staticmethod
     def _ceil_to_size(size, val):
@@ -101,11 +98,29 @@ class PackedResidueSystem(HasProperties):
         ])
 
         self.residues = attached_res
-        self.start_ind = segment_starts
+        self.res_start_ind = segment_starts
         self.system_size = buffer_size
 
         self.coords = cbuff
         self.bonds = bonds
+
+        self.atom_metadata = numpy.empty(
+            self.system_size, self.atom_metadata_dtype
+        )
+        self.atom_metadata["atom_index"] = numpy.arange(
+            len(self.atom_metadata)
+        )
+        self.atom_metadata["residue_index"] = None
+
+        for ri, (rs, r) in enumerate(zip(self.res_start_ind, self.residues)):
+            rt = r.residue_type
+            residue_block = self.atom_metadata[rs:rs + len(rt.atoms)]
+            residue_block["residue_name"] = rt.name
+            residue_block["atom_name"] = [a.name for a in rt.atoms]
+            residue_block["atom_type"] = [a.atom_type for a in rt.atoms]
+            residue_block["residue_index"] = ri
+
+        self.atom_metadata.flags.writeable = False
 
         self.validate()
 
