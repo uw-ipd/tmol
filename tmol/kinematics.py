@@ -13,11 +13,12 @@ class DOFType(enum.IntEnum):
 
 # data structure describing the atom-level kinematics of a molecular system
 kintree_node_dtype = numpy.dtype([
-    ("atom_name", numpy.str, 4),
-    ("resnum", numpy.int),
+    ("id", numpy.int),
     ("doftype", numpy.int),
     ("parent", numpy.int),
-    ("frame", numpy.int, 3),
+    ("frame_x", numpy.int),
+    ("frame_y", numpy.int),
+    ("frame_z", numpy.int),
 ])
 KinTree = NDArray(kintree_node_dtype)[:]
 
@@ -383,14 +384,13 @@ def backwardKin(kintree: KinTree, coords: VecArray) -> BackKinResult:
     natoms = coords.shape[0]
 
     parents = kintree["parent"]
-    frames = kintree["frame"]
 
     # 1) global HTs
     HTs = HTs_from_frames(
         coords,
-        coords[frames[:, 0], :],
-        coords[frames[:, 1], :],
-        coords[frames[:, 2], :],
+        coords[kintree["frame_x"], :],
+        coords[kintree["frame_y"], :],
+        coords[kintree["frame_z"], :],
     )
 
     # 2) local HTs
