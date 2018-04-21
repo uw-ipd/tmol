@@ -23,6 +23,33 @@ def union_func(val: typing.Optional[int]):
 
 
 @validate_args
+def anytuple_func(val: typing.Tuple):
+    assert isinstance(val, tuple)
+
+
+@validate_args
+def nest_tuple_func(val: typing.Tuple[typing.Tuple[int, int], "str"]):
+    (i, i2), s = val
+
+    assert isinstance(i, int)
+    assert isinstance(i2, int)
+    assert isinstance(s, str)
+
+
+@validate_args
+def tuple_func(val: typing.Tuple[str, int]):
+    s, i = val
+    assert isinstance(s, str)
+    assert isinstance(i, int)
+
+
+@validate_args
+def ellipsis_tuple_func(val: typing.Tuple[int, ...]):
+    for i in val:
+        assert isinstance(i, int)
+
+
+@validate_args
 def str_func(val: str):
     assert isinstance(val, str)
 
@@ -93,6 +120,57 @@ validate_examples = [
             f(None, 2),
         ]
     },
+    {
+        "func": tuple_func,
+        "valid": [f(("a", 1)), ],
+        "invalid": [
+            f((1, "a")),
+            f(("a", )),
+            f("a", 1),
+            f((None, 1)),
+        ]
+    },
+    {
+        "func": nest_tuple_func,
+        "valid": [f(((1, 1), "a")), ],
+        "invalid": [
+            f((1, 1, "a")),
+            f(((), "a")),
+            f(("a", )),
+            f("a", 1),
+            f((None, 1)),
+        ]
+    },
+    {
+        "func": anytuple_func,
+        "valid": [
+            f(("a", 1)),
+            f((1, "a")),
+            f(()),
+            f((("a", 1), 1, 1)),
+        ],
+        "invalid": [
+            f("a"),
+            f(("a", 1), 1),
+            f(None),
+            f(),
+        ]
+    },
+    {
+        "func": ellipsis_tuple_func,
+        "valid": [
+            f(()),
+            f((1, )),
+            f((1, 1)),
+            f((1, 1, 1, 1, 1)),
+        ],
+        "invalid": [
+            f(),
+            f(1),
+            f((1, 1, 1, "a", 1)),
+            f(1, 1, 1),
+        ]
+    },
 ]
 
 
@@ -130,6 +208,13 @@ def array_cfunc(val: NDArray(float)[..., 3]):
 @convert_args
 def union_cfunc(val: typing.Optional[int]):
     assert isinstance(val, (int, type(None)))
+
+
+@convert_args
+def tuple_cfunc(val: typing.Tuple[str, int]):
+    s, i = val
+    assert isinstance(s, str)
+    assert isinstance(i, int)
 
 
 convert_examples = [
@@ -187,6 +272,16 @@ convert_examples = [
             f("one"),
             f(1, 2),
             f(None, 2),
+        ]
+    },
+    {
+        "func": tuple_cfunc,
+        "valid": [f(("a", 1)), ],
+        "invalid": [
+            f((1, "a")),
+            f(("a", )),
+            f("a", 1),
+            f((None, 1)),
         ]
     },
 ]

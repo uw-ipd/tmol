@@ -3,6 +3,8 @@ from functools import singledispatch
 import typing
 import toolz
 
+from . import validators
+
 
 @singledispatch
 def get_converter(type_annotation):
@@ -17,12 +19,12 @@ def constructor_convert(type_annotation, value):
         return type_annotation(value)
 
 
-@get_converter.register(typing._Union)
 @toolz.curry
-def validate_union(union, value):
-    assert union.__args__
+def validate_convert(type_annotation, value):
+    validators.get_validator(type_annotation)(value)
 
-    if not isinstance(value, union.__args__):
-        raise TypeError(
-            f"unable to convert to union type. expected {union}, received {type(value)!r}"
-        )
+    return value
+
+
+get_converter.register(typing._Union)(validate_convert)
+get_converter.register(typing.TupleMeta)(validate_convert)
