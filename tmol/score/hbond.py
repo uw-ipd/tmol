@@ -21,6 +21,67 @@ import tmol.database
 from tmol.database.scoring import HBondDatabase
 
 
+# evaluate polynomial function (Horner's rule)
+def polyval(A, x):
+    #p = torch.empty_like(x)
+    #print (A)
+    p = A[:, -1]
+    for i in range(len(A) - 2, -1, -1):
+        p = p * x + A[:, i]
+    return p
+
+
+# evaluate fade function
+def fadeval(A, x):
+    min0, fmin, fmax, max0 = A
+    f = torch.zeros_like(x)
+
+    dfade_min = 1.0 / (fmin - min0 + 1e-12)
+    dfade_max = 1.0 / (max0 - fmax + 1e-12)
+
+    selector_sr = ((x > min0) & (x <= fmin))
+    selector_mid = ((x > fmin) & (x <= fmax))
+    selector_lr = ((x > fmax) & (x <= max0))
+
+    f[selector_sr] = (x[selector_sr] - min0) * dfade_min
+    f[selector_sr] = f[selector_sr] * f[selector_sr
+                                        ] * (3.0 - 2.0 * f[selector_sr])
+    f[selector_mid] = 1
+    f[selector_lr] = (x[selector_lr] - fmax) * dfade_min
+    f[selector_lr] = f[selector_lr] * f[selector_lr
+                                        ] * (2.0 * f[selector_lr] - 3.0)
+
+    return f
+
+
+# evaluate sp2chi
+def sp2chi_energy(d, m, l, BAH, chi):
+    H = 0.5 * (torch.cos(2 * chi) + 1)
+
+    F = torch.empty_like(chi)
+    F.fill_(m - 0.5)
+    G = torch.empty_like(chi)
+    G.fill_(m - 0.5)
+
+    selector_upper = (BAH >= numpy.pi * 2.0 / 3.0)
+    selector_mid = ~selector_upper & (BAH >= numpy.pi * (2.0 / 3.0 - l))
+
+    F[selector_upper
+      ] = d / 2 * torch.cos(3 * numpy.pi - BAH[selector_upper]) + d / 2 - 0.5
+    G[selector_upper] = d - 0.5
+
+    outer_rise = torch.cos(
+        numpy.pi - (numpy.pi * 2 / 3 - BAH[selector_mid] / l)
+    )
+    F[selector_mid] = m / 2 * outer_rise + m / 2 - 0.5
+    G[selector_mid] = (m - d) / 2 * outer_rise + (m - d) / 2 + d - 0.5
+
+    E = H * F + (1 - H) * G
+
+    return E
+
+
+# energy evaluation to an sp2 acceptor
 def hbond_donor_sp2_score(
         # Input coordinates
         d,
@@ -43,15 +104,70 @@ def hbond_donor_sp2_score(
         # Global score parameters
         max_dis
 ):
-    ## Using R3 nomenclature
-    D = (d - h).norm(dim=-1)
-    AHD = (d - h).norm(dim=-1)
-    BAH = (d - h).norm(dim=-1)
-    chi = (d - h).norm(dim=-1)
+    # make these constants?
+    hb_range = 1.6  # range of hbond energies + 0.1
+    hb_sp2_BAH180_rise = 0.75
+    hb_sp2_outer_width = 0.357
+    fade_none = torch.tensor([0, 0.1, 3.2, 3.3])
+    fade_xD = torch.tensor([-0.05, 0.0, 1.00, 1.05])
+    fade_xH = torch.tensor([-0.562949, 0, 1, 1.05])
 
-    return 1.0
+    acc_don_scale = 1.0
+    # will come from params once I figure out dispatching logic
+
+    ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
+    D = (a - h).norm(dim=-1)
+
+    AHvecn = (h - a)
+    AHvecn = AHvecn / AHvecn.norm(dim=-1).unsqueeze(dim=-1)
+    HDvecn = (d - h)
+    HDvecn = HDvecn / HDvecn.norm(dim=-1).unsqueeze(dim=-1)
+    xD = (AHvecn * HDvecn).sum(dim=-1)
+    AHD = numpy.pi - torch.acos(xD)
+    # in non-cos space
+
+    BAvecn = (a - b)
+    BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
+    xH = (AHvecn * BAvecn).sum(dim=-1)
+
+    BB0vecn = (b0 - b)
+    BB0vecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
+    xchi = (BB0vecn * AHvecn).sum(
+        dim=-1
+    ) - (BB0vecn * BAvecn).sum(dim=-1) * (BAvecn * AHvecn).sum(dim=-1)
+    ychi = (torch.cross(BAvecn, AHvecn, dim=-1) * BB0vecn).sum(dim=-1)
+    chi = -torch.atan2(ychi, xchi)
+
+    Fd = fadeval(fade_none, D)
+    FxD = fadeval(fade_xD, xD)
+    FxH = fadeval(fade_xH, xH)
+
+    Pd = polyval(AHdist_coeffs, D)
+    PxH = polyval(cosBAH_coeffs, xH)
+    PxD = polyval(cosAHD_coeffs, AHD)
+
+    # sp2 chi part
+    Pchi = compute_energy_sp2(
+        hb_sp2_BAH180_rise, hb_range, hb_sp2_outer_width, bah, chi,
+        acc_don_scale
+    )
+
+    energy = acc_don_scale * (
+        Pd * FxD * FxH + Fd * (PxD * FxH + FxD * PxH) + Pchi
+    )
+
+    # fade (squish [-0.1,0.1] to [-0.1,0.0])
+    high_energy_selector = (energy > 0.1)
+    med_energy_selector = ~high_energy_selector & (energy > -0.1)
+
+    energy[high_energy_selector] = 0.0
+    energy[med_energy_selector] = \
+        -0.025 + 0.5*energy(med_energy_selector) - 2.5*energy(med_energy_selector)*energy(med_energy_selector)
+
+    return energy
 
 
+# energy evaluation to an sp3 acceptor
 def hbond_donor_sp3_score(
         # Input coordinates
         d,
@@ -74,12 +190,10 @@ def hbond_donor_sp3_score(
         # Global score parameters
         max_dis
 ):
-    a_h_vec = (h - a)
-    a_h_dist = a_h_vec.norm(dim=-1)
-
-    return (a_h_dist < max_dis).type(d.dtype)
+    return torch.zeros_like(D)
 
 
+# energy evaluation to a ring acceptor
 def hbond_donor_ring_score(
         # Input coordinates
         d,
@@ -102,10 +216,7 @@ def hbond_donor_ring_score(
         # Global score parameters
         max_dis
 ):
-    a_h_vec = (h - a)
-    a_h_dist = a_h_vec.norm(dim=-1)
-
-    return (a_h_dist < max_dis).type(d.dtype)
+    return torch.zeros_like(D)
 
 
 class HBondElementAnalysis(properties.HasProperties):
@@ -361,6 +472,8 @@ class HBondParamResolver:
                 for t in ("xmax", "xmin")})
             for t, params in self.param_lookup.groupby(level="term")
         }
+        print(normalized_param_tensors)
+        exit()
 
         return {
             f"{term}_{param}": tensor

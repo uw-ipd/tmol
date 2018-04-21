@@ -245,28 +245,28 @@ bb_hbond_config = yaml.load(
       - name: hbacc_PBA
         weight: 1.00
     polynomial_parameters:
+      - name: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6
+        dimension: hbgd_AHdist
+        xmin: 1.38403812683
+        xmax: 2.9981039433
+        degree: 10
+        c_a: -0.5307601
+        c_b: 6.47949946
+        c_c: -22.39522814
+        c_d: -55.14303544
+        c_e: 708.30945242
+        c_f: -2619.49318162
+        c_g: 5227.8805795
+        c_h: -6043.31211632
+        c_i: 3806.04676175
+        c_j: -1007.66024144
+        c_k: nan
       - name: poly_cosBAH_off
         dimension: hbgd_cosBAH
         xmin: -1234.0
         xmax: 1.1
         degree: 1
         c_a: 0.0
-        c_b: nan
-        c_c: nan
-        c_d: nan
-        c_e: nan
-        c_f: nan
-        c_g: nan
-        c_h: nan
-        c_i: nan
-        c_j: nan
-        c_k: nan
-      - name: poly_cosBAH_flat_neg0p5
-        dimension: hbgd_cosBAH
-        xmin: -1234.0
-        xmax: 1.1
-        degree: 1
-        c_a: -0.5
         c_b: nan
         c_c: nan
         c_d: nan
