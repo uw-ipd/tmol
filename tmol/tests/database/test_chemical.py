@@ -21,6 +21,18 @@ class TestChemicalDatabase(unittest.TestCase):
             assert len(connection_names) == len(r.connections), \
                 "connection names not unique."
 
+            # Check that atom and icoor names are unique
+            valid_icoor_names = set.union(atom_names, connection_names)
+            assert len(valid_icoor_names) == len(r.atoms) + len(r.connections), \
+                "atom/icoor name collision"
+
+            # Check that all icoors reference a valid target
+            for icoor in r.icoors:
+                assert icoor.name in valid_icoor_names
+                assert icoor.parent in valid_icoor_names
+                assert icoor.grand_parent in valid_icoor_names
+                assert icoor.great_grand_parent in valid_icoor_names
+
             torsion_names = {t.name for t in r.torsions}
             assert len(torsion_names) == len(r.torsions), \
                 "torsion names not unique"

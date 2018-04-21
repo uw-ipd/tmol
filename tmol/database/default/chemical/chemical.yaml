@@ -64,6 +64,19 @@ residues:
     - { *n: phi,   a: {*a: C, &c connection: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
     - { *n: psi,   a: {*a: N},                      b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
     - { *n: omega, a: {*a: CA},                     b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:  0.000000, &p parent:  N, &gp grand_parent: CA, &ggp great_grand_parent:    C }
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:  1.458001,        *p:  N,             *gp:  CA,                    *ggp:    C }
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800003 deg, d:  1.523258,        *p: CA,             *gp:   N,                    *ggp:    C }
+    - { *n:    up, phi:  149.999985 deg, theta:   63.800007 deg, d:  1.328685,        *p:  C,             *gp:  CA,                    *ggp:    N }
+    - { *n:     O, phi: -180.000000 deg, theta:   59.200005 deg, d:  1.231015,        *p:  C,             *gp:  CA,                    *ggp:   up }
+    - { *n:    CB, phi: -122.800000 deg, theta:   69.625412 deg, d:  1.521736,        *p: CA,             *gp:   N,                    *ggp:    C }
+    - { *n:   1HB, phi: -180.000000 deg, theta:   70.500000 deg, d:  1.090040,        *p: CB,             *gp:  CA,                    *ggp:    N }
+    - { *n:   2HB, phi:  120.000000 deg, theta:   70.500000 deg, d:  1.090069,        *p: CB,             *gp:  CA,                    *ggp:  1HB }
+    - { *n:   3HB, phi:  120.000000 deg, theta:   70.500000 deg, d:  1.088803,        *p: CB,             *gp:  CA,                    *ggp:  2HB }
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.900000 deg, d:  1.090078,        *p: CA,             *gp:   N,                    *ggp:   CB }
+    - { *n:  down, phi: -150.000000 deg, theta:   58.300003 deg, d:  1.328685,        *p:  N,             *gp:  CA,                    *ggp:    C }
+    - { *n:     H, phi: -180.000000 deg, theta:   60.849998 deg, d:  1.010000,        *p:  N,             *gp:  CA,                    *ggp: down }
   - name:  ARG
     name3: ARG
     atoms:
@@ -127,6 +140,33 @@ residues:
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
     - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: NE}}
     - { *n: chi4,  a: {*a: CG}, b: {*a: CD}, c: {*a: NE}, d: {*a: CZ}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:  0.000000, *p:    N, *gp:  CA, *ggp:      C }
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:  1.458001, *p:    N, *gp:  CA, *ggp:      C }
+    - { *n:     C, phi:    0.000000 deg, theta:   68.799995 deg, d:  1.523257, *p:   CA, *gp:   N, *ggp:      C }
+    - { *n:    up, phi:  150.000015 deg, theta:   63.800034 deg, d:  1.328684, *p:    C, *gp:  CA, *ggp:      N }
+    - { *n:     O, phi: -180.000000 deg, theta:   59.200005 deg, d:  1.231016, *p:    C, *gp:  CA, *ggp:     up }
+    - { *n:    CB, phi: -121.700000 deg, theta:   69.400000 deg, d:  1.521574, *p:   CA, *gp:   N, *ggp:      C }
+    - { *n:    CG, phi:    0.000000 deg, theta:   65.125031 deg, d:  1.520437, *p:   CB, *gp:  CA, *ggp:      N }
+    - { *n:    CD, phi:    0.000000 deg, theta:   68.300000 deg, d:  1.485371, *p:   CG, *gp:  CB, *ggp:     CA }
+    - { *n:    NE, phi:   -0.000000 deg, theta:   68.100000 deg, d:  1.454067, *p:   CD, *gp:  CG, *ggp:     CB }
+    - { *n:    CZ, phi:   -0.000000 deg, theta:   55.400000 deg, d:  1.347289, *p:   NE, *gp:  CD, *ggp:     CG }
+    - { *n:   NH1, phi:   -0.000000 deg, theta:   60.000000 deg, d:  1.314622, *p:   CZ, *gp:  NE, *ggp:     CD }
+    - { *n:  1HH1, phi:    0.000000 deg, theta:   60.000000 deg, d:  1.010263, *p:  NH1, *gp:  CZ, *ggp:     NE }
+    - { *n:  2HH1, phi:  180.000000 deg, theta:   60.000000 deg, d:  1.009685, *p:  NH1, *gp:  CZ, *ggp:   1HH1 }
+    - { *n:   NH2, phi: -180.000000 deg, theta:   60.000000 deg, d:  1.321628, *p:   CZ, *gp:  NE, *ggp:    NH1 }
+    - { *n:  1HH2, phi:   -0.000000 deg, theta:   60.000000 deg, d:  1.010912, *p:  NH2, *gp:  CZ, *ggp:     NE }
+    - { *n:  2HH2, phi:  180.000000 deg, theta:   60.000000 deg, d:  1.009116, *p:  NH2, *gp:  CZ, *ggp:   1HH2 }
+    - { *n:    HE, phi:  180.000000 deg, theta:   62.300000 deg, d:  1.011357, *p:   NE, *gp:  CD, *ggp:     CZ }
+    - { *n:   1HD, phi:  120.000000 deg, theta:   70.500000 deg, d:  1.089565, *p:   CD, *gp:  CG, *ggp:     NE }
+    - { *n:   2HD, phi:  120.000000 deg, theta:   70.500000 deg, d:  1.089361, *p:   CD, *gp:  CG, *ggp:    1HD }
+    - { *n:   1HG, phi:  120.000000 deg, theta:   70.500000 deg, d:  1.090245, *p:   CG, *gp:  CB, *ggp:     CD }
+    - { *n:   2HG, phi:  120.000000 deg, theta:   70.500000 deg, d:  1.090619, *p:   CG, *gp:  CB, *ggp:    1HG }
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:  1.089029, *p:   CB, *gp:  CA, *ggp:     CG }
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:  1.090066, *p:   CB, *gp:  CA, *ggp:    1HB }
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:  1.090421, *p:   CA, *gp:   N, *ggp:     CB }
+    - { *n:  down, phi: -149.999939 deg, theta:   58.300037 deg, d:  1.328685, *p:    N, *gp:  CA, *ggp:      C }
+    - { *n:     H, phi: -179.999969 deg, theta:   60.849937 deg, d:  1.010001, *p:    N, *gp:  CA, *ggp:   down }
   - name:  ASN
     name3: ASN
     atoms:
@@ -168,6 +208,23 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800056 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000061 deg, theta:   63.799973 deg, d:    1.328686, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi: -179.999985 deg, theta:   59.200043 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -123.300000 deg, theta:   69.400000 deg, d:    1.517678, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   -0.000000 deg, theta:   67.400000 deg, d:    1.503512, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   OD1, phi:    0.000000 deg, theta:   59.200000 deg, d:    1.236400, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   ND2, phi: -180.000000 deg, theta:   63.500000 deg, d:    1.308642, *p:    CG, *gp:    CB, *ggp:   OD1}
+    - { *n:  1HD2, phi: -180.000000 deg, theta:   60.000000 deg, d:    1.000469, *p:   ND2, *gp:    CG, *ggp:    CB}
+    - { *n:  2HD2, phi:  180.000000 deg, theta:   60.000000 deg, d:    0.999495, *p:   ND2, *gp:    CG, *ggp:  1HD2}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090804, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.090088, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.091156, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000015 deg, theta:   58.300072 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -180.000000 deg, theta:   60.849964 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
   - name:  ASP
     name3: ASP
     atoms:
@@ -205,6 +262,21 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CA}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800018 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  149.999985 deg, theta:   63.800026 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  180.000000 deg, theta:   59.199989 deg, d:    1.231016, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.100000 deg, theta:   69.481209 deg, d:    1.530652, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:    0.000037 deg, theta:   67.100000 deg, d:    1.522792, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   OD1, phi:    0.000000 deg, theta:   61.605602 deg, d:    1.208247, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   OD2, phi:  180.000000 deg, theta:   61.631931 deg, d:    1.207762, *p:    CG, *gp:    CB, *ggp:   OD1}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090238, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.090391, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090385, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000015 deg, theta:   58.300011 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -180.000000 deg, theta:   60.849979 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  CYS
     name3: CYS
     atoms:
@@ -239,6 +311,20 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: SG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: SG}, d: {*a: HG}}
+    icoors:
+    - { *n:     N, phi:         0.0 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:         0.0 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:         0.0 deg, theta:   68.800003 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:       150.0 deg, theta:   63.800018 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:       180.0 deg, theta:   59.200008 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi:      -121.6 deg, theta:   69.400000 deg, d:    1.528861, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    SG, phi:         0.0 deg, theta:   65.900000 deg, d:    1.808803, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:    HG, phi:      -180.0 deg, theta:   84.011803 deg, d:    1.329369, *p:    SG, *gp:    CB, *ggp:    CA}
+    - { *n:   1HB, phi:       121.2 deg, theta:   70.500000 deg, d:    1.090249, *p:    CB, *gp:    CA, *ggp:    SG}
+    - { *n:   2HB, phi:       117.6 deg, theta:   70.500000 deg, d:    1.089821, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi:      -119.0 deg, theta:   71.500000 deg, d:    1.090059, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi:      -150.0 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:       180.0 deg, theta:   60.849998 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  GLN
     name3: GLN
     atoms:
@@ -287,6 +373,26 @@ residues:
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
     - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: OE1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800026 deg, d:    1.523259, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  149.999969 deg, theta:   63.800060 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi: -179.999985 deg, theta:   59.199936 deg, d:    1.231016, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.400000 deg, theta:   69.507652 deg, d:    1.531066, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   -0.000070 deg, theta:   65.810715 deg, d:    1.519112, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:    CD, phi:   -0.000061 deg, theta:   67.570305 deg, d:    1.516880, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   OE1, phi:   -0.000051 deg, theta:   59.049110 deg, d:    1.234164, *p:    CD, *gp:    CG, *ggp:    CB}
+    - { *n:   NE2, phi: -180.000000 deg, theta:   63.586773 deg, d:    1.328109, *p:    CD, *gp:    CG, *ggp:   OE1}
+    - { *n:  1HE2, phi:  180.000000 deg, theta:   59.976410 deg, d:    1.000957, *p:   NE2, *gp:    CD, *ggp:    CG}
+    - { *n:  2HE2, phi:  180.000000 deg, theta:   59.967007 deg, d:    1.000084, *p:   NE2, *gp:    CD, *ggp:  1HE2}
+    - { *n:   1HG, phi:  120.000000 deg, theta:   71.100000 deg, d:    1.090000, *p:    CG, *gp:    CB, *ggp:    CD}
+    - { *n:   2HG, phi:  120.000000 deg, theta:   71.100000 deg, d:    1.090000, *p:    CG, *gp:    CB, *ggp:   1HG}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090000, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089896, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089870, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000031 deg, theta:   58.300022 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -180.000000 deg, theta:   60.850025 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  GLU
     name3: GLU
     atoms:
@@ -331,6 +437,24 @@ residues:
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
     - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: OE1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800003 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000015 deg, theta:   63.800011 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  179.999985 deg, theta:   59.200005 deg, d:    1.231016, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.200000 deg, theta:   69.600000 deg, d:    1.530319, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   -0.000013 deg, theta:   65.603104 deg, d:    1.522108, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:    CD, phi:   -0.000003 deg, theta:   67.100000 deg, d:    1.503358, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   OE1, phi:   -0.000008 deg, theta:   61.553535 deg, d:    1.207582, *p:    CD, *gp:    CG, *ggp:    CB}
+    - { *n:   OE2, phi:  180.000000 deg, theta:   61.637760 deg, d:    1.208542, *p:    CD, *gp:    CG, *ggp:   OE1}
+    - { *n:   1HG, phi:  121.000000 deg, theta:   71.100000 deg, d:    1.089692, *p:    CG, *gp:    CB, *ggp:    CD}
+    - { *n:   2HG, phi:  117.500000 deg, theta:   71.100000 deg, d:    1.089106, *p:    CG, *gp:    CB, *ggp:   1HG}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090146, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.090060, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090506, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -149.999985 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -180.000000 deg, theta:   60.850025 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  GLY
     name3: GLY
     atoms:
@@ -355,6 +479,16 @@ residues:
     - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
     - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
     - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.799995 deg, d:    1.523259, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  149.999969 deg, theta:   63.800018 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi: -179.999985 deg, theta:   59.200005 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:   1HA, phi:  121.400000 deg, theta:   70.500000 deg, d:    1.090168, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:   2HA, phi:  117.200000 deg, theta:   70.500000 deg, d:    1.089353, *p:    CA, *gp:     N, *ggp:   1HA}
+    - { *n:  down, phi: -150.000015 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:  180.000000 deg, theta:   60.850040 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  HIS
     name3: HIS
     atoms:
@@ -405,6 +539,26 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800018 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000015 deg, theta:   63.800034 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  180.000000 deg, theta:   59.199982 deg, d:    1.231016, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.200000 deg, theta:   69.310982 deg, d:    1.532116, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   -0.000081 deg, theta:   66.309441 deg, d:    1.497164, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   ND1, phi:    0.000008 deg, theta:   57.369984 deg, d:    1.379165, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   CE1, phi:  179.999619 deg, theta:   70.714851 deg, d:    1.321925, *p:   ND1, *gp:    CG, *ggp:    CB}
+    - { *n:   NE2, phi:    0.043487 deg, theta:   71.617294 deg, d:    1.320378, *p:   CE1, *gp:   ND1, *ggp:    CG}
+    - { *n:   CD2, phi:   -0.028256 deg, theta:   70.994614 deg, d:    1.373210, *p:   NE2, *gp:   CE1, *ggp:   ND1}
+    - { *n:   HD2, phi:  179.968872 deg, theta:   53.600000 deg, d:    1.090336, *p:   CD2, *gp:   NE2, *ggp:   CE1}
+    - { *n:   HE2, phi: -179.986603 deg, theta:   54.200000 deg, d:    1.010082, *p:   NE2, *gp:   CE1, *ggp:   CD2}
+    - { *n:   HE1, phi: -179.977402 deg, theta:   54.200000 deg, d:    1.089785, *p:   CE1, *gp:   ND1, *ggp:   NE2}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090580, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089658, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089618, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -149.999969 deg, theta:   58.300014 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:  179.999985 deg, theta:   60.850006 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  HIS_D
     name3: HIS
     atoms:
@@ -454,6 +608,26 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458003, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800072 deg, d:    1.523257, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000183 deg, theta:   63.799999 deg, d:    1.328683, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  179.999771 deg, theta:   59.199989 deg, d:    1.231017, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.200000 deg, theta:   69.311104 deg, d:    1.532122, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   -0.000339 deg, theta:   66.309753 deg, d:    1.497172, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   ND1, phi:   -0.000073 deg, theta:   57.370518 deg, d:    1.379169, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   CE1, phi:  179.999710 deg, theta:   70.715340 deg, d:    1.321934, *p:   ND1, *gp:    CG, *ggp:    CB}
+    - { *n:   NE2, phi:    0.043939 deg, theta:   71.617325 deg, d:    1.320373, *p:   CE1, *gp:   ND1, *ggp:    CG}
+    - { *n:   CD2, phi:   -0.028616 deg, theta:   70.994118 deg, d:    1.373207, *p:   NE2, *gp:   CE1, *ggp:   ND1}
+    - { *n:   HD2, phi:  179.968964 deg, theta:   59.948441 deg, d:    1.090333, *p:   CD2, *gp:   NE2, *ggp:   CE1}
+    - { *n:   HE1, phi: -179.977829 deg, theta:   59.391884 deg, d:    1.089789, *p:   CE1, *gp:   ND1, *ggp:   NE2}
+    - { *n:   HD1, phi: -174.670059 deg, theta:   53.757050 deg, d:    1.000244, *p:   ND1, *gp:    CG, *ggp:   CE1}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090565, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089660, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089614, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -149.999908 deg, theta:   58.300098 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:  179.999939 deg, theta:   60.850052 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
   - name:  ILE
     name3: ILE
     atoms:
@@ -505,6 +679,28 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG1}, d: {*a: CD1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800018 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000000 deg, theta:   63.800018 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi: -179.999969 deg, theta:   59.200024 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.100000 deg, theta:   69.100000 deg, d:    1.539633, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:   CG1, phi:    0.000011 deg, theta:   69.589531 deg, d:    1.530904, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   CD1, phi:    0.000065 deg, theta:   66.174995 deg, d:    1.511680, *p:   CG1, *gp:    CB, *ggp:    CA}
+    - { *n:  1HD1, phi: -179.974518 deg, theta:   70.500000 deg, d:    1.090290, *p:   CD1, *gp:   CG1, *ggp:    CB}
+    - { *n:  2HD1, phi:  119.989571 deg, theta:   70.500000 deg, d:    1.090575, *p:   CD1, *gp:   CG1, *ggp:  1HD1}
+    - { *n:  3HD1, phi:  120.044632 deg, theta:   70.500000 deg, d:    1.089057, *p:   CD1, *gp:   CG1, *ggp:  2HD1}
+    - { *n:  1HG1, phi:  121.314514 deg, theta:   70.500000 deg, d:    1.089473, *p:   CG1, *gp:    CB, *ggp:   CD1}
+    - { *n:  2HG1, phi:  117.500000 deg, theta:   70.500000 deg, d:    1.090337, *p:   CG1, *gp:    CB, *ggp:  1HG1}
+    - { *n:   CG2, phi: -122.676056 deg, theta:   69.531273 deg, d:    1.520905, *p:    CB, *gp:    CA, *ggp:   CG1}
+    - { *n:  1HG2, phi:  179.963104 deg, theta:   70.500000 deg, d:    1.089758, *p:   CG2, *gp:    CB, *ggp:    CA}
+    - { *n:  2HG2, phi:  120.007439 deg, theta:   70.500000 deg, d:    1.089154, *p:   CG2, *gp:    CB, *ggp:  1HG2}
+    - { *n:  3HG2, phi:  120.000000 deg, theta:   70.500000 deg, d:    1.090153, *p:   CG2, *gp:    CB, *ggp:  2HG2}
+    - { *n:    HB, phi: -120.000000 deg, theta:   70.500000 deg, d:    1.089548, *p:    CB, *gp:    CA, *ggp:   CG2}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089328, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000015 deg, theta:   58.300030 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -179.999985 deg, theta:   60.849998 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  LEU
     name3: LEU
     atoms:
@@ -556,6 +752,28 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.799950 deg, d:    1.523259, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  149.999985 deg, theta:   63.799973 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  179.999969 deg, theta:   59.199989 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -121.900000 deg, theta:   69.785477 deg, d:    1.533853, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:    0.000081 deg, theta:   64.300000 deg, d:    1.534033, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   CD1, phi:    0.000133 deg, theta:   70.500000 deg, d:    1.522674, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:  1HD1, phi: -179.989380 deg, theta:   70.500000 deg, d:    1.090099, *p:   CD1, *gp:    CG, *ggp:    CB}
+    - { *n:  2HD1, phi:  119.940079 deg, theta:   70.500000 deg, d:    1.090078, *p:   CD1, *gp:    CG, *ggp:  1HD1}
+    - { *n:  3HD1, phi:  120.067337 deg, theta:   70.500000 deg, d:    1.089371, *p:   CD1, *gp:    CG, *ggp:  2HD1}
+    - { *n:   CD2, phi:  121.998299 deg, theta:   70.500000 deg, d:    1.521430, *p:    CG, *gp:    CB, *ggp:   CD1}
+    - { *n:  1HD2, phi:  179.955276 deg, theta:   70.500000 deg, d:    1.090471, *p:   CD2, *gp:    CG, *ggp:    CB}
+    - { *n:  2HD2, phi:  120.000000 deg, theta:   70.500000 deg, d:    1.090214, *p:   CD2, *gp:    CG, *ggp:  1HD2}
+    - { *n:  3HD2, phi:  120.000000 deg, theta:   70.500000 deg, d:    1.090101, *p:   CD2, *gp:    CG, *ggp:  2HD2}
+    - { *n:    HG, phi:  120.000000 deg, theta:   70.500000 deg, d:    1.090331, *p:    CG, *gp:    CB, *ggp:   CD2}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   71.400000 deg, d:    1.088800, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   71.400000 deg, d:    1.089918, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089438, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -149.999985 deg, theta:   58.299976 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:  180.000000 deg, theta:   60.849979 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
   - name:  LYS
     name3: LYS
     atoms:
@@ -615,6 +833,31 @@ residues:
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
     - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: CE}}
     - { *n: chi4,  a: {*a: CG}, b: {*a: CD}, c: {*a: CE}, d: {*a: NZ}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800011 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  149.999985 deg, theta:   63.799984 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  179.999969 deg, theta:   59.200024 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.600000 deg, theta:   69.498947 deg, d:    1.529508, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   -0.000001 deg, theta:   65.602592 deg, d:    1.522933, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:    CD, phi:    0.000033 deg, theta:   68.700000 deg, d:    1.521348, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:    CE, phi:    0.000008 deg, theta:   68.632225 deg, d:    1.521582, *p:    CD, *gp:    CG, *ggp:    CB}
+    - { *n:    NZ, phi:   -0.000016 deg, theta:   68.036385 deg, d:    1.488108, *p:    CE, *gp:    CD, *ggp:    CG}
+    - { *n:   1HZ, phi: -179.972504 deg, theta:   70.500000 deg, d:    1.010217, *p:    NZ, *gp:    CE, *ggp:    CD}
+    - { *n:   2HZ, phi:  120.005402 deg, theta:   70.500000 deg, d:    1.010513, *p:    NZ, *gp:    CE, *ggp:   1HZ}
+    - { *n:   3HZ, phi:  120.002052 deg, theta:   70.500000 deg, d:    1.009906, *p:    NZ, *gp:    CE, *ggp:   2HZ}
+    - { *n:   1HE, phi:  120.770477 deg, theta:   70.500000 deg, d:    1.088988, *p:    CE, *gp:    CD, *ggp:    NZ}
+    - { *n:   2HE, phi:  118.534203 deg, theta:   70.500000 deg, d:    1.089932, *p:    CE, *gp:    CD, *ggp:   1HE}
+    - { *n:   1HD, phi:  120.629311 deg, theta:   70.500000 deg, d:    1.090858, *p:    CD, *gp:    CG, *ggp:    CE}
+    - { *n:   2HD, phi:  118.840126 deg, theta:   70.500000 deg, d:    1.089962, *p:    CD, *gp:    CG, *ggp:   1HD}
+    - { *n:   1HG, phi:  120.573410 deg, theta:   70.500000 deg, d:    1.090654, *p:    CG, *gp:    CB, *ggp:    CD}
+    - { *n:   2HG, phi:  118.835373 deg, theta:   70.500000 deg, d:    1.089538, *p:    CG, *gp:    CB, *ggp:   1HG}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090330, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.090207, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090528, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -149.999969 deg, theta:   58.300011 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:  179.999985 deg, theta:   60.849998 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
   - name:  MET
     name3: MET
     atoms:
@@ -663,6 +906,26 @@ residues:
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: SD}}
     - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: SD}, d: {*a: CE}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800026 deg, d:    1.523257, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000000 deg, theta:   63.800060 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  180.000000 deg, theta:   59.199905 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.800000 deg, theta:   69.789146 deg, d:    1.527387, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:    0.000048 deg, theta:   65.561607 deg, d:    1.522197, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:    SD, phi:    0.000030 deg, theta:   67.328194 deg, d:    1.803845, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:    CE, phi:   -0.000033 deg, theta:   79.107086 deg, d:    1.790388, *p:    SD, *gp:    CG, *ggp:    CB}
+    - { *n:   1HE, phi:  179.996002 deg, theta:   70.500000 deg, d:    1.090273, *p:    CE, *gp:    SD, *ggp:    CG}
+    - { *n:   2HE, phi:  120.047722 deg, theta:   70.500000 deg, d:    1.090849, *p:    CE, *gp:    SD, *ggp:   1HE}
+    - { *n:   3HE, phi:  119.973984 deg, theta:   70.500000 deg, d:    1.090572, *p:    CE, *gp:    SD, *ggp:   2HE}
+    - { *n:   1HG, phi:  120.782417 deg, theta:   70.500000 deg, d:    1.089467, *p:    CG, *gp:    CB, *ggp:    SD}
+    - { *n:   2HG, phi:  118.488159 deg, theta:   70.500000 deg, d:    1.089808, *p:    CG, *gp:    CB, *ggp:   1HG}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.089030, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.090755, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089824, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000046 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -179.999985 deg, theta:   60.850040 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
   - name:  PHE
     name3: PHE
     atoms:
@@ -717,6 +980,29 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800011 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000015 deg, theta:   63.800018 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi: -180.000000 deg, theta:   59.199963 deg, d:    1.231016, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.000000 deg, theta:   69.555275 deg, d:    1.529797, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   -0.000053 deg, theta:   66.208420 deg, d:    1.502228, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   CD1, phi:    0.000059 deg, theta:   59.314598 deg, d:    1.386965, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   CE1, phi: -179.992416 deg, theta:   59.265457 deg, d:    1.382176, *p:   CD1, *gp:    CG, *ggp:    CB}
+    - { *n:    CZ, phi:   -0.028095 deg, theta:   59.969322 deg, d:    1.378581, *p:   CE1, *gp:   CD1, *ggp:    CG}
+    - { *n:   CE2, phi:    0.026065 deg, theta:   60.128948 deg, d:    1.380491, *p:    CZ, *gp:   CE1, *ggp:   CD1}
+    - { *n:   CD2, phi:    0.032582 deg, theta:   60.030773 deg, d:    1.381280, *p:   CE2, *gp:    CZ, *ggp:   CE1}
+    - { *n:   HD2, phi:  179.974045 deg, theta:   60.023750 deg, d:    1.090602, *p:   CD2, *gp:   CE2, *ggp:    CZ}
+    - { *n:   HE2, phi:  179.948761 deg, theta:   60.038544 deg, d:    1.089830, *p:   CE2, *gp:    CZ, *ggp:   CD2}
+    - { *n:    HZ, phi:  179.911728 deg, theta:   59.918243 deg, d:    1.089083, *p:    CZ, *gp:   CE1, *ggp:   CE2}
+    - { *n:   HE1, phi: -179.984573 deg, theta:   60.032631 deg, d:    1.089717, *p:   CE1, *gp:   CD1, *ggp:    CZ}
+    - { *n:   HD1, phi: -179.958023 deg, theta:   60.766548 deg, d:    1.090326, *p:   CD1, *gp:    CG, *ggp:   CE1}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.089216, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089189, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090899, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000031 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:  180.000000 deg, theta:   60.850014 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  PRO
     name3: PRO
     atoms:
@@ -759,6 +1045,23 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.799965 deg, d:    1.523259, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000000 deg, theta:   63.799976 deg, d:    1.328686, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  179.999985 deg, theta:   59.199947 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -119.700000 deg, theta:   77.000000 deg, d:    1.532000, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   30.000000 deg, theta:   75.800000 deg, d:    1.490600, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:    CD, phi:  -33.900000 deg, theta:   75.600000 deg, d:    1.505500, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   1HD, phi:  119.000000 deg, theta:   70.500000 deg, d:    1.100000, *p:    CD, *gp:    CG, *ggp:     N}
+    - { *n:   2HD, phi:  121.500000 deg, theta:   70.500000 deg, d:    1.100000, *p:    CD, *gp:    CG, *ggp:   1HD}
+    - { *n:   1HG, phi:  121.200000 deg, theta:   69.800000 deg, d:    1.100000, *p:    CG, *gp:    CB, *ggp:    CD}
+    - { *n:   2HG, phi:  117.600000 deg, theta:   69.800000 deg, d:    1.100000, *p:    CG, *gp:    CB, *ggp:   1HG}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.000000 deg, d:    1.100000, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.000000 deg, d:    1.100000, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -118.000000 deg, theta:   70.800000 deg, d:    1.100000, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000000 deg, theta:   58.299934 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
   - name:  SER
     name3: SER
     atoms:
@@ -794,6 +1097,20 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: OG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG}, d: {*a: HG}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800003 deg, d:    1.523256, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  149.999939 deg, theta:   63.800041 deg, d:    1.328684, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi: -180.000000 deg, theta:   59.199940 deg, d:    1.231016, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.000000 deg, theta:   69.862976 deg, d:    1.516263, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    OG, phi:    0.000000 deg, theta:   69.000000 deg, d:    1.401192, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:    HG, phi:   -0.000000 deg, theta:   74.000000 deg, d:    0.960175, *p:    OG, *gp:    CB, *ggp:    CA}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.089692, *p:    CB, *gp:    CA, *ggp:    OG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089181, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090924, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000000 deg, theta:   58.299988 deg, d:    1.328684, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -179.999969 deg, theta:   60.849979 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
   - name:  THR
     name3: THR
     atoms:
@@ -835,6 +1152,23 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB},  d: {*a: OG1}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG1}, d: {*a: HG1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.800049 deg, d:    1.523257, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  149.999954 deg, theta:   63.800026 deg, d:    1.328685, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  180.000000 deg, theta:   59.199905 deg, d:    1.231016, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.400000 deg, theta:   68.900000 deg, d:    1.539922, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:   OG1, phi:   -0.000077 deg, theta:   70.419235 deg, d:    1.433545, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   HG1, phi:    0.000034 deg, theta:   70.573135 deg, d:    0.960297, *p:   OG1, *gp:    CB, *ggp:    CA}
+    - { *n:   CG2, phi: -120.544136 deg, theta:   69.469185 deg, d:    1.520992, *p:    CB, *gp:    CA, *ggp:   OG1}
+    - { *n:  1HG2, phi: -179.978256 deg, theta:   70.500000 deg, d:    1.089826, *p:   CG2, *gp:    CB, *ggp:    CA}
+    - { *n:  2HG2, phi:  120.032188 deg, theta:   70.500000 deg, d:    1.089862, *p:   CG2, *gp:    CB, *ggp:  1HG2}
+    - { *n:  3HG2, phi:  119.987984 deg, theta:   70.500000 deg, d:    1.089241, *p:   CG2, *gp:    CB, *ggp:  2HG2}
+    - { *n:    HB, phi: -120.292923 deg, theta:   70.500000 deg, d:    1.089822, *p:    CB, *gp:    CA, *ggp:   CG2}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090258, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -149.999969 deg, theta:   58.300030 deg, d:    1.328684, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:  180.000000 deg, theta:   60.849979 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
   - name:  TRP
     name3: TRP
     atoms:
@@ -898,6 +1232,33 @@ residues:
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.799988 deg, d:    1.523258, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000031 deg, theta:   63.799957 deg, d:    1.328686, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  179.999939 deg, theta:   59.199955 deg, d:    1.231015, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -121.900000 deg, theta:   69.600334 deg, d:    1.529823, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:    0.000068 deg, theta:   66.465866 deg, d:    1.498746, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   CD1, phi:    0.000148 deg, theta:   53.263374 deg, d:    1.362720, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   NE1, phi: -179.969818 deg, theta:   69.843536 deg, d:    1.372938, *p:   CD1, *gp:    CG, *ggp:    CB}
+    - { *n:   CE2, phi:   -0.111805 deg, theta:   71.100000 deg, d:    1.372132, *p:   NE1, *gp:   CD1, *ggp:    CG}
+    - { *n:   CZ2, phi:  179.958145 deg, theta:   49.861912 deg, d:    1.385949, *p:   CE2, *gp:   NE1, *ggp:   CD1}
+    - { *n:   CH2, phi: -179.974182 deg, theta:   62.500000 deg, d:    1.395024, *p:   CZ2, *gp:   CE2, *ggp:   NE1}
+    - { *n:   CZ3, phi:    0.127723 deg, theta:   58.500000 deg, d:    1.372108, *p:   CH2, *gp:   CZ2, *ggp:   CE2}
+    - { *n:   CE3, phi:   -0.067888 deg, theta:   59.000000 deg, d:    1.389848, *p:   CZ3, *gp:   CH2, *ggp:   CZ2}
+    - { *n:   CD2, phi:    0.021383 deg, theta:   61.268948 deg, d:    1.400378, *p:   CE3, *gp:   CZ3, *ggp:   CH2}
+    - { *n:   HE3, phi: -179.851593 deg, theta:   59.300000 deg, d:    1.089539, *p:   CE3, *gp:   CZ3, *ggp:   CD2}
+    - { *n:   HZ3, phi:  179.965530 deg, theta:   59.271282 deg, d:    1.090294, *p:   CZ3, *gp:   CH2, *ggp:   CE3}
+    - { *n:   HH2, phi:  179.952423 deg, theta:   60.590862 deg, d:    1.090289, *p:   CH2, *gp:   CZ2, *ggp:   CZ3}
+    - { *n:   HZ2, phi: -179.891754 deg, theta:   57.900000 deg, d:    1.090237, *p:   CZ2, *gp:   CE2, *ggp:   CH2}
+    - { *n:   HE1, phi:  179.955612 deg, theta:   54.365833 deg, d:    1.009892, *p:   NE1, *gp:   CD1, *ggp:   CE2}
+    - { *n:   HD1, phi:  179.990616 deg, theta:   55.100000 deg, d:    1.088516, *p:   CD1, *gp:    CG, *ggp:   NE1}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090167, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089792, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089883, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000046 deg, theta:   58.299980 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -179.999878 deg, theta:   60.850006 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
   - name:  TYR
     name3: TYR
     atoms:
@@ -956,6 +1317,30 @@ residues:
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
     - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
     - { *n: chi3,  a: {*a: CE2}, b: {*a: CZ}, c: {*a: OH}, d: {*a: HH}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458004, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.799995 deg, d:    1.523259, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  149.999924 deg, theta:   63.800079 deg, d:    1.328686, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi: -179.999817 deg, theta:   59.199955 deg, d:    1.231014, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -122.800000 deg, theta:   69.525192 deg, d:    1.530351, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    CG, phi:   -0.000069 deg, theta:   66.200000 deg, d:    1.512656, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:   CD1, phi:    0.000000 deg, theta:   60.000000 deg, d:    1.387195, *p:    CG, *gp:    CB, *ggp:    CA}
+    - { *n:   CE1, phi: -180.000000 deg, theta:   60.000000 deg, d:    1.381552, *p:   CD1, *gp:    CG, *ggp:    CB}
+    - { *n:   HE1, phi:  180.000000 deg, theta:   60.000000 deg, d:    1.089660, *p:   CE1, *gp:   CD1, *ggp:    CG}
+    - { *n:   HD1, phi:  180.000000 deg, theta:   60.000000 deg, d:    1.090234, *p:   CD1, *gp:    CG, *ggp:   CE1}
+    - { *n:   CD2, phi:  180.000000 deg, theta:   60.000000 deg, d:    1.386886, *p:    CG, *gp:    CB, *ggp:   CD1}
+    - { *n:   CE2, phi: -180.000000 deg, theta:   60.000000 deg, d:    1.381360, *p:   CD2, *gp:    CG, *ggp:    CB}
+    - { *n:    CZ, phi:    0.000000 deg, theta:   60.000000 deg, d:    1.379988, *p:   CE2, *gp:   CD2, *ggp:    CG}
+    - { *n:    OH, phi:  180.000000 deg, theta:   60.000000 deg, d:    1.375964, *p:    CZ, *gp:   CE2, *ggp:   CD2}
+    - { *n:    HH, phi:    0.000000 deg, theta:   70.600000 deg, d:    0.960239, *p:    OH, *gp:    CZ, *ggp:   CE2}
+    - { *n:   HE2, phi: -179.948822 deg, theta:   60.000000 deg, d:    1.090286, *p:   CE2, *gp:   CD2, *ggp:    CZ}
+    - { *n:   HD2, phi: -179.936905 deg, theta:   60.000000 deg, d:    1.090021, *p:   CD2, *gp:    CG, *ggp:   CE2}
+    - { *n:   1HB, phi:  121.200000 deg, theta:   70.500000 deg, d:    1.090973, *p:    CB, *gp:    CA, *ggp:    CG}
+    - { *n:   2HB, phi:  117.600000 deg, theta:   70.500000 deg, d:    1.089572, *p:    CB, *gp:    CA, *ggp:   1HB}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090319, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -150.000107 deg, theta:   58.299919 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi: -179.999924 deg, theta:   60.849972 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
   - name:  VAL
     name3: VAL
     atoms:
@@ -1001,3 +1386,22 @@ residues:
     - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
     - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
+    icoors:
+    - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458004, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     C, phi:    0.000000 deg, theta:   68.799988 deg, d:    1.523260, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:    up, phi:  150.000000 deg, theta:   63.799992 deg, d:    1.328686, *p:     C, *gp:    CA, *ggp:     N}
+    - { *n:     O, phi:  179.999985 deg, theta:   59.200031 deg, d:    1.231016, *p:     C, *gp:    CA, *ggp:    up}
+    - { *n:    CB, phi: -121.500000 deg, theta:   69.700000 deg, d:    1.540250, *p:    CA, *gp:     N, *ggp:     C}
+    - { *n:   CG1, phi:   -0.000172 deg, theta:   69.509735 deg, d:    1.521421, *p:    CB, *gp:    CA, *ggp:     N}
+    - { *n:  1HG1, phi: -179.982758 deg, theta:   70.500000 deg, d:    1.090355, *p:   CG1, *gp:    CB, *ggp:    CA}
+    - { *n:  2HG1, phi:  119.966087 deg, theta:   70.500000 deg, d:    1.089824, *p:   CG1, *gp:    CB, *ggp:  1HG1}
+    - { *n:  3HG1, phi:  120.088005 deg, theta:   70.500000 deg, d:    1.089810, *p:   CG1, *gp:    CB, *ggp:  2HG1}
+    - { *n:   CG2, phi:  122.541016 deg, theta:   70.100000 deg, d:    1.521059, *p:    CB, *gp:    CA, *ggp:   CG1}
+    - { *n:  1HG2, phi:  179.957840 deg, theta:   70.500000 deg, d:    1.089610, *p:   CG2, *gp:    CB, *ggp:    CA}
+    - { *n:  2HG2, phi:  120.029785 deg, theta:   70.500000 deg, d:    1.090176, *p:   CG2, *gp:    CB, *ggp:  1HG2}
+    - { *n:  3HG2, phi:  119.992767 deg, theta:   70.500000 deg, d:    1.090169, *p:   CG2, *gp:    CB, *ggp:  2HG2}
+    - { *n:    HB, phi:  120.000000 deg, theta:   71.042519 deg, d:    1.090106, *p:    CB, *gp:    CA, *ggp:   CG2}
+    - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090646, *p:    CA, *gp:     N, *ggp:    CB}
+    - { *n:  down, phi: -149.999924 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
+    - { *n:     H, phi:  180.000000 deg, theta:   60.849918 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
