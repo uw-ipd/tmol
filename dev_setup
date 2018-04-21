@@ -8,6 +8,10 @@ set -x
 conda env update -f environment.yml
 conda env update -f dev_environment.yml
 
+# Conda 4.4+ compatible activation
+eval "`conda shell.posix activate tmol`"
+pip install -e .
+
 set +e
 pushd .git/hooks
 ln -s ../../.post-checkout post-checkout
