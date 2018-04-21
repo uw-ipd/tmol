@@ -25,8 +25,8 @@ from tmol.database.scoring import HBondDatabase
 def polyval(A, x):
     #p = torch.empty_like(x)
     #print (A)
-    p = A[:, -1]
-    for i in range(len(A) - 2, -1, -1):
+    p = A[:, 0]
+    for i in range(0, A.shape[-1]):
         p = p * x + A[:, i]
     return p
 
@@ -91,14 +91,8 @@ def hbond_donor_sp2_score(
         b0,
 
         # type pair parameters
-        AHdist_xmin,
-        AHdist_xmax,
         AHdist_coeffs,
-        cosBAH_xmin,
-        cosBAH_xmax,
         cosBAH_coeffs,
-        cosAHD_xmin,
-        cosAHD_xmax,
         cosAHD_coeffs,
 
         # Global score parameters
@@ -129,6 +123,7 @@ def hbond_donor_sp2_score(
     BAvecn = (a - b)
     BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
     xH = (AHvecn * BAvecn).sum(dim=-1)
+    BAH = numpy.pi - torch.acos(xH)
 
     BB0vecn = (b0 - b)
     BB0vecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
@@ -147,9 +142,8 @@ def hbond_donor_sp2_score(
     PxD = polyval(cosAHD_coeffs, AHD)
 
     # sp2 chi part
-    Pchi = compute_energy_sp2(
-        hb_sp2_BAH180_rise, hb_range, hb_sp2_outer_width, bah, chi,
-        acc_don_scale
+    Pchi = sp2chi_energy(
+        hb_sp2_BAH180_rise, hb_range, hb_sp2_outer_width, BAH, chi
     )
 
     energy = acc_don_scale * (
@@ -162,7 +156,7 @@ def hbond_donor_sp2_score(
 
     energy[high_energy_selector] = 0.0
     energy[med_energy_selector] = \
-        -0.025 + 0.5*energy(med_energy_selector) - 2.5*energy(med_energy_selector)*energy(med_energy_selector)
+        -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
 
     return energy
 
@@ -177,14 +171,8 @@ def hbond_donor_sp3_score(
         b0,
 
         # type pair parameters
-        AHdist_xmin,
-        AHdist_xmax,
         AHdist_coeffs,
-        cosBAH_xmin,
-        cosBAH_xmax,
         cosBAH_coeffs,
-        cosAHD_xmin,
-        cosAHD_xmax,
         cosAHD_coeffs,
 
         # Global score parameters
@@ -203,14 +191,8 @@ def hbond_donor_ring_score(
         bp,
 
         # type pair parameters
-        AHdist_xmin,
-        AHdist_xmax,
         AHdist_coeffs,
-        cosBAH_xmin,
-        cosBAH_xmax,
         cosBAH_coeffs,
-        cosAHD_xmin,
-        cosAHD_xmax,
         cosAHD_coeffs,
 
         # Global score parameters
@@ -420,7 +402,7 @@ class HBondParamResolver:
             to_frame(self.hbdb.polynomial_parameters)
             .rename(columns={"name": "polynomial"})
             .set_index("polynomial")
-            .drop(columns=["degree", "dimension"])
+            .drop(columns=["dimension","xmin","xmax"])
         )  # yapf: disable
 
         # Convert pair parameter table into a multi-index frame specifying
@@ -464,16 +446,12 @@ class HBondParamResolver:
         normalized_param_tensors: Dict[str, Dict[str, torch.Tensor]] = {
             t: toolz.dicttoolz.merge({
                 "coeffs":
-                    compose(
-                        torch.Tensor,
-                        numpy.nan_to_num,
-                    )(params[["c_" + i for i in "abcdefghijk"]].values)
-            }, {t: torch.Tensor(params[t])
-                for t in ("xmax", "xmin")})
+                    torch.Tensor(
+                        params[["c_" + i for i in "abcdefghijk"]].values
+                    )
+            })
             for t, params in self.param_lookup.groupby(level="term")
         }
-        print(normalized_param_tensors)
-        exit()
 
         return {
             f"{term}_{param}": tensor
