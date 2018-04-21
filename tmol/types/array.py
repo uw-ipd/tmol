@@ -5,7 +5,8 @@ import numpy
 
 from .shape import Shape
 
-from .functional import get_converter, get_validator
+from .converters import get_converter
+from .validators import get_validator
 
 
 class Casting(enum.Enum):

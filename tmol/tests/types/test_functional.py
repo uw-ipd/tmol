@@ -1,6 +1,8 @@
 import numpy
 import pytest
 
+import typing
+
 from tmol.types.functional import validate_args, convert_args
 from tmol.types.array import NDArray
 
@@ -13,6 +15,11 @@ def f(*args, **kwargs):
 @validate_args
 def int_func(val: int):
     assert isinstance(val, int)
+
+
+@validate_args
+def union_func(val: typing.Optional[int]):
+    assert isinstance(val, (int, type(None)))
 
 
 @validate_args
@@ -69,6 +76,23 @@ validate_examples = [
             f(numpy.arange(30).reshape(-1, 3)),
         ]
     },
+    {
+        "func": union_func,
+        "valid": [
+            f(1),
+            f(2),
+            f(None),
+            f(val=2),
+            f(val=None),
+        ],
+        "invalid": [
+            f(),
+            f(1.1),
+            f("one"),
+            f(1, 2),
+            f(None, 2),
+        ]
+    },
 ]
 
 
@@ -79,10 +103,7 @@ def test_func_validation(example):
     )
 
     for args, kwargs in valid:
-        try:
-            func(*args, **kwargs)
-        except (TypeError, ValueError) as ex:
-            assert not ex, f"Validation error. func: {func} args: {args} kwargs: {kwargs}"
+        func(*args, **kwargs)
 
     for args, kwargs in invalid:
         with pytest.raises((TypeError, ValueError)):
@@ -104,6 +125,11 @@ def array_cfunc(val: NDArray(float)[..., 3]):
     assert isinstance(val, numpy.ndarray)
     assert val.ndim >= 1
     assert val.shape[-1] == 3
+
+
+@convert_args
+def union_cfunc(val: typing.Optional[int]):
+    assert isinstance(val, (int, type(None)))
 
 
 convert_examples = [
@@ -149,6 +175,20 @@ convert_examples = [
         ],
         "invalid": [f(None), f([["one", "two", "three"]])]
     },
+    {
+        "func": union_cfunc,
+        "valid": [
+            f(1),
+            f(None),
+        ],
+        "invalid": [
+            f(),
+            f(1.1),
+            f("one"),
+            f(1, 2),
+            f(None, 2),
+        ]
+    },
 ]
 
 
@@ -159,10 +199,7 @@ def test_func_conversion(example):
     )
 
     for args, kwargs in valid:
-        try:
-            func(*args, **kwargs)
-        except (TypeError, ValueError) as ex:
-            assert not ex, f"Validation error. func: {func} args: {args} kwargs: {kwargs}"
+        func(*args, **kwargs)
 
     for args, kwargs in invalid:
         with pytest.raises((TypeError, ValueError)):
