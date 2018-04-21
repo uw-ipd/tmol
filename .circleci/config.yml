@@ -20,6 +20,7 @@ jobs:
             conda env update -f environment.yml
             source activate tmol
             pip install -r requirements.tests.txt
+
             conda clean -tipsy
       - save_cache:
           paths:
