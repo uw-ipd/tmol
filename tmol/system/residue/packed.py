@@ -2,6 +2,7 @@ from properties import HasProperties, List, Integer, Instance
 from tmol.properties.array import Array
 
 import numpy
+import pandas
 
 from typing import Sequence
 
@@ -55,46 +56,94 @@ class PackedResidueSystem(HasProperties):
         d, m = numpy.divmod(val, size)
         return (d + (m != 0).astype(int)) * size
 
-    def from_residues(self, res):
+    def from_residues(self, res: Sequence[Residue]):
         """Initialize a packed residue system from list of residue containers."""
 
+        ### Pack residues within the coordinate system
+
+        # Align residue starts to block boundries
+        #
+        # Ceil each residue's size to generate residue segments
         res_lengths = numpy.array([len(r.coords) for r in res])
         res_segment_lengths = self._ceil_to_size(self.block_size, res_lengths)
 
         segment_ends = res_segment_lengths.cumsum()
-        buffer_size = segment_ends[-1]
-
         segment_starts = numpy.empty_like(segment_ends)
         segment_starts[0] = 0
         segment_starts[1:] = segment_ends[:-1]
 
+        res_aidx = segment_starts
+
+        # Allocate the coordinate system and attach residues
+        buffer_size = segment_ends[-1]
         cbuff = numpy.full((buffer_size, 3), numpy.nan)
 
         attached_res = [
             r.attach_to(cbuff[start:start + len(r.coords)])
-            for r, start in zip(res, segment_starts)
+            for r, start in zip(res, res_aidx)
         ]
 
-        res_by_start = list(zip(segment_starts, res))
+        ### Index residue connectivity
 
-        intra_res_bonds = numpy.concatenate([
-            r.residue_type.bond_indicies + start for start, r in res_by_start
-        ])
+        # Generate a table of residue connections, with "from" and "to" entries
+        # for *both* directions Just a linear set of connections for now
+        residue_connections = pandas.DataFrame.from_records(
+            [(i, "up", i + 1, "down") for i in range(len(res) - 1)],
+            columns=pandas.MultiIndex.from_tuples([
+                ("from", "resi"),
+                ("from", "cname"),
+                ("to", "resi"),
+                ("to", "cname"),
+            ])
+        )
+        connection_index = pandas.concat((
+                residue_connections,
+                residue_connections.rename(
+                    columns={"from": "to", "to": "from"}
+                )),
+            ignore_index=True,
+        ) # yapf: disable
 
-        upchain_inter_res_bonds = numpy.array([
-            [
-                i.residue_type.connection_to_idx["up"] + si,
-                j.residue_type.connection_to_idx["down"] + sj
-            ]
-            for (si, i), (sj, j) in zip(res_by_start[:-1], res_by_start[1:])
-        ])  # yapf: disable
+        # Generate an index of all the connection atoms in the system,
+        # resolving the internal and global index of the connection atoms
+        connection_atoms = pandas.DataFrame.from_records([
+                (ri, cname, c_aidx, c_aidx + r_g_aidx)
+                for (ri, (r_g_aidx, r)) in enumerate(zip(res_aidx, res))
+                for cname, c_aidx in r.residue_type.connection_to_idx.items()
+            ],
+            columns=["resi", "cname", "internal_aidx", "aidx"]
+        ) # yapf: disable
 
-        downchain_inter_res_bonds = numpy.flip(
-            upchain_inter_res_bonds, axis=-1
+        # Merge against the connection table to generate a connection entry
+        # with the residue index, the connection name, the local atom index,
+        # and the global atom index for the connection in the columns:
+        #
+        # cname  resi  internal_aidx  aidx
+        from_connections = pandas.merge(
+            connection_index["from"],
+            connection_atoms,
+        )
+        to_connections = pandas.merge(
+            connection_index["to"],
+            connection_atoms,
         )
 
+        ### Generate the bond graph
+
+        # Offset the internal bond graph by the residue start idx
+        intra_res_bonds = numpy.concatenate([
+            r.residue_type.bond_indicies + start
+            for start, r in zip(segment_starts, res)
+        ])
+
+        # Join the connection global atom indices
+        inter_res_bonds = numpy.vstack([
+            from_connections["aidx"].values, to_connections["aidx"].values
+        ]).T
+
         bonds = numpy.concatenate([
-            intra_res_bonds, upchain_inter_res_bonds, downchain_inter_res_bonds
+            intra_res_bonds,
+            inter_res_bonds,
         ])
 
         self.residues = attached_res
