@@ -101,10 +101,10 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
         ]  # yapf: disable
 
 
-def read_pdb(pdb_string: str, **kwargs) -> PackedResidueSystem:
-    res = (ResidueReader().parse_pdb(pdb_string))
+def read_pdb(pdb_string: str) -> PackedResidueSystem:
+    res = ResidueReader().parse_pdb(pdb_string)
 
-    return PackedResidueSystem(**kwargs).from_residues(res)
+    return PackedResidueSystem.from_residues(res)
 
 
 @tmol.io.generic.to_cdjson.register(Residue)
