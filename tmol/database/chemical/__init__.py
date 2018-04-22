@@ -41,13 +41,18 @@ cattr.register_structure_hook(ThetaAngle, lambda v, t: parse_theta(v))
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class Connection:
+    name: str
+    atom: str
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Residue:
     name: str
     name3: str
     atoms: Tuple[Atom, ...]
     bonds: Tuple[Tuple[str, str], ...]
-    lower_connect: str
-    upper_connect: str
+    connections: Tuple[Connection, ...]
     icoors: Tuple[Icoor, ...]
 
 

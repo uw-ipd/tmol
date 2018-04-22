@@ -57,8 +57,9 @@ residues:
     - [  CB,  1HB]
     - [  CB,  2HB]
     - [  CB,  3HB]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, &an atom: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:  0.000000, &p parent: N, &gp grand_parent : CA, &ggp great_grand_parent :      C }
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:  1.458001, *p:   N, *gp:  CA, *ggp:      C }
@@ -123,8 +124,9 @@ residues:
     - [ NH1, 2HH1]
     - [ NH2, 1HH2]
     - [ NH2, 2HH2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:  0.000000, *p:    N, *gp:  CA, *ggp:      C }
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:  1.458001, *p:    N, *gp:  CA, *ggp:      C }
@@ -183,8 +185,9 @@ residues:
     - [  CG,  ND2]
     - [ ND2, 1HD2]
     - [ ND2, 2HD2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -229,8 +232,9 @@ residues:
     - [  CB,  2HB]
     - [  CG,  OD1]
     - [  CG,  OD2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -270,8 +274,9 @@ residues:
     - [  CB,  1HB]
     - [  CB,  2HB]
     - [  SG,   HG]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:         0.0 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:         0.0 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -323,8 +328,9 @@ residues:
     - [  CD,  NE2]
     - [ NE2, 1HE2]
     - [ NE2, 2HE2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -378,8 +384,9 @@ residues:
     - [  CD,  OE2]
     - [  CG,  1HG]
     - [  CG,  2HG]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -415,8 +422,9 @@ residues:
     - [   C,    O]
     - [  CA,  1HA]
     - [  CA,  2HA]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -467,8 +475,9 @@ residues:
     - [ CE1,  NE2]
     - [ NE2,  HE2]
     - [ CE1,  HE1]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
@@ -528,8 +537,9 @@ residues:
     - [ CE1,  NE2]
     - [ CE1,  HE1]
     - [ ND1,  HD1]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458003, *p:     N, *gp:    CA, *ggp:     C}
@@ -591,8 +601,9 @@ residues:
     - [ CD1, 1HD1]
     - [ CD1, 2HD1]
     - [ CD1, 3HD1]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -656,8 +667,9 @@ residues:
     - [ CD2, 1HD2]
     - [ CD2, 2HD2]
     - [ CD2, 3HD2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
@@ -727,8 +739,9 @@ residues:
     - [  NZ,  1HZ]
     - [  NZ,  2HZ]
     - [  NZ,  3HZ]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -791,8 +804,9 @@ residues:
     - [  CE,  1HE]
     - [  CE,  2HE]
     - [  CE,  3HE]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -857,8 +871,9 @@ residues:
     - [ CE1,  HE1]
     - [ CE2,  HE2]
     - [  CZ,   HZ]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -914,8 +929,9 @@ residues:
     - [  CD,  1HD]
     - [  CD,  2HD]
     - [  CD,    N]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
@@ -958,8 +974,9 @@ residues:
     - [  CB,  1HB]
     - [  CB,  2HB]
     - [  OG,   HG]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
@@ -1005,8 +1022,9 @@ residues:
     - [ CG2, 1HG2]
     - [ CG2, 2HG2]
     - [ CG2, 3HG2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -1077,8 +1095,9 @@ residues:
     - [ CZ2,  HZ2]
     - [ CZ3,  HZ3]
     - [ CH2,  HH2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -1153,8 +1172,9 @@ residues:
     - [ CE2,  HE2]
     - [  CZ,   OH]
     - [  OH,   HH]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458004, *p:     N, *gp:    CA, *ggp:     C}
@@ -1215,8 +1235,9 @@ residues:
     - [ CG2, 1HG2]
     - [ CG2, 2HG2]
     - [ CG2, 3HG2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: LOWER, *an: N }
+    - { *n: UPPER, *an: C }
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458004, *p:     N, *gp:    CA, *ggp:     C}
