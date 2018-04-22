@@ -1,3 +1,6 @@
+import toolz
+import cattr
+
 from properties import HasProperties, List, Integer, Instance
 from tmol.properties.array import Array
 
@@ -83,8 +86,21 @@ class PackedResidueSystem(HasProperties):
             for r, start in zip(res, res_aidx)
         ]
 
-        ### Index residue connectivity
+        ### Generate atom metadata
 
+        atom_metadata = numpy.empty(buffer_size, self.atom_metadata_dtype)
+        atom_metadata["atom_index"] = numpy.arange(len(atom_metadata))
+        atom_metadata["residue_index"] = None
+
+        for ri, (rs, r) in enumerate(zip(res_aidx, res)):
+            rt = r.residue_type
+            residue_block = atom_metadata[rs:rs + len(rt.atoms)]
+            residue_block["residue_name"] = rt.name
+            residue_block["atom_name"] = [a.name for a in rt.atoms]
+            residue_block["atom_type"] = [a.atom_type for a in rt.atoms]
+            residue_block["residue_index"] = ri
+
+        ### Index residue connectivity
         # Generate a table of residue connections, with "from" and "to" entries
         # for *both* directions Just a linear set of connections for now
         residue_connections = pandas.DataFrame.from_records(
@@ -128,6 +144,11 @@ class PackedResidueSystem(HasProperties):
             connection_atoms,
         )
 
+        for c in from_connections.columns:
+            connection_index["from", c] = from_connections[c]
+        for c in to_connections.columns:
+            connection_index["to", c] = to_connections[c]
+
         ### Generate the bond graph
 
         # Offset the internal bond graph by the residue start idx
@@ -146,30 +167,89 @@ class PackedResidueSystem(HasProperties):
             inter_res_bonds,
         ])
 
+        ### Generate dihedral metadata for all named torsions
+
+        # Unpack all the residue type torsion entries, and tag with the
+        # source residue index
+        torsion_entries = [
+            dict(
+                residue_index=ri,
+                **torsion_entry,
+            )
+            for ri, r in enumerate(res)
+            for torsion_entry in cattr.unstructure(r.residue_type.torsions)
+        ]
+
+        # Generate a lookup from residue/connection to connected residue
+        connection_lookup = pandas.concat(
+            (
+                pandas.DataFrame( # All the named connections
+                    dict(
+                        residue_index=connection_index["from", "resi"],
+                        cname=connection_index["from", "cname"],
+                        to_residue=connection_index["to", "resi"],
+                    )
+                ),
+                pandas.DataFrame( # Loop-back to self for unamed connections
+                    dict(
+                        cname=None,
+                        residue_index=numpy.arange(len(res)),
+                        to_residue=numpy.arange(len(res)),
+                    )
+                ),
+            ),
+            ignore_index=True,
+        )
+
+        # Generate a lookup from residue index and atom name to global atom index.
+        atom_lookup = pandas.DataFrame(
+            dict(
+                residue_index=atom_metadata["residue_index"],
+                atom_name=atom_metadata["atom_name"],
+                atom_index=numpy.arange(len(atom_metadata)),
+            )
+        )
+        atom_lookup = atom_lookup[~atom_lookup.residue_index.isna()]
+
+        # Left merge the residue/connection name into a target residue, and
+        # then the target residue and atom name into a global atom index
+        # for all atoms in the torsion (a, b, c, d).
+
+        # This yields a global torsion table every torsion, the torsion name,
+        # and the associated global atom indices.
+        torsion_index = toolz.reduce(toolz.curry(pandas.merge)(how="left", copy=False), (
+            pandas.io.json.json_normalize(torsion_entries),
+            connection_lookup.rename(
+                columns={"cname": "a.connection", "to_residue": "a.residue"}),
+            atom_lookup.rename(
+                columns={"residue_index": "a.residue", "atom_name": "a.atom", "atom_index": "a.atom_index"}),
+            connection_lookup.rename(
+                columns={"cname": "b.connection", "to_residue": "b.residue"}),
+            atom_lookup.rename(
+                columns={"residue_index": "b.residue", "atom_name": "b.atom", "atom_index": "b.atom_index"}),
+            connection_lookup.rename(
+                columns={"cname": "c.connection", "to_residue": "c.residue"}),
+            atom_lookup.rename(
+                columns={"residue_index": "c.residue", "atom_name": "c.atom", "atom_index": "c.atom_index"}),
+            connection_lookup.rename(
+                columns={"cname": "d.connection", "to_residue": "d.residue"}),
+            atom_lookup.rename(
+                columns={"residue_index": "d.residue", "atom_name": "d.atom", "atom_index": "d.atom_index"}),
+        )).sort_index("columns") # yapf: disable
+
         self.residues = attached_res
         self.res_start_ind = segment_starts
         self.system_size = buffer_size
 
         self.coords = cbuff
-        self.bonds = bonds
-
-        self.atom_metadata = numpy.empty(
-            self.system_size, self.atom_metadata_dtype
-        )
-        self.atom_metadata["atom_index"] = numpy.arange(
-            len(self.atom_metadata)
-        )
-        self.atom_metadata["residue_index"] = None
-
-        for ri, (rs, r) in enumerate(zip(self.res_start_ind, self.residues)):
-            rt = r.residue_type
-            residue_block = self.atom_metadata[rs:rs + len(rt.atoms)]
-            residue_block["residue_name"] = rt.name
-            residue_block["atom_name"] = [a.name for a in rt.atoms]
-            residue_block["atom_type"] = [a.atom_type for a in rt.atoms]
-            residue_block["residue_index"] = ri
-
+        self.atom_metadata = atom_metadata
         self.atom_metadata.flags.writeable = False
+
+        #TODO Convert to numpy structured arrays?
+        self.connection_index = connection_index.sort_index("columns")
+        self.torsion_index = torsion_index.sort_index("columns")
+
+        self.bonds = bonds
 
         self.validate()
 
