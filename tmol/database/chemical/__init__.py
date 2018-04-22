@@ -1,4 +1,4 @@
-from typing import Tuple, NewType
+from typing import Tuple, Optional, NewType
 from tmol.utility.units import parse_angle, u
 from toolz import curry
 
@@ -47,12 +47,28 @@ class Connection:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class ConnectedAtom:
+    atom: str
+    connection: Optional[str] = None
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class Torsion:
+    name: str
+    a: ConnectedAtom
+    b: ConnectedAtom
+    c: ConnectedAtom
+    d: ConnectedAtom
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Residue:
     name: str
     name3: str
     atoms: Tuple[Atom, ...]
     bonds: Tuple[Tuple[str, str], ...]
     connections: Tuple[Connection, ...]
+    torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
 
 

@@ -40,16 +40,14 @@ class ResidueType(tmol.database.chemical.Residue):
 
     @lower_connect_idx.default
     def _setup_lower_connect_idx(self):
-        lower_connect_name = {c.name: c.atom
-                              for c in self.connections}["LOWER"]
+        lower_connect_name = {c.name: c.atom for c in self.connections}["down"]
         return self.atom_to_idx[lower_connect_name]
 
     upper_connect_idx: int = attr.ib()
 
     @upper_connect_idx.default
     def _setup_upper_connect_idx(self):
-        upper_connect_name = {c.name: c.atom
-                              for c in self.connections}["UPPER"]
+        upper_connect_name = {c.name: c.atom for c in self.connections}["up"]
         return self.atom_to_idx[upper_connect_name]
 
     def _repr_pretty_(self, p, cycle):
