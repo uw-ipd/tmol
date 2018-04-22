@@ -1,16 +1,19 @@
 from frozendict import frozendict
 from toolz.curried import concat, map, compose
-from typing import Mapping
+from typing import Mapping, Optional, NewType
 import attr
 
 import numpy
 
 import tmol.database.chemical
 
+AtomIndex = NewType("AtomIndex", int)
+ConnectionIndex = NewType("ConnectionIndex", int)
+
 
 @attr.s(slots=True, frozen=True)
 class ResidueType(tmol.database.chemical.Residue):
-    atom_to_idx: Mapping[str, int] = attr.ib()
+    atom_to_idx: Mapping[str, AtomIndex] = attr.ib()
 
     @atom_to_idx.default
     def _setup_atom_to_idx(self):
@@ -36,19 +39,20 @@ class ResidueType(tmol.database.chemical.Residue):
         bond_array.flags.writeable = False
         return bond_array
 
-    lower_connect_idx: int = attr.ib()
+    connection_to_idx: Mapping[str, AtomIndex] = attr.ib()
 
-    @lower_connect_idx.default
-    def _setup_lower_connect_idx(self):
-        lower_connect_name = {c.name: c.atom for c in self.connections}["down"]
-        return self.atom_to_idx[lower_connect_name]
+    @connection_to_idx.default
+    def _setup_connection_to_idx(self):
+        return frozendict((c.name, self.atom_to_idx[c.atom])
+                          for c in self.connections)
 
-    upper_connect_idx: int = attr.ib()
+    connection_to_cidx: Mapping[Optional[str], ConnectionIndex] = attr.ib()
 
-    @upper_connect_idx.default
-    def _setup_upper_connect_idx(self):
-        upper_connect_name = {c.name: c.atom for c in self.connections}["up"]
-        return self.atom_to_idx[upper_connect_name]
+    @connection_to_cidx.default
+    def _setup_connection_to_cidx(self):
+        centries = [(None, -1)] + [(c.name, i)
+                                   for i, c in enumerate(self.connections)]
+        return frozendict(centries)
 
     def _repr_pretty_(self, p, cycle):
         p.text(f'ResidueType(name={self.name},...)')

@@ -83,8 +83,8 @@ class PackedResidueSystem(HasProperties):
 
         upchain_inter_res_bonds = numpy.array([
             [
-                i.residue_type.upper_connect_idx + si,
-                j.residue_type.lower_connect_idx + sj
+                i.residue_type.connection_to_idx["up"] + si,
+                j.residue_type.connection_to_idx["down"] + sj
             ]
             for (si, i), (sj, j) in zip(res_by_start[:-1], res_by_start[1:])
         ])  # yapf: disable
