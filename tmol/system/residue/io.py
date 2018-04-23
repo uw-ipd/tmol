@@ -101,8 +101,11 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
         ]  # yapf: disable
 
 
+default_reader = ResidueReader()
+
+
 def read_pdb(pdb_string: str) -> PackedResidueSystem:
-    res = ResidueReader().parse_pdb(pdb_string)
+    res = default_reader.parse_pdb(pdb_string)
 
     return PackedResidueSystem.from_residues(res)
 
