@@ -54,6 +54,30 @@ class PackedResidueSystem(HasProperties):
         "atom metada", dtype=atom_metadata_dtype
     )[:]
 
+    torsion_metadata_dtype = numpy.dtype([
+        ("residue_index", int),
+        ("name", object),
+        ("atom_index_a", float),
+        ("atom_index_b", float),
+        ("atom_index_c", float),
+        ("atom_index_d", float),
+    ])
+
+    torsion_metadata: numpy.ndarray = Array(
+        "torsion metada", dtype=torsion_metadata_dtype
+    )[:]
+
+    connection_metadata_dtype = numpy.dtype([
+        ("from_residue_index", int),
+        ("from_connection_name", object),
+        ("to_residue_index", int),
+        ("to_connection_name", object),
+    ])
+
+    connection_metadata: numpy.ndarray = Array(
+        "connection metada", dtype=connection_metadata_dtype
+    )[:]
+
     @staticmethod
     def _ceil_to_size(size, val):
         d, m = numpy.divmod(val, size)
@@ -120,6 +144,19 @@ class PackedResidueSystem(HasProperties):
             ignore_index=True,
         ) # yapf: disable
 
+        # Unpack the connection metadata table
+        connection_metadata = numpy.empty(
+            len(connection_index), dtype=self.connection_metadata_dtype
+        )
+        connection_metadata['from_residue_index'] = connection_index["from"
+                                                                     ]["resi"]
+        connection_metadata['from_connection_name'
+                            ] = connection_index["from"]["cname"]
+        connection_metadata['to_residue_index'] = connection_index["to"]["resi"
+                                                                         ]
+        connection_metadata['to_connection_name'] = connection_index["to"
+                                                                     ]["cname"]
+
         # Generate an index of all the connection atoms in the system,
         # resolving the internal and global index of the connection atoms
         connection_atoms = pandas.DataFrame.from_records([
@@ -169,17 +206,6 @@ class PackedResidueSystem(HasProperties):
 
         ### Generate dihedral metadata for all named torsions
 
-        # Unpack all the residue type torsion entries, and tag with the
-        # source residue index
-        torsion_entries = [
-            dict(
-                residue_index=ri,
-                **torsion_entry,
-            )
-            for ri, r in enumerate(res)
-            for torsion_entry in cattr.unstructure(r.residue_type.torsions)
-        ]
-
         # Generate a lookup from residue/connection to connected residue
         connection_lookup = pandas.concat(
             (
@@ -211,6 +237,17 @@ class PackedResidueSystem(HasProperties):
         )
         atom_lookup = atom_lookup[~atom_lookup.residue_index.isna()]
 
+        # Unpack all the residue type torsion entries, and tag with the
+        # source residue index
+        torsion_entries = [
+            dict(
+                residue_index=ri,
+                **torsion_entry,
+            )
+            for ri, r in enumerate(res)
+            for torsion_entry in cattr.unstructure(r.residue_type.torsions)
+        ]
+
         # Left merge the residue/connection name into a target residue, and
         # then the target residue and atom name into a global atom index
         # for all atoms in the torsion (a, b, c, d).
@@ -237,18 +274,27 @@ class PackedResidueSystem(HasProperties):
                 columns={"residue_index": "d.residue", "atom_name": "d.atom", "atom_index": "d.atom_index"}),
         )).sort_index("columns") # yapf: disable
 
-        self.residues = attached_res
-        self.res_start_ind = segment_starts
+        ### Unpack the merge frame into atomic indices
+        torsion_metadata = numpy.empty(
+            len(torsion_index), self.torsion_metadata_dtype
+        )
+        torsion_metadata["residue_index"] = torsion_index["residue_index"]
+        torsion_metadata["name"] = torsion_index["name"]
+        torsion_metadata["atom_index_a"] = torsion_index["a.atom_index"]
+        torsion_metadata["atom_index_b"] = torsion_index["b.atom_index"]
+        torsion_metadata["atom_index_c"] = torsion_index["c.atom_index"]
+        torsion_metadata["atom_index_d"] = torsion_index["d.atom_index"]
+
         self.system_size = buffer_size
+        self.res_start_ind = segment_starts
+
+        self.residues = attached_res
+
+        self.atom_metadata = atom_metadata
+        self.torsion_metadata = torsion_metadata
+        self.connection_metadata = connection_metadata
 
         self.coords = cbuff
-        self.atom_metadata = atom_metadata
-        self.atom_metadata.flags.writeable = False
-
-        #TODO Convert to numpy structured arrays?
-        self.connection_index = connection_index.sort_index("columns")
-        self.torsion_index = torsion_index.sort_index("columns")
-
         self.bonds = bonds
 
         self.validate()
