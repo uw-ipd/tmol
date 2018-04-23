@@ -12,9 +12,11 @@ import tmol.database
 from tmol.score.interatomic_distance import NaiveInteratomicDistanceGraph
 
 from tmol.system.residue.io import read_pdb
-from tmol.score.hbond import HBondElementAnalysis, HBondScoreGraph
+from tmol.score.hbond import HBondElementAnalysis, HBondScoreGraph, hbond_donor_sp2_score
 import tmol.tests.data.rosetta_baseline as rosetta_baseline
 import tmol.tests.data.pdb as test_pdbs
+
+import torch
 
 
 def test_bb_identification(bb_hbond_database):
@@ -295,6 +297,37 @@ bb_hbond_config = yaml.load(
         c_k: -347.50157909
 """
 )
+
+
+def test_bb_single_hbond():
+    hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6 = torch.tensor([[
+        0.0, -0.5307601, 6.47949946, -22.39522814, 55.14303544, 708.30945242,
+        -2619.49318162, 5227.8805795, -6043.31211632, 3806.04676175,
+        -1007.66024144
+    ]])
+    poly_cosBAH_off = torch.tensor([[
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+    ]])
+    poly_AHD_1j = torch.tensor([[
+        0.0, 0.47683259, -9.54524724, 83.62557693, 420.55867774,
+        1337.19354878 - 2786.26265686, 3803.178227, -3278.62879901,
+        1619.04116204, -347.50157909
+    ]])
+
+    atomD = torch.tensor([[0.409, 3.986, -1.316]])
+    atomH = torch.tensor([[0.913, 3.226, -0.880]])
+    atomA = torch.tensor([[1.383, 2.339, -0.529]])
+    atomB = torch.tensor([[2.009, 1.420, 0.000]])
+    atomB0 = torch.tensor([[1.458, 0.000, 0.000]])
+
+    energy = tmol.score.hbond.hbond_donor_sp2_score(
+        atomD, atomH, atomA, atomB, atomB0,
+        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6, poly_cosBAH_off,
+        poly_AHD_1j, 4.2
+    )
+
+    print(energy)
+    assert (false)
 
 
 @pytest.fixture
