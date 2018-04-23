@@ -16,7 +16,6 @@ class PackedResidueSystem(HasProperties):
 
     block_size: int = Integer(
         "coord buffer block size, residue start indicies are aligned to block boundries",
-        default=8,
         min=1,
         cast=True
     )
@@ -83,7 +82,8 @@ class PackedResidueSystem(HasProperties):
         d, m = numpy.divmod(val, size)
         return (d + (m != 0).astype(int)) * size
 
-    def from_residues(self, res: Sequence[Residue]):
+    @classmethod
+    def from_residues(cls, res: Sequence[Residue], block_size=8):
         """Initialize a packed residue system from list of residue containers."""
 
         ### Pack residues within the coordinate system
@@ -92,7 +92,7 @@ class PackedResidueSystem(HasProperties):
         #
         # Ceil each residue's size to generate residue segments
         res_lengths = numpy.array([len(r.coords) for r in res])
-        res_segment_lengths = self._ceil_to_size(self.block_size, res_lengths)
+        res_segment_lengths = cls._ceil_to_size(block_size, res_lengths)
 
         segment_ends = res_segment_lengths.cumsum()
         segment_starts = numpy.empty_like(segment_ends)
@@ -112,7 +112,7 @@ class PackedResidueSystem(HasProperties):
 
         ### Generate atom metadata
 
-        atom_metadata = numpy.empty(buffer_size, self.atom_metadata_dtype)
+        atom_metadata = numpy.empty(buffer_size, cls.atom_metadata_dtype)
         atom_metadata["atom_index"] = numpy.arange(len(atom_metadata))
         atom_metadata["residue_index"] = None
 
@@ -146,7 +146,7 @@ class PackedResidueSystem(HasProperties):
 
         # Unpack the connection metadata table
         connection_metadata = numpy.empty(
-            len(connection_index), dtype=self.connection_metadata_dtype
+            len(connection_index), dtype=cls.connection_metadata_dtype
         )
         connection_metadata['from_residue_index'] = connection_index["from"
                                                                      ]["resi"]
@@ -216,7 +216,7 @@ class PackedResidueSystem(HasProperties):
                         to_residue=connection_index["to", "resi"],
                     )
                 ),
-                pandas.DataFrame( # Loop-back to self for unamed connections
+                pandas.DataFrame( # Loop-back to cls.for unamed connections
                     dict(
                         cname=None,
                         residue_index=numpy.arange(len(res)),
@@ -276,7 +276,7 @@ class PackedResidueSystem(HasProperties):
 
         ### Unpack the merge frame into atomic indices
         torsion_metadata = numpy.empty(
-            len(torsion_index), self.torsion_metadata_dtype
+            len(torsion_index), cls.torsion_metadata_dtype
         )
         torsion_metadata["residue_index"] = torsion_index["residue_index"]
         torsion_metadata["name"] = torsion_index["name"]
@@ -285,18 +285,18 @@ class PackedResidueSystem(HasProperties):
         torsion_metadata["atom_index_c"] = torsion_index["c.atom_index"]
         torsion_metadata["atom_index_d"] = torsion_index["d.atom_index"]
 
-        self.system_size = buffer_size
-        self.res_start_ind = segment_starts
+        result = cls(
+            block_size=block_size,
+            system_size=buffer_size,
+            res_start_ind=segment_starts,
+            residues=attached_res,
+            atom_metadata=atom_metadata,
+            torsion_metadata=torsion_metadata,
+            connection_metadata=connection_metadata,
+            bonds=bonds,
+            coords=cbuff,
+        )
 
-        self.residues = attached_res
+        result.validate()
 
-        self.atom_metadata = atom_metadata
-        self.torsion_metadata = torsion_metadata
-        self.connection_metadata = connection_metadata
-
-        self.coords = cbuff
-        self.bonds = bonds
-
-        self.validate()
-
-        return self
+        return result
