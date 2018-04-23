@@ -125,3 +125,13 @@ class PackedResidueSystem(HasProperties):
         self.validate()
 
         return self
+
+    def atom_to_block_ind(self, atom_ind: numpy.ndarray) -> numpy.ndarray:
+        """Convert atom index array into block index."""
+        return (atom_ind / self.block_size).astype(int)
+
+    def atom_to_res_ind(self, atom_ind: numpy.ndarray) -> numpy.ndarray:
+        """Convert atom index array into residue index."""
+        return (
+            numpy.searchsorted(self.res_start_ind, atom_ind, side="right") - 1
+        )

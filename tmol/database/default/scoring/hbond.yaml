@@ -1,0 +1,214 @@
+# vim: nowrap ts=2 sw=2 expandtab
+global_parameters: 
+  max_dis : 4.2
+atom_groups:
+  donors:
+    - { d: Nbb,      h: HNbb, donor_type: hbdon_PBA }
+    - { d: Ntrp,     h: Hpol, donor_type: hbdon_IND }
+    - { d: NhisD,    h: Hpol, donor_type: hbdon_IMD }
+    - { d: NhisE,    h: Hpol, donor_type: hbdon_IME }
+    - { d: NtrR,     h: Hpol, donor_type: hbdon_GDE }
+    - { d: Narg,     h: Hpol, donor_type: hbdon_GDH }
+    - { d: NH2O,     h: Hpol, donor_type: hbdon_CXA }
+    - { d: Nlys,     h: Hpol, donor_type: hbdon_AMO }
+    - { d: OH,       h: Hpol, donor_type: hbdon_HXL }
+    - { d: OHphenol, h: Hpol, donor_type: hbdon_AHX } # Need aro OH for tyrosine
+  sp2_acceptors:
+    - { a: OCbb, b: CObb, b0: CAbb, acceptor_type: hbacc_PBA }
+    - { a: ONH2, b: CNH2, b0: NH2O, acceptor_type: hbacc_CXA }
+    - { a: OOC,  b: COO,  b0: CH2,  acceptor_type: hbacc_CXL }
+  sp3_acceptors:
+    - { a: OH,       b: CH2, b0: Hpol, acceptor_type: hbacc_HXL }
+    - { a: OH,       b: CH1, b0: Hpol, acceptor_type: hbacc_HXL }
+    - { a: OHphenol, b: CH0, b0: Hpol, acceptor_type: hbacc_AHX }
+  ring_acceptors:
+    - { a: NhisDDepro, b: aroC, bp: CH0,  acceptor_type: hbacc_IMD }
+    - { a: NhisEDepro, b: aroC, bp: aroC, acceptor_type: hbacc_IME }
+chemical_types:
+  donors:
+    - hbdon_PBA #ex: protein backbone Nbb--HNbb
+    - hbdon_CXA #ex: Asn ND2--{1 2}HD2; Gln NE2--{1 2}HE2 
+    - hbdon_IMD #ex: His(HIS_D res_type) ND1--HE2 -- tautomer state with hydrogen on nitrogen closer to backbone
+    - hbdon_IME #ex: His(HIS res_type) NE2--HE2 -- tautomer state with hydrogen on nitrogen farther from backbone
+    - hbdon_IND #ex: Trp NE1--HE1 
+    - hbdon_AMO #ex: Lys NZ--{1 2 3}HZ
+    - hbdon_GDE #ex: Arg NE--HE
+    - hbdon_GDH #ex: Arg NH{1 2}--{1 2}HH{1 2} 
+    - hbdon_AHX #ex: Tyr OH--HH
+    - hbdon_HXL #ex: Ser OG--HG; Thr OG1--HG1
+    - hbdon_H2O #ex: H2O(TP5/TP3 res types) O--H{1 2}
+  sp2_acceptors:
+    - hbacc_PBA #ex: protein backbone OCbb
+    - hbacc_CXA #ex: Asn OD1; Gln OE1
+    - hbacc_CXL #ex: Asp OD{1 2}; Glu OE{1 2}
+  sp3_acceptors:
+    - hbacc_AHX #ex: Tyr OH
+    - hbacc_HXL #ex: Ser OG; Thr OG1
+    - hbacc_H2O #H2O(TP5/TP3 res types) O
+  ring_acceptors:
+    - hbacc_IMD #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
+    - hbacc_IME #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
+hbond_weights:
+  - {name: hbdon_IND, weight: 1.25}
+  - {name: hbdon_CXA, weight: 1.27}
+  - {name: hbdon_AMO, weight: 1.11}
+  - {name: hbdon_IMD, weight: 1.15}
+  - {name: hbdon_GDH, weight: 1.10}
+  - {name: hbdon_IME, weight: 1.42}
+  - {name: hbdon_GDE, weight: 1.10}
+  - {name: hbdon_HXL, weight: 0.96}
+  - {name: hbdon_AHX, weight: 1.03}
+  - {name: hbdon_PBA, weight: 1.41}
+  - {name: hbacc_IMD, weight: 1.13}
+  - {name: hbacc_PBA, weight: 1.08}
+  - {name: hbacc_CXA, weight: 1.24}
+  - {name: hbacc_AHX, weight: 1.18}
+  - {name: hbacc_IME, weight: 1.16}
+  - {name: hbacc_CXL, weight: 1.12}
+  - {name: hbacc_HXL, weight: 1.15}
+polynomial_parameters: # Parameters imported from rosetta sp2_elec_params @v2017.48-dev59886
+  - {name: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7019094761929999,    xmax: 2.86820307153,      degree: 10, c_a: 0.0, c_b: 0.58376113,       c_c: -9.29345473,      c_d: 64.86270904,      c_e: -260.3946711,     c_f: 661.43138077,      c_g: -1098.01378958,    c_h: 1183.58371466,      c_i: -790.82929582,   c_j: 291.33125475,      c_k: -43.01629727,     }
+  - {name: hbpoly_ahdist_aASN_dASN_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.625841094801,        xmax: 2.75107708444,      degree: 10, c_a: 0.0, c_b: -1.31243015,      c_c: 18.6745072,       c_d: -112.63858313,    c_e: 373.32878091,     c_f: -734.99145504,     c_g: 861.38324861,      c_h: -556.21026097,      c_i: 143.5626977,     c_j: 20.03238394,       c_k: -11.52167705,     }
+  - {name: hbpoly_ahdist_aASN_dGLY_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7477341047139999,    xmax: 2.6796350782799996, degree: 10, c_a: 0.0, c_b: -1.61294554,      c_c: 23.3150793,       c_d: -144.11313069,    c_e: 496.13575,        c_f: -1037.83809166,    c_g: 1348.76826073,     c_h: -1065.14368678,     c_i: 473.89008925,    c_j: -100.41142701,     c_k: 7.44453515,       }
+  - {name: hbpoly_ahdist_aASN_dHIS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.344789524346,        xmax: 2.8303582266000005, degree: 10, c_a: 0.0, c_b: -0.2657122,       c_c: 4.1073775,        c_d: -26.9099632,      c_e: 97.10486507,      c_f: -209.96002602,     c_g: 277.33057268,      c_h: -218.74766996,      c_i: 97.42852213,     c_j: -24.07382402,      c_k: 3.73962807,       }
+  - {name: hbpoly_ahdist_aASN_dLYS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.542905671869,        xmax: 2.45259389314,      degree: 10, c_a: 0.0, c_b: 1.38531754,       c_c: -18.48733797,     c_d: 106.14444613,     c_e: -344.70585054,    c_f: 698.91577956,      c_g: -917.0879402,      c_h: 775.32787908,       c_i: -403.09588787,   c_j: 113.65054778,      c_k: -11.66516403,     }
+  - {name: hbpoly_ahdist_aASN_dSER_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.0812774602500002,    xmax: 2.6832123582599996, degree: 10, c_a: 0.0, c_b: -3.51524353,      c_c: 47.54032873,      c_d: -254.40168577,    c_e: 617.84606386,     c_f: -255.49935027,     c_g: -2361.56230539,    c_h: 6426.85797934,      c_i: -7760.4403891,   c_j: 4694.08106855,     c_k: -1149.83549068,   }
+  - {name: hbpoly_ahdist_aASN_dTRP_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.6689984999999999,    xmax: 3.0704254,          degree: 10, c_a: 0.0, c_b: -0.5284840422,    c_c: 8.3510150838,     c_d: -56.4100479414,   c_e: 212.4884326254,   c_f: -488.3178610608,   c_g: 703.7762350506,    c_h: -628.9936994633999, c_i: 331.4294356146,  c_j: -93.265817571,     c_k: 11.9691623698,    }
+  - {name: hbpoly_ahdist_aASN_dTYR_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.08950268805,         xmax: 2.6887046709400004, degree: 10, c_a: 0.0, c_b: -4.4488705,       c_c: 63.27696281,      c_d: -371.44187037,    c_e: 1121.71921621,    c_f: -1638.11394306,    c_g: 142.99988401,      c_h: 3436.65879147,      c_i: -5496.07011787,  c_j: 3709.30505237,     c_k: -962.79669688,    }
+  - {name: hbpoly_ahdist_aASP_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.8100404642229999,    xmax: 2.9851230124799994, degree: 10, c_a: 0.0, c_b: -0.66430344,      c_c: 10.41343145,      c_d: -70.12656205,     c_e: 265.12578414,     c_f: -617.05849171,     c_g: 911.39378582,      c_h: -847.25013928,      c_i: 472.09090981,    c_j: -141.71513167,     c_k: 18.57721132,      }
+  - {name: hbpoly_ahdist_aASP_dASN_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.05401125073,         xmax: 3.11129675908,      degree: 10, c_a: 0.0, c_b: 0.02090728,       c_c: -0.24144928,      c_d: -0.19578075,      c_e: 16.80904547,      c_f: -117.70216251,     c_g: 407.18551288,      c_h: -809.95195924,      c_i: 939.83137947,    c_j: -593.94527692,     c_k: 159.57610528,     }
+  - {name: hbpoly_ahdist_aASP_dGLY_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.886260952629,        xmax: 2.66843608743,      degree: 10, c_a: 0.0, c_b: -7.00699267,      c_c: 107.33021779,     c_d: -713.45752385,    c_e: 2694.43092298,    c_f: -6353.05100287,    c_g: 9667.94098394,     c_h: -9461.9261027,      c_i: 5721.0086877,    c_j: -1933.97818198,    c_k: 279.47763789,     }
+  - {name: hbpoly_ahdist_aASP_dHIS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.03597611139,         xmax: 2.78208509117,      degree: 10, c_a: 0.0, c_b: -1.34823406,      c_c: 17.08925926,      c_d: -78.75087193,     c_e: 106.32795459,     c_f: 400.18459698,      c_g: -2041.04320193,    c_h: 4033.83557387,      c_i: -4239.60530204,  c_j: 2324.00877252,     c_k: -519.38410941,    }
+  - {name: hbpoly_ahdist_aASP_dLYS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.97789485082,         xmax: 2.50496946108,      degree: 10, c_a: 0.0, c_b: -0.41300315,      c_c: 6.59243438,       c_d: -44.44525308,     c_e: 163.11796012,     c_f: -351.2307798,      c_g: 443.2463146,       c_h: -297.84582856,      c_i: 62.38600547,     c_j: 33.77496227,       c_k: -14.11652182,     }
+  - {name: hbpoly_ahdist_aASP_dSER_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.542905671869,        xmax: 2.45259389314,      degree: 10, c_a: 0.0, c_b: 1.38531754,       c_c: -18.48733797,     c_d: 106.14444613,     c_e: -344.70585054,    c_f: 698.91577956,      c_g: -917.0879402,      c_h: 775.32787908,       c_i: -403.09588787,   c_j: 113.65054778,      c_k: -11.66516403,     }
+  - {name: hbpoly_ahdist_aASP_dTRP_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.419155746414,        xmax: 3.0486938610500003, degree: 10, c_a: 0.0, c_b: -0.24563471,      c_c: 3.85598551,       c_d: -25.75176874,     c_e: 95.36525025,      c_f: -214.13175785,     c_g: 299.76133553,      c_h: -259.0691378,       c_i: 132.06975835,    c_j: -37.15612683,      c_k: 5.60445773,       }
+  - {name: hbpoly_ahdist_aASP_dTYR_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.01057521468,         xmax: 2.7207545786900003, degree: 10, c_a: 0.0, c_b: -0.15808672,      c_c: -10.21398871,     c_d: 178.80080949,     c_e: -1238.0583801,    c_f: 4736.25248274,     c_g: -11071.96777725,   c_h: 16239.07550047,     c_i: -14593.21092621, c_j: 7335.66765017,     c_k: -1575.08145078,   }
+  - {name: hbpoly_ahdist_aGLY_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.499016667857,        xmax: 2.9377031027599996, degree: 10, c_a: 0.0, c_b: -0.15923533,      c_c: 2.5526639,        c_d: -17.38788803,     c_e: 65.71046957,      c_f: -151.13491186,     c_g: 218.78048387,      c_h: -199.15882919,      c_i: 110.56568974,    c_j: -35.95143745,      c_k: 6.47580213,       }
+  - {name: hbpoly_ahdist_aGLY_dASN_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7194388032060001,    xmax: 2.9303772333599998, degree: 10, c_a: 0.0, c_b: -1.40718342,      c_c: 23.65929694,      c_d: -172.97144348,    c_e: 720.64417348,     c_f: -1882.85420815,    c_g: 3194.87197776,     c_h: -3515.52467458,     c_i: 2415.75238278,   c_j: -941.47705161,     c_k: 159.84784277,     }
+  - {name: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.38403812683,         xmax: 2.9981039433,       degree: 10, c_a: 0.0, c_b: -0.5307601,       c_c: 6.47949946,       c_d: -22.39522814,     c_e: -55.14303544,     c_f: 708.30945242,      c_g: -2619.49318162,    c_h: 5227.8805795,       c_i: -6043.31211632,  c_j: 3806.04676175,     c_k: -1007.66024144,   }
+  - {name: hbpoly_ahdist_aGLY_dHIS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.47406840932899996,   xmax: 2.9234200830400003, degree: 10, c_a: 0.0, c_b: -0.12881679,      c_c: 1.933838,         c_d: -12.03134888,     c_e: 39.92691227,      c_f: -75.41519959,      c_g: 78.87968016,       c_h: -37.82769801,       c_i: -0.13178679,     c_j: 4.50193019,        c_k: 0.45408359,       }
+  - {name: hbpoly_ahdist_aGLY_dLYS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.545347533475,        xmax: 2.42624380351,      degree: 10, c_a: 0.0, c_b: -0.22921901,      c_c: 2.07015714,       c_d: -6.2947417,       c_e: 0.66645697,       c_f: 45.21805416,       c_g: -130.26668981,     c_h: 176.32401031,       c_i: -126.68226346,   c_j: 43.96744431,       c_k: -4.40105281,      }
+  - {name: hbpoly_ahdist_aGLY_dSER_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.2803349239700001,    xmax: 2.2465996077400003, degree: 10, c_a: 0.0, c_b: 6.72508613,       c_c: -86.98495585,     c_d: 454.18518444,     c_e: -1119.89141452,   c_f: 715.624663,        c_g: 3172.36852982,     c_h: -9455.49113097,     c_i: 11797.38766934,  c_j: -7363.28302948,    c_k: 1885.50119665,    }
+  - {name: hbpoly_ahdist_aGLY_dTRP_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.686512740494,        xmax: 3.02901351815,      degree: 10, c_a: 0.0, c_b: -0.1051487,       c_c: 1.41597708,       c_d: -7.42149173,      c_e: 17.31830704,      c_f: -6.98293652,       c_g: -54.76605063,      c_h: 130.95272289,       c_i: -132.77575305,   c_j: 62.75460448,       c_k: -9.89110842,      }
+  - {name: hbpoly_ahdist_aGLY_dTYR_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.28894687639,         xmax: 2.26335316892,      degree: 10, c_a: 0.0, c_b: 13.84536925,      c_c: -169.40579865,    c_d: 893.79467505,     c_e: -2670.60617561,   c_f: 5016.46234701,     c_g: -6293.79378818,    c_h: 5585.1049063,       c_i: -3683.50722701,  c_j: 1709.48661405,     c_k: -399.5712153,     }
+  - {name: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.8967400957230001,    xmax: 2.96809434226,      degree: 10, c_a: 0.0, c_b: 0.43460495,       c_c: -10.52727665,     c_d: 103.16979807,     c_e: -551.42887412,    c_f: 1793.25378923,     c_g: -3701.08304991,    c_h: 4861.05155388,      c_i: -3922.4285529,   c_j: 1763.82137881,     c_k: -335.43441944,    }
+  - {name: hbpoly_ahdist_aHIS_dASN_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.887120931718,        xmax: 2.59166903153,      degree: 10, c_a: 0.0, c_b: -3.50289894,      c_c: 54.42813924,      c_d: -368.14395507,    c_e: 1418.90186454,    c_f: -3425.60485859,    c_g: 5360.92334837,     c_h: -5428.54462336,     c_i: 3424.68800187,   c_j: -1221.49631986,    c_k: 189.27122436,     }
+  - {name: hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.01629363411,         xmax: 2.58523052904,      degree: 10, c_a: 0.0, c_b: -1.68095217,      c_c: 21.31894078,      c_d: -107.72203494,    c_e: 251.81021758,     c_f: -134.07465831,     c_g: -707.64527046,     c_h: 1894.6282743,       c_i: -2156.85951846,  c_j: 1216.83585872,     c_k: -275.48078944,    }
+  - {name: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.9773010778919999,    xmax: 2.72533796329,      degree: 10, c_a: 0.0, c_b: -2.33350626,      c_c: 35.66072412,      c_d: -233.98966111,    c_e: 859.13714961,     c_f: -1925.30958567,    c_g: 2685.35293578,     c_h: -2257.48067507,     c_i: 1021.49796136,   c_j: -169.36082523,     c_k: -12.1348055,      }
+  - {name: hbpoly_ahdist_aHIS_dLYS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7080936539849999,    xmax: 2.47191718632,      degree: 10, c_a: 0.0, c_b: -1.88479369,      c_c: 28.38084382,      c_d: -185.74039957,    c_e: 690.81875917,     c_f: -1605.11404391,    c_g: 2414.83545623,     c_h: -2355.9723201,      c_i: 1442.24496229,   c_j: -506.45880637,     c_k: 79.47512505,      }
+  - {name: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.90846809159,         xmax: 2.5477956147,       degree: 10, c_a: 0.0, c_b: -0.92004641,      c_c: 15.91841533,      c_d: -117.83979251,    c_e: 488.22211296,     c_f: -1244.13047376,    c_g: 2017.43704053,     c_h: -2076.04468019,     c_i: 1302.42621488,   c_j: -451.29138643,     c_k: 67.15812575,      }
+  - {name: hbpoly_ahdist_aHIS_dTRP_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.991999676806,        xmax: 2.81296584506,      degree: 10, c_a: 0.0, c_b: -1.29358587,      c_c: 19.97152857,      c_d: -131.89796017,    c_e: 485.29199356,     c_f: -1084.0466445,     c_g: 1497.3352889,      c_h: -1234.58042682,     c_i: 535.8048197,     c_j: -75.58951691,      c_k: -9.91148332,      }
+  - {name: hbpoly_ahdist_aHIS_dTYR_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.882661836357,        xmax: 2.5469016429900004, degree: 10, c_a: 0.0, c_b: -6.94700143,      c_c: 109.07997256,     c_d: -747.64035726,    c_e: 2929.83959536,    c_f: -7220.15788571,    c_g: 11583.34170519,    c_h: -12078.443492,      c_i: 7881.85479715,   c_j: -2918.19482068,    c_k: 468.23988622,     }
+  - {name: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.0204658147399999,    xmax: 2.8899566041900004, degree: 10, c_a: 0.0, c_b: 0.33887327,       c_c: -7.54511361,      c_d: 70.87316645,      c_e: -371.88263665,    c_f: 1206.67454443,     c_g: -2516.82084076,    c_h: 3379.45432693,      c_i: -2819.73384601,  c_j: 1325.33307517,     c_k: -265.54533008,    }
+  - {name: hbpoly_ahdist_aSER_dASN_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.01393052233,         xmax: 3.0024434159299997, degree: 10, c_a: 0.0, c_b: 0.37012361,       c_c: -7.46486204,      c_d: 64.85775924,      c_e: -318.6047209,     c_f: 974.66322243,      c_g: -1924.37334018,    c_h: 2451.63840629,      c_i: -1943.1915675,   c_j: 867.07870559,      c_k: -163.83771761,    }
+  - {name: hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.3856562156299999,    xmax: 2.74160605537,      degree: 10, c_a: 0.0, c_b: -1.32847415,      c_c: 22.67528654,      c_d: -172.53450064,    c_e: 770.79034865,     c_f: -2233.48829652,    c_g: 4354.38807288,     c_h: -5697.35144236,     c_i: 4803.38686157,   c_j: -2361.48028857,    c_k: 518.28202382,     }
+  - {name: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.550992321207,        xmax: 2.68549261999,      degree: 10, c_a: 0.0, c_b: -1.98041793,      c_c: 29.59668639,      c_d: -190.36751773,    c_e: 688.43324385,     c_f: -1534.68894765,    c_g: 2175.66568976,     c_h: -1952.07622113,     c_i: 1066.28943929,   c_j: -324.23381388,     c_k: 43.41006168,      }
+  - {name: hbpoly_ahdist_aSER_dLYS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.8603189393170001,    xmax: 2.77729502744,      degree: 10, c_a: 0.0, c_b: 0.90884741,       c_c: -17.24690746,     c_d: 141.78469099,     c_e: -661.85989315,    c_f: 1929.7674992,      c_g: -3636.43392779,    c_h: 4419.00727923,      c_i: -3332.43482061,  c_j: 1410.78913266,     c_k: -253.53829424,    }
+  - {name: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.10866545921,         xmax: 2.61727781204,      degree: 10, c_a: 0.0, c_b: -0.38264308,      c_c: 4.41779675,       c_d: -10.7016645,      c_e: -81.91314845,     c_f: 668.91174735,      c_g: -2187.50684758,    c_h: 3983.56103269,      c_i: -4213.32320546,  c_j: 2418.41531442,     c_k: -580.28918569,    }
+  - {name: hbpoly_ahdist_aSER_dTRP_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.4092077245899999,    xmax: 2.8066121197099996, degree: 10, c_a: 0.0, c_b: 0.73762477,       c_c: -11.70741276,     c_d: 73.05154232,      c_e: -205.00144794,    c_f: 89.58794368,       c_g: 1082.94541375,     c_h: -3343.98293188,     c_i: 4601.70815729,   c_j: -3178.53568678,    c_k: 896.59487831,     }
+  - {name: hbpoly_ahdist_aSER_dTYR_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.10773547919,         xmax: 2.60403567341,      degree: 10, c_a: 0.0, c_b: -1.13249925,      c_c: 14.66643161,      c_d: -69.01708791,     c_e: 93.96846742,      c_f: 380.56063898,      c_g: -1984.56675689,    c_h: 4074.08891127,      c_i: -4492.76927139,  c_j: 2613.13168054,     c_k: -627.71933508,    }
+  - {name: hbpoly_ahdist_aTYR_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.05581400627,         xmax: 2.85499888099,      degree: 10, c_a: 0.0, c_b: -0.30396592,      c_c: 5.30288548,       c_d: -39.75788579,     c_e: 167.5416547,      c_f: -435.15958911,     c_g: 716.52357586,      c_h: -735.95195083,      c_i: 439.76284677,    c_j: -130.00400085,     c_k: 13.23827556,      }
+  - {name: hbpoly_ahdist_aTYR_dASN_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.0994919065200002,    xmax: 2.8400869077900004, degree: 10, c_a: 0.0, c_b: 0.33548259,       c_c: -3.5890451,       c_d: 8.97769025,       c_e: 48.1492734,       c_f: -400.5983616,      c_g: 1269.89613211,     c_h: -2238.03101675,     c_i: 2298.33009115,   c_j: -1290.42961162,    c_k: 308.43185147,     }
+  - {name: hbpoly_ahdist_aTYR_dGLY_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.36546155066,         xmax: 2.7303075916400004, degree: 10, c_a: 0.0, c_b: -1.55312915,      c_c: 18.62092487,      c_d: -70.91365499,     c_e: -41.83066505,     c_f: 1248.88835245,     c_g: -4719.81948329,    c_h: 9186.09528168,      c_i: -10266.11434548, c_j: 6266.21959533,     c_k: -1622.19652457,   }
+  - {name: hbpoly_ahdist_aTYR_dHIS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.5955982461899999,    xmax: 2.6643551317500003, degree: 10, c_a: 0.0, c_b: -0.47442788,      c_c: 7.16629863,       c_d: -46.71287553,     c_e: 171.46128947,     c_f: -388.17484011,     c_g: 558.45202337,      c_h: -506.35587481,      c_i: 276.46237273,    c_j: -83.52554392,      c_k: 12.05709329,      }
+  - {name: hbpoly_ahdist_aTYR_dLYS_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7978598238760001,    xmax: 2.7620933782,       degree: 10, c_a: 0.0, c_b: -0.20201464,      c_c: 1.69684984,       c_d: 0.27677515,       c_e: -55.05786347,     c_f: 286.29918332,      c_g: -725.92372531,     c_h: 1054.771746,        c_i: -889.33602341,   c_j: 401.11342256,      c_k: -73.02221189,     }
+  - {name: hbpoly_ahdist_aTYR_dSER_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7083554962559999,    xmax: 2.7032011990599996, degree: 10, c_a: 0.0, c_b: -0.70764192,      c_c: 11.67978065,      c_d: -82.80447482,     c_e: 329.83401367,     c_f: -810.58976486,     c_g: 1269.57613941,     c_h: -1261.04047117,     c_i: 761.72890446,    c_j: -254.37526011,     c_k: 37.24301861,      }
+  - {name: hbpoly_ahdist_aTYR_dTRP_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.10934023051,         xmax: 2.8819112108,       degree: 10, c_a: 0.0, c_b: -11.58453967,     c_c: 204.88308091,     c_d: -1589.77384548,   c_e: 7100.84791905,    c_f: -20113.61354433,   c_g: 37457.83646055,    c_h: -45850.02969172,    c_i: 35559.8805122,   c_j: -15854.78726237,   c_k: 3098.04931146,    }
+  - {name: hbpoly_ahdist_aTYR_dTYR_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 1.1105954899400001,    xmax: 2.60081798685,      degree: 10, c_a: 0.0, c_b: -1.63120628,      c_c: 19.48493187,      c_d: -81.0332905,      c_e: 56.80517706,      c_f: 687.42717782,      c_g: -2842.77799908,    c_h: 5385.52231471,      c_i: -5656.74159307,  c_j: 3178.83470588,     c_k: -744.70042777,    }
+  - {name: poly_AHD_1h,                                  dimension: hbgd_AHD,    xmin: 1.76555274367,         xmax: 3.1416,             degree: 10, c_a: 0.0, c_b: 0.62725838,       c_c: -9.98558225,      c_d: 59.39060071,      c_e: -120.82930213,    c_f: -333.26536028,     c_g: 2603.13082592,     c_h: -6895.51207142,     c_i: 9651.25238056,   c_j: -7127.13394872,    c_k: 2194.77244026,    }
+  - {name: poly_AHD_1i,                                  dimension: hbgd_AHD,    xmin: 1.59914724347,         xmax: 3.1416,             degree: 10, c_a: 0.0, c_b: -0.18888801,      c_c: 3.48241679,       c_d: -25.65508662,     c_e: 89.57085435,      c_f: -95.91708218,      c_g: -367.93452341,     c_h: 1589.6904702,       c_i: -2662.3582135,   c_j: 2184.40194483,     c_k: -723.28383545,    }
+  - {name: poly_AHD_1j,                                  dimension: hbgd_AHD,    xmin: 1.1435646388,          xmax: 3.1416,             degree: 10, c_a: 0.0, c_b: 0.47683259,       c_c: -9.54524724,      c_d: 83.62557693,      c_e: -420.55867774,    c_f: 1337.19354878,     c_g: -2786.26265686,    c_h: 3803.178227,        c_i: -3278.62879901,  c_j: 1619.04116204,     c_k: -347.50157909,    }
+  - {name: poly_AHD_1k,                                  dimension: hbgd_AHD,    xmin: 1.15651981164,         xmax: 3.1416,             degree: 10, c_a: 0.0, c_b: -0.10757999,      c_c: 2.0276542,        c_d: -16.51949978,     c_e: 75.83866839,      c_f: -214.18025678,     c_g: 380.55117567,      c_h: -415.47847283,      c_i: 255.66998474,    c_j: -69.94662165,      c_k: 3.21313428,       }
+  - {name: poly_cosBAH_flat_neg0p5,                      dimension: hbgd_cosBAH, xmin: -1234.0,               xmax: 1.1,                degree: 1,  c_a: 0.0, c_b: -0.5,             c_c: 0.0,              c_d: 0.0,              c_e: 0.0,              c_f: 0.0,               c_g: 0.0,               c_h: 0.0,                c_i: 0.0,             c_j: 0.0,               c_k: -0.5,             }
+  - {name: poly_cosBAH_off,                              dimension: hbgd_cosBAH, xmin: -1234.0,               xmax: 1.1,                degree: 1,  c_a: 0.0, c_b: 0.0,              c_c: 0.0,              c_d: 0.0,              c_e: 0.0,              c_f: 0.0,               c_g: 0.0,               c_h: 0.0,                c_i: 0.0,             c_j: 0.0,               c_k: 0.0,              }
+  - {name: poly_cosBAH_6i,                               dimension: hbgd_cosBAH, xmin: -0.23538144897100002,  xmax: 1.1,                degree: 10, c_a: 0.0, c_b: -0.822093,        c_c: -3.75364636,      c_d: 46.88852157,      c_e: -129.5440564,     c_f: 146.69151428,      c_g: -67.60598792,      c_h: 2.91683129,         c_i: 9.26673173,      c_j: -3.84488178,       c_k: 0.05706659,       }
+  - {name: poly_cosBAH_7,                                dimension: hbgd_cosBAH, xmin: -0.019373850666900002, xmax: 1.1,                degree: 9,  c_a: 0.0, c_b: 0.0,              c_c: -27.942923450028, c_d: 136.039920253368, c_e: -268.06959056747, c_f: 275.400462507919,  c_g: -153.502076215949, c_h: 39.741591385461,    c_i: 0.693861510121,  c_j: -3.885952320499,   c_k: 1.024765090788892 }
+pair_parameters:
+  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
