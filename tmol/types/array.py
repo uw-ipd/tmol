@@ -1,11 +1,14 @@
 import enum
 import attr
 
+import typing
+
 import numpy
 
 from .shape import Shape
 
-from .functional import get_converter, get_validator
+from .converters import get_converter
+from .validators import get_validator
 
 
 class Casting(enum.Enum):
@@ -17,8 +20,8 @@ class Casting(enum.Enum):
     unsafe = "unsafe"
 
 
-@attr.s(slots=True, frozen=True, auto_attribs=True, repr=False)
-class NDArray:
+@attr.s(frozen=True, auto_attribs=True, repr=False)
+class NDArray(typing._TypingBase, _root=True):
     dtype: numpy.dtype = attr.ib(converter=numpy.dtype)
     shape: Shape = Shape.spec[...]
     casting: Casting = attr.ib(converter=Casting, default=Casting.unsafe)
@@ -61,6 +64,15 @@ class NDArray:
         self.validate(value)
 
         return value
+
+    def __instancecheck__(self, obj):
+        """Overloaded isinstance to check type and shape."""
+
+        try:
+            self.validate(obj)
+            return True
+        except (TypeError, ValueError):
+            return False
 
 
 @get_validator.register(NDArray)

@@ -52,8 +52,10 @@ def test_array_validation(example):
 
     for v in valid:
         assert spec.validate(v)
+        assert isinstance(v, spec)
 
     for v in invalid:
+        assert not isinstance(v, spec)
         with pytest.raises((TypeError, ValueError)):
             assert not spec.validate(v)
 
@@ -118,12 +120,12 @@ converstion_examples = [
 
 
 @pytest.mark.parametrize("example", converstion_examples)
-def test_array_converstion(example):
-    spec, converstions, invalid = (
+def test_array_conversion(example):
+    spec, conversions, invalid = (
         example["spec"], example["conversions"], example["invalid"]
     )
 
-    for f, t in converstions:
+    for f, t in conversions:
         res = spec.convert(f)
         numpy.testing.assert_array_equal(res, t)
         assert res.dtype == t.dtype
