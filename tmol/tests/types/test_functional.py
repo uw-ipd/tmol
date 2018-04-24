@@ -2,6 +2,7 @@ import numpy
 import pytest
 
 import typing
+from typing import Union
 
 from tmol.types.functional import validate_args, convert_args
 from tmol.types.array import NDArray
@@ -61,6 +62,14 @@ def array_func(val: NDArray(float)[..., 3]):
     assert val.shape[-1] == 3
 
 
+@validate_args
+def union_array_func(val: Union[float, NDArray(float)[:]]):
+    if isinstance(val, numpy.ndarray):
+        assert val.ndim == 1
+    else:
+        assert isinstance(val, float)
+
+
 validate_examples = [
     {
         "func": int_func,
@@ -101,6 +110,21 @@ validate_examples = [
             f(None),
             f([[1, 2, 3]]),
             f(numpy.arange(30).reshape(-1, 3)),
+        ]
+    },
+    {
+        "func": union_array_func,
+        "valid": [
+            f(numpy.array([1, 2, 3], dtype=float)),
+            f(numpy.arange(30).astype(float)),
+            f(1.1),
+            f(numpy.pi),
+        ],
+        "invalid": [
+            f(None),
+            f(1),
+            f("1.1"),
+            f(numpy.arange(30).reshape(-1, 3).astype(float)),
         ]
     },
     {

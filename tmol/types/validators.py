@@ -34,8 +34,18 @@ def validate_tuple(tup, value):
 def validate_union(union, value):
     assert union.__args__
 
-    if not isinstance(value, union.__args__):
-        raise TypeError(f"expected {union}, received {type(value)!r}")
+    last_ex = None
+
+    for ut in union.__args__:
+        validator = get_validator(ut)
+        print(ut)
+        try:
+            validator(value)
+            return
+        except (ValueError, TypeError) as ex:
+            last_ex = ex
+
+    raise TypeError(f"expected {union}, received {type(value)!r}") from last_ex
 
 
 @toolz.curry
