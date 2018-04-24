@@ -126,7 +126,9 @@ class PackedResidueSystem(HasProperties):
 
         ### Index residue connectivity
         # Generate a table of residue connections, with "from" and "to" entries
-        # for *both* directions Just a linear set of connections for now
+        # for *both* directions across the connection.
+        #
+        # Just a linear set of connections up<->down for now.
         residue_connections = pandas.DataFrame.from_records(
             [(i, "up", i + 1, "down") for i in range(len(res) - 1)],
             columns=pandas.MultiIndex.from_tuples([
@@ -148,14 +150,16 @@ class PackedResidueSystem(HasProperties):
         connection_metadata = numpy.empty(
             len(connection_index), dtype=cls.connection_metadata_dtype
         )
-        connection_metadata['from_residue_index'] = connection_index["from"
-                                                                     ]["resi"]
-        connection_metadata['from_connection_name'
-                            ] = connection_index["from"]["cname"]
-        connection_metadata['to_residue_index'] = connection_index["to"]["resi"
-                                                                         ]
-        connection_metadata['to_connection_name'] = connection_index["to"
-                                                                     ]["cname"]
+
+        connection_metadata['from_residue_index'] = \
+                connection_index["from"]["resi"]
+        connection_metadata['from_connection_name'] = \
+                connection_index["from"]["cname"]
+
+        connection_metadata['to_residue_index'] = \
+                connection_index["to"]["resi"]
+        connection_metadata['to_connection_name'] = \
+                connection_index["to"]["cname"]
 
         # Generate an index of all the connection atoms in the system,
         # resolving the internal and global index of the connection atoms
@@ -169,17 +173,15 @@ class PackedResidueSystem(HasProperties):
 
         # Merge against the connection table to generate a connection entry
         # with the residue index, the connection name, the local atom index,
-        # and the global atom index for the connection in the columns:
+        # and the global atom index for the connection by merging on the
+        # "cname", "resi" columns.
         #
-        # cname  resi  internal_aidx  aidx
+        # columns:
+        # cname resi internal_aidx  aidx
         from_connections = pandas.merge(
-            connection_index["from"],
-            connection_atoms,
+            connection_index["from"], connection_atoms
         )
-        to_connections = pandas.merge(
-            connection_index["to"],
-            connection_atoms,
-        )
+        to_connections = pandas.merge(connection_index["to"], connection_atoms)
 
         for c in from_connections.columns:
             connection_index["from", c] = from_connections[c]
@@ -206,7 +208,7 @@ class PackedResidueSystem(HasProperties):
 
         ### Generate dihedral metadata for all named torsions
 
-        # Generate a lookup from residue/connection to connected residue
+        # Generate a lookup from residue/connection name to connected residue
         connection_lookup = pandas.concat(
             (
                 pandas.DataFrame( # All the named connections
@@ -216,7 +218,7 @@ class PackedResidueSystem(HasProperties):
                         to_residue=connection_index["to", "resi"],
                     )
                 ),
-                pandas.DataFrame( # Loop-back to cls.for unamed connections
+                pandas.DataFrame( # Loop-back to self for "None" connections
                     dict(
                         cname=None,
                         residue_index=numpy.arange(len(res)),
