@@ -9,10 +9,7 @@ dependencies:
   - requests
   - toolz
   - pyyaml
-  # Current pytorch build does *not* correctly specify all dependencies on linux
-  # and is broken in installations from the conda-forge channel. Relies on an
-  # implicit installation of libgcc-ng.
-  - asford::pytorch-cpu=0.4.0a0+1936753
+  - pytorch::pytorch-cpu=0.4.0
 
   - pip:
     - pint
