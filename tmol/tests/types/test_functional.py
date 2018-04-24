@@ -2,7 +2,7 @@ import numpy
 import pytest
 
 import typing
-from typing import Union
+from typing import Union, Tuple
 
 from tmol.types.functional import validate_args, convert_args
 from tmol.types.array import NDArray
@@ -70,6 +70,18 @@ def union_array_func(val: Union[float, NDArray(float)[:]]):
         assert isinstance(val, float)
 
 
+@validate_args
+def tuple_array_func(
+        val: Tuple[float, NDArray(float)[:]],
+) -> NDArray(float)[:]:
+    m, v = val
+
+    assert isinstance(m, float)
+    assert isinstance(v, numpy.ndarray)
+
+    return m * v
+
+
 validate_examples = [
     {
         "func": int_func,
@@ -121,6 +133,20 @@ validate_examples = [
             f(numpy.pi),
         ],
         "invalid": [
+            f(None),
+            f(1),
+            f("1.1"),
+            f(numpy.arange(30).reshape(-1, 3).astype(float)),
+        ]
+    },
+    {
+        "func": tuple_array_func,
+        "valid": [f((1.1, numpy.array([1, 2, 3], dtype=float))), ],
+        "invalid": [
+            f((1, numpy.array([1, 2, 3], dtype=float))),  # First entry type
+            f((1.1, numpy.array([[1.1, 2.2], [3.3, 4.4]])),
+              ),  # Send entry shape
+            f((1.1, 1.1)),
             f(None),
             f(1),
             f("1.1"),
