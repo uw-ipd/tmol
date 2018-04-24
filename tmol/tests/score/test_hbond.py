@@ -311,32 +311,51 @@ bb_hbond_config = yaml.load(
 
 def test_bb_single_hbond():
     hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6 = torch.tensor([[
-        0.0, -0.5307601, 6.47949946, -22.39522814, 55.14303544, 708.30945242,
+        0.0, -0.5307601, 6.47949946, -22.39522814, -55.14303544, 708.30945242,
         -2619.49318162, 5227.8805795, -6043.31211632, 3806.04676175,
         -1007.66024144
     ]])
+    hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_range = torch.tensor([[
+        1.38403812683, 2.9981039433
+    ]])
+    hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_bounds = torch.tensor([[
+        1.1, 1.1
+    ]])
+
     poly_cosBAH_off = torch.tensor([[
         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
     ]])
+    poly_cosBAH_off_range = torch.tensor([[-1234.0, 1.1]])
+    poly_cosBAH_off_bounds = torch.tensor([[1.1, 1.1]])
+
     poly_AHD_1j = torch.tensor([[
-        0.0, 0.47683259, -9.54524724, 83.62557693, 420.55867774,
-        1337.19354878 - 2786.26265686, 3803.178227, -3278.62879901,
+        0.0, 0.47683259, -9.54524724, 83.62557693, -420.55867774,
+        1337.19354878, -2786.26265686, 3803.178227, -3278.62879901,
         1619.04116204, -347.50157909
     ]])
 
-    atomD = torch.tensor([[0.409, 3.986, -1.316]])
-    atomH = torch.tensor([[0.913, 3.226, -0.880]])
-    atomA = torch.tensor([[1.383, 2.339, -0.529]])
-    atomB = torch.tensor([[2.009, 1.420, 0.000]])
-    atomB0 = torch.tensor([[1.458, 0.000, 0.000]])
+    poly_AHD_1j_range = torch.tensor([[1.1435646388, 3.1416]])
+    poly_AHD_1j_bounds = torch.tensor([[1.1, 1.1]])
+
+    atomD = torch.tensor([[-0.337, 3.640, -1.365]])
+    atomH = torch.tensor([[-0.045, 3.220, -0.496]])
+    atomA = torch.tensor([[0.929, 2.820, 1.149]])
+    atomB = torch.tensor([[1.369, 1.690, 1.360]])
+    atomB0 = torch.tensor([[1.060, 0.538, 0.412]])
+
+    donwt = torch.tensor([[1.41]])
+    accwt = torch.tensor([[1.08]])
 
     energy = tmol.score.hbond.hbond_donor_sp2_score(
-        atomD, atomH, atomA, atomB, atomB0,
-        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6, poly_cosBAH_off,
-        poly_AHD_1j, 4.2
+        atomD, atomH, atomA, atomB, atomB0, accwt, donwt,
+        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6,
+        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_range,
+        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_bounds, poly_cosBAH_off,
+        poly_cosBAH_off_range, poly_cosBAH_off_bounds, poly_AHD_1j,
+        poly_AHD_1j_range, poly_AHD_1j_bounds, 1.6, 0.75, 0.357, 4.2
     )
 
-    assert (False)
+    assert (float(energy.data[0]) == pytest.approx(-2.12, 0.01))
 
 
 @pytest.fixture

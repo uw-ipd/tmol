@@ -114,13 +114,7 @@ def hbond_donor_sp2_score(
         hb_sp2_outer_width,
         max_dis
 ):
-    # make these constants?
-    fade_none = torch.tensor([0, 0.1, 3.2, 3.3])
-    fade_xD = torch.tensor([-0.05, 0.0, 1.00, 1.05])
-    fade_xH = torch.tensor([-0.562949, 0, 1, 1.05])
-
     acc_don_scale = glob_accwt * glob_donwt
-    # will come from params once I figure out dispatching logic
 
     ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
     D = (a - h).norm(dim=-1)
@@ -145,10 +139,6 @@ def hbond_donor_sp2_score(
     ychi = (torch.cross(BAvecn, AHvecn, dim=-1) * BB0vecn).sum(dim=-1)
     chi = -torch.atan2(ychi, xchi)
 
-    Fd = fadeval(fade_none, D)
-    FxD = fadeval(fade_xD, xD)
-    FxH = fadeval(fade_xH, xH)
-
     Pd = polyval(AHdist_coeffs, AHdist_ranges, AHdist_bounds, D)
     PxH = polyval(cosBAH_coeffs, cosBAH_ranges, cosBAH_bounds, xH)
     PxD = polyval(cosAHD_coeffs, cosAHD_ranges, cosAHD_bounds, AHD)
@@ -158,17 +148,19 @@ def hbond_donor_sp2_score(
         hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width, BAH, chi
     )
 
-    energy = acc_don_scale * (
-        Pd * FxD * FxH + Fd * (PxD * FxH + FxD * PxH) + Pchi
-    )
+    energy = acc_don_scale * (Pd + PxD + PxH + Pchi)
 
     # fade (squish [-0.1,0.1] to [-0.1,0.0])
     high_energy_selector = (energy > 0.1)
     med_energy_selector = ~high_energy_selector & (energy > -0.1)
 
+    print(energy)
+
     energy[high_energy_selector] = 0.0
     energy[med_energy_selector] = \
         -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
+
+    print(energy)
 
     return energy
 
@@ -447,32 +439,38 @@ class HBondParamResolver:
             cattr.unstructure,
         )
 
-        # Get polynomial parameters index by polynomial name
+        # acc/don weights
         acc_params = (
             to_frame(self.hbdb.acc_weights)
-            .rename(columns={"weight": "acc_weight", "name": "acc_name"})
-            .set_index("acc_name")
-        )  # yapf: disable
+            .rename(columns={
+                "weight": "acc_weight",
+                "name": "acc_name"
+            })
+        )
 
         don_params = (
             to_frame(self.hbdb.don_weights)
-            .rename(columns={"weight": "don_weight", "name": "don_name"})
-            .set_index("don_name")
-        )  # yapf: disable
+            .rename(columns={
+                "weight": "don_weight",
+                "name": "don_name"
+            })
+        )
 
         # cross join
-        acc_params['_tmpkey'] = 1
-        don_params['_tmpkey'] = 1
-        res = pandas.merge(
-            don_params, acc_params, on='_tmpkey'
-        ).drop(
-            '_tmpkey', axis=1
-        )
-        res.index = pandas.MultiIndex.from_product(
-            (don_params.index, acc_params.index)
+        result_index = pandas.MultiIndex.from_product(
+            [acc_params["acc_name"], don_params["don_name"]],
+            names=["acc_name", "don_name"],
         )
 
-        return res
+        donor_acceptor_pair_frame = pandas.DataFrame(index=result_index
+                                                     ).reset_index()
+
+        result_frame = toolz.reduce(
+            pandas.merge,
+            (donor_acceptor_pair_frame, acc_params, don_params)
+        ).set_index(["don_name", "acc_name"])
+
+        return result_frame
 
     type_pair_index: pandas.Series = attr.ib()
 
