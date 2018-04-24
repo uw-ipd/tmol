@@ -22,12 +22,17 @@ from tmol.database.scoring import HBondDatabase
 
 
 # evaluate polynomial function (Horner's rule)
-def polyval(A, x):
+def polyval(A, Arange, Abound, x):
     #p = torch.empty_like(x)
-    #print (A)
     p = A[:, 0]
-    for i in range(0, A.shape[-1]):
+    for i in range(1, A.shape[-1]):
         p = p * x + A[:, i]
+
+    selector_low = (x < Arange[:, 0])
+    p[selector_low] = Abound[selector_low, 0]
+    selector_high = (x > Arange[:, 1])
+    p[selector_high] = Abound[selector_high, 1]
+
     return p
 
 
@@ -67,11 +72,11 @@ def sp2chi_energy(d, m, l, BAH, chi):
     selector_mid = ~selector_upper & (BAH >= numpy.pi * (2.0 / 3.0 - l))
 
     F[selector_upper
-      ] = d / 2 * torch.cos(3 * numpy.pi - BAH[selector_upper]) + d / 2 - 0.5
+      ] = d / 2 * torch.cos(3 * (numpy.pi - BAH[selector_upper])) + d / 2 - 0.5
     G[selector_upper] = d - 0.5
 
     outer_rise = torch.cos(
-        numpy.pi - (numpy.pi * 2 / 3 - BAH[selector_mid] / l)
+        numpy.pi - (numpy.pi * 2 / 3 - BAH[selector_mid]) / l
     )
     F[selector_mid] = m / 2 * outer_rise + m / 2 - 0.5
     G[selector_mid] = (m - d) / 2 * outer_rise + (m - d) / 2 + d - 0.5
@@ -91,22 +96,30 @@ def hbond_donor_sp2_score(
         b0,
 
         # type pair parameters
+        glob_accwt,
+        glob_donwt,
         AHdist_coeffs,
+        AHdist_ranges,
+        AHdist_bounds,
         cosBAH_coeffs,
+        cosBAH_ranges,
+        cosBAH_bounds,
         cosAHD_coeffs,
+        cosAHD_ranges,
+        cosAHD_bounds,
 
         # Global score parameters
+        hb_sp2_range_span,
+        hb_sp2_BAH180_rise,
+        hb_sp2_outer_width,
         max_dis
 ):
     # make these constants?
-    hb_range = 1.6  # range of hbond energies + 0.1
-    hb_sp2_BAH180_rise = 0.75
-    hb_sp2_outer_width = 0.357
     fade_none = torch.tensor([0, 0.1, 3.2, 3.3])
     fade_xD = torch.tensor([-0.05, 0.0, 1.00, 1.05])
     fade_xH = torch.tensor([-0.562949, 0, 1, 1.05])
 
-    acc_don_scale = 1.0
+    acc_don_scale = glob_accwt * glob_donwt
     # will come from params once I figure out dispatching logic
 
     ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
@@ -126,10 +139,9 @@ def hbond_donor_sp2_score(
     BAH = numpy.pi - torch.acos(xH)
 
     BB0vecn = (b0 - b)
-    BB0vecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
-    xchi = (BB0vecn * AHvecn).sum(
-        dim=-1
-    ) - (BB0vecn * BAvecn).sum(dim=-1) * (BAvecn * AHvecn).sum(dim=-1)
+    BB0vecn = BB0vecn / BB0vecn.norm(dim=-1).unsqueeze(dim=-1)
+    xchi = (BB0vecn * AHvecn).sum(dim=-1) \
+        - (BB0vecn * BAvecn).sum(dim=-1) * (BAvecn * AHvecn).sum(dim=-1) # yapf: disable
     ychi = (torch.cross(BAvecn, AHvecn, dim=-1) * BB0vecn).sum(dim=-1)
     chi = -torch.atan2(ychi, xchi)
 
@@ -137,13 +149,13 @@ def hbond_donor_sp2_score(
     FxD = fadeval(fade_xD, xD)
     FxH = fadeval(fade_xH, xH)
 
-    Pd = polyval(AHdist_coeffs, D)
-    PxH = polyval(cosBAH_coeffs, xH)
-    PxD = polyval(cosAHD_coeffs, AHD)
+    Pd = polyval(AHdist_coeffs, AHdist_ranges, AHdist_bounds, D)
+    PxH = polyval(cosBAH_coeffs, cosBAH_ranges, cosBAH_bounds, xH)
+    PxD = polyval(cosAHD_coeffs, cosAHD_ranges, cosAHD_bounds, AHD)
 
     # sp2 chi part
     Pchi = sp2chi_energy(
-        hb_sp2_BAH180_rise, hb_range, hb_sp2_outer_width, BAH, chi
+        hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width, BAH, chi
     )
 
     energy = acc_don_scale * (
@@ -402,7 +414,7 @@ class HBondParamResolver:
             to_frame(self.hbdb.polynomial_parameters)
             .rename(columns={"name": "polynomial"})
             .set_index("polynomial")
-            .drop(columns=["dimension","xmin","xmax"])
+            .drop(columns=["degree", "dimension"])
         )  # yapf: disable
 
         # Convert pair parameter table into a multi-index frame specifying
@@ -426,6 +438,42 @@ class HBondParamResolver:
             right_index=True
         )
 
+    weight_lookup: pandas.DataFrame = attr.ib()
+
+    @weight_lookup.default
+    def _init_weight_lookup(self):
+        to_frame = toolz.compose(
+            pandas.DataFrame.from_records,
+            cattr.unstructure,
+        )
+
+        # Get polynomial parameters index by polynomial name
+        acc_params = (
+            to_frame(self.hbdb.acc_weights)
+            .rename(columns={"weight": "acc_weight", "name": "acc_name"})
+            .set_index("acc_name")
+        )  # yapf: disable
+
+        don_params = (
+            to_frame(self.hbdb.don_weights)
+            .rename(columns={"weight": "don_weight", "name": "don_name"})
+            .set_index("don_name")
+        )  # yapf: disable
+
+        # cross join
+        acc_params['_tmpkey'] = 1
+        don_params['_tmpkey'] = 1
+        res = pandas.merge(
+            don_params, acc_params, on='_tmpkey'
+        ).drop(
+            '_tmpkey', axis=1
+        )
+        res.index = pandas.MultiIndex.from_product(
+            (don_params.index, acc_params.index)
+        )
+
+        return res
+
     type_pair_index: pandas.Series = attr.ib()
 
     @type_pair_index.default
@@ -448,9 +496,20 @@ class HBondParamResolver:
                 "coeffs":
                     torch.Tensor(
                         params[["c_" + i for i in "abcdefghijk"]].values
-                    )
+                    ),
+            }, {
+                "ranges": torch.Tensor(params[["xmin", "xmax"]].values),
+            }, {
+                "bounds": torch.Tensor(params[["min_val", "max_val"]].values),
             })
             for t, params in self.param_lookup.groupby(level="term")
+        }
+
+        # is weight_lookup to be in the same order as param_lookup?
+        # both are indexed on ["don_name","acc_name"]
+        normalized_param_tensors["glob"] = {
+            "donwt": torch.Tensor(self.weight_lookup["don_weight"].values),
+            "accwt": torch.Tensor(self.weight_lookup["acc_weight"].values)
         }
 
         return {
@@ -662,6 +721,12 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
 
         global_params = dict(
             max_dis=self.hbond_database.global_parameters.max_dis,
+            hb_sp2_range_span=self.hbond_database.global_parameters.
+            hb_sp2_range_span,
+            hb_sp2_BAH180_rise=self.hbond_database.global_parameters.
+            hb_sp2_BAH180_rise,
+            hb_sp2_outer_width=self.hbond_database.global_parameters.
+            hb_sp2_outer_width,
         )
 
         return hbond_donor_sp2_score(

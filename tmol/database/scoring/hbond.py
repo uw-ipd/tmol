@@ -8,6 +8,9 @@ from typing import Tuple
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class GlobalParams:
     max_dis: float
+    hb_sp2_range_span: float
+    hb_sp2_BAH180_rise: float
+    hb_sp2_outer_width: float
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -69,6 +72,8 @@ class PolynomialParameters:
     dimension: str
     xmin: float
     xmax: float
+    min_val: float
+    max_val: float
     degree: int
     c_a: float
     c_b: float
@@ -97,7 +102,8 @@ class HBondDatabase:
     global_parameters: GlobalParams
     atom_groups: AtomGroups
     chemical_types: ChemicalTypes
-    hbond_weights: Tuple[HbondWeights, ...]
+    don_weights: Tuple[HbondWeights, ...]
+    acc_weights: Tuple[HbondWeights, ...]
     polynomial_parameters: Tuple[PolynomialParameters, ...]
     pair_parameters: Tuple[PairParameters, ...]
 

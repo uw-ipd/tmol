@@ -12,6 +12,7 @@ Inter-property dependencies must be *explictly* declared to support forward inva
 
 import six
 import properties
+import properties.basic
 from toolz import get_in
 from ._util import rename_code_object
 

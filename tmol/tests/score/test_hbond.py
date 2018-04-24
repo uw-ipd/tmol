@@ -220,7 +220,10 @@ def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
 bb_hbond_config = yaml.load(
     """
     global_parameters:
-        max_dis : 3.2
+        max_dis : 4.2
+        hb_sp2_range_span: 1.6
+        hb_sp2_BAH180_rise: 0.75
+        hb_sp2_outer_width: 0.357
     atom_groups:
         donors:
             - { d: Nbb, h: HNbb, donor_type: hbdon_PBA }
@@ -241,16 +244,19 @@ bb_hbond_config = yaml.load(
         AHdist: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6
         cosBAH: poly_cosBAH_off
         cosAHD: poly_AHD_1j
-    hbond_weights:
+    don_weights:
       - name: hbdon_PBA
-        weight: 1.00
+        weight: 1.41
+    acc_weights:
       - name: hbacc_PBA
-        weight: 1.00
+        weight: 1.08
     polynomial_parameters:
       - name: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6
         dimension: hbgd_AHdist
         xmin: 1.38403812683
         xmax: 2.9981039433
+        min_val: 1.1
+        max_val: 1.1
         degree: 10
         c_a: 0.0 
         c_b: -0.5307601
@@ -267,6 +273,8 @@ bb_hbond_config = yaml.load(
         dimension: hbgd_cosBAH
         xmin: -1234.0
         xmax: 1.1
+        min_val: 1.1
+        max_val: 1.1
         degree: 1
         c_a: 0.0
         c_b: 0.0
@@ -283,6 +291,8 @@ bb_hbond_config = yaml.load(
         dimension: hbgd_AHD
         xmin: 1.1435646388
         xmax: 3.1416
+        min_val: 1.1
+        max_val: 1.1
         degree: 10
         c_a: 0.0
         c_b: 0.47683259
@@ -326,8 +336,7 @@ def test_bb_single_hbond():
         poly_AHD_1j, 4.2
     )
 
-    print(energy)
-    assert (false)
+    assert (False)
 
 
 @pytest.fixture
