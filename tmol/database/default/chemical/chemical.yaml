@@ -57,8 +57,13 @@ residues:
     - [  CB,  1HB]
     - [  CB,  2HB]
     - [  CB,  3HB]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n: down, &a atom: N }
+    - { *n: up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, &c connection: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},                      b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},                     b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
   - name:  ARG
     name3: ARG
     atoms:
@@ -110,8 +115,18 @@ residues:
     - [ NH1, 2HH1]
     - [ NH2, 1HH2]
     - [ NH2, 2HH2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: NE}}
+    - { *n: chi4,  a: {*a: CG}, b: {*a: CD}, c: {*a: NE}, d: {*a: CZ}}
   - name:  ASN
     name3: ASN
     atoms:
@@ -143,8 +158,16 @@ residues:
     - [  CG,  ND2]
     - [ ND2, 1HD2]
     - [ ND2, 2HD2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
   - name:  ASP
     name3: ASP
     atoms:
@@ -172,8 +195,16 @@ residues:
     - [  CB,  2HB]
     - [  CG,  OD1]
     - [  CG,  OD2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CA}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
   - name:  CYS
     name3: CYS
     atoms:
@@ -198,8 +229,16 @@ residues:
     - [  CB,  1HB]
     - [  CB,  2HB]
     - [  SG,   HG]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: SG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: SG}, d: {*a: HG}}
   - name:  GLN
     name3: GLN
     atoms:
@@ -237,8 +276,17 @@ residues:
     - [  CD,  NE2]
     - [ NE2, 1HE2]
     - [ NE2, 2HE2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: OE1}}
   - name:  GLU
     name3: GLU
     atoms:
@@ -272,8 +320,17 @@ residues:
     - [  CD,  OE2]
     - [  CG,  1HG]
     - [  CG,  2HG]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: OE1}}
   - name:  GLY
     name3: GLY
     atoms:
@@ -291,8 +348,13 @@ residues:
     - [   C,    O]
     - [  CA,  1HA]
     - [  CA,  2HA]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
   - name:  HIS
     name3: HIS
     atoms:
@@ -333,8 +395,16 @@ residues:
     - [ CE1,  NE2]
     - [ NE2,  HE2]
     - [ CE1,  HE1]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
   - name:  HIS_D
     name3: HIS
     atoms:
@@ -374,8 +444,16 @@ residues:
     - [ CE1,  NE2]
     - [ CE1,  HE1]
     - [ ND1,  HD1]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
   - name:  ILE
     name3: ILE
     atoms:
@@ -417,8 +495,16 @@ residues:
     - [ CD1, 1HD1]
     - [ CD1, 2HD1]
     - [ CD1, 3HD1]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG1}, d: {*a: CD1}}
   - name:  LEU
     name3: LEU
     atoms:
@@ -460,8 +546,16 @@ residues:
     - [ CD2, 1HD2]
     - [ CD2, 2HD2]
     - [ CD2, 3HD2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
   - name:  LYS
     name3: LYS
     atoms:
@@ -509,8 +603,18 @@ residues:
     - [  NZ,  1HZ]
     - [  NZ,  2HZ]
     - [  NZ,  3HZ]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: CE}}
+    - { *n: chi4,  a: {*a: CG}, b: {*a: CD}, c: {*a: CE}, d: {*a: NZ}}
   - name:  MET
     name3: MET
     atoms:
@@ -548,8 +652,17 @@ residues:
     - [  CE,  1HE]
     - [  CE,  2HE]
     - [  CE,  3HE]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: SD}}
+    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: SD}, d: {*a: CE}}
   - name:  PHE
     name3: PHE
     atoms:
@@ -594,8 +707,16 @@ residues:
     - [ CE1,  HE1]
     - [ CE2,  HE2]
     - [  CZ,   HZ]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
   - name:  PRO
     name3: PRO
     atoms:
@@ -628,8 +749,16 @@ residues:
     - [  CD,  1HD]
     - [  CD,  2HD]
     - [  CD,    N]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
   - name:  SER
     name3: SER
     atoms:
@@ -655,8 +784,16 @@ residues:
     - [  CB,  1HB]
     - [  CB,  2HB]
     - [  OG,   HG]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: OG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG}, d: {*a: HG}}
   - name:  THR
     name3: THR
     atoms:
@@ -688,8 +825,16 @@ residues:
     - [ CG2, 1HG2]
     - [ CG2, 2HG2]
     - [ CG2, 3HG2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB},  d: {*a: OG1}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG1}, d: {*a: HG1}}
   - name:  TRP
     name3: TRP
     atoms:
@@ -743,8 +888,16 @@ residues:
     - [ CZ2,  HZ2]
     - [ CZ3,  HZ3]
     - [ CH2,  HH2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
   - name:  TYR
     name3: TYR
     atoms:
@@ -792,8 +945,17 @@ residues:
     - [ CE2,  HE2]
     - [  CZ,   OH]
     - [  OH,   HH]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
+    - { *n: chi3,  a: {*a: CE2}, b: {*a: CZ}, c: {*a: OH}, d: {*a: HH}}
   - name:  VAL
     name3: VAL
     atoms:
@@ -830,5 +992,12 @@ residues:
     - [ CG2, 1HG2]
     - [ CG2, 2HG2]
     - [ CG2, 3HG2]
-    lower_connect: N
-    upper_connect: C
+    connections:
+    - { *n:  down, *a: N }
+    - { *n:    up, *a: C }
+    torsions:
+    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+
+    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}

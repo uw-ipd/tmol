@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
 import attr
 import cattr
@@ -15,13 +15,34 @@ class Atom:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class Connection:
+    name: str
+    atom: str
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class ConnectedAtom:
+    atom: str
+    connection: Optional[str] = None
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class Torsion:
+    name: str
+    a: ConnectedAtom
+    b: ConnectedAtom
+    c: ConnectedAtom
+    d: ConnectedAtom
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Residue:
     name: str
     name3: str
     atoms: Tuple[Atom, ...]
     bonds: Tuple[Tuple[str, str], ...]
-    lower_connect: str
-    upper_connect: str
+    connections: Tuple[Connection, ...]
+    torsions: Tuple[Torsion, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
