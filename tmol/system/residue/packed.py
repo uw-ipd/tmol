@@ -78,7 +78,7 @@ class PackedResidueSystem(HasProperties):
         res_by_start = list(zip(segment_starts, res))
 
         intra_res_bonds = numpy.concatenate([
-            r.residue_type.bond_indicies + start for start, r in res_by_start
+            r.residue_type.bond_indices + start for start, r in res_by_start
         ])
 
         upchain_inter_res_bonds = numpy.array([
