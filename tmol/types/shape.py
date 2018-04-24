@@ -98,7 +98,7 @@ class Shape:
 
     @staticmethod
     def _to_dims(dims):
-        return list(map(Dim, dims))
+        return tuple(map(Dim, dims))
 
     dims = attr.ib(converter=_to_dims.__func__)
 
