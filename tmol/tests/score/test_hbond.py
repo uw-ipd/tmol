@@ -128,7 +128,7 @@ def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
     rosetta_hbonds = toolz.curried.reduce(pandas.merge)((
         (
             rosetta_system.hbonds.set_index(["a_atom", "h_atom"])
-            .loc["O", "H"].reset_index()
+            .sort_index().loc["O", "H"].reset_index()
         ),
         (
             named_atom_index.rename_axis(["a_res", "a_atom"])
