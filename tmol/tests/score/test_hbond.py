@@ -224,6 +224,7 @@ bb_hbond_config = yaml.load(
         hb_sp2_range_span: 1.6
         hb_sp2_BAH180_rise: 0.75
         hb_sp2_outer_width: 0.357
+        hb_sp3_softmax_fade: 2.5
     atom_groups:
         donors:
             - { d: Nbb, h: HNbb, donor_type: hbdon_PBA }
@@ -309,7 +310,7 @@ bb_hbond_config = yaml.load(
 )
 
 
-def test_bb_single_hbond():
+def test_sp2_single_hbond():
     hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6 = torch.tensor([[
         0.0, -0.5307601, 6.47949946, -22.39522814, -55.14303544, 708.30945242,
         -2619.49318162, 5227.8805795, -6043.31211632, 3806.04676175,
@@ -343,8 +344,8 @@ def test_bb_single_hbond():
     atomB = torch.tensor([[1.369, 1.690, 1.360]])
     atomB0 = torch.tensor([[1.060, 0.538, 0.412]])
 
-    donwt = torch.tensor([[1.41]])
-    accwt = torch.tensor([[1.08]])
+    donwt = torch.tensor([[1.45]])
+    accwt = torch.tensor([[1.19]])
 
     energy = tmol.score.hbond.hbond_donor_sp2_score(
         atomD, atomH, atomA, atomB, atomB0, accwt, donwt,
@@ -355,7 +356,66 @@ def test_bb_single_hbond():
         poly_AHD_1j_range, poly_AHD_1j_bounds, 1.6, 0.75, 0.357, 4.2
     )
 
-    assert (float(energy.data[0]) == pytest.approx(-2.12, 0.01))
+    assert (float(energy.data[0]) == pytest.approx(-2.41, 0.01))
+
+
+def test_sp3_single_hbond():
+    hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6 = torch.tensor([[
+        0.0, -1.32847415, 22.67528654, -172.53450064, 770.79034865,
+        -2233.48829652, 4354.38807288, -5697.35144236, 4803.38686157,
+        -2361.48028857, 518.28202382
+    ]])
+
+    hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_range = torch.tensor([[
+        1.38565621563, 2.74160605537
+    ]])
+    hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_bounds = torch.tensor([[
+        1.1, 1.1
+    ]])
+
+    poly_cosBAH_6i = torch.tensor([[
+        0.0, -0.82209300, -3.75364636, 46.88852157, -129.54405640,
+        146.69151428, -67.60598792, 2.91683129, 9.26673173, -3.84488178,
+        0.05706659
+    ]])
+    poly_cosBAH_6i_range = torch.tensor([[-0.0193738506669, 1.1]])
+    poly_cosBAH_6i_bounds = torch.tensor([[1.1, 1.1]])
+
+    poly_AHD_1i = torch.tensor([[
+        0.0,
+        -0.18888801,
+        3.48241679,
+        -25.65508662,
+        89.57085435,
+        -95.91708218,
+        -367.93452341,
+        1589.69047020,
+        -2662.35821350,
+        2184.40194483,
+        -723.28383545,
+    ]])
+    poly_AHD_1i_range = torch.tensor([[1.59914724347, 3.1416]])
+    poly_AHD_1i_bounds = torch.tensor([[1.1, 1.1]])
+
+    atomD = torch.tensor([[-1.447, 4.942, -3.149]])
+    atomH = torch.tensor([[-1.756, 4.013, -2.912]])
+    atomA = torch.tensor([[-2.196, 2.211, -2.339]])
+    atomB = torch.tensor([[-3.156, 2.109, -1.327]])
+    atomB0 = torch.tensor([[-1.436, 1.709, -2.035]])
+
+    donwt = torch.tensor([[1.45]])
+    accwt = torch.tensor([[1.15]])
+
+    energy = tmol.score.hbond.hbond_donor_sp3_score(
+        atomD, atomH, atomA, atomB, atomB0, accwt, donwt,
+        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6,
+        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_range,
+        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_bounds, poly_cosBAH_6i,
+        poly_cosBAH_6i_range, poly_cosBAH_6i_bounds, poly_AHD_1i,
+        poly_AHD_1i_range, poly_AHD_1i_bounds, 2.5, 4.2
+    )
+
+    assert (float(energy.data[0]) == pytest.approx(-2.00, 0.01))
 
 
 @pytest.fixture

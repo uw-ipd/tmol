@@ -36,29 +36,6 @@ def polyval(A, Arange, Abound, x):
     return p
 
 
-# evaluate fade function
-def fadeval(A, x):
-    min0, fmin, fmax, max0 = A
-    f = torch.zeros_like(x)
-
-    dfade_min = 1.0 / (fmin - min0 + 1e-12)
-    dfade_max = 1.0 / (max0 - fmax + 1e-12)
-
-    selector_sr = ((x > min0) & (x <= fmin))
-    selector_mid = ((x > fmin) & (x <= fmax))
-    selector_lr = ((x > fmax) & (x <= max0))
-
-    f[selector_sr] = (x[selector_sr] - min0) * dfade_min
-    f[selector_sr] = f[selector_sr] * f[selector_sr
-                                        ] * (3.0 - 2.0 * f[selector_sr])
-    f[selector_mid] = 1
-    f[selector_lr] = (x[selector_lr] - fmax) * dfade_min
-    f[selector_lr] = f[selector_lr] * f[selector_lr
-                                        ] * (2.0 * f[selector_lr] - 3.0)
-
-    return f
-
-
 # evaluate sp2chi
 def sp2chi_energy(d, m, l, BAH, chi):
     H = 0.5 * (torch.cos(2 * chi) + 1)
@@ -154,13 +131,9 @@ def hbond_donor_sp2_score(
     high_energy_selector = (energy > 0.1)
     med_energy_selector = ~high_energy_selector & (energy > -0.1)
 
-    print(energy)
-
     energy[high_energy_selector] = 0.0
     energy[med_energy_selector] = \
         -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
-
-    print(energy)
 
     return energy
 
@@ -175,14 +148,64 @@ def hbond_donor_sp3_score(
         b0,
 
         # type pair parameters
+        glob_accwt,
+        glob_donwt,
         AHdist_coeffs,
+        AHdist_ranges,
+        AHdist_bounds,
         cosBAH_coeffs,
+        cosBAH_ranges,
+        cosBAH_bounds,
         cosAHD_coeffs,
+        cosAHD_ranges,
+        cosAHD_bounds,
 
         # Global score parameters
+        hb_sp3_softmax_fade,
         max_dis
 ):
-    return torch.zeros_like(D)
+    acc_don_scale = glob_accwt * glob_donwt
+
+    ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
+    D = (a - h).norm(dim=-1)
+
+    AHvecn = (h - a)
+    AHvecn = AHvecn / AHvecn.norm(dim=-1).unsqueeze(dim=-1)
+    HDvecn = (d - h)
+    HDvecn = HDvecn / HDvecn.norm(dim=-1).unsqueeze(dim=-1)
+    xD = (AHvecn * HDvecn).sum(dim=-1)
+    AHD = numpy.pi - torch.acos(xD)
+    # in non-cos space
+
+    BAvecn = (a - b)
+    BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
+    xH1 = (AHvecn * BAvecn).sum(dim=-1)
+
+    B0Avecn = (a - b0)
+    B0Avecn = B0Avecn / B0Avecn.norm(dim=-1).unsqueeze(dim=-1)
+    xH2 = (AHvecn * B0Avecn).sum(dim=-1)
+
+    Pd = polyval(AHdist_coeffs, AHdist_ranges, AHdist_bounds, D)
+    PxD = polyval(cosAHD_coeffs, cosAHD_ranges, cosAHD_bounds, AHD)
+    PxH1 = polyval(cosBAH_coeffs, cosBAH_ranges, cosBAH_bounds, xH1)
+    PxH2 = polyval(cosBAH_coeffs, cosBAH_ranges, cosBAH_bounds, xH2)
+    PxH = 1.0 / hb_sp3_softmax_fade * torch.log(
+        torch.exp(PxH1 * hb_sp3_softmax_fade) +
+        torch.exp(PxH2 * hb_sp3_softmax_fade)
+    )
+
+    energy = acc_don_scale * (Pd + PxD + PxH)
+    print(energy)
+
+    # fade (squish [-0.1,0.1] to [-0.1,0.0])
+    high_energy_selector = (energy > 0.1)
+    med_energy_selector = ~high_energy_selector & (energy > -0.1)
+
+    energy[high_energy_selector] = 0.0
+    energy[med_energy_selector] = \
+        -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
+
+    return energy
 
 
 # energy evaluation to a ring acceptor
@@ -751,6 +774,8 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
 
         global_params = dict(
             max_dis=self.hbond_database.global_parameters.max_dis,
+            hb_sp3_softmax_fade=self.hbond_database.global_parameters.
+            hb_sp3_softmax_fade,
         )
 
         return hbond_donor_sp3_score(

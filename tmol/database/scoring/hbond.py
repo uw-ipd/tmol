@@ -11,6 +11,7 @@ class GlobalParams:
     hb_sp2_range_span: float
     hb_sp2_BAH180_rise: float
     hb_sp2_outer_width: float
+    hb_sp3_softmax_fade: float
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

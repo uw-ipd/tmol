@@ -4,6 +4,7 @@ global_parameters:
   hb_sp2_range_span: 1.6
   hb_sp2_BAH180_rise: 0.75
   hb_sp2_outer_width: 0.357
+  hb_sp3_softmax_fade: 2.5
 atom_groups:
   donors:
     - { d: Nbb,      h: HNbb, donor_type: hbdon_PBA }
@@ -52,23 +53,23 @@ chemical_types:
     - hbacc_IMD #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
     - hbacc_IME #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
 don_weights:
-  - {name: hbdon_IND, weight: 1.25}
-  - {name: hbdon_CXA, weight: 1.27}
-  - {name: hbdon_AMO, weight: 1.11}
-  - {name: hbdon_IMD, weight: 1.15}
-  - {name: hbdon_GDH, weight: 1.10}
+  - {name: hbdon_IND, weight: 1.15}
+  - {name: hbdon_CXA, weight: 1.29}
+  - {name: hbdon_AMO, weight: 1.17}
+  - {name: hbdon_IMD, weight: 1.18}
+  - {name: hbdon_GDH, weight: 1.11}
   - {name: hbdon_IME, weight: 1.42}
-  - {name: hbdon_GDE, weight: 1.10}
-  - {name: hbdon_HXL, weight: 0.96}
-  - {name: hbdon_AHX, weight: 1.03}
-  - {name: hbdon_PBA, weight: 1.41}
+  - {name: hbdon_GDE, weight: 1.11}
+  - {name: hbdon_HXL, weight: 0.99}
+  - {name: hbdon_AHX, weight: 1.00}
+  - {name: hbdon_PBA, weight: 1.45}
 acc_weights:
   - {name: hbacc_IMD, weight: 1.13}
-  - {name: hbacc_PBA, weight: 1.08}
-  - {name: hbacc_CXA, weight: 1.24}
-  - {name: hbacc_AHX, weight: 1.18}
-  - {name: hbacc_IME, weight: 1.16}
-  - {name: hbacc_CXL, weight: 1.12}
+  - {name: hbacc_PBA, weight: 1.19}
+  - {name: hbacc_CXA, weight: 1.21}
+  - {name: hbacc_AHX, weight: 1.15}
+  - {name: hbacc_IME, weight: 1.17}
+  - {name: hbacc_CXL, weight: 1.10}
   - {name: hbacc_HXL, weight: 1.15}
 polynomial_parameters: # Parameters imported from rosetta sp2_elec_params @v2017.48-dev59886
   - {name: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7019094761929999,    xmax: 2.86820307153,      min_val: 1.1, max_val: 1.1, degree: 10, c_a: 0.0, c_b: 0.58376113,       c_c: -9.29345473,      c_d: 64.86270904,      c_e: -260.3946711,     c_f: 661.43138077,      c_g: -1098.01378958,    c_h: 1183.58371466,      c_i: -790.82929582,   c_j: 291.33125475,      c_k: -43.01629727,     }
