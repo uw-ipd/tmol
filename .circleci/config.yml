@@ -12,11 +12,15 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            # Update conda to work out package issues in docker
+            # https://github.com/conda/conda/issues/6811
+            conda install -n base 'conda>=4.5'
             conda info -a
             conda config --set always_yes yes --set changeps1 no
             conda env update -f environment.yml
             source activate tmol
             pip install -r requirements.tests.txt
+
             conda clean -tipsy
       - save_cache:
           paths:
@@ -44,6 +48,9 @@ jobs:
 
             (pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/test.xml 2>&1 | tee report/test.log) || failed=1
             (pytest -v -k 'linting' 2>&1 --junitxml=report/linting/linting.xml | tee report/linting.log) || failed=1
+
+            .circleci/fixup_test_report.py report/test/test.xml report/linting/linting.xml
+
             codecov -F pytest
 
             exit $failed

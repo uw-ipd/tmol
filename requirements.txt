@@ -9,3 +9,4 @@ cattrs>=0.6
 frozendict>=1.0
 PyYaml>=3.12
 torch==0.4.0a0+1936753
+pint>=0.8
