@@ -3,13 +3,10 @@ import yaml
 import cattr
 import pandas
 import numpy
-import scipy.spatial
 import pytest
 
 import tmol.system.residue.restypes as restypes
 import tmol.database
-
-from tmol.score.interatomic_distance import NaiveInteratomicDistanceGraph
 
 from tmol.system.residue.io import read_pdb
 from tmol.score.hbond import HBondElementAnalysis, HBondScoreGraph
@@ -60,67 +57,6 @@ def test_bb_identification(bb_hbond_database):
         ).sort_values("a"),
         pandas.DataFrame.from_records(hbe.sp2_acceptors).sort_values("a")
     )
-
-
-def test_bb_dummy_score(bb_hbond_database):
-    tsys = read_pdb(test_pdbs.data["1ubq"])
-    test_params = tmol.score.system_graph_params(tsys, requires_grad=False)
-
-    atom_pair_distances = scipy.spatial.distance.squareform(
-        NaiveInteratomicDistanceGraph(**test_params).atom_pair_dist
-    )
-
-    hbond_graph = HBondScoreGraph(
-        hbond_database=bb_hbond_database,
-        **test_params,
-    )
-    hbond_elements = hbond_graph.hbond_elements
-
-    h_i = hbond_elements.donors["h"].reshape((-1, 1))
-    sp2_i = hbond_elements.sp2_acceptors["a"].reshape((1, -1))
-    sp3_i = hbond_elements.sp3_acceptors["a"].reshape((1, -1))
-    ring_i = hbond_elements.ring_acceptors["a"].reshape((1, -1))
-
-    max_dis = hbond_graph.hbond_database.global_parameters.max_dis
-
-    total_count = (
-        numpy.count_nonzero(atom_pair_distances[h_i, sp2_i] <= max_dis) +
-        numpy.count_nonzero(atom_pair_distances[h_i, sp3_i] <= max_dis) +
-        numpy.count_nonzero(atom_pair_distances[h_i, ring_i] <= max_dis)
-    )
-
-    print(max_dis)
-    print(total_count)
-    print(hbond_graph.total_hbond)
-
-    assert total_count == hbond_graph.total_hbond
-
-
-def test_dummy_score():
-    tsys = read_pdb(test_pdbs.data["1ubq"])
-    test_params = tmol.score.system_graph_params(tsys, requires_grad=False)
-
-    atom_pair_distances = scipy.spatial.distance.squareform(
-        NaiveInteratomicDistanceGraph(**test_params).atom_pair_dist
-    )
-
-    hbond_graph = HBondScoreGraph(**test_params)
-    hbond_elements = hbond_graph.hbond_elements
-
-    h_i = hbond_elements.donors["h"].reshape((-1, 1))
-    sp2_i = hbond_elements.sp2_acceptors["a"].reshape((1, -1))
-    sp3_i = hbond_elements.sp3_acceptors["a"].reshape((1, -1))
-    ring_i = hbond_elements.ring_acceptors["a"].reshape((1, -1))
-
-    max_dis = hbond_graph.hbond_database.global_parameters.max_dis
-
-    total_count = (
-        numpy.count_nonzero(atom_pair_distances[h_i, sp2_i] <= max_dis) +
-        numpy.count_nonzero(atom_pair_distances[h_i, sp3_i] <= max_dis) +
-        numpy.count_nonzero(atom_pair_distances[h_i, ring_i] <= max_dis)
-    )
-
-    assert total_count == hbond_graph.total_hbond
 
 
 def test_identification_by_ljlk_types():
