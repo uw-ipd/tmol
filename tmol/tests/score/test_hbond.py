@@ -92,7 +92,7 @@ def test_identification_by_ljlk_types():
                     f"Unidentified acceptor. res: {t.name} atom:{t.atoms[ai]}"
 
 
-def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
+def test_pyrosetta_hbond_comparison(bb_hbond_database, pyrosetta):
     rosetta_system = rosetta_baseline.data["1ubq"]
 
     test_system = (
@@ -100,7 +100,6 @@ def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
         .from_residues(rosetta_system.tmol_residues)
     )  # yapf: disable
     hbond_graph = HBondScoreGraph(
-        hbond_database=bb_hbond_database,
         **tmol.score.system_graph_params(test_system, requires_grad=False)
     )
 
@@ -108,7 +107,7 @@ def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
     # via atom metadata
     h_i = hbond_graph.hbond_h_ind
     a_i = hbond_graph.hbond_acceptor_ind
-    tmol_hbonds = pandas.DataFrame.from_dict({
+    tmol_candidate_hbonds = pandas.DataFrame.from_dict({
         "h": h_i,
         "a": a_i,
         "h_res": test_system.atom_metadata["residue_index"][h_i],
@@ -116,7 +115,9 @@ def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
         "a_res": test_system.atom_metadata["residue_index"][a_i],
         "a_atom": test_system.atom_metadata["atom_name"][a_i],
         "score": hbond_graph.hbond_scores,
-    }).query("score != 0").set_index(["a", "h"])
+    }).set_index(["a", "h"])
+    tmol_hbonds = tmol_candidate_hbonds.query("score != 0")
+
     del h_i, a_i
 
     # Merge with named atom index to get atom indicies in packed system
@@ -126,10 +127,7 @@ def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
         .set_index(["residue_index", "atom_name"])["atom_index"]
     )
     rosetta_hbonds = toolz.curried.reduce(pandas.merge)((
-        (
-            rosetta_system.hbonds.set_index(["a_atom", "h_atom"])
-            .sort_index().loc["O", "H"].reset_index()
-        ),
+        rosetta_system.hbonds,
         (
             named_atom_index.rename_axis(["a_res", "a_atom"])
             .to_frame("a").reset_index()
@@ -144,17 +142,22 @@ def test_bb_pyrosetta_comparison(bb_hbond_database, pyrosetta):
     rosetta_not_tmol = rosetta_hbonds.loc[
         (rosetta_hbonds.index.difference(tmol_hbonds.index))
     ]
+    rosetta_not_tmol_candidate = rosetta_hbonds.loc[
+        (rosetta_hbonds.index.difference(tmol_candidate_hbonds.index))
+    ]
     tmol_not_rosetta = tmol_hbonds.loc[
         (tmol_hbonds.index.difference(rosetta_hbonds.index))
     ]
 
     # Report difference via set operator.
-    assert set(rosetta_hbonds.index.tolist()
-               ) == set(tmol_hbonds.index.tolist()), (
-                   f"Mismatched bb hbond identification:\n"
-                   f"unidentified:\n{rosetta_not_tmol}\n"
-                   f"extra:\n{tmol_not_rosetta}"
-               )
+    assert set(rosetta_hbonds.index.tolist()) == set(
+        tmol_hbonds.index.tolist()
+    ), (
+        f"Mismatched bb hbond identification:\n"
+        f"rosetta but no tmol score:\n{rosetta_not_tmol}\n\n"
+        f"rosetta but no tmol candidate:\n{rosetta_not_tmol_candidate}\n\n"
+        f"tmol but no rosetta hbond:\n{tmol_not_rosetta}\n\n"
+    )
 
 
 bb_hbond_config = yaml.load(
