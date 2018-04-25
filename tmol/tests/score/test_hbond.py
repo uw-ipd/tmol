@@ -418,6 +418,66 @@ def test_sp3_single_hbond():
     assert (float(energy.data[0]) == pytest.approx(-2.00, 0.01))
 
 
+def test_ring_single_hbond():
+
+    hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6 = torch.tensor([[
+        0.0, -1.68095217, 21.31894078, -107.72203494, 251.81021758,
+        -134.07465831, -707.64527046, 1894.62827430, -2156.85951846,
+        1216.83585872, -275.48078944
+    ]])
+    hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range = torch.tensor([[
+        1.01629363411, 2.58523052904
+    ]])
+    hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds = torch.tensor([[
+        1.1, 1.1
+    ]])
+
+    poly_cosBAH_7 = torch.tensor([[
+        0.0, 0.0, -27.942923450028001, 136.039920253367995,
+        -268.069590567470016, 275.400462507918974, -153.502076215948989,
+        39.741591385461000, 0.693861510121000, -3.885952320499000,
+        1.024765090788892
+    ]])
+    poly_cosBAH_7_range = torch.tensor([[-0.0193738506669, 1.1]])
+    poly_cosBAH_7_bounds = torch.tensor([[1.1, 1.1]])
+
+    poly_AHD_1i = torch.tensor([[
+        0.0,
+        -0.18888801,
+        3.48241679,
+        -25.65508662,
+        89.57085435,
+        -95.91708218,
+        -367.93452341,
+        1589.69047020,
+        -2662.35821350,
+        2184.40194483,
+        -723.28383545,
+    ]])
+    poly_AHD_1i_range = torch.tensor([[1.59914724347, 3.1416]])
+    poly_AHD_1i_bounds = torch.tensor([[1.1, 1.1]])
+
+    atomD = torch.tensor([[-0.624, 5.526, -2.146]])
+    atomH = torch.tensor([[-1.023, 4.664, -2.481]])
+    atomA = torch.tensor([[-1.579, 2.834, -2.817]])
+    atomB = torch.tensor([[-0.774, 1.927, -3.337]])
+    atomB0 = torch.tensor([[-2.327, 2.261, -1.817]])
+
+    donwt = torch.tensor([[1.45]])
+    accwt = torch.tensor([[1.13]])
+
+    energy = tmol.score.hbond.hbond_donor_ring_score(
+        atomD, atomH, atomA, atomB, atomB0, accwt, donwt,
+        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6,
+        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range,
+        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds, poly_cosBAH_7,
+        poly_cosBAH_7_range, poly_cosBAH_7_bounds, poly_AHD_1i,
+        poly_AHD_1i_range, poly_AHD_1i_bounds, 4.2
+    )
+
+    assert (float(energy.data[0]) == pytest.approx(-2.17, 0.01))
+
+
 @pytest.fixture
 def bb_hbond_database():
     return cattr.structure(
