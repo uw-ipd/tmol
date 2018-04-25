@@ -89,6 +89,10 @@ def test_bb_dummy_score(bb_hbond_database):
         numpy.count_nonzero(atom_pair_distances[h_i, ring_i] <= max_dis)
     )
 
+    print(max_dis)
+    print(total_count)
+    print(hbond_graph.total_hbond)
+
     assert total_count == hbond_graph.total_hbond
 
 
