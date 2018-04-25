@@ -12,7 +12,7 @@ import tmol.database
 from tmol.score.interatomic_distance import NaiveInteratomicDistanceGraph
 
 from tmol.system.residue.io import read_pdb
-from tmol.score.hbond import HBondElementAnalysis, HBondScoreGraph, hbond_donor_sp2_score
+from tmol.score.hbond import HBondElementAnalysis, HBondScoreGraph
 import tmol.tests.data.rosetta_baseline as rosetta_baseline
 import tmol.tests.data.pdb as test_pdbs
 

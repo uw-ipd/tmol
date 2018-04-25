@@ -214,7 +214,7 @@ def hbond_donor_ring_score(
         h,
         a,
         b,
-        b0,
+        bp,
 
         # type pair parameters
         glob_accwt,
@@ -245,7 +245,7 @@ def hbond_donor_ring_score(
     AHD = numpy.pi - torch.acos(xD)
     # in non-cos space
 
-    BAvecn = (a - 0.5 * (b + b0))
+    BAvecn = (a - 0.5 * (b + bp))
     BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
     xH = (AHvecn * BAvecn).sum(dim=-1)
 
