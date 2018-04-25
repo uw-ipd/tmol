@@ -3,7 +3,6 @@ import cattr
 import properties
 from properties import Instance
 import toolz
-from toolz.curried import compose
 
 from typing import Dict
 
@@ -23,7 +22,6 @@ from tmol.database.scoring import HBondDatabase
 
 # evaluate polynomial function (Horner's rule)
 def polyval(A, Arange, Abound, x):
-    #p = torch.empty_like(x)
     p = A[:, 0]
     for i in range(1, A.shape[-1]):
         p = p * x + A[:, i]
@@ -93,7 +91,7 @@ def hbond_donor_sp2_score(
 ):
     acc_don_scale = glob_accwt * glob_donwt
 
-    ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
+    # Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
     D = (a - h).norm(dim=-1)
 
     AHvecn = (h - a)
@@ -111,8 +109,9 @@ def hbond_donor_sp2_score(
 
     BB0vecn = (b0 - b)
     BB0vecn = BB0vecn / BB0vecn.norm(dim=-1).unsqueeze(dim=-1)
-    xchi = (BB0vecn * AHvecn).sum(dim=-1) \
-        - (BB0vecn * BAvecn).sum(dim=-1) * (BAvecn * AHvecn).sum(dim=-1) # yapf: disable
+    xchi = (BB0vecn * AHvecn).sum(dim=-1) - \
+           ((BB0vecn * BAvecn).sum(dim=-1) * (BAvecn * AHvecn).sum(dim=-1))
+
     ychi = (torch.cross(BAvecn, AHvecn, dim=-1) * BB0vecn).sum(dim=-1)
     chi = -torch.atan2(ychi, xchi)
 
@@ -132,8 +131,10 @@ def hbond_donor_sp2_score(
     med_energy_selector = ~high_energy_selector & (energy > -0.1)
 
     energy[high_energy_selector] = 0.0
-    energy[med_energy_selector] = \
-        -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
+    energy[med_energy_selector] = (
+        -0.025 + 0.5 * energy[med_energy_selector] -
+        2.5 * energy[med_energy_selector] * energy[med_energy_selector]
+    )
 
     return energy
 
@@ -166,7 +167,7 @@ def hbond_donor_sp3_score(
 ):
     acc_don_scale = glob_accwt * glob_donwt
 
-    ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
+    # Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
     D = (a - h).norm(dim=-1)
 
     AHvecn = (h - a)
@@ -201,8 +202,10 @@ def hbond_donor_sp3_score(
     med_energy_selector = ~high_energy_selector & (energy > -0.1)
 
     energy[high_energy_selector] = 0.0
-    energy[med_energy_selector] = \
-        -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
+    energy[med_energy_selector] = (
+        -0.025 + 0.5 * energy[med_energy_selector] -
+        2.5 * energy[med_energy_selector] * energy[med_energy_selector]
+    )
 
     return energy
 
@@ -234,7 +237,7 @@ def hbond_donor_ring_score(
 ):
     acc_don_scale = glob_accwt * glob_donwt
 
-    ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
+    # Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
     D = (a - h).norm(dim=-1)
 
     AHvecn = (h - a)
@@ -260,8 +263,10 @@ def hbond_donor_ring_score(
     med_energy_selector = ~high_energy_selector & (energy > -0.1)
 
     energy[high_energy_selector] = 0.0
-    energy[med_energy_selector] = \
-        -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
+    energy[med_energy_selector] = (
+        -0.025 + 0.5 * energy[med_energy_selector] -
+        2.5 * energy[med_energy_selector] * energy[med_energy_selector]
+    )
 
     return energy
 

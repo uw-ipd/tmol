@@ -263,7 +263,7 @@ bb_hbond_config = yaml.load(
         min_val: 1.1
         max_val: 1.1
         degree: 10
-        c_a: 0.0 
+        c_a: 0.0
         c_b: -0.5307601
         c_c: 6.47949946
         c_d: -22.39522814
