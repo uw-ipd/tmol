@@ -291,7 +291,7 @@ class TestAtomTree(unittest.TestCase):
         #with open( "test_refold2.pdb", "w" ) as fid :
         #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
 
-    def test_atomtree_w_jump_atoms( self ) :
+    def create_franks_multi_jump_atom_tree( self ) :
         NATOMS=23
 
         BOND = 1
@@ -383,6 +383,10 @@ class TestAtomTree(unittest.TestCase):
             node.xyz = coords[ii,:]
 
         nodes[0].update_internal_coords()
+        return nodes, coords
+
+    def test_atomtree_w_jump_atoms( self ) :
+        nodes, coords = self.create_franks_multi_jump_atom_tree()
         #print_tree_no_names( nodes[0] )
 
         nodes[0].update_xyz()
@@ -390,3 +394,41 @@ class TestAtomTree(unittest.TestCase):
 
         for ii, node in enumerate( nodes ) :
             self.assertAlmostEqual( numpy.linalg.norm( numpy.array(node.xyz) - coords[ii,:] ), 0 )
+
+
+    def count_nodes_in_ag_tree( self, root ) :
+        count = 0
+        if root is not None : 
+            count += 1
+            count += self.count_nodes_in_ag_tree( root.first_child )
+            if root.first_child : self.assertIs( root, root.first_child.parent )
+            for child in root.other_children :
+                count += self.count_nodes_in_ag_tree( child )
+                self.assertIs( root, child.parent )
+            count += self.count_nodes_in_ag_tree( root.younger_sibling )
+            if root.younger_sibling: self.assertIs( root, root.younger_sibling.older_sibling )
+        return count
+
+    def test_create_abe_go_tree( self ) :
+        # create the UBQ atom tree
+        # follow with the Abe-Go tree
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] )
+        tree = atree.tree_from_residues( res_reader.chemical_db, residues )
+
+        ag_root, ag_nodes = htrefold.abe_and_go_tree_from_atom_tree( tree )
+        count_ag_nodes = sum( [ sum( [ len(x) for x in y ] ) for y in ag_nodes ] )
+        count_at_nodes = sum( [ len( x ) for x in tree.atom_pointer_list ] )
+
+        # there are two nodes for every bonded atom
+        self.assertEqual( count_at_nodes * 2, count_ag_nodes )
+
+        # make sure all nodes have either a parent or an older sibling but not both
+        for res_nodes in ag_nodes :
+            for atom_nodes in res_nodes :
+                for node in atom_nodes :
+                    self.assertTrue( node.parent is not None or node.older_sibling is not None or node is ag_root )
+                    self.assertTrue( node.parent is None or node.older_sibling is None )
+
+        # make sure a traversal starting at the root hits all children
+        self.assertEqual( count_ag_nodes, self.count_nodes_in_ag_tree( ag_root ) )
