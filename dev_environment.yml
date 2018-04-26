@@ -17,4 +17,5 @@ dependencies:
     - pytest-xdist
     - pytest-watch
     - pytest-instafail
+    - pytest-faulthandler
     - pdbpp

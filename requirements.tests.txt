@@ -4,3 +4,4 @@ pytest-xdist
 codecov
 yapf
 flake8
+pytest-faulthandler
