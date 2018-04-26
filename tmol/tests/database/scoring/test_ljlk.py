@@ -2,7 +2,7 @@ import unittest
 from collections import Counter
 
 
-class TestScoringDatabase(unittest.TestCase):
+class TestLKLJScoringDatabase(unittest.TestCase):
     def test_ljlk_defs(self):
         from tmol.database import default
 

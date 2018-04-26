@@ -1,0 +1,48 @@
+# vim: nowrap ts=2 sw=2 expandtab
+atom_groups:
+  donors:
+    - { d: Nbb,      h: HNbb, donor_type: hbdon_PBA }
+    - { d: Ntrp,     h: Hpol, donor_type: hbdon_IND }
+    - { d: NhisD,    h: Hpol, donor_type: hbdon_IMD }
+    - { d: NhisE,    h: Hpol, donor_type: hbdon_IME }
+    - { d: NtrR,     h: Hpol, donor_type: hbdon_GDE }
+    - { d: Narg,     h: Hpol, donor_type: hbdon_GDH }
+    - { d: NH2O,     h: Hpol, donor_type: hbdon_CXA }
+    - { d: Nlys,     h: Hpol, donor_type: hbdon_AMO }
+    - { d: OH,       h: Hpol, donor_type: hbdon_HXL }
+    - { d: OHphenol, h: Hpol, donor_type: hbdon_AHX } # Need aro OH for tyrosine
+  sp2_acceptors:
+    - { a: OCbb, b: CObb, b0: CAbb, acceptor_type: hbacc_PBA }
+    - { a: ONH2, b: CNH2, b0: NH2O, acceptor_type: hbacc_CXA }
+    - { a: OOC,  b: COO,  b0: CH2,  acceptor_type: hbacc_CXL }
+  sp3_acceptors:
+    - { a: OH,       b: CH2, b0: Hpol, acceptor_type: hbacc_HXL }
+    - { a: OH,       b: CH1, b0: Hpol, acceptor_type: hbacc_HXL }
+    - { a: OHphenol, b: CH0, b0: Hpol, acceptor_type: hbacc_AHX }
+  ring_acceptors:
+    - { a: NhisDDepro, b: aroC, bp: CH0,  acceptor_type: hbacc_IMD }
+    - { a: NhisEDepro, b: aroC, bp: aroC, acceptor_type: hbacc_IME }
+chemical_types:
+  donors:
+    - hbdon_PBA #ex: protein backbone Nbb--HNbb
+    - hbdon_CXA #ex: Asn ND2--{1 2}HD2; Gln NE2--{1 2}HE2 
+    - hbdon_IMD #ex: His(HIS_D res_type) ND1--HE2 -- tautomer state with hydrogen on nitrogen closer to backbone
+    - hbdon_IME #ex: His(HIS res_type) NE2--HE2 -- tautomer state with hydrogen on nitrogen farther from backbone
+    - hbdon_IND #ex: Trp NE1--HE1 
+    - hbdon_AMO #ex: Lys NZ--{1 2 3}HZ
+    - hbdon_GDE #ex: Arg NE--HE
+    - hbdon_GDH #ex: Arg NH{1 2}--{1 2}HH{1 2} 
+    - hbdon_AHX #ex: Tyr OH--HH
+    - hbdon_HXL #ex: Ser OG--HG; Thr OG1--HG1
+    - hbdon_H2O #ex: H2O(TP5/TP3 res types) O--H{1 2}
+  sp2_acceptors:
+    - hbacc_PBA #ex: protein backbone OCbb
+    - hbacc_CXA #ex: Asn OD1; Gln OE1
+    - hbacc_CXL #ex: Asp OD{1 2}; Glu OE{1 2}
+  sp3_acceptors:
+    - hbacc_AHX #ex: Tyr OH
+    - hbacc_HXL #ex: Ser OG; Thr OG1
+    - hbacc_H2O #H2O(TP5/TP3 res types) O
+  ring_acceptors:
+    - hbacc_IMD #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
+    - hbacc_IME #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
