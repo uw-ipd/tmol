@@ -1,6 +1,7 @@
 import toolz
+
+import numpy
 import pandas
-import pytest
 
 import tmol.database
 
@@ -9,7 +10,6 @@ import tmol.tests.data.rosetta_baseline as rosetta_baseline
 from tmol.score.hbond import HBondScoreGraph
 
 
-@pytest.mark.xfail
 def test_pyrosetta_hbond_comparison(bb_hbond_database, pyrosetta):
     rosetta_system = rosetta_baseline.data["1ubq"]
 
@@ -56,6 +56,14 @@ def test_pyrosetta_hbond_comparison(bb_hbond_database, pyrosetta):
         ),
     )).set_index(["a", "h"])
 
+    score_comparision = pandas.merge(
+        rosetta_hbonds["energy"].to_frame("rosetta_score"),
+        tmol_hbonds["score"].to_frame("tmol_score"),
+        left_index=True,
+        right_index=True,
+        how="outer",
+    )
+
     # Extract subsets via index operations.
     rosetta_not_tmol = rosetta_hbonds.loc[
         (rosetta_hbonds.index.difference(tmol_hbonds.index))
@@ -67,12 +75,21 @@ def test_pyrosetta_hbond_comparison(bb_hbond_database, pyrosetta):
         (tmol_hbonds.index.difference(rosetta_hbonds.index))
     ]
 
-    # Report difference via set operator.
-    assert set(rosetta_hbonds.index.tolist()) == set(
-        tmol_hbonds.index.tolist()
-    ), (
+    err_msg = (
         f"Mismatched bb hbond identification:\n"
         f"rosetta but no tmol score:\n{rosetta_not_tmol}\n\n"
         f"rosetta but no tmol candidate:\n{rosetta_not_tmol_candidate}\n\n"
         f"tmol but no rosetta hbond:\n{tmol_not_rosetta}\n\n"
     )
+
+    numpy.testing.assert_allclose(
+        numpy.nan_to_num(score_comparision["rosetta_score"].values),
+        numpy.nan_to_num(score_comparision["tmol_score"].values),
+        rtol=1e-3,
+        atol=1e-5,
+        err_msg=err_msg,
+    )
+
+    # Report difference via set operator.
+    assert set(rosetta_hbonds.index.tolist()
+               ) == set(tmol_hbonds.index.tolist()), err_msg
