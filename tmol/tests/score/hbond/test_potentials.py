@@ -47,12 +47,30 @@ def test_sp2_single_hbond():
     accwt = torch.tensor([[1.19]])
 
     energy = hbond_donor_sp2_score(
-        atomD, atomH, atomA, atomB, atomB0, accwt, donwt,
-        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6,
-        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_range,
-        hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_bounds, poly_cosBAH_off,
-        poly_cosBAH_off_range, poly_cosBAH_off_bounds, poly_AHD_1j,
-        poly_AHD_1j_range, poly_AHD_1j_bounds, 1.6, 0.75, 0.357, 4.2
+        # Input coordinates
+        d=atomD,
+        h=atomH,
+        a=atomA,
+        b=atomB,
+        b0=atomB0,
+
+        # type pair parameters
+        glob_accwt=accwt,
+        glob_donwt=donwt,
+        AHdist_coeffs=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6,
+        AHdist_ranges=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_range,
+        AHdist_bounds=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_bounds,
+        cosBAH_coeffs=poly_cosBAH_off,
+        cosBAH_ranges=poly_cosBAH_off_range,
+        cosBAH_bounds=poly_cosBAH_off_bounds,
+        cosAHD_coeffs=poly_AHD_1j,
+        cosAHD_ranges=poly_AHD_1j_range,
+        cosAHD_bounds=poly_AHD_1j_bounds,
+
+        # Global score parameters
+        hb_sp2_range_span=1.6,
+        hb_sp2_BAH180_rise=0.75,
+        hb_sp2_outer_width=0.357,
     )
 
     assert (float(energy.data[0]) == pytest.approx(-2.41, 0.01))
@@ -106,12 +124,29 @@ def test_sp3_single_hbond():
     accwt = torch.tensor([[1.15]])
 
     energy = hbond_donor_sp3_score(
-        atomD, atomH, atomA, atomB, atomB0, accwt, donwt,
-        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6,
-        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_range,
-        hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_bounds, poly_cosBAH_6i,
-        poly_cosBAH_6i_range, poly_cosBAH_6i_bounds, poly_AHD_1i,
-        poly_AHD_1i_range, poly_AHD_1i_bounds, 2.5, 4.2
+
+        # Input coordinates
+        d=atomD,
+        h=atomH,
+        a=atomA,
+        b=atomB,
+        b0=atomB0,
+
+        # type pair parameters
+        glob_accwt=accwt,
+        glob_donwt=donwt,
+        AHdist_coeffs=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6,
+        AHdist_ranges=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_range,
+        AHdist_bounds=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_bounds,
+        cosBAH_coeffs=poly_cosBAH_6i,
+        cosBAH_ranges=poly_cosBAH_6i_range,
+        cosBAH_bounds=poly_cosBAH_6i_bounds,
+        cosAHD_coeffs=poly_AHD_1i,
+        cosAHD_ranges=poly_AHD_1i_range,
+        cosAHD_bounds=poly_AHD_1i_bounds,
+
+        # Global score parameters
+        hb_sp3_softmax_fade=2.5,
     )
 
     assert (float(energy.data[0]) == pytest.approx(-2.00, 0.01))
@@ -166,12 +201,25 @@ def test_ring_single_hbond():
     accwt = torch.tensor([[1.13]])
 
     energy = hbond_donor_ring_score(
-        atomD, atomH, atomA, atomB, atomB0, accwt, donwt,
-        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6,
-        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range,
-        hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds, poly_cosBAH_7,
-        poly_cosBAH_7_range, poly_cosBAH_7_bounds, poly_AHD_1i,
-        poly_AHD_1i_range, poly_AHD_1i_bounds, 4.2
+        # Input coordinates
+        d=atomD,
+        h=atomH,
+        a=atomA,
+        b=atomB,
+        bp=atomB0,
+
+        # type pair parameters
+        glob_accwt=accwt,
+        glob_donwt=donwt,
+        AHdist_coeffs=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6,
+        AHdist_ranges=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range,
+        AHdist_bounds=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds,
+        cosBAH_coeffs=poly_cosBAH_7,
+        cosBAH_ranges=poly_cosBAH_7_range,
+        cosBAH_bounds=poly_cosBAH_7_bounds,
+        cosAHD_coeffs=poly_AHD_1i,
+        cosAHD_ranges=poly_AHD_1i_range,
+        cosAHD_bounds=poly_AHD_1i_bounds,
     )
 
     assert (float(energy.data[0]) == pytest.approx(-2.17, 0.01))

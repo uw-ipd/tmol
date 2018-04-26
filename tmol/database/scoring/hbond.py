@@ -7,11 +7,11 @@ from typing import Tuple
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class GlobalParams:
-    max_dis: float
     hb_sp2_range_span: float
     hb_sp2_BAH180_rise: float
     hb_sp2_outer_width: float
     hb_sp3_softmax_fade: float
+    threshold_distance: float
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

@@ -69,7 +69,6 @@ def hbond_donor_sp2_score(
         hb_sp2_range_span,
         hb_sp2_BAH180_rise,
         hb_sp2_outer_width,
-        max_dis
 ):
     acc_don_scale = glob_accwt * glob_donwt
 
@@ -145,7 +144,6 @@ def hbond_donor_sp3_score(
 
         # Global score parameters
         hb_sp3_softmax_fade,
-        max_dis
 ):
     acc_don_scale = glob_accwt * glob_donwt
 
@@ -213,9 +211,6 @@ def hbond_donor_ring_score(
         cosAHD_coeffs,
         cosAHD_ranges,
         cosAHD_bounds,
-
-        # Global score parameters
-        max_dis
 ):
     acc_don_scale = glob_accwt * glob_donwt
 

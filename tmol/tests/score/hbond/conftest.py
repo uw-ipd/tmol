@@ -8,11 +8,11 @@ import tmol.database.scoring
 bb_hbond_config = yaml.load(
     """
     global_parameters:
-        max_dis : 4.2
         hb_sp2_range_span: 1.6
         hb_sp2_BAH180_rise: 0.75
         hb_sp2_outer_width: 0.357
         hb_sp3_softmax_fade: 2.5
+        threshold_distance: 6.0
     atom_groups:
         donors:
             - { d: Nbb, h: HNbb, donor_type: hbdon_PBA }

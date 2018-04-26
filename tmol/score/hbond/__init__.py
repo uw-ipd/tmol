@@ -185,7 +185,7 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.atom_pair_dist_thresholds.add(
-            self.hbond_database.global_parameters.max_dis
+            self.hbond_database.global_parameters.threshold_distance
         )
         self.score_components.add(
             ScoreComponentAttributes("hbond", "total_hbond", None)
@@ -358,7 +358,6 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         pair_params = self.donor_sp2_params
 
         global_params = dict(
-            max_dis=self.hbond_database.global_parameters.max_dis,
             hb_sp2_range_span=self.hbond_database.global_parameters.
             hb_sp2_range_span,
             hb_sp2_BAH180_rise=self.hbond_database.global_parameters.
@@ -390,7 +389,6 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         pair_params = self.donor_sp3_params
 
         global_params = dict(
-            max_dis=self.hbond_database.global_parameters.max_dis,
             hb_sp3_softmax_fade=self.hbond_database.global_parameters.
             hb_sp3_softmax_fade,
         )
@@ -417,12 +415,8 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
 
         pair_params = self.donor_ring_params
 
-        global_params = dict(
-            max_dis=self.hbond_database.global_parameters.max_dis,
-        )
-
         return hbond_donor_ring_score(
-            **toolz.dicttoolz.merge(coord_params, pair_params, global_params)
+            **toolz.dicttoolz.merge(coord_params, pair_params)
         )
 
     @derived_from(
