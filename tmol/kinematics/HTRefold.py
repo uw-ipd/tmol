@@ -31,6 +31,11 @@ class DerivNode :
     pass
 
 @attr.s( auto_attribs=True, slots=True )
+class AbeGoID :
+    atomid : atree.AtomID = attr.Factory( lambda: atree.AtomID() )
+    nodeid : int = 0
+
+@attr.s( auto_attribs=True, slots=True )
 class AbeGoNode( DerivNode ) :
     first_child : DerivNode = None
     other_children : typing.List[ DerivNode ] = attr.Factory( lambda: list() )
@@ -40,18 +45,21 @@ class AbeGoNode( DerivNode ) :
     phi_node : bool = False
     theta_d_node : bool = False
     jump_node : bool = False
-    atomid : atree.AtomID = attr.Factory( lambda : atree.AtomID() )
+    #atomid : atree.AtomID = attr.Factory( lambda : atree.AtomID() )
     reverse_depth : int = -1
+    path_root_index : int = -1
+    id: AbeGoID = attr.Factory( lambda: AbeGoID() )
 
 @attr.s( auto_attribs=True, slots=True )
-class AbeGoID :
-    atomid : atree.AtomID = attr.Factory( lambda:AtomID() )
-    nodeid : int = 0
+class AbeGoPathRootData :
+    node : AbeGoNode = None
+    depth : int = -1
+    path_length : int = -1
 
-@attr.s( auto_attribs=True, slots=True )
-class AbeGoPathData :
-    root_of_subpath : bool = False
-    child_on_subpath: atree.AtomID = atree.AtomID()
+class AbeGoRecursiveSummationData :
+    node : AbeGoNode = None
+    children : typing.List[ int ] = attr.Factory( lambda: list() )
+    
 
 
 def initialize_ht_refold_data( residues, tree ) :
@@ -263,22 +271,29 @@ def recursively_create_abe_and_go_tree( atom_tree_node, deriv_nodes ) :
         #deriv_node is the one that will be the parent to the children of atom_tree_node
         deriv_node = AbeGoNode()
         deriv_nodes[ id.res ][ id.atomno ].append( deriv_node )
-        deriv_node.atomid = id
+        #deriv_node.atomid = id
+        deriv_node.id.atomid = id
+        deriv_node.id.nodeid = 0
+
         deriv_node.jump_node = True
         return_node = deriv_node
     else :
         # BondedAtom gets two nodes
         phi_node = AbeGoNode()
         deriv_nodes[ id.res ][ id.atomno ].append( phi_node )
-        phi_node.atomid = id
+        #phi_node.atomid = id
         phi_node.phi_node = True
+        phi_node.id.atomid = id
+        phi_node.id.nodeid = 0
         return_node = phi_node
 
         #deriv_node is the one that will be the parent to the children of atom_tree_node
         deriv_node = AbeGoNode()
         deriv_nodes[ id.res ][ id.atomno ].append( deriv_node )
-        deriv_node.atomid = id
+        #deriv_node.atomid = id
         deriv_node.theta_d_node = True
+        deriv_node.id.atomid = id
+        deriv_node.id.nodeid = 1
 
         phi_node.first_child = deriv_node
         deriv_node.parent = phi_node
@@ -306,5 +321,75 @@ def recursively_create_abe_and_go_tree( atom_tree_node, deriv_nodes ) :
 
     return return_node
 
-def create_abe_and_go_paths( ag_root, nodes ) :
+def create_abe_and_go_paths( ag_root ) :
+    ''' Define the list of root nodes that will then serve as starting
+    points / ending points for the recursive summation of f1/f2s.'''
+    ag_path_root_nodes = [ AbeGoPathRootData( ag_root ) ]
+    ag_root.path_root_index = 0
+    recursively_identify_ag_tree_path_roots( ag_root, ag_path_root_nodes )
+    return ag_path_root_nodes
+
+def recursively_identify_ag_tree_path_roots( ag_root, ag_path_root_nodes ) :
+    if ag_root is not None :
+        recursively_identify_ag_tree_path_roots( ag_root.first_child, ag_path_root_nodes )
+        for child in ag_root.other_children :
+            child.path_root_index = len( ag_path_root_nodes )
+            ag_path_root_nodes.append( AbeGoPathRootData( child ) )
+            recursively_identify_ag_tree_path_roots( child, ag_path_root_nodes )
+        if ag_root.younger_sibling :
+            ag_root.younger_sibling.path_root_index = len( ag_path_root_nodes )
+            ag_path_root_nodes.append( AbeGoPathRootData( ag_root.younger_sibling ) )
+            recursively_identify_ag_tree_path_roots( ag_root.younger_sibling, ag_path_root_nodes )
+
+def find_abe_go_path_depths( ag_root, path_roots ) :
+    '''Post-order traversal to identify the depths of my children and offshoots
+    and then to record that depth in the path_roots list if I am a path root'''
+    my_depth = 0
+    if ag_root is not None :
+        my_childs_depth = find_abe_go_path_depths( ag_root.first_child, path_roots )
+        max_other_depths = -1
+        for other_child in ag_root.other_children :
+            other_depth = find_abe_go_path_depths( other_child, path_roots )
+            if max_other_depths < other_depth :
+                max_other_depths = other_depth
+        if ag_root.younger_sibling :
+            other_depth = find_abe_go_path_depths( ag_root.younger_sibling, path_roots )
+            if max_other_depths < other_depth :
+                max_other_depths = other_depth
+        my_depth = my_childs_depth
+        if max_other_depths >= 0 :
+            if my_depth < max_other_depths + 1 :
+                my_depth = max_other_depths + 1
+        if ag_root.path_root_index >= 0 :
+            #print( "Saving depth", my_depth, "for node:", ag_root.id, "at position", ag_root.path_root_index, "in array of size", len(path_roots) )
+            path_roots[ ag_root.path_root_index ].depth = my_depth
+    return my_depth
+
+
+def create_derivsum_indices( ag_nodes, path_roots ) :
+    derivsum_index_2_ag_id = [ None ] * sum([sum([len(x) for x in y ]) for y in ag_nodes ])
+    ag_id_2_derivsum_index = [ [ [-1] * len(x) for x in y ] for y in ag_nodes ]
+    sorted_path_roots = sorted( path_roots, key=lambda x : x.depth )
+
+    ind = 0
+    last_depth = sorted_path_roots[ 0 ].depth
+    # root node is the "deepest" part of the tree and the root node is put into the
+    # path_roots array first.
+    depth_start_inds = [ 0 ] * (path_roots[0].depth+1)
+    for path_root in sorted_path_roots :
+        if path_root.depth != last_depth :
+            depth_start_inds[ path_root.depth ] = ind
+            last_depth = path_root.depth
+        ind = recursively_set_deriv_sum_indices( path_root.node, ind, derivsum_index_2_ag_id, ag_id_2_derivsum_index )
+    return derivsum_index_2_ag_id, ag_id_2_derivsum_index, depth_start_inds
+
+def recursively_set_deriv_sum_indices( node, ind, dsi2agi, agi2dsi ) :
+    if node is not None :
+        ind = recursively_set_deriv_sum_indices( node.first_child, ind, dsi2agi, agi2dsi )
+        dsi2agi[ ind ] = node.id
+        agi2dsi[ node.id.atomid.res ][ node.id.atomid.atomno ][ node.id.nodeid ] = ind
+        ind += 1
+    return ind
+
+def create_f1f2_path_segments( ag_root, path_roots ) :
     pass

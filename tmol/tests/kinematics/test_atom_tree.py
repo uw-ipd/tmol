@@ -432,3 +432,18 @@ class TestAtomTree(unittest.TestCase):
 
         # make sure a traversal starting at the root hits all children
         self.assertEqual( count_ag_nodes, self.count_nodes_in_ag_tree( ag_root ) )
+
+    def test_create_derivsum_indices( self ) :
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] )
+        tree = atree.tree_from_residues( res_reader.chemical_db, residues )
+
+        ag_root, ag_nodes = htrefold.abe_and_go_tree_from_atom_tree( tree )
+        path_roots = htrefold.create_abe_and_go_paths( ag_root )
+        root_depth = htrefold.find_abe_go_path_depths( ag_root, path_roots )
+
+        derivsum_index_2_ag_id, ag_id_2_derivsum_index, depth_start_inds = \
+            htrefold.create_derivsum_indices( ag_nodes, path_roots )
+
+
+        
