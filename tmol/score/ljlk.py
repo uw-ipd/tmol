@@ -16,6 +16,7 @@ from tmol.properties.array import Array, VariableT, TensorT
 
 import tmol.utility.genericnumeric as gn
 
+from .bonded_atom import ScoreComponentAttributes
 from .interatomic_distance import InteratomicDistanceGraphBase
 from .types import RealTensor
 
@@ -364,8 +365,12 @@ class LJLKScoreGraph(InteratomicDistanceGraphBase):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.score_components.add("total_lk")
-        self.score_components.add("total_lj")
+        self.score_components.add(
+            ScoreComponentAttributes("lk", "total_lk", None)
+        )
+        self.score_components.add(
+            ScoreComponentAttributes("lj", "total_lj", None)
+        )
         self.atom_pair_dist_thresholds.add(
             self.ljlk_database.global_parameters.max_dis
         )

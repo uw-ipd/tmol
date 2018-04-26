@@ -9,6 +9,7 @@ import tmol.system.residue
 from tmol.system.residue.io import read_pdb
 
 import tmol.score.bonded_atom
+from tmol.score.bonded_atom import ScoreComponentAttributes
 from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase, NaiveInteratomicDistanceGraph,
     BlockedInteratomicDistanceGraph
@@ -27,7 +28,11 @@ class ThresholdDistanceCount(InteratomicDistanceGraphBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.score_components.add("total_threshold_count")
+        self.score_components.add(
+            ScoreComponentAttributes(
+                "threshold_count", "total_threshold_count", None
+            )
+        )
         self.atom_pair_dist_thresholds.add(self.threshold_distance)
 
     @derived_from(
