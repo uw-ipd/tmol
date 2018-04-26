@@ -1,34 +1,12 @@
-import toolz
-import os
-import pytest
+# Import support fixtures
+from .support.rosetta import (  # noqa: F401
+    pyrosetta, rosetta_database,
+)
 
-
-@pytest.fixture(scope="session")
-def pyrosetta():
-    "Import and initialize pyrosetta."
-    try:
-        from tmol.support.rosetta.init import pyrosetta
-
-        return pyrosetta
-    except ImportError:
-        return None
-
-
-@pytest.fixture(scope="session")
-def rosetta_database(pyrosetta):
-    "Resolve path to rosetta database."
-
-    if "ROSETTA_DATABASE" in os.environ:
-        normpath = toolz.compose(
-            os.path.abspath,
-            os.path.expanduser,
-            os.path.expandvars,
-        )
-        return normpath(os.environ.get("ROSETTA_DATABASE"))
-    elif pyrosetta:
-        return pyrosetta._rosetta_database_from_env()
-    else:
-        return None
+# Import basic data fixtures
+from .data import (  # noqa: F401
+    ubq_pdb, ubq_res, ubq_system
+)
 
 
 def pytest_collection_modifyitems(session, config, items):
