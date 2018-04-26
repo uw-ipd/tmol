@@ -40,6 +40,12 @@ jobs:
             conda list | tee report/conda.list.log
 
       - run:
+          name: Setup module
+          command: |
+            source activate tmol
+            pip install -e .
+
+      - run:
           name: Run tests
           command: |
             source activate tmol
