@@ -83,7 +83,7 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
             if atomn in res.residue_type.atom_to_idx:
                 res.atom_coords[atomn] = coord.values
             else:
-                self.logger.info(f"unknown atom name: {atomn}")
+                self.logger.info(f"unknown atom name: {atomn!r}")
         return res
 
     def parse_pdb(self, source_pdb):
@@ -101,8 +101,11 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
         ]  # yapf: disable
 
 
+default_reader = ResidueReader()
+
+
 def read_pdb(pdb_string: str) -> PackedResidueSystem:
-    res = ResidueReader().parse_pdb(pdb_string)
+    res = default_reader.parse_pdb(pdb_string)
 
     return PackedResidueSystem.from_residues(res)
 
@@ -123,6 +126,6 @@ def residue_to_cdjson(res):
 def packed_system_to_cdjson(system):
     coords = system.coords
     elems = [t[0] if t else "x" for t in system.atom_types]
-    bonds = list(map(tuple(system.bonds)))
+    bonds = list(map(tuple, system.bonds))
 
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)
