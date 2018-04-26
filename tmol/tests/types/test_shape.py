@@ -1,12 +1,10 @@
 import unittest
 
-import tmol.properties
-import tmol.properties.shape
 
-
-class testShapeSpec(unittest.TestCase):
+class testShape(unittest.TestCase):
     def test(self):
-        s = tmol.properties.shape.SpecGenerator()
+        from tmol.types.shape import Shape
+        s = Shape.spec
 
         class AssertInvalidSpec:
             def __init__(self, case):

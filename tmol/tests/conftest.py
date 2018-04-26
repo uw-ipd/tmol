@@ -29,3 +29,11 @@ def rosetta_database(pyrosetta):
         return pyrosetta._rosetta_database_from_env()
     else:
         return None
+
+
+def pytest_collection_modifyitems(session, config, items):
+
+    # Run all linting-tests *after* the functional tests
+    items[:] = sorted(
+        items, key=lambda i: i.nodeid.startswith("tmol/tests/linting")
+    )

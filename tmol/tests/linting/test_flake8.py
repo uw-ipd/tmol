@@ -18,7 +18,12 @@ def flake8_file(filename):
     app.make_notifier()
     app.make_guide()
     app.make_file_checker_manager()
-    app.run_checks([str(filename)])
+
+    try:
+        app.run_checks([str(filename)])
+    except application.exceptions.EarlyQuit:
+        raise KeyboardInterrupt
+
     app.formatter.start()
     app.report_errors()
     # app.report_statistics()

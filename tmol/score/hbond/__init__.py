@@ -3,7 +3,6 @@ import cattr
 import properties
 from properties import Instance
 import toolz
-from toolz.curried import compose
 
 from typing import Dict
 
@@ -14,439 +13,19 @@ import pandas
 from tmol.properties.array import VariableT, Array
 from tmol.properties.reactive import derived_from
 
-from .bonded_atom import ScoreComponentAttributes
-from .interatomic_distance import InteratomicDistanceGraphBase
+from ..bonded_atom import ScoreComponentAttributes
+from ..interatomic_distance import InteratomicDistanceGraphBase
+
+from .potentials import (
+    hbond_donor_sp2_score,
+    hbond_donor_sp3_score,
+    hbond_donor_ring_score,
+)
+
+from .identification import HBondElementAnalysis
 
 import tmol.database
 from tmol.database.scoring import HBondDatabase
-
-
-# evaluate polynomial function (Horner's rule)
-def polyval(A, Arange, Abound, x):
-    #p = torch.empty_like(x)
-    p = A[:, 0]
-    for i in range(1, A.shape[-1]):
-        p = p * x + A[:, i]
-
-    selector_low = (x < Arange[:, 0])
-    p[selector_low] = Abound[selector_low, 0]
-    selector_high = (x > Arange[:, 1])
-    p[selector_high] = Abound[selector_high, 1]
-
-    return p
-
-
-# evaluate sp2chi
-def sp2chi_energy(d, m, l, BAH, chi):
-    H = 0.5 * (torch.cos(2 * chi) + 1)
-
-    F = torch.empty_like(chi)
-    F.fill_(m - 0.5)
-    G = torch.empty_like(chi)
-    G.fill_(m - 0.5)
-
-    selector_upper = (BAH >= numpy.pi * 2.0 / 3.0)
-    selector_mid = ~selector_upper & (BAH >= numpy.pi * (2.0 / 3.0 - l))
-
-    F[selector_upper
-      ] = d / 2 * torch.cos(3 * (numpy.pi - BAH[selector_upper])) + d / 2 - 0.5
-    G[selector_upper] = d - 0.5
-
-    outer_rise = torch.cos(
-        numpy.pi - (numpy.pi * 2 / 3 - BAH[selector_mid]) / l
-    )
-    F[selector_mid] = m / 2 * outer_rise + m / 2 - 0.5
-    G[selector_mid] = (m - d) / 2 * outer_rise + (m - d) / 2 + d - 0.5
-
-    E = H * F + (1 - H) * G
-
-    return E
-
-
-# energy evaluation to an sp2 acceptor
-def hbond_donor_sp2_score(
-        # Input coordinates
-        d,
-        h,
-        a,
-        b,
-        b0,
-
-        # type pair parameters
-        glob_accwt,
-        glob_donwt,
-        AHdist_coeffs,
-        AHdist_ranges,
-        AHdist_bounds,
-        cosBAH_coeffs,
-        cosBAH_ranges,
-        cosBAH_bounds,
-        cosAHD_coeffs,
-        cosAHD_ranges,
-        cosAHD_bounds,
-
-        # Global score parameters
-        hb_sp2_range_span,
-        hb_sp2_BAH180_rise,
-        hb_sp2_outer_width,
-        max_dis
-):
-    acc_don_scale = glob_accwt * glob_donwt
-
-    ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
-    D = (a - h).norm(dim=-1)
-
-    AHvecn = (h - a)
-    AHvecn = AHvecn / AHvecn.norm(dim=-1).unsqueeze(dim=-1)
-    HDvecn = (d - h)
-    HDvecn = HDvecn / HDvecn.norm(dim=-1).unsqueeze(dim=-1)
-    xD = (AHvecn * HDvecn).sum(dim=-1)
-    AHD = numpy.pi - torch.acos(xD)
-    # in non-cos space
-
-    BAvecn = (a - b)
-    BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
-    xH = (AHvecn * BAvecn).sum(dim=-1)
-    BAH = numpy.pi - torch.acos(xH)
-
-    BB0vecn = (b0 - b)
-    BB0vecn = BB0vecn / BB0vecn.norm(dim=-1).unsqueeze(dim=-1)
-    xchi = (BB0vecn * AHvecn).sum(dim=-1) \
-        - (BB0vecn * BAvecn).sum(dim=-1) * (BAvecn * AHvecn).sum(dim=-1) # yapf: disable
-    ychi = (torch.cross(BAvecn, AHvecn, dim=-1) * BB0vecn).sum(dim=-1)
-    chi = -torch.atan2(ychi, xchi)
-
-    Pd = polyval(AHdist_coeffs, AHdist_ranges, AHdist_bounds, D)
-    PxH = polyval(cosBAH_coeffs, cosBAH_ranges, cosBAH_bounds, xH)
-    PxD = polyval(cosAHD_coeffs, cosAHD_ranges, cosAHD_bounds, AHD)
-
-    # sp2 chi part
-    Pchi = sp2chi_energy(
-        hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width, BAH, chi
-    )
-
-    energy = acc_don_scale * (Pd + PxD + PxH + Pchi)
-
-    # fade (squish [-0.1,0.1] to [-0.1,0.0])
-    high_energy_selector = (energy > 0.1)
-    med_energy_selector = ~high_energy_selector & (energy > -0.1)
-
-    energy[high_energy_selector] = 0.0
-    energy[med_energy_selector] = \
-        -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
-
-    return energy
-
-
-# energy evaluation to an sp3 acceptor
-def hbond_donor_sp3_score(
-        # Input coordinates
-        d,
-        h,
-        a,
-        b,
-        b0,
-
-        # type pair parameters
-        glob_accwt,
-        glob_donwt,
-        AHdist_coeffs,
-        AHdist_ranges,
-        AHdist_bounds,
-        cosBAH_coeffs,
-        cosBAH_ranges,
-        cosBAH_bounds,
-        cosAHD_coeffs,
-        cosAHD_ranges,
-        cosAHD_bounds,
-
-        # Global score parameters
-        hb_sp3_softmax_fade,
-        max_dis
-):
-    acc_don_scale = glob_accwt * glob_donwt
-
-    ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
-    D = (a - h).norm(dim=-1)
-
-    AHvecn = (h - a)
-    AHvecn = AHvecn / AHvecn.norm(dim=-1).unsqueeze(dim=-1)
-    HDvecn = (d - h)
-    HDvecn = HDvecn / HDvecn.norm(dim=-1).unsqueeze(dim=-1)
-    xD = (AHvecn * HDvecn).sum(dim=-1)
-    AHD = numpy.pi - torch.acos(xD)
-    # in non-cos space
-
-    BAvecn = (a - b)
-    BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
-    xH1 = (AHvecn * BAvecn).sum(dim=-1)
-
-    B0Avecn = (a - b0)
-    B0Avecn = B0Avecn / B0Avecn.norm(dim=-1).unsqueeze(dim=-1)
-    xH2 = (AHvecn * B0Avecn).sum(dim=-1)
-
-    Pd = polyval(AHdist_coeffs, AHdist_ranges, AHdist_bounds, D)
-    PxD = polyval(cosAHD_coeffs, cosAHD_ranges, cosAHD_bounds, AHD)
-    PxH1 = polyval(cosBAH_coeffs, cosBAH_ranges, cosBAH_bounds, xH1)
-    PxH2 = polyval(cosBAH_coeffs, cosBAH_ranges, cosBAH_bounds, xH2)
-    PxH = 1.0 / hb_sp3_softmax_fade * torch.log(
-        torch.exp(PxH1 * hb_sp3_softmax_fade) +
-        torch.exp(PxH2 * hb_sp3_softmax_fade)
-    )
-
-    energy = acc_don_scale * (Pd + PxD + PxH)
-
-    # fade (squish [-0.1,0.1] to [-0.1,0.0])
-    high_energy_selector = (energy > 0.1)
-    med_energy_selector = ~high_energy_selector & (energy > -0.1)
-
-    energy[high_energy_selector] = 0.0
-    energy[med_energy_selector] = \
-        -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
-
-    return energy
-
-
-# energy evaluation to a ring acceptor
-def hbond_donor_ring_score(
-        # Input coordinates
-        d,
-        h,
-        a,
-        b,
-        bp,
-
-        # type pair parameters
-        glob_accwt,
-        glob_donwt,
-        AHdist_coeffs,
-        AHdist_ranges,
-        AHdist_bounds,
-        cosBAH_coeffs,
-        cosBAH_ranges,
-        cosBAH_bounds,
-        cosAHD_coeffs,
-        cosAHD_ranges,
-        cosAHD_bounds,
-
-        # Global score parameters
-        max_dis
-):
-    acc_don_scale = glob_accwt * glob_donwt
-
-    ## Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
-    D = (a - h).norm(dim=-1)
-
-    AHvecn = (h - a)
-    AHvecn = AHvecn / AHvecn.norm(dim=-1).unsqueeze(dim=-1)
-    HDvecn = (d - h)
-    HDvecn = HDvecn / HDvecn.norm(dim=-1).unsqueeze(dim=-1)
-    xD = (AHvecn * HDvecn).sum(dim=-1)
-    AHD = numpy.pi - torch.acos(xD)
-    # in non-cos space
-
-    BAvecn = (a - 0.5 * (b + bp))
-    BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
-    xH = (AHvecn * BAvecn).sum(dim=-1)
-
-    Pd = polyval(AHdist_coeffs, AHdist_ranges, AHdist_bounds, D)
-    PxD = polyval(cosAHD_coeffs, cosAHD_ranges, cosAHD_bounds, AHD)
-    PxH = polyval(cosBAH_coeffs, cosBAH_ranges, cosBAH_bounds, xH)
-
-    energy = acc_don_scale * (Pd + PxD + PxH)
-
-    # fade (squish [-0.1,0.1] to [-0.1,0.0])
-    high_energy_selector = (energy > 0.1)
-    med_energy_selector = ~high_energy_selector & (energy > -0.1)
-
-    energy[high_energy_selector] = 0.0
-    energy[med_energy_selector] = \
-        -0.025 + 0.5*energy[med_energy_selector] - 2.5*energy[med_energy_selector]*energy[med_energy_selector]
-
-    return energy
-
-
-class HBondElementAnalysis(properties.HasProperties):
-    hbond_database: HBondDatabase = Instance(
-        "hbond parameter database",
-        HBondDatabase,
-        default=tmol.database.default.scoring.hbond
-    )
-
-    atom_types = Array("atomic types", dtype=object)[:]
-    bonds = Array("inter-atomic bond graph", dtype=int)[:, 2]
-
-    donor_dtype = numpy.dtype([("d", int), ("h", int), ("donor_type", object)])
-    donors = Array("Identified donor atom indices.", dtype=donor_dtype)[:]
-
-    sp2_acceptor_dtype = numpy.dtype([("a", int),
-                                      ("b", int),
-                                      ("b0", int),
-                                      ("acceptor_type", object)])
-    sp2_acceptors = Array(
-        "Identified sp2 acceptor atom indices.", dtype=sp2_acceptor_dtype
-    )[:]
-
-    sp3_acceptor_dtype = numpy.dtype([("a", int),
-                                      ("b", int),
-                                      ("b0", int),
-                                      ("acceptor_type", object)])
-    sp3_acceptors = Array(
-        "Identified sp3 acceptor atom indices.", dtype=sp3_acceptor_dtype
-    )[:]
-
-    ring_acceptor_dtype = numpy.dtype([("a", int),
-                                       ("b", int),
-                                       ("bp", int),
-                                       ("acceptor_type", object)])
-    ring_acceptors = Array(
-        "Identified ring acceptor atom indices.", dtype=ring_acceptor_dtype
-    )[:]
-
-    def setup(self):
-        self: HBondElementAnalysis
-        bond_types = self.atom_types[self.bonds]
-
-        bond_table = pandas.DataFrame.from_dict({
-            "i_i": self.bonds[:, 0],
-            "i_t": bond_types[:, 0],
-            "j_i": self.bonds[:, 1],
-            "j_t": bond_types[:, 1],
-        })
-
-        def inc_cols(*args):
-            order = {"i": "j", "j": "k"}
-            res = []
-            for n in args:
-                nn = order[n]
-                res.append((n + "_i", nn + "_i"))
-                res.append((n + "_t", nn + "_t"))
-            return dict(res)
-
-        def df_to_struct(df):
-            rec = df.to_records(index=False)
-            return rec.view(rec.dtype.fields)
-
-        if self.hbond_database.atom_groups.donors:
-            donor_types = pandas.DataFrame.from_records(
-                cattr.unstructure(self.hbond_database.atom_groups.donors)
-            )
-            donor_table = pandas.merge(
-                donor_types,
-                bond_table,
-                how="inner",
-                left_on=["d", "h"],
-                right_on=["i_t", "j_t"]
-            )
-            donor_pairs = {"i_i": "d", "j_i": "h", "donor_type": "donor_type"}
-            self.donors = df_to_struct(
-                donor_table[list(donor_pairs)].rename(columns=donor_pairs)
-            )
-        else:
-            self.donors = numpy.empty(0, self.donor_dtype)
-
-        if self.hbond_database.atom_groups.sp2_acceptors:
-            sp2_acceptor_types = pandas.DataFrame.from_records(
-                cattr.unstructure(
-                    self.hbond_database.atom_groups.sp2_acceptors
-                )
-            )
-            sp2_ab_table = pandas.merge(
-                sp2_acceptor_types,
-                bond_table,
-                how="inner",
-                left_on=["a", "b"],
-                right_on=["i_t", "j_t"]
-            )
-            sp2_bb0_table = pandas.merge(
-                sp2_acceptor_types,
-                bond_table.rename(columns=inc_cols("i", "j")),
-                how="inner",
-                left_on=["b", "b0"],
-                right_on=["j_t", "k_t"]
-            )
-            sp2_acceptor_table = pandas.merge(sp2_ab_table, sp2_bb0_table)
-            sp2_pairs = {
-                "i_i": "a",
-                "j_i": "b",
-                "k_i": "b0",
-                "acceptor_type": "acceptor_type"
-            }
-            self.sp2_acceptors = df_to_struct(
-                sp2_acceptor_table[list(sp2_pairs)].rename(columns=sp2_pairs)
-            )
-        else:
-            self.sp2_acceptors = numpy.empty(0, self.sp2_acceptor_dtype)
-
-        if self.hbond_database.atom_groups.sp3_acceptors:
-            sp3_acceptor_types = pandas.DataFrame.from_records(
-                cattr.unstructure(
-                    self.hbond_database.atom_groups.sp3_acceptors
-                )
-            )
-            sp3_ab_table = pandas.merge(
-                sp3_acceptor_types,
-                bond_table,
-                how="inner",
-                left_on=["a", "b"],
-                right_on=["i_t", "j_t"]
-            )
-            sp3_ab0_table = pandas.merge(
-                sp3_acceptor_types,
-                bond_table.rename(columns=inc_cols("j")),
-                how="inner",
-                left_on=["a", "b0"],
-                right_on=["i_t", "k_t"]
-            )
-            sp3_acceptor_table = pandas.merge(sp3_ab_table, sp3_ab0_table)
-            sp3_pairs = {
-                "i_i": "a",
-                "j_i": "b",
-                "k_i": "b0",
-                "acceptor_type": "acceptor_type"
-            }
-            self.sp3_acceptors = df_to_struct(
-                sp3_acceptor_table[list(sp3_pairs)].rename(columns=sp3_pairs)
-            )
-        else:
-            self.sp3_acceptors = numpy.empty(0, self.sp3_acceptor_dtype)
-
-        if self.hbond_database.atom_groups.ring_acceptors:
-            ring_acceptor_types = pandas.DataFrame.from_records(
-                cattr.unstructure(
-                    self.hbond_database.atom_groups.ring_acceptors
-                )
-            )
-            ring_ab_table = pandas.merge(
-                ring_acceptor_types,
-                bond_table,
-                how="inner",
-                left_on=["a", "b"],
-                right_on=["i_t", "j_t"]
-            )
-            ring_abp_table = pandas.merge(
-                ring_acceptor_types,
-                bond_table.rename(columns=inc_cols("j")),
-                how="inner",
-                left_on=["a", "bp"],
-                right_on=["i_t", "k_t"]
-            )
-            ring_acceptor_table = pandas.merge(ring_ab_table, ring_abp_table)
-            ring_pairs = {
-                "i_i": "a",
-                "j_i": "b",
-                "k_i": "bp",
-                "acceptor_type": "acceptor_type"
-            }
-            self.ring_acceptors = df_to_struct(
-                ring_acceptor_table[list(ring_pairs)].rename(
-                    columns=ring_pairs
-                )
-            )
-        else:
-            self.ring_acceptors = numpy.empty(0, self.ring_acceptor_dtype)
-
-        return self
 
 
 @attr.s(frozen=True, slots=True)
@@ -606,7 +185,7 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.atom_pair_dist_thresholds.add(
-            self.hbond_database.global_parameters.max_dis
+            self.hbond_database.global_parameters.threshold_distance
         )
         self.score_components.add(
             ScoreComponentAttributes("hbond", "total_hbond", None)
@@ -779,7 +358,6 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         pair_params = self.donor_sp2_params
 
         global_params = dict(
-            max_dis=self.hbond_database.global_parameters.max_dis,
             hb_sp2_range_span=self.hbond_database.global_parameters.
             hb_sp2_range_span,
             hb_sp2_BAH180_rise=self.hbond_database.global_parameters.
@@ -811,7 +389,6 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         pair_params = self.donor_sp3_params
 
         global_params = dict(
-            max_dis=self.hbond_database.global_parameters.max_dis,
             hb_sp3_softmax_fade=self.hbond_database.global_parameters.
             hb_sp3_softmax_fade,
         )
@@ -838,12 +415,8 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
 
         pair_params = self.donor_ring_params
 
-        global_params = dict(
-            max_dis=self.hbond_database.global_parameters.max_dis,
-        )
-
         return hbond_donor_ring_score(
-            **toolz.dicttoolz.merge(coord_params, pair_params, global_params)
+            **toolz.dicttoolz.merge(coord_params, pair_params)
         )
 
     @derived_from(

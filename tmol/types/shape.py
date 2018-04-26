@@ -48,17 +48,6 @@ Or a standard, ordering/density:
 import attr
 
 
-class SpecGenerator:
-    def __getitem__(cls, args):
-        if not isinstance(args, tuple):
-            args = (args, )
-
-        return ShapeSpec(list(args))
-
-
-spec = SpecGenerator()
-
-
 @attr.s(frozen=True, slots=True)
 class Dim:
     @staticmethod
@@ -96,10 +85,20 @@ class Dim:
 
 
 @attr.s(slots=True, frozen=True)
-class ShapeSpec:
+class Shape:
+    class Factory(object):
+        @staticmethod
+        def __getitem__(args):
+            if not isinstance(args, tuple):
+                args = (args, )
+
+            return Shape(list(args))
+
+    spec = Factory()
+
     @staticmethod
     def _to_dims(dims):
-        return list(map(Dim, dims))
+        return tuple(map(Dim, dims))
 
     dims = attr.ib(converter=_to_dims.__func__)
 
@@ -123,21 +122,29 @@ class ShapeSpec:
 
         if len(dims) < len(adims):
             if dims[0].size is not Ellipsis:
-                raise ValueError("No implied broadcast in dims", dims, adims)
+                raise ValueError(
+                    f"No implied broadcast to shape. expected: {self!s} received: {adims}"
+                )
 
             dims = [Dim(Ellipsis)] * (len(adims) - len(dims)) + dims
         elif len(dims) > len(adims):
             if not len(dims) - len(adims) == 1:
-                raise ValueError("Not enough dims", dims, adims)
+                raise ValueError(
+                    f"Fewer than expected dims in shape. expected: {self!s} received: {adims}"
+                )
             elif not dims[0].size is Ellipsis:
-                raise ValueError("No implied broadcast in dims", dims, adims)
+                raise ValueError(
+                    f"No implied broadcast to shape. expected: {self!s} received: {adims}"
+                )
             dims = dims[1:]
 
         assert len(dims) == len(adims)
 
         for d, a in zip(dims, adims):
             if d.size and d.size is not Ellipsis and d.size is not a:
-                raise ValueError("Invalid dimension size.", d, a)
+                raise ValueError(
+                    f"Invalid dimension size. expected: {self!s} received: {adims} dim: {d} size: {a}"
+                )
 
         return True
 
@@ -146,8 +153,10 @@ class ShapeSpec:
         try:
             self.validate(value.shape)
             return value
-        except ValueError:
-            raise ValueError(f"Invalid shape: {value.shape} expected: {self}")
+        except ValueError as vex:
+            raise ValueError(
+                f"Invalid shape: {value.shape} expected: {self}"
+            ) from vex
 
     def __str__(self):
         return "[{}]".format(",".join(map(str, self.dims)))
