@@ -102,15 +102,97 @@ class Tensor(typing._TypingBase, _root=True):
         except (TypeError, ValueError):
             return False
 
+    def _expanded_shape(self, shape):
+        broadcast, *subshape = [d.size for d in self.shape.dims]
+        assert broadcast is Ellipsis, (
+            f"Tensor must be of broadcast shape: {self}"
+        )
+        assert all(
+            isinstance(i, int) for i in subshape
+        ), (f"Tensor must be fixed size in non-broadcast dims: {self}")
+
+        return shape + tuple(subshape)
+
+    def zeros(self, shape, **kwargs):
+        return torch.zeros(
+            self._expanded_shape(shape),
+            dtype=self.dtype,
+            **kwargs,
+        )
+
+    def ones(self, shape, **kwargs):
+        return torch.ones(
+            self._expanded_shape(shape),
+            dtype=self.dtype,
+            **kwargs,
+        )
+
+    def empty(self, shape, **kwargs):
+        return torch.empty(
+            self._expanded_shape(shape),
+            dtype=self.dtype,
+            **kwargs,
+        )
+
+    def full(self, shape, fill_value, **kwargs):
+        return torch.full(
+            self._expanded_shape(shape),
+            fill_value,
+            dtype=self.dtype,
+            **kwargs,
+        )
+
 
 class TensorGroup:
     def __getitem__(self, idx):
+        assert all(
+            isinstance(a.type, Tensor) or issubclass(a.type, TensorGroup)
+            for a in attr.fields(type(self))
+        )
+
         return attr.evolve(
             self, **{
                 a.name: getattr(self, a.name)[idx]
-                for a in self.__attrs_attrs__
-                if isinstance(a.type, Tensor)
+                for a in attr.fields(type(self))
             }
+        )
+
+    def __setitem__(self, idx, value):
+        for a in self.__attrs_attrs__:
+            getattr(self, a.name)[idx] = getattr(value, a.name)[idx]
+
+    @classmethod
+    def full(cls, shape, fill_value, **kwargs):
+        return cls(
+            **{
+                a.name: a.type.full(shape, fill_value, **kwargs)
+                for a in attr.fields(cls)
+            },
+        )
+
+    @classmethod
+    def zeros(cls, shape, **kwargs):
+        return cls(
+            **{
+                a.name: a.type.zeros(shape, **kwargs)
+                for a in attr.fields(cls)
+            },
+        )
+
+    @classmethod
+    def ones(cls, shape, **kwargs):
+        return cls(
+            **{a.name: a.type.ones(shape, **kwargs)
+               for a in attr.fiels(cls)},
+        )
+
+    @classmethod
+    def empty(cls, shape, **kwargs):
+        return cls(
+            **{
+                a.name: a.type.empty(shape, **kwargs)
+                for a in attr.fields(cls)
+            },
         )
 
 
