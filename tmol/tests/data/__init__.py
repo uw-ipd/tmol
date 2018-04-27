@@ -23,6 +23,6 @@ def ubq_system():
 
 
 @pytest.fixture(scope="session")
-def ubq_baseline():
+def ubq_rosetta_baseline():
     # TODO ubq baseline does *not* contain the same conformation as ubq_pdb
     return rosetta_baseline.data["1ubq"]
