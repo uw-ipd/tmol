@@ -112,14 +112,18 @@ class HBondParamResolver(ValidateAttrs):
         )
 
         for pp in hbond_database.pair_parameters:
-            di = donor_type_index.get_indexer([pp.don_chem_type])
-            ai = acceptor_type_index.get_indexer([pp.acc_chem_type])
+            di, = donor_type_index.get_indexer([pp.don_chem_type])
+            assert di >= 0
+
+            ai, = acceptor_type_index.get_indexer([pp.acc_chem_type])
+            assert ai >= 0
 
             pair_params[di, ai].AHdist[:] = poly_params[pp.AHdist]
             pair_params[di, ai].cosBAH[:] = poly_params[pp.cosBAH]
             pair_params[di, ai].cosAHD[:] = poly_params[pp.cosAHD]
-            pair_params[di, ai].donor_weight[:] = donor_weights[di]
-            pair_params[di, ai].acceptor_weight[:] = acceptor_weights[ai]
+            pair_params[di, ai].donor_weight.reshape(1)[:] = donor_weights[di]
+            pair_params[di, ai
+                        ].acceptor_weight.reshape(1)[:] = acceptor_weights[ai]
 
         return cls(
             donor_type_index=donor_type_index,

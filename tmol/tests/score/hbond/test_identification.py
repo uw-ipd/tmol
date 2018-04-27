@@ -8,6 +8,7 @@ import tmol.score
 import tmol.system.residue.restypes as restypes
 
 from tmol.score.hbond.identification import HBondElementAnalysis
+import tmol.database
 
 
 def test_bb_identification(bb_hbond_database, ubq_system):
@@ -33,11 +34,11 @@ def test_bb_identification(bb_hbond_database, ubq_system):
 
     test_params = tmol.score.system_graph_params(tsys, requires_grad=False)
 
-    hbe = HBondElementAnalysis(
+    hbe = HBondElementAnalysis.setup(
         hbond_database=bb_hbond_database,
         atom_types=test_params["atom_types"],
         bonds=test_params["bonds"],
-    ).setup()
+    )
 
     pandas.testing.assert_frame_equal(
         pandas.DataFrame.from_records(donors, columns=hbe.donors.dtype.names
@@ -70,7 +71,11 @@ def test_identification_by_ljlk_types():
         atom_types = numpy.array([a.atom_type for a in t.atoms])
         bonds = t.bond_indicies
 
-        hbe = HBondElementAnalysis(atom_types=atom_types, bonds=bonds).setup()
+        hbe = HBondElementAnalysis.setup(
+            hbond_database=tmol.database.default.scoring.hbond,
+            atom_types=atom_types.astype(object),
+            bonds=bonds
+        )
         identified_donors = set(hbe.donors["d"])
         identified_acceptors = set(
             list(hbe.sp2_acceptors["a"]) + list(hbe.sp3_acceptors["a"]) +

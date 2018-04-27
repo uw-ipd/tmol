@@ -5,7 +5,7 @@ from .support.rosetta import (  # noqa: F401
 
 # Import basic data fixtures
 from .data import (  # noqa: F401
-    ubq_pdb, ubq_res, ubq_system
+    ubq_pdb, ubq_res, ubq_system, ubq_rosetta_baseline
 )
 
 
