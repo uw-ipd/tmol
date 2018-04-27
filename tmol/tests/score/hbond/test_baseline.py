@@ -1,3 +1,4 @@
+import pytest
 import toolz
 
 import numpy
@@ -5,17 +6,15 @@ import pandas
 
 import tmol.database
 
-import tmol.tests.data.rosetta_baseline as rosetta_baseline
-
 from tmol.score.hbond import HBondScoreGraph
+import tmol.system.residue.packed
 
 
-def test_pyrosetta_hbond_comparison(bb_hbond_database, pyrosetta):
-    rosetta_system = rosetta_baseline.data["1ubq"]
-
+@pytest.mark.xfail
+def test_pyrosetta_hbond_comparison(ubq_rosetta_baseline):
     test_system = (
         tmol.system.residue.packed.PackedResidueSystem()
-        .from_residues(rosetta_system.tmol_residues)
+        .from_residues(ubq_rosetta_baseline.tmol_residues)
     )  # yapf: disable
     hbond_graph = HBondScoreGraph(
         **tmol.score.system_graph_params(test_system, requires_grad=False)
@@ -45,7 +44,7 @@ def test_pyrosetta_hbond_comparison(bb_hbond_database, pyrosetta):
         .set_index(["residue_index", "atom_name"])["atom_index"]
     )
     rosetta_hbonds = toolz.curried.reduce(pandas.merge)((
-        rosetta_system.hbonds,
+        ubq_rosetta_baseline.hbonds,
         (
             named_atom_index.rename_axis(["a_res", "a_atom"])
             .to_frame("a").reset_index()
