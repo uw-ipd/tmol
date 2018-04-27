@@ -5,16 +5,13 @@ import pandas
 
 import tmol.score
 
-from tmol.system.residue.io import read_pdb
 import tmol.system.residue.restypes as restypes
-
-import tmol.tests.data.pdb as test_pdbs
 
 from tmol.score.hbond.identification import HBondElementAnalysis
 
 
-def test_bb_identification(bb_hbond_database):
-    tsys = read_pdb(test_pdbs.data["1ubq"])
+def test_bb_identification(bb_hbond_database, ubq_system):
+    tsys = ubq_system
 
     donors = []
     acceptors = []
