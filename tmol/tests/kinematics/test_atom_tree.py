@@ -8,6 +8,9 @@ import tmol.io.pdb_parsing as pdb_parsing
 import numpy
 import math
 
+class temp_class :
+    pass
+
 def print_tree( residues, root, depth = 0 ) :
     print ( " " * depth, residues[ root.atomid.res ].residue_type.atoms[ root.atomid.atomno ].name, \
                 root.xyz, root.phi, root.theta, root.d )
@@ -114,7 +117,7 @@ class TestAtomTree(unittest.TestCase):
         self.assertAlmostEqual( ht.frame[3,3], 1 )
 
     def test_homogeneous_transform_x_axis_rotation( self ) :
-        ''' Positive rotation about the x axis swings y up into positive z, and 
+        ''' Positive rotation about the x axis swings y up into positive z, and
         z down into negative y'''
         ht = atree.HomogeneousTransform()
         ht.set_rotation_x( 60 / 180 * numpy.pi )
@@ -192,7 +195,7 @@ class TestAtomTree(unittest.TestCase):
         #print("ht2")
         #print(ht2)
         p2 = ht2.frame[0:3,3]
-        
+
         self.assertEqual( p2[0], 0 )
         self.assertAlmostEqual( p2[1], 2.5 * 0.5 )
         self.assertAlmostEqual( p2[2], 2.5 * math.sqrt(3)/2 )
@@ -231,10 +234,10 @@ class TestAtomTree(unittest.TestCase):
         atree.set_coords( residues[0], atom_pointers )
         root.update_internal_coords()
         #print_tree( residues, root )
-    
+
     def test_construct_whole_structure_atom_tree( self ) :
         res_reader = pdbio.ResidueReader()
-        residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] ) 
+        residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] )
         tree = atree.tree_from_residues( res_reader.chemical_db, residues )
 
         # now set a new chi1 for residue 1 and refold
@@ -264,13 +267,13 @@ class TestAtomTree(unittest.TestCase):
         #    assert( found )
         #with open( "test_refold3.pdb", "w" ) as fid :
         #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
-            
-                    
+
+
     def test_atomtree_refold_info_setup( self ) :
         res_reader = pdbio.ResidueReader()
         residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] )
         tree = atree.tree_from_residues( res_reader.chemical_db, residues )
-        
+
         ordered_roots, refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index = \
             htrefold.initialize_ht_refold_data( residues, tree )
 
@@ -286,7 +289,7 @@ class TestAtomTree(unittest.TestCase):
         #        for kk in range( len( atom_records )) :
         #            if atom_records.loc[ kk, "resi" ] == ii+1 and \
         #                    atom_records.loc[ kk, "chain" ] == "A" and \
-        #                    atom_records.loc[ kk, "atomn" ] == iijj_atname :                        
+        #                    atom_records.loc[ kk, "atomn" ] == iijj_atname :
         #                atom_records.loc[ kk, [ "x", "y", "z" ]] = res.coords[jj]
         #with open( "test_refold2.pdb", "w" ) as fid :
         #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
@@ -367,7 +370,7 @@ class TestAtomTree(unittest.TestCase):
         coords[11,:] = [7.339 ,  4.776 ,  2.690]
         coords[12,:] = [7.881 ,  3.789 ,  3.186]
 
-        coords[13,:]  = [7.601 ,  2.968 ,  5.061] 
+        coords[13,:]  = [7.601 ,  2.968 ,  5.061]
         coords[14,:]  = [6.362 ,  2.242 ,  4.809]
         coords[15,:]  = [6.431 ,  0.849 ,  5.419]
         coords[16,:]  = [5.158 ,  3.003 ,  5.349]
@@ -398,7 +401,7 @@ class TestAtomTree(unittest.TestCase):
 
     def count_nodes_in_ag_tree( self, root ) :
         count = 0
-        if root is not None : 
+        if root is not None :
             count += 1
             count += self.count_nodes_in_ag_tree( root.first_child )
             if root.first_child : self.assertIs( root, root.first_child.parent )
@@ -445,5 +448,107 @@ class TestAtomTree(unittest.TestCase):
         derivsum_index_2_ag_id, ag_id_2_derivsum_index, depth_start_inds = \
             htrefold.create_derivsum_indices( ag_nodes, path_roots )
 
+        for ii, res in enumerate( ag_id_2_derivsum_index ):
+            for jj, at in enumerate( res ) :
+                for kk, derivsum_id in enumerate( at ) :
+                    self.assertEqual(  derivsum_index_2_ag_id[ derivsum_id ], htrefold.AbeGoID( atree.AtomID( ii, jj ), kk ) )
 
-        
+        # derivsum_index_2_ag_id[ ag_id.atomid.res ][ ag_id.atomid.atomno ][ ag_id.nodeid ], derivsum_id ) )
+
+
+    def test_f1f2_summation_1( self ) :
+        # let's imagine a tree with the following structure:
+        # 0 JumpAtom
+        # |          \
+        # 1 JumpAtom   6 BondedAtom
+        # |        \          \
+        # 2 Bonded  3 Bonded   7 BondedAtom
+        # |                    |          \
+        # 4 Bonded             8 BondedAtom 9 BondedAtom
+        # |
+        # 5 Bonded
+        #
+        # then
+        # we will have 2*nbonded + 1*njump = 18 AbeGo nodes in the resulting AbeGo tree
+        # 17 JA0 ----------------
+        #  |                     \
+        # 16 JA1                  \
+        #  |                       \
+        # 15 BA2Phi -- 1 BA3Phi     9 BA6Phi
+        #  |           |            |
+        # 14 BA2TD     0 BA3TD      8 BA6TD
+        #  |                        |
+        # 13 BA4Phi                 7 BA76Phi
+        #  |                        |
+        # 12 BA4TD                  6 BA7TD
+        #  |                        |
+        # 11 BA5Phi                 5 BA8Phi  --  3 BA9Phi
+        #  |                        |             |
+        # 10 BA5TD                  4 BA8TD       2 BA9TD
+        #
+        atom_f1f2s = numpy.random.random( (10, 6) )
+        ag_derivsum_nodes = temp_class()
+        ag_derivsum_nodes.nnodes = 18
+        ag_derivsum_nodes.has_initial_f1f2 = numpy.array( [     True, False, True, False, \
+                                                                True, False, True, False, \
+                                                                True, False, True, False, \
+                                                                True, False, True, False, \
+                                                                True, True ]
+                                                          )
+        ag_derivsum_nodes.atom_indices = numpy.array( \
+            [ 3, -1, 9, -1, 8, -1, 7, -1, 6, -1, 5, -1, 4, -1, 2, -1, 1, 0 ] )
+        ag_derivsum_nodes.is_leaf = numpy.array( \
+            [ True, False, True, False, True, False, False, False, False, False, \
+                  True, False, False, False, False, False, False, False ] )
+        ag_derivsum_nodes.prior_children = numpy.reshape( numpy.matrix( [ \
+                -1, -1, \
+                     -1, -1, \
+                     -1,  3, \
+                     -1, -1, \
+                     -1, -1, \
+                     -1, -1, \
+                     -1, -1, \
+                     -1,  1, \
+                     -1,  9 ] ), ( 18, 1 ) )
+
+
+        gold_ancestors = [ None ] * 18
+        gold_ancestors[ 0 ] =  numpy.array( [ 3 ] )
+        gold_ancestors[ 1 ] =  numpy.array( [ 3 ] )
+        gold_ancestors[ 2 ] =  numpy.array( [ 9 ] )
+        gold_ancestors[ 3 ] =  numpy.array( [ 9 ] )
+        gold_ancestors[ 4 ] =  numpy.array( [ 8 ] )
+        gold_ancestors[ 5 ] =  numpy.array( [ 8, 9 ] )
+        gold_ancestors[ 6 ] =  numpy.array( [ 8, 9, 7 ] )
+        gold_ancestors[ 7 ] =  numpy.array( [ 8, 9, 7 ] )
+        gold_ancestors[ 8 ] =  numpy.array( [ 8, 9, 7, 6 ] )
+        gold_ancestors[ 9 ] =  numpy.array( [ 8, 9, 7, 6 ] )
+        gold_ancestors[ 10 ] = numpy.array( [ 5 ] )
+        gold_ancestors[ 11 ] = numpy.array( [ 5 ] )
+        gold_ancestors[ 12 ] = numpy.array( [ 5, 4 ] )
+        gold_ancestors[ 13 ] = numpy.array( [ 5, 4 ] )
+        gold_ancestors[ 14 ] = numpy.array( [ 5, 4, 2 ] )
+        gold_ancestors[ 15 ] = numpy.array( [ 5, 4, 2, 3 ] )
+        gold_ancestors[ 16 ] = numpy.array( [ 5, 4, 2, 3, 1 ] )
+        gold_ancestors[ 17 ] = numpy.array( [ 5, 4, 2, 3, 1, 8, 9, 7, 6, 0 ] )
+
+        print( "ancestors13" )
+        print( atom_f1f2s[ gold_ancestors[13], : ] )
+        print( numpy.sum( atom_f1f2s[ gold_ancestors[13], : ], 0 ) )
+               
+        f1f2sum = htrefold.cpu_f1f2_summation( atom_f1f2s, ag_derivsum_nodes )
+
+        f1f2sum_gold = numpy.zeros( (18, 6) )
+        for ii, ancestors in enumerate( gold_ancestors ) :
+            #print( "ii?", ii )
+            #print(ii, ancestors)
+            #print(ii, atom_f1f2s[ancestors,:])
+            print(ii, "gold", numpy.sum( atom_f1f2s[ancestors,:], 0 ) )
+            print(ii, "computed", f1f2sum[ii] )
+            #print(ii,f1f2sum_gold[ ii:ii+1 ])
+            #print(ii,f1f2sum_gold[ ii:ii+1 ].shape)
+            f1f2sum_gold[ ii:ii+1 ] = numpy.sum( atom_f1f2s[ ancestors, : ], 0 )
+        for ii in range( 18 ) :
+            for jj in range( 6 ) :
+                self.assertAlmostEqual( f1f2sum[ii,jj], f1f2sum_gold[ii,jj] )
+

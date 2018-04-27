@@ -2,6 +2,7 @@ import tmol.kinematics.AtomTree as atree
 import attr
 import typing
 import math
+import numpy
 
 # module for defining a parallelizable refold method in terms of segmented scan of
 # matrix multiplications. The first phase of implementation is getting the CPU-based
@@ -117,6 +118,21 @@ def cpu_htrefold( residues, tree, refold_data, atoms_for_controlling_torsions, r
         for jj in range( res.coords.shape[0] ) :
             #print( "atomid_2_refold_index[", ii, "][", jj, "]",  atomid_2_refold_index[ ii ][ jj ] )
             res.coords[ jj ] = hts[ atomid_2_refold_index[ ii ][ jj ] ].frame[0:3,3]
+
+def cpu_f1f2_summation( atom_f1f2s, ag_derivsum_nodes ) :
+    f1f2sum = numpy.zeros( (ag_derivsum_nodes.nnodes, 6) )
+    print( f1f2sum.shape )
+    f1f2sum[ ag_derivsum_nodes.has_initial_f1f2, : ] = atom_f1f2s[ ag_derivsum_nodes.atom_indices[ ag_derivsum_nodes.atom_indices != -1 ], : ]
+    for ii in range( ag_derivsum_nodes.nnodes ) :
+        jj = ag_derivsum_nodes.prior_children[ ii, : ]
+        print( numpy.sum( f1f2sum[ jj[ jj != -1 ], : ], 1 ) )
+        print( numpy.sum( f1f2sum[ jj[ jj != -1 ], : ], 1 ).shape )
+        print( f1f2sum[ ii ] )
+        f1f2sum[ ii ] += numpy.sum( f1f2sum[ jj[ jj != -1 ], : ], 1 ).reshape(6)
+        if not ag_derivsum_nodes.is_leaf[ ii ] :
+            f1f2sum[ ii ] += f1f2sum[ ii-1 ]
+    return f1f2sum
+    
 
 
 def recurse_and_fill_atomtree_path_data( root_atom, tree_path_data ) :
