@@ -217,7 +217,7 @@ def hbond_donor_ring_score(
         h: Coords,
         a: Coords,
         b: Coords,
-        bp: Coords,
+        b0: Coords,
 
         # type pair parameters
         glob_accwt: Params,
@@ -245,7 +245,7 @@ def hbond_donor_ring_score(
     AHD = pi - torch.acos(xD)
     # in non-cos space
 
-    BAvecn = (a - 0.5 * (b + bp))
+    BAvecn = (a - 0.5 * (b + b0))
     BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
     xH = (AHvecn * BAvecn).sum(dim=-1)
 

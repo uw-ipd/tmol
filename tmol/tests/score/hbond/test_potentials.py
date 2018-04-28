@@ -207,7 +207,7 @@ def test_ring_single_hbond():
         h=atomH,
         a=atomA,
         b=atomB,
-        bp=atomB0,
+        b0=atomB0,
 
         # type pair parameters
         glob_accwt=accwt,

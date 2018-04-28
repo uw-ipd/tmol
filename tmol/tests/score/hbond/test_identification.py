@@ -6,9 +6,73 @@ import pandas
 import tmol.score
 
 import tmol.system.residue.restypes as restypes
+from tmol.system.residue.packed import PackedResidueSystem
 
-from tmol.score.hbond.identification import HBondElementAnalysis
 import tmol.database
+from tmol.score.hbond.identification import HBondElementAnalysis
+
+
+def test_ambig_identification(water_box_system: PackedResidueSystem):
+    """Tests identification in cases with 'ambiguous' acceptor bases."""
+
+    atom_frame = pandas.DataFrame.from_records(
+        water_box_system.atom_metadata
+    )[["atom_type", "atom_index", "residue_index"]]
+
+    expected_donors = (
+        pandas.merge(
+            atom_frame.query("atom_type == 'Owat'"),
+            atom_frame.query("atom_type == 'Hwat'"),
+            on="residue_index",
+            suffixes=("_d", "_h"),
+        ).rename(columns={
+            "atom_index_d": "d",
+            "atom_index_h": "h"
+        })
+        .sort_values(by=["d", "h"])
+        .reset_index(drop=True)
+    ) # yapf: disable
+
+    assert len(expected_donors) == len(water_box_system.residues) * 2
+
+    expected_acceptors = (
+        atom_frame.query("atom_type == 'Owat'")
+        .rename(columns={
+            "atom_index": "a",
+        })
+        .sort_values(by="a")
+        .reset_index(drop=True)
+    ) # yapf: disable
+    assert len(expected_acceptors) == len(water_box_system.residues)
+
+    element_analysis: HBondElementAnalysis = HBondElementAnalysis.setup(
+        hbond_database=tmol.database.default.scoring.hbond,
+        atom_types=water_box_system.atom_metadata["atom_type"],
+        bonds=water_box_system.bonds,
+    )
+
+    identified_donors = (
+        pandas.DataFrame.from_records(element_analysis.donors)
+        .sort_values(by=["d", "h"]).reset_index(drop=True)
+    )
+
+    pandas.testing.assert_frame_equal(
+        expected_donors[["d", "h"]].astype(int),
+        identified_donors[["d", "h"]],
+    )
+
+    identified_acceptors = (
+        pandas.DataFrame.from_records(element_analysis.sp3_acceptors)
+        .sort_values(by="a").reset_index(drop=True)
+    )
+
+    pandas.testing.assert_frame_equal(
+        expected_acceptors[["a"]].astype(int),
+        identified_acceptors[["a"]],
+    )
+
+    assert len(element_analysis.sp2_acceptors) == 0
+    assert len(element_analysis.ring_acceptors) == 0
 
 
 def test_bb_identification(bb_hbond_database, ubq_system):
@@ -60,7 +124,6 @@ def test_identification_by_ljlk_types():
         cattr.structure(cattr.unstructure(r), restypes.ResidueType)
         for r in db_res
     ]
-    assert len(types) == 21
 
     lj_types = {
         t.name: t
