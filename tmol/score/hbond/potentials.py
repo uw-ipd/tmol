@@ -1,9 +1,22 @@
 import torch
-import numpy
+from math import pi
+
+from tmol.types.torch import Tensor
+from tmol.types.functional import convert_args, validate_args
+
+Coords = Tensor(torch.float)[..., 3]
+Params = Tensor(torch.float)[...]
+PolyParams = Tensor(torch.double)[...]
 
 
-# evaluate polynomial function (Horner's rule)
-def polyval(A, Arange, Abound, x):
+@convert_args
+def polyval(
+        A: Tensor(torch.double)[..., :],
+        Arange: Tensor(torch.double)[..., 2],
+        Abound: Tensor(torch.double)[..., 2],
+        x: Tensor(torch.double)[...],
+) -> Tensor(torch.float)[:]:
+    """evaluate polynomial function (Horner's rule)"""
     p = A[:, 0]
     for i in range(1, A.shape[-1]):
         p = p * x + A[:, i]
@@ -16,8 +29,14 @@ def polyval(A, Arange, Abound, x):
     return p
 
 
-# evaluate sp2chi
-def sp2chi_energy(d, m, l, BAH, chi):
+@validate_args
+def sp2chi_energy(
+        d: float,
+        m: float,
+        l: float,
+        BAH: Params,
+        chi: Params,
+):
     H = 0.5 * (torch.cos(2 * chi) + 1)
 
     F = torch.empty_like(chi)
@@ -25,16 +44,14 @@ def sp2chi_energy(d, m, l, BAH, chi):
     G = torch.empty_like(chi)
     G.fill_(m - 0.5)
 
-    selector_upper = (BAH >= numpy.pi * 2.0 / 3.0)
-    selector_mid = ~selector_upper & (BAH >= numpy.pi * (2.0 / 3.0 - l))
+    selector_upper = (BAH >= pi * 2.0 / 3.0)
+    selector_mid = ~selector_upper & (BAH >= pi * (2.0 / 3.0 - l))
 
     F[selector_upper
-      ] = d / 2 * torch.cos(3 * (numpy.pi - BAH[selector_upper])) + d / 2 - 0.5
+      ] = d / 2 * torch.cos(3 * (pi - BAH[selector_upper])) + d / 2 - 0.5
     G[selector_upper] = d - 0.5
 
-    outer_rise = torch.cos(
-        numpy.pi - (numpy.pi * 2 / 3 - BAH[selector_mid]) / l
-    )
+    outer_rise = torch.cos(pi - (pi * 2 / 3 - BAH[selector_mid]) / l)
     F[selector_mid] = m / 2 * outer_rise + m / 2 - 0.5
     G[selector_mid] = (m - d) / 2 * outer_rise + (m - d) / 2 + d - 0.5
 
@@ -44,31 +61,32 @@ def sp2chi_energy(d, m, l, BAH, chi):
 
 
 # energy evaluation to an sp2 acceptor
+@validate_args
 def hbond_donor_sp2_score(
         # Input coordinates
-        d,
-        h,
-        a,
-        b,
-        b0,
+        d: Coords,
+        h: Coords,
+        a: Coords,
+        b: Coords,
+        b0: Coords,
 
         # type pair parameters
-        glob_accwt,
-        glob_donwt,
-        AHdist_coeffs,
-        AHdist_ranges,
-        AHdist_bounds,
-        cosBAH_coeffs,
-        cosBAH_ranges,
-        cosBAH_bounds,
-        cosAHD_coeffs,
-        cosAHD_ranges,
-        cosAHD_bounds,
+        glob_accwt: Params,
+        glob_donwt: Params,
+        AHdist_coeffs: PolyParams,
+        AHdist_ranges: PolyParams,
+        AHdist_bounds: PolyParams,
+        cosBAH_coeffs: PolyParams,
+        cosBAH_ranges: PolyParams,
+        cosBAH_bounds: PolyParams,
+        cosAHD_coeffs: PolyParams,
+        cosAHD_ranges: PolyParams,
+        cosAHD_bounds: PolyParams,
 
         # Global score parameters
-        hb_sp2_range_span,
-        hb_sp2_BAH180_rise,
-        hb_sp2_outer_width,
+        hb_sp2_range_span: float,
+        hb_sp2_BAH180_rise: float,
+        hb_sp2_outer_width: float,
 ):
     acc_don_scale = glob_accwt * glob_donwt
 
@@ -80,13 +98,13 @@ def hbond_donor_sp2_score(
     HDvecn = (d - h)
     HDvecn = HDvecn / HDvecn.norm(dim=-1).unsqueeze(dim=-1)
     xD = (AHvecn * HDvecn).sum(dim=-1)
-    AHD = numpy.pi - torch.acos(xD)
+    AHD = pi - torch.acos(xD)
     # in non-cos space
 
     BAvecn = (a - b)
     BAvecn = BAvecn / BAvecn.norm(dim=-1).unsqueeze(dim=-1)
     xH = (AHvecn * BAvecn).sum(dim=-1)
-    BAH = numpy.pi - torch.acos(xH)
+    BAH = pi - torch.acos(xH)
 
     BB0vecn = (b0 - b)
     BB0vecn = BB0vecn / BB0vecn.norm(dim=-1).unsqueeze(dim=-1)
@@ -121,29 +139,30 @@ def hbond_donor_sp2_score(
 
 
 # energy evaluation to an sp3 acceptor
+@validate_args
 def hbond_donor_sp3_score(
         # Input coordinates
-        d,
-        h,
-        a,
-        b,
-        b0,
+        d: Coords,
+        h: Coords,
+        a: Coords,
+        b: Coords,
+        b0: Coords,
 
         # type pair parameters
-        glob_accwt,
-        glob_donwt,
-        AHdist_coeffs,
-        AHdist_ranges,
-        AHdist_bounds,
-        cosBAH_coeffs,
-        cosBAH_ranges,
-        cosBAH_bounds,
-        cosAHD_coeffs,
-        cosAHD_ranges,
-        cosAHD_bounds,
+        glob_accwt: Params,
+        glob_donwt: Params,
+        AHdist_coeffs: PolyParams,
+        AHdist_ranges: PolyParams,
+        AHdist_bounds: PolyParams,
+        cosBAH_coeffs: PolyParams,
+        cosBAH_ranges: PolyParams,
+        cosBAH_bounds: PolyParams,
+        cosAHD_coeffs: PolyParams,
+        cosAHD_ranges: PolyParams,
+        cosAHD_bounds: PolyParams,
 
         # Global score parameters
-        hb_sp3_softmax_fade,
+        hb_sp3_softmax_fade: float,
 ):
     acc_don_scale = glob_accwt * glob_donwt
 
@@ -155,7 +174,7 @@ def hbond_donor_sp3_score(
     HDvecn = (d - h)
     HDvecn = HDvecn / HDvecn.norm(dim=-1).unsqueeze(dim=-1)
     xD = (AHvecn * HDvecn).sum(dim=-1)
-    AHD = numpy.pi - torch.acos(xD)
+    AHD = pi - torch.acos(xD)
     # in non-cos space
 
     BAvecn = (a - b)
@@ -191,26 +210,27 @@ def hbond_donor_sp3_score(
 
 
 # energy evaluation to a ring acceptor
+@validate_args
 def hbond_donor_ring_score(
         # Input coordinates
-        d,
-        h,
-        a,
-        b,
-        bp,
+        d: Coords,
+        h: Coords,
+        a: Coords,
+        b: Coords,
+        bp: Coords,
 
         # type pair parameters
-        glob_accwt,
-        glob_donwt,
-        AHdist_coeffs,
-        AHdist_ranges,
-        AHdist_bounds,
-        cosBAH_coeffs,
-        cosBAH_ranges,
-        cosBAH_bounds,
-        cosAHD_coeffs,
-        cosAHD_ranges,
-        cosAHD_bounds,
+        glob_accwt: Params,
+        glob_donwt: Params,
+        AHdist_coeffs: PolyParams,
+        AHdist_ranges: PolyParams,
+        AHdist_bounds: PolyParams,
+        cosBAH_coeffs: PolyParams,
+        cosBAH_ranges: PolyParams,
+        cosBAH_bounds: PolyParams,
+        cosAHD_coeffs: PolyParams,
+        cosAHD_ranges: PolyParams,
+        cosAHD_bounds: PolyParams,
 ):
     acc_don_scale = glob_accwt * glob_donwt
 
@@ -222,7 +242,7 @@ def hbond_donor_ring_score(
     HDvecn = (d - h)
     HDvecn = HDvecn / HDvecn.norm(dim=-1).unsqueeze(dim=-1)
     xD = (AHvecn * HDvecn).sum(dim=-1)
-    AHD = numpy.pi - torch.acos(xD)
+    AHD = pi - torch.acos(xD)
     # in non-cos space
 
     BAvecn = (a - 0.5 * (b + bp))

@@ -18,9 +18,9 @@ from tmol.database.scoring.hbond import HBondDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class HBondPolyParams(TensorGroup, ConvertAttrs):
-    range: Tensor("f")[..., 2]
-    bound: Tensor("f")[..., 2]
-    coeffs: Tensor("f")[..., 11]
+    range: Tensor(torch.double)[..., 2]
+    bound: Tensor(torch.double)[..., 2]
+    coeffs: Tensor(torch.double)[..., 11]
 
     def __setitem__(self, idx, value):
         self.range[idx] = value.range[idx]

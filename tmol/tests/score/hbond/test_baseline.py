@@ -80,14 +80,29 @@ def test_pyrosetta_hbond_comparison(ubq_rosetta_baseline):
     score_comparison = (
         score_comparison
         .sort_values(by="score_rel_delta")
+        .rename(columns={
+            "h_res": "res_h",
+            "h_atom": "atom_h",
+            "a_res": "res_a",
+            "a_atom": "atom_a",
+        })
+        .reset_index()
+        .drop(columns=["a", "h", "b0", "b", "d"])
         .sort_index(axis="columns")
     ) # yapf: disable
 
-    err_msg = (f"Mismatched bb hbond identification:\n{score_comparison}\n\n")
-
+    inter_hbonds = score_comparison.query("res_h != res_a")
     numpy.testing.assert_allclose(
-        numpy.nan_to_num(score_comparison["score_rosetta"].values),
-        numpy.nan_to_num(score_comparison["score_tmol"].values),
-        rtol=2e-2,
-        err_msg=err_msg,
+        numpy.nan_to_num(inter_hbonds["score_rosetta"].values),
+        numpy.nan_to_num(inter_hbonds["score_tmol"].values),
+        rtol=1e-4,
+        err_msg=f"Mismatched bb hbond identification:\n{inter_hbonds}\n\n",
+    )
+
+    intra_hbonds = score_comparison.query("res_h == res_a")
+    assert len(intra_hbonds) > 0
+    numpy.testing.assert_allclose(
+        numpy.full_like(intra_hbonds["score_tmol"].values, numpy.nan),
+        intra_hbonds["score_rosetta"].values,
+        err_msg=f"Intra-res bb hbond identification:\n{intra_hbonds}\n\n",
     )
