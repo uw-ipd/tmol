@@ -20,13 +20,6 @@ bb_hbond_config = yaml.load(
             - { a: OCbb, b: CObb, b0: CAbb, acceptor_type: hbacc_PBA }
         sp3_acceptors: []
         ring_acceptors: []
-    chemical_types:
-        donors:
-            - hbdon_PBA
-        sp2_acceptors:
-            - hbacc_PBA
-        sp3_acceptors: []
-        ring_acceptors: []
     pair_parameters:
       - don_chem_type: hbdon_PBA
         acc_chem_type: hbacc_PBA

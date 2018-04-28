@@ -65,12 +65,17 @@ class HBondParamResolver(ValidateAttrs):
 
     @classmethod
     def from_database(cls, hbond_database: HBondDatabase):
-        donors = list(hbond_database.chemical_types.donors)
+        atom_groups = hbond_database.atom_groups
 
-        acceptors = (
-            list(hbond_database.chemical_types.sp2_acceptors) +
-            list(hbond_database.chemical_types.sp3_acceptors) +
-            list(hbond_database.chemical_types.ring_acceptors)
+        donors = list(set(g.donor_type for g in atom_groups.donors))
+        acceptors = list(
+            toolz.reduce(
+                set.union, (
+                    set(g.acceptor_type for g in atom_groups.sp2_acceptors),
+                    set(g.acceptor_type for g in atom_groups.sp3_acceptors),
+                    set(g.acceptor_type for g in atom_groups.ring_acceptors),
+                )
+            )
         )
 
         donor_type_index = pandas.Index(donors)

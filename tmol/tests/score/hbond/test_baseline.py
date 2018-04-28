@@ -20,8 +20,8 @@ def hbond_score_comparison(rosetta_baseline):
 
     # Extract list of hbonds from packed system into summary table
     # via atom metadata
-    h_i = hbond_graph.hbond_pairs.pairs["h"]
-    a_i = hbond_graph.hbond_pairs.pairs["a"]
+    h_i = hbond_graph.hbond_pair_metadata["h"]
+    a_i = hbond_graph.hbond_pair_metadata["a"]
     tmol_candidate_hbonds = pandas.DataFrame.from_dict(
         toolz.merge(
             {
@@ -32,8 +32,8 @@ def hbond_score_comparison(rosetta_baseline):
                 "score": numpy.nan_to_num(hbond_graph.hbond_scores),
             },
             {
-                n: hbond_graph.hbond_pairs.pairs[n]
-                for n in hbond_graph.hbond_pairs.pairs.dtype.names
+                n: hbond_graph.hbond_pair_metadata[n]
+                for n in hbond_graph.hbond_pair_metadata.dtype.names
             },
         )
     ).set_index(["a", "h"])

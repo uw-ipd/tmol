@@ -4,7 +4,7 @@ from properties import Instance
 import torch
 import numpy
 
-from tmol.properties.array import VariableT
+from tmol.properties.array import VariableT, Array
 from tmol.properties.reactive import derived_from
 
 from ..bonded_atom import ScoreComponentAttributes
@@ -35,36 +35,14 @@ pair_descr_dtype = numpy.dtype(donor_dtype.descr + acceptor_dtype.descr)
 
 @attr.s(frozen=True, auto_attribs=True, slots=True)
 class HBondPairs(ValidateAttrs):
-    donor_sp2_slice: slice
-    donor_sp3_slice: slice
-    donor_ring_slice: slice
+    donor_sp2_pairs: NDArray(pair_descr_dtype)[:]
+    donor_sp2_pair_params: HBondPairParams
 
-    pairs: NDArray(pair_descr_dtype)[:]
-    pair_params: HBondPairParams
+    donor_sp3_pairs: NDArray(pair_descr_dtype)[:]
+    donor_sp3_pair_params: HBondPairParams
 
-    @property
-    def donor_sp2_pairs(self):
-        return self.pairs[self.donor_sp2_slice]
-
-    @property
-    def donor_sp2_params(self):
-        return self.pair_params[self.donor_sp2_slice]
-
-    @property
-    def donor_sp3_pairs(self):
-        return self.pairs[self.donor_sp3_slice]
-
-    @property
-    def donor_sp3_params(self):
-        return self.pair_params[self.donor_sp3_slice]
-
-    @property
-    def donor_ring_pairs(self):
-        return self.pairs[self.donor_ring_slice]
-
-    @property
-    def donor_ring_params(self):
-        return self.pair_params[self.donor_ring_slice]
+    donor_ring_pairs: NDArray(pair_descr_dtype)[:]
+    donor_ring_pair_params: HBondPairParams
 
     @staticmethod
     @validate_args
@@ -90,26 +68,32 @@ class HBondPairs(ValidateAttrs):
     @classmethod
     @validate_args
     def setup(cls, params: HBondParamResolver, elems: HBondElementAnalysis):
-        pair_sets = (
-            cls._cross_pairs(elems.donors, elems.sp2_acceptors),
-            cls._cross_pairs(elems.donors, elems.sp3_acceptors),
-            cls._cross_pairs(elems.donors, elems.ring_acceptors),
+        # Get blocks of acceptor/donor pairs for each set of identified acceptors
+        donor_sp2_pairs = cls._cross_pairs(elems.donors, elems.sp2_acceptors)
+        donor_sp2_pair_params = (
+            params[donor_sp2_pairs["donor_type"],
+                   donor_sp2_pairs["acceptor_type"]]
         )
 
-        pair_offsets = numpy.cumsum([0] + [len(p) for p in pair_sets])
-        donor_sp2_slice = slice(pair_offsets[0], pair_offsets[1])
-        donor_sp3_slice = slice(pair_offsets[1], pair_offsets[2])
-        donor_ring_slice = slice(pair_offsets[2], pair_offsets[3])
+        donor_sp3_pairs = cls._cross_pairs(elems.donors, elems.sp3_acceptors)
+        donor_sp3_pair_params = (
+            params[donor_sp3_pairs["donor_type"],
+                   donor_sp3_pairs["acceptor_type"]]
+        )
 
-        pairs = numpy.concatenate(pair_sets)
-        pair_params = (params[pairs["donor_type"], pairs["acceptor_type"]])
+        donor_ring_pairs = cls._cross_pairs(elems.donors, elems.ring_acceptors)
+        donor_ring_pair_params = (
+            params[donor_ring_pairs["donor_type"],
+                   donor_ring_pairs["acceptor_type"]]
+        )
 
         return cls(
-            donor_sp2_slice=donor_sp2_slice,
-            donor_sp3_slice=donor_sp3_slice,
-            donor_ring_slice=donor_ring_slice,
-            pairs=pairs,
-            pair_params=pair_params,
+            donor_sp2_pairs=donor_sp2_pairs,
+            donor_sp2_pair_params=donor_sp2_pair_params,
+            donor_sp3_pairs=donor_sp3_pairs,
+            donor_sp3_pair_params=donor_sp3_pair_params,
+            donor_ring_pairs=donor_ring_pairs,
+            donor_ring_pair_params=donor_ring_pair_params,
         )
 
 
@@ -164,7 +148,7 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
     def donor_sp2_hbond(self):
 
         donor_sp2_pairs = self.hbond_pairs.donor_sp2_pairs
-        donor_sp2_params = self.hbond_pairs.donor_sp2_params
+        donor_sp2_pair_params = self.hbond_pairs.donor_sp2_pair_params
 
         if len(donor_sp2_pairs) == 0:
             return self.coords.new(0)
@@ -177,17 +161,17 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
             b0=self.coords[donor_sp2_pairs["b0"]],
 
             # type pair parameters
-            glob_accwt=(donor_sp2_params.acceptor_weight),
-            glob_donwt=(donor_sp2_params.donor_weight),
-            AHdist_coeffs=(donor_sp2_params.AHdist.coeffs),
-            AHdist_ranges=(donor_sp2_params.AHdist.range),
-            AHdist_bounds=(donor_sp2_params.AHdist.bound),
-            cosBAH_coeffs=(donor_sp2_params.cosBAH.coeffs),
-            cosBAH_ranges=(donor_sp2_params.cosBAH.range),
-            cosBAH_bounds=(donor_sp2_params.cosBAH.bound),
-            cosAHD_coeffs=(donor_sp2_params.cosAHD.coeffs),
-            cosAHD_ranges=(donor_sp2_params.cosAHD.range),
-            cosAHD_bounds=(donor_sp2_params.cosAHD.bound),
+            glob_accwt=(donor_sp2_pair_params.acceptor_weight),
+            glob_donwt=(donor_sp2_pair_params.donor_weight),
+            AHdist_coeffs=(donor_sp2_pair_params.AHdist.coeffs),
+            AHdist_ranges=(donor_sp2_pair_params.AHdist.range),
+            AHdist_bounds=(donor_sp2_pair_params.AHdist.bound),
+            cosBAH_coeffs=(donor_sp2_pair_params.cosBAH.coeffs),
+            cosBAH_ranges=(donor_sp2_pair_params.cosBAH.range),
+            cosBAH_bounds=(donor_sp2_pair_params.cosBAH.bound),
+            cosAHD_coeffs=(donor_sp2_pair_params.cosAHD.coeffs),
+            cosAHD_ranges=(donor_sp2_pair_params.cosAHD.range),
+            cosAHD_bounds=(donor_sp2_pair_params.cosAHD.bound),
 
             # global parameters
             hb_sp2_range_span=(
@@ -207,7 +191,7 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
     )
     def donor_sp3_hbond(self):
         donor_sp3_pairs = self.hbond_pairs.donor_sp3_pairs
-        donor_sp3_params = self.hbond_pairs.donor_sp3_params
+        donor_sp3_pair_params = self.hbond_pairs.donor_sp3_pair_params
 
         if len(donor_sp3_pairs) == 0:
             return self.coords.new(0)
@@ -220,17 +204,17 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
             b0=self.coords[donor_sp3_pairs["b0"]],
 
             # type pair parameters
-            glob_accwt=(donor_sp3_params.acceptor_weight),
-            glob_donwt=(donor_sp3_params.donor_weight),
-            AHdist_coeffs=(donor_sp3_params.AHdist.coeffs),
-            AHdist_ranges=(donor_sp3_params.AHdist.range),
-            AHdist_bounds=(donor_sp3_params.AHdist.bound),
-            cosBAH_coeffs=(donor_sp3_params.cosBAH.coeffs),
-            cosBAH_ranges=(donor_sp3_params.cosBAH.range),
-            cosBAH_bounds=(donor_sp3_params.cosBAH.bound),
-            cosAHD_coeffs=(donor_sp3_params.cosAHD.coeffs),
-            cosAHD_ranges=(donor_sp3_params.cosAHD.range),
-            cosAHD_bounds=(donor_sp3_params.cosAHD.bound),
+            glob_accwt=(donor_sp3_pair_params.acceptor_weight),
+            glob_donwt=(donor_sp3_pair_params.donor_weight),
+            AHdist_coeffs=(donor_sp3_pair_params.AHdist.coeffs),
+            AHdist_ranges=(donor_sp3_pair_params.AHdist.range),
+            AHdist_bounds=(donor_sp3_pair_params.AHdist.bound),
+            cosBAH_coeffs=(donor_sp3_pair_params.cosBAH.coeffs),
+            cosBAH_ranges=(donor_sp3_pair_params.cosBAH.range),
+            cosBAH_bounds=(donor_sp3_pair_params.cosBAH.bound),
+            cosAHD_coeffs=(donor_sp3_pair_params.cosAHD.coeffs),
+            cosAHD_ranges=(donor_sp3_pair_params.cosAHD.range),
+            cosAHD_bounds=(donor_sp3_pair_params.cosAHD.bound),
 
             # global parameters
             hb_sp3_softmax_fade=(
@@ -244,7 +228,7 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
     )
     def donor_ring_hbond(self):
         donor_ring_pairs = self.hbond_pairs.donor_ring_pairs
-        donor_ring_params = self.hbond_pairs.donor_ring_params
+        donor_ring_pair_params = self.hbond_pairs.donor_ring_pair_params
 
         if len(donor_ring_pairs) == 0:
             return self.coords.new(0)
@@ -254,20 +238,20 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
             h=self.coords[donor_ring_pairs["h"]],
             a=self.coords[donor_ring_pairs["a"]],
             b=self.coords[donor_ring_pairs["b"]],
-            bp=self.coords[donor_ring_pairs["b0"]],
+            b0=self.coords[donor_ring_pairs["b0"]],
 
             # type pair parameters
-            glob_accwt=(donor_ring_params.acceptor_weight),
-            glob_donwt=(donor_ring_params.donor_weight),
-            AHdist_coeffs=(donor_ring_params.AHdist.coeffs),
-            AHdist_ranges=(donor_ring_params.AHdist.range),
-            AHdist_bounds=(donor_ring_params.AHdist.bound),
-            cosBAH_coeffs=(donor_ring_params.cosBAH.coeffs),
-            cosBAH_ranges=(donor_ring_params.cosBAH.range),
-            cosBAH_bounds=(donor_ring_params.cosBAH.bound),
-            cosAHD_coeffs=(donor_ring_params.cosAHD.coeffs),
-            cosAHD_ranges=(donor_ring_params.cosAHD.range),
-            cosAHD_bounds=(donor_ring_params.cosAHD.bound),
+            glob_accwt=(donor_ring_pair_params.acceptor_weight),
+            glob_donwt=(donor_ring_pair_params.donor_weight),
+            AHdist_coeffs=(donor_ring_pair_params.AHdist.coeffs),
+            AHdist_ranges=(donor_ring_pair_params.AHdist.range),
+            AHdist_bounds=(donor_ring_pair_params.AHdist.bound),
+            cosBAH_coeffs=(donor_ring_pair_params.cosBAH.coeffs),
+            cosBAH_ranges=(donor_ring_pair_params.cosBAH.range),
+            cosBAH_bounds=(donor_ring_pair_params.cosBAH.bound),
+            cosAHD_coeffs=(donor_ring_pair_params.cosAHD.coeffs),
+            cosAHD_ranges=(donor_ring_pair_params.cosAHD.range),
+            cosAHD_bounds=(donor_ring_pair_params.cosAHD.bound),
         )
 
     @derived_from(
@@ -287,4 +271,19 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
             self.donor_sp2_hbond,
             self.donor_sp3_hbond,
             self.donor_ring_hbond,
+        ))
+
+    @derived_from(
+        "hbond_pairs",
+        Array(
+            "hbond pair metadata in target graph",
+            dtype=pair_descr_dtype,
+        )[:]
+    )
+    def hbond_pair_metadata(self):
+        """All hbond pairs, in order of "sp2"/"sp3"/"ring"."""
+        return numpy.concatenate((
+            self.hbond_pairs.donor_sp2_pairs,
+            self.hbond_pairs.donor_sp3_pairs,
+            self.hbond_pairs.donor_ring_pairs,
         ))

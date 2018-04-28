@@ -7,51 +7,29 @@ global_parameters:
   threshold_distance: 6.0
 atom_groups:
   donors:
-    - { d: Nbb,      h: HNbb, donor_type: hbdon_PBA }
-    - { d: Ntrp,     h: Hpol, donor_type: hbdon_IND }
-    - { d: NhisD,    h: Hpol, donor_type: hbdon_IMD }
-    - { d: NhisE,    h: Hpol, donor_type: hbdon_IME }
-    - { d: NtrR,     h: Hpol, donor_type: hbdon_GDE }
-    - { d: Narg,     h: Hpol, donor_type: hbdon_GDH }
-    - { d: NH2O,     h: Hpol, donor_type: hbdon_CXA }
-    - { d: Nlys,     h: Hpol, donor_type: hbdon_AMO }
-    - { d: OH,       h: Hpol, donor_type: hbdon_HXL }
-    - { d: OHphenol, h: Hpol, donor_type: hbdon_AHX } # Need aro OH for tyrosine
+    - { d: Nbb,      h: HNbb, donor_type: hbdon_PBA } #ex: protein backbone Nbb--HNbb
+    - { d: Ntrp,     h: Hpol, donor_type: hbdon_IND } #ex: Trp NE1--HE1 
+    - { d: NhisD,    h: Hpol, donor_type: hbdon_IMD } #ex: His(HIS_D res_type) ND1--HE2 -- tautomer state with hydrogen on nitrogen closer to backbone
+    - { d: NhisE,    h: Hpol, donor_type: hbdon_IME } #ex: His(HIS res_type) NE2--HE2 -- tautomer state with hydrogen on nitrogen farther from backbone
+    - { d: NtrR,     h: Hpol, donor_type: hbdon_GDE } #ex: Arg NE--HE
+    - { d: Narg,     h: Hpol, donor_type: hbdon_GDH } #ex: Arg NH{1 2}--{1 2}HH{1 2} 
+    - { d: NH2O,     h: Hpol, donor_type: hbdon_CXA } #ex: Asn ND2--{1 2}HD2; Gln NE2--{1 2}HE2 
+    - { d: Nlys,     h: Hpol, donor_type: hbdon_AMO } #ex: Lys NZ--{1 2 3}HZ
+    - { d: OH,       h: Hpol, donor_type: hbdon_HXL } #ex: Ser OG--HG; Thr OG1--HG1
+    - { d: OHphenol, h: Hpol, donor_type: hbdon_AHX } #ex: Tyr OH--HH
+    - { d: Owat,     h: Hwat, donor_type: hbdon_H2O } #ex: water O--H
   sp2_acceptors:
-    - { a: OCbb, b: CObb, b0: CAbb, acceptor_type: hbacc_PBA }
-    - { a: ONH2, b: CNH2, b0: NH2O, acceptor_type: hbacc_CXA }
-    - { a: OOC,  b: COO,  b0: CH2,  acceptor_type: hbacc_CXL }
+    - { a: OCbb, b: CObb, b0: CAbb, acceptor_type: hbacc_PBA } #ex: protein backbone OCbb
+    - { a: ONH2, b: CNH2, b0: NH2O, acceptor_type: hbacc_CXA } #ex: Asn OD1; Gln OE1
+    - { a: OOC,  b: COO,  b0: CH2,  acceptor_type: hbacc_CXL } #ex: Asp OD{1 2}; Glu OE{1 2}
   sp3_acceptors:
-    - { a: OH,       b: CH2, b0: Hpol, acceptor_type: hbacc_HXL }
-    - { a: OH,       b: CH1, b0: Hpol, acceptor_type: hbacc_HXL }
-    - { a: OHphenol, b: CH0, b0: Hpol, acceptor_type: hbacc_AHX }
+    - { a: OH,       b: CH2,  b0: Hpol, acceptor_type: hbacc_HXL } #ex: Ser OG; Thr OG1
+    - { a: OH,       b: CH1,  b0: Hpol, acceptor_type: hbacc_HXL } #ex: Ser OG; Thr OG1
+    - { a: OHphenol, b: CH0,  b0: Hpol, acceptor_type: hbacc_AHX } #ex: Tyr OH
+    - { a: Owat,     b: Hwat, b0: Hwat, acceptor_type: hbacc_H2O } #ex: water O--H
   ring_acceptors:
-    - { a: NhisDDepro, b: aroC, bp: CH0,  acceptor_type: hbacc_IMD }
-    - { a: NhisEDepro, b: aroC, bp: aroC, acceptor_type: hbacc_IME }
-chemical_types:
-  donors:
-    - hbdon_PBA #ex: protein backbone Nbb--HNbb
-    - hbdon_CXA #ex: Asn ND2--{1 2}HD2; Gln NE2--{1 2}HE2 
-    - hbdon_IMD #ex: His(HIS_D res_type) ND1--HE2 -- tautomer state with hydrogen on nitrogen closer to backbone
-    - hbdon_IME #ex: His(HIS res_type) NE2--HE2 -- tautomer state with hydrogen on nitrogen farther from backbone
-    - hbdon_IND #ex: Trp NE1--HE1 
-    - hbdon_AMO #ex: Lys NZ--{1 2 3}HZ
-    - hbdon_GDE #ex: Arg NE--HE
-    - hbdon_GDH #ex: Arg NH{1 2}--{1 2}HH{1 2} 
-    - hbdon_AHX #ex: Tyr OH--HH
-    - hbdon_HXL #ex: Ser OG--HG; Thr OG1--HG1
-    - hbdon_H2O #ex: H2O(TP5/TP3 res types) O--H{1 2}
-  sp2_acceptors:
-    - hbacc_PBA #ex: protein backbone OCbb
-    - hbacc_CXA #ex: Asn OD1; Gln OE1
-    - hbacc_CXL #ex: Asp OD{1 2}; Glu OE{1 2}
-  sp3_acceptors:
-    - hbacc_AHX #ex: Tyr OH
-    - hbacc_HXL #ex: Ser OG; Thr OG1
-    - hbacc_H2O #H2O(TP5/TP3 res types) O
-  ring_acceptors:
-    - hbacc_IMD #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
-    - hbacc_IME #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
+    - { a: NhisDDepro, b: aroC, b0: CH0,  acceptor_type: hbacc_IMD } #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
+    - { a: NhisEDepro, b: aroC, b0: aroC, acceptor_type: hbacc_IME } #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
 don_weights:
   - {name: hbdon_IND, weight: 1.15}
   - {name: hbdon_CXA, weight: 1.29}
