@@ -83,7 +83,9 @@ class HBondPairs(ValidateAttrs):
         for n in acceptors.dtype.names:
             pairs[n] = acceptors[n].reshape((1, -1))
 
-        return pairs.ravel()
+        pairs = pairs.ravel()
+
+        return pairs[pairs["a"] != pairs["d"]]
 
     @classmethod
     @validate_args
