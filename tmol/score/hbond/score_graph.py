@@ -279,27 +279,6 @@ class HBondScoreGraph(InteratomicDistanceGraphBase):
         ) + self.donor_ring_hbond.sum()
 
     @derived_from(
-        "hbond_elements",
-        VariableT("Donor atom indices, all hbond types."),
-    )
-    def hbond_donor_ind(self):
-        return torch.LongTensor(self.hbond_pairs.pairs["d"])
-
-    @derived_from(
-        "hbond_elements",
-        VariableT("Hydrogen atom indices, all hbond types."),
-    )
-    def hbond_h_ind(self):
-        return torch.LongTensor(self.hbond_pairs.pairs["h"])
-
-    @derived_from(
-        "hbond_elements",
-        VariableT("Acceptor atom indices, all hbond types."),
-    )
-    def hbond_acceptor_ind(self):
-        return torch.LongTensor(self.hbond_pairs.pairs["a"])
-
-    @derived_from(
         ("donor_sp2_hbond", "donor_sp3_hbond", "donor_ring_hbond"),
         VariableT("total hbond score"),
     )
