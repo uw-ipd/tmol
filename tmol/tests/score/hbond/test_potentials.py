@@ -1,5 +1,4 @@
-import pytest
-
+import numpy
 import torch
 
 from tmol.score.hbond.potentials import (
@@ -7,6 +6,8 @@ from tmol.score.hbond.potentials import (
     hbond_donor_sp3_score,
     hbond_donor_ring_score,
 )
+
+from tmol.types.functional import convert_args
 
 
 def test_sp2_single_hbond():
@@ -46,7 +47,7 @@ def test_sp2_single_hbond():
     donwt = torch.tensor([[1.45]])
     accwt = torch.tensor([[1.19]])
 
-    energy = hbond_donor_sp2_score(
+    energy = convert_args(hbond_donor_sp2_score)(
         # Input coordinates
         d=atomD,
         h=atomH,
@@ -73,7 +74,7 @@ def test_sp2_single_hbond():
         hb_sp2_outer_width=0.357,
     )
 
-    assert (float(energy.data[0]) == pytest.approx(-2.41, 0.01))
+    numpy.testing.assert_allclose(energy, [[-2.39]], rtol=1e-3)
 
 
 def test_sp3_single_hbond():
@@ -123,7 +124,7 @@ def test_sp3_single_hbond():
     donwt = torch.tensor([[1.45]])
     accwt = torch.tensor([[1.15]])
 
-    energy = hbond_donor_sp3_score(
+    energy = convert_args(hbond_donor_sp3_score)(
 
         # Input coordinates
         d=atomD,
@@ -149,7 +150,7 @@ def test_sp3_single_hbond():
         hb_sp3_softmax_fade=2.5,
     )
 
-    assert (float(energy.data[0]) == pytest.approx(-2.00, 0.01))
+    numpy.testing.assert_allclose(energy, [[-2.00]], rtol=1e-3)
 
 
 def test_ring_single_hbond():
@@ -200,7 +201,7 @@ def test_ring_single_hbond():
     donwt = torch.tensor([[1.45]])
     accwt = torch.tensor([[1.13]])
 
-    energy = hbond_donor_ring_score(
+    energy = convert_args(hbond_donor_ring_score)(
         # Input coordinates
         d=atomD,
         h=atomH,
@@ -222,4 +223,4 @@ def test_ring_single_hbond():
         cosAHD_bounds=poly_AHD_1i_bounds,
     )
 
-    assert (float(energy.data[0]) == pytest.approx(-2.17, 0.01))
+    numpy.testing.assert_allclose(energy, [[-2.17]], rtol=1e-3)
