@@ -1,4 +1,5 @@
 import pytest
+
 from . import pdb
 from . import rosetta_baseline
 
@@ -10,9 +11,9 @@ def ubq_pdb():
 
 @pytest.fixture(scope="session")
 def ubq_res():
-    from tmol.system.residue.io import ResidueReader
+    from tmol.system.residue.io import default_residue_reader
 
-    return ResidueReader().parse_pdb(pdb.data["1ubq"])
+    return default_residue_reader.parse_pdb(pdb.data["1ubq"])
 
 
 @pytest.fixture()
@@ -26,3 +27,15 @@ def ubq_system():
 def ubq_rosetta_baseline():
     # TODO ubq baseline does *not* contain the same conformation as ubq_pdb
     return rosetta_baseline.data["1ubq"]
+
+
+@pytest.fixture()
+def water_box_res():
+    from tmol.system.residue.io import default_residue_reader
+    return default_residue_reader.parse_pdb(pdb.data["water_box"])
+
+
+@pytest.fixture()
+def water_box_system():
+    from tmol.system.residue.io import read_pdb
+    return read_pdb(pdb.data["water_box"])

@@ -129,8 +129,33 @@ class PackedResidueSystem(HasProperties):
         # for *both* directions across the connection.
         #
         # Just a linear set of connections up<->down for now.
-        residue_connections = pandas.DataFrame.from_records(
-            [(i, "up", i + 1, "down") for i in range(len(res) - 1)],
+        residue_connections = []
+
+        for i, j in zip(range(len(res) - 1), range(1, len(res))):
+            valid_connection = (
+                "up" in res[i].residue_type.connection_to_idx and
+                "down" in res[j].residue_type.connection_to_idx
+            ) # yapf: disable
+
+            if valid_connection:
+                residue_connections.extend([
+                    (i, "up", i + 1, "down"),
+                    (i + 1, "down", i, "up"),
+                ])
+            else:
+                # TODO add logging
+                pass
+
+        for f_i, f_n, t_i, t_n in residue_connections:
+            assert f_n in res[f_i].residue_type.connection_to_idx, (
+                f"residue missing named connection: {f_n!r} res:\n{res[f_i]}"
+            )
+            assert t_n in res[t_i].residue_type.connection_to_idx, (
+                f"residue missing named connection: {t_n!r} res:\n{res[t_i]}"
+            )
+
+        connection_index = pandas.DataFrame.from_records(
+            residue_connections,
             columns=pandas.MultiIndex.from_tuples([
                 ("from", "resi"),
                 ("from", "cname"),
@@ -138,13 +163,6 @@ class PackedResidueSystem(HasProperties):
                 ("to", "cname"),
             ])
         )
-        connection_index = pandas.concat((
-                residue_connections,
-                residue_connections.rename(
-                    columns={"from": "to", "to": "from"}
-                )),
-            ignore_index=True,
-        ) # yapf: disable
 
         # Unpack the connection metadata table
         connection_metadata = numpy.empty(
@@ -250,31 +268,57 @@ class PackedResidueSystem(HasProperties):
             for torsion_entry in cattr.unstructure(r.residue_type.torsions)
         ]
 
-        # Left merge the residue/connection name into a target residue, and
-        # then the target residue and atom name into a global atom index
-        # for all atoms in the torsion (a, b, c, d).
+        if torsion_entries:
+            # Left merge the residue/connection name into a target residue, and
+            # then the target residue and atom name into a global atom index
+            # for all atoms in the torsion (a, b, c, d).
 
-        # This yields a global torsion table every torsion, the torsion name,
-        # and the associated global atom indices.
-        torsion_index = toolz.reduce(toolz.curry(pandas.merge)(how="left", copy=False), (
-            pandas.io.json.json_normalize(torsion_entries),
-            connection_lookup.rename(
-                columns={"cname": "a.connection", "to_residue": "a.residue"}),
-            atom_lookup.rename(
-                columns={"residue_index": "a.residue", "atom_name": "a.atom", "atom_index": "a.atom_index"}),
-            connection_lookup.rename(
-                columns={"cname": "b.connection", "to_residue": "b.residue"}),
-            atom_lookup.rename(
-                columns={"residue_index": "b.residue", "atom_name": "b.atom", "atom_index": "b.atom_index"}),
-            connection_lookup.rename(
-                columns={"cname": "c.connection", "to_residue": "c.residue"}),
-            atom_lookup.rename(
-                columns={"residue_index": "c.residue", "atom_name": "c.atom", "atom_index": "c.atom_index"}),
-            connection_lookup.rename(
-                columns={"cname": "d.connection", "to_residue": "d.residue"}),
-            atom_lookup.rename(
-                columns={"residue_index": "d.residue", "atom_name": "d.atom", "atom_index": "d.atom_index"}),
-        )).sort_index("columns") # yapf: disable
+            # This yields a global torsion table every torsion, the torsion name,
+            # and the associated global atom indices.
+            torsion_index = toolz.reduce(toolz.curry(pandas.merge)(how="left", copy=False), (
+                pandas.io.json.json_normalize(
+                    torsion_entries
+                )[[
+                    # Select the torsion descriptor components required for merge.
+                    "residue_index",
+                    "name",
+                    "a.atom",
+                    "a.connection",
+                    "b.atom",
+                    "b.connection",
+                    "c.atom",
+                    "c.connection",
+                    "d.atom",
+                    "d.connection",
+                ]],
+                connection_lookup.rename(
+                    columns={"cname": "a.connection", "to_residue": "a.residue"}),
+                atom_lookup.rename(
+                    columns={"residue_index": "a.residue", "atom_name": "a.atom", "atom_index": "a.atom_index"}),
+                connection_lookup.rename(
+                    columns={"cname": "b.connection", "to_residue": "b.residue"}),
+                atom_lookup.rename(
+                    columns={"residue_index": "b.residue", "atom_name": "b.atom", "atom_index": "b.atom_index"}),
+                connection_lookup.rename(
+                    columns={"cname": "c.connection", "to_residue": "c.residue"}),
+                atom_lookup.rename(
+                    columns={"residue_index": "c.residue", "atom_name": "c.atom", "atom_index": "c.atom_index"}),
+                connection_lookup.rename(
+                    columns={"cname": "d.connection", "to_residue": "d.residue"}),
+                atom_lookup.rename(
+                    columns={"residue_index": "d.residue", "atom_name": "d.atom", "atom_index": "d.atom_index"}),
+            )).sort_index("columns") # yapf: disable
+        else:
+            torsion_index = pandas.DataFrame(
+                columns=[
+                    "residue_index",
+                    "name",
+                    "a.atom_index",
+                    "b.atom_index",
+                    "c.atom_index",
+                    "d.atom_index",
+                ]
+            )
 
         ### Unpack the merge frame into atomic indices
         torsion_metadata = numpy.empty(
