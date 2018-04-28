@@ -31,7 +31,8 @@ atom_types:
   - Hapo
   - Haro
   - HNbb
-  - HOH
+  - Owat
+  - Hwat
 
 residues:
   - name:  ALA
@@ -1405,3 +1406,18 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090646, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999924 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.849918 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
+  - name:  HOH
+    name3: HOH
+    atoms:
+    - { *n:  O, *t: Owat  }
+    - { *n: H1, *t: Hwat }
+    - { *n: H2, *t: Hwat }
+    bonds:
+    - [O, H1]
+    - [O, H2]
+    connections: []
+    torsions: []
+    icoors:
+    - { *n:     O, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     O, *gp:    H1, *ggp:     H2}
+    - { *n:    H1, phi:    0.000000 deg, theta:  180.000000 deg, d:    0.957200, *p:     O, *gp:    H1, *ggp:     H2}
+    - { *n:    H2, phi:    0.000000 deg, theta:   75.480000 deg, d:    0.957200, *p:     O, *gp:    H1, *ggp:     H2}

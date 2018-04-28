@@ -1,39 +1,54 @@
+import logging
+import typing
+from typing import Mapping, Collection
+
+import attr
 import cattr
-import properties
-from tmol.properties.reactive import cached
 
 from toolz.curried import groupby
 
 from tmol.utility import unique_val
 import tmol.io.pdb_parsing as pdb_parsing
 import tmol.database.chemical
+from tmol.database import default as _default
+
 from tmol.database.chemical import ChemicalDatabase
 
 from .restypes import ResidueType, Residue
 from .packed import PackedResidueSystem
 
-from tmol.utility.log import LoggerMixin
+from tmol.utility.log import ClassLogger
 import tmol.io.generic
 
+ResName3 = typing.NewType("ResName3", str)
 
-class ResidueReader(properties.HasProperties, LoggerMixin):
-    chemical_db: ChemicalDatabase = properties.Instance(
-        "source chemical db",
-        ChemicalDatabase,
-        default=tmol.database.default.chemical,
-    )
 
-    @cached(properties.Dictionary("residue types from db by 3-letter code"))
-    def residue_types(self):
-        return groupby(
+@attr.s(frozen=True, slots=True, auto_attribs=True)
+class ResidueReader:
+    chemical_db: ChemicalDatabase
+    residue_types: Mapping[ResName3, ResidueType]
+
+    logger: logging.Logger = ClassLogger
+
+    @classmethod
+    def from_database(cls, chemical_db: ChemicalDatabase):
+        residue_types = groupby(
             lambda restype: restype.name3,
             (
                 cattr.structure(cattr.unstructure(r), ResidueType)
-                for r in self.chemical_db.residues
+                for r in chemical_db.residues
             )
         )
 
-    def resolve_type(self, resn, atomns):
+        return cls(
+            chemical_db=chemical_db,
+            residue_types=residue_types,
+        )
+
+    def resolve_type(self, resn: ResName3,
+                     atomns: Collection[str]) -> ResidueType:
+        """Return the best-match residue type for a collection of atom records."""
+
         atomns = set(atomns)
 
         candidate_types = self.residue_types.get(resn, [])
@@ -101,14 +116,19 @@ class ResidueReader(properties.HasProperties, LoggerMixin):
         ]  # yapf: disable
 
 
-def read_pdb(pdb_string: str) -> PackedResidueSystem:
-    res = ResidueReader().parse_pdb(pdb_string)
+default_residue_reader = ResidueReader.from_database(_default.chemical)
+
+
+def read_pdb(
+        pdb_string: str, residue_reader: ResidueReader = default_residue_reader
+) -> PackedResidueSystem:
+    res = residue_reader.parse_pdb(pdb_string)
 
     return PackedResidueSystem.from_residues(res)
 
 
 @tmol.io.generic.to_cdjson.register(Residue)
-def residue_to_cdjson(res):
+def residue_to_cdjson(res: Residue):
     coords = res.coords
     elems = [a.atom_type[0] for a in res.residue_type.atoms]
     bonds = [
@@ -120,9 +140,9 @@ def residue_to_cdjson(res):
 
 
 @tmol.io.generic.to_cdjson.register(PackedResidueSystem)
-def packed_system_to_cdjson(system):
+def packed_system_to_cdjson(system: PackedResidueSystem):
     coords = system.coords
-    elems = [t[0] if t else "x" for t in system.atom_types]
-    bonds = list(map(tuple(system.bonds)))
+    elems = [t[0] if t else "X" for t in system.atom_metadata["atom_type"]]
+    bonds = [tuple(b) for b in system.bonds]
 
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)
