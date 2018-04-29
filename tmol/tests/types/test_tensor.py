@@ -1,219 +1,144 @@
-import numpy
-import torch
 import pytest
 
+import numpy
+import torch
+
+import attr
+
+from tmol.types.tensor import TensorGroup, TensorType
+from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
-validation_examples = [
-    {
-        "spec": Tensor(bool)[:],
-        "valid": [
-            torch.arange(30) > 15,
-            torch.Tensor([True, True, False]).to(torch.uint8),
-        ],
-        "invalid": [
-            # numpy types not allowed
-            numpy.arange(30).reshape(10, 3),
-            numpy.arange(3).reshape(1, 3),
-            numpy.array([[1, 2, 3]]),
-            numpy.array([[1.0, 2.0, 3.0]]).astype(int),
-            numpy.array([[0, 1, 1]]).astype("u1"),
 
-            # bad shape
-            numpy.arange(30).reshape(3, 10),
-            torch.arange(30, dtype=torch.int64).reshape(3, 10),
-            numpy.arange(3),
-
-            # defaults to floating-point types
-            torch.Tensor([True, True, False]),
-            torch.Tensor([[1, 2, 3]]),
-            torch.arange(30),
-            # no casting
-            numpy.arange(30).reshape(10, 3).astype(float),
-            numpy.array([[1.0, 2.0, 3.0]]),
-            [1, 2, 3],
-            [[1, 2, 3]],
-            numpy.array([["one", "two", "three"]]),
-        ]
-    },
-    {
-        "spec": Tensor(int)[:, 3],
-        "valid": [
-            torch.arange(30, dtype=torch.int64).reshape(10, 3),
-            torch.Tensor([[1, 2, 3]]).to(torch.int64)
-        ],
-        "invalid": [
-            # numpy types not allowed
-            numpy.arange(30).reshape(10, 3),
-            numpy.arange(3).reshape(1, 3),
-            numpy.array([[1, 2, 3]]),
-            numpy.array([[1.0, 2.0, 3.0]]).astype(int),
-
-            # bad shape
-            numpy.arange(30).reshape(3, 10),
-            torch.arange(30, dtype=torch.int64).reshape(3, 10),
-            numpy.arange(3),
-            # defaults to floating-point types
-            torch.Tensor([[1, 2, 3]]),
-            torch.arange(30),
-            # no casting
-            numpy.arange(30).reshape(10, 3).astype(float),
-            numpy.array([[1.0, 2.0, 3.0]]),
-            [1, 2, 3],
-            [[1, 2, 3]],
-            numpy.array([["one", "two", "three"]]),
-        ]
-    },
-    {
-        "spec": Tensor("f")[:],
-        "valid": [
-            torch.arange(30),
-            torch.Tensor([1, 2, 3]),
-        ],
-        "invalid": [
-            # bad shape
-            torch.arange(30).reshape(3, 10),
-            torch.arange(30).to(torch.int32),
-            # no float-float casting
-            numpy.array([1.0, 2.0, 3.0]).astype("f"),
-            numpy.arange(30).astype("f"),
-            numpy.arange(30),
-            numpy.arange(30, dtype=float),
-            numpy.array([1.0, 2.0, 3.0]),
-            numpy.arange(30).reshape(10, 3).astype("f"),
-            numpy.array([[1.0, 2.0, 3.0]]),
-            [1, 2, 3],
-            [[1, 2, 3]],
-            numpy.array([["one", "two", "three"]]),
-        ]
-    },
-    {
-        "spec": Tensor(float)[:],
-        "valid": [
-            torch.arange(30),
-            torch.Tensor([1, 2, 3]),
-        ],
-        "invalid": [
-            # bad shape
-            torch.arange(30).reshape(3, 10),
-            torch.arange(30).to(torch.float64),
-            # no float-float casting
-            numpy.array([1.0, 2.0, 3.0]).astype("f"),
-            numpy.arange(30).astype("f"),
-            numpy.arange(30),
-            numpy.arange(30, dtype=float),
-            numpy.array([1.0, 2.0, 3.0]),
-            numpy.arange(30).reshape(10, 3).astype("f"),
-            numpy.array([[1.0, 2.0, 3.0]]),
-            [1, 2, 3],
-            [[1, 2, 3]],
-            numpy.array([["one", "two", "three"]]),
-        ]
-    },
-]
+def test_tensortype_instancecheck():
+    assert isinstance(NDArray(float)[:], TensorType)
+    assert isinstance(Tensor(float)[:], TensorType)
 
 
-@pytest.mark.parametrize("example", validation_examples)
-def test_array_validation(example):
-    spec, valid, invalid = (
-        example["spec"], example["valid"], example["invalid"]
+def test_attr_checking():
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class InvalidTensorShape(TensorGroup):
+        no_broadcast: NDArray(int)[:]
+        broadcast: NDArray(int)[..., 2]
+
+    inv = InvalidTensorShape(
+        numpy.arange(10),
+        numpy.arange(20).reshape(10, 2),
     )
 
-    for v in valid:
-        assert spec.validate(v)
-        assert isinstance(v, spec)
-
-    for v in invalid:
-        assert not isinstance(v, spec)
-        with pytest.raises((TypeError, ValueError)):
-            assert not spec.validate(v)
-
-
-invalid_dtypes = [
-    numpy.dtype([("coord", float, 3),
-                 ("val", int)]),
-    numpy.complex,
-    "c8",
-]
-
-
-@pytest.mark.parametrize("invalid_dtype", invalid_dtypes)
-def test_invalid_dtype(invalid_dtype):
-    with pytest.raises(ValueError):
-        Tensor(invalid_dtype)
-
-
-converstion_examples = [
-    {
-        "spec": Tensor(float)[3],
-        "conversions": [
-            ([1, 2, 3], torch.Tensor([1, 2, 3])),
-            ([True, True, False], torch.Tensor([1, 1, 0])),
-            (torch.arange(3) < 2, torch.Tensor([1, 1, 0])),
-            ([numpy.pi] * 3, torch.Tensor([numpy.pi] * 3)),
-        ],
-        "invalid": [
-            # Invalid casts.
-            numpy.array(list("abc")),
-            numpy.array(['a', 'b', 'c'], dtype=object),
-            ["one", "two", "three"],
-            # No shape coercion
-            numpy.arange(30).reshape(10, 3),
-            numpy.arange(3).reshape(1, 3),
-            [[1, 2, 3]],
-        ]
-    },
-    {
-        "spec": Tensor(float)[1],
-        "conversions": [
-            (numpy.pi, torch.Tensor([numpy.pi])),
-            (1663, torch.Tensor([1663])),
-            ([1663], torch.Tensor([1663])),
-            (numpy.arange(10)[5], torch.Tensor([5])),
-            (torch.arange(10)[5], torch.Tensor([5])),
-            (numpy.arange(10)[6:7], torch.Tensor([6])),
-            (torch.arange(10)[6:7], torch.Tensor([6])),
-        ],
-        "invalid": [
-            numpy.array(["one"]),
-            torch.arange(3),
-        ]
-    },
-    {
-        "spec": Tensor(int)[1],
-        "conversions": [
-            (numpy.pi, torch.Tensor([3]).to(torch.long)),
-            ([1], torch.Tensor([1]).to(torch.long)),
-        ],
-        "invalid": [
-            numpy.array(["one"]),
-            torch.arange(3),
-            torch.arange(3).to(torch.long),
-        ]
-    },
-    {
-        "spec": Tensor(bool)[:],
-        "conversions": [
-            ([True, True, True], torch.Tensor([1, 1, 1]).to(torch.uint8)),
-            (numpy.arange(3) < 2, torch.Tensor([1, 1, 0]).to(torch.uint8)),
-            (torch.arange(3), torch.Tensor([0, 1, 2]).to(torch.uint8)),
-        ],
-        "invalid": [numpy.array(["one"]), ]
-    },
-]
-
-
-@pytest.mark.parametrize("example", converstion_examples)
-def test_array_conversion(example):
-    spec, conversions, invalid = (
-        example["spec"], example["conversions"], example["invalid"]
+    r = inv[:5]
+    numpy.testing.assert_allclose(r.no_broadcast, numpy.arange(5))
+    numpy.testing.assert_allclose(
+        r.broadcast,
+        numpy.arange(20).reshape(10, 2)[:5]
     )
 
-    for f, t in conversions:
-        res = spec.convert(f)
-        numpy.testing.assert_array_equal(res, t)
-        assert res.dtype == t.dtype
+    # Require broadcast shape for constructors
+    with pytest.raises(TypeError):
+        InvalidTensorShape.empty(5)
 
-    for v in invalid:
-        with pytest.raises((TypeError, ValueError)):
-            assert not spec.convert(v)
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class InvalidAttrType(TensorGroup):
+        array: NDArray(int)[...]
+        other: str
+
+    # Detect attribute type errors on indexing
+    v = InvalidAttrType(numpy.arange(10), "arange")
+
+    with pytest.raises(TypeError):
+
+        v[:5]
+
+
+def test_nested_group():
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class SubGroup(TensorGroup):
+        a: Tensor(float)[...]
+        b: Tensor(float)[..., 5]
+
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class MultiGroup(TensorGroup):
+        g1: SubGroup
+        g2: SubGroup
+        idx: Tensor(int)[..., 2]
+
+    s = MultiGroup.ones((3, 5))
+    assert s.g1.a.shape == (3, 5)
+    assert s.g1.b.shape == (3, 5, 5)
+    assert s.g2.a.shape == (3, 5)
+    assert s.g2.b.shape == (3, 5, 5)
+    assert s.idx.shape == (3, 5, 2)
+
+    assert s[0].g1.a.shape == (5, )
+    assert s[0].g1.b.shape == (5, 5)
+    assert s[0].g2.a.shape == (5, )
+    assert s[0].g2.b.shape == (5, 5)
+    assert s[0].idx.shape == (5, 2)
+
+    sg = SubGroup.full((5), numpy.pi)
+    numpy.testing.assert_allclose(sg.a, torch.full((5, ), numpy.pi))
+    numpy.testing.assert_allclose(sg.b, torch.full((5, 5), numpy.pi))
+
+    # FrozenInstance prevents direct assignment to members
+    with pytest.raises(attr.exceptions.FrozenInstanceError):
+        s[0].g1 = sg
+
+    # Slice assignment updates member tensors
+    s[0].g1[:] = sg
+
+    numpy.testing.assert_allclose(s.g1.a[0], torch.full((5, ), numpy.pi))
+    numpy.testing.assert_allclose(s.g1.b[0], torch.full((5, 5), numpy.pi))
+    numpy.testing.assert_allclose(s.g1.a[1], torch.full((5, ), 1.0))
+    numpy.testing.assert_allclose(s.g1.b[1], torch.full((5, 5), 1.0))
+
+
+def test_tensorgroup_smoke():
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class NumpyTensorGroup(TensorGroup):
+        a: NDArray(float)[...]
+        coord: NDArray(float)[..., 3]
+
+    val = NumpyTensorGroup.zeros((10, ))
+    numpy.testing.assert_allclose(val.a, numpy.zeros(10))
+    numpy.testing.assert_allclose(val.coord, numpy.zeros((10, 3)))
+
+    val = NumpyTensorGroup.ones(10)
+    numpy.testing.assert_allclose(val.a, numpy.ones(10))
+    numpy.testing.assert_allclose(val.coord, numpy.ones((10, 3)))
+
+    val = NumpyTensorGroup.full(10, numpy.pi)
+    numpy.testing.assert_allclose(val.a, numpy.full(10, numpy.pi))
+    numpy.testing.assert_allclose(val.coord, numpy.full((10, 3), numpy.pi))
+
+    val = NumpyTensorGroup.empty(10)
+    assert val.a.shape == (10, )
+    assert val.coord.shape == (10, 3)
+
+    val = NumpyTensorGroup.empty((10, 100))
+    assert val.a.shape == (10, 100)
+    assert val.coord.shape == (10, 100, 3)
+
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class TorchTensorGroup(TensorGroup):
+        a: Tensor(float)[...]
+        coord: Tensor(float)[..., 3]
+
+    val = TorchTensorGroup.zeros(10)
+    numpy.testing.assert_allclose(val.a, torch.zeros((10, )))
+    numpy.testing.assert_allclose(val.coord, torch.zeros((10, 3)))
+
+    val = TorchTensorGroup.ones(10)
+    numpy.testing.assert_allclose(val.a, torch.ones((10, )))
+    numpy.testing.assert_allclose(val.coord, torch.ones((10, 3)))
+
+    val = TorchTensorGroup.full(10, numpy.pi)
+    numpy.testing.assert_allclose(val.a, torch.full((10, ), numpy.pi))
+    numpy.testing.assert_allclose(val.coord, torch.full((10, 3), numpy.pi))
+
+    val = TorchTensorGroup.empty(10)
+    assert val.a.shape == (10, )
+    assert val.coord.shape == (10, 3)
+
+    val = TorchTensorGroup.empty((10, 100))
+    assert val.a.shape == (10, 100)
+    assert val.coord.shape == (10, 100, 3)
