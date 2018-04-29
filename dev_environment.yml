@@ -14,6 +14,7 @@ dependencies:
 
   - pip:
     - yapf
+    - pytest-xdist
     - pytest-watch
     - pytest-instafail
     - pdbpp

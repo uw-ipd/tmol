@@ -3,6 +3,12 @@ jobs:
   build:
     docker:
       - image: continuumio/miniconda3
+    environment:
+      # Core count for medium machine type.
+      OMP_NUM_THREADS: 2
+      MKL_NUM_THREADS: 2
+      NUMBA_NUM_THREADS: 2
+      NUM_THREADS: 2
     working_directory: ~/workspace
     steps:
       - checkout
@@ -52,8 +58,11 @@ jobs:
 
             failed=0
 
+            # Run non-linting tests in a single process, relying on internal multithreading
             (pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/test.xml 2>&1 | tee report/test.log) || failed=1
-            (pytest -v -k 'linting' 2>&1 --junitxml=report/linting/linting.xml | tee report/linting.log) || failed=1
+
+            # Run linting tests in multiple processes to speed up execution
+            (pytest -n ${NUM_THREADS} -k 'linting' 2>&1 --junitxml=report/linting/linting.xml | tee report/linting.log) || failed=1
 
             .circleci/fixup_test_report.py report/test/test.xml report/linting/linting.xml
 
