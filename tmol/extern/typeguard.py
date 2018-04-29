@@ -1,17 +1,26 @@
+import attr
+
 import collections
 import gc
 import inspect
-import sys
-import threading
 from collections import OrderedDict
 from functools import wraps, partial
 from inspect import Parameter, isclass
-from traceback import extract_stack, print_stack
 from types import CodeType, FunctionType  # noqa
-from typing import (Callable, Any, Union, Dict, List, TypeVar, Tuple, Set, Sequence,
+from typing import (Callable, Any, Union, Dict, Mapping, List, TypeVar, Tuple, Set, Sequence,
                     get_type_hints, TextIO, Optional)
 from warnings import warn
 from weakref import WeakKeyDictionary, WeakValueDictionary
+
+import abc
+
+class CustomTypeGuard(abc.ABC):
+    """Generic base class to define typeguard-specific types."""
+
+    @abc.abstractmethod
+    def validate(self, value):
+        raise NotImplementedError
+
 
 try:
     from typing import Type
@@ -27,32 +36,40 @@ except ImportError:
 
         return func
 
-__all__ = ('typechecked', 'check_argument_types', 'TypeWarning', 'TypeChecker')
+__all__ = ('typechecked', 'check_argument_types')
 _type_hints_map = WeakKeyDictionary()  # type: Dict[FunctionType, Dict[str, Any]]
 _functions_map = WeakValueDictionary()  # type: Dict[CodeType, FunctionType]
 
 
-class _CallMemo:
-    __slots__ = ('func', 'func_name', 'signature', 'typevars', 'arguments', 'type_hints')
+@attr.s(frozen=True, slots=True, auto_attribs=True)
+class TypeMemo:
+    """A container for type resolution."""
+    typevars: Dict[Any, type] = attr.Factory(dict)
 
-    def __init__(self, func: Callable, frame=None, args: tuple = None,
-                 kwargs: Dict[str, Any] = None):
-        self.func = func
-        self.func_name = function_name(func)
-        self.signature = inspect.signature(func)
-        self.typevars = {}  # type: Dict[Any, type]
+
+@attr.s(frozen=True, slots=True, auto_attribs=True)
+class CallInfo:
+    func_name: str
+    arguments: Dict
+    type_hints: Dict
+    type_memo: TypeMemo = attr.Factory(TypeMemo)
+
+    @classmethod
+    def from_func(cls, func: Callable, frame = None, args=None, kwargs=None):
+        func_name = function_name(func)
+        signature = inspect.signature(func)
 
         if args is not None and kwargs is not None:
-            self.arguments = self.signature.bind(*args, **kwargs).arguments
+            arguments = signature.bind(*args, **kwargs).arguments
         else:
             assert frame, 'frame must be specified if args or kwargs is None'
-            self.arguments = frame.f_locals.copy()
+            arguments = frame.f_locals.copy()
 
-        self.type_hints = _type_hints_map.get(func)
-        if self.type_hints is None:
+        type_hints = _type_hints_map.get(func)
+        if type_hints is None:
             hints = get_type_hints(func)
-            self.type_hints = _type_hints_map[func] = OrderedDict()
-            for name, parameter in self.signature.parameters.items():
+            type_hints = _type_hints_map[func] = OrderedDict()
+            for name, parameter in signature.parameters.items():
                 if name in hints:
                     # If an argument has a default value, its type should be accepted as well
                     annotated_type = hints[name]
@@ -60,15 +77,20 @@ class _CallMemo:
                         annotated_type = Union[annotated_type, type(parameter.default)]
 
                     if parameter.kind == Parameter.VAR_POSITIONAL:
-                        self.type_hints[name] = Tuple[annotated_type, ...]
+                        type_hints[name] = Tuple[annotated_type, ...]
                     elif parameter.kind == Parameter.VAR_KEYWORD:
-                        self.type_hints[name] = Dict[str, annotated_type]
+                        type_hints[name] = Dict[str, annotated_type]
                     else:
-                        self.type_hints[name] = annotated_type
+                        type_hints[name] = annotated_type
 
             if 'return' in hints:
-                self.type_hints['return'] = hints['return']
+                type_hints['return'] = hints['return']
 
+        return cls(
+            func_name = func_name,
+            arguments = arguments,
+            type_hints = type_hints,
+        )
 
 def find_function(frame) -> Optional[Callable]:
     """
@@ -127,7 +149,7 @@ def function_name(func: FunctionType) -> str:
     return qualname if module == 'builtins' else '{}.{}'.format(module, qualname)
 
 
-def check_callable(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_callable(argname: str, value, expected_type, memo: TypeMemo) -> None:
     if not callable(value):
         raise TypeError('{} must be a callable'.format(argname))
 
@@ -175,7 +197,7 @@ def check_callable(argname: str, value, expected_type, memo: _CallMemo) -> None:
                                                          num_mandatory_args))
 
 
-def check_dict(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_dict(argname: str, value, expected_type, memo: TypeMemo) -> None:
     if not isinstance(value, dict):
         raise TypeError('type of {} must be a dict; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -186,7 +208,7 @@ def check_dict(argname: str, value, expected_type, memo: _CallMemo) -> None:
         check_type('{}[{!r}]'.format(argname, k), v, value_type, memo)
 
 
-def check_list(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_list(argname: str, value, expected_type, memo: TypeMemo) -> None:
     if not isinstance(value, list):
         raise TypeError('type of {} must be a list; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -197,7 +219,7 @@ def check_list(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
-def check_sequence(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_sequence(argname: str, value, expected_type, memo: TypeMemo) -> None:
     if not isinstance(value, collections.Sequence):
         raise TypeError('type of {} must be a sequence; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -208,7 +230,7 @@ def check_sequence(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_type('{}[{}]'.format(argname, i), v, value_type, memo)
 
 
-def check_set(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_set(argname: str, value, expected_type, memo: TypeMemo) -> None:
     if not isinstance(value, collections.Set):
         raise TypeError('type of {} must be a set; got {} instead'.
                         format(argname, qualified_name(value)))
@@ -219,7 +241,7 @@ def check_set(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_type('elements of {}'.format(argname), v, value_type, memo)
 
 
-def check_tuple(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_tuple(argname: str, value, expected_type, memo: TypeMemo) -> None:
     # Specialized check for NamedTuples
     if hasattr(expected_type, '_field_types'):
         if not isinstance(value, expected_type):
@@ -259,7 +281,7 @@ def check_tuple(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_type('{}[{}]'.format(argname, i), element, element_type, memo)
 
 
-def check_union(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_union(argname: str, value, expected_type, memo: TypeMemo) -> None:
     if hasattr(expected_type, '__union_params__'):
         # Python 3.5
         union_params = expected_type.__union_params__
@@ -279,7 +301,7 @@ def check_union(argname: str, value, expected_type, memo: _CallMemo) -> None:
                     format(argname, typelist, qualified_name(value)))
 
 
-def check_class(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_class(argname: str, value, expected_type, memo: TypeMemo) -> None:
     if not isclass(value):
         raise TypeError('type of {} must be a type; got {} instead'.format(
             argname, qualified_name(value)))
@@ -293,7 +315,7 @@ def check_class(argname: str, value, expected_type, memo: _CallMemo) -> None:
                 argname, qualified_name(expected_class), qualified_name(value)))
 
 
-def check_typevar(argname: str, value, typevar: TypeVar, memo: _CallMemo,
+def check_typevar(argname: str, value, typevar: TypeVar, memo: TypeMemo,
                   subclass_check: bool = False) -> None:
     bound_type = memo.typevars.get(typevar, typevar.__bound__)
     value_type = value if subclass_check else type(value)
@@ -328,17 +350,14 @@ def check_typevar(argname: str, value, typevar: TypeVar, memo: _CallMemo,
 
 
 def check_number(argname: str, value, expected_type):
-    if expected_type is complex and not isinstance(value, (complex, float, int)):
-        raise TypeError('type of {} must be either complex, float or int; got {} instead'.
-                        format(argname, qualified_name(value.__class__)))
-    elif expected_type is float and not isinstance(value, (float, int)):
-        raise TypeError('type of {} must be either float or int; got {} instead'.
-                        format(argname, qualified_name(value.__class__)))
+    if not isinstance(value, expected_type):
+        raise TypeError(f"type of {argname} must be {expected_type}; got {type(value)} instead")
 
 
 # Equality checks are applied to these
 origin_type_checkers = {
     Dict: check_dict,
+    Mapping: check_dict,
     List: check_list,
     Sequence: check_sequence,
     Set: check_set,
@@ -349,7 +368,7 @@ if Type is not None:
     origin_type_checkers[Type] = check_class
 
 
-def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
+def check_type(argname: str, value, expected_type, memo: Optional[TypeMemo] = None) -> None:
     """
     Ensure that ``value`` matches ``expected_type``.
 
@@ -369,7 +388,14 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
         # Only happens on < 3.6
         expected_type = type(None)
 
-    if isclass(expected_type):
+    if isinstance(expected_type, CustomTypeGuard):
+        try:
+            expected_type.validate(value)
+        except TypeError as ex:
+            raise TypeError(f"{argname} validation error: {ex!s}") from ex
+        except ValueError as ex:
+            raise ValueError(f"{argname} validation error: {ex!s}") from ex
+    elif isclass(expected_type):
         origin_type = getattr(expected_type, '__origin__', None)
         if origin_type is not None:
             checker_func = origin_type_checkers.get(origin_type)
@@ -381,8 +407,6 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
             check_tuple(argname, value, expected_type, memo)
         elif issubclass(expected_type, Callable) and hasattr(expected_type, '__args__'):
             check_callable(argname, value, expected_type, memo)
-        elif issubclass(expected_type, (float, complex)):
-            check_number(argname, value, expected_type)
         elif _subclass_check_unions and issubclass(expected_type, Union):
             check_union(argname, value, expected_type, memo)
         elif isinstance(expected_type, TypeVar):
@@ -400,16 +424,19 @@ def check_type(argname: str, value, expected_type, memo: _CallMemo) -> None:
     elif getattr(expected_type, '__origin__', None) is Union:
         # Only happens on 3.6+
         check_union(argname, value, expected_type, memo)
+    else:
+        raise NotImplementedError('Unable to check argument {} type: {} value: {}'
+                    .format(argname, qualified_name(expected_type), qualified_name(value)))
 
 
-def check_return_type(retval, memo: _CallMemo) -> bool:
-    if 'return' in memo.type_hints:
-        check_type('the return value', retval, memo.type_hints['return'], memo)
+def check_return_type(retval, call: CallInfo) -> bool:
+    if 'return' in call.type_hints:
+        check_type('the return value', retval, call.type_hints['return'], call.type_memo)
 
     return True
 
 
-def check_argument_types(memo: _CallMemo = None) -> bool:
+def check_argument_types(call: Optional[CallInfo] = None) -> bool:
     """
     Check that the argument values match the annotated types.
 
@@ -421,16 +448,16 @@ def check_argument_types(memo: _CallMemo = None) -> bool:
     :raises TypeError: if there is an argument type mismatch
 
     """
-    if memo is None:
+    if call is None:
         frame = inspect.currentframe().f_back
         func = find_function(frame)
-        memo = _CallMemo(func, frame)
+        call = CallInfo.from_func(func, frame=frame)
 
-    for argname, expected_type in memo.type_hints.items():
-        if argname != 'return' and argname in memo.arguments:
-            value = memo.arguments[argname]
-            description = 'argument "{}"'.format(argname, memo.func_name)
-            check_type(description, value, expected_type, memo)
+    for argname, expected_type in call.type_hints.items():
+        if argname != 'return' and argname in call.arguments:
+            value = call.arguments[argname]
+            description = 'argument "{}"'.format(argname, call.func_name)
+            check_type(description, value, expected_type, call.type_memo)
 
     return True
 
@@ -460,169 +487,10 @@ def typechecked(func: Callable = None, *, always: bool = False):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        memo = _CallMemo(func, args=args, kwargs=kwargs)
-        check_argument_types(memo)
+        call = CallInfo.from_func(func, args=args, kwargs=kwargs)
+        check_argument_types(call)
         retval = func(*args, **kwargs)
-        check_return_type(retval, memo)
+        check_return_type(retval, call)
         return retval
 
     return wrapper
-
-
-class TypeWarning(UserWarning):
-    """
-    A warning that is emitted when a type check fails.
-
-    :ivar str event: ``call`` or ``return``
-    :ivar Callable func: the function in which the violation occurred (the called function if event
-        is ``call``, or the function where a value of the wrong type was returned from if event is
-        ``return``)
-    :ivar str error: the error message contained by the caught :cls:`TypeError`
-    :ivar frame: the frame in which the violation occurred
-    """
-
-    __slots__ = ('func', 'event', 'message', 'frame')
-
-    def __init__(self, memo: _CallMemo, event: str, frame,
-                 exception: TypeError):  # pragma: no cover
-        self.func = memo.func
-        self.event = event
-        self.error = str(exception)
-        self.frame = frame
-
-        if self.event == 'call':
-            caller_frame = self.frame.f_back
-            event = 'call to {}() from {}:{}'.format(
-                function_name(self.func), caller_frame.f_code.co_filename, caller_frame.f_lineno)
-        else:
-            event = 'return from {}() at {}:{}'.format(
-                function_name(self.func), self.frame.f_code.co_filename, self.frame.f_lineno)
-
-        super().__init__('[{thread_name}] {event}: {self.error}'.format(
-            thread_name=threading.current_thread().name, event=event, self=self))
-
-    @property
-    def stack(self):
-        """Return the stack where the last frame is from the target function."""
-        return extract_stack(self.frame)
-
-    def print_stack(self, file: TextIO = None, limit: int = None) -> None:
-        """
-        Print the traceback from the stack frame where the target function was ran.
-
-        :param file: an open file to print to (prints to stdout if omitted)
-        :param limit: the maximum number of stack frames to print
-
-        """
-        print_stack(self.frame, limit, file)
-
-
-class TypeChecker:
-    """
-    A type checker that collects type violations by hooking into ``sys.setprofile()``.
-
-    :param all_threads: ``True`` to check types in all threads created while the checker is
-        running, ``False`` to only check in the current one
-    """
-
-    def __init__(self, packages: Union[str, Sequence[str]], *, all_threads: bool = True):
-        assert check_argument_types()
-        self.all_threads = all_threads
-        self._call_memos = {}  # type: Dict[Any, _CallMemo]
-        self._previous_profiler = None
-        self._previous_thread_profiler = None
-        self._active = False
-
-        if isinstance(packages, str):
-            self._packages = (packages,)
-        else:
-            self._packages = tuple(packages)
-
-    @property
-    def active(self) -> bool:
-        """Return ``True`` if currently collecting type violations."""
-        return self._active
-
-    def should_check_type(self, func: Callable) -> bool:
-        if not func.__annotations__:
-            # No point in checking if there are no type hints
-            return False
-        else:
-            # Check types if the module matches any of the package prefixes
-            return any(func.__module__ == package or func.__module__.startswith(package + '.')
-                       for package in self._packages)
-
-    def start(self):
-        if self._active:
-            raise RuntimeError('type checker already running')
-
-        self._active = True
-
-        # Install this instance as the current profiler
-        self._previous_profiler = sys.getprofile()
-        sys.setprofile(self)
-
-        # If requested, set this instance as the default profiler for all future threads
-        # (does not affect existing threads)
-        if self.all_threads:
-            self._previous_thread_profiler = threading._profile_hook
-            threading.setprofile(self)
-
-    def stop(self):
-        if self._active:
-            if sys.getprofile() is self:
-                sys.setprofile(self._previous_profiler)
-            else:  # pragma: no cover
-                warn('the system profiling hook has changed unexpectedly')
-
-            if self.all_threads:
-                if threading._profile_hook is self:
-                    threading.setprofile(self._previous_thread_profiler)
-                else:  # pragma: no cover
-                    warn('the threading profiling hook has changed unexpectedly')
-
-            self._active = False
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
-
-    def __call__(self, frame, event: str, arg) -> None:  # pragma: no cover
-        if not self._active:
-            # This happens if all_threads was enabled and a thread was created when the checker was
-            # running but was then stopped. The thread's profiler callback can't be reset any other
-            # way but this.
-            sys.setprofile(self._previous_thread_profiler)
-            return
-
-        # If an actual profiler is running, don't include the type checking times in its results
-        if event == 'call':
-            try:
-                func = find_function(frame)
-            except Exception:
-                func = None
-
-            if func is not None and self.should_check_type(func):
-                memo = self._call_memos[frame] = _CallMemo(func, frame)
-                try:
-                    check_argument_types(memo)
-                except TypeError as exc:
-                    warn(TypeWarning(memo, event, frame, exc))
-
-            if self._previous_profiler is not None:
-                self._previous_profiler(frame, event, arg)
-        elif event == 'return':
-            if self._previous_profiler is not None:
-                self._previous_profiler(frame, event, arg)
-
-            memo = self._call_memos.pop(frame, None)
-            if memo is not None:
-                try:
-                    check_return_type(arg, memo)
-                except TypeError as exc:
-                    warn(TypeWarning(memo, event, frame, exc))
-        elif self._previous_profiler is not None:
-            self._previous_profiler(frame, event, arg)
