@@ -40,9 +40,6 @@ class TensorType:
     def __repr__(self):
         return f"{type(self).__name__}({self.dtype!r}){self.shape!s}"
 
-    def _repr_pretty_(self, p, cycle):
-        p.text(str(self))
-
     def _expanded_shape(self, shape):
         if isinstance(shape, int):
             shape = (shape, )

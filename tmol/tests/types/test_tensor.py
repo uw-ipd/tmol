@@ -17,11 +17,17 @@ def test_tensortype_instancecheck():
 
 def test_attr_checking():
     @attr.s(auto_attribs=True, frozen=True, slots=True)
-    class InvalidTensorShape(TensorGroup):
+    class NoBroadcastShape(TensorGroup):
         no_broadcast: NDArray(int)[:]
         broadcast: NDArray(int)[..., 2]
 
-    inv = InvalidTensorShape(
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class NonFixedShape(TensorGroup):
+        non_fixed: NDArray(int)[..., :]
+        broadcast: NDArray(int)[..., 2]
+
+    # Safely initialize with manual input
+    inv = NoBroadcastShape(
         numpy.arange(10),
         numpy.arange(20).reshape(10, 2),
     )
@@ -35,7 +41,10 @@ def test_attr_checking():
 
     # Require broadcast shape for constructors
     with pytest.raises(TypeError):
-        InvalidTensorShape.empty(5)
+        NoBroadcastShape.empty(5)
+
+    with pytest.raises(TypeError):
+        NonFixedShape.empty(5)
 
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class InvalidAttrType(TensorGroup):
