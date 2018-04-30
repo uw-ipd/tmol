@@ -1,30 +1,36 @@
+import attr
 from functools import singledispatch
-
+from ..extern.typeguard import check_type
 import typing
-import toolz
 
-from . import validators
+
+@attr.s(frozen=True, slots=True)
+class ValidateConvert:
+    """No-op 'converter', just validate type."""
+    expected_type = attr.ib()
+
+    def __call__(self, value):
+        check_type("value", value, self.expected_type)
+        return value
+
+
+@attr.s(frozen=True, slots=True)
+class ConstructorConvert:
+    """No-op 'converter', just validate type."""
+    expected_type = attr.ib()
+
+    def __call__(self, value):
+        try:
+            check_type("value", value, self.expected_type)
+            return value
+        except (ValueError, TypeError):
+            return self.expected_type(value)
 
 
 @singledispatch
 def get_converter(type_annotation):
-    return constructor_convert(type_annotation)
+    return ConstructorConvert(type_annotation)
 
 
-@toolz.curry
-def constructor_convert(type_annotation, value):
-    if isinstance(value, type_annotation):
-        return value
-    else:
-        return type_annotation(value)
-
-
-@toolz.curry
-def validate_convert(type_annotation, value):
-    validators.get_validator(type_annotation)(value)
-
-    return value
-
-
-get_converter.register(typing._Union)(validate_convert)
-get_converter.register(typing.TupleMeta)(validate_convert)
+get_converter.register(typing._Union)(ValidateConvert)
+get_converter.register(typing.TupleMeta)(ValidateConvert)

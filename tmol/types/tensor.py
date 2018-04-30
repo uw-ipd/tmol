@@ -2,8 +2,8 @@ import attr
 
 from .shape import Shape
 
+from tmol.extern.typeguard import CustomTypeGuard
 from .converters import get_converter
-from .validators import get_validator
 
 
 class TensorType:
@@ -39,6 +39,9 @@ class TensorType:
 
     def __repr__(self):
         return f"{type(self).__name__}({self.dtype!r}){self.shape!s}"
+
+    def __name__(self):
+        return repr(self)
 
     def _expanded_shape(self, shape):
         if isinstance(shape, int):
@@ -137,11 +140,9 @@ class TensorGroup:
         )
 
 
-@get_validator.register(TensorType)
-def validate_ndarray(ndarray_type):
-    return ndarray_type.validate
+CustomTypeGuard.register(TensorType)
 
 
 @get_converter.register(TensorType)
-def convert_ndarray(ndarray_type):
-    return ndarray_type.convert
+def convert_tensor(tensor_type):
+    return tensor_type.convert

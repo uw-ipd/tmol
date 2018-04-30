@@ -1,42 +1,11 @@
 import inspect
 from decorator import decorate
 import typing
+from tmol.extern.typeguard import typechecked
 
-from .validators import get_validator
 from .converters import get_converter
 
-
-def validate_args(f):
-    f._signature = inspect.signature(f)
-    f._validators = {
-        n: get_validator(v)
-        for n, v in typing.get_type_hints(f).items()
-    }
-
-    def validate_f(f, *args, **kwargs):
-        bound = f._signature.bind(*args, **kwargs)
-        bound.apply_defaults()
-
-        for n, val in bound.arguments.items():
-            validator = f._validators.get(n, None)
-            if validator:
-                try:
-                    validator(val)
-                except Exception as vexec:
-                    raise TypeError(f"Invalid argument: {n}") from vexec
-
-        retval = f(*args, **kwargs)
-
-        validator = f._validators.get("return", None)
-        if validator:
-            try:
-                validator(retval)
-            except Exception as vexec:
-                raise TypeError(f"Invalid return value") from vexec
-
-        return retval
-
-    return decorate(f, validate_f)
+validate_args = typechecked
 
 
 def convert_args(f):
@@ -56,7 +25,9 @@ def convert_args(f):
                 try:
                     bound.arguments[n] = converter(val)
                 except Exception as vexec:
-                    raise TypeError(f"Invalid argument: {n}") from vexec
+                    raise TypeError(
+                        f"Invalid argument: {n} {vexec!s}"
+                    ) from vexec
 
         retval = f(*bound.args, **bound.kwargs)
 
@@ -65,7 +36,7 @@ def convert_args(f):
             try:
                 retval = converter(retval)
             except Exception as vexec:
-                raise TypeError(f"Invalid return value") from vexec
+                raise TypeError(f"Invalid return value: {vexec!s}") from vexec
         return retval
 
     return decorate(f, convert_f)
