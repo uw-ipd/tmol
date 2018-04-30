@@ -120,6 +120,9 @@ def cpu_htrefold( residues, tree, refold_data, atoms_for_controlling_torsions, r
             res.coords[ jj ] = hts[ atomid_2_refold_index[ ii ][ jj ] ].frame[0:3,3]
 
 def cpu_f1f2_summation1( atom_f1f2s, ag_derivsum_nodes ) :
+    ''' Numpy version of the f1f2 recursive summation function which iterates across the abe-go
+    nodes in the proper order up the tree (they have to already have been put in the correct order)
+    and sums the f1f2 of the all the not-immediately prior children and the prior child'''
     f1f2sum = numpy.zeros( (ag_derivsum_nodes.nnodes+1, 6) )
     #print( f1f2sum.shape )
     f1f2sum[ : ] = atom_f1f2s[ ag_derivsum_nodes.atom_indices, : ]
@@ -139,6 +142,8 @@ def cpu_f1f2_summation1( atom_f1f2s, ag_derivsum_nodes ) :
 
 # try and write a segmented-scan version in numpy
 def cpu_f1f2_summation2( atom_f1f2s, ag_derivsum_nodes ) :
+    ''' Numpy version of the f1f2 recursive summation function which uses something like a segmented
+    scan over each of the abe-go depths.'''
     f1f2sum = numpy.zeros( (ag_derivsum_nodes.nnodes+1, 6 ) )
     atinds = ag_derivsum_nodes.atom_indices
     f1f2sum[ : ] = atom_f1f2s[ atinds, : ]
