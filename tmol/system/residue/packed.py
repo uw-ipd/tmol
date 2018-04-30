@@ -56,10 +56,10 @@ class PackedResidueSystem(HasProperties):
     torsion_metadata_dtype = numpy.dtype([
         ("residue_index", int),
         ("name", object),
-        ("atom_index_a", float),
-        ("atom_index_b", float),
-        ("atom_index_c", float),
-        ("atom_index_d", float),
+        ("atom_index_a", int),
+        ("atom_index_b", int),
+        ("atom_index_c", int),
+        ("atom_index_d", int),
     ])
 
     torsion_metadata: numpy.ndarray = Array(
@@ -109,6 +109,9 @@ class PackedResidueSystem(HasProperties):
             r.attach_to(cbuff[start:start + len(r.coords)])
             for r, start in zip(res, res_aidx)
         ]
+
+        # TODO temporary hack to ensure that -1 is a valid "non-atom" index
+        assert (res_lengths[-1] % block_size) != 0
 
         ### Generate atom metadata
 
@@ -309,27 +312,39 @@ class PackedResidueSystem(HasProperties):
                     columns={"residue_index": "d.residue", "atom_name": "d.atom", "atom_index": "d.atom_index"}),
             )).sort_index("columns") # yapf: disable
         else:
-            torsion_index = pandas.DataFrame(
-                columns=[
-                    "residue_index",
-                    "name",
-                    "a.atom_index",
-                    "b.atom_index",
-                    "c.atom_index",
-                    "d.atom_index",
-                ]
-            )
+            torsion_index = pandas.DataFrame({
+                "residue_index": numpy.empty(0, float),
+                "name": numpy.empty(0, object),
+                "a.atom_index": numpy.empty(0, float),
+                "b.atom_index": numpy.empty(0, float),
+                "c.atom_index": numpy.empty(0, float),
+                "d.atom_index": numpy.empty(0, float),
+            })
 
-        ### Unpack the merge frame into atomic indices
+        pandas.DataFrame
+
+        # Unpack the merge frame into atomic indices, fixing up any missing values to
+        # point to the "-1" atom, which will have nan coordinates.
+        def nan_to_neg1(v):
+            return numpy.where(~numpy.isnan(v), v, -1).astype(int)
+
         torsion_metadata = numpy.empty(
             len(torsion_index), cls.torsion_metadata_dtype
         )
         torsion_metadata["residue_index"] = torsion_index["residue_index"]
         torsion_metadata["name"] = torsion_index["name"]
-        torsion_metadata["atom_index_a"] = torsion_index["a.atom_index"]
-        torsion_metadata["atom_index_b"] = torsion_index["b.atom_index"]
-        torsion_metadata["atom_index_c"] = torsion_index["c.atom_index"]
-        torsion_metadata["atom_index_d"] = torsion_index["d.atom_index"]
+        torsion_metadata["atom_index_a"] = nan_to_neg1(
+            torsion_index["a.atom_index"]
+        )
+        torsion_metadata["atom_index_b"] = nan_to_neg1(
+            torsion_index["b.atom_index"]
+        )
+        torsion_metadata["atom_index_c"] = nan_to_neg1(
+            torsion_index["c.atom_index"]
+        )
+        torsion_metadata["atom_index_d"] = nan_to_neg1(
+            torsion_index["d.atom_index"]
+        )
 
         result = cls(
             block_size=block_size,

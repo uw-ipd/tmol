@@ -3,7 +3,7 @@ import numpy.testing
 
 import pytest
 
-from tmol.kinematics import (
+from tmol.kinematics.operations import (
     DOFType, kintree_node_dtype, backwardKin, forwardKin, resolveDerivs
 )
 

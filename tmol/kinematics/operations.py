@@ -1,27 +1,12 @@
 import attr
 import numpy
-import enum
 from typing import Optional
 
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
+from .datatypes import DOFType, kintree_node_dtype
 
-class DOFType(enum.IntEnum):
-    root = enum.auto()
-    jump = enum.auto()
-    bond = enum.auto()
-
-
-# data structure describing the atom-level kinematics of a molecular system
-kintree_node_dtype = numpy.dtype([
-    ("id", numpy.int),
-    ("doftype", numpy.int),
-    ("parent", numpy.int),
-    ("frame_x", numpy.int),
-    ("frame_y", numpy.int),
-    ("frame_z", numpy.int),
-])
 KinTree = NDArray(kintree_node_dtype)[:]
 
 HTArray = NDArray(float)[:, 4, 4]
@@ -395,7 +380,7 @@ def backwardKin(kintree: KinTree, coords: VecArray) -> BackKinResult:
 
     assert kintree[0]["doftype"] == DOFType.root
     assert kintree["parent"][0] == 0
-    assert tuple(coords[0]) == (0, 0, 0)
+    assert numpy.all(coords[0] == 0) or numpy.all(numpy.isnan(coords[0]))
 
     HTs = numpy.empty((natoms, 4, 4))
     HTs[0] = numpy.identity(4)
