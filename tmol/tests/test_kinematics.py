@@ -128,11 +128,46 @@ def test_perturb(kintree, coords):
     # test perturb
     HTs, dofs = backwardKin(kintree, coords)
 
-    dofs[8, 3:6] = [0.02, 0.02, 0.02]
-    dofs[13, 3:6] = [0.01, 0.01, 0.02]
-    dofs[18, 3:6] = [0.01, 0.02, 0.01]
-    (HTs, coords) = forwardKin(kintree, dofs)
-    # TODO assertions
+    (HTs, pcoords) = forwardKin(kintree, dofs)
+    assert numpy.allclose(coords, pcoords)
+
+    def coord_changed(a, b, atol=1e-3):
+        return numpy.abs(a - b) > atol
+
+    # Translate jump dof
+    t_dofs = dofs.copy()
+    t_dofs[8, :3] += [0.02] * 3
+    (HTs, pcoords) = forwardKin(kintree, t_dofs)
+
+    numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
+    assert numpy.all(coord_changed(pcoords[8:13], coords[8:13]))
+    numpy.testing.assert_allclose(pcoords[13:18], coords[13:18])
+    numpy.testing.assert_allclose(pcoords[18:23], coords[18:23])
+
+    # Rotate jump dof
+    rd_dofs = dofs.copy()
+    numpy.testing.assert_allclose(rd_dofs[8, 3:6], [0, 0, 0])
+    rd_dofs[8, 3:6] += [.1, .2, .3]
+    (HTs, pcoords) = forwardKin(kintree, rd_dofs)
+    numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
+    numpy.testing.assert_allclose(pcoords[8], coords[8])
+    assert numpy.all(
+        numpy.any(coord_changed(pcoords[9:13], coords[9:13]), axis=-1)
+    )
+    numpy.testing.assert_allclose(pcoords[13:18], coords[13:18])
+    numpy.testing.assert_allclose(pcoords[18:23], coords[18:23])
+
+    # Rotate jump dof
+    r_dofs = dofs.copy()
+    r_dofs[8, 6:9] += [.1, .2, .3]
+    (HTs, pcoords) = forwardKin(kintree, r_dofs)
+    numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
+    numpy.testing.assert_allclose(pcoords[8], coords[8])
+    assert numpy.all(
+        numpy.any(coord_changed(pcoords[9:13], coords[9:13]), axis=-1)
+    )
+    numpy.testing.assert_allclose(pcoords[13:18], coords[13:18])
+    numpy.testing.assert_allclose(pcoords[18:23], coords[18:23])
 
 
 def test_derivs(kintree, coords):
