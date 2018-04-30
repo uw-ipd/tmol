@@ -8,8 +8,9 @@ from tmol.kinematics import (
 )
 
 
-def score(kintree, coords):
+def score(coords):
     """Dummy scorefunction for a conformation."""
+    assert coords.shape == (20, 3)
     dists = numpy.sqrt(
         numpy.square(coords[:, numpy.newaxis] - coords).sum(axis=2)
     )
@@ -20,8 +21,9 @@ def score(kintree, coords):
     return numpy.sum(score)
 
 
-def dscore(kintree, coords):
+def dscore(coords):
     """Dummy scorefunction derivs for a conformation."""
+    assert coords.shape == (20, 3)
     natoms = coords.shape[0]
     dxs = coords[:, numpy.newaxis] - coords
     dists = numpy.sqrt(numpy.square(dxs).sum(axis=2))
@@ -43,13 +45,7 @@ def dscore(kintree, coords):
 @pytest.fixture
 def expected_analytic_derivs():
     return numpy.array(
-       [[3.69397049e-01, -4.06528744e+01,  1.20658609e+01,
-         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-         0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-        [0.00000000e+00, -0.00000000e+00, -0.00000000e+00,
-         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-         0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-        [0.00000000e+00, -0.00000000e+00, -0.00000000e+00,
+       [[0.00000000e+00, -0.00000000e+00, -0.00000000e+00,
          0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
         [2.66453526e-15,  1.77635684e-15, -8.88178420e-16,
@@ -117,87 +113,84 @@ def expected_analytic_derivs():
 
 @pytest.fixture
 def kintree():
-    BOND = DOFType.bond
+    ROOT = DOFType.root
     JUMP = DOFType.jump
-    NATOMS = 23
+    BOND = DOFType.bond
+    NATOMS = 21
 
     # kinematics definition
     kintree = numpy.empty(NATOMS, dtype=kintree_node_dtype)
-    kintree[0] = (0, BOND, 0, 1, 0, 2)
-    kintree[1] = (0, BOND, 0, 1, 0, 2)
-    kintree[2] = (0, BOND, 0, 2, 0, 1)
+    kintree[0] = (0, ROOT, 0, 0, 0, 0)
 
-    kintree[3] = (1, JUMP, 0, 4, 3, 5)
-    kintree[4] = (1, BOND, 3, 4, 3, 5)
-    kintree[5] = (1, BOND, 4, 5, 4, 3)
-    kintree[6] = (1, BOND, 4, 6, 4, 3)
-    kintree[7] = (1, BOND, 6, 7, 6, 4)
+    kintree[1] = (1, JUMP, 0, 2, 1, 3)
+    kintree[2] = (1, BOND, 1, 2, 1, 3)
+    kintree[3] = (1, BOND, 2, 3, 2, 1)
+    kintree[4] = (1, BOND, 2, 4, 2, 1)
+    kintree[5] = (1, BOND, 4, 5, 4, 2)
 
-    kintree[8] = (2, JUMP, 3, 9, 8, 10)
-    kintree[9] = (2, BOND, 8, 9, 8, 10)
-    kintree[10] = (2, BOND, 9, 10, 9, 8)
-    kintree[11] = (2, BOND, 9, 11, 9, 8)
-    kintree[12] = (2, BOND, 11, 12, 11, 9)
+    kintree[6] = (2, JUMP, 1, 7, 6, 8)
+    kintree[7] = (2, BOND, 6, 7, 6, 8)
+    kintree[8] = (2, BOND, 7, 8, 7, 6)
+    kintree[9] = (2, BOND, 7, 9, 7, 6)
+    kintree[10] = (2, BOND, 9, 10, 9, 7)
 
-    kintree[13] = (3, JUMP, 3, 14, 13, 15)
-    kintree[14] = (3, BOND, 13, 14, 13, 15)
-    kintree[15] = (3, BOND, 14, 15, 14, 13)
-    kintree[16] = (3, BOND, 14, 16, 14, 13)
-    kintree[17] = (3, BOND, 16, 17, 16, 14)
+    kintree[11] = (3, JUMP, 1, 12, 11, 13)
+    kintree[12] = (3, BOND, 11, 12, 11, 13)
+    kintree[13] = (3, BOND, 12, 13, 12, 11)
+    kintree[14] = (3, BOND, 12, 14, 12, 11)
+    kintree[15] = (3, BOND, 14, 15, 14, 12)
 
-    kintree[18] = (4, JUMP, 3, 19, 18, 20)
-    kintree[19] = (4, BOND, 18, 19, 18, 20)
-    kintree[20] = (4, BOND, 19, 20, 19, 18)
-    kintree[21] = (4, BOND, 19, 21, 19, 18)
-    kintree[22] = (4, BOND, 21, 22, 21, 19)
+    kintree[16] = (4, JUMP, 1, 17, 16, 18)
+    kintree[17] = (4, BOND, 16, 17, 16, 18)
+    kintree[18] = (4, BOND, 17, 18, 17, 16)
+    kintree[19] = (4, BOND, 17, 19, 17, 16)
+    kintree[20] = (4, BOND, 19, 20, 19, 17)
 
     return kintree
 
 
 @pytest.fixture
 def coords():
-    NATOMS = 23
+    NATOMS = 21
 
     coords = numpy.empty([NATOMS, 3])
     coords[0, :] = [0.000, 0.000, 0.000]
-    coords[1, :] = [1.000, 0.000, 0.000]
-    coords[2, :] = [0.000, 1.000, 0.000]
 
-    coords[3, :] = [2.000, 2.000, 2.000]
-    coords[4, :] = [3.458, 2.000, 2.000]
-    coords[5, :] = [3.988, 1.222, 0.804]
-    coords[6, :] = [4.009, 3.420, 2.000]
-    coords[7, :] = [3.383, 4.339, 1.471]
+    coords[1, :] = [2.000, 2.000, 2.000]
+    coords[2, :] = [3.458, 2.000, 2.000]
+    coords[3, :] = [3.988, 1.222, 0.804]
+    coords[4, :] = [4.009, 3.420, 2.000]
+    coords[5, :] = [3.383, 4.339, 1.471]
 
-    coords[8, :] = [5.184, 3.594, 2.596]
-    coords[9, :] = [5.821, 4.903, 2.666]
-    coords[10, :] = [5.331, 5.667, 3.888]
-    coords[11, :] = [7.339, 4.776, 2.690]
-    coords[12, :] = [7.881, 3.789, 3.186]
+    coords[6, :] = [5.184, 3.594, 2.596]
+    coords[7, :] = [5.821, 4.903, 2.666]
+    coords[8, :] = [5.331, 5.667, 3.888]
+    coords[9, :] = [7.339, 4.776, 2.690]
+    coords[10, :] = [7.881, 3.789, 3.186]
 
-    coords[13, :] = [7.601, 2.968, 5.061]
-    coords[14, :] = [6.362, 2.242, 4.809]
-    coords[15, :] = [6.431, 0.849, 5.419]
-    coords[16, :] = [5.158, 3.003, 5.349]
-    coords[17, :] = [5.265, 3.736, 6.333]
+    coords[11, :] = [7.601, 2.968, 5.061]
+    coords[12, :] = [6.362, 2.242, 4.809]
+    coords[13, :] = [6.431, 0.849, 5.419]
+    coords[14, :] = [5.158, 3.003, 5.349]
+    coords[15, :] = [5.265, 3.736, 6.333]
 
-    coords[18, :] = [4.011, 2.824, 4.701]
-    coords[19, :] = [2.785, 3.494, 5.115]
-    coords[20, :] = [2.687, 4.869, 4.470]
-    coords[21, :] = [1.559, 2.657, 4.776]
-    coords[22, :] = [1.561, 1.900, 3.805]
+    coords[16, :] = [4.011, 2.824, 4.701]
+    coords[17, :] = [2.785, 3.494, 5.115]
+    coords[18, :] = [2.687, 4.869, 4.470]
+    coords[19, :] = [1.559, 2.657, 4.776]
+    coords[20, :] = [1.561, 1.900, 3.805]
 
     return coords
 
 
-def test_score_smoketest(kintree, coords):
-    score(kintree[3:], coords[3:, :])
+def test_score_smoketest(coords):
+    score(coords[1:, :])
 
 
 def test_interconversion(kintree, coords):
-    dofs = backwardKin(kintree, coords).dofs
-    refold_coords = forwardKin(kintree, dofs).coords
-    numpy.testing.assert_allclose(coords, refold_coords, atol=1e-9)
+    bkin = backwardKin(kintree, coords)
+    refold = forwardKin(kintree, bkin.dofs)
+    numpy.testing.assert_allclose(coords, refold.coords, atol=1e-9)
 
 
 def test_perturb(kintree, coords):
@@ -211,38 +204,38 @@ def test_perturb(kintree, coords):
 
     # Translate jump dof
     t_dofs = dofs.copy()
-    t_dofs["jump"][8, :3] += [0.02] * 3
+    t_dofs["jump"][6, :3] += [0.02] * 3
     pcoords = forwardKin(kintree, t_dofs).coords
 
-    numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
-    assert numpy.all(coord_changed(pcoords[8:13], coords[8:13]))
-    numpy.testing.assert_allclose(pcoords[13:18], coords[13:18])
-    numpy.testing.assert_allclose(pcoords[18:23], coords[18:23])
+    numpy.testing.assert_allclose(pcoords[1:6], coords[1:6])
+    assert numpy.all(coord_changed(pcoords[6:11], coords[6:11]))
+    numpy.testing.assert_allclose(pcoords[11:16], coords[11:16])
+    numpy.testing.assert_allclose(pcoords[16:21], coords[16:21])
 
     # Rotate jump dof "delta"
     rd_dofs = dofs.copy()
-    numpy.testing.assert_allclose(rd_dofs["jump"][8, 3:6], [0, 0, 0])
-    rd_dofs["jump"][8, 3:6] += [.1, .2, .3]
+    numpy.testing.assert_allclose(rd_dofs["jump"][6, 3:6], [0, 0, 0])
+    rd_dofs["jump"][6, 3:6] += [.1, .2, .3]
     pcoords = forwardKin(kintree, rd_dofs).coords
-    numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
-    numpy.testing.assert_allclose(pcoords[8], coords[8])
+    numpy.testing.assert_allclose(pcoords[1:6], coords[1:6])
+    numpy.testing.assert_allclose(pcoords[6], coords[6])
     assert numpy.all(
-        numpy.any(coord_changed(pcoords[9:13], coords[9:13]), axis=-1)
+        numpy.any(coord_changed(pcoords[7:11], coords[7:11]), axis=-1)
     )
-    numpy.testing.assert_allclose(pcoords[13:18], coords[13:18])
-    numpy.testing.assert_allclose(pcoords[18:23], coords[18:23])
+    numpy.testing.assert_allclose(pcoords[11:16], coords[11:16])
+    numpy.testing.assert_allclose(pcoords[16:21], coords[16:21])
 
     # Rotate jump dof
     r_dofs = dofs.copy()
-    r_dofs["jump"][8, 6:9] += [.1, .2, .3]
+    r_dofs["jump"][6, 6:9] += [.1, .2, .3]
     pcoords = forwardKin(kintree, r_dofs).coords
-    numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
-    numpy.testing.assert_allclose(pcoords[8], coords[8])
+    numpy.testing.assert_allclose(pcoords[1:6], coords[1:6])
+    numpy.testing.assert_allclose(pcoords[6], coords[6])
     assert numpy.all(
-        numpy.any(coord_changed(pcoords[9:13], coords[9:13]), axis=-1)
+        numpy.any(coord_changed(pcoords[7:11], coords[7:11]), axis=-1)
     )
-    numpy.testing.assert_allclose(pcoords[13:18], coords[13:18])
-    numpy.testing.assert_allclose(pcoords[18:23], coords[18:23])
+    numpy.testing.assert_allclose(pcoords[11:16], coords[11:16])
+    numpy.testing.assert_allclose(pcoords[16:21], coords[16:21])
 
 
 def test_derivs(kintree, coords, expected_analytic_derivs):
@@ -251,10 +244,10 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
     HTs, dofs = bkin.hts, bkin.dofs
 
     bond_blocks = [
-        numpy.arange(4, 8),
-        numpy.arange(9, 13),
-        numpy.arange(14, 18),
-        numpy.arange(19, 23)
+        numpy.arange(2, 6),
+        numpy.arange(7, 11),
+        numpy.arange(12, 16),
+        numpy.arange(17, 21)
     ]
     jumps = numpy.array([b[-1] for b in bond_blocks[:-1]])
     bonds_after_bond = numpy.concatenate([b[1:] for b in bond_blocks])
@@ -262,13 +255,13 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
 
     # Compute analytic derivs
     dsc_dx = numpy.zeros([NATOMS, 3])
-    dsc_dx[3:, :] = dscore(kintree[3:], coords[3:, :])
+    dsc_dx[1:] = dscore(coords[1:, :])
     dsc_dtors_analytic = resolveDerivs(kintree, dofs, HTs, dsc_dx)
 
     # Verify against stored derivatives for regression
     numpy.testing.assert_allclose(
-        dsc_dtors_analytic["raw"][3:],
-        expected_analytic_derivs[3:],
+        dsc_dtors_analytic["raw"][1:],
+        expected_analytic_derivs[1:],
     )
 
     # Compute numeric derivs
@@ -278,16 +271,18 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
             ndof = 3
         elif kintree[i]["doftype"] == DOFType.jump:
             ndof = 6
+        elif kintree[i]["doftype"] == DOFType.root:
+            continue
         else:
             raise NotImplementedError
 
         for j in range(ndof):
             dofs["raw"][i, j] += 0.00001
             coordsAlt = forwardKin(kintree, dofs).coords
-            sc_p = score(kintree[3:], coordsAlt[3:, :])
+            sc_p = score(coordsAlt[1:, :])
             dofs["raw"][i, j] -= 0.00002
             coordsAlt = forwardKin(kintree, dofs).coords
-            sc_m = score(kintree[3:], coordsAlt[3:, :])
+            sc_m = score(coordsAlt[1:, :])
             dofs["raw"][i, j] += 0.00001
 
             dsc_dtors_numeric["raw"][i, j] = (sc_p - sc_m) / 0.00002

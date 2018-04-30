@@ -1,14 +1,16 @@
 import attr
 import numpy
 import enum
+from typing import Optional
 
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
 
 class DOFType(enum.IntEnum):
-    bond = enum.auto()
+    root = enum.auto()
     jump = enum.auto()
+    bond = enum.auto()
 
 
 # data structure describing the atom-level kinematics of a molecular system
@@ -32,7 +34,6 @@ dof_node_dtype = numpy.dtype(
         offsets=[0,             0,             0],
     )
 ) # yapf: disable
-
 
 DOFArray = NDArray(dof_node_dtype)[:]
 BondDOFArray = NDArray(float)[:, 3]
@@ -340,6 +341,7 @@ def HTs_from_frames(
         Xs: VecArray,
         Ys: VecArray,
         Zs: VecArray,
+        out: Optional[HTArray] = None,
 ) -> HTArray:
     """xyzs -> HTs"""
     natoms = Cs.shape[0]
@@ -347,21 +349,24 @@ def HTs_from_frames(
     def unit_norm(v):
         return v / numpy.linalg.norm(v, axis=-1, keepdims=True)
 
-    Ms = numpy.zeros([natoms, 4, 4])
+    if out is None:
+        out = numpy.zeros([natoms, 4, 4])
+    else:
+        assert out.shape[0] == natoms
 
-    xaxis = Ms[:, :3, 0]
-    yaxis = Ms[:, :3, 1]
-    zaxis = Ms[:, :3, 2]
-    center = Ms[:, :3, 3]
+    xaxis = out[:, :3, 0]
+    yaxis = out[:, :3, 1]
+    zaxis = out[:, :3, 2]
+    center = out[:, :3, 3]
 
     xaxis[:] = unit_norm(Xs - Ys)
     zaxis[:] = unit_norm(numpy.cross(xaxis, Zs - Xs))
     yaxis[:] = unit_norm(numpy.cross(zaxis, xaxis))
     center[:] = Cs
 
-    Ms[:, 3, 3] = 1
+    out[:, 3] = [0, 0, 0, 1]
 
-    return (Ms)
+    return (out)
 
 
 @attr.s(frozen=True, auto_attribs=True)
@@ -386,11 +391,20 @@ def backwardKin(kintree: KinTree, coords: VecArray) -> BackKinResult:
     parents = kintree["parent"]
 
     # 1) global HTs
-    HTs = HTs_from_frames(
-        coords,
-        coords[kintree["frame_x"], :],
-        coords[kintree["frame_y"], :],
-        coords[kintree["frame_z"], :],
+    HTs = numpy.empty((natoms, 4, 4))
+
+    assert kintree[0]["doftype"] == DOFType.root
+    assert kintree["parent"][0] == 0
+    assert tuple(coords[0]) == (0, 0, 0)
+
+    HTs = numpy.empty((natoms, 4, 4))
+    HTs[0] = numpy.identity(4)
+    HTs_from_frames(
+        coords[1:],
+        coords[kintree[1:]["frame_x"], :],
+        coords[kintree[1:]["frame_y"], :],
+        coords[kintree[1:]["frame_z"], :],
+        out=HTs[1:],
     )
 
     # 2) local HTs
@@ -435,6 +449,10 @@ def forwardKin(kintree: KinTree, dofs: DOFArray) -> ForwardKinResult:
     # 1) local HTs
     HTs = numpy.empty([natoms, 4, 4])
 
+    assert kintree[0]["doftype"] == DOFType.root
+    assert kintree["parent"][0] == 0
+    HTs[0] = numpy.identity(4)
+
     bondSelector = (kintree["doftype"] == DOFType.bond)
     HTs[bondSelector] = BondTransforms(dofs["bond"][bondSelector])
 
@@ -462,6 +480,9 @@ def resolveDerivs(
     """
 
     parents = kintree["parent"]
+
+    assert kintree[0]["doftype"] == DOFType.root
+    assert kintree["parent"][0] == 0
 
     # 1) local f1/f2s
     Xs = HTs[:, 0:3, 3]
