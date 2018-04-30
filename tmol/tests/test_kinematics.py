@@ -4,7 +4,7 @@ import numpy.testing
 import pytest
 
 from tmol.kinematics import (
-    BOND, JUMP, kintree_node_dtype, backwardKin, forwardKin, resolveDerivs
+    DOFType, kintree_node_dtype, backwardKin, forwardKin, resolveDerivs
 )
 
 
@@ -117,6 +117,8 @@ def expected_analytic_derivs():
 
 @pytest.fixture
 def kintree():
+    BOND = DOFType.bond
+    JUMP = DOFType.jump
     NATOMS = 23
 
     # kinematics definition

@@ -1,11 +1,15 @@
 import numpy
+import enum
 
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
+
 # doftypes
-BOND = 1
-JUMP = 2
+class DOFType(enum.IntEnum):
+    bond = enum.auto()
+    jump = enum.auto()
+
 
 HTArray = NDArray(float)[:, 4, 4]
 VecArray = NDArray(float)[:, 3]
@@ -370,11 +374,11 @@ def backwardKin(kintree: KinTree, coords: VecArray):
     # 3) dofs
     dofs = numpy.zeros([natoms, 9])
 
-    bondSelector = (kintree["doftype"] == BOND)
+    bondSelector = (kintree["doftype"] == DOFType.bond)
     bondSelector[0] = False
     dofs[bondSelector, :3] = InvBondTransforms(localHTs[bondSelector])
 
-    jumpSelector = (kintree["doftype"] == JUMP)
+    jumpSelector = (kintree["doftype"] == DOFType.jump)
     jumpSelector[0] = False
     dofs[jumpSelector, :9] = InvJumpTransforms(localHTs[jumpSelector, :9])
 
@@ -394,10 +398,10 @@ def forwardKin(kintree: KinTree, dofs: DOFArray):
     # 1) local HTs
     HTs = numpy.empty([natoms, 4, 4])
 
-    bondSelector = (kintree["doftype"] == BOND)
+    bondSelector = (kintree["doftype"] == DOFType.bond)
     HTs[bondSelector, :, :] = BondTransforms(dofs[bondSelector, 0:3])
 
-    jumpSelector = (kintree["doftype"] == JUMP)
+    jumpSelector = (kintree["doftype"] == DOFType.jump)
     HTs[jumpSelector, :, :] = JumpTransforms(dofs[jumpSelector, 0:9])
 
     # 2) global HTs (rewrite 1->N in-place)
@@ -435,7 +439,7 @@ def resolveDerivs(
 
     # 3) convert to dscore/dtors
     dsc_ddofs = numpy.zeros([natoms, 9])
-    bondSelector = (kintree["doftype"] == BOND)
+    bondSelector = (kintree["doftype"] == DOFType.bond)
     dsc_ddofs[bondSelector, 0:3] = BondDerivatives(
         dofs[bondSelector, :3],
         HTs[bondSelector, :, :],
@@ -443,7 +447,7 @@ def resolveDerivs(
         f1s[bondSelector, :],
         f2s[bondSelector, :],
     )
-    jumpSelector = (kintree["doftype"] == JUMP)
+    jumpSelector = (kintree["doftype"] == DOFType.jump)
     dsc_ddofs[jumpSelector, 0:6] = JumpDerivatives(
         dofs[jumpSelector, :],
         HTs[jumpSelector, :, :],
