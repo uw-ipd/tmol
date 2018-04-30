@@ -456,7 +456,7 @@ class TestAtomTree(unittest.TestCase):
         # derivsum_index_2_ag_id[ ag_id.atomid.res ][ ag_id.atomid.atomno ][ ag_id.nodeid ], derivsum_id ) )
 
 
-    def test_f1f2_summation_1( self ) :
+    def create_example_abe_go_tree( self, atom_f1f2s ) :
         # let's imagine a tree with the following structure:
         # 0 JumpAtom
         # |          \
@@ -486,31 +486,45 @@ class TestAtomTree(unittest.TestCase):
         #  |                        |             |
         # 10 BA5TD                  4 BA8TD       2 BA9TD
         #
-        atom_f1f2s = numpy.random.random( (10, 6) )
         ag_derivsum_nodes = temp_class()
         ag_derivsum_nodes.nnodes = 18
-        ag_derivsum_nodes.has_initial_f1f2 = numpy.array( [     True, False, True, False, \
-                                                                True, False, True, False, \
-                                                                True, False, True, False, \
-                                                                True, False, True, False, \
-                                                                True, True ]
+        # note 19 entries; 18th entry corresponds to fictional entry
+        ag_derivsum_nodes.has_initial_f1f2 = numpy.array( [     True, True, True, True, \
+                                                                True, True, True, True, \
+                                                                True, True, True, True, \
+                                                                True, True, True, True, \
+                                                                True, True, True ]
                                                           )
+        # note an index of natoms (10) means "no children" and will index into the atomf1f2 
+        # matrix to a row of zeros.
         ag_derivsum_nodes.atom_indices = numpy.array( \
-            [ 3, -1, 9, -1, 8, -1, 7, -1, 6, -1, 5, -1, 4, -1, 2, -1, 1, 0 ] )
+            [ 3, 10, 9, 10, 8, 10, 7, 10, 6, 10, 5, 10, 4, 10, 2, 10, 1, 0, 10 ] )
         ag_derivsum_nodes.is_leaf = numpy.array( \
             [ True, False, True, False, True, False, False, False, False, False, \
                   True, False, False, False, False, False, False, False ] )
-        ag_derivsum_nodes.prior_children = numpy.reshape( numpy.matrix( [ \
-                -1, -1, \
-                     -1, -1, \
-                     -1,  3, \
-                     -1, -1, \
-                     -1, -1, \
-                     -1, -1, \
-                     -1, -1, \
-                     -1,  1, \
-                     -1,  9 ] ), ( 18, 1 ) )
+        ag_derivsum_nodes.is_leaf_working = ag_derivsum_nodes.is_leaf.copy()
 
+        # note an index of n-nodes (18) means "no children nodes" and will index into the f1f2sum 
+        # matrix to a row of zeros.
+        ag_derivsum_nodes.prior_children = numpy.reshape( numpy.array( [ \
+                18, 18, \
+                     18, 18, \
+                     18,  3, \
+                     18, 18, \
+                     18, 18, \
+                     18, 18, \
+                     18, 18, \
+                     18,  1, \
+                     18,  9 ] ), ( 18, 1 ) )
+        ag_derivsum_nodes.lookback_inds = numpy.arange( 18 )
+        ag_derivsum_nodes.atoms_at_depth = [ None ] * 3 #numpy.full( (3, 18), False, dtype=bool )
+        
+        #ag_derivsum_nodes.atoms_at_depths = False
+        ag_derivsum_nodes.atoms_at_depth[0] = [0,4]
+        ag_derivsum_nodes.atoms_at_depth[1] = [4,10]
+        ag_derivsum_nodes.atoms_at_depth[2] = [10,18]
+
+        ag_derivsum_nodes.natoms_at_depth = numpy.array( [4, 6, 8 ] )
 
         gold_ancestors = [ None ] * 18
         gold_ancestors[ 0 ] =  numpy.array( [ 3 ] )
@@ -532,23 +546,41 @@ class TestAtomTree(unittest.TestCase):
         gold_ancestors[ 16 ] = numpy.array( [ 5, 4, 2, 3, 1 ] )
         gold_ancestors[ 17 ] = numpy.array( [ 5, 4, 2, 3, 1, 8, 9, 7, 6, 0 ] )
 
-        print( "ancestors13" )
-        print( atom_f1f2s[ gold_ancestors[13], : ] )
-        print( numpy.sum( atom_f1f2s[ gold_ancestors[13], : ], 0 ) )
-               
-        f1f2sum = htrefold.cpu_f1f2_summation( atom_f1f2s, ag_derivsum_nodes )
+        #print( "ancestors13" )
+        #print( atom_f1f2s[ gold_ancestors[13], : ] )
+        #print( numpy.sum( atom_f1f2s[ gold_ancestors[13], : ], 0 ) )
 
         f1f2sum_gold = numpy.zeros( (18, 6) )
         for ii, ancestors in enumerate( gold_ancestors ) :
             #print( "ii?", ii )
             #print(ii, ancestors)
             #print(ii, atom_f1f2s[ancestors,:])
-            print(ii, "gold", numpy.sum( atom_f1f2s[ancestors,:], 0 ) )
-            print(ii, "computed", f1f2sum[ii] )
             #print(ii,f1f2sum_gold[ ii:ii+1 ])
             #print(ii,f1f2sum_gold[ ii:ii+1 ].shape)
             f1f2sum_gold[ ii:ii+1 ] = numpy.sum( atom_f1f2s[ ancestors, : ], 0 )
+        return ag_derivsum_nodes, gold_ancestors, f1f2sum_gold
+
+    def test_f1f2_summation_1( self ) :               
+        atom_f1f2s = numpy.arange( 66 ).reshape( (11, 6) )
+        atom_f1f2s[ 10, : ] = 0.; # last row in the table, natoms+1, is all zeros
+        ag_derivsum_nodes, gold_ancestors, f1f2sum_gold = self.create_example_abe_go_tree( atom_f1f2s )
+        f1f2sum = htrefold.cpu_f1f2_summation1( atom_f1f2s, ag_derivsum_nodes )
+
         for ii in range( 18 ) :
+            #print(ii, "gold", f1f2sum_gold[ii] )
+            #print(ii, "computed", f1f2sum[ii] )
+            for jj in range( 6 ) :
+                self.assertAlmostEqual( f1f2sum[ii,jj], f1f2sum_gold[ii,jj] )
+
+    def test_f1f2_summation_2( self ) :
+        atom_f1f2s = numpy.arange( 66 ).reshape( (11, 6) )
+        atom_f1f2s[ 10, : ] = 0.; # last row in the table, natoms+1, is all zeros
+        ag_derivsum_nodes, gold_ancestors, f1f2sum_gold = self.create_example_abe_go_tree( atom_f1f2s )
+        f1f2sum = htrefold.cpu_f1f2_summation2( atom_f1f2s, ag_derivsum_nodes )
+
+        for ii in range( 18 ) :
+            #print(ii, "gold", f1f2sum_gold[ii] )
+            #print(ii, "computed", f1f2sum[ii] )
             for jj in range( 6 ) :
                 self.assertAlmostEqual( f1f2sum[ii,jj], f1f2sum_gold[ii,jj] )
 

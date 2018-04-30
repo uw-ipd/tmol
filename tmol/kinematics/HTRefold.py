@@ -60,7 +60,7 @@ class AbeGoPathRootData :
 class AbeGoRecursiveSummationData :
     node : AbeGoNode = None
     children : typing.List[ int ] = attr.Factory( lambda: list() )
-    
+
 
 
 def initialize_ht_refold_data( residues, tree ) :
@@ -119,20 +119,50 @@ def cpu_htrefold( residues, tree, refold_data, atoms_for_controlling_torsions, r
             #print( "atomid_2_refold_index[", ii, "][", jj, "]",  atomid_2_refold_index[ ii ][ jj ] )
             res.coords[ jj ] = hts[ atomid_2_refold_index[ ii ][ jj ] ].frame[0:3,3]
 
-def cpu_f1f2_summation( atom_f1f2s, ag_derivsum_nodes ) :
-    f1f2sum = numpy.zeros( (ag_derivsum_nodes.nnodes, 6) )
-    print( f1f2sum.shape )
-    f1f2sum[ ag_derivsum_nodes.has_initial_f1f2, : ] = atom_f1f2s[ ag_derivsum_nodes.atom_indices[ ag_derivsum_nodes.atom_indices != -1 ], : ]
+def cpu_f1f2_summation1( atom_f1f2s, ag_derivsum_nodes ) :
+    f1f2sum = numpy.zeros( (ag_derivsum_nodes.nnodes+1, 6) )
+    #print( f1f2sum.shape )
+    f1f2sum[ : ] = atom_f1f2s[ ag_derivsum_nodes.atom_indices, : ]
+    #print( "f1f2sum start:" ); print( f1f2sum )
     for ii in range( ag_derivsum_nodes.nnodes ) :
         jj = ag_derivsum_nodes.prior_children[ ii, : ]
-        print( numpy.sum( f1f2sum[ jj[ jj != -1 ], : ], 1 ) )
-        print( numpy.sum( f1f2sum[ jj[ jj != -1 ], : ], 1 ).shape )
-        print( f1f2sum[ ii ] )
-        f1f2sum[ ii ] += numpy.sum( f1f2sum[ jj[ jj != -1 ], : ], 1 ).reshape(6)
+        #print( ii, "prior children" ); print( jj );
+        #print( ii, "f1f2sum prior children" ); print( f1f2sum[ jj ] )
+        #print( numpy.sum( f1f2sum[ jj[ jj != -1 ], : ], 1 ) )
+        #print( numpy.sum( f1f2sum[ jj[ jj != -1 ], : ], 1 ).shape )
+        #print( f1f2sum[ ii ] )
+        f1f2sum[ ii ] += numpy.sum( f1f2sum[ jj ], 0 ).reshape(6)
+        #print( ii, "f1f2sum[ ii ]" ); print( f1f2sum[ ii ] )
         if not ag_derivsum_nodes.is_leaf[ ii ] :
             f1f2sum[ ii ] += f1f2sum[ ii-1 ]
     return f1f2sum
-    
+
+# try and write a segmented-scan version in numpy
+def cpu_f1f2_summation2( atom_f1f2s, ag_derivsum_nodes ) :
+    f1f2sum = numpy.zeros( (ag_derivsum_nodes.nnodes+1, 6 ) )
+    atinds = ag_derivsum_nodes.atom_indices
+    f1f2sum[ : ] = atom_f1f2s[ atinds, : ]
+    ag_derivsum_nodes.is_leaf_working[:] = ag_derivsum_nodes.is_leaf # in-place copy
+    #ag_derivsum_nodes.lookback_inds[:] = numpy.arange(ag_derivsum_nodes.nnodes )
+    for ii in range( len( ag_derivsum_nodes.atoms_at_depth ) ) :
+        iirange = ag_derivsum_nodes.atoms_at_depth[ii]
+        ii_view_f1f2 = f1f2sum[ iirange[0]:iirange[1] ]
+        ii_children = ag_derivsum_nodes.prior_children[ iirange[0]:iirange[1] ]
+        ii_view_f1f2 += numpy.sum( f1f2sum[ ii_children ], 1 )
+        #print( ii, "ii_view_f1f2 2" ); print( ii_view_f1f2 )
+        ii_is_leaf = ag_derivsum_nodes.is_leaf_working[ iirange[0]:iirange[1] ]
+        #print( ii, "ii_is_leaf" ); print( ii_is_leaf )
+        offset = 1
+        ii_ind = ag_derivsum_nodes.lookback_inds[ :ag_derivsum_nodes.natoms_at_depth[ii] ]
+        for jj in range( int( numpy.ceil( numpy.log2( ii_view_f1f2.shape[0] ) ) ) ):
+            #print( (ii_ind >= offset) & (~ii_is_leaf) )
+            #print( ii_ind[ (ii_ind >= offset) & (~ii_is_leaf) ] )
+            ii_view_f1f2[ (ii_ind >= offset) & (~ ii_is_leaf ) ] += ii_view_f1f2[ ii_ind[ ( ii_ind >= offset ) & ( ~ ii_is_leaf) ] - offset ]
+            ii_is_leaf[ ii_ind >= offset ] |= ii_is_leaf[ ii_ind[ ii_ind >= offset ] - offset ]
+            offset *= 2
+
+    #print( "f1f2sum", f1f2sum )
+    return f1f2sum
 
 
 def recurse_and_fill_atomtree_path_data( root_atom, tree_path_data ) :
