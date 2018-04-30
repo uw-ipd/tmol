@@ -1,3 +1,4 @@
+import attr
 import numpy
 import enum
 
@@ -6,7 +7,6 @@ from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
 
-# doftypes
 class DOFType(enum.IntEnum):
     bond = enum.auto()
     jump = enum.auto()
@@ -25,7 +25,16 @@ KinTree = NDArray(kintree_node_dtype)[:]
 HTArray = NDArray(float)[:, 4, 4]
 VecArray = NDArray(float)[:, 3]
 
-DOFArray = NDArray(float)[:, 9]
+dof_node_dtype = numpy.dtype(
+    dict(
+        names=["bond",          "jump",        "raw"],
+        formats=[(float, 3),    (float, 9), (float, 9)],
+        offsets=[0,             0,             0],
+    )
+) # yapf: disable
+
+
+DOFArray = NDArray(dof_node_dtype)[:]
 BondDOFArray = NDArray(float)[:, 3]
 JumpDOFArray = NDArray(float)[:, 9]
 
@@ -95,7 +104,7 @@ def Fscollect(
 
 
 @validate_args
-def JumpTransforms(dofs: DOFArray) -> HTArray:
+def JumpTransforms(dofs: JumpDOFArray) -> HTArray:
     """JUMP dofs -> HTs
 
     jump dofs are _9_ parameters:
@@ -199,7 +208,7 @@ def InvJumpTransforms(Ms: HTArray) -> JumpDOFArray:
 
 @validate_args
 def JumpDerivatives(
-        dofs: DOFArray,
+        dofs: JumpDOFArray,
         Ms: HTArray,
         Mparents: HTArray,
         f1s: VecArray,
@@ -355,8 +364,19 @@ def HTs_from_frames(
     return (Ms)
 
 
+@attr.s(frozen=True, auto_attribs=True)
+class BackKinResult:
+    @classmethod
+    @validate_args
+    def create(cls, hts: HTArray, dofs: DOFArray):
+        return cls(hts, dofs)
+
+    hts: HTArray
+    dofs: DOFArray
+
+
 @validate_args
-def backwardKin(kintree: KinTree, coords: VecArray) -> typing.Tuple:
+def backwardKin(kintree: KinTree, coords: VecArray) -> BackKinResult:
     """xyzs -> HTs, dofs
 
       - "backward" kinematics
@@ -379,17 +399,17 @@ def backwardKin(kintree: KinTree, coords: VecArray) -> typing.Tuple:
     localHTs[1:] = numpy.matmul(HTinv(HTs[parents[1:], :, :]), HTs[1:, :, :])
 
     # 3) dofs
-    dofs = numpy.zeros([natoms, 9])
+    dofs = numpy.zeros([natoms], dof_node_dtype)
 
     bondSelector = (kintree["doftype"] == DOFType.bond)
     bondSelector[0] = False
-    dofs[bondSelector, :3] = InvBondTransforms(localHTs[bondSelector])
+    dofs["bond"][bondSelector] = InvBondTransforms(localHTs[bondSelector])
 
     jumpSelector = (kintree["doftype"] == DOFType.jump)
     jumpSelector[0] = False
-    dofs[jumpSelector, :9] = InvJumpTransforms(localHTs[jumpSelector, :9])
+    dofs["jump"][jumpSelector] = InvJumpTransforms(localHTs[jumpSelector])
 
-    return (HTs, dofs)
+    return BackKinResult.create(HTs, dofs)
 
 
 @validate_args
@@ -406,10 +426,10 @@ def forwardKin(kintree: KinTree, dofs: DOFArray) -> typing.Tuple:
     HTs = numpy.empty([natoms, 4, 4])
 
     bondSelector = (kintree["doftype"] == DOFType.bond)
-    HTs[bondSelector, :, :] = BondTransforms(dofs[bondSelector, 0:3])
+    HTs[bondSelector] = BondTransforms(dofs["bond"][bondSelector])
 
     jumpSelector = (kintree["doftype"] == DOFType.jump)
-    HTs[jumpSelector, :, :] = JumpTransforms(dofs[jumpSelector, 0:9])
+    HTs[jumpSelector] = JumpTransforms(dofs["jump"][jumpSelector])
 
     # 2) global HTs (rewrite 1->N in-place)
     SegScan(HTs, parents, HTcollect)
@@ -431,8 +451,6 @@ def resolveDerivs(
     - derivative mapping using Abe and Go approach
     """
 
-    natoms = dofs.shape[0]
-
     parents = kintree["parent"]
 
     # 1) local f1/f2s
@@ -445,22 +463,24 @@ def resolveDerivs(
     SegScan(f2s, parents, Fscollect)
 
     # 3) convert to dscore/dtors
-    dsc_ddofs = numpy.zeros([natoms, 9])
+    dsc_ddofs = numpy.zeros_like(dofs)
+
     bondSelector = (kintree["doftype"] == DOFType.bond)
-    dsc_ddofs[bondSelector, 0:3] = BondDerivatives(
-        dofs[bondSelector, :3],
-        HTs[bondSelector, :, :],
-        HTs[parents[bondSelector], :, :],
-        f1s[bondSelector, :],
-        f2s[bondSelector, :],
+    dsc_ddofs["bond"][bondSelector] = BondDerivatives(
+        dofs["bond"][bondSelector],
+        HTs[bondSelector],
+        HTs[parents[bondSelector]],
+        f1s[bondSelector],
+        f2s[bondSelector],
     )
+
     jumpSelector = (kintree["doftype"] == DOFType.jump)
-    dsc_ddofs[jumpSelector, 0:9] = JumpDerivatives(
-        dofs[jumpSelector, :],
-        HTs[jumpSelector, :, :],
-        HTs[parents[jumpSelector], :, :],
-        f1s[jumpSelector, :],
-        f2s[jumpSelector, :],
+    dsc_ddofs["jump"][jumpSelector] = JumpDerivatives(
+        dofs["jump"][jumpSelector],
+        HTs[jumpSelector],
+        HTs[parents[jumpSelector]],
+        f1s[jumpSelector],
+        f2s[jumpSelector],
     )
 
     return dsc_ddofs

@@ -195,13 +195,13 @@ def test_score_smoketest(kintree, coords):
 
 
 def test_interconversion(kintree, coords):
-    HTs, dofs = backwardKin(kintree, coords)
+    dofs = backwardKin(kintree, coords).dofs
     HTs, re_coords = forwardKin(kintree, dofs)
     numpy.testing.assert_allclose(coords, re_coords, atol=1e-9)
 
 
 def test_perturb(kintree, coords):
-    HTs, dofs = backwardKin(kintree, coords)
+    dofs = backwardKin(kintree, coords).dofs
 
     (HTs, pcoords) = forwardKin(kintree, dofs)
     assert numpy.allclose(coords, pcoords)
@@ -211,7 +211,7 @@ def test_perturb(kintree, coords):
 
     # Translate jump dof
     t_dofs = dofs.copy()
-    t_dofs[8, :3] += [0.02] * 3
+    t_dofs["jump"][8, :3] += [0.02] * 3
     (HTs, pcoords) = forwardKin(kintree, t_dofs)
 
     numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
@@ -221,8 +221,8 @@ def test_perturb(kintree, coords):
 
     # Rotate jump dof "delta"
     rd_dofs = dofs.copy()
-    numpy.testing.assert_allclose(rd_dofs[8, 3:6], [0, 0, 0])
-    rd_dofs[8, 3:6] += [.1, .2, .3]
+    numpy.testing.assert_allclose(rd_dofs["jump"][8, 3:6], [0, 0, 0])
+    rd_dofs["jump"][8, 3:6] += [.1, .2, .3]
     (HTs, pcoords) = forwardKin(kintree, rd_dofs)
     numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
     numpy.testing.assert_allclose(pcoords[8], coords[8])
@@ -234,7 +234,7 @@ def test_perturb(kintree, coords):
 
     # Rotate jump dof
     r_dofs = dofs.copy()
-    r_dofs[8, 6:9] += [.1, .2, .3]
+    r_dofs["jump"][8, 6:9] += [.1, .2, .3]
     (HTs, pcoords) = forwardKin(kintree, r_dofs)
     numpy.testing.assert_allclose(pcoords[3:8], coords[3:8])
     numpy.testing.assert_allclose(pcoords[8], coords[8])
@@ -247,7 +247,8 @@ def test_perturb(kintree, coords):
 
 def test_derivs(kintree, coords, expected_analytic_derivs):
     NATOMS, _ = coords.shape
-    HTs, dofs = backwardKin(kintree, coords)
+    bkin = backwardKin(kintree, coords)
+    HTs, dofs = bkin.hts, bkin.dofs
 
     bond_blocks = [
         numpy.arange(4, 8),
@@ -266,36 +267,47 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
 
     # Verify against stored derivatives for regression
     numpy.testing.assert_allclose(
-        dsc_dtors_analytic[3:],
+        dsc_dtors_analytic["raw"][3:],
         expected_analytic_derivs[3:],
     )
 
     # Compute numeric derivs
-    dsc_dtors_numeric = numpy.zeros([NATOMS, 9])
+    dsc_dtors_numeric = numpy.zeros_like(dofs)
     for i in numpy.arange(0, NATOMS):
-        for j in numpy.arange(0, 6):
-            dofs[i, j] += 0.00001
+        if kintree[i]["doftype"] == DOFType.bond:
+            ndof = 3
+        elif kintree[i]["doftype"] == DOFType.jump:
+            ndof = 6
+        else:
+            raise NotImplementedError
+
+        for j in range(ndof):
+            dofs["raw"][i, j] += 0.00001
             (HTs, coordsAlt) = forwardKin(kintree, dofs)
             sc_p = score(kintree[3:], coordsAlt[3:, :])
-            dofs[i, j] -= 0.00002
+            dofs["raw"][i, j] -= 0.00002
             (HTs, coordsAlt) = forwardKin(kintree, dofs)
             sc_m = score(kintree[3:], coordsAlt[3:, :])
-            dofs[i, j] += 0.00001
+            dofs["raw"][i, j] += 0.00001
 
-            dsc_dtors_numeric[i, j] = (sc_p - sc_m) / 0.00002
+            dsc_dtors_numeric["raw"][i, j] = (sc_p - sc_m) / 0.00002
 
     # Verify numeric/analytic derivatives
     aderiv = dsc_dtors_analytic
     nderiv = dsc_dtors_numeric
 
     numpy.testing.assert_allclose(
-        aderiv[jumps, :6], nderiv[jumps, :6], atol=1e-9
+        aderiv["jump"][jumps], nderiv["jump"][jumps], atol=1e-9
     )
 
     numpy.testing.assert_allclose(
-        aderiv[bonds_after_bond, :3], nderiv[bonds_after_bond, :3], atol=1e-9
+        aderiv["bond"][bonds_after_bond],
+        nderiv["bond"][bonds_after_bond],
+        atol=1e-9
     )
 
     numpy.testing.assert_allclose(
-        aderiv[bonds_after_jump, :3], nderiv[bonds_after_jump, :3], atol=1e-9
+        aderiv["bond"][bonds_after_jump],
+        nderiv["bond"][bonds_after_jump],
+        atol=1e-9
     )
