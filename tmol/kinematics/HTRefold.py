@@ -28,6 +28,52 @@ class AtomRefoldData:
     controlling_torsion: int = -1
     parent_index: int = -1
 
+@attr.s(auto_attribs=True, slots=True)
+class WholeStructureRefoldData:
+    ''' Represent the whole atom tree structured as numpy arrays and matrices so that
+    a multi-pass segmented-scan algorithm can be used to compute the coordinates of
+    a structure from a set of DOFs'''
+    natoms: int = 0
+
+    # data for constructing the HTs for bonded atoms
+    bonded_atoms: numpy.array = None
+    remapped_phi: numpy.array = None
+    max_bonded_siblings: int = 0
+    bonded_dof_remapping: numpy.array = None
+    bonded_atom_has_sibling: numpy.array = None # which bonded atoms have siblings
+    which_phi_for_bonded_atom_w_sibling: numpy.array = None # what phi dofs in the remapped phi array go with which atoms in refold order
+    eldest_child: numpy.array = None
+    eldest_child_working: numpy.array = None
+    cp: numpy.array = None # cos( phi )
+    sp: numpy.array = None # sin( phi )
+    ct: numpy.array = None # cos( theta )
+    st: numpy.array = None # sin( theta )
+    d: numpy.array = None # bond length
+
+    # data for constructing the HTs for jump atoms
+    jump_atoms: numpy.array = None
+    jump_dofs: numpy.matrix = None
+    si: numpy.array = None # sin( z axis rotation )
+    sj: numpy.array = None # sin( y axis rotation )
+    sk: numpy.array = None # sin( x axis rotation )
+    ci: numpy.array = None # cos( z axis rotation )
+    cj: numpy.array = None # cos( y axis rotation )
+    ck: numpy.array = None # cos( x axis rotation )
+    cc: numpy.array = None
+    cs: numpy.array = None
+    sc: numpy.array = None
+    ss: numpy.array = None
+    Rdelta: numpy.matrix = None
+    Rglobal: numpy.matrix = None
+
+    is_root: numpy.array = None
+    is_root_working: numpy.array = None
+    parents: numpy.array = None
+    hts: numpy.matrix = None
+    atom_range_for_depth: typing.List( typing.Tuple( [int, int] ) ) = None
+    lookback_inds: numpy.array = None
+    remapped_residue_inds: numpy.array = None # refold order 2 residue index
+    remapped_atom_inds: numpy.array = None # refold order 2 atom index
 
 # grr -- recursive data structures are a PITA in attr
 @attr.s(auto_attribs=True, slots=True)
@@ -123,6 +169,29 @@ def initialize_ht_refold_data(residues, tree):
 
     return ordered_roots, refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index
 
+def initialize_whole_structure_refold_data_structure( residues, atom_tree ):
+    natoms = count_atom_tree_natoms( atom_tree )
+    refold_data = WholeStructureRefoldData( natoms )
+    ordered_roots, atom_refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index = \
+        initialize_ht_refold_data( residues, tree )
+    refold_data.hts = numpy.matrix( (natoms+1, 4, 4 ) )
+    refold_data.hts[natoms] = numpy.eye(4)
+    refold_data.bonded_atoms = numpy.full( (natoms+1), False, dtype=bool )
+    refold_data.jump_atoms = numpy.full( (natoms+1), False, dtype=bool )
+    refold_data.is_root = numpy.full( (natoms+1), False, dtype=bool )
+    refold_data.is_root_working = numpy.full( (natoms+1), False, dtype=bool )
+    refold_data.parents = numpy.full( (natoms+1), natoms, dtype=int32 )
+    refold_data.atomm_range_for_depth = []
+    refold_data.lookback_inds = numpy.arange(natoms+1)
+    refold_data.remapped_residue_inds = numpy.zeros( natoms )
+    refold_data.remapped_atom_inds = numpy.zeros( natoms )
+
+
+    for ii, ard in enumerate( atom_refold_data ) :
+        refold_data.parents[ ii ] = ard.parent_index if ard.parent_index != -1 else natoms
+        refold_data.bonded_atoms[ ii ] = ~ ard.is_jump
+        refold_data.jump_atoms[ii] = ard.is_jump
+        
 
 def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree):
     abe_go_root, abe_go_nodes = abe_and_go_tree_from_atom_tree(atom_tree)
@@ -180,7 +249,7 @@ def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree):
 
 # This function relies on the data that is prepared for the GPU's version of the refold, but
 # is iterative in nature -- not going to be as efficient as Frank's version writen in numpy
-def cpu_htrefold(
+def cpu_htrefold_1(
         residues, tree, refold_data, atoms_for_controlling_torsions,
         refold_index_2_atomid, atomid_2_refold_index
 ):
@@ -212,6 +281,154 @@ def cpu_htrefold(
             #print( "atomid_2_refold_index[", ii, "][", jj, "]",  atomid_2_refold_index[ ii ][ jj ] )
             res.coords[jj] = hts[atomid_2_refold_index[ii][jj]].frame[0:3, 3]
 
+def cpu_htrefold_2( dofs, refold_data, coords ):
+    ''' Numpy version of the refold algorithm where segmented scan operations are performed on all of the
+    atoms at the same depth'''
+
+    natoms = refold_data.natoms
+    hts = refold_data.hts
+    compute_hts_for_bonded_atoms( dofs, refold_data )
+    compute_hts_for_jump_atoms( dofs, refold_data )
+    refold_data.is_root_working[:] = refold_data.is_root # in-place copy
+
+    for ii, iirange in enumerate( refold_data.atom_range_for_depth ) :
+        ii_view_ht = hts[iirange[0]:iirange[1]]
+        ii_parent = refold_data.parents[iirange[0]:iirange[1]]
+        ii_is_root = refold_data.is_root_working[iirange[0]:iirange[1]]
+        ii_view_ht = hts[ii_parent]
+        ii_ind = refold_data.lookback_inds[:refold_data.natoms_at_depth[ii]]
+        offset = 1
+        for jj in range(int(numpy.ceil(numpy.log2(ii_view_ht.shape[0])))):
+            ii_view_ht[(ii_ind >= offset) & (~ii_is_root) ] = numpy.matmul( ii_view_ht[ (ii_ind >= offset) & (~ii_is_root) ], ii_view_ht[ ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset ] )
+            ii_is_root[ii_ind >= offset] |= ii_is_root[ii_ind[ii_ind >= offset] - offset]
+
+    coords[ refold_data.remapped_residue_inds, refold_data.remapped_atom_inds ] = hts[:natoms,3,0:3]
+    return coords
+
+def compute_hts_for_bonded_atoms( dofs, refold_data ):
+    '''First scan the phi dofs for all the bonded-atom siblings, then construct the 
+    HTs for the bonded atoms'''
+    D = 0
+    THETA = 1
+    PHI = 2
+
+    refold_data.remapped_phi[:] = dofs[ refold_data.bonded_dof_remapping, PHI]
+    refold_data.eldest_child_working[:] = refold_data.eldest_child
+    eldest_child = refold_data.eldest_child_working
+    inds = refold_data.lookback_inds[:refold_data.n_sibling_phis]
+    offset = 1
+    # segmented scan, but super short, since the segments are expected to be short (3 or 4)
+    for ii in range( int( ceil( log2( refold_data.max_bonded_siblings ) ) ) ) :
+        refold_data.remapped_phi[(inds >= offset) & (~eldest_child)] += refold_data.remapped_phi[inds[(inds >= offset) & (~eldest_child)] - offset]
+        eldest_child[inds >= offset] |= eldest_child[inds[inds>=offset]]
+        offset *= 2
+
+    #now we'll remap these phis back into the per-atom phis
+    refold_data.dofs[:] = dofs
+    refold_data.dofs[refold_data.bonded_atom_has_sibling,0] = ht.remapped_phi[refold_data.which_phi_for_bonded_atom]
+
+    # now construct the hts -- code stolen from Frank
+    cp = refold_data.cp
+    sp = refold_data.sp
+    ct = refold_data.ct
+    st = refold_data.st
+    d = refold_data.d
+
+    cp[:] = numpy.cos(refold_data.dofs[:,PHI])
+    sp[:] = numpy.sin(refold_data.dofs[:,PHI])
+    ct[:] = numpy.cos(refold_data.dofs[:,THETA])
+    st[:] = numpy.sin(refold_data.dofs[:,THETA])
+    d[:] = refold_data.dofs[:,D]
+
+    hts = refold_data.hts
+
+    hts[:,0,0] = ct
+    hts[:,0,1] = -st
+    hts[:,0,2] = 0
+    hts[:,0,3] = d*ct
+    hts[:,1,0] = cp*st
+    hts[:,1,1] = cp*ct
+    hts[:,1,2] = -sp
+    hts[:,1,3] = d*cp*st
+    hts[:,2,0] = sp*st
+    hts[:,2,1] = sp*ct
+    hts[:,2,2] = cp
+    hts[:,2,3] = d*sp*st
+    hts[:,3,0] = 0
+    hts[:,3,1] = 0
+    hts[:,3,2] = 0
+    hts[:,3,3] = 1
+
+def compute_hts_for_jump_atoms(dofs_in, refold_data):
+    refold_data.jump_dofs[:] = dofs_in[ refold_data.jump_atoms ]
+
+    # create some aliases for existing arrays
+    dofs = refold_data.jump_dofs
+    si = refold_data.si
+    sj = refold_data.sj
+    sk = refold_data.sk
+    ci = refold_data.ci
+    cj = refold_data.cj
+    ck = refold_data.ck
+    Rdelta = refold_data.Rdelta
+    
+    si[:] = numpy.sin(dofs[:,3])
+    sj[:] = numpy.sin(dofs[:,4])
+    sk[:] = numpy.sin(dofs[:,5])
+    ci[:] = numpy.cos(dofs[:,3])
+    cj[:] = numpy.cos(dofs[:,4])
+    ck[:] = numpy.cos(dofs[:,5])
+    cc[:] = ci*ck
+    cs[:] = ci*sk
+    sc[:] = si*ck
+    ss[:] = si*sk
+    Rdelta = numpy.zeros([natoms,4,4])
+    Rdelta[:,0,0] = cj*ck
+    Rdelta[:,0,1] = sj*sc-cs
+    Rdelta[:,0,2] = sj*cc+ss
+    Rdelta[:,1,0] = cj*sk
+    Rdelta[:,1,1] = sj*ss+cc
+    Rdelta[:,1,2] = sj*cs-sc
+    Rdelta[:,2,0] = -sj
+    Rdelta[:,2,1] = cj*si
+    Rdelta[:,2,2] = cj*ci
+    Rdelta[:,0,3] = dofs[:,0]
+    Rdelta[:,1,3] = dofs[:,1]
+    Rdelta[:,2,3] = dofs[:,2]
+    Rdelta[:,3,0] = 0
+    Rdelta[:,3,1] = 0
+    Rdelta[:,3,2] = 0
+    Rdelta[:,3,3] = 1
+
+
+    si = numpy.sin(dofs[:,6])
+    sj = numpy.sin(dofs[:,7])
+    sk = numpy.sin(dofs[:,8])
+    ci = numpy.cos(dofs[:,6])
+    cj = numpy.cos(dofs[:,7])
+    ck = numpy.cos(dofs[:,8])
+    cc = ci*ck
+    cs = ci*sk
+    sc = si*ck
+    ss = si*sk
+    Rglobal[:,0,0] = cj*ck
+    Rglobal[:,0,1] = sj*sc-cs
+    Rglobal[:,0,2] = sj*cc+ss
+    Rglobal[:,0,3] = 0
+    Rglobal[:,1,0] = cj*sk
+    Rglobal[:,1,1] = sj*ss+cc
+    Rglobal[:,1,2] = sj*cs-sc
+    Rglobal[:,1,3] = 0
+    Rglobal[:,2,0] = -sj
+    Rglobal[:,2,1] = cj*si
+    Rglobal[:,2,2] = cj*ci
+    Rglobal[:,2,3] = 0
+    Rglobal[:,3,0] = 0
+    Rglobal[:,3,1] = 0
+    Rglobal[:,3,2] = 0
+    Rglobal[:,3,3] = 1
+
+    refold_data.hts[ refold_data.jump_atoms ] = numpy.matmul( Rdelta, Rglobal )
 
 def cpu_f1f2_summation1(atom_f1f2s, ag_derivsum_nodes):
     ''' Numpy version of the f1f2 recursive summation function which iterates across the abe-go
