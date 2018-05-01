@@ -206,34 +206,21 @@ def cpu_f1f2_summation2( atom_f1f2s, ag_derivsum_nodes ) :
     ''' Numpy version of the f1f2 recursive summation function which uses something like a segmented
     scan over each of the abe-go depths.'''
     f1f2sum = numpy.zeros( (ag_derivsum_nodes.nnodes+1, 6 ) )
-    #print( "all atom inds:" )
-    #print( ag_derivsum_nodes.atom_indices )
     f1f2sum[ : ] = atom_f1f2s[ ag_derivsum_nodes.atom_indices, : ]
     ag_derivsum_nodes.is_leaf_working[:] = ag_derivsum_nodes.is_leaf # in-place copy
-    #ag_derivsum_nodes.lookback_inds[:] = numpy.arange(ag_derivsum_nodes.nnodes )
+
     for ii, iirange in enumerate( ag_derivsum_nodes.atom_range_for_depth ) :
-        #iirange = ag_derivsum_nodes.atom_range_for_depth[ii]
         ii_view_f1f2 = f1f2sum[ iirange[0]:iirange[1] ]
         ii_children = ag_derivsum_nodes.prior_children[ iirange[0]:iirange[1] ]
         ii_view_f1f2 += numpy.sum( f1f2sum[ ii_children ], 1 )
-        #print( "iirange", iirange )
-        #print( ii, "ii_view_f1f2 2" ); print( ii_view_f1f2.shape )
         ii_is_leaf = ag_derivsum_nodes.is_leaf_working[ iirange[0]:iirange[1] ]
-        #print( ii, "ii_is_leaf" ); print( ii_is_leaf.shape )
-        #print( "ag_derivsum_nodes.is_leaf[ iirange[1] ]", ag_derivsum_nodes.is_leaf[ iirange[1] ] )
         offset = 1
-        #print( ii, "range", iirange[0], iirange[1], iirange[1]-iirange[0] )
-        #print( ii, "ag_derivsum_nodes.natoms_at_depth[ii]", ag_derivsum_nodes.natoms_at_depth[ii] )
         ii_ind = ag_derivsum_nodes.lookback_inds[ :ag_derivsum_nodes.natoms_at_depth[ii] ]
-        #print( "ii_ind", ii_ind.shape )
         for jj in range( int( numpy.ceil( numpy.log2( ii_view_f1f2.shape[0] ) ) ) ):
-            #print( ii, jj, "sum( (ii_ind >= offset) & (~ii_is_leaf) )",  sum( (ii_ind >= offset) & (~ii_is_leaf) ) )
-            #print( ii_ind[ (ii_ind >= offset) & (~ii_is_leaf) ] )
             ii_view_f1f2[ (ii_ind >= offset) & (~ ii_is_leaf ) ] += ii_view_f1f2[ ii_ind[ ( ii_ind >= offset ) & ( ~ ii_is_leaf) ] - offset ]
             ii_is_leaf[ ii_ind >= offset ] |= ii_is_leaf[ ii_ind[ ii_ind >= offset ] - offset ]
             offset *= 2
 
-    #print( "f1f2sum", f1f2sum )
     return f1f2sum
 
 
