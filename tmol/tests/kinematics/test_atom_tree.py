@@ -517,11 +517,11 @@ class TestAtomTree(unittest.TestCase):
                      18,  1, \
                      18,  9 ] ), ( 18, 1 ) )
         ag_derivsum_nodes.lookback_inds = numpy.arange( 18 )
-        ag_derivsum_nodes.atom_range_at_depth = [ None ] * 3 #numpy.full( (3, 18), False, dtype=bool )
+        ag_derivsum_nodes.atom_range_for_depth = [ None ] * 3 #numpy.full( (3, 18), False, dtype=bool )
         
-        ag_derivsum_nodes.atom_range_at_depth[0] = [0,4]
-        ag_derivsum_nodes.atom_range_at_depth[1] = [4,10]
-        ag_derivsum_nodes.atom_range_at_depth[2] = [10,18]
+        ag_derivsum_nodes.atom_range_for_depth[0] = [0,4]
+        ag_derivsum_nodes.atom_range_for_depth[1] = [4,10]
+        ag_derivsum_nodes.atom_range_for_depth[2] = [10,18]
 
         ag_derivsum_nodes.natoms_at_depth = numpy.array( [4, 6, 8 ] )
 

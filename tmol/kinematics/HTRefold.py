@@ -117,13 +117,11 @@ def create_abe_go_f1f2sum_tree_for_structure( residues, atom_tree ) :
 
     n_atoms = count_atom_tree_natoms( atom_tree )
     n_derivsum_nodes = count_abe_go_nodes( abe_go_nodes )
-    print( "n_derivsum_nodes", n_derivsum_nodes )
     max_branch = count_max_branch_node( abe_go_nodes ) 
 
     ag_tree = AbeGoDerivsumTree( n_atoms, n_derivsum_nodes )
     ag_tree.has_initial_f1f2 = numpy.zeros( (n_derivsum_nodes+1), dtype=bool )
     ag_tree.atom_indices = numpy.ones( (n_derivsum_nodes+1), dtype=numpy.int32 ) * n_atoms
-    print( "atom inds: ", ag_tree.atom_indices[:10] )
     ag_tree.is_leaf = numpy.zeros( (n_derivsum_nodes), dtype=bool )
     ag_tree.is_leaf_working = numpy.zeros( (n_derivsum_nodes), dtype=bool )
     ag_tree.prior_children = numpy.ones( ( n_derivsum_nodes+1, max_branch ), dtype=numpy.int32 ) * n_atoms
@@ -145,17 +143,14 @@ def create_abe_go_f1f2sum_tree_for_structure( residues, atom_tree ) :
         if last_depth != path_root.depth :
             rid = leaf_of_derivsum_path( path_root.node ).id
             dsi = ag_id_2_derivsum_index[ rid.atomid.res ][ rid.atomid.atomno ][ rid.nodeid ]
-            print( "last_depth", last_depth, path_root.depth, rid, dsi, last_dsi )
             ag_tree.atom_range_for_depth[ count_depths ] = ( last_dsi, dsi )
             last_dsi = dsi
             count_depths += 1
             last_depth = path_root.depth
         ag_tree.natoms_at_depth[ count_depths ] += count_nodes_in_ag_path( path_root.node )
-        #print( "ag_tree.natoms_at_depth[", count_depths, "]", ag_tree.natoms_at_depth[ count_depths ] )
     ag_tree.atom_range_for_depth[ count_depths ] = ( last_dsi, n_derivsum_nodes )
 
-    print( "natoms at depth: " ); print( ag_tree.natoms_at_depth )
-    print( "natoms at depth sum: ", sum( ag_tree.natoms_at_depth ), n_derivsum_nodes )
+    assert( sum( ag_tree.natoms_at_depth ) == n_derivsum_nodes )
     return ag_tree
 
 # This function relies on the data that is prepared for the GPU's version of the refold, but
