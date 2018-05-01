@@ -13,5 +13,6 @@ class TestScoringDatabase(unittest.TestCase):
             assert atom_type_counts[at] == 1, \
                 f"Duplicate ljlk type parameter: {at}"
 
+        atnames = set([ at[0] for at in default.chemical.atom_types ])
         for at in db.atom_type_parameters:
-            assert at.name in default.chemical.atom_types
+            assert at.name in atnames
