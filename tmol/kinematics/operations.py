@@ -1,3 +1,4 @@
+import enum
 import attr
 import numpy
 from typing import Optional
@@ -15,13 +16,34 @@ VecArray = NDArray(float)[:, 3]
 dof_node_dtype = numpy.dtype(
     dict(
         names=["bond",          "jump",        "raw"],
-        formats=[(float, 3),    (float, 9), (float, 9)],
+        formats=[(float, 4),    (float, 9),    (float, 9)],
         offsets=[0,             0,             0],
     )
 ) # yapf: disable
 
+
+# convenience methods
+class BondDOFs(enum.IntEnum):
+    phi_p = 0
+    theta = enum.auto()
+    d = enum.auto()
+    phi_c = enum.auto()
+
+
+class JumpDOFs(enum.IntEnum):
+    RBx = 0
+    RBy = enum.auto()
+    RBz = enum.auto()
+    RBdel_alpha = enum.auto()
+    RBdel_beta = enum.auto()
+    RBdel_gamma = enum.auto()
+    RBalpha = enum.auto()
+    RBbeta = enum.auto()
+    RBgamma = enum.auto()
+
+
 DOFArray = NDArray(dof_node_dtype)[:]
-BondDOFArray = NDArray(float)[:, 3]
+BondDOFArray = NDArray(float)[:, 4]
 JumpDOFArray = NDArray(float)[:, 9]
 
 
@@ -101,12 +123,12 @@ def JumpTransforms(dofs: JumpDOFArray) -> HTArray:
     """
     natoms = dofs.shape[0]
 
-    si = numpy.sin(dofs[:, 3])
-    sj = numpy.sin(dofs[:, 4])
-    sk = numpy.sin(dofs[:, 5])
-    ci = numpy.cos(dofs[:, 3])
-    cj = numpy.cos(dofs[:, 4])
-    ck = numpy.cos(dofs[:, 5])
+    si = numpy.sin(dofs[:, JumpDOFs.RBdel_alpha])
+    sj = numpy.sin(dofs[:, JumpDOFs.RBdel_beta])
+    sk = numpy.sin(dofs[:, JumpDOFs.RBdel_gamma])
+    ci = numpy.cos(dofs[:, JumpDOFs.RBdel_alpha])
+    cj = numpy.cos(dofs[:, JumpDOFs.RBdel_beta])
+    ck = numpy.cos(dofs[:, JumpDOFs.RBdel_gamma])
     cc = ci * ck
     cs = ci * sk
     sc = si * ck
@@ -121,17 +143,19 @@ def JumpTransforms(dofs: JumpDOFArray) -> HTArray:
     Rdelta[:, 2, 0] = -sj
     Rdelta[:, 2, 1] = cj * si
     Rdelta[:, 2, 2] = cj * ci
-    Rdelta[:, 0, 3] = dofs[:, 0]
-    Rdelta[:, 1, 3] = dofs[:, 1]
-    Rdelta[:, 2, 3] = dofs[:, 2]
     Rdelta[:, 3, 3] = 1
 
-    si = numpy.sin(dofs[:, 6])
-    sj = numpy.sin(dofs[:, 7])
-    sk = numpy.sin(dofs[:, 8])
-    ci = numpy.cos(dofs[:, 6])
-    cj = numpy.cos(dofs[:, 7])
-    ck = numpy.cos(dofs[:, 8])
+    # translational dofs
+    Rdelta[:, 0, 3] = dofs[:, JumpDOFs.RBx]
+    Rdelta[:, 1, 3] = dofs[:, JumpDOFs.RBy]
+    Rdelta[:, 2, 3] = dofs[:, JumpDOFs.RBz]
+
+    si = numpy.sin(dofs[:, JumpDOFs.RBalpha])
+    sj = numpy.sin(dofs[:, JumpDOFs.RBbeta])
+    sk = numpy.sin(dofs[:, JumpDOFs.RBgamma])
+    ci = numpy.cos(dofs[:, JumpDOFs.RBalpha])
+    cj = numpy.cos(dofs[:, JumpDOFs.RBbeta])
+    ck = numpy.cos(dofs[:, JumpDOFs.RBgamma])
     cc = ci * ck
     cs = ci * sk
     sc = si * ck
@@ -164,30 +188,34 @@ def InvJumpTransforms(Ms: HTArray) -> JumpDOFArray:
 
     dofs = numpy.empty([njumpatoms, 9])
 
-    dofs[:, :3] = Ms[:, :3, 3]  # translation
-    dofs[:, 3:6] = 0  # rotational "delta"
+    dofs[:,
+         [JumpDOFs.RBx, JumpDOFs.RBy, JumpDOFs.RBz]] = Ms[:, :3,
+                                                          3]  # translation
+    dofs[:,
+         [JumpDOFs.RBdel_alpha, JumpDOFs.RBdel_beta, JumpDOFs.RBdel_gamma]
+         ] = 0  # rotational "delta"
 
     cys = numpy.sqrt(Ms[:, 0, 0] * Ms[:, 0, 0] + Ms[:, 1, 0] * Ms[:, 1, 0])
 
     problemSelector = (cys <= 4 * numpy.finfo(float).eps)
 
-    dofs[~problemSelector, 6] = numpy.arctan2(
+    dofs[~problemSelector, JumpDOFs.RBalpha] = numpy.arctan2(
         Ms[~problemSelector, 2, 1], Ms[~problemSelector, 2, 2]
     )
-    dofs[~problemSelector, 7] = numpy.arctan2(
+    dofs[~problemSelector, JumpDOFs.RBbeta] = numpy.arctan2(
         -Ms[~problemSelector, 2, 0], cys[~problemSelector]
     )
-    dofs[~problemSelector, 8] = numpy.arctan2(
+    dofs[~problemSelector, JumpDOFs.RBgamma] = numpy.arctan2(
         Ms[~problemSelector, 1, 0], Ms[~problemSelector, 0, 0]
     )
 
-    dofs[problemSelector, 6] = numpy.arctan2(
+    dofs[problemSelector, JumpDOFs.RBalpha] = numpy.arctan2(
         -Ms[problemSelector, 1, 2], Ms[problemSelector, 1, 1]
     )
-    dofs[problemSelector, 7] = numpy.arctan2(
+    dofs[problemSelector, JumpDOFs.RBbeta] = numpy.arctan2(
         -Ms[problemSelector, 2, 0], cys[problemSelector]
     )
-    dofs[problemSelector, 8] = 0.0
+    dofs[problemSelector, JumpDOFs.RBgamma] = 0.0
 
     return dofs
 
@@ -207,9 +235,9 @@ def JumpDerivatives(
     x_axes = Mparents[:, 0:3, 0]
     y_axes = Mparents[:, 0:3, 1]
     z_axes = Mparents[:, 0:3, 2]
-    dsc_ddofs[:, 0] = numpy.einsum('ij, ij->i', x_axes, f2s)
-    dsc_ddofs[:, 1] = numpy.einsum('ij, ij->i', y_axes, f2s)
-    dsc_ddofs[:, 2] = numpy.einsum('ij, ij->i', z_axes, f2s)
+    dsc_ddofs[:, JumpDOFs.RBx] = numpy.einsum('ij, ij->i', x_axes, f2s)
+    dsc_ddofs[:, JumpDOFs.RBy] = numpy.einsum('ij, ij->i', y_axes, f2s)
+    dsc_ddofs[:, JumpDOFs.RBz] = numpy.einsum('ij, ij->i', z_axes, f2s)
 
     end_pos = Ms[:, 0:3, 3]
     rotdof3_axes = -Mparents[:, 0:3, 2]
@@ -232,15 +260,15 @@ def JumpDerivatives(
         numpy.matmul(Mparents[:, 0:3, 0:3], zrots), yrots
     )[:, 0:3, 0]
 
-    dsc_ddofs[:, 3] = (
+    dsc_ddofs[:, JumpDOFs.RBdel_alpha] = (
         numpy.einsum('ij, ij->i', rotdof1_axes, f1s) +
         numpy.einsum('ij, ij->i', numpy.cross(rotdof1_axes, end_pos), f2s)
     )
-    dsc_ddofs[:, 4] = (
+    dsc_ddofs[:, JumpDOFs.RBdel_beta] = (
         numpy.einsum('ij, ij->i', rotdof2_axes, f1s) +
         numpy.einsum('ij, ij->i', numpy.cross(rotdof2_axes, end_pos), f2s)
     )
-    dsc_ddofs[:, 5] = (
+    dsc_ddofs[:, JumpDOFs.RBdel_gamma] = (
         numpy.einsum('ij, ij->i', rotdof3_axes, f1s) +
         numpy.einsum('ij, ij->i', numpy.cross(rotdof3_axes, end_pos), f2s)
     )
@@ -253,24 +281,28 @@ def BondTransforms(dofs: BondDOFArray) -> HTArray:
     """BOND dofs -> HTs"""
     natoms = dofs.shape[0]
 
-    cp = numpy.cos(dofs[:, 2])
-    sp = numpy.sin(dofs[:, 2])
-    ct = numpy.cos(dofs[:, 1])
-    st = numpy.sin(dofs[:, 1])
-    d = dofs[:, 0]
+    cpp = numpy.cos(dofs[:, BondDOFs.phi_p])
+    spp = numpy.sin(dofs[:, BondDOFs.phi_p])
+    cpc = numpy.cos(dofs[:, BondDOFs.phi_c])
+    spc = numpy.sin(dofs[:, BondDOFs.phi_c])
+    cth = numpy.cos(dofs[:, BondDOFs.theta])
+    sth = numpy.sin(dofs[:, BondDOFs.theta])
+    d = dofs[:, BondDOFs.d]
 
+    # rot(ph_p, +x) * rot(th, +z) * trans(d, +x) * rot(ph_c, +x)
     Ms = numpy.zeros([natoms, 4, 4])
-    Ms[:, 0, 0] = ct
-    Ms[:, 0, 1] = -st
-    Ms[:, 0, 3] = d * ct
-    Ms[:, 1, 0] = cp * st
-    Ms[:, 1, 1] = cp * ct
-    Ms[:, 1, 2] = -sp
-    Ms[:, 1, 3] = d * cp * st
-    Ms[:, 2, 0] = sp * st
-    Ms[:, 2, 1] = sp * ct
-    Ms[:, 2, 2] = cp
-    Ms[:, 2, 3] = d * sp * st
+    Ms[:, 0, 0] = cth
+    Ms[:, 0, 1] = -cpc * sth
+    Ms[:, 0, 2] = spc * sth
+    Ms[:, 0, 3] = d * cth
+    Ms[:, 1, 0] = cpp * sth
+    Ms[:, 1, 1] = cpc * cpp * cth - spc * spp
+    Ms[:, 1, 2] = -cpp * cth * spc - cpc * spp
+    Ms[:, 1, 3] = d * cpp * sth
+    Ms[:, 2, 0] = spp * sth
+    Ms[:, 2, 1] = cpp * spc + cpc * cth * spp
+    Ms[:, 2, 2] = cpc * cpp - cth * spc * spp
+    Ms[:, 2, 3] = d * spp * sth
     Ms[:, 3, 3] = 1
 
     return Ms
@@ -281,10 +313,35 @@ def InvBondTransforms(Ms: HTArray) -> BondDOFArray:
     """HTs -> BOND dofs"""
     nbondatoms = Ms.shape[0]
 
-    dofs = numpy.empty([nbondatoms, 3])
-    dofs[:, 0] = numpy.sqrt(numpy.square(Ms[:, :3, 3]).sum(axis=1))
-    dofs[:, 1] = numpy.arctan2(-Ms[:, 0, 1], Ms[:, 0, 0])
-    dofs[:, 2] = numpy.arctan2(-Ms[:, 1, 2], Ms[:, 2, 2])
+    dofs = numpy.empty([nbondatoms, 4])
+
+    # d is always the same logic
+    dofs[:, BondDOFs.d] = numpy.sqrt(numpy.square(Ms[:, :3, 3]).sum(axis=1))
+
+    # when theta == 0, phip and phic are about same axis
+    # we (arbitrarily) put all the movement into phic
+    theta0_selector = (
+        numpy.abs(Ms[:, 0, 0] - 1) <= 4 * numpy.finfo(float).eps
+    )
+    dofs[theta0_selector, BondDOFs.phi_p] = 0.0
+    dofs[theta0_selector, BondDOFs.phi_c] = numpy.arctan2(
+        Ms[theta0_selector, 2, 1], Ms[theta0_selector, 1, 1]
+    )
+    dofs[theta0_selector, BondDOFs.theta] = 0
+
+    # otherwise, use the general case
+    dofs[~theta0_selector, BondDOFs.phi_p] = numpy.arctan2(
+        Ms[~theta0_selector, 2, 0], Ms[~theta0_selector, 1, 0]
+    )
+    dofs[~theta0_selector, BondDOFs.phi_c] = numpy.arctan2(
+        Ms[~theta0_selector, 0, 2], -Ms[~theta0_selector, 0, 1]
+    )
+    dofs[~theta0_selector, BondDOFs.theta] = numpy.arctan2(
+        numpy.sqrt(
+            Ms[~theta0_selector, 0, 1] * Ms[~theta0_selector, 0, 1] +
+            Ms[~theta0_selector, 0, 2] * Ms[~theta0_selector, 0, 2]
+        ), Ms[~theta0_selector, 0, 0]
+    )
 
     return dofs
 
@@ -300,21 +357,26 @@ def BondDerivatives(
     """compute BOND derivatives from f1/f2"""
     nbondatoms = dofs.shape[0]
 
-    end_pos = Mparents[:, 0:3, 3]
-    phi_axes = Mparents[:, 0:3, 0]
+    end_p_pos = Mparents[:, 0:3, 3]
+    phi_p_axes = Mparents[:, 0:3, 0]
     theta_axes = Ms[:, 0:3, 2]
-    d_axes = Ms[:, 0:3, 0]
+    end_c_pos = Ms[:, 0:3, 3]
+    phi_c_axes = Ms[:, 0:3, 0]
 
-    dsc_ddofs = numpy.zeros([nbondatoms, 3])
+    dsc_ddofs = numpy.zeros([nbondatoms, 4])
 
-    dsc_ddofs[:, 0] = numpy.einsum('ij, ij->i', d_axes, f2s)
-    dsc_ddofs[:, 1] = -1 * (
+    dsc_ddofs[:, BondDOFs.d] = numpy.einsum('ij, ij->i', phi_c_axes, f2s)
+    dsc_ddofs[:, BondDOFs.theta] = -1 * (
         numpy.einsum('ij, ij->i', theta_axes, f1s) +
-        numpy.einsum('ij, ij->i', numpy.cross(theta_axes, end_pos), f2s)
+        numpy.einsum('ij, ij->i', numpy.cross(theta_axes, end_p_pos), f2s)
     )
-    dsc_ddofs[:, 2] = -1 * (
-        numpy.einsum('ij, ij->i', phi_axes, f1s) +
-        numpy.einsum('ij, ij->i', numpy.cross(phi_axes, end_pos), f2s)
+    dsc_ddofs[:, BondDOFs.phi_p] = -1 * (
+        numpy.einsum('ij, ij->i', phi_p_axes, f1s) +
+        numpy.einsum('ij, ij->i', numpy.cross(phi_p_axes, end_p_pos), f2s)
+    )
+    dsc_ddofs[:, BondDOFs.phi_c] = -1 * (
+        numpy.einsum('ij, ij->i', phi_c_axes, f1s) +
+        numpy.einsum('ij, ij->i', numpy.cross(phi_c_axes, end_c_pos), f2s)
     )
 
     return dsc_ddofs
