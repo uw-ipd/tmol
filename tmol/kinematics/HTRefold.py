@@ -57,10 +57,26 @@ class AbeGoPathRootData :
     depth : int = -1
     path_length : int = -1
 
+@attr.s( auto_attribs=True, slots=True )
 class AbeGoRecursiveSummationData :
     node : AbeGoNode = None
     children : typing.List[ int ] = attr.Factory( lambda: list() )
 
+@attr.s( auto_attribs=True, slots=True )
+class AbeGoDerivsumTree :
+    natoms : int = 0
+    nnodes : int = 0
+    has_initial_f1f2 : numpy.array = None
+    atom_indices : numpy.array = None
+    is_leaf : numpy.array = None
+    is_leaf_working: numpy.array = None
+    prior_children: numpy.matrix = None
+    lookback_inds: numpy.array = None
+    ndepths : int = 0
+    atom_range_for_depth: list = None
+    natoms_at_depth: numpy.array = None
+    agid_2_dsi: typing.List[ typing.List [ typing.List[ int ] ] ] = None
+    dsi_2_agid: typing.List[ AbeGoID ] = None
 
 
 def initialize_ht_refold_data( residues, tree ) :
@@ -91,6 +107,56 @@ def initialize_ht_refold_data( residues, tree ) :
 
     return ordered_roots, refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index
 
+def create_abe_go_f1f2sum_tree_for_structure( residues, atom_tree ) :
+    abe_go_root, abe_go_nodes = abe_and_go_tree_from_atom_tree( atom_tree )
+    atomid_2_atomindex, atomindex_2_atomid = create_atomid_mapping( residues )
+
+    ag_path_root_nodes = create_abe_and_go_paths( abe_go_root )
+    find_abe_go_path_depths( abe_go_root, ag_path_root_nodes )
+    derivsum_index_2_ag_id, ag_id_2_derivsum_index, depth_start_inds = create_derivsum_indices( abe_go_nodes, ag_path_root_nodes )
+
+    n_atoms = count_atom_tree_natoms( atom_tree )
+    n_derivsum_nodes = count_abe_go_nodes( abe_go_nodes )
+    print( "n_derivsum_nodes", n_derivsum_nodes )
+    max_branch = count_max_branch_node( abe_go_nodes ) 
+
+    ag_tree = AbeGoDerivsumTree( n_atoms, n_derivsum_nodes )
+    ag_tree.has_initial_f1f2 = numpy.zeros( (n_derivsum_nodes+1), dtype=bool )
+    ag_tree.atom_indices = numpy.ones( (n_derivsum_nodes+1), dtype=numpy.int32 ) * n_atoms
+    print( "atom inds: ", ag_tree.atom_indices[:10] )
+    ag_tree.is_leaf = numpy.zeros( (n_derivsum_nodes), dtype=bool )
+    ag_tree.is_leaf_working = numpy.zeros( (n_derivsum_nodes), dtype=bool )
+    ag_tree.prior_children = numpy.ones( ( n_derivsum_nodes+1, max_branch ), dtype=numpy.int32 ) * n_atoms
+    ag_tree.lookback_inds = numpy.arange( n_derivsum_nodes )
+    ag_tree.ndepths = ag_path_root_nodes[ abe_go_root.path_root_index ].depth+1
+    ag_tree.atom_range_for_depth = [ None ] * ag_tree.ndepths
+    ag_tree.natoms_at_depth = [ 0 ] * ag_tree.ndepths
+    ag_tree.agid_2_dsi = ag_id_2_derivsum_index
+    ag_tree.dsi_2_agid = derivsum_index_2_ag_id
+
+    visit_all_abe_go_tree_nodes( abe_go_root, ag_tree, atomid_2_atomindex ) 
+
+    # define the beginning and end points of the f1f2 sum depths
+    sorted_path_roots = sorted( ag_path_root_nodes, key=lambda x : x.depth )
+    last_depth = 0
+    last_dsi = 0
+    count_depths = 0
+    for path_root in sorted_path_roots :
+        if last_depth != path_root.depth :
+            rid = leaf_of_derivsum_path( path_root.node ).id
+            dsi = ag_id_2_derivsum_index[ rid.atomid.res ][ rid.atomid.atomno ][ rid.nodeid ]
+            print( "last_depth", last_depth, path_root.depth, rid, dsi, last_dsi )
+            ag_tree.atom_range_for_depth[ count_depths ] = ( last_dsi, dsi )
+            last_dsi = dsi
+            count_depths += 1
+            last_depth = path_root.depth
+        ag_tree.natoms_at_depth[ count_depths ] += count_nodes_in_ag_path( path_root.node )
+        #print( "ag_tree.natoms_at_depth[", count_depths, "]", ag_tree.natoms_at_depth[ count_depths ] )
+    ag_tree.atom_range_for_depth[ count_depths ] = ( last_dsi, n_derivsum_nodes )
+
+    print( "natoms at depth: " ); print( ag_tree.natoms_at_depth )
+    print( "natoms at depth sum: ", sum( ag_tree.natoms_at_depth ), n_derivsum_nodes )
+    return ag_tree
 
 # This function relies on the data that is prepared for the GPU's version of the refold, but
 # is iterative in nature -- not going to be as efficient as Frank's version writen in numpy
@@ -145,22 +211,28 @@ def cpu_f1f2_summation2( atom_f1f2s, ag_derivsum_nodes ) :
     ''' Numpy version of the f1f2 recursive summation function which uses something like a segmented
     scan over each of the abe-go depths.'''
     f1f2sum = numpy.zeros( (ag_derivsum_nodes.nnodes+1, 6 ) )
-    atinds = ag_derivsum_nodes.atom_indices
-    f1f2sum[ : ] = atom_f1f2s[ atinds, : ]
+    #print( "all atom inds:" )
+    #print( ag_derivsum_nodes.atom_indices )
+    f1f2sum[ : ] = atom_f1f2s[ ag_derivsum_nodes.atom_indices, : ]
     ag_derivsum_nodes.is_leaf_working[:] = ag_derivsum_nodes.is_leaf # in-place copy
     #ag_derivsum_nodes.lookback_inds[:] = numpy.arange(ag_derivsum_nodes.nnodes )
-    for ii in range( len( ag_derivsum_nodes.atoms_at_depth ) ) :
-        iirange = ag_derivsum_nodes.atoms_at_depth[ii]
+    for ii, iirange in enumerate( ag_derivsum_nodes.atom_range_for_depth ) :
+        #iirange = ag_derivsum_nodes.atom_range_for_depth[ii]
         ii_view_f1f2 = f1f2sum[ iirange[0]:iirange[1] ]
         ii_children = ag_derivsum_nodes.prior_children[ iirange[0]:iirange[1] ]
         ii_view_f1f2 += numpy.sum( f1f2sum[ ii_children ], 1 )
-        #print( ii, "ii_view_f1f2 2" ); print( ii_view_f1f2 )
+        #print( "iirange", iirange )
+        #print( ii, "ii_view_f1f2 2" ); print( ii_view_f1f2.shape )
         ii_is_leaf = ag_derivsum_nodes.is_leaf_working[ iirange[0]:iirange[1] ]
-        #print( ii, "ii_is_leaf" ); print( ii_is_leaf )
+        #print( ii, "ii_is_leaf" ); print( ii_is_leaf.shape )
+        #print( "ag_derivsum_nodes.is_leaf[ iirange[1] ]", ag_derivsum_nodes.is_leaf[ iirange[1] ] )
         offset = 1
+        #print( ii, "range", iirange[0], iirange[1], iirange[1]-iirange[0] )
+        #print( ii, "ag_derivsum_nodes.natoms_at_depth[ii]", ag_derivsum_nodes.natoms_at_depth[ii] )
         ii_ind = ag_derivsum_nodes.lookback_inds[ :ag_derivsum_nodes.natoms_at_depth[ii] ]
+        #print( "ii_ind", ii_ind.shape )
         for jj in range( int( numpy.ceil( numpy.log2( ii_view_f1f2.shape[0] ) ) ) ):
-            #print( (ii_ind >= offset) & (~ii_is_leaf) )
+            #print( ii, jj, "sum( (ii_ind >= offset) & (~ii_is_leaf) )",  sum( (ii_ind >= offset) & (~ii_is_leaf) ) )
             #print( ii_ind[ (ii_ind >= offset) & (~ii_is_leaf) ] )
             ii_view_f1f2[ (ii_ind >= offset) & (~ ii_is_leaf ) ] += ii_view_f1f2[ ii_ind[ ( ii_ind >= offset ) & ( ~ ii_is_leaf) ] - offset ]
             ii_is_leaf[ ii_ind >= offset ] |= ii_is_leaf[ ii_ind[ ii_ind >= offset ] - offset ]
@@ -437,10 +509,66 @@ def create_derivsum_indices( ag_nodes, path_roots ) :
 def recursively_set_deriv_sum_indices( node, ind, dsi2agi, agi2dsi ) :
     if node is not None :
         ind = recursively_set_deriv_sum_indices( node.first_child, ind, dsi2agi, agi2dsi )
+        #print( "recusively setting derivsum index", node.id, ind )
         dsi2agi[ ind ] = node.id
         agi2dsi[ node.id.atomid.res ][ node.id.atomid.atomno ][ node.id.nodeid ] = ind
         ind += 1
     return ind
 
-def create_f1f2_path_segments( ag_root, path_roots ) :
-    pass
+def create_atomid_mapping( residues ) :
+    atomid_2_atomindex = [ [] for res in residues ]
+    atomindex_2_atomid = [ None ] * sum( [ res.coords.shape[0] for res in residues ] )
+    count = 0
+    for ii, res in enumerate( residues ) :
+        atomid_2_atomindex[ ii ] = [ 0 ] * res.coords.shape[0]
+        for jj in range( res.coords.shape[0] ) :
+            atomid_2_atomindex[ ii ][ jj ] = count
+            atomindex_2_atomid[ count ] = atree.AtomID( ii, jj )
+            count += 1
+    return atomid_2_atomindex, atomindex_2_atomid
+
+def count_atom_tree_natoms( atom_tree ) :
+    return sum( [ len( res ) for res in atom_tree.atom_pointer_list ] )
+
+def count_abe_go_nodes( abe_go_nodes ) :
+    return sum( [ sum( [ len( atnodes ) for atnodes in residue_nodes ] ) for residue_nodes in abe_go_nodes ] )
+
+def count_max_branch_node( abe_go_nodes ) :
+    return max( [ max( [ max( [ len( n.other_children ) + ( 1 if n.younger_sibling else 0 ) for n in atnodes ] ) for atnodes in residue ] ) for residue in abe_go_nodes ] )
+
+
+def visit_all_abe_go_tree_nodes( root, ag_tree, atomid_2_atomindex ) :
+    dsi2ai, ai2dsi = ag_tree.dsi_2_agid, ag_tree.agid_2_dsi
+    dsi = ai2dsi[ root.id.atomid.res ][ root.id.atomid.atomno ][ root.id.nodeid ]
+    ag_tree.is_leaf[ dsi ] = root.first_child is None
+    ag_tree.has_initial_f1f2[ dsi ] = True
+    count_other_children = 0
+    if root.younger_sibling :
+        sibid = root.younger_sibling.id
+        child_dsi = ai2dsi[ sibid.atomid.res ][ sibid.atomid.atomno ][ sibid.nodeid ]
+        assert( child_dsi < dsi )
+        ag_tree.prior_children[ dsi, count_other_children ] = child_dsi
+        count_other_children += 1
+    for child_node in root.other_children :
+        childid = child_node.id
+        child_dsi = aid2dsi[ childid.atomid.res ][ childid.atomid.atomno ][ childid.nodeid ]
+        ag_tree.prior_children[ dsi, count_other_children ] = child_dsi
+        count_other_children += 1
+    if root.theta_d_node or root.jump_node :
+        ag_tree.atom_indices[ dsi ] = atomid_2_atomindex[ root.id.atomid.res ][ root.id.atomid.atomno ]
+    
+    if root.younger_sibling :
+        visit_all_abe_go_tree_nodes( root.younger_sibling, ag_tree, atomid_2_atomindex )
+    if root.first_child :
+        visit_all_abe_go_tree_nodes( root.first_child, ag_tree, atomid_2_atomindex )
+    for child in root.other_children :
+        visit_all_abe_go_tree_nodes( child, ag_tree, atomid_2_atomindex )
+
+def leaf_of_derivsum_path( root ) :
+    return leaf_of_derivsum_path( root.first_child ) if root.first_child else root
+
+def count_nodes_in_ag_path( root ) :
+    count = 0
+    if root :
+        count = 1 + count_nodes_in_ag_path( root.first_child )
+    return count

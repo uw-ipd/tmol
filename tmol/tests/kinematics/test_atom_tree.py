@@ -517,12 +517,11 @@ class TestAtomTree(unittest.TestCase):
                      18,  1, \
                      18,  9 ] ), ( 18, 1 ) )
         ag_derivsum_nodes.lookback_inds = numpy.arange( 18 )
-        ag_derivsum_nodes.atoms_at_depth = [ None ] * 3 #numpy.full( (3, 18), False, dtype=bool )
+        ag_derivsum_nodes.atom_range_at_depth = [ None ] * 3 #numpy.full( (3, 18), False, dtype=bool )
         
-        #ag_derivsum_nodes.atoms_at_depths = False
-        ag_derivsum_nodes.atoms_at_depth[0] = [0,4]
-        ag_derivsum_nodes.atoms_at_depth[1] = [4,10]
-        ag_derivsum_nodes.atoms_at_depth[2] = [10,18]
+        ag_derivsum_nodes.atom_range_at_depth[0] = [0,4]
+        ag_derivsum_nodes.atom_range_at_depth[1] = [4,10]
+        ag_derivsum_nodes.atom_range_at_depth[2] = [10,18]
 
         ag_derivsum_nodes.natoms_at_depth = numpy.array( [4, 6, 8 ] )
 
@@ -584,3 +583,12 @@ class TestAtomTree(unittest.TestCase):
             for jj in range( 6 ) :
                 self.assertAlmostEqual( f1f2sum[ii,jj], f1f2sum_gold[ii,jj] )
 
+    def test_create_f1f2_tree_for_1ubq( self ) :
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb( test_pdbs[ "1UBQ" ] )
+        tree = atree.tree_from_residues( res_reader.chemical_db, residues )
+        ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure( residues, tree )
+
+        atom_f1f2s = numpy.random.random( (ag_tree.natoms+1, 6 ) )
+        atom_f1f2s[ag_tree.natoms,:] = 0.
+        f1f2sum = htrefold.cpu_f1f2_summation2( atom_f1f2s, ag_tree )
