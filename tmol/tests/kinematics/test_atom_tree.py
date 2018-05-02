@@ -282,7 +282,7 @@ class TestAtomTree(unittest.TestCase):
         ordered_roots, refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index = \
             htrefold.initialize_ht_refold_data( residues, tree )
 
-        htrefold.cpu_htrefold( residues, tree, refold_data, atoms_for_controlling_torsions, \
+        htrefold.cpu_htrefold_1( residues, tree, refold_data, atoms_for_controlling_torsions, \
                       refold_index_2_atomid, atomid_2_refold_index )
 
         # let's dump the new coordinates
@@ -728,5 +728,58 @@ class TestAtomTree(unittest.TestCase):
         residues[3].coords = numpy.zeros((5,3))
         residues[4].coords = numpy.zeros((5,3))
 
+        dofs = numpy.zeros((23,9))
+
+        # the bonded atom indices in Frank's example
+        bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
+        for ba in bas:
+            dofs[ba,0] = nodes[ba].d
+            dofs[ba,1] = nodes[ba].theta
+            dofs[ba,2] = nodes[ba].phi
+        jas = [3,8,13,18]
+        for ja in jas:
+            for i in range(3):
+                dofs[ja,i+0] = nodes[ja].rb[i]
+                dofs[ja,i+3] = nodes[ja].rot_delta[i]
+                dofs[ja,i+6] = nodes[ja].rot[i]
+
         refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
-        
+        coords_out = coords.copy()
+        htrefold.cpu_htrefold_2( dofs, refold_data, coords_out )
+        print( "coords"); print( coords )
+        print( "coords_out"); print( coords_out )
+
+        for ii, node in enumerate(nodes):
+            self.assertAlmostEqual(
+                numpy.linalg.norm(coords_out[ii,:] - coords[ii, :]), 0
+            )
+
+    def test_numpy_ht_refold_2(self):
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
+        tree = atree.tree_from_residues(res_reader.chemical_db, residues)
+
+        refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
+
+        dofs = numpy.zeros((refold_data.natoms,9))
+        count = 0
+        for res_ptrs in tree.atom_pointer_list:
+            for at in res_ptrs :
+                if not at.is_jump :
+                    dofs[count,0] = at.d
+                    dofs[count,1] = at.theta
+                    dofs[count,2] = at.phi
+                else :
+                    for i in range(3):
+                        dofs[count,i+0] = at.rb[i]
+                        dofs[count,i+3] = at.rot_delta[i]
+                        dofs[count,i+6] = at.rot[i]
+                count += 1
+        coords_out = numpy.zeros( (refold_data.natoms,3))
+        htrefold.cpu_htrefold_2( dofs, refold_data, coords_out )
+
+        for res_ptrs in tree.atom_pointer_list:
+            for at in res_ptrs :
+                self.assertAlmostEqual(
+                    numpy.linalg.norm(coords_out[ii,:] - at.xyz), 0
+                    )
