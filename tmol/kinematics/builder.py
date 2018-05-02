@@ -11,7 +11,9 @@ import scipy.sparse.csgraph as csgraph
 from tmol.types.array import NDArray
 from tmol.types.functional import convert_args, validate_args
 
-from .datatypes import (NodeType, BondDOFs, JumpDOFs, KinTree, DofView)
+from .datatypes import (
+    NodeType, BondDOFs, JumpDOFs, KinTree, KinTreeNode, DofView
+)
 
 from .operations import (
     KinTree,
@@ -19,22 +21,21 @@ from .operations import (
 
 
 def kintree_root_factory():
-    return numpy.array(
-        [(-1, DOFType.root, 0, 0, 0, 0)],
-        dtype=kintree_node_dtype,
-    )
+    kintree_root = KinTree.full(1, 0)
+    kintree_root[0] = KinTreeNode(-1, NodeType.root, 0, 0, 0, 0)
+    return kintree_root
 
 
 @validate_args
 def kintree_connections(kintree: KinTree) -> NDArray(int)[:, 2]:
     """Return parent-id <-> child-id pairs for non-root dofs in kintree."""
-    msk = kintree["doftype"] != DOFType.root
+    msk = kintree.doftype != NodeType.root
     assert not msk[0], "kintree is not rooted"
 
-    child = kintree["id"][msk]
-    parent = kintree["id"][kintree["parent"]][msk]
+    child = kintree.id[msk]
+    parent = kintree.id[kintree.parent][msk]
 
-    return numpy.vstack([parent, child]).T
+    return [parent, child]
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -121,25 +122,25 @@ class KinematicBuilder:
         # Allocate entries for the new subtree and store the provided ids in
         # the kintree id column. All internal kintree references,
         # (parent/frame) will be wrt kinetree indices, not ids.
-        kin_stree = numpy.empty_like(ids, dtype=kintree_node_dtype)
-        kin_stree["id"] = ids
+        kin_stree = KinTree.full(len(ids), 0)
+        kin_stree.set_ids(ids)
 
         # Calculate the start index of the kinematic tree block this new
         # subtree will occupy, construct all parent & frame references wrt this
         # start index.
-        (kin_start, ) = self.kintree.shape
+        kin_start = len(self.kintree)
 
         # Start by writing the the standard, non-root entries of the graph.
-        kin_stree["doftype"] = DOFType.bond
-        kin_stree["parent"] = parent_indices + kin_start
-        kin_stree["frame_x"] = numpy.arange(len(ids)) + kin_start  # self
-        kin_stree["frame_y"] = parent_indices + kin_start
-        kin_stree["frame_z"] = grandparent_indices + kin_start
+        kin_stree.set_doftypes(NodeType.bond)
+        kin_stree.set_parents(parent_indices + kin_start)
+        kin_stree.set_frameX(numpy.arange(len(ids)) + kin_start)  # self
+        kin_stree.set_frameY(parent_indices + kin_start)
+        kin_stree.set_frameZ(grandparent_indices + kin_start)
 
         # Go back and rewrite the entries for the root and its children
         # Define the jump DOF of the root, connecting back into existing kintree
-        kin_stree["doftype"][0] = DOFType.jump
-        kin_stree["parent"][0] = component_parent
+        kin_stree.doftype[0] = NodeType.jump
+        kin_stree.parent[0] = component_parent
 
         # Fixup the orientation frame frame of the root and its children.
         # The rootis self-parented at zero, so drop the first match.
@@ -150,20 +151,31 @@ class KinematicBuilder:
         assert _ == 0, "root must be self parented, was set above"
         root_c1, *root_sibs = root_children
 
-        # The root of the component is jump framed by self, root, 2nd child
-        # The 1st child of the root is bond framed by self, root, 2nd child
-        # The 1st child bond phi dof is a no-op
-        kin_stree["frame_x"][[0, root_c1]] = root_c1 + kin_start
-        kin_stree["frame_y"][[0, root_c1]] = 0 + kin_start
-        kin_stree["frame_z"][[0, root_c1]] = first(root_sibs) + kin_start
+        print(parent_indices)
 
-        # The other children of the root are bond framed by self, root, 1st child
-        kin_stree["frame_x"][root_sibs] = (numpy.array(root_sibs) + kin_start)
-        kin_stree["frame_y"][root_sibs] = 0 + kin_start
-        kin_stree["frame_z"][root_sibs] = root_c1 + kin_start
+        # fd: Alex, I'm not 100% sure of the logic here
+        # shouldn't the root also be set
+        #   (previously the frame was (1,1,1) which is wrong)
+        componentRoot = kin_stree[0]
+        componentRoot.frame_x = root_c1 + kin_start
+        componentRoot.frame_y = 0 + kin_start
+        componentRoot.frame_z = first(root_sibs) + kin_start
+        kin_stree[0] = componentRoot
+
+        firstChild = kin_stree[root_c1]
+        firstChild.frame_x = root_c1 + kin_start
+        firstChild.frame_y = 0 + kin_start
+        firstChild.frame_z = first(root_sibs) + kin_start
+        kin_stree[root_c1] = firstChild
+
+        for sib in root_sibs:
+            subseqChild = kin_stree[sib]
+            subseqChild.frame_x = sib + kin_start
+            subseqChild.frame_y = 0 + kin_start
+            subseqChild.frame_z = root_c1 + kin_start
+            kin_stree[sib] = subseqChild
+
+        print(kin_stree)
 
         # Append the subtree onto the kintree.
-        return attr.evolve(
-            self,
-            kintree=numpy.concatenate((self.kintree, kin_stree)),
-        )
+        return attr.evolve(self, kintree=self.kintree.concatenate(kin_stree))

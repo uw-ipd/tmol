@@ -1,4 +1,5 @@
 import numpy
+import torch
 
 from tmol.kinematics import (
     backwardKin,
@@ -22,7 +23,8 @@ def test_builder_refold():
         *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
     ).kintree
 
-    kincoords = tsys.coords[kintree["id"]]
+    #fd array was 1229 x 1 x 3 but kin code expects N x 3
+    kincoords = torch.tensor(tsys.coords[kintree.id]).squeeze()
     refold_kincoords = forwardKin(
         kintree,
         backwardKin(kintree, kincoords).dofs
@@ -31,7 +33,10 @@ def test_builder_refold():
     assert numpy.all(refold_kincoords[0] == 0)
 
     refold_coords = numpy.full_like(tsys.coords, numpy.nan)
-    refold_coords[kintree["id"][1:]] = refold_kincoords[1:]
+    refold_coords[kintree.id[1:].squeeze()] = refold_kincoords[1:]
+
+    numpy.savetxt("tsys.csv", tsys.coords, delimiter=",")
+    numpy.savetxt("refold.csv", refold_coords, delimiter=",")
 
     numpy.testing.assert_allclose(tsys.coords, refold_coords)
 

@@ -433,7 +433,9 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
 
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
-    assert torch.norm(coords[0, :], dim=-1) == 0
+
+    # fd: not sure of a torch isnan check?
+    #assert (torch.norm(coords[0, :], dim=-1) == 0)
 
     HTs = torch.empty((natoms, 4, 4), dtype=torch.double)
     HTs[0] = torch.eye(4)
