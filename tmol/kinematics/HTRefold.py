@@ -34,13 +34,20 @@ class WholeStructureRefoldData:
     a multi-pass segmented-scan algorithm can be used to compute the coordinates of
     a structure from a set of DOFs'''
     natoms: int = 0
+    atomid_2_refold_index: typing.List( typing.List( int ) ) = None
+    refold_index_2_atomid: typing.List( atree.AtomID ) = None
+    atomid_2_coalesced_ind: typing.List( typing.List( int ) ) = None
+    coalesced_ind_2_atomid: typing.List( atree.AtomID ) = None
+    refold_index_2_coalesced_ind: numpy.array = None
+    coalesced_ind_2_refold_index: numpy.array = None
 
     # data for constructing the HTs for bonded atoms
+    dofs: numpy.matirx = None
     bonded_atoms: numpy.array = None
     remapped_phi: numpy.array = None
     max_bonded_siblings: int = 0
-    bonded_dof_remapping: numpy.array = None
-    bonded_atom_has_sibling: numpy.array = None # which bonded atoms have siblings
+    bonded_dof_remapping: numpy.array = None # map from 
+    bonded_atom_has_sibling: numpy.array = None # which bonded atoms (in refold order) have siblings
     which_phi_for_bonded_atom_w_sibling: numpy.array = None # what phi dofs in the remapped phi array go with which atoms in refold order
     eldest_child: numpy.array = None
     eldest_child_working: numpy.array = None
@@ -169,14 +176,38 @@ def initialize_ht_refold_data(residues, tree):
 
     return ordered_roots, refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index
 
-def initialize_whole_structure_refold_data_structure( residues, atom_tree ):
+def initialize_whole_structure_refold_data( residues, atom_tree ):
+    ''' Create the WholeStructureRefoldData object full of the tensors needed to perform
+    multi-layer segmented scans to compute the new atomic coordinates.
+    Assumption: input vector of DOFs for refolding is a matrix of [natoms x 9]
+    Assumption: the desired output tensor of coords is a matrix of [natoms x 3]
+    Both input and output values are ordered s.t. the atoms for residue 0 are numbered
+    in order from 0..n_0-1, and then the atoms for residue 1 are numbered in order from
+    n_0..n_0+n_1-1, etc. Call this ordering/indexing of the atoms the coallesced ordering'''
+
     natoms = count_atom_tree_natoms( atom_tree )
+    atomid_2_coallesced_ind, coallesced_ind_2_atomid = get_coallesced_ordering( residues )
+
     refold_data = WholeStructureRefoldData( natoms )
     ordered_roots, atom_refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index = \
-        initialize_ht_refold_data( residues, tree )
+        initialize_ht_refold_data( residues, atom_tree )
+
+    refold_data.refold_index_2_coalesced_ind, refold_data.coalesced_ind_2_refold_index = \
+        get_coalesced_to_refold_mapping( \
+        atomid_2_coallesced_ind, coallesced_ind_2_atomid. atomid_2_refold_index, refold_index_2_atomid )
+
+    ba2aid, aid2ba, aids_of_eldest_siblings = create_bonded_atoms_with_siblings_order( atom_tree )
+    num_bonded_atom_siblings = len(ba2aid)
+
     refold_data.hts = numpy.matrix( (natoms+1, 4, 4 ) )
     refold_data.hts[natoms] = numpy.eye(4)
-    refold_data.bonded_atoms = numpy.full( (natoms+1), False, dtype=bool )
+    refold_data.dofs = numpy.zeros( (natoms, 9) )
+    refold_data.bonded_atoms = numpy.full((natoms+1), False, dtype=bool)
+    refold_data.remapped_phi = numpy.array((num_bonded_atom_siblings))
+    refold_data.max_bonded_siblings = count_max_bonded_atom_children( atom_tree )
+    refold_data.bonded_dof_remapping = created_bonded_dof_remapping( ba2aid, aid2ci )
+    refold_data.bonded_atom_has_sibling = created_bonded_atom_has_sibling_boolvect( aid2ba, refold_index_2_atomid )
+
     refold_data.jump_atoms = numpy.full( (natoms+1), False, dtype=bool )
     refold_data.is_root = numpy.full( (natoms+1), False, dtype=bool )
     refold_data.is_root_working = numpy.full( (natoms+1), False, dtype=bool )
@@ -305,14 +336,17 @@ def cpu_htrefold_2( dofs, refold_data, coords ):
     coords[ refold_data.remapped_residue_inds, refold_data.remapped_atom_inds ] = hts[:natoms,3,0:3]
     return coords
 
-def compute_hts_for_bonded_atoms( dofs, refold_data ):
+def compute_hts_for_bonded_atoms( dofs_in, refold_data ):
     '''First scan the phi dofs for all the bonded-atom siblings, then construct the 
     HTs for the bonded atoms'''
     D = 0
     THETA = 1
     PHI = 2
 
-    refold_data.remapped_phi[:] = dofs[ refold_data.bonded_dof_remapping, PHI]
+    # reorder the input dofs into the refold order
+    refold_data.dofs[:] = dofs_in[refold_data.coalesced_ind_2_refold_index]
+
+    refold_data.remapped_phi[:] = dofs_in[ refold_data.bonded_dof_remapping, PHI]
     refold_data.eldest_child_working[:] = refold_data.eldest_child
     eldest_child = refold_data.eldest_child_working
     inds = refold_data.lookback_inds[:refold_data.n_sibling_phis]
@@ -324,7 +358,6 @@ def compute_hts_for_bonded_atoms( dofs, refold_data ):
         offset *= 2
 
     #now we'll remap these phis back into the per-atom phis
-    refold_data.dofs[:] = dofs
     refold_data.dofs[refold_data.bonded_atom_has_sibling,0] = ht.remapped_phi[refold_data.which_phi_for_bonded_atom]
 
     # now construct the hts -- code stolen from Frank
@@ -895,3 +928,81 @@ def count_nodes_in_ag_path(root):
     if root:
         count = 1 + count_nodes_in_ag_path(root.first_child)
     return count
+
+def get_coalesced_ordering(residues):
+    natoms = sum( [ res.coords.shape[0] for res in residues ] )
+    atomid_2_coalesced_ind = [ [0] * res.coords.shape[0] for res in residues ]
+    coalesced_ind_2_atomid = [ None ] * natoms
+
+    count = 0
+    for ii, res in enumerate(residues):
+        for jj in range(res.coords.shape[0]):
+            coalesced_ind_2_atomid[count] = atree.AtomID(ii, jj)
+            atomid_2_coalesced_ind[ii][jj] = count
+            count += 1
+
+    return atomid_2_coalesced_ind, coalesced_ind_2_atomid
+
+
+def get_coalesced_to_refold_mapping( aid2ci, ci2aid, aid2ri, ri2aid ):
+    ri2ci = numpy.array( (len(ci2aid)) )
+    ci2ri = numpy.array( (len(ci2aid)) )
+
+    for ii, res2ci in enumerate(aid2ci):
+        for jj, ci in enumerate(res2ci):
+            ri = aid2ri[ii][jj]
+            ri2ci[ri] = ci
+            ci2ri[ci] = ri
+
+    return ri2ci, ci2ri
+
+def create_bonded_atoms_with_siblings_order( atom_tree ):
+    ba2aid = [ None ] * count_atom_tree_natoms( atom_tree )
+    aid2ba = [ [-1] * len( resnodes ) for resnodes in atom_tree.atom_pointer_list ]
+    aids_of_eldest_siblings = []
+    recursively_identify_bonded_atoms_with_siblings_order( 0, atom_tree.root, ba2aid, aid2ba, aids_of_eldest_siblings )
+    return ba2aid, aid2ba, aids_of_eldest_siblings
+
+def recursively_identify_bonded_atoms_with_siblings_order( next_ind, root, ba2aid, aid2ba, aids_of_eldest_siblings ):
+    first_ba_child = None
+    for child in root.children:
+        if not child.is_jump:
+            if first_ba_child is None :
+                first_ba_child = child
+                aids_of_eldest_children.append( child.atomid )
+            ba2aid[ next_ind ] = child.id
+            aid2ba[ child.atomid.res ][ child.atomid.atomno ] = next_ind
+            next_ind += 1
+    for child in root.children:
+        next_ind = recursively_identify_bonded_atoms_with_siblings_order( next_ind, child, ba2aid, aid2ba, aids_of_eldest_siblings )
+    return next_ind
+            
+    
+def count_max_bonded_atom_children( atom_tree ) :
+    max_children = 0
+    for res_atoms in atom_tree.atom_pointer_list :
+        for atom in res_atoms :
+            nchildren = 0
+            for child in atom.children :
+                if not child.is_jump :
+                    nchildren += 1
+            if max_children < nchildren :
+                max_children = nchildren
+    return max_children
+
+
+def create_bonded_dof_remapping( ba2aid, aid2ci ) :
+    '''Create the array of coalesced indices for every bonded atom with a sibling so that an array
+    of DOFs in coalesced can be read from for each bonded atom and put into bonded-atom order'''
+
+    return numpy.fromiter( (aid2ci[aid.res][aid.atomno] for aid in ba2aid ) )
+    
+    #ba2ci = numpy.zeros( (ba2aid.shape[0]) )
+    #for ii, aid in enumerate( ba2aid ) :
+    #    ba2ci[ ii ] = aid2ci[ aid.res ][ aid.atomno ]
+    #return ba2ci
+
+def create_bonded_atom_has_sibling_boolvect( aid2ba, ri2aid ):
+    '''The boolean values for all atoms in refold order of whether or not they are
+    bonded atoms with more than one sibling'''
+    return numpy.fromiter( (aid2ba[id.res][id.atomno] != -1 for id in ri2aid), dtype=bool )
