@@ -148,17 +148,12 @@ def initialize_ht_refold_data(residues, tree):
     for i in range(len(residues)):
         tree_path_data[i] = [AtomTreePathData() for x in residues[i].coords]
         natoms += len(residues[i].coords)
-    print("natoms",natoms)
-    print("len(tree_path_data)",len(tree_path_data))
-    for i in range(len(tree_path_data)):
-        print(i,"len(tree_path_data[i]",len(tree_path_data))
 
     recurse_and_fill_atomtree_path_data(tree.root, tree_path_data)
     # also mark the root of the atom tree as the root of a subpath, since that is not handled by
     # the recursive routine
     tree_path_data[tree.root.atomid.res][tree.root.atomid.atomno
                                          ].root_of_subpath = True
-    print("tree path data", tree_path_data)
 
 
     # now identify all roots of the subpaths; the very shallowest path's depth is depth 0 because
@@ -166,10 +161,6 @@ def initialize_ht_refold_data(residues, tree):
     root_list = []
     dfs_identify_roots_and_depths(tree.root, 0, tree_path_data, root_list)
     sort_roots_by_depth(root_list)
-    print("tree path data after roots and depths identified:")
-    print(tree_path_data)
-    print("root list")
-    print(root_list)
 
     ordered_roots = create_ordered_root_set(root_list)
 
@@ -204,22 +195,22 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
 
     refold_data.refold_index_2_coalesced_ind, refold_data.coalesced_ind_2_refold_index = \
         get_coalesced_to_refold_mapping( \
-        atomid_2_coalesced_ind, coalesced_ind_2_atomid. atomid_2_refold_index, refold_index_2_atomid )
+        atomid_2_coalesced_ind, coalesced_ind_2_atomid, atomid_2_refold_index, refold_index_2_atomid )
 
     ba2aid, aid2ba, aids_of_eldest_siblings = create_bonded_atoms_with_siblings_order( atom_tree )
     num_bonded_atom_siblings = len(ba2aid)
 
-    refold_data.hts = numpy.matrix( (natoms+1, 4, 4 ) )
+    refold_data.hts = numpy.zeros( (natoms+1, 4, 4 ) )
     refold_data.hts[natoms] = numpy.eye(4)
     refold_data.dofs = numpy.zeros( (natoms, 9) )
     refold_data.bonded_atoms = numpy.full((natoms+1), False, dtype=bool)
-    refold_data.bonded_atoms[:natoms] = numpy.fromiter((not atom_tree.atom_pointer_list[id.res][id.atomno].is_jump for id in refold_index_2_atomid ))
+    refold_data.bonded_atoms[:natoms] = numpy.fromiter((not atom_tree.atom_pointer_list[id.res][id.atomno].is_jump for id in refold_index_2_atomid ), dtype=bool)
     num_bonded_atoms = numpy.sum( refold_data.bonded_atoms )
     refold_data.remapped_phi = numpy.array((num_bonded_atom_siblings))
     refold_data.max_bonded_siblings = count_max_bonded_atom_children( atom_tree )
-    refold_data.bonded_dof_remapping = created_bonded_dof_remapping( ba2aid, aid2ci )
-    refold_data.bonded_atom_has_sibling = created_bonded_atom_has_sibling_boolvect( aid2ba, refold_index_2_atomid )
-    refold_data.is_eldest_child = create_eldest_child_array( ba2aid, aid2ba, aids_of_eldest_siblingsa )
+    refold_data.bonded_dof_remapping = create_bonded_dof_remapping( ba2aid, atomid_2_coalesced_ind )
+    refold_data.bonded_atom_has_sibling = create_bonded_atom_has_sibling_boolvect( aid2ba, refold_index_2_atomid )
+    refold_data.is_eldest_child = create_eldest_child_array( ba2aid, aid2ba, aids_of_eldest_siblings )
     refold_data.is_eldest_child_working = refold_data.is_eldest_child.copy()
     refold_data.cp = numpy.zeros((num_bonded_atoms))
     refold_data.sp = numpy.zeros((num_bonded_atoms))
@@ -228,7 +219,7 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
     refold_data.d  = numpy.zeros((num_bonded_atoms))
 
     refold_data.jump_atoms = numpy.full((natoms+1), False, dtype=bool)
-    refold_data.jump_atoms[:natoms] = numpy.fromiter((atom_tree.atom_pointer_list[id.res][id.atomno].is_jump for id in refold_index_2_atomid ))
+    refold_data.jump_atoms[:natoms] = numpy.fromiter((atom_tree.atom_pointer_list[id.res][id.atomno].is_jump for id in refold_index_2_atomid ), dtype=bool)
     num_jump_atoms = numpy.sum(refold_data.jump_atoms)
     refold_data.si = numpy.zeros((num_jump_atoms))
     refold_data.sj = numpy.zeros((num_jump_atoms))
@@ -245,12 +236,12 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
 
     refold_data.is_root = numpy.full( (natoms+1), False, dtype=bool )
     refold_data.is_root_working = numpy.full( (natoms+1), False, dtype=bool )
-    refold_data.parents = numpy.full( (natoms+1), natoms, dtype=int32 )
-    refold_data.parents[:natoms] = numpy.fromiter(((ard.parent_index if ard.parent_index != -1 else natoms) for ard in atom_refold_data), dtype=int32)
+    refold_data.parents = numpy.full( (natoms+1), natoms, dtype=int )
+    refold_data.parents[:natoms] = numpy.fromiter(((ard.parent_index if ard.parent_index != -1 else natoms) for ard in atom_refold_data), dtype=int)
     refold_data.atom_range_for_depth = determine_atom_ranges_for_depths(atom_refold_data)
     refold_data.lookback_inds = numpy.arange(natoms+1)
-    refold_data.remapped_residue_inds = numpy.fromiter((id.res for id in ri2aid),dtype=int32)
-    refold_data.remapped_atom_inds = numpy.fromiter((id.atomno for id in ri2aid),dtype=int32)
+    refold_data.remapped_residue_inds = numpy.fromiter((id.res for id in refold_index_2_atomid),dtype=int)
+    refold_data.remapped_atom_inds = numpy.fromiter((id.atomno for id in refold_index_2_atomid),dtype=int)
 
 def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree):
     abe_go_root, abe_go_nodes = abe_and_go_tree_from_atom_tree(atom_tree)
@@ -269,11 +260,11 @@ def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree):
     ag_tree = AbeGoDerivsumTree(n_atoms, n_derivsum_nodes)
     ag_tree.has_initial_f1f2 = numpy.zeros((n_derivsum_nodes + 1), dtype=bool)
     ag_tree.atom_indices = numpy.ones((n_derivsum_nodes + 1),
-                                      dtype=numpy.int32) * n_atoms
+                                      dtype=numpy.int) * n_atoms
     ag_tree.is_leaf = numpy.zeros((n_derivsum_nodes), dtype=bool)
     ag_tree.is_leaf_working = numpy.zeros((n_derivsum_nodes), dtype=bool)
     ag_tree.prior_children = numpy.ones((n_derivsum_nodes + 1, max_branch),
-                                        dtype=numpy.int32) * n_atoms
+                                        dtype=numpy.int) * n_atoms
     ag_tree.lookback_inds = numpy.arange(n_derivsum_nodes)
     ag_tree.ndepths = ag_path_root_nodes[abe_go_root.path_root_index].depth + 1
     ag_tree.atom_range_for_depth = [None] * ag_tree.ndepths
@@ -574,7 +565,6 @@ def recurse_and_fill_atomtree_path_data(root_atom, tree_path_data):
 
 
 def dfs_identify_roots_and_depths(root_atom, depth, tree_path_data, root_list):
-    print( "roots and depths", root_atom.atomid, depth )
     root_id = root_atom.atomid
     if tree_path_data[root_id.res][root_id.atomno].root_of_subpath:
         tree_path_data[root_id.res][root_id.atomno].depth = depth
@@ -601,7 +591,6 @@ def create_ordered_root_set(root_list):
 
 
 def renumber_atoms(tree_path_data, ordered_roots):
-    print( tree_path_data )
     natoms = sum([len(x) for x in tree_path_data])
     atomid_2_refold_index = [[natoms] * len(x)
                              for x in tree_path_data]  #natoms is out of bounds
@@ -623,10 +612,8 @@ def renumber_atoms(tree_path_data, ordered_roots):
                 next_atom = child_id
 
     # we should have hit every atom
-    print( "len(atomid_2_refold_index)", len(atomid_2_refold_index) )
     for ii in range(len(tree_path_data)):
         for jj in range(len(tree_path_data[ii])):
-            print( ii, jj, atomid_2_refold_index[ii][jj] )
             assert (atomid_2_refold_index[ii][jj] != natoms)
 
     return refold_index_2_atomid, atomid_2_refold_index
@@ -655,6 +642,7 @@ def number_torsions_recursive(
     first = True
     accumulated_offset = 0.0
     for child in root_node.children:
+        if child.is_jump : continue
         if first:
             atom_ids_for_torsions.append(child.atomid)
             torsion_index += 1
@@ -681,15 +669,19 @@ def fill_atom_refold_data(
     refold_data = [None] * len(refold_index_2_atomid)
     for ii, iiid in enumerate(refold_index_2_atomid):
         iinode = tree.node(iiid)
-        torid, phi_offset = torsion_ids_and_offsets[iiid.res][iiid.atomno]
-        ii_data = AtomRefoldData(phi_offset, iinode.theta, iinode.d, torid)
+        if iinode.is_jump :
+            ii_data = AtomRefoldData()
+            ii_data.is_jump = True
+        else :
+            torid, phi_offset = torsion_ids_and_offsets[iiid.res][iiid.atomno]
+            ii_data = AtomRefoldData(phi_offset, iinode.theta, iinode.d, torid)
         if tree_path_data[iiid.res][iiid.atomno].root_of_subpath:
             parent_id = tree_path_data[iiid.res][iiid.atomno].parent
             if parent_id.res != -1:
                 ii_data.parent_index = atomid_2_refold_index[parent_id.res][
                     parent_id.atomno
                 ]
-        ii_data.depth = iinode.depth
+        ii_data.depth = tree_path_data[iiid.res][iiid.atomno].depth
         refold_data[ii] = ii_data
         #if ii == 0 :
         #    print( "root refold data:", ii_data, iinode.phi, iinode.theta, iinode.d )
@@ -977,8 +969,8 @@ def get_coalesced_ordering(residues):
 
 
 def get_coalesced_to_refold_mapping( aid2ci, ci2aid, aid2ri, ri2aid ):
-    ri2ci = numpy.array( (len(ci2aid)) )
-    ci2ri = numpy.array( (len(ci2aid)) )
+    ri2ci = numpy.zeros( (len(ci2aid)) )
+    ci2ri = numpy.zeros( (len(ci2aid)) )
 
     for ii, res2ci in enumerate(aid2ci):
         for jj, ci in enumerate(res2ci):
@@ -989,24 +981,27 @@ def get_coalesced_to_refold_mapping( aid2ci, ci2aid, aid2ri, ri2aid ):
     return ri2ci, ci2ri
 
 def create_bonded_atoms_with_siblings_order( atom_tree ):
-    ba2aid = [ None ] * count_atom_tree_natoms( atom_tree )
     aid2ba = [ [-1] * len( resnodes ) for resnodes in atom_tree.atom_pointer_list ]
     aids_of_eldest_siblings = []
-    recursively_identify_bonded_atoms_with_siblings_order( 0, atom_tree.root, ba2aid, aid2ba, aids_of_eldest_siblings )
+    n_bonded_atoms = recursively_identify_bonded_atoms_with_siblings_order( 0, atom_tree.root, aid2ba, aids_of_eldest_siblings )
+    ba2aid = [ None ] * n_bonded_atoms
+    for ii,res2ba in enumerate(aid2ba) :
+        for jj,ba_index in enumerate(res2ba) :
+            ba2aid[ba_index] = atree.AtomID(ii,jj)
+
     return ba2aid, aid2ba, aids_of_eldest_siblings
 
-def recursively_identify_bonded_atoms_with_siblings_order( next_ind, root, ba2aid, aid2ba, aids_of_eldest_siblings ):
+def recursively_identify_bonded_atoms_with_siblings_order( next_ind, root, aid2ba, aids_of_eldest_siblings ):
     first_ba_child = None
     for child in root.children:
         if not child.is_jump:
             if first_ba_child is None :
                 first_ba_child = child
-                aids_of_eldest_children.append( child.atomid )
-            ba2aid[ next_ind ] = child.id
+                aids_of_eldest_siblings.append( child.atomid )
             aid2ba[ child.atomid.res ][ child.atomid.atomno ] = next_ind
             next_ind += 1
     for child in root.children:
-        next_ind = recursively_identify_bonded_atoms_with_siblings_order( next_ind, child, ba2aid, aid2ba, aids_of_eldest_siblings )
+        next_ind = recursively_identify_bonded_atoms_with_siblings_order( next_ind, child, aid2ba, aids_of_eldest_siblings )
     return next_ind
             
     
@@ -1027,7 +1022,7 @@ def create_bonded_dof_remapping( ba2aid, aid2ci ) :
     '''Create the array of coalesced indices for every bonded atom with a sibling so that an array
     of DOFs in coalesced can be read from for each bonded atom and put into bonded-atom order'''
 
-    return numpy.fromiter( (aid2ci[aid.res][aid.atomno] for aid in ba2aid ) )
+    return numpy.fromiter( (aid2ci[aid.res][aid.atomno] for aid in ba2aid ), dtype=int )
     
     #ba2ci = numpy.zeros( (ba2aid.shape[0]) )
     #for ii, aid in enumerate( ba2aid ) :
@@ -1043,8 +1038,8 @@ def create_bonded_atom_has_sibling_boolvect( aid2ba, ri2aid ):
 def create_eldest_child_array( ba2aid, aid2ba, aids_of_eldest_siblings ) :
     '''For each of the atoms in bonded-atom-with-sibling order, note which of them is the eldest
     sibling; i.e. which is the beginning of a segment for segmented scan.'''
-    is_eldest_child = numpy.full( (ba2aid.shape[0]), False, dtype=bool )
-    is_eldest_child[numpy.from_iter((aid2ba[id.res][id.atomno] for id in aids_of_eldest_siblings), dtype=int32)] = True
+    is_eldest_child = numpy.full( (len(ba2aid)), False, dtype=bool )
+    is_eldest_child[numpy.fromiter((aid2ba[id.res][id.atomno] for id in aids_of_eldest_siblings), dtype=int)] = True
     return is_eldest_child
 
 
