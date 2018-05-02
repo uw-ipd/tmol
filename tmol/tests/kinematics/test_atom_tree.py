@@ -274,7 +274,47 @@ class TestAtomTree(unittest.TestCase):
         #with open( "test_refold3.pdb", "w" ) as fid :
         #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
 
-    def test_atomtree_refold_info_setup(self):
+    def test_atomtree_refold_info_setup1(self):
+        nodes, coords = self.create_franks_multi_jump_atom_tree()
+
+        atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
+                          [nodes[3],nodes[4],nodes[5],nodes[6],nodes[7]], \
+                          [nodes[5+3],nodes[5+4],nodes[5+5],nodes[5+6],nodes[5+7]], \
+                          [nodes[10+3],nodes[10+4],nodes[10+5],nodes[10+6],nodes[10+7]], \
+                          [nodes[15+3],nodes[15+4],nodes[15+5],nodes[15+6],nodes[15+7]]]
+
+        tree = atree.AtomTree(nodes[0], atom_node_list)
+
+        # faux residues object
+        residues = [ temp_class() for x in range(5) ]
+        residues[0].coords = numpy.zeros((3,3))
+        residues[1].coords = numpy.zeros((5,3))
+        residues[2].coords = numpy.zeros((5,3))
+        residues[3].coords = numpy.zeros((5,3))
+        residues[4].coords = numpy.zeros((5,3))
+
+        dofs = numpy.zeros((23,9))
+
+        # the bonded atom indices in Frank's example
+        bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
+        for ba in bas:
+            dofs[ba,0] = nodes[ba].d
+            dofs[ba,1] = nodes[ba].theta
+            dofs[ba,2] = nodes[ba].phi
+        jas = [3,8,13,18]
+        for ja in jas:
+            for i in range(3):
+                dofs[ja,i+0] = nodes[ja].rb[i]
+                dofs[ja,i+3] = nodes[ja].rot_delta[i]
+                dofs[ja,i+6] = nodes[ja].rot[i]
+
+        ordered_roots, refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index = \
+            htrefold.initialize_ht_refold_data( residues, tree )
+
+        htrefold.cpu_htrefold_1( residues, tree, refold_data, atoms_for_controlling_torsions, \
+                      refold_index_2_atomid, atomid_2_refold_index )
+
+    def test_atomtree_refold_info_setup2(self):
         res_reader = pdbio.ResidueReader()
         residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
         tree = atree.tree_from_residues(res_reader.chemical_db, residues)
