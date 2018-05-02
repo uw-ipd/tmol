@@ -707,3 +707,26 @@ class TestAtomTree(unittest.TestCase):
         atom_f1f2s = numpy.random.random((ag_tree.natoms + 1, 6))
         atom_f1f2s[ag_tree.natoms, :] = 0.
         f1f2sum = htrefold.cpu_f1f2_summation2(atom_f1f2s, ag_tree)
+
+
+    def test_numpy_ht_refold(self):
+        nodes, coords = self.create_franks_multi_jump_atom_tree()
+
+        atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
+                          [nodes[3],nodes[4],nodes[5],nodes[6],nodes[7]], \
+                          [nodes[5+3],nodes[5+4],nodes[5+5],nodes[5+6],nodes[5+7]], \
+                          [nodes[10+3],nodes[10+4],nodes[10+5],nodes[10+6],nodes[10+7]], \
+                          [nodes[15+3],nodes[15+4],nodes[15+5],nodes[15+6],nodes[15+7]]]
+
+        tree = atree.AtomTree(nodes[0], atom_node_list)
+
+        # faux residues object
+        residues = [ temp_class() for x in range(5) ]
+        residues[0].coords = numpy.zeros((3,3))
+        residues[1].coords = numpy.zeros((5,3))
+        residues[2].coords = numpy.zeros((5,3))
+        residues[3].coords = numpy.zeros((5,3))
+        residues[4].coords = numpy.zeros((5,3))
+
+        refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
+        

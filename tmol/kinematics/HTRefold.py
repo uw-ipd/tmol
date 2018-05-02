@@ -35,15 +35,15 @@ class WholeStructureRefoldData:
     a multi-pass segmented-scan algorithm can be used to compute the coordinates of
     a structure from a set of DOFs'''
     natoms: int = 0
-    atomid_2_refold_index: typing.List( typing.List( int ) ) = None
-    refold_index_2_atomid: typing.List( atree.AtomID ) = None
-    atomid_2_coalesced_ind: typing.List( typing.List( int ) ) = None
-    coalesced_ind_2_atomid: typing.List( atree.AtomID ) = None
+    atomid_2_refold_index: typing.List[typing.List[int]] = None
+    refold_index_2_atomid: typing.List[atree.AtomID] = None
+    atomid_2_coalesced_ind: typing.List[typing.List[int]] = None
+    coalesced_ind_2_atomid: typing.List[atree.AtomID] = None
     refold_index_2_coalesced_ind: numpy.array = None
     coalesced_ind_2_refold_index: numpy.array = None
 
     # data for constructing the HTs for bonded atoms
-    dofs: numpy.matirx = None
+    dofs: numpy.matrix = None
     bonded_atoms: numpy.array = None
     remapped_phi: numpy.array = None
     max_bonded_siblings: int = 0
@@ -77,7 +77,7 @@ class WholeStructureRefoldData:
     is_root_working: numpy.array = None
     parents: numpy.array = None
     hts: numpy.matrix = None
-    atom_range_for_depth: typing.List( typing.Tuple( [int, int] ) ) = None
+    atom_range_for_depth: typing.List[typing.Tuple[int, int]] = None
     lookback_inds: numpy.array = None
     remapped_residue_inds: numpy.array = None # refold order 2 residue index
     remapped_atom_inds: numpy.array = None # refold order 2 atom index
@@ -148,18 +148,28 @@ def initialize_ht_refold_data(residues, tree):
     for i in range(len(residues)):
         tree_path_data[i] = [AtomTreePathData() for x in residues[i].coords]
         natoms += len(residues[i].coords)
+    print("natoms",natoms)
+    print("len(tree_path_data)",len(tree_path_data))
+    for i in range(len(tree_path_data)):
+        print(i,"len(tree_path_data[i]",len(tree_path_data))
 
     recurse_and_fill_atomtree_path_data(tree.root, tree_path_data)
     # also mark the root of the atom tree as the root of a subpath, since that is not handled by
     # the recursive routine
     tree_path_data[tree.root.atomid.res][tree.root.atomid.atomno
                                          ].root_of_subpath = True
+    print("tree path data", tree_path_data)
+
 
     # now identify all roots of the subpaths; the very shallowest path's depth is depth 0 because
     # python is an index-by-0 language
     root_list = []
     dfs_identify_roots_and_depths(tree.root, 0, tree_path_data, root_list)
     sort_roots_by_depth(root_list)
+    print("tree path data after roots and depths identified:")
+    print(tree_path_data)
+    print("root list")
+    print(root_list)
 
     ordered_roots = create_ordered_root_set(root_list)
 
@@ -183,10 +193,10 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
     Assumption: the desired output tensor of coords is a matrix of [natoms x 3]
     Both input and output values are ordered s.t. the atoms for residue 0 are numbered
     in order from 0..n_0-1, and then the atoms for residue 1 are numbered in order from
-    n_0..n_0+n_1-1, etc. Call this ordering/indexing of the atoms the coallesced ordering'''
+    n_0..n_0+n_1-1, etc. Call this ordering/indexing of the atoms the coalesced ordering'''
 
     natoms = count_atom_tree_natoms( atom_tree )
-    atomid_2_coallesced_ind, coallesced_ind_2_atomid = get_coallesced_ordering( residues )
+    atomid_2_coalesced_ind, coalesced_ind_2_atomid = get_coalesced_ordering( residues )
 
     refold_data = WholeStructureRefoldData( natoms )
     ordered_roots, atom_refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index = \
@@ -194,7 +204,7 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
 
     refold_data.refold_index_2_coalesced_ind, refold_data.coalesced_ind_2_refold_index = \
         get_coalesced_to_refold_mapping( \
-        atomid_2_coallesced_ind, coallesced_ind_2_atomid. atomid_2_refold_index, refold_index_2_atomid )
+        atomid_2_coalesced_ind, coalesced_ind_2_atomid. atomid_2_refold_index, refold_index_2_atomid )
 
     ba2aid, aid2ba, aids_of_eldest_siblings = create_bonded_atoms_with_siblings_order( atom_tree )
     num_bonded_atom_siblings = len(ba2aid)
@@ -564,9 +574,10 @@ def recurse_and_fill_atomtree_path_data(root_atom, tree_path_data):
 
 
 def dfs_identify_roots_and_depths(root_atom, depth, tree_path_data, root_list):
-    rootid = root_atom.atomid
-    tree_path_data[root_id.res][root_id.atomno].depth = depth
+    print( "roots and depths", root_atom.atomid, depth )
+    root_id = root_atom.atomid
     if tree_path_data[root_id.res][root_id.atomno].root_of_subpath:
+        tree_path_data[root_id.res][root_id.atomno].depth = depth
         root_list.append((root_atom.atomid, depth))
         depth += 1
     for child in root_atom.children:
@@ -590,6 +601,7 @@ def create_ordered_root_set(root_list):
 
 
 def renumber_atoms(tree_path_data, ordered_roots):
+    print( tree_path_data )
     natoms = sum([len(x) for x in tree_path_data])
     atomid_2_refold_index = [[natoms] * len(x)
                              for x in tree_path_data]  #natoms is out of bounds
@@ -611,9 +623,10 @@ def renumber_atoms(tree_path_data, ordered_roots):
                 next_atom = child_id
 
     # we should have hit every atom
-    #print( "len(atomid_2_refold_index)", len(atomid_2_refold_index) )
+    print( "len(atomid_2_refold_index)", len(atomid_2_refold_index) )
     for ii in range(len(tree_path_data)):
         for jj in range(len(tree_path_data[ii])):
+            print( ii, jj, atomid_2_refold_index[ii][jj] )
             assert (atomid_2_refold_index[ii][jj] != natoms)
 
     return refold_index_2_atomid, atomid_2_refold_index
