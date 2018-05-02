@@ -1,4 +1,3 @@
-import enum
 import attr
 import numpy
 import torch
@@ -6,7 +5,6 @@ from typing import Optional
 
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
 
 from .datatypes import NodeType, BondDOFs, JumpDOFs, KinTree, DofView
 
@@ -165,8 +163,8 @@ def InvJumpTransforms(Ms: HTArray) -> JumpDOFArray:
 
     dofs = torch.empty([njumpatoms, 9], dtype=torch.double)
 
-    dofs[:,[JumpDOFs.RBx, JumpDOFs.RBy, JumpDOFs.RBz]
-        ] = Ms[:, :3,3] # yapf: disable
+    dofs[:, [JumpDOFs.RBx, JumpDOFs.RBy, JumpDOFs.RBz]
+        ] = Ms[:, :3, 3] # yapf: disable
     dofs[:,
          [JumpDOFs.RBdel_alpha, JumpDOFs.RBdel_beta, JumpDOFs.RBdel_gamma]
         ] = 0 # yapf: disable

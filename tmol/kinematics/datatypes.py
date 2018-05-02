@@ -1,14 +1,12 @@
 import enum
 import torch
-import numpy
 import attr
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 
-from tmol.types.attrs import ValidateAttrs, ConvertAttrs
+from tmol.types.attrs import ConvertAttrs
 from tmol.types.functional import convert_args, validate_args
-from tmol.types.array import NDArray
 
 
 # types of kintree nodes

@@ -11,13 +11,7 @@ import scipy.sparse.csgraph as csgraph
 from tmol.types.array import NDArray
 from tmol.types.functional import convert_args, validate_args
 
-from .datatypes import (
-    NodeType, BondDOFs, JumpDOFs, KinTree, KinTreeNode, DofView
-)
-
-from .operations import (
-    KinTree,
-)
+from .datatypes import (NodeType, KinTree, KinTreeNode)
 
 
 def kintree_root_factory():
@@ -26,6 +20,8 @@ def kintree_root_factory():
     return kintree_root
 
 
+# fd  this returns a numpy data structure and not torch
+#     is that reasonable?
 @validate_args
 def kintree_connections(kintree: KinTree) -> NDArray(int)[:, 2]:
     """Return parent-id <-> child-id pairs for non-root dofs in kintree."""
@@ -33,9 +29,13 @@ def kintree_connections(kintree: KinTree) -> NDArray(int)[:, 2]:
     assert not msk[0], "kintree is not rooted"
 
     child = kintree.id[msk]
-    parent = kintree.id[kintree.parent][msk]
+    parent = kintree.id[kintree.parent.squeeze()][msk]
 
-    return [parent, child]
+    retval = numpy.empty([len(child), 2], dtype=int)
+    retval[:, 0] = child
+    retval[:, 1] = parent
+
+    return retval
 
 
 @attr.s(auto_attribs=True, frozen=True)

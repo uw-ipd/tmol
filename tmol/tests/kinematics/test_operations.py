@@ -6,7 +6,7 @@ import pytest
 
 from tmol.kinematics.operations import (backwardKin, forwardKin, resolveDerivs)
 
-from tmol.kinematics.datatypes import (DofView, NodeType, KinTree)
+from tmol.kinematics.datatypes import (DofView, NodeType, KinTree, KinTreeNode)
 
 
 def score(coords):
@@ -124,31 +124,31 @@ def kintree():
 
     # kinematics definition
     kintree = KinTree.full(NATOMS, 0)
-    kintree[0] = (0, ROOT, 0, 0, 0, 0)
+    kintree[0] = KinTreeNode(0, ROOT, 0, 0, 0, 0)
 
-    kintree[1] = (1, JUMP, 0, 2, 1, 3)
-    kintree[2] = (1, BOND, 1, 2, 1, 3)
-    kintree[3] = (1, BOND, 2, 3, 2, 1)
-    kintree[4] = (1, BOND, 2, 4, 2, 1)
-    kintree[5] = (1, BOND, 4, 5, 4, 2)
+    kintree[1] = KinTreeNode(1, JUMP, 0, 2, 1, 3)
+    kintree[2] = KinTreeNode(1, BOND, 1, 2, 1, 3)
+    kintree[3] = KinTreeNode(1, BOND, 2, 3, 2, 1)
+    kintree[4] = KinTreeNode(1, BOND, 2, 4, 2, 1)
+    kintree[5] = KinTreeNode(1, BOND, 4, 5, 4, 2)
 
-    kintree[6] = (2, JUMP, 1, 7, 6, 8)
-    kintree[7] = (2, BOND, 6, 7, 6, 8)
-    kintree[8] = (2, BOND, 7, 8, 7, 6)
-    kintree[9] = (2, BOND, 7, 9, 7, 6)
-    kintree[10] = (2, BOND, 9, 10, 9, 7)
+    kintree[6] = KinTreeNode(2, JUMP, 1, 7, 6, 8)
+    kintree[7] = KinTreeNode(2, BOND, 6, 7, 6, 8)
+    kintree[8] = KinTreeNode(2, BOND, 7, 8, 7, 6)
+    kintree[9] = KinTreeNode(2, BOND, 7, 9, 7, 6)
+    kintree[10] = KinTreeNode(2, BOND, 9, 10, 9, 7)
 
-    kintree[11] = (3, JUMP, 1, 12, 11, 13)
-    kintree[12] = (3, BOND, 11, 12, 11, 13)
-    kintree[13] = (3, BOND, 12, 13, 12, 11)
-    kintree[14] = (3, BOND, 12, 14, 12, 11)
-    kintree[15] = (3, BOND, 14, 15, 14, 12)
+    kintree[11] = KinTreeNode(3, JUMP, 1, 12, 11, 13)
+    kintree[12] = KinTreeNode(3, BOND, 11, 12, 11, 13)
+    kintree[13] = KinTreeNode(3, BOND, 12, 13, 12, 11)
+    kintree[14] = KinTreeNode(3, BOND, 12, 14, 12, 11)
+    kintree[15] = KinTreeNode(3, BOND, 14, 15, 14, 12)
 
-    kintree[16] = (4, JUMP, 1, 17, 16, 18)
-    kintree[17] = (4, BOND, 16, 17, 16, 18)
-    kintree[18] = (4, BOND, 17, 18, 17, 16)
-    kintree[19] = (4, BOND, 17, 19, 17, 16)
-    kintree[20] = (4, BOND, 19, 20, 19, 17)
+    kintree[16] = KinTreeNode(4, JUMP, 1, 17, 16, 18)
+    kintree[17] = KinTreeNode(4, BOND, 16, 17, 16, 18)
+    kintree[18] = KinTreeNode(4, BOND, 17, 18, 17, 16)
+    kintree[19] = KinTreeNode(4, BOND, 17, 19, 17, 16)
+    kintree[20] = KinTreeNode(4, BOND, 19, 20, 19, 17)
 
     return kintree
 
@@ -211,7 +211,8 @@ def test_perturb(kintree, coords):
     # Translate jump dof
     #fd: with single precision 1e-7 is too strict
     t_dofs = dofs.clone()
-    t_dofs.jumpDofView()[6, :3] += torch.tensor([0.2, 0.2, 0.2])
+    t_dofs.jumpDofView()[6, :3] += torch.tensor([0.2, 0.2, 0.2],
+                                                dtype=torch.double)
     pcoords = forwardKin(kintree, t_dofs).coords
 
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
@@ -224,7 +225,8 @@ def test_perturb(kintree, coords):
     numpy.testing.assert_allclose(
         rd_dofs.jumpDofView()[6, 3:6], [0, 0, 0], atol=1e-6
     )
-    rd_dofs.jumpDofView()[6, 3:6] += torch.tensor([0.1, 0.2, 0.3])
+    rd_dofs.jumpDofView()[6, 3:6] += torch.tensor([0.1, 0.2, 0.3],
+                                                  dtype=torch.double)
     pcoords = forwardKin(kintree, rd_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
@@ -236,7 +238,8 @@ def test_perturb(kintree, coords):
 
     # Rotate jump dof
     r_dofs = dofs.clone()
-    r_dofs.jumpDofView()[6, 6:9] += torch.tensor([0.1, 0.2, 0.3])
+    r_dofs.jumpDofView()[6, 6:9] += torch.tensor([0.1, 0.2, 0.3],
+                                                 dtype=torch.double)
     pcoords = forwardKin(kintree, r_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
