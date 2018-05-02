@@ -1,7 +1,4 @@
-from .datatypes import (
-    DOFType,
-    kintree_node_dtype,
-)
+from .datatypes import (NodeType, BondDOFs, JumpDOFs, KinTree, DofView)
 
 from .operations import (
     backwardKin,
@@ -9,4 +6,7 @@ from .operations import (
     resolveDerivs,
 )
 
-__all__ = [DOFType, kintree_node_dtype, backwardKin, forwardKin, resolveDerivs]
+__all__ = [
+    NodeType, BondDOFs, JumpDOFs, KinTree, DofView, backwardKin, forwardKin,
+    resolveDerivs
+]

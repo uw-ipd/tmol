@@ -11,10 +11,7 @@ import scipy.sparse.csgraph as csgraph
 from tmol.types.array import NDArray
 from tmol.types.functional import convert_args, validate_args
 
-from .datatypes import (
-    kintree_node_dtype,
-    DOFType,
-)
+from .datatypes import (NodeType, BondDOFs, JumpDOFs, KinTree, DofView)
 
 from .operations import (
     KinTree,
