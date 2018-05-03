@@ -6,7 +6,7 @@ from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 
 from tmol.types.attrs import ConvertAttrs
-from tmol.types.functional import convert_args, validate_args
+from tmol.types.functional import convert_args
 
 
 # types of kintree nodes
@@ -36,95 +36,37 @@ class JumpDOFs(enum.IntEnum):
     RBgamma = enum.auto()
 
 
-# a numpy "slice" of the kinematic tree
-class KinTreeNode:
-    @convert_args
-    def __init__(
-            self,
-            id: int = 0,
-            doftype: int = NodeType.root,
-            parent: int = 0,
-            frame_x: int = 0,
-            frame_y: int = 0,
-            frame_z: int = 0
-    ):
-        self.id = id
-        self.doftype = doftype
-        self.parent = parent
-        self.frame_x = frame_x
-        self.frame_y = frame_y
-        self.frame_z = frame_z
-
-
 # a representation of the atom-level kinematics
 # stacked torch tensors
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class KinTree(TensorGroup, ConvertAttrs):
-    #fd: alex, these are all 1xN tensors.
-    #    this requires .squeeze() operations throughout the code
-    #    is there a better way to do this?
-    id: Tensor(torch.long)[:, 1]  # used as an index so long
-    doftype: Tensor(torch.int)[:, 1]
-    parent: Tensor(torch.long)[:, 1]  # used as an index so long
-    frame: Tensor(torch.long)[:, 3]  # used as an index so long
 
-    # fd: right now this is really dumb, there is probably a better way...
-    # get a horizontal slice of 6 elts
-    @validate_args
-    def __getitem__(self, idx) -> KinTreeNode:
-        return KinTreeNode(
-            self.id[idx].item(), self.doftype[idx].item(),
-            self.parent[idx].item(), self.frame[idx, 0].item(),
-            self.frame[idx, 1].item(), self.frame[idx, 2].item()
-        )
-
-    # set a horizontal slice
-    @validate_args
-    def __setitem__(self, idx, values: KinTreeNode):
-        self.id[idx, 0] = values.id
-        self.doftype[idx, 0] = int(values.doftype)
-        self.parent[idx, 0] = int(values.parent)
-        self.frame[idx, 0] = int(values.frame_x)
-        self.frame[idx, 1] = int(values.frame_y)
-        self.frame[idx, 2] = int(values.frame_z)
-
-    def __len__(self):
-        return self.id.shape[0]
-
-    # set vertical slices
-    def set_ids(self, ids):
-        self.id[:, 0] = torch.tensor(ids, dtype=torch.long)
-
-    def set_doftypes(self, doftypes):
-        self.doftype[:, 0] = torch.tensor(doftypes, dtype=torch.int)
-
-    def set_parents(self, parents):
-        self.parent[:, 0] = torch.tensor(parents, dtype=torch.long)
-
-    def set_frameX(self, frameX):
-        self.frame[:, 0] = torch.tensor(frameX, dtype=torch.long)
-
-    def set_frameY(self, frameY):
-        self.frame[:, 1] = torch.tensor(frameY, dtype=torch.long)
-
-    def set_frameZ(self, frameZ):
-        self.frame[:, 2] = torch.tensor(frameZ, dtype=torch.long)
-
-    def concatenate(self, other):
-        return KinTree(
-            id=torch.cat((self.id, other.id), 0),
-            doftype=torch.cat((self.doftype, other.doftype), 0),
-            parent=torch.cat((self.parent, other.parent), 0),
-            frame=torch.cat((self.frame, other.frame), 0),
-        )
+    id: Tensor(torch.long)[...]  # used as an index so long
+    doftype: Tensor(torch.int)[...]
+    parent: Tensor(torch.long)[...]  # used as an index so long
+    frame_x: Tensor(torch.long)[...]
+    frame_y: Tensor(torch.long)[...]
+    frame_z: Tensor(torch.long)[...]
 
     @classmethod
-    def full(cls, nelts, fill_value):
+    @convert_args
+    def node(
+            cls,
+            id: int,
+            doftype: NodeType,
+            parent: int,
+            frame_x: int,
+            frame_y: int,
+            frame_z: int,
+    ):
+        """Construct a single node from element values."""
         return cls(
-            id=torch.full((nelts, 1), fill_value),
-            doftype=torch.full((nelts, 1), fill_value),
-            parent=torch.full((nelts, 1), fill_value),
-            frame=torch.full((nelts, 3), fill_value),
+            id=torch.Tensor([id]),
+            doftype=torch.Tensor([doftype]),
+            parent=torch.Tensor([parent]),
+            frame_x=torch.Tensor([frame_x]),
+            frame_y=torch.Tensor([frame_y]),
+            frame_z=torch.Tensor([frame_z]),
         )
 
 

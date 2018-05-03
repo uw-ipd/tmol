@@ -439,9 +439,9 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     HTs[0] = torch.eye(4)
     HTs_from_frames(
         coords[1:],
-        coords[kintree.frame[1:, 0], :],
-        coords[kintree.frame[1:, 1], :],
-        coords[kintree.frame[1:, 2], :],
+        coords[kintree.frame_x[1:], :],
+        coords[kintree.frame_y[1:], :],
+        coords[kintree.frame_z[1:], :],
         out=HTs[1:],
     )
 

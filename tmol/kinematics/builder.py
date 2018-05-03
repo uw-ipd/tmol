@@ -3,20 +3,22 @@ from typing import Optional, Tuple, Union
 import attr
 from toolz import first
 
+import torch
 import numpy
 import pandas
 import scipy.sparse as sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 from tmol.types.functional import convert_args, validate_args
+from tmol.types.tensor import cat
 
-from .datatypes import (NodeType, KinTree, KinTreeNode)
+from .datatypes import (NodeType, KinTree)
 
 
 def kintree_root_factory():
-    kintree_root = KinTree.full(1, 0)
-    kintree_root[0] = KinTreeNode(-1, NodeType.root, 0, 0, 0, 0)
+    kintree_root = KinTree.node(-1, NodeType.root, 0, 0, 0, 0)
     return kintree_root
 
 
@@ -91,8 +93,8 @@ class KinematicBuilder:
     @convert_args
     def append_connected_component(
             self,
-            ids: NDArray(int)[:],
-            parent_ids: NDArray(int)[:],
+            ids: Tensor(int)[:],
+            parent_ids: Tensor(int)[:],
             component_parent=0,
     ):
         assert ids.shape == parent_ids.shape, "elements and parents must be of same length"
@@ -106,11 +108,10 @@ class KinematicBuilder:
         # the component root frame.
         parent_ids[0] = ids[0]
 
-        pandas.Index
         # Create an index of all component ids in the graph and get component
         # parent and parent-parent indices
         id_index = pandas.Index(ids)
-        parent_indices = id_index.get_indexer(parent_ids)
+        parent_indices = torch.LongTensor(id_index.get_indexer(parent_ids))
         grandparent_indices = parent_indices[parent_indices]
 
         # Verify that ids are unique and that all parent references are valid,
@@ -123,7 +124,7 @@ class KinematicBuilder:
         # the kintree id column. All internal kintree references,
         # (parent/frame) will be wrt kinetree indices, not ids.
         kin_stree = KinTree.full(len(ids), 0)
-        kin_stree.set_ids(ids)
+        kin_stree.id[:] = ids
 
         # Calculate the start index of the kinematic tree block this new
         # subtree will occupy, construct all parent & frame references wrt this
@@ -131,11 +132,11 @@ class KinematicBuilder:
         kin_start = len(self.kintree)
 
         # Start by writing the the standard, non-root entries of the graph.
-        kin_stree.set_doftypes(NodeType.bond)
-        kin_stree.set_parents(parent_indices + kin_start)
-        kin_stree.set_frameX(numpy.arange(len(ids)) + kin_start)  # self
-        kin_stree.set_frameY(parent_indices + kin_start)
-        kin_stree.set_frameZ(grandparent_indices + kin_start)
+        kin_stree.doftype[:] = NodeType.bond
+        kin_stree.parent[:] = parent_indices + kin_start
+        kin_stree.frame_x[:] = torch.arange(len(ids)) + kin_start
+        kin_stree.frame_y[:] = parent_indices + kin_start
+        kin_stree.frame_z[:] = grandparent_indices + kin_start
 
         # Go back and rewrite the entries for the root and its children
         # Define the jump DOF of the root, connecting back into existing kintree
@@ -144,38 +145,23 @@ class KinematicBuilder:
 
         # Fixup the orientation frame frame of the root and its children.
         # The rootis self-parented at zero, so drop the first match.
-        _, *root_children = numpy.flatnonzero(parent_indices == 0)
+        root, *root_children = [
+            int(i) for i in torch.nonzero(parent_indices == 0)
+        ]
         assert len(
             root_children
         ) >= 2, "root of bonded tree must have two children"
-        assert _ == 0, "root must be self parented, was set above"
+        assert root == 0, "root must be self parented, was set above"
         root_c1, *root_sibs = root_children
+        root_sibs = torch.LongTensor(root_sibs)
 
-        print(parent_indices)
+        kin_stree.frame_x[[root, root_c1]] = root_c1 + kin_start
+        kin_stree.frame_y[[root, root_c1]] = root + kin_start
+        kin_stree.frame_z[[root, root_c1]] = first(root_sibs) + kin_start
 
-        # fd: Alex, I'm not 100% sure of the logic here
-        # shouldn't the root also be set
-        #   (previously the frame was (1,1,1) which is wrong)
-        componentRoot = kin_stree[0]
-        componentRoot.frame_x = root_c1 + kin_start
-        componentRoot.frame_y = 0 + kin_start
-        componentRoot.frame_z = first(root_sibs) + kin_start
-        kin_stree[0] = componentRoot
-
-        firstChild = kin_stree[root_c1]
-        firstChild.frame_x = root_c1 + kin_start
-        firstChild.frame_y = 0 + kin_start
-        firstChild.frame_z = first(root_sibs) + kin_start
-        kin_stree[root_c1] = firstChild
-
-        for sib in root_sibs:
-            subseqChild = kin_stree[sib]
-            subseqChild.frame_x = sib + kin_start
-            subseqChild.frame_y = 0 + kin_start
-            subseqChild.frame_z = root_c1 + kin_start
-            kin_stree[sib] = subseqChild
-
-        print(kin_stree)
+        kin_stree.frame_x[root_sibs] = root_sibs + kin_start
+        kin_stree.frame_y[root_sibs] = root + kin_start
+        kin_stree.frame_z[root_sibs] = root_c1 + kin_start
 
         # Append the subtree onto the kintree.
-        return attr.evolve(self, kintree=self.kintree.concatenate(kin_stree))
+        return attr.evolve(self, kintree=cat((self.kintree, kin_stree)))
