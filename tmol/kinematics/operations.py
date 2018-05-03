@@ -452,7 +452,7 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     )
 
     # 3) dofs
-    dofs = KinDOF.full(natoms, 0.0)
+    dofs = KinDOF.full(natoms, numpy.nan)
 
     bondSelector = kintree.doftype == NodeType.bond
     dofs.bond[bondSelector] = InvBondTransforms(localHTs[bondSelector])
