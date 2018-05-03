@@ -80,6 +80,7 @@ class WholeStructureRefoldData:
     is_root_working: numpy.array = None
     parents: numpy.array = None
     hts: numpy.matrix = None
+    ht_temps: numpy.matrix = None
     atom_range_for_depth: typing.List[typing.Tuple[int, int]] = None
     natoms_at_depth: typing.List[int] = None
     lookback_inds: numpy.array = None
@@ -212,6 +213,7 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
 
     refold_data.hts = numpy.zeros( (natoms+1, 4, 4 ) )
     refold_data.hts[natoms] = numpy.eye(4)
+    refold_data.ht_temps = refold_data.hts.copy()
     refold_data.dofs = numpy.zeros( (natoms, 9) )
     refold_data.bonded_atoms = numpy.fromiter((not atom_tree.atom_pointer_list[id.res][id.atomno].is_jump for id in refold_index_2_atomid ), dtype=bool)
     refold_data.bonded_atoms_pad = numpy.full((natoms+1), False, dtype=bool)
@@ -348,8 +350,10 @@ def cpu_htrefold_1(
             #print( "theta_ht:" ); print( theta_ht );
             #print( "d_ht:" ); print( d_ht );
 
-        print( ii, "ht"); print( ht )
+        print( ii, "ht before"); print( ht )
+        print( ii, "parent ht"); print( parent_ht )
         hts[ii] = parent_ht * ht
+        print( ii, "ht after"); print( ht )
 
     #print( "len(atomid_2_refold_index)", len(atomid_2_refold_index) )
     for ii, res in enumerate(residues):
@@ -365,6 +369,7 @@ def cpu_htrefold_2( dofs, refold_data, coords ):
 
     natoms = refold_data.natoms
     hts = refold_data.hts
+    ht_temps = refold_data.ht_temps
     compute_hts_for_bonded_atoms( dofs, refold_data )
     compute_hts_for_jump_atoms( refold_data )
 
@@ -375,16 +380,25 @@ def cpu_htrefold_2( dofs, refold_data, coords ):
 
     for ii, iirange in enumerate( refold_data.atom_range_for_depth ) :
         ii_view_ht = hts[iirange[0]:iirange[1]]
+        ii_view_ht_temp = ht_temps[iirange[0]:iirange[1]]
         ii_parent = refold_data.parents[iirange[0]:iirange[1]]
         ii_is_root = refold_data.is_root_working[iirange[0]:iirange[1]]
         # initialize with my parent's transform multiplied by my transform from my parent
-        ii_view_ht[:] = numpy.matmul(hts[ii_parent],ii_view_ht)
+        print( ii, "ii_parent" ); print( ii_parent )
+        print( "iirange" ); print( iirange )
+        ii_view_ht_temp[:] = numpy.matmul(hts[ii_parent],ii_view_ht)
+        ii_view_ht[:] = ii_view_ht_temp
         ii_ind = refold_data.lookback_inds[:refold_data.natoms_at_depth[ii]]
         offset = 1
+        print("int(numpy.ceil(numpy.log2(ii_view_ht.shape[0])))", int(numpy.ceil(numpy.log2(ii_view_ht.shape[0]))) )
         for jj in range(int(numpy.ceil(numpy.log2(ii_view_ht.shape[0])))):
-            print( ii, jj )
-            print( ii_view_ht )
-            ii_view_ht[(ii_ind >= offset) & (~ii_is_root) ] = numpy.matmul( ii_view_ht[ (ii_ind >= offset) & (~ii_is_root) ], ii_view_ht[ ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset ] )
+            print( "ii, jj", ii, jj )
+            print( "ii_view_ht" ); print( ii_view_ht )
+            print( "(ii_ind >= offset) & (~ii_is_root)" ); print( (ii_ind >= offset) & (~ii_is_root)  )
+            print( "ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset" ); print( ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset )
+            ii_view_ht_temp[(ii_ind >= offset) & (~ii_is_root) ] = numpy.matmul( ii_view_ht[ ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset ], ii_view_ht[ (ii_ind >= offset) & (~ii_is_root) ] )
+            print( "ii_view_ht_temp" ); print( ii_view_ht_temp )
+            ii_view_ht[:] = ii_view_ht_temp
             ii_is_root[ii_ind >= offset] |= ii_is_root[ii_ind[ii_ind >= offset] - offset]
 
     print( "hts final"); print( hts )
@@ -622,10 +636,19 @@ def recurse_and_fill_atomtree_path_data(root_atom, tree_path_data):
 
 def dfs_identify_roots_and_depths(root_atom, depth, tree_path_data, root_list):
     root_id = root_atom.atomid
-    if tree_path_data[root_id.res][root_id.atomno].root_of_subpath:
-        tree_path_data[root_id.res][root_id.atomno].depth = depth
+    root_path_data = tree_path_data[root_id.res][root_id.atomno]
+    if root_path_data.root_of_subpath:
+        root_path_data.depth = depth
         root_list.append((root_atom.atomid, depth))
         depth += 1
+
+    print("root_path_data",root_path_data)
+
+    # assign my depth to my child that's on the path, if I have one
+    path_child_id = root_path_data.child_on_subpath
+    if path_child_id.res != -1 :
+        tree_path_data[ path_child_id.res ][ path_child_id.atomno ].depth = root_path_data.depth
+
     for child in root_atom.children:
         dfs_identify_roots_and_depths(child, depth, tree_path_data, root_list)
 
@@ -738,6 +761,7 @@ def fill_atom_refold_data(
                     parent_id.atomno
                 ]
         ii_data.depth = tree_path_data[iiid.res][iiid.atomno].depth
+        print( ii, "ii_data", ii_data )
         refold_data[ii] = ii_data
         #if ii == 0 :
         #    print( "root refold data:", ii_data, iinode.phi, iinode.theta, iinode.d )
