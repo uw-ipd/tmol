@@ -16,26 +16,6 @@ class NodeType(enum.IntEnum):
     bond = enum.auto()
 
 
-# convenience indexing methods
-class BondDOFs(enum.IntEnum):
-    phi_p = 0
-    theta = enum.auto()
-    d = enum.auto()
-    phi_c = enum.auto()
-
-
-class JumpDOFs(enum.IntEnum):
-    RBx = 0
-    RBy = enum.auto()
-    RBz = enum.auto()
-    RBdel_alpha = enum.auto()
-    RBdel_beta = enum.auto()
-    RBdel_gamma = enum.auto()
-    RBalpha = enum.auto()
-    RBbeta = enum.auto()
-    RBgamma = enum.auto()
-
-
 # a representation of the atom-level kinematics
 # stacked torch tensors
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -72,27 +52,99 @@ class KinTree(TensorGroup, ConvertAttrs):
 
 # data structure describing internal coordinates
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class DofView(TensorGroup, ConvertAttrs):
-    dofs: Tensor(torch.double)[:, 9]
+class KinDOF(TensorGroup, ConvertAttrs):
+    raw: Tensor(torch.double)[..., 9]
 
-    def __setitem__(self, idx, value):
-        self.dofs[idx] = value.dofs[idx]
+    @property
+    def bond(self):
+        return BondDOF(raw=self.raw[..., :4])
 
-    def __len__(self):
-        return self.dofs.shape[0]
-
-    def bondDofView(self):
-        return self.dofs[:, :4]
-
-    def jumpDofView(self):
-        return self.dofs
-
-    def rawDofView(self):
-        return self.dofs
+    @property
+    def jump(self):
+        return JumpDOF(raw=self.raw[..., :9])
 
     def clone(self):
-        return DofView(dofs=self.dofs.clone())
+        return KinDOF(raw=self.raw.clone())
 
-    @classmethod
-    def full(cls, nelts, fill_value):
-        return cls(dofs=torch.full((nelts, 9), fill_value), )
+
+class BondDOFTypes(enum.IntEnum):
+    phi_p = 0
+    theta = enum.auto()
+    d = enum.auto()
+    phi_c = enum.auto()
+
+
+class JumpDOFTypes(enum.IntEnum):
+    RBx = 0
+    RBy = enum.auto()
+    RBz = enum.auto()
+    RBdel_alpha = enum.auto()
+    RBdel_beta = enum.auto()
+    RBdel_gamma = enum.auto()
+    RBalpha = enum.auto()
+    RBbeta = enum.auto()
+    RBgamma = enum.auto()
+
+
+# data structure describing internal coordinates
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class BondDOF(TensorGroup, ConvertAttrs):
+    raw: Tensor(torch.double)[..., 4]
+
+    @property
+    def phi_p(self):
+        return self.raw[..., BondDOFTypes.phi_p]
+
+    @property
+    def theta(self):
+        return self.raw[..., BondDOFTypes.theta]
+
+    @property
+    def d(self):
+        return self.raw[..., BondDOFTypes.d]
+
+    @property
+    def phi_c(self):
+        return self.raw[..., BondDOFTypes.phi_c]
+
+
+# data structure describing internal coordinates
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class JumpDOF(TensorGroup, ConvertAttrs):
+    raw: Tensor(torch.double)[..., 9]
+
+    @property
+    def RBx(self):
+        return self.raw[..., JumpDOFTypes.RBx]
+
+    @property
+    def RBy(self):
+        return self.raw[..., JumpDOFTypes.RBy]
+
+    @property
+    def RBz(self):
+        return self.raw[..., JumpDOFTypes.RBz]
+
+    @property
+    def RBdel_alpha(self):
+        return self.raw[..., JumpDOFTypes.RBdel_alpha]
+
+    @property
+    def RBdel_beta(self):
+        return self.raw[..., JumpDOFTypes.RBdel_beta]
+
+    @property
+    def RBdel_gamma(self):
+        return self.raw[..., JumpDOFTypes.RBdel_gamma]
+
+    @property
+    def RBalpha(self):
+        return self.raw[..., JumpDOFTypes.RBalpha]
+
+    @property
+    def RBbeta(self):
+        return self.raw[..., JumpDOFTypes.RBbeta]
+
+    @property
+    def RBgamma(self):
+        return self.raw[..., JumpDOFTypes.RBgamma]

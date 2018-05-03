@@ -6,7 +6,7 @@ import pytest
 
 from tmol.kinematics.operations import (backwardKin, forwardKin, resolveDerivs)
 
-from tmol.kinematics.datatypes import (DofView, NodeType, KinTree)
+from tmol.kinematics.datatypes import (KinDOF, NodeType, KinTree)
 
 
 def score(coords):
@@ -211,8 +211,9 @@ def test_perturb(kintree, coords):
     # Translate jump dof
     #fd: with single precision 1e-7 is too strict
     t_dofs = dofs.clone()
-    t_dofs.jumpDofView()[6, :3] += torch.tensor([0.2, 0.2, 0.2],
-                                                dtype=torch.double)
+    t_dofs.jump.RBx[6] += 0.2
+    t_dofs.jump.RBy[6] += 0.2
+    t_dofs.jump.RBz[6] += 0.2
     pcoords = forwardKin(kintree, t_dofs).coords
 
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
@@ -222,11 +223,15 @@ def test_perturb(kintree, coords):
 
     # Rotate jump dof "delta"
     rd_dofs = dofs.clone()
-    numpy.testing.assert_allclose(
-        rd_dofs.jumpDofView()[6, 3:6], [0, 0, 0], atol=1e-6
-    )
-    rd_dofs.jumpDofView()[6, 3:6] += torch.tensor([0.1, 0.2, 0.3],
-                                                  dtype=torch.double)
+
+    assert rd_dofs.jump.RBdel_alpha[6] == 0
+    assert rd_dofs.jump.RBdel_beta[6] == 0
+    assert rd_dofs.jump.RBdel_gamma[6] == 0
+
+    rd_dofs.jump.RBdel_alpha[6] += 0.1
+    rd_dofs.jump.RBdel_beta[6] += 0.2
+    rd_dofs.jump.RBdel_gamma[6] += 0.3
+
     pcoords = forwardKin(kintree, rd_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
@@ -238,8 +243,10 @@ def test_perturb(kintree, coords):
 
     # Rotate jump dof
     r_dofs = dofs.clone()
-    r_dofs.jumpDofView()[6, 6:9] += torch.tensor([0.1, 0.2, 0.3],
-                                                 dtype=torch.double)
+
+    r_dofs.jump.RBalpha[6] += 0.1
+    r_dofs.jump.RBbeta[6] += 0.2
+    r_dofs.jump.RBgamma[6] += 0.3
     pcoords = forwardKin(kintree, r_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
@@ -276,13 +283,11 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
     # * numeric v analytic comparison is still at 1e-7 so these changes
     #     are likely due to changes in the "dummy score"
     numpy.testing.assert_allclose(
-        dsc_dtors_analytic.rawDofView()[1:],
-        expected_analytic_derivs[1:],
-        atol=1e-4
+        dsc_dtors_analytic.raw[1:], expected_analytic_derivs[1:], atol=1e-4
     )
 
     # Compute numeric derivs
-    dsc_dtors_numeric = DofView.full(len(dofs), 0)
+    dsc_dtors_numeric = KinDOF.full(len(dofs), 0)
     for i in numpy.arange(0, NATOMS):
         if kintree.doftype[i] == NodeType.bond:
             ndof = 4
@@ -294,35 +299,35 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
             raise NotImplementedError
 
         for j in range(ndof):
-            dofs.rawDofView()[i, j] += 0.0001
+            dofs.raw[i, j] += 0.0001
             coordsAlt = forwardKin(kintree, dofs).coords
             sc_p = score(coordsAlt[1:, :])
-            dofs.rawDofView()[i, j] -= 0.0002
+            dofs.raw[i, j] -= 0.0002
             coordsAlt = forwardKin(kintree, dofs).coords
             sc_m = score(coordsAlt[1:, :])
-            dofs.rawDofView()[i, j] += 0.0001
+            dofs.raw[i, j] += 0.0001
 
-            dsc_dtors_numeric.rawDofView()[i, j] = (sc_p - sc_m) / 0.0002
+            dsc_dtors_numeric.raw[i, j] = (sc_p - sc_m) / 0.0002
 
     # Verify numeric/analytic derivatives
     aderiv = dsc_dtors_analytic
     nderiv = dsc_dtors_numeric
 
-    print(aderiv.jumpDofView()[jumps])
-    print(nderiv.jumpDofView()[jumps])
+    print(aderiv.jump.raw[jumps])
+    print(nderiv.jump.raw[jumps])
 
     numpy.testing.assert_allclose(
-        aderiv.jumpDofView()[jumps], nderiv.jumpDofView()[jumps], atol=1e-7
+        aderiv.jump.raw[jumps], nderiv.jump.raw[jumps], atol=1e-7
     )
 
     numpy.testing.assert_allclose(
-        aderiv.bondDofView()[bonds_after_bond],
-        nderiv.bondDofView()[bonds_after_bond],
+        aderiv.bond.raw[bonds_after_bond],
+        nderiv.bond.raw[bonds_after_bond],
         atol=1e-7
     )
 
     numpy.testing.assert_allclose(
-        aderiv.bondDofView()[bonds_after_jump],
-        nderiv.bondDofView()[bonds_after_jump],
+        aderiv.bond.raw[bonds_after_jump],
+        nderiv.bond.raw[bonds_after_jump],
         atol=1e-7
     )
