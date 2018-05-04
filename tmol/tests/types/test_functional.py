@@ -313,12 +313,14 @@ convert_examples = [
     {
         "func": union_cfunc,
         "valid": [
-            f(1),
             f(None),
+            f(1),
+            f(1.1),
+            f('1'),
         ],
         "invalid": [
             f(),
-            f(1.1),
+            f(numpy.nan),
             f("one"),
             f(1, 2),
             f(None, 2),
