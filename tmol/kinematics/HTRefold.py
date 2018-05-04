@@ -389,6 +389,7 @@ def cpu_htrefold_2( dofs, refold_data, coords ):
         ii_view_ht_temp[:] = numpy.matmul(hts[ii_parent],ii_view_ht)
         ii_view_ht[:] = ii_view_ht_temp
         ii_ind = refold_data.lookback_inds[:refold_data.natoms_at_depth[ii]]
+        print("ii_ind"); print( ii_ind )
         offset = 1
         print("int(numpy.ceil(numpy.log2(ii_view_ht.shape[0])))", int(numpy.ceil(numpy.log2(ii_view_ht.shape[0]))) )
         for jj in range(int(numpy.ceil(numpy.log2(ii_view_ht.shape[0])))):
@@ -400,6 +401,7 @@ def cpu_htrefold_2( dofs, refold_data, coords ):
             print( "ii_view_ht_temp" ); print( ii_view_ht_temp )
             ii_view_ht[:] = ii_view_ht_temp
             ii_is_root[ii_ind >= offset] |= ii_is_root[ii_ind[ii_ind >= offset] - offset]
+            offset *= 2
 
     print( "hts final"); print( hts )
     coords[:] = hts[refold_data.coalesced_ind_2_refold_index,0:3,3]
