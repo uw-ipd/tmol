@@ -17,32 +17,39 @@ from tmol.types.tensor import cat
 from .datatypes import (NodeType, KinTree)
 
 
-def kintree_root_factory():
-    kintree_root = KinTree.node(-1, NodeType.root, 0, 0, 0, 0)
-    return kintree_root
-
-
-# fd  this returns a numpy data structure and not torch
-#     is that reasonable?
-@validate_args
-def kintree_connections(kintree: KinTree) -> NDArray(int)[:, 2]:
-    """Return parent-id <-> child-id pairs for non-root dofs in kintree."""
-    msk = kintree.doftype != NodeType.root
-    assert not msk[0], "kintree is not rooted"
-
-    child = kintree.id[msk]
-    parent = kintree.id[kintree.parent.squeeze()][msk]
-
-    retval = numpy.empty([len(child), 2], dtype=int)
-    retval[:, 0] = child
-    retval[:, 1] = parent
-
-    return retval
-
-
 @attr.s(auto_attribs=True, frozen=True)
 class KinematicBuilder:
-    kintree: KinTree = attr.Factory(kintree_root_factory)
+    kintree: KinTree = attr.Factory(KinTree.root_node)
+
+    @classmethod
+    @convert_args
+    def component_for_prioritized_bonds(
+            cls,
+            root: int,
+            mandatory_bonds: NDArray(int)[:, 2],
+            all_bonds: NDArray(int)[:, 2],
+    ):
+        system_size = max(mandatory_bonds.max(), all_bonds.max()) + 1
+
+        weighted_bonds = (
+            # All entries must be non-zero or sparse graph tools will entries.
+            cls.bond_csgraph(all_bonds, [-1], system_size) +
+            cls.bond_csgraph(mandatory_bonds, [-1e-5], system_size)
+        )
+
+        ids, parents = cls.bonds_to_connected_component(root, weighted_bonds)
+
+        # Verify construction
+        component_bond_graph = cls.bond_csgraph(
+            numpy.block([[parents[1:], ids[1:]], [ids[1:], parents[1:]]]).T
+        )
+        bond_present = component_bond_graph[mandatory_bonds[:, 0],
+                                            mandatory_bonds[:, 1]]
+        assert numpy.all(bond_present), (
+            "Unable to generate component containing all mandatory bonds."
+        )
+
+        return ids, parents
 
     @classmethod
     @convert_args

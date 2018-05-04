@@ -49,6 +49,17 @@ class KinTree(TensorGroup, ConvertAttrs):
             frame_z=torch.Tensor([frame_z]),
         )
 
+    @classmethod
+    def root_node(cls):
+        return cls.node(
+            id=-1,
+            doftype=NodeType.root,
+            parent=0,
+            frame_x=0,
+            frame_y=0,
+            frame_z=0,
+        )
+
 
 # data structure describing internal coordinates
 @attr.s(auto_attribs=True, slots=True, frozen=True)
