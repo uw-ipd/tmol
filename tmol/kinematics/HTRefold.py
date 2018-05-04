@@ -251,7 +251,10 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
     refold_data.Rglobal = numpy.zeros((num_jump_atoms,4,4))
 
     refold_data.is_root = numpy.full( (natoms+1), False, dtype=bool )
+    refold_data.is_root[:natoms] = numpy.fromiter((atdat.parent_index != -1 for atdat in atom_refold_data), dtype=bool)
+    refold_data.is_root[0] = True
     refold_data.is_root_working = numpy.full( (natoms+1), False, dtype=bool )
+    
     refold_data.parents = numpy.full( (natoms+1), natoms, dtype=int )
     refold_data.parents[:natoms] = numpy.fromiter(((ard.parent_index if ard.parent_index != -1 else natoms) for ard in atom_refold_data), dtype=int)
     refold_data.atom_range_for_depth = determine_atom_ranges_for_depths(atom_refold_data)
@@ -377,6 +380,7 @@ def cpu_htrefold_2( dofs, refold_data, coords ):
     print("hts"); print(refold_data.hts)
 
     refold_data.is_root_working[:] = refold_data.is_root # in-place copy
+    print("refold_data.is_root"); print(refold_data.is_root)
 
     for ii, iirange in enumerate( refold_data.atom_range_for_depth ) :
         ii_view_ht = hts[iirange[0]:iirange[1]]
@@ -395,6 +399,7 @@ def cpu_htrefold_2( dofs, refold_data, coords ):
         for jj in range(int(numpy.ceil(numpy.log2(ii_view_ht.shape[0])))):
             print( "ii, jj", ii, jj )
             print( "ii_view_ht" ); print( ii_view_ht )
+            print( "ii_is_root" ); print(ii_is_root)
             print( "(ii_ind >= offset) & (~ii_is_root)" ); print( (ii_ind >= offset) & (~ii_is_root)  )
             print( "ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset" ); print( ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset )
             ii_view_ht_temp[(ii_ind >= offset) & (~ii_is_root) ] = numpy.matmul( ii_view_ht[ ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset ], ii_view_ht[ (ii_ind >= offset) & (~ii_is_root) ] )
