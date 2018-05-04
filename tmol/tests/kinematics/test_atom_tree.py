@@ -816,10 +816,15 @@ class TestAtomTree(unittest.TestCase):
                         dofs[count,i+6] = at.rot[i]
                 count += 1
         coords_out = numpy.zeros( (refold_data.natoms,3))
+        print("dofs");print(dofs)
         htrefold.cpu_htrefold_2( dofs, refold_data, coords_out )
+        print("coords_out");print(coords_out)
 
+        count = 0
         for res_ptrs in tree.atom_pointer_list:
             for at in res_ptrs :
+                print(coords_out[count,:],"vs",at.xyz)
                 self.assertAlmostEqual(
-                    numpy.linalg.norm(coords_out[ii,:] - at.xyz), 0
+                    numpy.linalg.norm(coords_out[count,:] - at.xyz), 0
                     )
+                count += 1
