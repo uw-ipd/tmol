@@ -6,14 +6,10 @@ from typing import Optional
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 
-from .datatypes import NodeType, BondDOFs, JumpDOFs, KinTree, DofView
+from .datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
 
 HTArray = Tensor(torch.double)[:, 4, 4]
 CoordArray = Tensor(torch.double)[:, 3]
-JumpDOFArray = Tensor(torch.double)[:, 9]
-BondDOFArray = Tensor(torch.double)[:, 4]
-
-# fd: alex, should this live elsewhere?
 EPS = 1e-6
 
 
@@ -87,7 +83,7 @@ def Fscollect(
 
 
 @validate_args
-def JumpTransforms(dofs: JumpDOFArray) -> HTArray:
+def JumpTransforms(dofs: JumpDOF) -> HTArray:
     """JUMP dofs -> HTs
 
     jump dofs are _9_ parameters:
@@ -96,14 +92,14 @@ def JumpTransforms(dofs: JumpDOFArray) -> HTArray:
      - 3 rotational
     Only the rotational deltas are exposed to minimization
     """
-    natoms = dofs.shape[0]
+    natoms, = dofs.shape
 
-    si = torch.sin(dofs[:, JumpDOFs.RBdel_alpha])
-    sj = torch.sin(dofs[:, JumpDOFs.RBdel_beta])
-    sk = torch.sin(dofs[:, JumpDOFs.RBdel_gamma])
-    ci = torch.cos(dofs[:, JumpDOFs.RBdel_alpha])
-    cj = torch.cos(dofs[:, JumpDOFs.RBdel_beta])
-    ck = torch.cos(dofs[:, JumpDOFs.RBdel_gamma])
+    si = torch.sin(dofs.RBdel_alpha)
+    sj = torch.sin(dofs.RBdel_beta)
+    sk = torch.sin(dofs.RBdel_gamma)
+    ci = torch.cos(dofs.RBdel_alpha)
+    cj = torch.cos(dofs.RBdel_beta)
+    ck = torch.cos(dofs.RBdel_gamma)
     cc = ci * ck
     cs = ci * sk
     sc = si * ck
@@ -121,16 +117,16 @@ def JumpTransforms(dofs: JumpDOFArray) -> HTArray:
     Rdelta[:, 3, 3] = 1
 
     # translational dofs
-    Rdelta[:, 0, 3] = dofs[:, JumpDOFs.RBx]
-    Rdelta[:, 1, 3] = dofs[:, JumpDOFs.RBy]
-    Rdelta[:, 2, 3] = dofs[:, JumpDOFs.RBz]
+    Rdelta[:, 0, 3] = dofs.RBx
+    Rdelta[:, 1, 3] = dofs.RBy
+    Rdelta[:, 2, 3] = dofs.RBz
 
-    si = torch.sin(dofs[:, JumpDOFs.RBalpha])
-    sj = torch.sin(dofs[:, JumpDOFs.RBbeta])
-    sk = torch.sin(dofs[:, JumpDOFs.RBgamma])
-    ci = torch.cos(dofs[:, JumpDOFs.RBalpha])
-    cj = torch.cos(dofs[:, JumpDOFs.RBbeta])
-    ck = torch.cos(dofs[:, JumpDOFs.RBgamma])
+    si = torch.sin(dofs.RBalpha)
+    sj = torch.sin(dofs.RBbeta)
+    sk = torch.sin(dofs.RBgamma)
+    ci = torch.cos(dofs.RBalpha)
+    cj = torch.cos(dofs.RBbeta)
+    ck = torch.cos(dofs.RBgamma)
     cc = ci * ck
     cs = ci * sk
     sc = si * ck
@@ -153,7 +149,7 @@ def JumpTransforms(dofs: JumpDOFArray) -> HTArray:
 
 
 @validate_args
-def InvJumpTransforms(Ms: HTArray) -> JumpDOFArray:
+def InvJumpTransforms(Ms: HTArray) -> JumpDOF:
     """HTs -> JUMP dofs
 
     this function will always assign rotational delta = 0
@@ -161,95 +157,98 @@ def InvJumpTransforms(Ms: HTArray) -> JumpDOFArray:
 
     njumpatoms = Ms.shape[0]
 
-    dofs = torch.empty([njumpatoms, 9], dtype=torch.double)
+    dofs = JumpDOF.empty(njumpatoms)
 
-    dofs[:, [JumpDOFs.RBx, JumpDOFs.RBy, JumpDOFs.RBz]
-        ] = Ms[:, :3, 3] # yapf: disable
-    dofs[:,
-         [JumpDOFs.RBdel_alpha, JumpDOFs.RBdel_beta, JumpDOFs.RBdel_gamma]
-        ] = 0 # yapf: disable
+    dofs.RBx[:] = Ms[:, 0, 3]
+    dofs.RBy[:] = Ms[:, 1, 3]
+    dofs.RBz[:] = Ms[:, 2, 3]
+
+    dofs.RBdel_alpha[:] = 0
+    dofs.RBdel_beta[:] = 0
+    dofs.RBdel_gamma[:] = 0
 
     cys = torch.sqrt(Ms[:, 0, 0] * Ms[:, 0, 0] + Ms[:, 1, 0] * Ms[:, 1, 0])
 
     problemSelector = (cys <= EPS)
 
-    dofs[~problemSelector, JumpDOFs.RBalpha] = torch.atan2(
+    dofs.RBalpha[~problemSelector] = torch.atan2(
         Ms[~problemSelector, 2, 1], Ms[~problemSelector, 2, 2]
     )
-    dofs[~problemSelector, JumpDOFs.RBbeta] = torch.atan2(
+    dofs.RBbeta[~problemSelector] = torch.atan2(
         -Ms[~problemSelector, 2, 0], cys[~problemSelector]
     )
-    dofs[~problemSelector, JumpDOFs.RBgamma] = torch.atan2(
+    dofs.RBgamma[~problemSelector] = torch.atan2(
         Ms[~problemSelector, 1, 0], Ms[~problemSelector, 0, 0]
     )
 
-    dofs[problemSelector, JumpDOFs.RBalpha] = torch.atan2(
+    dofs.RBalpha[problemSelector] = torch.atan2(
         -Ms[problemSelector, 1, 2], Ms[problemSelector, 1, 1]
     )
-    dofs[problemSelector, JumpDOFs.RBbeta] = torch.atan2(
+    dofs.RBbeta[problemSelector] = torch.atan2(
         -Ms[problemSelector, 2, 0], cys[problemSelector]
     )
-    dofs[problemSelector, JumpDOFs.RBgamma] = 0.0
+    dofs.RBgamma[problemSelector] = 0.0
 
     return dofs
 
 
 @validate_args
 def JumpDerivatives(
-        dofs: JumpDOFArray,
+        dofs: JumpDOF,
         Ms: HTArray,
         Mparents: HTArray,
         f1s: CoordArray,
         f2s: CoordArray,
-) -> JumpDOFArray:
+) -> JumpDOF:
     """compute JUMP derivatives from f1/f2"""
     # trans dofs
-    njumpatoms = dofs.shape[0]
-    dsc_ddofs = torch.zeros([njumpatoms, 9], dtype=torch.double)
+    njumpatoms, = dofs.shape
+    dsc_ddofs = JumpDOF.zeros((njumpatoms, ))
+
     x_axes = Mparents[:, 0:3, 0]
     y_axes = Mparents[:, 0:3, 1]
     z_axes = Mparents[:, 0:3, 2]
 
     # einsums here are taking dot products of the vector stacks
-    dsc_ddofs[:, JumpDOFs.RBx] = torch.einsum('ij,ij->i', (x_axes, f2s))
-    dsc_ddofs[:, JumpDOFs.RBy] = torch.einsum('ij,ij->i', (y_axes, f2s))
-    dsc_ddofs[:, JumpDOFs.RBz] = torch.einsum('ij,ij->i', (z_axes, f2s))
+    dsc_ddofs.RBx[:] = torch.einsum('ij,ij->i', (x_axes, f2s))
+    dsc_ddofs.RBy[:] = torch.einsum('ij,ij->i', (y_axes, f2s))
+    dsc_ddofs.RBz[:] = torch.einsum('ij,ij->i', (z_axes, f2s))
 
     end_pos = Ms[:, 0:3, 3]
     rotdof3_axes = -Mparents[:, 0:3, 2]
 
     zrots = torch.zeros([njumpatoms, 3, 3], dtype=torch.double)
-    zrots[:, 0, 0] = torch.cos(dofs[:, 5])
-    zrots[:, 0, 1] = -torch.sin(dofs[:, 5])
-    zrots[:, 1, 0] = torch.sin(dofs[:, 5])
-    zrots[:, 1, 1] = torch.cos(dofs[:, 5])
+    zrots[:, 0, 0] = torch.cos(dofs.RBdel_gamma)
+    zrots[:, 0, 1] = -torch.sin(dofs.RBdel_gamma)
+    zrots[:, 1, 0] = torch.sin(dofs.RBdel_gamma)
+    zrots[:, 1, 1] = torch.cos(dofs.RBdel_gamma)
     zrots[:, 2, 2] = 1
     rotdof2_axes = -torch.matmul(Mparents[:, 0:3, 0:3], zrots)[:, 0:3, 1]
 
     yrots = torch.zeros([njumpatoms, 3, 3], dtype=torch.double)
-    yrots[:, 0, 0] = torch.cos(-dofs[:, 4])
-    yrots[:, 0, 2] = -torch.sin(-dofs[:, 4])
+    yrots[:, 0, 0] = torch.cos(-dofs.RBdel_beta)
+    yrots[:, 0, 2] = -torch.sin(-dofs.RBdel_beta)
     yrots[:, 1, 1] = 1
-    yrots[:, 2, 0] = torch.sin(-dofs[:, 4])
-    yrots[:, 2, 2] = torch.cos(-dofs[:, 4])
+    yrots[:, 2, 0] = torch.sin(-dofs.RBdel_beta)
+    yrots[:, 2, 2] = torch.cos(-dofs.RBdel_beta)
     rotdof1_axes = -torch.matmul(
         torch.matmul(Mparents[:, 0:3, 0:3], zrots), yrots
     )[:, 0:3, 0]
 
     # einsums here are taking dot products of the vector stacks
-    dsc_ddofs[:, JumpDOFs.RBdel_alpha] = (
+    dsc_ddofs.RBdel_alpha[:] = (
         torch.einsum('ij,ij->i',
                      (rotdof1_axes, f1s)) +
         torch.einsum('ij,ij->i',
                      (torch.cross(rotdof1_axes, end_pos), f2s))
     )
-    dsc_ddofs[:, JumpDOFs.RBdel_beta] = (
+    dsc_ddofs.RBdel_beta[:] = (
         torch.einsum('ij,ij->i',
                      (rotdof2_axes, f1s)) +
         torch.einsum('ij,ij->i',
                      (torch.cross(rotdof2_axes, end_pos), f2s))
     )
-    dsc_ddofs[:, JumpDOFs.RBdel_gamma] = (
+    dsc_ddofs.RBdel_gamma[:] = (
         torch.einsum('ij,ij->i',
                      (rotdof3_axes, f1s)) +
         torch.einsum('ij,ij->i',
@@ -260,17 +259,17 @@ def JumpDerivatives(
 
 
 @validate_args
-def BondTransforms(dofs: BondDOFArray) -> HTArray:
+def BondTransforms(dofs: BondDOF) -> HTArray:
     """BOND dofs -> HTs"""
-    natoms = dofs.shape[0]
+    natoms, = dofs.shape
 
-    cpp = torch.cos(dofs[:, BondDOFs.phi_p])
-    spp = torch.sin(dofs[:, BondDOFs.phi_p])
-    cpc = torch.cos(dofs[:, BondDOFs.phi_c])
-    spc = torch.sin(dofs[:, BondDOFs.phi_c])
-    cth = torch.cos(dofs[:, BondDOFs.theta])
-    sth = torch.sin(dofs[:, BondDOFs.theta])
-    d = dofs[:, BondDOFs.d]
+    cpp = torch.cos(dofs.phi_p)
+    spp = torch.sin(dofs.phi_p)
+    cpc = torch.cos(dofs.phi_c)
+    spc = torch.sin(dofs.phi_c)
+    cth = torch.cos(dofs.theta)
+    sth = torch.sin(dofs.theta)
+    d = dofs.d
 
     # rot(ph_p, +x) * rot(th, +z) * trans(d, +x) * rot(ph_c, +x)
     Ms = torch.empty([natoms, 4, 4], dtype=torch.double)
@@ -295,32 +294,32 @@ def BondTransforms(dofs: BondDOFArray) -> HTArray:
 
 
 @validate_args
-def InvBondTransforms(Ms: HTArray) -> BondDOFArray:
+def InvBondTransforms(Ms: HTArray) -> BondDOF:
     """HTs -> BOND dofs"""
     nbondatoms = Ms.shape[0]
 
-    dofs = torch.empty([nbondatoms, 4], dtype=torch.double)
+    dofs = BondDOF.empty(nbondatoms)
 
     # d is always the same logic
-    dofs[:, BondDOFs.d] = Ms[:, :3, 3].norm(dim=1)
+    dofs.d[:] = Ms[:, :3, 3].norm(dim=1)
 
     # when theta == 0, phip and phic are about same axis
     # we (arbitrarily) put all the movement into phic
     theta0_selector = (torch.abs(Ms[:, 0, 0] - 1) <= EPS)
-    dofs[theta0_selector, BondDOFs.phi_p] = 0.0
-    dofs[theta0_selector, BondDOFs.phi_c] = torch.atan2(
+    dofs.phi_p[theta0_selector] = 0.0
+    dofs.phi_c[theta0_selector] = torch.atan2(
         Ms[theta0_selector, 2, 1], Ms[theta0_selector, 1, 1]
     )
-    dofs[theta0_selector, BondDOFs.theta] = 0
+    dofs.theta[theta0_selector] = 0
 
     # otherwise, use the general case
-    dofs[~theta0_selector, BondDOFs.phi_p] = torch.atan2(
+    dofs.phi_p[~theta0_selector] = torch.atan2(
         Ms[~theta0_selector, 2, 0], Ms[~theta0_selector, 1, 0]
     )
-    dofs[~theta0_selector, BondDOFs.phi_c] = torch.atan2(
+    dofs.phi_c[~theta0_selector] = torch.atan2(
         Ms[~theta0_selector, 0, 2], -Ms[~theta0_selector, 0, 1]
     )
-    dofs[~theta0_selector, BondDOFs.theta] = torch.atan2(
+    dofs.theta[~theta0_selector] = torch.atan2(
         torch.sqrt(
             Ms[~theta0_selector, 0, 1] * Ms[~theta0_selector, 0, 1] +
             Ms[~theta0_selector, 0, 2] * Ms[~theta0_selector, 0, 2]
@@ -332,14 +331,14 @@ def InvBondTransforms(Ms: HTArray) -> BondDOFArray:
 
 @validate_args
 def BondDerivatives(
-        dofs: BondDOFArray,
+        dofs: BondDOF,
         Ms: HTArray,
         Mparents: HTArray,
         f1s: CoordArray,
         f2s: CoordArray,
-) -> BondDOFArray:
+) -> BondDOF:
     """compute BOND derivatives from f1/f2"""
-    nbondatoms = dofs.shape[0]
+    nbondatoms, = dofs.shape
 
     end_p_pos = Mparents[:, 0:3, 3]
     phi_p_axes = Mparents[:, 0:3, 0]
@@ -347,23 +346,23 @@ def BondDerivatives(
     end_c_pos = Ms[:, 0:3, 3]
     phi_c_axes = Ms[:, 0:3, 0]
 
-    dsc_ddofs = torch.zeros([nbondatoms, 4], dtype=torch.double)
+    dsc_ddofs = BondDOF.zeros((nbondatoms, ))
 
     # the einsums are doing dot products on stacks of ints
-    dsc_ddofs[:, BondDOFs.d] = torch.einsum('ij,ij->i', (phi_c_axes, f2s))
-    dsc_ddofs[:, BondDOFs.theta] = -1 * (
+    dsc_ddofs.d[:] = torch.einsum('ij,ij->i', (phi_c_axes, f2s))
+    dsc_ddofs.theta[:] = -1 * (
         torch.einsum('ij,ij->i',
                      (theta_axes, f1s)) +
         torch.einsum('ij,ij->i',
                      (torch.cross(theta_axes, end_p_pos), f2s))
     )
-    dsc_ddofs[:, BondDOFs.phi_p] = -1 * (
+    dsc_ddofs.phi_p[:] = -1 * (
         torch.einsum('ij,ij->i',
                      (phi_p_axes, f1s)) +
         torch.einsum('ij,ij->i',
                      (torch.cross(phi_p_axes, end_p_pos), f2s))
     )
-    dsc_ddofs[:, BondDOFs.phi_c] = -1 * (
+    dsc_ddofs.phi_c[:] = -1 * (
         torch.einsum('ij,ij->i',
                      (phi_c_axes, f1s)) +
         torch.einsum('ij,ij->i',
@@ -411,11 +410,11 @@ def HTs_from_frames(
 class BackKinResult:
     @classmethod
     @validate_args
-    def create(cls, hts: HTArray, dofs: DofView):
+    def create(cls, hts: HTArray, dofs: KinDOF):
         return cls(hts, dofs)
 
     hts: HTArray
-    dofs: DofView
+    dofs: KinDOF
 
 
 @validate_args
@@ -439,9 +438,9 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     HTs[0] = torch.eye(4)
     HTs_from_frames(
         coords[1:],
-        coords[kintree.frame[1:, 0], :],
-        coords[kintree.frame[1:, 1], :],
-        coords[kintree.frame[1:, 2], :],
+        coords[kintree.frame_x[1:], :],
+        coords[kintree.frame_y[1:], :],
+        coords[kintree.frame_z[1:], :],
         out=HTs[1:],
     )
 
@@ -453,19 +452,13 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     )
 
     # 3) dofs
-    dofs = DofView.full(natoms, 0.0)
+    dofs = KinDOF.full(natoms, numpy.nan)
 
-    bondSelector = (kintree.doftype == NodeType.bond).squeeze()
-    bondSelector[0] = 0
-    dofs.bondDofView()[bondSelector, :] = InvBondTransforms(
-        localHTs[bondSelector, :, :]
-    )
+    bondSelector = kintree.doftype == NodeType.bond
+    dofs.bond[bondSelector] = InvBondTransforms(localHTs[bondSelector])
 
-    jumpSelector = (kintree.doftype == NodeType.jump).squeeze()
-    jumpSelector[0] = 0
-    dofs.jumpDofView()[jumpSelector, :] = InvJumpTransforms(
-        localHTs[jumpSelector, :, :]
-    )
+    jumpSelector = kintree.doftype == NodeType.jump
+    dofs.jump[jumpSelector] = InvJumpTransforms(localHTs[jumpSelector])
 
     return BackKinResult.create(HTs, dofs)
 
@@ -482,12 +475,13 @@ class ForwardKinResult:
 
 
 @validate_args
-def forwardKin(kintree: KinTree, dofs: DofView) -> ForwardKinResult:
+def forwardKin(kintree: KinTree, dofs: KinDOF) -> ForwardKinResult:
     """dofs -> HTs, xyzs
 
       - "forward" kinematics
     """
     natoms = len(dofs)
+    assert len(kintree) == len(dofs)
 
     # 1) local HTs
     HTs = torch.empty([natoms, 4, 4], dtype=torch.double)
@@ -496,18 +490,14 @@ def forwardKin(kintree: KinTree, dofs: DofView) -> ForwardKinResult:
     assert kintree.parent[0] == 0
     HTs[0] = torch.eye(4)
 
-    bondSelector = (kintree.doftype == NodeType.bond).squeeze()
-    HTs[bondSelector, :, :] = BondTransforms(
-        dofs.bondDofView()[bondSelector, :]
-    )
+    bondSelector = kintree.doftype == NodeType.bond
+    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
 
-    jumpSelector = (kintree.doftype == NodeType.jump).squeeze()
-    HTs[jumpSelector, :, :] = JumpTransforms(
-        dofs.jumpDofView()[jumpSelector, :]
-    )
+    jumpSelector = kintree.doftype == NodeType.jump
+    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
     # 2) global HTs (rewrite 1->N in-place)
-    SegScan(HTs, kintree.parent.squeeze(), HTcollect)
+    SegScan(HTs, kintree.parent, HTcollect)
 
     coords = HTs[:, :3, 3]
     return ForwardKinResult.create(HTs, coords)
@@ -516,10 +506,10 @@ def forwardKin(kintree: KinTree, dofs: DofView) -> ForwardKinResult:
 @validate_args
 def resolveDerivs(
         kintree: KinTree,
-        dofs: DofView,
+        dofs: KinDOF,
         HTs: HTArray,
         dsc_dx: CoordArray,
-) -> DofView:
+) -> KinDOF:
     """xyz derivs -> dof derivs
 
     - derivative mapping using Abe and Go approach
@@ -528,6 +518,10 @@ def resolveDerivs(
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
 
+    assert len(kintree) == len(dofs)
+    assert len(kintree) == len(HTs)
+    assert len(kintree) == len(dsc_dx)
+
     # 1) local f1/f2s
     Xs = HTs[:, 0:3, 3]
 
@@ -535,26 +529,26 @@ def resolveDerivs(
     f2s = dsc_dx
 
     # 2) pass f1/f2s up tree
-    SegScan(f1s, kintree.parent.squeeze(), Fscollect)
-    SegScan(f2s, kintree.parent.squeeze(), Fscollect)
+    SegScan(f1s, kintree.parent, Fscollect)
+    SegScan(f2s, kintree.parent, Fscollect)
 
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()
 
-    bondSelector = (kintree.doftype == NodeType.bond).squeeze()
-    dsc_ddofs.bondDofView()[bondSelector, :] = BondDerivatives(
-        dofs.bondDofView()[bondSelector, :],
+    bondSelector = kintree.doftype == NodeType.bond
+    dsc_ddofs.bond[bondSelector] = BondDerivatives(
+        dofs.bond[bondSelector],
         HTs[bondSelector],
-        HTs[kintree.parent[bondSelector].squeeze()],
+        HTs[kintree.parent[bondSelector]],
         f1s[bondSelector],
         f2s[bondSelector],
     )
 
-    jumpSelector = (kintree.doftype == NodeType.jump).squeeze()
-    dsc_ddofs.jumpDofView()[jumpSelector, :] = JumpDerivatives(
-        dofs.jumpDofView()[jumpSelector, :],
+    jumpSelector = kintree.doftype == NodeType.jump
+    dsc_ddofs.jump[jumpSelector] = JumpDerivatives(
+        dofs.jump[jumpSelector],
         HTs[jumpSelector],
-        HTs[kintree.parent[jumpSelector].squeeze()],
+        HTs[kintree.parent[jumpSelector]],
         f1s[jumpSelector],
         f2s[jumpSelector],
     )

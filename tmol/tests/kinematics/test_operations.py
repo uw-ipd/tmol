@@ -2,11 +2,13 @@ import torch
 import numpy
 import numpy.testing
 
+from math import nan
+
 import pytest
 
 from tmol.kinematics.operations import (backwardKin, forwardKin, resolveDerivs)
 
-from tmol.kinematics.datatypes import (DofView, NodeType, KinTree, KinTreeNode)
+from tmol.kinematics.datatypes import (KinDOF, NodeType, KinTree)
 
 
 def score(coords):
@@ -48,69 +50,69 @@ def dscore(coords):
 @pytest.fixture
 def expected_analytic_derivs():
     return torch.tensor(
-        [[0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [2.66453526e-15,  1.77635684e-15, -8.88178420e-16,
-          5.32907052e-15,  3.55271368e-15,  4.44089210e-15,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [1.13718660e+01, -1.06522516e+01,  8.61394482e-01,
-          1.13718660e+01,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [1.70214350e+00,  3.40681357e-01, -7.30414633e+00,
-          -1.77635684e-15,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [9.66972247e+00, -1.04967293e+01, -5.80415867e+00,
-          7.68770907e-01,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [7.68770907e-01, -6.06030702e-02, -9.52873353e+00,
-          1.77635684e-15,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+        [[+0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+          +0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+          +0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+         [+2.66453526e-15,  1.77635684e-15, -8.88178420e-16,
+          +5.32907052e-15,  3.55271368e-15,  4.44089210e-15,
+          +0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+         [+1.13718660e+01, -1.06522516e+01,  8.61394482e-01,
+          +1.13718660e+01,             nan,             nan,
+                      nan,             nan,             nan],
+         [+1.70214350e+00,  3.40681357e-01, -7.30414633e+00,
+          -1.77635684e-15,             nan,             nan,
+                      nan,             nan,             nan],
+         [+9.66972247e+00, -1.04967293e+01, -5.80415867e+00,
+          +7.68770907e-01,             nan,             nan,
+                      nan,             nan,             nan],
+         [+7.68770907e-01, -6.06030702e-02, -9.52873353e+00,
+          +1.77635684e-15,             nan,             nan,
+                      nan,             nan,             nan],
          [-1.25079554e+01,  1.57258359e+00, -8.89832569e+00,
-          5.52111345e+00,  7.40141077e+00, -9.92561863e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+           5.52111345e+00,  7.40141077e+00, -9.92561863e+00,
+           0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
          [-8.72247305e+00,  8.50512385e+00, -1.47396223e+01,
-          -8.72247305e+00,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [1.70112178e+00,  4.52266852e+00, -6.81301657e+00,
-          -7.10542736e-15,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+          -8.72247305e+00,             nan,             nan,
+                      nan,             nan,             nan],
+         [+1.70112178e+00,  4.52266852e+00, -6.81301657e+00,
+          -7.10542736e-15,             nan,             nan,
+                      nan,             nan,             nan],
          [-1.04235948e+01,  7.57222441e+00, -1.08827823e+01,
-          -1.93873880e+00,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+          -1.93873880e+00,             nan,             nan,
+                      nan,             nan,             nan],
          [-1.93873880e+00,  5.88968488e+00, -4.52952181e+00,
-          -0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+          +0.00000000e+00,             nan,             nan,
+                      nan,             nan,             nan],
          [-9.66405135e+00,  7.51131337e+00,  9.49787678e+00,
-          2.14775674e-01,  1.47298659e+01, -1.71810938e+01,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [1.15033592e+01, -1.05854011e+01,  1.16243389e+00,
-          1.15033592e+01,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [1.69990508e+00,  3.43791230e-01, -7.30134090e+00,
-          -5.32907052e-15,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [9.80345414e+00, -1.05263343e+01, -5.85401170e+00,
-          7.74393479e-01,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [7.74393479e-01, -4.76323730e-02, -9.57540886e+00,
-          -2.66453526e-15,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [1.45955969e+01,  3.92793100e+00,  3.79171849e+00,
-          2.46056151e+00,  1.02226395e+01, -9.80368607e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+           2.14775674e-01,  1.47298659e+01, -1.71810938e+01,
+           0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+         [+1.15033592e+01, -1.05854011e+01,  1.16243389e+00,
+          +1.15033592e+01,             nan,             nan,
+                      nan,             nan,             nan],
+         [+1.69990508e+00,  3.43791230e-01, -7.30134090e+00,
+          -5.32907052e-15,             nan,             nan,
+                      nan,             nan,             nan],
+         [+9.80345414e+00, -1.05263343e+01, -5.85401170e+00,
+          +7.74393479e-01,             nan,             nan,
+                      nan,             nan,             nan],
+         [+7.74393479e-01, -4.76323730e-02, -9.57540886e+00,
+          -2.66453526e-15,             nan,             nan,
+                      nan,             nan,             nan],
+         [+1.45955969e+01,  3.92793100e+00,  3.79171849e+00,
+          +2.46056151e+00,  1.02226395e+01, -9.80368607e+00,
+           0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
          [-9.32753028e+00,  6.84468376e+00, -1.51385559e+01,
-          -9.32753028e+00,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
-         [1.62693321e+00,  3.87588970e+00, -6.91878652e+00,
-          -3.55271368e-15,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+          -9.32753028e+00,             nan,             nan,
+                      nan,             nan,             nan],
+         [+1.62693321e+00,  3.87588970e+00, -6.91878652e+00,
+          -3.55271368e-15,             nan,             nan,
+                      nan,             nan,             nan],
          [-1.09544635e+01,  9.24780005e+00, -1.05711446e+01,
-          -1.79443222e+00,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00],
+          -1.79443222e+00,             nan,             nan,
+                      nan,             nan,             nan],
          [-1.79443222e+00,  6.15307006e+00, -3.75430706e+00,
-          1.77635684e-15,  0.00000000e+00,  0.00000000e+00,
-          0.00000000e+00,  0.00000000e+00,  0.00000000e+00]],
+          +1.77635684e-15,             nan,             nan,
+                      nan,             nan,             nan]],
         dtype=torch.double
     ) # yapf: disable
 
@@ -124,31 +126,31 @@ def kintree():
 
     # kinematics definition
     kintree = KinTree.full(NATOMS, 0)
-    kintree[0] = KinTreeNode(0, ROOT, 0, 0, 0, 0)
+    kintree[0] = KinTree.node(0, ROOT, 0, 0, 0, 0)
 
-    kintree[1] = KinTreeNode(1, JUMP, 0, 2, 1, 3)
-    kintree[2] = KinTreeNode(1, BOND, 1, 2, 1, 3)
-    kintree[3] = KinTreeNode(1, BOND, 2, 3, 2, 1)
-    kintree[4] = KinTreeNode(1, BOND, 2, 4, 2, 1)
-    kintree[5] = KinTreeNode(1, BOND, 4, 5, 4, 2)
+    kintree[1] = KinTree.node(1, JUMP, 0, 2, 1, 3)
+    kintree[2] = KinTree.node(1, BOND, 1, 2, 1, 3)
+    kintree[3] = KinTree.node(1, BOND, 2, 3, 2, 1)
+    kintree[4] = KinTree.node(1, BOND, 2, 4, 2, 1)
+    kintree[5] = KinTree.node(1, BOND, 4, 5, 4, 2)
 
-    kintree[6] = KinTreeNode(2, JUMP, 1, 7, 6, 8)
-    kintree[7] = KinTreeNode(2, BOND, 6, 7, 6, 8)
-    kintree[8] = KinTreeNode(2, BOND, 7, 8, 7, 6)
-    kintree[9] = KinTreeNode(2, BOND, 7, 9, 7, 6)
-    kintree[10] = KinTreeNode(2, BOND, 9, 10, 9, 7)
+    kintree[6] = KinTree.node(2, JUMP, 1, 7, 6, 8)
+    kintree[7] = KinTree.node(2, BOND, 6, 7, 6, 8)
+    kintree[8] = KinTree.node(2, BOND, 7, 8, 7, 6)
+    kintree[9] = KinTree.node(2, BOND, 7, 9, 7, 6)
+    kintree[10] = KinTree.node(2, BOND, 9, 10, 9, 7)
 
-    kintree[11] = KinTreeNode(3, JUMP, 1, 12, 11, 13)
-    kintree[12] = KinTreeNode(3, BOND, 11, 12, 11, 13)
-    kintree[13] = KinTreeNode(3, BOND, 12, 13, 12, 11)
-    kintree[14] = KinTreeNode(3, BOND, 12, 14, 12, 11)
-    kintree[15] = KinTreeNode(3, BOND, 14, 15, 14, 12)
+    kintree[11] = KinTree.node(3, JUMP, 1, 12, 11, 13)
+    kintree[12] = KinTree.node(3, BOND, 11, 12, 11, 13)
+    kintree[13] = KinTree.node(3, BOND, 12, 13, 12, 11)
+    kintree[14] = KinTree.node(3, BOND, 12, 14, 12, 11)
+    kintree[15] = KinTree.node(3, BOND, 14, 15, 14, 12)
 
-    kintree[16] = KinTreeNode(4, JUMP, 1, 17, 16, 18)
-    kintree[17] = KinTreeNode(4, BOND, 16, 17, 16, 18)
-    kintree[18] = KinTreeNode(4, BOND, 17, 18, 17, 16)
-    kintree[19] = KinTreeNode(4, BOND, 17, 19, 17, 16)
-    kintree[20] = KinTreeNode(4, BOND, 19, 20, 19, 17)
+    kintree[16] = KinTree.node(4, JUMP, 1, 17, 16, 18)
+    kintree[17] = KinTree.node(4, BOND, 16, 17, 16, 18)
+    kintree[18] = KinTree.node(4, BOND, 17, 18, 17, 16)
+    kintree[19] = KinTree.node(4, BOND, 17, 19, 17, 16)
+    kintree[20] = KinTree.node(4, BOND, 19, 20, 19, 17)
 
     return kintree
 
@@ -211,8 +213,9 @@ def test_perturb(kintree, coords):
     # Translate jump dof
     #fd: with single precision 1e-7 is too strict
     t_dofs = dofs.clone()
-    t_dofs.jumpDofView()[6, :3] += torch.tensor([0.2, 0.2, 0.2],
-                                                dtype=torch.double)
+    t_dofs.jump.RBx[6] += 0.2
+    t_dofs.jump.RBy[6] += 0.2
+    t_dofs.jump.RBz[6] += 0.2
     pcoords = forwardKin(kintree, t_dofs).coords
 
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
@@ -222,11 +225,15 @@ def test_perturb(kintree, coords):
 
     # Rotate jump dof "delta"
     rd_dofs = dofs.clone()
-    numpy.testing.assert_allclose(
-        rd_dofs.jumpDofView()[6, 3:6], [0, 0, 0], atol=1e-6
-    )
-    rd_dofs.jumpDofView()[6, 3:6] += torch.tensor([0.1, 0.2, 0.3],
-                                                  dtype=torch.double)
+
+    assert rd_dofs.jump.RBdel_alpha[6] == 0
+    assert rd_dofs.jump.RBdel_beta[6] == 0
+    assert rd_dofs.jump.RBdel_gamma[6] == 0
+
+    rd_dofs.jump.RBdel_alpha[6] += 0.1
+    rd_dofs.jump.RBdel_beta[6] += 0.2
+    rd_dofs.jump.RBdel_gamma[6] += 0.3
+
     pcoords = forwardKin(kintree, rd_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
@@ -238,8 +245,10 @@ def test_perturb(kintree, coords):
 
     # Rotate jump dof
     r_dofs = dofs.clone()
-    r_dofs.jumpDofView()[6, 6:9] += torch.tensor([0.1, 0.2, 0.3],
-                                                 dtype=torch.double)
+
+    r_dofs.jump.RBalpha[6] += 0.1
+    r_dofs.jump.RBbeta[6] += 0.2
+    r_dofs.jump.RBgamma[6] += 0.3
     pcoords = forwardKin(kintree, r_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
@@ -276,13 +285,11 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
     # * numeric v analytic comparison is still at 1e-7 so these changes
     #     are likely due to changes in the "dummy score"
     numpy.testing.assert_allclose(
-        dsc_dtors_analytic.rawDofView()[1:],
-        expected_analytic_derivs[1:],
-        atol=1e-4
+        dsc_dtors_analytic.raw[1:], expected_analytic_derivs[1:], atol=1e-4
     )
 
     # Compute numeric derivs
-    dsc_dtors_numeric = DofView.full(len(dofs), 0)
+    dsc_dtors_numeric = KinDOF.full(len(dofs), numpy.nan)
     for i in numpy.arange(0, NATOMS):
         if kintree.doftype[i] == NodeType.bond:
             ndof = 4
@@ -294,35 +301,35 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
             raise NotImplementedError
 
         for j in range(ndof):
-            dofs.rawDofView()[i, j] += 0.0001
+            dofs.raw[i, j] += 0.0001
             coordsAlt = forwardKin(kintree, dofs).coords
             sc_p = score(coordsAlt[1:, :])
-            dofs.rawDofView()[i, j] -= 0.0002
+            dofs.raw[i, j] -= 0.0002
             coordsAlt = forwardKin(kintree, dofs).coords
             sc_m = score(coordsAlt[1:, :])
-            dofs.rawDofView()[i, j] += 0.0001
+            dofs.raw[i, j] += 0.0001
 
-            dsc_dtors_numeric.rawDofView()[i, j] = (sc_p - sc_m) / 0.0002
+            dsc_dtors_numeric.raw[i, j] = (sc_p - sc_m) / 0.0002
 
     # Verify numeric/analytic derivatives
     aderiv = dsc_dtors_analytic
     nderiv = dsc_dtors_numeric
 
-    print(aderiv.jumpDofView()[jumps])
-    print(nderiv.jumpDofView()[jumps])
+    print(aderiv.jump.raw[jumps])
+    print(nderiv.jump.raw[jumps])
 
     numpy.testing.assert_allclose(
-        aderiv.jumpDofView()[jumps], nderiv.jumpDofView()[jumps], atol=1e-7
+        aderiv.jump.raw[jumps], nderiv.jump.raw[jumps], atol=1e-7
     )
 
     numpy.testing.assert_allclose(
-        aderiv.bondDofView()[bonds_after_bond],
-        nderiv.bondDofView()[bonds_after_bond],
+        aderiv.bond.raw[bonds_after_bond],
+        nderiv.bond.raw[bonds_after_bond],
         atol=1e-7
     )
 
     numpy.testing.assert_allclose(
-        aderiv.bondDofView()[bonds_after_jump],
-        nderiv.bondDofView()[bonds_after_jump],
+        aderiv.bond.raw[bonds_after_jump],
+        nderiv.bond.raw[bonds_after_jump],
         atol=1e-7
     )

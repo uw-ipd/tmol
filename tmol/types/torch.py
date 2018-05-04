@@ -10,7 +10,7 @@ from functools import singledispatch
 
 from .shape import Shape
 
-from .tensor import TensorType
+from .tensor import TensorType, _cat_internal
 
 _torch_dtype_mapping = {
     float: torch.float32,
@@ -80,3 +80,8 @@ class Tensor(TensorType, typing._TypingBase, _root=True):
         self.validate(value)
 
         return value
+
+
+@_cat_internal.register(torch.Tensor)
+def _cat_tensor(first, rest, dim=0, out=None):
+    return torch.cat([first] + list(rest), dim=dim, out=out)
