@@ -786,8 +786,8 @@ class TestAtomTree(unittest.TestCase):
         refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
         coords_out = coords.copy()
         htrefold.cpu_htrefold_2( dofs, refold_data, coords_out )
-        print( "coords"); print( coords )
-        print( "coords_out"); print( coords_out )
+        #print( "coords"); print( coords )
+        #print( "coords_out"); print( coords_out )
 
         for ii, node in enumerate(nodes):
             self.assertAlmostEqual(
