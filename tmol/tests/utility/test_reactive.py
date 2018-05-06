@@ -123,6 +123,22 @@ def test_calculation():
     assert getattr(t._reactive_values, "j") == 11
     assert getattr(t._reactive_values, "k") == 12
 
+    del t.i
+    assert not hasattr(t._reactive_values, "j")
+    assert not hasattr(t._reactive_values, "k")
+
+    with pytest.raises(AttributeError):
+        t.j
+
+    assert not hasattr(t._reactive_values, "j")
+    assert not hasattr(t._reactive_values, "k")
+
+    with pytest.raises(AttributeError):
+        t.k
+
+    assert not hasattr(t._reactive_values, "j")
+    assert not hasattr(t._reactive_values, "k")
+
 
 def test_change_observer():
     @reactive_attrs(auto_attribs=True, slots=True)
