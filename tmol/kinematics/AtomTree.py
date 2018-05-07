@@ -246,11 +246,14 @@ class BondedAtom(TreeAtom):
                 zdot = numpy.dot(w, parent_ht.frame[0:3, 2])
                 self.phi = math.atan2(zdot, ydot)
 
-        #if self.atomid.res == 1 :
+        #if self.atomid.res == 0 :
         #    print( "Update internal coords" )
         #    print( "Atom: ", self.atomid )
         #    print( "parent ht:"); print( parent_ht );
         #    print( "d", self.d, "theta", self.theta, "phi", self.phi )
+        #    print( "myht:"); print( HomogeneousTransform.xrot(self.phi) * HomogeneousTransform.zrot(self.theta) * HomogeneousTransform.xtrans(self.d))
+        #    print( "newht:"); print( parent_ht * HomogeneousTransform.xrot(self.phi) * HomogeneousTransform.zrot(self.theta) * HomogeneousTransform.xtrans(self.d))
+
         # modify the parent ht so that younger siblings will have their offset phi readily
         # calculated
         parent_ht *= HomogeneousTransform.xrot(self.phi)
@@ -260,6 +263,8 @@ class BondedAtom(TreeAtom):
         ) * HomogeneousTransform.xtrans(self.d)
 
         #print( "d", self.d, "theta", self.theta, "phi", self.phi )
+
+        #print( "update bonded atom internal coords", self.atomid ); print( new_ht )
 
         for child in self.children:
             child.update_internal_coords(new_ht)
@@ -355,6 +360,8 @@ class JumpAtom(TreeAtom):
         #print( parent_ht * parent_ht.inverse() )
         #print( "ht_deltas" ); print( ht_deltas );
         #print( "ht_r_global" ); print( ht_r_global );
+
+        #print( "update jump internal coords", self.atomid ); print( dest )
 
         for child in self.children:
             child.update_internal_coords(dest)
