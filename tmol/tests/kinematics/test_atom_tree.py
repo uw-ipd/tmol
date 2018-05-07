@@ -275,7 +275,8 @@ class TestAtomTree(unittest.TestCase):
         #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
 
     def test_atomtree_refold_info_setup1(self):
-        nodes, coords = self.create_franks_multi_jump_atom_tree()
+        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        #nodes, coords = self.create_franks_multi_jump_atom_tree()
 
         atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
                           [nodes[3],nodes[4],nodes[5],nodes[6],nodes[7]], \
@@ -522,10 +523,33 @@ class TestAtomTree(unittest.TestCase):
             node.xyz = coords[ii, :]
 
         nodes[0].update_internal_coords()
-        return nodes, coords
+
+        # faux residues object
+        residues = [ temp_class() for x in range(5) ]
+        residues[0].coords = numpy.zeros((3,3))
+        residues[1].coords = numpy.zeros((5,3))
+        residues[2].coords = numpy.zeros((5,3))
+        residues[3].coords = numpy.zeros((5,3))
+        residues[4].coords = numpy.zeros((5,3))
+
+        atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
+                          [nodes[3],nodes[4],nodes[5],nodes[6],nodes[7]], \
+                          [nodes[5+3],nodes[5+4],nodes[5+5],nodes[5+6],nodes[5+7]], \
+                          [nodes[10+3],nodes[10+4],nodes[10+5],nodes[10+6],nodes[10+7]], \
+                          [nodes[15+3],nodes[15+4],nodes[15+5],nodes[15+6],nodes[15+7]]]
+
+        tree = atree.AtomTree(nodes[0], atom_node_list)
+
+        # the bonded atoms
+        bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
+        # the jump atoms
+        jas = [3,8,13,18]
+
+        return residues, nodes, tree, coords, bas, jas
 
     def test_atomtree_w_jump_atoms(self):
-        nodes, coords = self.create_franks_multi_jump_atom_tree()
+        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        #nodes, coords = self.create_franks_multi_jump_atom_tree()
         #print_tree_no_names( nodes[0] )
 
         nodes[0].update_xyz()
@@ -750,33 +774,33 @@ class TestAtomTree(unittest.TestCase):
 
 
     def test_numpy_ht_refold(self):
-        nodes, coords = self.create_franks_multi_jump_atom_tree()
+        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
 
-        atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
-                          [nodes[3],nodes[4],nodes[5],nodes[6],nodes[7]], \
-                          [nodes[5+3],nodes[5+4],nodes[5+5],nodes[5+6],nodes[5+7]], \
-                          [nodes[10+3],nodes[10+4],nodes[10+5],nodes[10+6],nodes[10+7]], \
-                          [nodes[15+3],nodes[15+4],nodes[15+5],nodes[15+6],nodes[15+7]]]
-
-        tree = atree.AtomTree(nodes[0], atom_node_list)
-
-        # faux residues object
-        residues = [ temp_class() for x in range(5) ]
-        residues[0].coords = numpy.zeros((3,3))
-        residues[1].coords = numpy.zeros((5,3))
-        residues[2].coords = numpy.zeros((5,3))
-        residues[3].coords = numpy.zeros((5,3))
-        residues[4].coords = numpy.zeros((5,3))
+        #atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
+        #                  [nodes[3],nodes[4],nodes[5],nodes[6],nodes[7]], \
+        #                  [nodes[5+3],nodes[5+4],nodes[5+5],nodes[5+6],nodes[5+7]], \
+        #                  [nodes[10+3],nodes[10+4],nodes[10+5],nodes[10+6],nodes[10+7]], \
+        #                  [nodes[15+3],nodes[15+4],nodes[15+5],nodes[15+6],nodes[15+7]]]
+        #
+        #tree = atree.AtomTree(nodes[0], atom_node_list)
+        #
+        ## faux residues object
+        #residues = [ temp_class() for x in range(5) ]
+        #residues[0].coords = numpy.zeros((3,3))
+        #residues[1].coords = numpy.zeros((5,3))
+        #residues[2].coords = numpy.zeros((5,3))
+        #residues[3].coords = numpy.zeros((5,3))
+        ##residues[4].coords = numpy.zeros((5,3))
 
         dofs = numpy.zeros((23,9))
 
         # the bonded atom indices in Frank's example
-        bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
+        #bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
         for ba in bas:
             dofs[ba,0] = nodes[ba].d
             dofs[ba,1] = nodes[ba].theta
             dofs[ba,2] = nodes[ba].phi
-        jas = [3,8,13,18]
+        #jas = [3,8,13,18]
         for ja in jas:
             for i in range(3):
                 dofs[ja,i+0] = nodes[ja].rb[i]
@@ -828,3 +852,7 @@ class TestAtomTree(unittest.TestCase):
                     numpy.linalg.norm(coords_out[count,:] - at.xyz), 0
                     )
                 count += 1
+
+
+    def test_dof_derivative_calculations( self ):
+        pass
