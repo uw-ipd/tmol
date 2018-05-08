@@ -873,10 +873,46 @@ class TestAtomTree(unittest.TestCase):
              refold_data.coalesced_ind_2_refold_index, refold_data.refold_index_2_coalesced_ind )
         dofs_working = dofs.copy()
         delta_coords = coords.copy()
+        htrefold.cpu_htrefold_2( dofs, refold_data, delta_coords )
 
         score = faux_score( coords )
         cart_derivs = faux_score_derivs( coords )
+
+        gold_descendants = [ None ] * 23
+        gold_descendants[0] = [ i for i in range(23) ]
+        gold_descendants[1] = [ 1, 2 ]
+        gold_descendants[2] = [ 2 ]
+        gold_descendants[3] = [ i for i in range(3,23) ]
+        gold_descendants[4] = [ i for i in range(4,8) ]
+        gold_descendants[5] = [ 5 ]
+        gold_descendants[6] = [ 6, 7 ]
+        gold_descendants[7] = [ 7 ]
+        gold_descendants[8] = [ i for i in range(8,13) ]
+        gold_descendants[9] = [ i for i in range(9,13) ]
+        gold_descendants[10] = [ 10 ]
+        gold_descendants[11] = [ 11, 12 ]
+        gold_descendants[12] = [ 12 ]
+        gold_descendants[13] = [ i for i in range(13,18) ]
+        gold_descendants[14] = [ i for i in range(14,18) ]
+        gold_descendants[15] = [ 15 ]
+        gold_descendants[16] = [ 16, 17 ]
+        gold_descendants[17] = [ 17 ]
+        gold_descendants[18] = [ i for i in range(18,23) ]
+        gold_descendants[19] = [ i for i in range(19,23) ]
+        gold_descendants[20] = [ 20 ]
+        gold_descendants[21] = [ 21, 22 ]
+        gold_descendants[22] = [ 22 ]
+
+        #gold_f2s = numpy.fromiter((numpy.sum(cart_derivs[numpy.array(desc_list)],0) for desc_list in gold_descendants), dtype=float)
+        print("gold_f2s"); #print(gold_f2s)
+        for ii,desc_list in enumerate(gold_descendants):
+            print(ii,numpy.sum(cart_derivs[numpy.array(desc_list)],0))
+
+        #print("cart_derivs"); print(cart_derivs)
         dscore_ddofs_analytic = htrefold.compute_dscore_ddofs( coords, dofs, ag_tree, refold_data.hts, cart_derivs )
+        print("dscore_ddofs_analytic"); print( dscore_ddofs_analytic )
+        dscore_ddofs_numeric = numpy.zeros((23,6))
+        count_ci = 0
         for ii in range(23) :
             ndofs = 3 if ii in bas else 6
             for jj in range(ndofs) :
@@ -887,7 +923,12 @@ class TestAtomTree(unittest.TestCase):
                 dofs_working[ii,jj] = dofs[ii,jj] - delta
                 htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
                 score_mdelta = faux_score(delta_coords)
-                dscore_ddof_numeric = ( score_pdelta - score_mdelta ) / ( 2*delta)
-                self.assertAlmostEqual(dscore_ddof_numeric, dscore_ddofs_analytic[ii,jj])
+                dscore_ddofs_numeric[count_ci,jj] = ( score_pdelta - score_mdelta ) / ( 2*delta)
+            count_ci += 1
+        print( "dscore_ddofs_numeric"); print(dscore_ddofs_numeric)
+        for ii in range(23):
+            ndofs = 3 if ii in bas else 6
+            for jj in range(ndofs):
+                self.assertAlmostEqual(dscore_ddofs_numeric[ii,jj], dscore_ddofs_analytic[ii,jj])
                 dofs_working[ii,jj] = dofs[ii,jj]
                 
