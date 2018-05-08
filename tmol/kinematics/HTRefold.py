@@ -387,7 +387,7 @@ def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree, ci2ri, ri2ci )
                 ag_tree.bonded_atoms[ count_ci ] = True
                 ag_tree.nbondedatoms += 1
             count_ci += 1
-    print("ag_tree.nbondedatoms",ag_tree.nbondedatoms, "ag_tree.njumpatoms", ag_tree.njumpatoms)
+    #print("ag_tree.nbondedatoms",ag_tree.nbondedatoms, "ag_tree.njumpatoms", ag_tree.njumpatoms)
 
     ag_tree.bonded_atom_parent_index = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
     ag_tree.bonded_atom_inds = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
@@ -417,8 +417,8 @@ def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree, ci2ri, ri2ci )
                 ag_tree.ci_jump_atom_inds[count_jaci] = count_ci
                 count_jaci += 1
             count_ci += 1
-    print("bonded atom inds"); print(ag_tree.bonded_atom_inds)
-    print("ag_tree.bonded_atom_parent_index"); print(ag_tree.bonded_atom_parent_index)
+    #print("bonded atom inds"); print(ag_tree.bonded_atom_inds)
+    #print("ag_tree.bonded_atom_parent_index"); print(ag_tree.bonded_atom_parent_index)
 
     # 2. Now let's setup the mapping to bonded coalesced order from dsi order
     ag_tree.dtheta_mapping = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
@@ -703,7 +703,7 @@ def cpu_f1f2_summation1(atom_f1f2s, ag_derivsum_nodes):
     ''' Numpy version of the f1f2 recursive summation function which iterates across the abe-go
     nodes in the proper order up the tree (they have to already have been put in the correct order)
     and sums the f1f2 of the all the not-immediately prior children and the prior child'''
-    f1f2sum = numpy.zeros((ag_derivsum_nodes.nnodes + 1, 6))
+    f1f2sum = numpy.zeros((ag_derivsum_nodes.nnodes + 1, 6),dtype="d")
     #print( f1f2sum.shape )
     f1f2sum[:] = atom_f1f2s[ag_derivsum_nodes.atom_indices, :]
     #print( "f1f2sum start:" ); print( f1f2sum )
@@ -725,19 +725,19 @@ def cpu_f1f2_summation1(atom_f1f2s, ag_derivsum_nodes):
 def cpu_f1f2_summation2(atom_f1f2s, ag_derivsum_nodes):
     ''' Numpy version of the f1f2 recursive summation function which uses something like a segmented
     scan over each of the abe-go depths.'''
-    f1f2sum = numpy.zeros((ag_derivsum_nodes.nnodes + 1, 6))
+    f1f2sum = numpy.zeros((ag_derivsum_nodes.nnodes + 1, 6),dtype=float)
     f1f2sum[:] = atom_f1f2s[ag_derivsum_nodes.atom_indices, :]
     ag_derivsum_nodes.is_leaf_working[:
                                       ] = ag_derivsum_nodes.is_leaf  # in-place copy
 
     for ii, iirange in enumerate(ag_derivsum_nodes.atom_range_for_depth):
-        print("iirange"); print(iirange)
+        #print("iirange"); print(iirange)
         ii_view_f1f2 = f1f2sum[iirange[0]:iirange[1]]
         ii_children = ag_derivsum_nodes.prior_children[iirange[0]:iirange[1]]
-        print(ii,"ii_view_f1f2 before"); print(ii_view_f1f2)
-        print(ii,"ii_children"); print(ii_children)
+        #print(ii,"ii_view_f1f2 before"); print(ii_view_f1f2)
+        #print(ii,"ii_children"); print(ii_children)
         ii_view_f1f2 += numpy.sum(f1f2sum[ii_children], 1)
-        print(ii,"ii_view_f1f2 after"); print(ii_view_f1f2)
+        #print(ii,"ii_view_f1f2 after"); print(ii_view_f1f2)
         ii_is_leaf = ag_derivsum_nodes.is_leaf_working[iirange[0]:iirange[1]]
         offset = 1
         ii_ind = ag_derivsum_nodes.lookback_inds[:ag_derivsum_nodes.
@@ -1157,9 +1157,9 @@ def visit_all_abe_go_tree_nodes(root, ag_tree, atomid_2_atomindex):
     ag_tree.is_leaf[dsi] = root.first_child is None
     ag_tree.has_initial_f1f2[dsi] = True
     count_other_children = 0
-    print("visit all abe go tree nodes"); print( root.id ); print(dsi);
-    print("root.younger sibling?");print(root.younger_sibling.id if root.younger_sibling else "None")
-    print("root.other_children?"); print([node.id for node in root.other_children])
+    #print("visit all abe go tree nodes"); print( root.id ); print(dsi);
+    #print("root.younger sibling?");print(root.younger_sibling.id if root.younger_sibling else "None")
+    #print("root.other_children?"); print([node.id for node in root.other_children])
     if root.younger_sibling:
         sibid = root.younger_sibling.id
         child_dsi = ai2dsi[sibid.atomid.res][sibid.atomid.atomno][sibid.nodeid]
@@ -1167,13 +1167,13 @@ def visit_all_abe_go_tree_nodes(root, ag_tree, atomid_2_atomindex):
         ag_tree.prior_children[dsi, count_other_children] = child_dsi
         count_other_children += 1
     for child_node in root.other_children:
-        print(count_other_children)
+        #print(count_other_children)
         childid = child_node.id
         child_dsi = ai2dsi[childid.atomid.res][childid.atomid.atomno
                                                 ][childid.nodeid]
         ag_tree.prior_children[dsi, count_other_children] = child_dsi
         count_other_children += 1
-    print("ag_tree.prior_children"); print(ag_tree.prior_children[dsi,:])
+    #print("ag_tree.prior_children"); print(ag_tree.prior_children[dsi,:])
     if root.theta_d_node or root.jump_node:
         ag_tree.atom_indices[dsi] = atomid_2_atomindex[root.id.atomid.res
                                                        ][root.id.atomid.atomno]
@@ -1337,10 +1337,10 @@ def bond_derivatives( ag_tree, dofs, hts, f1f2sum ):
     d_axes[:] = hts[ag_tree.bonded_atom_inds, 0:3, 0]
 
     #print("dtheta_f1s"); print(dtheta_f1s)
-    print("dtheta_f2s"); print(dtheta_f2s)
+    #print("dtheta_f2s"); print(dtheta_f2s)
     #print("phi_f1s"); print(phi_f1s)
-    print("phi_f2s"); print(phi_f2s)
-    print("end_pos"); print(end_pos)
+    #print("phi_f2s"); print(phi_f2s)
+    #print("end_pos"); print(end_pos)
 
     dsc_ddofs = numpy.zeros([ag_tree.nbondedatoms,3])
     dsc_ddofs[:,0] = numpy.einsum('ij, ij->i', d_axes, dtheta_f2s )
@@ -1350,7 +1350,7 @@ def bond_derivatives( ag_tree, dofs, hts, f1f2sum ):
     dsc_ddofs[:,2] = \
         - numpy.einsum('ij, ij->i', phi_axes, phi_f1s ) \
         - numpy.einsum('ij, ij->i', numpy.cross( phi_axes, end_pos ), phi_f2s )
-    print("dsc_ddofs"); print(dsc_ddofs)
+    #print("dsc_ddofs"); print(dsc_ddofs)
     return dsc_ddofs
 
 def jump_derivatives( ag_tree, dofs, hts, f1f2sum ):
@@ -1366,11 +1366,11 @@ def jump_derivatives( ag_tree, dofs, hts, f1f2sum ):
 
     jump_f1s[:] = f1f2sum[ag_tree.jump_dof_mapping, 0:3]
     jump_f2s[:] = f1f2sum[ag_tree.jump_dof_mapping, 3:6]
-    print("jump_f2s"); print(jump_f2s)
+    #print("jump_f2s"); print(jump_f2s)
 
     jump_hts[:] = hts[ag_tree.jump_atom_inds]
     jump_parent_hts[:] = hts[ag_tree.jump_atom_parent_index]
-    print("jump_parent_hts"); print(jump_parent_hts)
+    #print("jump_parent_hts"); print(jump_parent_hts)
 
     # translation dofs
     dsc_ddofs = numpy.zeros([ag_tree.njumpatoms,6]);
@@ -1384,7 +1384,7 @@ def jump_derivatives( ag_tree, dofs, hts, f1f2sum ):
     end_pos = jump_hts[:,0:3,3]
     rotdof3_axes = -jump_parent_hts[:,0:3,2]
 
-    print("ci_jump_atom_inds"); print(ag_tree.ci_jump_atom_inds)
+    #print("ci_jump_atom_inds"); print(ag_tree.ci_jump_atom_inds)
     jump_dofs = dofs[ag_tree.ci_jump_atom_inds,:]
 
     zrots = numpy.zeros([ag_tree.njumpatoms,3,3]);
