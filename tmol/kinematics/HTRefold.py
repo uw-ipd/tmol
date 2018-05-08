@@ -151,7 +151,33 @@ class AbeGoDerivsumTree:
     natoms_at_depth: numpy.array = None
     agid_2_dsi: typing.List[typing.List[typing.List[int]]] = None
     dsi_2_agid: typing.List[AbeGoID] = None
-
+    nbondedatoms: int = 0
+    bonded_atoms: numpy.array = None # boolean array in coalesced order; true if the atom is a bonded atom
+    bonded_atom_parent_index: numpy.array = None # mapping from bonded coalesced order to refold order
+    bonded_atom_inds: numpy.array = None # mapping from bonded coalesced order to refold order
+    dtheta_mapping: numpy.matrix = None # mapping from bonded coalesced oder to dsi
+    phi_mapping: numpy.matrix = None # mapping from bonded coalesced order to dsi
+    atom_f1f2s: numpy.matrix = None
+    dtheta_f1s_working: numpy.matrix = None
+    dtheta_f2s_working: numpy.matrix = None
+    phi_f1s_working: numpy.matrix = None
+    phi_f2s_working: numpy.matrix = None
+    end_pos_working: numpy.matrix = None
+    phi_axes_working: numpy.matrix = None
+    theta_axes_working: numpy.matrix = None
+    d_axes_working: numpy.matrix = None
+    njumpatoms: int = 0
+    jump_atoms: numpy.array = None # boolean array in coalesced order; true if the atom is a jump atom
+    jump_dof_mapping: numpy.array = None # mapping from jump coalesced order to refold order for jump atoms
+    jump_atom_parent_index: numpy.array = None # mapping from jump coalesced order to refold order for jump atoms
+    jump_atom_inds: numpy.array = None # mapping from jump coalesced order to refold order
+    ci_jump_atom_inds: numpy.array = None # mapping from jump coalesced order to coalesced order
+    jump_f1s_working: numpy.matrix = None
+    jump_f2s_working: numpy.matrix = None
+    jump_dofs_working: numpy.matrix = None
+    jump_x_axes: numpy.matrix = None
+    jump_y_axes: numpy.matrix = None
+    jump_z_axes: numpy.matrix = None
 
 def initialize_ht_refold_data(residues, tree):
     tree_path_data = []
@@ -263,7 +289,7 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
     refold_data.is_root[:natoms] = numpy.fromiter((atdat.parent_index != -1 for atdat in atom_refold_data), dtype=bool)
     refold_data.is_root[0] = True
     refold_data.is_root_working = numpy.full( (natoms+1), False, dtype=bool )
-    
+
     refold_data.parents = numpy.full( (natoms+1), natoms, dtype=int )
     refold_data.parents[:natoms] = numpy.fromiter(((ard.parent_index if ard.parent_index != -1 else natoms) for ard in atom_refold_data), dtype=int)
     refold_data.parents[0] = natoms; # root is listed as its own parent?
@@ -275,7 +301,7 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
 
     return refold_data
 
-def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree):
+def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree, ci2ri, ri2ci ):
     abe_go_root, abe_go_nodes = abe_and_go_tree_from_atom_tree(atom_tree)
     atomid_2_atomindex, atomindex_2_atomid = create_atomid_mapping(residues)
 
@@ -326,6 +352,103 @@ def create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree):
     ag_tree.atom_range_for_depth[count_depths] = (last_dsi, n_derivsum_nodes)
 
     assert (sum(ag_tree.natoms_at_depth) == n_derivsum_nodes)
+
+
+    # now let's define the set of mappings needed to take the cartesian derivatives, in
+    # coalesced order, and convert to the input f1f2s in deriv-sum order, and then to
+    # remap back into coalesced order and compute the dE_ddof array
+    
+    # 1. count the number of bonded and jump atoms, and construct the mapping between
+    # coalesced indices and a) bonded-atom coalesced indices, and b) jump-atom coalesced indices
+    ci2baci = numpy.ones((ag_tree.natoms), dtype=int) * -1
+    baci2ci = []
+    ci2jaci = numpy.ones((ag_tree.natoms), dtype=int) * -1
+    jaci2ci = []
+    ci2aid = [None] * ag_tree.natoms
+    aid2ci = [[0]*res.coords.shape[0] for res in residues]
+    count_ci = 0
+    ag_tree.bonded_atoms = numpy.zeros((ag_tree.natoms), dtype=bool)
+    ag_tree.jump_atoms = numpy.zeros((ag_tree.natoms), dtype=bool)
+    for ii,reslist in enumerate(atom_tree.atom_pointer_list):
+        for jj,atnode in enumerate(reslist):
+            ci2aid[count_ci] = atree.AtomID(ii, jj)
+            aid2ci[ii][jj] = count_ci
+            if atnode.is_jump:
+                ci2jaci[count_ci] = ag_tree.njumpatoms
+                jaci2ci.append( count_ci )
+                ag_tree.jump_atoms[ count_ci ] = True
+                ag_tree.njumpatoms += 1
+            else:
+                ci2baci[count_ci] = ag_tree.nbondedatoms
+                baci2ci.append( count_ci )
+                ag_tree.bonded_atoms[ count_ci ] = True
+                ag_tree.nbondedatoms += 1
+            count_ci += 1
+    print("ag_tree.nbondedatoms",ag_tree.nbondedatoms, "ag_tree.njumpatoms", ag_tree.njumpatoms)
+
+    ag_tree.bonded_atom_parent_index = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
+    ag_tree.bonded_atom_inds = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
+    ag_tree.jump_atom_parent_index = numpy.zeros((ag_tree.njumpatoms), dtype=int)
+    ag_tree.jump_atom_inds = numpy.zeros((ag_tree.njumpatoms), dtype=int)
+    count_baci = 0; count_jaci = 0;
+    for ii,resats in enumerate(atom_tree.atom_pointer_list):
+        for jj,atnode in enumerate(resats):
+            if not atnode.is_jump:
+                par = atnode.parent
+                if par:
+                    ag_tree.bonded_atom_parent_index[count_baci] = ci2ri[aid2ci[par.atomid.res][par.atomid.atomno]]
+                else:
+                    # root serves as its own parent???
+                    ag_tree.bonded_atom_parent_index[count_baci] = ci2ri[aid2ci[atnode.atomid.res][atnode.atomid.atomno]]
+                ag_tree.bonded_atom_inds[count_baci] = ci2ri[aid2ci[atnode.atomid.res][atnode.atomid.atomno]]
+                count_baci += 1
+            else :
+                par = atnode.parent
+                if par:
+                    ag_tree.jump_atom_parent_index[count_jaci] = ci2ri[aid2ci[par.atomid.res][par.atomid.atomno]]
+                else:
+                    # root serves as its own parent??
+                    ag_tree.jump_atom_parent_index[count_jaci] = ci2ri[aid2ci[atnode.atomid.res][atnode.atomid.atomno]]
+                ag_tree.bonded_atom_inds[count_jaci] = ci2ri[aid2ci[atnode.atomid.res][atnode.atomid.atomno]]
+                count_jaci += 1
+    print("bonded atom inds"); print(ag_tree.bonded_atom_inds)
+
+    # 2. Now let's setup the mapping to bonded coalesced order from dsi order
+    ag_tree.dtheta_mapping = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
+    ag_tree.phi_mapping = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
+    for ii, ci in enumerate(baci2ci):
+        aid = ci2aid[ci]
+        ag_tree.dtheta_mapping[ii] = ag_tree.agid_2_dsi[aid.res][aid.atomno][1]
+        ag_tree.phi_mapping[ii] = ag_tree.agid_2_dsi[aid.res][aid.atomno][0]
+
+    # 3. Let's do the same thing for jump coalesced order
+    ag_tree.jump_dof_mapping = numpy.zeros((ag_tree.njumpatoms), dtype=int)
+    for ii, ci in enumerate(jaci2ci):
+        aid = ci2aid[ci]
+        ag_tree.jump_dof_mapping[ii] = ag_tree.agid_2_dsi[aid.res][aid.atomno][0]
+
+    #ag_tree.bonded_atom_inds = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
+    #ag_tree.dtheta_mapping = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
+    #ag_tree.phi_mapping = numpy.zeros((ag_tree.nbondedatoms), dtype=int)
+
+    # 4. allocate space for all the other arrays
+    ag_tree.atom_f1f2s = numpy.zeros((ag_tree.natoms+1,6))
+    ag_tree.dtheta_f1s_working = numpy.zeros((ag_tree.nbondedatoms,3))
+    ag_tree.dtheta_f2s_working = numpy.zeros((ag_tree.nbondedatoms,3))
+    ag_tree.phi_f1s_working = numpy.zeros((ag_tree.nbondedatoms,3))
+    ag_tree.phi_f2s_working = numpy.zeros((ag_tree.nbondedatoms,3))
+    ag_tree.end_pos_working = numpy.zeros((ag_tree.nbondedatoms,3))
+    ag_tree.phi_axes_working = numpy.zeros((ag_tree.nbondedatoms,3))
+    ag_tree.theta_axes_working = numpy.zeros((ag_tree.nbondedatoms,3))
+    ag_tree.d_axes_working = numpy.zeros((ag_tree.nbondedatoms,3))
+
+    ag_tree.jump_f1s_working = numpy.zeros((ag_tree.njumpatoms,3))
+    ag_tree.jump_f2s_working = numpy.zeros((ag_tree.njumpatoms,3))
+    ag_tree.jump_x_axes = numpy.zeros((ag_tree.njumpatoms,3))
+    ag_tree.jump_y_axes = numpy.zeros((ag_tree.njumpatoms,3))
+    ag_tree.jump_z_axes = numpy.zeros((ag_tree.njumpatoms,3))
+    
+
     return ag_tree
 
 
@@ -445,7 +568,7 @@ def compute_hts_for_bonded_atoms( dofs_in, refold_data ):
     inds = refold_data.lookback_inds[:refold_data.n_sibling_phis]
     offset = 1
 
-    # segmented scan, but super short, since the segments are expected to be short (3 or 4)    
+    # segmented scan, but super short, since the segments are expected to be short (3 or 4)
     for ii in range( int( numpy.ceil( numpy.log2( refold_data.max_bonded_siblings ) ) ) ) :
         refold_data.remapped_phi[(inds >= offset) & (~is_eldest_child)] += refold_data.remapped_phi[inds[(inds >= offset) & (~is_eldest_child)] - offset]
         is_eldest_child[inds >= offset] |= is_eldest_child[inds[inds>=offset]-offset]
@@ -615,6 +738,18 @@ def cpu_f1f2_summation2(atom_f1f2s, ag_derivsum_nodes):
             offset *= 2
 
     return f1f2sum
+
+def compute_dscore_ddofs( coords, dofs, ag_tree, hts, cartesian_derivs ):
+    f1f2s = ag_tree.atom_f1f2s
+    f1f2s[:ag_tree.natoms,3:6] = cartesian_derivs
+    f1f2s[:ag_tree.natoms,:3] = numpy.cross(coords, coords-cartesian_derivs) #ha! we can reconstruct f1 from f2
+    f1f2sum = cpu_f1f2_summation2(f1f2s, ag_tree)
+    #now we need to convert f1f2s into dEdDOF.
+    #stealing Frank's code here
+    dsc_ddofs = numpy.zeros([ag_tree.natoms, 9])
+    dsc_ddofs[ag_tree.bonded_atoms,0:3] = bond_derivatives( ag_tree, dofs, hts, f1f2sum )
+    dsc_ddofs[ag_tree.jump_atoms,0:6] = jump_derivatives( ag_tree, dofs, hts, f1f2sum )
+    return dsc_ddofs
 
 
 def recurse_and_fill_atomtree_path_data(root_atom, tree_path_data):
@@ -1017,7 +1152,7 @@ def visit_all_abe_go_tree_nodes(root, ag_tree, atomid_2_atomindex):
         count_other_children += 1
     for child_node in root.other_children:
         childid = child_node.id
-        child_dsi = aid2dsi[childid.atomid.res][childid.atomid.atomno
+        child_dsi = ai2dsi[childid.atomid.res][childid.atomid.atomno
                                                 ][childid.nodeid]
         ag_tree.prior_children[dsi, count_other_children] = child_dsi
         count_other_children += 1
@@ -1125,7 +1260,7 @@ def create_bonded_dof_remapping( ba2aid, aid2ci ) :
     of DOFs in coalesced can be read from for each bonded atom and put into bonded-atom order'''
     #print( "ba2aid" ); print( ba2aid )
     #print( "aid2ci" ); print( aid2ci )
-    
+
     return numpy.fromiter( (aid2ci[aid.res][aid.atomno] for aid in ba2aid ), dtype=int )
 
     #ba2ci = numpy.zeros( (ba2aid.shape[0]) )
@@ -1163,3 +1298,89 @@ def determine_atom_ranges_for_depths(atom_refold_data):
             start_of_last_depth=ii
     ranges.append((start_of_last_depth,len(atom_refold_data)))
     return ranges
+
+def bond_derivatives( ag_tree, dofs, hts, f1f2sum ):
+    dtheta_f1s = ag_tree.dtheta_f1s_working
+    dtheta_f2s = ag_tree.dtheta_f2s_working
+    phi_f1s = ag_tree.phi_f1s_working
+    phi_f2s = ag_tree.phi_f2s_working
+    end_pos = ag_tree.end_pos_working
+    phi_axes = ag_tree.phi_axes_working
+    theta_axes = ag_tree.theta_axes_working
+    d_axes = ag_tree.d_axes_working
+
+    dtheta_f1s[:] = f1f2sum[ag_tree.dtheta_mapping, 0:3]
+    dtheta_f2s[:] = f1f2sum[ag_tree.dtheta_mapping, 3:6]
+    phi_f1s[:] = f1f2sum[ag_tree.phi_mapping, 0:3]
+    phi_f2s[:] = f1f2sum[ag_tree.phi_mapping, 3:6]
+    end_pos[:] = hts[ag_tree.bonded_atom_parent_index, 0:3, 3]
+    phi_axes[:] = hts[ag_tree.bonded_atom_parent_index, 0:3, 0]
+    theta_axes[:] = hts[ag_tree.bonded_atom_inds, 0:3, 2]
+    d_axes[:] = hts[ag_tree.bonded_atom_inds, 0:3, 0]
+
+    dsc_ddofs = numpy.zeros([ag_tree.nbondedatoms,3])
+    dsc_ddofs[:,0] = numpy.einsum('ij, ij->i', d_axes, dtheta_f2s )
+    dsc_ddofs[:,1] = -numpy.sign(dofs[ag_tree.bonded_atoms,1]) * ( \
+        numpy.einsum('ij, ij->i', theta_axes, dtheta_f1s ) + \
+        numpy.einsum('ij, ij->i', numpy.cross( theta_axes, end_pos ), dtheta_f2s ) )
+    dsc_ddofs[:,2] = \
+        - numpy.einsum('ij, ij->i', phi_axes, phi_f1s ) \
+        - numpy.einsum('ij, ij->i', numpy.cross( phi_axes, end_pos ), phi_f2s )
+    return dsc_ddofs
+
+def jump_derivatives( ag_tree, dofs, hts, f1f2sum ):
+    # alias some existing arrays and matrices
+
+    jump_f1s = ag_tree.jump_f1s_working
+    jump_f2s = ag_tree.jump_f2s_working
+    x_axes = ag_tree.jump_x_axes
+    y_axes = ag_tree.jump_y_axes
+    z_axes = ag_tree.jump_z_axes
+
+    jump_f1s[:] = f1f2sum[ag_tree.jump_dof_mapping, 0:3]
+    jump_f2s[:] = f1f2sum[ag_tree.jump_dof_mapping, 3:6]
+
+    jump_hts = ag_tree.jump_hts_working
+    jump_parent_hts = ag_tree.jump_parent_hts_working
+    jump_hts[:] = hts[jump_atom_inds]
+    jump_parent_hts[:] = hts[jump_atom_parent_index]
+
+    # translation dofs
+    dsc_ddofs = numpy.zeros([ag_tree.njumpatoms,6]);
+    x_axes[:] = jump_parent_hts[:,0:3,0]
+    y_axes[:] = jump_parent_hts[:,0:3,1]
+    z_axes[:] = jump_parent_hts[:,0:3,2]
+    dsc_ddofs[:,0] = numpy.einsum('ij, ij->i', x_axes, jump_f2s )
+    dsc_ddofs[:,1] = numpy.einsum('ij, ij->i', y_axes, jump_f2s )
+    dsc_ddofs[:,2] = numpy.einsum('ij, ij->i', z_axes, jump_f2s )
+
+    end_pos = jump_hts[:,0:3,3]
+    rotdof3_axes = -jump_parent_hts[:,0:3,2]
+
+    jump_dofs = dofs[ag_tree.ci_jump_atom_inds,:]
+
+    zrots = numpy.zeros([ag_tree.njumpatoms,3,3]);
+    zrots[:,0,0] =  numpy.cos(jump_dofs[:,5])
+    zrots[:,0,1] = -numpy.sin(jump_dofs[:,5])
+    zrots[:,1,0] =  numpy.sin(jump_dofs[:,5])
+    zrots[:,1,1] =  numpy.cos(jump_dofs[:,5])
+    zrots[:,2,2] =  1
+    rotdof2_axes = -numpy.matmul(jump_parent_hts[:,0:3,0:3],zrots)[:,0:3,1]
+
+    yrots = numpy.empty([ag_tree.njumpatoms,3,3]);
+    yrots[:,0,0] =  numpy.cos(-jump_dofs[:,4])
+    yrots[:,0,2] = -numpy.sin(-jump_dofs[:,4])
+    yrots[:,1,1] =  1
+    yrots[:,2,0] =  numpy.sin(-jump_dofs[:,4])
+    yrots[:,2,2] =  numpy.cos(-jump_dofs[:,4])
+    rotdof1_axes = -numpy.matmul(numpy.matmul(jump_parent_hts[:,0:3,0:3],zrots),yrots)[:,0:3,0]
+
+    dsc_ddofs[:,3] = numpy.einsum('ij, ij->i', rotdof1_axes, jump_f1s ) \
+        + numpy.einsum('ij, ij->i', numpy.cross( rotdof1_axes, end_pos ), jump_f2s )
+    dsc_ddofs[:,4] = numpy.einsum('ij, ij->i', rotdof2_axes, jump_f1s ) \
+        + numpy.einsum('ij, ij->i', numpy.cross( rotdof2_axes, end_pos ), jump_f2s )
+    dsc_ddofs[:,5] = numpy.einsum('ij, ij->i', rotdof3_axes, jump_f1s ) \
+        + numpy.einsum('ij, ij->i', numpy.cross( rotdof3_axes, end_pos ), jump_f2s )
+
+    return dsc_ddofs
+

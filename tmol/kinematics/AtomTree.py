@@ -181,7 +181,7 @@ class AtomID:
     res: int = -1
     atomno: int = -1
 
-
+@attr.s(auto_attribs=True, slots=True)
 class TreeAtom:
     def update_xyz(self, parent_ht=None):
         raise NotImplementedError

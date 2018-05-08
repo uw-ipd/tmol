@@ -40,6 +40,29 @@ def print_res1_tree(residues, root, depth=0):
         print_res1_tree(residues, atom, depth + 1)
 
 
+def faux_score(coords):
+    # Frank's dummy score
+    natoms = coords.shape[0]
+    dists = numpy.sqrt(numpy.square(coords[:,numpy.newaxis]-coords).sum(axis=2))
+    igraph = numpy.bitwise_and(numpy.triu(~numpy.eye(dists.shape[0],dtype=bool)),dists < 3.4).nonzero();
+    score = (3.4-dists[igraph])*(3.4-dists[igraph])
+    return numpy.sum(score)
+
+def faux_score_derivs(coords):
+    natoms = coords.shape[0]
+    print("faux score derivs, natoms=", natoms)
+    dxs = coords[:,numpy.newaxis]-coords
+    dists = numpy.sqrt(numpy.square(dxs).sum(axis=2))
+    igraph = numpy.bitwise_and(numpy.triu(~numpy.eye(dists.shape[0],dtype=bool)),dists < 3.4).nonzero();
+
+    dEdxs = numpy.zeros([natoms,natoms,3])
+    dEdxs[igraph[0],igraph[1],:] = -2 * (3.4-dists[igraph].reshape(-1,1)) * dxs[igraph]/dists[igraph].reshape(-1,1);
+
+    dEdx = numpy.zeros([natoms,3])
+    dEdx = dEdxs.sum(axis=1) - dEdxs.sum(axis=0)
+
+    return dEdx
+
 class TestAtomTree(unittest.TestCase):
     def test_homogeneous_transform_default_ctor(self):
         ht = atree.HomogeneousTransform()
@@ -547,6 +570,24 @@ class TestAtomTree(unittest.TestCase):
 
         return residues, nodes, tree, coords, bas, jas
 
+    def dofs_for_franks_multi_jump_atom_tree( self, nodes, bas, jas ):
+        dofs = numpy.zeros((23,9))
+
+        # the bonded atom indices in Frank's example
+        #bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
+        for ba in bas:
+            dofs[ba,0] = nodes[ba].d
+            dofs[ba,1] = nodes[ba].theta
+            dofs[ba,2] = nodes[ba].phi
+        #jas = [3,8,13,18]
+        for ja in jas:
+            for i in range(3):
+                dofs[ja,i+0] = nodes[ja].rb[i]
+                dofs[ja,i+3] = nodes[ja].rot_delta[i]
+                dofs[ja,i+6] = nodes[ja].rot[i]
+        return dofs
+
+
     def test_atomtree_w_jump_atoms(self):
         residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
         #nodes, coords = self.create_franks_multi_jump_atom_tree()
@@ -775,38 +816,7 @@ class TestAtomTree(unittest.TestCase):
 
     def test_numpy_ht_refold(self):
         residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
-
-        #atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
-        #                  [nodes[3],nodes[4],nodes[5],nodes[6],nodes[7]], \
-        #                  [nodes[5+3],nodes[5+4],nodes[5+5],nodes[5+6],nodes[5+7]], \
-        #                  [nodes[10+3],nodes[10+4],nodes[10+5],nodes[10+6],nodes[10+7]], \
-        #                  [nodes[15+3],nodes[15+4],nodes[15+5],nodes[15+6],nodes[15+7]]]
-        #
-        #tree = atree.AtomTree(nodes[0], atom_node_list)
-        #
-        ## faux residues object
-        #residues = [ temp_class() for x in range(5) ]
-        #residues[0].coords = numpy.zeros((3,3))
-        #residues[1].coords = numpy.zeros((5,3))
-        #residues[2].coords = numpy.zeros((5,3))
-        #residues[3].coords = numpy.zeros((5,3))
-        ##residues[4].coords = numpy.zeros((5,3))
-
-        dofs = numpy.zeros((23,9))
-
-        # the bonded atom indices in Frank's example
-        #bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
-        for ba in bas:
-            dofs[ba,0] = nodes[ba].d
-            dofs[ba,1] = nodes[ba].theta
-            dofs[ba,2] = nodes[ba].phi
-        #jas = [3,8,13,18]
-        for ja in jas:
-            for i in range(3):
-                dofs[ja,i+0] = nodes[ja].rb[i]
-                dofs[ja,i+3] = nodes[ja].rot_delta[i]
-                dofs[ja,i+6] = nodes[ja].rot[i]
-
+        dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes,bas,jas)
         refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
         coords_out = coords.copy()
         htrefold.cpu_htrefold_2( dofs, refold_data, coords_out )
@@ -855,4 +865,29 @@ class TestAtomTree(unittest.TestCase):
 
 
     def test_dof_derivative_calculations( self ):
-        pass
+        residues, nodes, atom_tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
+
+        dofs = self.dofs_for_franks_multi_jump_atom_tree( nodes, bas, jas )
+        ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree, \
+             refold_data.coalesced_ind_2_refold_index, refold_data.refold_index_2_coalesced_ind )
+        dofs_working = dofs.copy()
+        delta_coords = coords.copy()
+
+        score = faux_score( coords )
+        cart_derivs = faux_score_derivs( coords )
+        dscore_ddofs_analytic = htrefold.compute_dscore_ddofs( coords, dofs, ag_tree, refold_data.hts, cart_derivs )
+        for ii in range(23) :
+            ndofs = 3 if ii in bas else 6
+            for jj in range(ndofs) :
+                delta = 1e-6
+                dofs_working[ii,jj] = dofs[ii,jj] + delta
+                htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
+                score_pdelta = faux_score(delta_coords)
+                dofs_working[ii,jj] = dofs[ii,jj] - delta
+                htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
+                score_mdelta = faux_score(delta_coords)
+                dscore_ddof_numeric = ( score_pdelta - score_mdelta ) / ( 2*delta)
+                self.assertAlmostEqual(dscore_ddof_numeric, dscore_ddofs_analytic[ii,jj])
+                dofs_working[ii,jj] = dofs[ii,jj]
+                
