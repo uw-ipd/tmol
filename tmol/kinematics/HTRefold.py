@@ -725,7 +725,7 @@ def cpu_f1f2_summation1(atom_f1f2s, ag_derivsum_nodes):
 def cpu_f1f2_summation2(atom_f1f2s, ag_derivsum_nodes):
     ''' Numpy version of the f1f2 recursive summation function which uses something like a segmented
     scan over each of the abe-go depths.'''
-    f1f2sum = numpy.zeros((ag_derivsum_nodes.nnodes + 1, 6),dtype=float)
+    f1f2sum = numpy.zeros((ag_derivsum_nodes.nnodes + 1, 6),dtype=float) # dtype="d" perhaps?
     f1f2sum[:] = atom_f1f2s[ag_derivsum_nodes.atom_indices, :]
     ag_derivsum_nodes.is_leaf_working[:
                                       ] = ag_derivsum_nodes.is_leaf  # in-place copy

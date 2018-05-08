@@ -804,9 +804,11 @@ class TestAtomTree(unittest.TestCase):
     def test_create_f1f2_tree_for_1ubq(self):
         res_reader = pdbio.ResidueReader()
         residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
-        tree = atree.tree_from_residues(res_reader.chemical_db, residues)
+        atom_tree = atree.tree_from_residues(res_reader.chemical_db, residues)
+        refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
         ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure(
-            residues, tree
+            residues, atom_tree, 
+            refold_data.coalesced_ind_2_refold_index, refold_data.refold_index_2_coalesced_ind
         )
 
         atom_f1f2s = numpy.random.random((ag_tree.natoms + 1, 6))
@@ -929,6 +931,65 @@ class TestAtomTree(unittest.TestCase):
         #print( "dscore_ddofs_numeric"); print(dscore_ddofs_numeric)
         for ii in range(23):
             ndofs = 3 if ii in bas else 6
+            for jj in range(ndofs):
+                self.assertAlmostEqual(dscore_ddofs_numeric[ii,jj], dscore_ddofs_analytic[ii,jj],5)
+                dofs_working[ii,jj] = dofs[ii,jj]
+                
+
+    def do_not_test_dof_derivative_calculations_2( self ):
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
+        atom_tree = atree.tree_from_residues(res_reader.chemical_db, residues)
+
+        #residues, nodes, atom_tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
+
+        #dofs = self.dofs_for_franks_multi_jump_atom_tree( nodes, bas, jas )
+        dofs = numpy.zeros((refold_data.natoms,9))
+        count = 0
+        for res_ptrs in atom_tree.atom_pointer_list:
+            for at in res_ptrs :
+                if not at.is_jump :
+                    dofs[count,0] = at.d
+                    dofs[count,1] = at.theta
+                    dofs[count,2] = at.phi
+                else :
+                    for i in range(3):
+                        dofs[count,i+0] = at.rb[i]
+                        dofs[count,i+3] = at.rot_delta[i]
+                        dofs[count,i+6] = at.rot[i]
+                count += 1
+
+        ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree, \
+             refold_data.coalesced_ind_2_refold_index, refold_data.refold_index_2_coalesced_ind )
+        dofs_working = dofs.copy()
+        coords = numpy.zeros((refold_data.natoms,3))
+        delta_coords = coords.copy()
+        htrefold.cpu_htrefold_2( dofs, refold_data, coords )
+
+        score = faux_score( coords )
+        cart_derivs = faux_score_derivs( coords )
+
+        #print("cart_derivs"); print(cart_derivs)
+        dscore_ddofs_analytic = htrefold.compute_dscore_ddofs( coords, dofs, ag_tree, refold_data.hts, cart_derivs )
+        #print("dscore_ddofs_analytic"); print( dscore_ddofs_analytic )
+        dscore_ddofs_numeric = numpy.zeros((refold_data.natoms,6))
+        count_ci = 0
+        for ii in range(refold_data.natoms) :
+            ndofs = 6 #3 if ii in bas else 6
+            for jj in range(ndofs) :
+                delta = 1e-8
+                dofs_working[ii,jj] = dofs[ii,jj] + delta
+                htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
+                score_pdelta = faux_score(delta_coords)
+                dofs_working[ii,jj] = dofs[ii,jj] - delta
+                htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
+                score_mdelta = faux_score(delta_coords)
+                dscore_ddofs_numeric[count_ci,jj] = ( score_pdelta - score_mdelta ) / ( 2*delta)
+            count_ci += 1
+        #print( "dscore_ddofs_numeric"); print(dscore_ddofs_numeric)
+        for ii in range(refold_data.natoms):
+            ndofs = 6 # if ii in bas else 6
             for jj in range(ndofs):
                 self.assertAlmostEqual(dscore_ddofs_numeric[ii,jj], dscore_ddofs_analytic[ii,jj],5)
                 dofs_working[ii,jj] = dofs[ii,jj]
