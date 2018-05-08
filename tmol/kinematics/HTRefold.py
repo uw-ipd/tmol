@@ -1344,7 +1344,7 @@ def bond_derivatives( ag_tree, dofs, hts, f1f2sum ):
 
     dsc_ddofs = numpy.zeros([ag_tree.nbondedatoms,3])
     dsc_ddofs[:,0] = numpy.einsum('ij, ij->i', d_axes, dtheta_f2s )
-    dsc_ddofs[:,1] = -numpy.sign(dofs[ag_tree.bonded_atoms,1]) * ( \
+    dsc_ddofs[:,1] = -1 * ( \
         numpy.einsum('ij, ij->i', theta_axes, dtheta_f1s ) + \
         numpy.einsum('ij, ij->i', numpy.cross( theta_axes, end_pos ), dtheta_f2s ) )
     dsc_ddofs[:,2] = \
