@@ -7,7 +7,7 @@ import numpy
 from tmol.properties.array import VariableT, Array
 from tmol.properties.reactive import derived_from
 
-from ..bonded_atom import ScoreComponentAttributes
+from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..interatomic_distance import InteratomicDistanceGraphBase
 
 from .potentials import (
@@ -97,7 +97,7 @@ class HBondPairs(ValidateAttrs):
         )
 
 
-class HBondScoreGraph(InteratomicDistanceGraphBase):
+class HBondScoreGraph(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
 
     hbond_database: HBondDatabase = Instance(
         "hbond parameter database",

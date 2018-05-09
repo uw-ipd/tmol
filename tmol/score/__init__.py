@@ -12,6 +12,7 @@ from .bonded_atom import BondedAtomScoreGraph, RealSpaceScoreGraph
 from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
 from .hbond import HBondScoreGraph
+from .total_score import TotalScoreComponentsGraph
 from .types import RealTensor
 
 
@@ -40,6 +41,7 @@ class ScoreGraph(
         BlockedInteratomicDistanceGraph,
         BondedAtomScoreGraph,
         RealSpaceScoreGraph,
+        TotalScoreComponentsGraph,
 ):
     pass
 
