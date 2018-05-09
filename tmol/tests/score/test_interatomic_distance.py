@@ -8,8 +8,7 @@ from scipy.spatial.distance import pdist, squareform
 import tmol.system.residue
 from tmol.system.residue.io import read_pdb
 
-import tmol.score.bonded_atom
-from tmol.score.bonded_atom import (
+from tmol.score.coordinates import (
     RealSpaceScoreGraph,
 )
 from tmol.score.total_score import (
