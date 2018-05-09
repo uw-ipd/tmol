@@ -2,10 +2,17 @@ import numpy
 import tmol.database
 
 from tmol.score.hbond import HBondScoreGraph
+from tmol.score.bonded_atom import RealSpaceScoreGraph
 
 
 def test_hbond_smoke(ubq_system):
-    hbond_graph = HBondScoreGraph(
+    class HBGraph(
+            HBondScoreGraph,
+            RealSpaceScoreGraph,
+    ):
+        pass
+
+    hbond_graph = HBGraph(
         **tmol.score.system_graph_params(ubq_system, requires_grad=False)
     )
 

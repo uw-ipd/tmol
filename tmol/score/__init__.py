@@ -8,7 +8,7 @@ import torch.autograd
 import tmol.io.generic
 import tmol.io.pdb_parsing as pdb_parsing
 
-from .bonded_atom import BondedAtomScoreGraph
+from .bonded_atom import BondedAtomScoreGraph, RealSpaceScoreGraph
 from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
 from .hbond import HBondScoreGraph
@@ -39,6 +39,7 @@ class ScoreGraph(
         LJLKScoreGraph,
         BlockedInteratomicDistanceGraph,
         BondedAtomScoreGraph,
+        RealSpaceScoreGraph,
 ):
     pass
 

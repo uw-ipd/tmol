@@ -9,10 +9,14 @@ import tmol.system.residue
 from tmol.system.residue.io import read_pdb
 
 import tmol.score.bonded_atom
-from tmol.score.bonded_atom import ScoreComponentAttributes
+from tmol.score.bonded_atom import (
+    ScoreComponentAttributes,
+    RealSpaceScoreGraph,
+)
 from tmol.score.interatomic_distance import (
-    InteratomicDistanceGraphBase, NaiveInteratomicDistanceGraph,
-    BlockedInteratomicDistanceGraph
+    InteratomicDistanceGraphBase,
+    NaiveInteratomicDistanceGraph,
+    BlockedInteratomicDistanceGraph,
 )
 from tmol.properties.reactive import derived_from
 from tmol.properties.array import VariableT
@@ -53,7 +57,13 @@ class TestInteratomicDistance(unittest.TestCase):
 
         scipy_distance = squareform(pdist(test_structure.coords))
 
-        dgraph = NaiveInteratomicDistanceGraph(**test_params)
+        class TestGraph(
+                NaiveInteratomicDistanceGraph,
+                RealSpaceScoreGraph,
+        ):
+            pass
+
+        dgraph = TestGraph(**test_params)
 
         numpy.testing.assert_allclose(
             numpy.nan_to_num(scipy_distance[tuple(dgraph.atom_pair_inds)]),
@@ -68,12 +78,18 @@ class TestInteratomicDistance(unittest.TestCase):
         )
         test_params["threshold_distance"] = 6
 
-        class NaiveGraph(ThresholdDistanceCount,
-                         NaiveInteratomicDistanceGraph):
+        class NaiveGraph(
+                ThresholdDistanceCount,
+                NaiveInteratomicDistanceGraph,
+                RealSpaceScoreGraph,
+        ):
             pass
 
-        class BlockedGraph(ThresholdDistanceCount,
-                           BlockedInteratomicDistanceGraph):
+        class BlockedGraph(
+                ThresholdDistanceCount,
+                BlockedInteratomicDistanceGraph,
+                RealSpaceScoreGraph,
+        ):
             pass
 
         scipy_distance = pdist(test_structure.coords)
