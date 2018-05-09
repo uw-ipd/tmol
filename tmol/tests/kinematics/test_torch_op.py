@@ -1,46 +1,36 @@
 import pytest
+import typing
 
 import pandas
 import torch
 import numpy
 
-from tmol.kinematics.builder import KinematicBuilder
+from tmol.types.torch import Tensor
+
+from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.torch_op import KinematicOp
 
 from tmol.system.residue.packed import PackedResidueSystem
+from tmol.system.residue.restypes import Residue
+from tmol.system.residue.kinematics import SystemKinematics
 
 
 def test_kinematic_torch_op_refold(ubq_system):
     tsys = ubq_system
+    tkin = SystemKinematics.for_system(tsys.bonds, tsys.torsion_metadata)
 
-    torsion_pairs = numpy.block([
-        [tsys.torsion_metadata["atom_index_b"]],
-        [tsys.torsion_metadata["atom_index_c"]],
-    ]).T
-    torsion_bonds = torsion_pairs[numpy.all(torsion_pairs > 0, axis=-1)]
-
-    kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.component_for_prioritized_bonds(
-            root=0,
-            mandatory_bonds=torsion_bonds,
-            all_bonds=tsys.bonds,
-        )
-    ).kintree
-
-    kinematic_metadata = DOFMetadata.for_kintree(kintree)
-
-    torsion_dofs = kinematic_metadata[
-        (kinematic_metadata.dof_type == DOFTypes.bond_torsion)
+    torsion_dofs = tkin.dof_metadata[
+        (tkin.dof_metadata.dof_type == DOFTypes.bond_torsion)
     ]
 
     coords = torch.from_numpy(tsys.coords)
 
-    kincoords = coords[kintree.id]
+    kincoords = coords[tkin.kintree.id]
     kincoords[torch.isnan(kincoords)] = 0.0
 
     kop = KinematicOp.from_coords(
-        kintree,
+        tkin.kintree,
         torsion_dofs,
         kincoords,
     )
@@ -51,23 +41,20 @@ def test_kinematic_torch_op_refold(ubq_system):
 
 
 @pytest.fixture
-def gradcheck_test_system(ubq_res):
+def gradcheck_test_system(
+        ubq_res: typing.Sequence[Residue],
+) -> typing.Tuple[KinTree,
+                  DOFMetadata,
+                  Tensor("f8")[:, 3],
+                  ]:
     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
-
-    kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.bonds_to_connected_component(
-            root=0,
-            bonds=tsys.bonds,
-        )
-    ).kintree
-
-    dofs = DOFMetadata.for_kintree(kintree)
+    tkin = SystemKinematics.for_system(tsys.bonds, tsys.torsion_metadata)
 
     coords = torch.from_numpy(tsys.coords)
-    kincoords = coords[kintree.id]
+    kincoords = coords[tkin.kintree.id]
     kincoords[torch.isnan(kincoords)] = 0.0
 
-    return (kintree, dofs, kincoords)
+    return (tkin.kintree, tkin.dof_metadata, kincoords)
 
 
 # Update workaround logic in test_kinematic_torch_op_gradcheck when passing
