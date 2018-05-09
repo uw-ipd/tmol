@@ -10,8 +10,11 @@ from tmol.system.residue.io import read_pdb
 
 import tmol.score.bonded_atom
 from tmol.score.bonded_atom import (
-    ScoreComponentAttributes,
     RealSpaceScoreGraph,
+)
+from tmol.score.total_score import (
+    ScoreComponentAttributes,
+    TotalScoreComponentsGraph,
 )
 from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase,
@@ -24,7 +27,8 @@ from tmol.properties.array import VariableT
 from tmol.tests.data.pdb import data as test_pdbs
 
 
-class ThresholdDistanceCount(InteratomicDistanceGraphBase):
+class ThresholdDistanceCount(InteratomicDistanceGraphBase,
+                             TotalScoreComponentsGraph):
     threshold_distance = properties.Float(
         "scoring count distance", min=0, cast=True
     )
