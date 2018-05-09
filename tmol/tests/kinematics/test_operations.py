@@ -259,15 +259,40 @@ def test_perturb(kintree, coords):
     numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
 
 
-def test_derivs(kintree, coords, expected_analytic_derivs):
-    NATOMS, _ = coords.shape
-    bkin = backwardKin(kintree, coords)
-    HTs, dofs = bkin.hts, bkin.dofs
+def test_root_sibling_derivs():
+    """Verify derivatives in post-jump bonded siblings."""
+    NATOMS = 6
 
-    # Compute analytic derivs
-    dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
-    dsc_dx[1:] = dscore(coords[1:, :])
-    dsc_dtors_analytic = resolveDerivs(kintree, dofs, HTs, dsc_dx)
+    ROOT = NodeType.root
+    JUMP = NodeType.jump
+    BOND = NodeType.bond
+
+    # kinematics definition
+    kintree = KinTree.full(NATOMS, 0)
+    kintree[0] = KinTree.node(0, ROOT, 0, 0, 0, 0)
+
+    kintree[1] = KinTree.node(1, JUMP, 0, 2, 1, 3)
+    kintree[2] = KinTree.node(1, BOND, 1, 2, 1, 3)
+    kintree[3] = KinTree.node(1, BOND, 1, 3, 1, 2)
+    kintree[4] = KinTree.node(1, BOND, 1, 4, 1, 2)
+    kintree[5] = KinTree.node(1, BOND, 4, 5, 4, 2)
+
+    coords = torch.tensor([
+        [0.000, 0.000, 0.000],
+        [2.000, 2.000, 2.000],
+        [3.458, 2.000, 2.000],
+        [3.988, 1.222, 0.804],
+        [4.009, 3.420, 2.000],
+        [3.383, 4.339, 1.471],
+    ]).to(torch.double)
+
+    compute_verify_derivs(kintree, coords)
+
+
+def test_derivs(kintree, coords, expected_analytic_derivs):
+    dsc_dtors_numeric, dsc_dtors_analytic = compute_verify_derivs(
+        kintree, coords
+    )
 
     # Verify against stored derivatives for regression
     #fd: reducing tolerance here to 1e-4
@@ -277,6 +302,17 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
     numpy.testing.assert_allclose(
         dsc_dtors_analytic.raw[1:], expected_analytic_derivs[1:], atol=1e-4
     )
+
+
+def compute_verify_derivs(kintree, coords):
+    NATOMS, _ = coords.shape
+    bkin = backwardKin(kintree, coords)
+    HTs, dofs = bkin.hts, bkin.dofs
+
+    # Compute analytic derivs
+    dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
+    dsc_dx[1:] = dscore(coords[1:, :])
+    dsc_dtors_analytic = resolveDerivs(kintree, dofs, HTs, dsc_dx)
 
     # Compute numeric derivs and store node indicies
 
@@ -309,14 +345,43 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
             dsc_dtors_numeric.raw[i, j] = (sc_p - sc_m) / 0.0002
 
     # Verify numeric/analytic derivatives
-    numpy.testing.assert_allclose(
-        dsc_dtors_analytic.jump.raw[jumps],
-        dsc_dtors_numeric.jump.raw[jumps],
+    assert_jump_dof_allclose(
+        dsc_dtors_analytic.jump[jumps],
+        dsc_dtors_numeric.jump[jumps],
         atol=1e-7,
     )
 
-    numpy.testing.assert_allclose(
-        dsc_dtors_analytic.bond.raw[bonds],
-        dsc_dtors_numeric.bond.raw[bonds],
+    assert_bond_dof_allclose(
+        dsc_dtors_analytic.bond[bonds],
+        dsc_dtors_numeric.bond[bonds],
         atol=1e-7
     )
+
+    return dsc_dtors_numeric, dsc_dtors_analytic
+
+
+def assert_bond_dof_allclose(actual, expected, **kwargs):
+    numpy.testing.assert_allclose(actual.phi_p, expected.phi_p, **kwargs)
+    numpy.testing.assert_allclose(actual.theta, expected.theta, **kwargs)
+    numpy.testing.assert_allclose(actual.d, expected.d, **kwargs)
+    numpy.testing.assert_allclose(actual.phi_c, expected.phi_c, **kwargs)
+
+
+def assert_jump_dof_allclose(actual, expected, **kwargs):
+    numpy.testing.assert_allclose(actual.RBx, expected.RBx, **kwargs)
+    numpy.testing.assert_allclose(actual.RBy, expected.RBy, **kwargs)
+    numpy.testing.assert_allclose(actual.RBz, expected.RBz, **kwargs)
+
+    numpy.testing.assert_allclose(
+        actual.RBdel_alpha, expected.RBdel_alpha, **kwargs
+    )
+    numpy.testing.assert_allclose(
+        actual.RBdel_beta, expected.RBdel_beta, **kwargs
+    )
+    numpy.testing.assert_allclose(
+        actual.RBdel_gamma, expected.RBdel_gamma, **kwargs
+    )
+
+    numpy.testing.assert_allclose(actual.RBalpha, expected.RBalpha, **kwargs)
+    numpy.testing.assert_allclose(actual.RBbeta, expected.RBbeta, **kwargs)
+    numpy.testing.assert_allclose(actual.RBgamma, expected.RBgamma, **kwargs)
