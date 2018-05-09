@@ -1,16 +1,19 @@
+import pandas
+
 import numpy
 import torch
 
 from tmol.kinematics import (
     backwardKin,
     forwardKin,
+    KinTree,
 )
 
-import tmol.kinematics.builder
 from tmol.kinematics.builder import KinematicBuilder
 
+from tmol.kinematics.metadata import DOFMetadata
+
 from tmol.system.residue.packed import PackedResidueSystem
-from tmol.types.array import NDArray
 
 
 def test_builder_refold(ubq_system):
@@ -85,68 +88,54 @@ def test_builder_framing(ubq_system):
     )
 
 
-def report_cut_results(
+def report_tree_coverage(
         sys: PackedResidueSystem,
-        connections: NDArray(int)[:, 2],
+        ktree: KinTree,
 ):
-    ctups = set(map(tuple, connections))
+    kinematic_metadata = DOFMetadata.for_kintree(ktree).to_frame()
+    torsion_metadata = pandas.DataFrame.from_records(sys.torsion_metadata)
+    torsion_coverage = pandas.merge(
+        left=torsion_metadata.query(
+            "atom_index_a >= 0 and atom_index_b >= 0 and atom_index_c >= 0 and atom_index_d >= 0"
+        ),
+        left_on=["atom_index_b", "atom_index_c"],
+        right=kinematic_metadata.query("dof_type == 'bond_torsion'"),
+        right_on=["parent_id", "child_id"],
+        how="left"
+    )
 
-    missing_torsions = []
-
-    for ti, t in enumerate(sys.torsion_metadata):
-        bp = (t["atom_index_b"], t["atom_index_c"])
-        if any(ai == -1 for ai in bp):
-            continue
-
-        if not (bp in ctups or tuple(reversed(bp)) in ctups):
-            missing_torsions.append(ti)
-
-    missing_bonds = []
-
-    for bi, b in enumerate(sys.bonds):
-        if not (tuple(b) in ctups or tuple(reversed(b)) in ctups):
-            if b[0] < b[1]:
-                missing_bonds.append(bi)
+    missing_torsions = torsion_coverage[pandas.isna(
+        torsion_coverage["node_idx"]
+    )]
 
     return {
-        "missing_torsions": sys.torsion_metadata[missing_torsions],
-        "missing_bonds":
-            sys.atom_metadata[sys.bonds[missing_bonds]]
-            [["residue_index", "residue_name", "atom_name"]]
+        "missing_torsions": missing_torsions
+        # "missing_bonds":
+        #     sys.atom_metadata[sys.bonds[missing_bonds]]
+        #     [["residue_index", "residue_name", "atom_name"]]
     }
 
 
 def test_build(ubq_system):
     tsys = ubq_system
 
-    torsion_pairs = (
-        tsys.torsion_metadata[[
-            "atom_index_b",
-            "atom_index_c",
-        ]].copy().view(int).reshape(-1, 2)
-    )
-
+    torsion_pairs = numpy.block([
+        [tsys.torsion_metadata["atom_index_b"]],
+        [tsys.torsion_metadata["atom_index_c"]],
+    ]).T
     torsion_bonds = torsion_pairs[numpy.all(torsion_pairs > 0, axis=-1)]
 
-    weighted_bonds = (
-        # All entries must be non-zero or sparse graph tools will entries.
-        KinematicBuilder.bond_csgraph(tsys.bonds, [-1], tsys.system_size) +
-        KinematicBuilder.bond_csgraph(
-            torsion_bonds, [-1e-3], tsys.system_size
-        )
-    )
-
     kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.bonds_to_connected_component(0, weighted_bonds)
+        *KinematicBuilder.component_for_prioritized_bonds(
+            root=0,
+            mandatory_bonds=torsion_bonds,
+            all_bonds=tsys.bonds,
+        )
     ).kintree
 
-    kinematic_connections = tmol.kinematics.builder.kintree_connections(
-        kintree
-    )
-    kinematic_tree_results = report_cut_results(tsys, kinematic_connections)
+    kinematic_tree_results = report_tree_coverage(tsys, kintree)
 
     assert len(kinematic_tree_results["missing_torsions"]) == 0, (
         f"Generated kinematic tree did not cover all named torsions.\n"
         f"torsions:\n{kinematic_tree_results['missing_torsions']}\n"
-        f"bonds:\n{kinematic_tree_results['missing_bonds']}\n"
     )

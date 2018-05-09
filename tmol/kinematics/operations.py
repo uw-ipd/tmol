@@ -526,7 +526,7 @@ def resolveDerivs(
     Xs = HTs[:, 0:3, 3]
 
     f1s = torch.cross(Xs, Xs - dsc_dx)
-    f2s = dsc_dx
+    f2s = dsc_dx.clone()  # clone input buffer before aggregation
 
     # 2) pass f1/f2s up tree
     SegScan(f1s, kintree.parent, Fscollect)
