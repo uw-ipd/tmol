@@ -6,6 +6,7 @@ import pandas
 import tmol.database
 
 from tmol.score.hbond import HBondScoreGraph
+from tmol.score.bonded_atom import RealSpaceScoreGraph
 import tmol.system.residue.packed
 
 
@@ -14,7 +15,14 @@ def hbond_score_comparison(rosetta_baseline):
         tmol.system.residue.packed.PackedResidueSystem()
         .from_residues(rosetta_baseline.tmol_residues)
     )  # yapf: disable
-    hbond_graph = HBondScoreGraph(
+
+    class HBGraph(
+            HBondScoreGraph,
+            RealSpaceScoreGraph,
+    ):
+        pass
+
+    hbond_graph = HBGraph(
         **tmol.score.system_graph_params(test_system, requires_grad=False)
     )
 

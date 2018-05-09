@@ -9,8 +9,6 @@ import scipy.sparse
 from tmol.properties.reactive import derived_from, cached
 from tmol.properties.array import Array, VariableT
 
-from .types import RealTensor
-
 
 @attr.s(slots=True, frozen=True, auto_attribs=True, cmp=True)
 class ScoreComponentAttributes:
@@ -20,16 +18,9 @@ class ScoreComponentAttributes:
 
 
 class BondedAtomScoreGraph(properties.HasProperties):
-    @staticmethod
-    def nan_to_num(var):
-        return var.where(~numpy.isnan(var.detach()), RealTensor([0.0]))
-
     system_size = properties.Integer(
         "number of atoms in system", min=1, cast=True
     )
-
-    coords = VariableT("source atomic coordinates")
-
     atom_types = Array("atomic types", dtype=object)[:]
 
     bonds = Array("inter-atomic bond indices", dtype=int, cast="unsafe")[:, 2]
@@ -85,6 +76,10 @@ class BondedAtomScoreGraph(properties.HasProperties):
     def on_change(self, change):
         if change["name"] in self.total_score_components:
             self._set("total_score", properties.undefined)
+
+
+class RealSpaceScoreGraph(properties.HasProperties):
+    coords = VariableT("source atomic coordinates")
 
     def step(self):
         """Recalculate total_score and gradients wrt/ coords. Does not clear coord grads."""
