@@ -38,7 +38,7 @@ def validate_union(union, value):
 
     for ut in union.__args__:
         validator = get_validator(ut)
-        print(ut)
+
         try:
             validator(value)
             return
