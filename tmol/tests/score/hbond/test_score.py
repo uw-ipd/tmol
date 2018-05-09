@@ -1,8 +1,9 @@
 import numpy
-import tmol.database
 
 from tmol.score.coordinates import RealSpaceScoreGraph
 from tmol.score.hbond import HBondScoreGraph
+
+from tmol.system.residue.score import system_real_graph_params
 
 
 def test_hbond_smoke(ubq_system):
@@ -13,7 +14,7 @@ def test_hbond_smoke(ubq_system):
         pass
 
     hbond_graph = HBGraph(
-        **tmol.score.system_graph_params(ubq_system, requires_grad=False)
+        **system_real_graph_params(ubq_system, requires_grad=False)
     )
 
     hbond_scores = numpy.array(hbond_graph.hbond_scores)

@@ -1,9 +1,4 @@
-import functools
-
 import numpy
-
-import torch
-import torch.autograd
 
 import tmol.io.generic
 import tmol.io.pdb_parsing as pdb_parsing
@@ -14,26 +9,6 @@ from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
 from .hbond import HBondScoreGraph
 from .total_score import TotalScoreComponentsGraph
-from .types import RealTensor
-
-
-@functools.singledispatch
-def system_graph_params(system, drop_missing_atoms=False, requires_grad=True):
-    bonds = system.bonds
-    coords = torch.autograd.Variable(
-        RealTensor(system.coords), requires_grad=requires_grad
-    )
-    atom_types = system.atom_metadata["atom_type"].copy()
-
-    if drop_missing_atoms:
-        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
-
-    return dict(
-        system_size=len(coords),
-        bonds=bonds,
-        coords=coords,
-        atom_types=atom_types,
-    )
 
 
 class ScoreGraph(

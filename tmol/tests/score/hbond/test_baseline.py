@@ -9,6 +9,7 @@ from tmol.score.coordinates import RealSpaceScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 
 import tmol.system.residue.packed
+from tmol.system.residue.score import system_real_graph_params
 
 
 def hbond_score_comparison(rosetta_baseline):
@@ -24,7 +25,7 @@ def hbond_score_comparison(rosetta_baseline):
         pass
 
     hbond_graph = HBGraph(
-        **tmol.score.system_graph_params(test_system, requires_grad=False)
+        **system_real_graph_params(test_system, requires_grad=False)
     )
 
     # Extract list of hbonds from packed system into summary table
