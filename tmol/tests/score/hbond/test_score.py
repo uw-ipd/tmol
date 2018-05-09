@@ -1,8 +1,8 @@
 import numpy
 import tmol.database
 
+from tmol.score.coordinates import RealSpaceScoreGraph
 from tmol.score.hbond import HBondScoreGraph
-from tmol.score.bonded_atom import RealSpaceScoreGraph
 
 
 def test_hbond_smoke(ubq_system):
