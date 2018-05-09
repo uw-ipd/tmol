@@ -264,16 +264,6 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
     bkin = backwardKin(kintree, coords)
     HTs, dofs = bkin.hts, bkin.dofs
 
-    bond_blocks = [
-        numpy.arange(2, 6),
-        numpy.arange(7, 11),
-        numpy.arange(12, 16),
-        numpy.arange(17, 21)
-    ]
-    jumps = numpy.array([b[-1] for b in bond_blocks[:-1]])
-    bonds_after_bond = numpy.concatenate([b[1:] for b in bond_blocks])
-    bonds_after_jump = numpy.array([b[0] for b in bond_blocks])
-
     # Compute analytic derivs
     dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
     dsc_dx[1:] = dscore(coords[1:, :])
@@ -288,14 +278,21 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
         dsc_dtors_analytic.raw[1:], expected_analytic_derivs[1:], atol=1e-4
     )
 
-    # Compute numeric derivs
-    dsc_dtors_numeric = KinDOF.full(len(dofs), numpy.nan)
+    # Compute numeric derivs and store node indicies
+
+    bonds = []
+    jumps = []
+
+    dsc_dtors_numeric = KinDOF.full(len(dofs), 0)
     for i in numpy.arange(0, NATOMS):
         if kintree.doftype[i] == NodeType.bond:
             ndof = 4
+            bonds.append(i)
         elif kintree.doftype[i] == NodeType.jump:
             ndof = 6
+            jumps.append(i)
         elif kintree.doftype[i] == NodeType.root:
+            assert i == 0
             continue
         else:
             raise NotImplementedError
@@ -312,24 +309,14 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
             dsc_dtors_numeric.raw[i, j] = (sc_p - sc_m) / 0.0002
 
     # Verify numeric/analytic derivatives
-    aderiv = dsc_dtors_analytic
-    nderiv = dsc_dtors_numeric
-
-    print(aderiv.jump.raw[jumps])
-    print(nderiv.jump.raw[jumps])
-
     numpy.testing.assert_allclose(
-        aderiv.jump.raw[jumps], nderiv.jump.raw[jumps], atol=1e-7
+        dsc_dtors_analytic.jump.raw[jumps],
+        dsc_dtors_numeric.jump.raw[jumps],
+        atol=1e-7,
     )
 
     numpy.testing.assert_allclose(
-        aderiv.bond.raw[bonds_after_bond],
-        nderiv.bond.raw[bonds_after_bond],
-        atol=1e-7
-    )
-
-    numpy.testing.assert_allclose(
-        aderiv.bond.raw[bonds_after_jump],
-        nderiv.bond.raw[bonds_after_jump],
+        dsc_dtors_analytic.bond.raw[bonds],
+        dsc_dtors_numeric.bond.raw[bonds],
         atol=1e-7
     )
