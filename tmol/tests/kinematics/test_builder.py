@@ -1,19 +1,12 @@
-import pandas
-
 import numpy
 import torch
 
 from tmol.kinematics import (
     backwardKin,
     forwardKin,
-    KinTree,
 )
 
 from tmol.kinematics.builder import KinematicBuilder
-
-from tmol.kinematics.metadata import DOFMetadata
-
-from tmol.system.residue.packed import PackedResidueSystem
 
 
 def test_builder_refold(ubq_system):
@@ -85,57 +78,4 @@ def test_builder_framing(ubq_system):
     numpy.testing.assert_array_equal(
         kintree.frame_z[normal_atoms],
         kintree.parent[kintree.parent[normal_atoms]]
-    )
-
-
-def report_tree_coverage(
-        sys: PackedResidueSystem,
-        ktree: KinTree,
-):
-    kinematic_metadata = DOFMetadata.for_kintree(ktree).to_frame()
-    torsion_metadata = pandas.DataFrame.from_records(sys.torsion_metadata)
-    torsion_coverage = pandas.merge(
-        left=torsion_metadata.query(
-            "atom_index_a >= 0 and atom_index_b >= 0 and atom_index_c >= 0 and atom_index_d >= 0"
-        ),
-        left_on=["atom_index_b", "atom_index_c"],
-        right=kinematic_metadata.query("dof_type == 'bond_torsion'"),
-        right_on=["parent_id", "child_id"],
-        how="left"
-    )
-
-    missing_torsions = torsion_coverage[pandas.isna(
-        torsion_coverage["node_idx"]
-    )]
-
-    return {
-        "missing_torsions": missing_torsions
-        # "missing_bonds":
-        #     sys.atom_metadata[sys.bonds[missing_bonds]]
-        #     [["residue_index", "residue_name", "atom_name"]]
-    }
-
-
-def test_build(ubq_system):
-    tsys = ubq_system
-
-    torsion_pairs = numpy.block([
-        [tsys.torsion_metadata["atom_index_b"]],
-        [tsys.torsion_metadata["atom_index_c"]],
-    ]).T
-    torsion_bonds = torsion_pairs[numpy.all(torsion_pairs > 0, axis=-1)]
-
-    kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.component_for_prioritized_bonds(
-            root=0,
-            mandatory_bonds=torsion_bonds,
-            all_bonds=tsys.bonds,
-        )
-    ).kintree
-
-    kinematic_tree_results = report_tree_coverage(tsys, kintree)
-
-    assert len(kinematic_tree_results["missing_torsions"]) == 0, (
-        f"Generated kinematic tree did not cover all named torsions.\n"
-        f"torsions:\n{kinematic_tree_results['missing_torsions']}\n"
     )
