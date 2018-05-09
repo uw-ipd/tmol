@@ -5,7 +5,6 @@ import properties
 
 from scipy.spatial.distance import pdist, squareform
 
-import tmol.system.residue
 from tmol.system.residue.io import read_pdb
 
 from tmol.score.coordinates import (
@@ -24,6 +23,8 @@ from tmol.properties.reactive import derived_from
 from tmol.properties.array import VariableT
 
 from tmol.tests.data.pdb import data as test_pdbs
+
+from tmol.system.residue.score import system_real_graph_params
 
 
 class ThresholdDistanceCount(InteratomicDistanceGraphBase,
@@ -54,7 +55,7 @@ class ThresholdDistanceCount(InteratomicDistanceGraphBase,
 class TestInteratomicDistance(unittest.TestCase):
     def test_naive_distance_calculation(self):
         test_structure = read_pdb(test_pdbs["1ubq"])
-        test_params = tmol.score.system_graph_params(
+        test_params = system_real_graph_params(
             test_structure, drop_missing_atoms=True
         )
 
@@ -76,7 +77,7 @@ class TestInteratomicDistance(unittest.TestCase):
 
     def test_block_distance_by_naive(self):
         test_structure = read_pdb(test_pdbs["1ubq"])
-        test_params = tmol.score.system_graph_params(
+        test_params = system_real_graph_params(
             test_structure, drop_missing_atoms=True
         )
         test_params["threshold_distance"] = 6

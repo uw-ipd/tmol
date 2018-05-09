@@ -6,6 +6,7 @@ import tmol.score
 
 from tmol.tests.data.pdb import data as test_pdbs
 from tmol.system.residue.io import read_pdb
+from tmol.system.residue.score import system_real_graph_params
 
 
 class TestLJLK(unittest.TestCase):
@@ -14,7 +15,7 @@ class TestLJLK(unittest.TestCase):
         test_pdb = test_pdbs["1ubq"]
         test_structure = read_pdb(test_pdb)
 
-        test_params = tmol.score.system_graph_params(
+        test_params = system_real_graph_params(
             test_structure,
             drop_missing_atoms=False,
             requires_grad=False,
@@ -41,7 +42,7 @@ class TestLJLK(unittest.TestCase):
     def test_baseline_comparison(self):
         test_structure = read_pdb(test_pdbs["1ubq"])
 
-        test_params = tmol.score.system_graph_params(
+        test_params = system_real_graph_params(
             test_structure,
             drop_missing_atoms=False,
             requires_grad=False,
