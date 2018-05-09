@@ -135,3 +135,23 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
     assert torch.autograd.gradcheck(
         kop.apply, (start_dofs, ), raise_exception=True
     )
+
+
+def test_kinematic_torch_op_smoke(
+        gradcheck_test_system, pytorch_backward_coverage
+):
+    kintree, dofs, kincoords = gradcheck_test_system
+
+    kop = KinematicOp.from_coords(
+        kintree,
+        dofs,
+        kincoords,
+    )
+
+    start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
+
+    coords = kop(start_dofs)
+    coords.register_hook(pytorch_backward_coverage)
+
+    total = coords.sum()
+    total.backward()
