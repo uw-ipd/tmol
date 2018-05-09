@@ -5,22 +5,30 @@ import properties
 
 from scipy.spatial.distance import pdist, squareform
 
-import tmol.system.residue
 from tmol.system.residue.io import read_pdb
 
-import tmol.score.bonded_atom
-from tmol.score.bonded_atom import ScoreComponentAttributes
+from tmol.score.coordinates import (
+    CartesianAtomicCoordinateProvider,
+)
+from tmol.score.total_score import (
+    ScoreComponentAttributes,
+    TotalScoreComponentsGraph,
+)
 from tmol.score.interatomic_distance import (
-    InteratomicDistanceGraphBase, NaiveInteratomicDistanceGraph,
-    BlockedInteratomicDistanceGraph
+    InteratomicDistanceGraphBase,
+    NaiveInteratomicDistanceGraph,
+    BlockedInteratomicDistanceGraph,
 )
 from tmol.properties.reactive import derived_from
 from tmol.properties.array import VariableT
 
 from tmol.tests.data.pdb import data as test_pdbs
 
+from tmol.system.residue.score import system_cartesian_space_graph_params
 
-class ThresholdDistanceCount(InteratomicDistanceGraphBase):
+
+class ThresholdDistanceCount(InteratomicDistanceGraphBase,
+                             TotalScoreComponentsGraph):
     threshold_distance = properties.Float(
         "scoring count distance", min=0, cast=True
     )
@@ -47,13 +55,19 @@ class ThresholdDistanceCount(InteratomicDistanceGraphBase):
 class TestInteratomicDistance(unittest.TestCase):
     def test_naive_distance_calculation(self):
         test_structure = read_pdb(test_pdbs["1ubq"])
-        test_params = tmol.score.system_graph_params(
+        test_params = system_cartesian_space_graph_params(
             test_structure, drop_missing_atoms=True
         )
 
         scipy_distance = squareform(pdist(test_structure.coords))
 
-        dgraph = NaiveInteratomicDistanceGraph(**test_params)
+        class TestGraph(
+                NaiveInteratomicDistanceGraph,
+                CartesianAtomicCoordinateProvider,
+        ):
+            pass
+
+        dgraph = TestGraph(**test_params)
 
         numpy.testing.assert_allclose(
             numpy.nan_to_num(scipy_distance[tuple(dgraph.atom_pair_inds)]),
@@ -63,17 +77,23 @@ class TestInteratomicDistance(unittest.TestCase):
 
     def test_block_distance_by_naive(self):
         test_structure = read_pdb(test_pdbs["1ubq"])
-        test_params = tmol.score.system_graph_params(
+        test_params = system_cartesian_space_graph_params(
             test_structure, drop_missing_atoms=True
         )
         test_params["threshold_distance"] = 6
 
-        class NaiveGraph(ThresholdDistanceCount,
-                         NaiveInteratomicDistanceGraph):
+        class NaiveGraph(
+                ThresholdDistanceCount,
+                NaiveInteratomicDistanceGraph,
+                CartesianAtomicCoordinateProvider,
+        ):
             pass
 
-        class BlockedGraph(ThresholdDistanceCount,
-                           BlockedInteratomicDistanceGraph):
+        class BlockedGraph(
+                ThresholdDistanceCount,
+                BlockedInteratomicDistanceGraph,
+                CartesianAtomicCoordinateProvider,
+        ):
             pass
 
         scipy_distance = pdist(test_structure.coords)

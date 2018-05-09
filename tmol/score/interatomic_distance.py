@@ -13,6 +13,14 @@ from .bonded_atom import BondedAtomScoreGraph
 from .types import RealTensor
 
 
+def _nan_to_num(var):
+    vals = var.detach()
+    zeros = torch.zeros(
+        1, dtype=vals.dtype, layout=vals.layout, device=vals.device
+    )
+    return var.where(~torch.isnan(vals), zeros)
+
+
 class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
     """Base graph for interatomic distances.
 
@@ -48,7 +56,7 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
         ).norm(dim=-1)
 
         if dist.requires_grad:
-            dist.register_hook(self.nan_to_num)
+            dist.register_hook(_nan_to_num)
 
         return dist
 
