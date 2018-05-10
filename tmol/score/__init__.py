@@ -8,7 +8,7 @@ from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
 from .hbond import HBondScoreGraph
 from .total_score import TotalScoreComponentsGraph
-from .coordinates import RealSpaceScoreGraph, DofSpaceScoreGraph
+from .coordinates import CartesianAtomicCoordinateProvider, KinematicAtomicCoordinateProvider
 
 
 class TotalScoreGraph(
@@ -62,4 +62,7 @@ def score_graph_to_cdjson(score_graph):
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)
 
 
-__all__ = (TotalScoreGraph, RealSpaceScoreGraph, DofSpaceScoreGraph)
+__all__ = (
+    TotalScoreGraph, CartesianAtomicCoordinateProvider,
+    KinematicAtomicCoordinateProvider
+)

@@ -7,7 +7,7 @@ from tmol.properties.reactive import derived_from
 from tmol.kinematics.torch_op import KinematicOp
 
 
-class RealSpaceScoreGraph(properties.HasProperties):
+class CartesianAtomicCoordinateProvider(properties.HasProperties):
     coords = VariableT("source atomic coordinates")
 
     def step(self):
@@ -25,7 +25,7 @@ class RealSpaceScoreGraph(properties.HasProperties):
         return self.total_score
 
 
-class DofSpaceScoreGraph(properties.HasProperties):
+class KinematicAtomicCoordinateProvider(properties.HasProperties):
     dofs = VariableT("source atomic coordinates")
     kinop = properties.Instance("kinematic op", KinematicOp)
 

@@ -5,11 +5,11 @@ import pandas
 
 import tmol.database
 
-from tmol.score.coordinates import RealSpaceScoreGraph
+from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 
 import tmol.system.residue.packed
-from tmol.system.residue.score import system_real_space_graph_params
+from tmol.system.residue.score import system_cartesian_space_graph_params
 
 
 def hbond_score_comparison(rosetta_baseline):
@@ -20,12 +20,13 @@ def hbond_score_comparison(rosetta_baseline):
 
     class HBGraph(
             HBondScoreGraph,
-            RealSpaceScoreGraph,
+            CartesianAtomicCoordinateProvider,
     ):
         pass
 
     hbond_graph = HBGraph(
-        **system_real_space_graph_params(test_system, requires_grad=False)
+        **
+        system_cartesian_space_graph_params(test_system, requires_grad=False)
     )
 
     # Extract list of hbonds from packed system into summary table

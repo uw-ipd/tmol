@@ -3,34 +3,36 @@ import torch
 from tmol.system.residue.packed import PackedResidueSystem
 
 from tmol.system.residue.score import (
-    system_real_space_graph_params,
+    system_cartesian_space_graph_params,
     system_torsion_space_graph_params,
 )
 
 from tmol.score import TotalScoreGraph
 from tmol.score.coordinates import (
-    RealSpaceScoreGraph,
-    DofSpaceScoreGraph,
+    CartesianAtomicCoordinateProvider,
+    KinematicAtomicCoordinateProvider,
 )
 
 
 class RealSpaceScore(
         TotalScoreGraph,
-        RealSpaceScoreGraph,
+        CartesianAtomicCoordinateProvider,
 ):
     pass
 
 
 class DofSpaceScore(
         TotalScoreGraph,
-        DofSpaceScoreGraph,
+        KinematicAtomicCoordinateProvider,
 ):
     pass
 
 
 def test_torsion_space_by_real_space_total_score(ubq_system):
 
-    real_space = RealSpaceScore(**system_real_space_graph_params(ubq_system))
+    real_space = RealSpaceScore(
+        **system_cartesian_space_graph_params(ubq_system)
+    )
 
     torsion_space = DofSpaceScore(
         **system_torsion_space_graph_params(ubq_system)

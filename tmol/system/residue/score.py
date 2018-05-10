@@ -15,14 +15,14 @@ from tmol.score.types import RealTensor
 
 
 @validate_args
-def system_real_space_graph_params(
+def system_cartesian_space_graph_params(
         system: PackedResidueSystem,
         drop_missing_atoms: bool = False,
         requires_grad: bool = True,
 ) -> Mapping:
     """Constructor parameters for cartesian space scoring.
 
-    Extract constructor kwargs to initialize a `RealSpaceScoreGraph`
+    Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`
     and `BondedAtomScoreGraph` subclass.
     """
     bonds = system.bonds
@@ -53,7 +53,7 @@ def system_torsion_space_graph_params(
 ):
     """Constructor parameters for torsion space scoring.
 
-    Extract constructor kwargs to initialize a `DofSpaceScoreGraph` and
+    Extract constructor kwargs to initialize a `KinematicAtomicCoordinateProvider` and
     `BondedAtomScoreGraph` subclass supporting torsion-space scoring. This
     includes only `bond_torsion` dofs, a subset of valid kinematic dofs for the
     system.
