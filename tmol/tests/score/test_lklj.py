@@ -2,7 +2,7 @@ import pytest
 import torch
 import numpy
 
-from tmol.system.residue.score import system_real_graph_params
+from tmol.system.residue.score import system_real_space_graph_params
 
 from tmol.score.coordinates import RealSpaceScoreGraph
 from tmol.score.ljlk import LJLKScoreGraph
@@ -21,7 +21,7 @@ class LJLKGraph(
 def test_ljlk_numpyros_comparison(ubq_system):
     test_structure = ubq_system
 
-    test_params = system_real_graph_params(
+    test_params = system_real_space_graph_params(
         test_structure,
         drop_missing_atoms=False,
         requires_grad=False,
@@ -49,7 +49,7 @@ def test_ljlk_numpyros_comparison(ubq_system):
 def test_baseline_comparison(ubq_system):
     test_structure = ubq_system
 
-    test_params = system_real_graph_params(
+    test_params = system_real_space_graph_params(
         test_structure,
         drop_missing_atoms=False,
         requires_grad=False,
@@ -77,7 +77,7 @@ def save_intermediate_grad(var):
 
 def test_ljlk_smoke(ubq_system):
     score_graph = LJLKGraph(
-        **system_real_graph_params(ubq_system, requires_grad=True)
+        **system_real_space_graph_params(ubq_system, requires_grad=True)
     )
 
     save_intermediate_grad(score_graph.lj)
