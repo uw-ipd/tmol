@@ -33,7 +33,7 @@ def HTinv(HTs: HTArray) -> HTArray:
 
 
 @validate_args
-def SegScan(
+def SegScanMinDepth(
         data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator
 ) -> Tensor(torch.double):
     """segmented scan code for passing:
@@ -57,6 +57,20 @@ def SegScan(
         toCalc = (prevBackPointers != backPointers)
 
     return (retval)
+
+
+@validate_args
+def SegScanEfficient(
+        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator
+) -> Tensor(torch.double):
+    pass
+
+
+@validate_args
+def SegScan(
+        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator
+) -> Tensor(torch.double):
+    SegScanMinDepth(data, parents, operator)
 
 
 @validate_args
