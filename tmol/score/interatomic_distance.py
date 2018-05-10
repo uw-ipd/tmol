@@ -49,14 +49,23 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
         ("coords", "atom_pair_inds"),
         VariableT("inter-atomic pairwise distance within threshold distance")
     )
-    def atom_pair_dist(self):
-        dist = (
+    def atom_pair_delta(self):
+        delta = (
             self.coords[self.atom_pair_inds[0]] -
             self.coords[self.atom_pair_inds[1]]
-        ).norm(dim=-1)
+        )
 
-        if dist.requires_grad:
-            dist.register_hook(_nan_to_num)
+        if delta.requires_grad:
+            delta.register_hook(_nan_to_num)
+
+        return delta
+
+    @derived_from(
+        ("atom_pair_delta", "atom_pair_inds"),
+        VariableT("inter-atomic pairwise distance within threshold distance")
+    )
+    def atom_pair_dist(self):
+        dist = self.atom_pair_delta.norm(dim=-1)
 
         return dist
 
