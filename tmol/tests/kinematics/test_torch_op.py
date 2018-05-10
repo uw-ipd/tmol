@@ -5,6 +5,8 @@ import pandas
 import torch
 import numpy
 
+from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
+
 from tmol.types.torch import Tensor
 
 from tmol.kinematics.datatypes import KinTree
@@ -57,19 +59,7 @@ def gradcheck_test_system(
     return (tkin.kintree, tkin.dof_metadata, kincoords)
 
 
-# Update workaround logic in test_kinematic_torch_op_gradcheck when passing
-@pytest.mark.xfail
-def test_kinematic_torch_op_gradcheck_report(gradcheck_test_system):
-    from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
-    kintree, dofs, kincoords = gradcheck_test_system
-
-    kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
-    )
-    start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
-
+def kop_gradcheck_report(kop, dofs, start_dofs):
     result = kop(start_dofs)
 
     eps = 1e-6
@@ -110,6 +100,21 @@ def test_kinematic_torch_op_gradcheck_report(gradcheck_test_system):
     )
 
 
+# Update workaround logic in test_kinematic_torch_op_gradcheck when passing
+@pytest.mark.xfail
+def test_kinematic_torch_op_gradcheck_report(gradcheck_test_system):
+    kintree, dofs, kincoords = gradcheck_test_system
+
+    kop = KinematicOp.from_coords(
+        kintree,
+        dofs,
+        kincoords,
+    )
+    start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
+
+    kop_gradcheck_report(kop, dofs, start_dofs)
+
+
 def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
     kintree, dofs, kincoords = gradcheck_test_system
 
@@ -129,6 +134,30 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
     assert torch.autograd.gradcheck(
         kop.apply, (start_dofs, ), raise_exception=True
     )
+
+
+def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
+    kintree, dofs, kincoords = gradcheck_test_system
+
+    # Temporary workaround for #45, disable theta for post-jump siblings
+    post_root_siblings = ((dofs.parent_id == 0) &
+                          (dofs.dof_type == DOFTypes.bond_angle))
+    dofs = dofs[~post_root_siblings]
+
+    kop = KinematicOp.from_coords(
+        kintree,
+        dofs,
+        kincoords,
+    )
+
+    torch.random.manual_seed(1663)
+    start_dofs = torch.tensor(
+        kop.src_mobile_dofs +
+        ((torch.rand_like(kop.src_mobile_dofs) - .5) * .01),
+        requires_grad=True
+    )
+
+    kop_gradcheck_report(kop, dofs, start_dofs)
 
 
 def test_kinematic_torch_op_smoke(
