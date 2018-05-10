@@ -15,12 +15,12 @@ from tmol.kinematics.torch_op import KinematicOp
 
 from tmol.system.residue.packed import PackedResidueSystem
 from tmol.system.residue.restypes import Residue
-from tmol.system.residue.kinematics import SystemKinematics
+from tmol.system.residue.kinematics import KinematicDescription
 
 
 def test_kinematic_torch_op_refold(ubq_system):
     tsys = ubq_system
-    tkin = SystemKinematics.for_system(tsys.bonds, tsys.torsion_metadata)
+    tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
     torsion_dofs = tkin.dof_metadata[
         (tkin.dof_metadata.dof_type == DOFTypes.bond_torsion)
@@ -50,7 +50,7 @@ def gradcheck_test_system(
                   Tensor("f8")[:, 3],
                   ]:
     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
-    tkin = SystemKinematics.for_system(tsys.bonds, tsys.torsion_metadata)
+    tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
     coords = torch.from_numpy(tsys.coords)
     kincoords = coords[tkin.kintree.id]
@@ -100,8 +100,6 @@ def kop_gradcheck_report(kop, dofs, start_dofs):
     )
 
 
-# Update workaround logic in test_kinematic_torch_op_gradcheck when passing
-@pytest.mark.xfail
 def test_kinematic_torch_op_gradcheck_report(gradcheck_test_system):
     kintree, dofs, kincoords = gradcheck_test_system
 
