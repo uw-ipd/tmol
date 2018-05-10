@@ -90,7 +90,18 @@ def JumpTransforms(dofs: JumpDOF) -> HTArray:
      - 3 translational
      - 3 rotational deltas
      - 3 rotational
-    Only the rotational deltas are exposed to minimization
+    Only the rotational deltas should be exposed to minimization
+
+    Translations are represented as an offset in X,Y,Z
+    Rotations and rotational deltas are ZYX Euler angles,
+        that is, a rotation about Z, then Y, then X
+    The HT returned by this function is given by:
+        M = trans( RBx, RBy, RBz)
+            @ roteuler( RBdel_alpha, RBdel_alpha, RBdel_alpha)
+            @ roteuler( RBalpha, RBalpha, RBalpha)
+    RBdel_* is meant to be reset to zero at the beginning of a minimization
+        trajectory, as when parameters are near 0, the rotational space
+        is well-behaved.
     """
     natoms, = dofs.shape
 
@@ -152,7 +163,15 @@ def JumpTransforms(dofs: JumpDOF) -> HTArray:
 def InvJumpTransforms(Ms: HTArray) -> JumpDOF:
     """HTs -> JUMP dofs
 
-    this function will always assign rotational delta = 0
+    Given the matrix definition in JumpTransforms, we calculate the dofs
+    that give rise to this HT.
+
+    A special case handles the problematic region where cos(beta)=0.
+        In this case, the alpha and gamma rotation are coincident so
+        we assign all rotation to alpha.
+
+    Since RB and RBdel are redundant, this function always returns its
+        non-zero components into RB, and RBdel is always 0
     """
 
     njumpatoms = Ms.shape[0]
@@ -200,7 +219,21 @@ def JumpDerivatives(
         f1s: CoordArray,
         f2s: CoordArray,
 ) -> JumpDOF:
-    """compute JUMP derivatives from f1/f2"""
+    """
+    compute JUMP derivatives from f1/f2
+
+    Translational derivatives are straightforward dot products of f2s
+        (the downstream derivative sum)
+
+    Rotational derivatives use the Abe and Go "trick" that allows us to
+        easily compute derivatives with respect to rotation about an axis.
+    In this case, there are three axes to compute derivatives of:
+        1) the Z axis (alpha rotation)
+        2) the Y axis after applying the alpha rotation (beta rotation)
+        3) the X axis after applying the alpha & beta rot (gamma rotation)
+    Derivatives are ONLY assigned to the RBdel DOFs
+
+    """
     # trans dofs
     njumpatoms, = dofs.shape
     dsc_ddofs = JumpDOF.zeros((njumpatoms, ))
@@ -310,11 +343,9 @@ def InvBondTransforms(Ms: HTArray) -> BondDOF:
     HTs -> BOND dofs
 
     Given the matrix definition in BondTransforms, we calculate the dofs
-    that give rise to this HT.  General case:
+    that give rise to this HT.
 
-    d =
-
-    special case below handles a "singularity," that is, a configuration
+    A special case below handles a "singularity," that is, a configuration
     where there are multiple parameterizations that give the same HT
 
     Specifically, when theta==0, the rx rotation can be put into
@@ -362,7 +393,20 @@ def BondDerivatives(
         f1s: CoordArray,
         f2s: CoordArray,
 ) -> BondDOF:
-    """compute BOND derivatives from f1/f2"""
+    """
+    compute JUMP derivatives from f1/f2
+
+    The d derivatives are straightforward dot products of f2s
+        (the downstream derivative sum)
+
+    Other DOF derivatives use the Abe and Go "trick" that allows us to
+        easily compute derivatives with respect to rotation about an axis.
+    The phi_p and phi_c derivs are simply rotation about the X axis of the
+        parent and child coordinate frame, respectively
+    The theta derivs are more complex. Similar to jump derivs, we need to
+        UNDO the phi_c rotation, and then take the Z axis of the child HT
+    """
+
     nbondatoms, = dofs.shape
 
     end_p_pos = Mparents[:, 0:3, 3]

@@ -259,7 +259,6 @@ def test_perturb(kintree, coords):
     numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
 
 
-#@pytest.mark.xfail
 def test_root_sibling_derivs():
     """Verify derivatives in post-jump bonded siblings."""
     NATOMS = 6
