@@ -1003,8 +1003,13 @@ class TestAtomTree(unittest.TestCase):
 
         htrefold.initialize_hts_gpu(dofs, refold_data)
 
+        hts = refold_data.hts_ro_d.copy_to_host()
+        refold_data.dofs = refold_data.dofs_ro_d.copy_to_host()
+        refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape((-1,3,4))
+
         htrefold.compute_hts_for_bonded_atoms( dofs, refold_data2 )
         htrefold.compute_hts_for_jump_atoms( refold_data2 )
+
 
         #print("refold_data.hts"); print(refold_data.hts)
         #print("refold_data2.hts"); print(refold_data2.hts)
@@ -1042,6 +1047,9 @@ class TestAtomTree(unittest.TestCase):
 
 
         htrefold.initialize_hts_gpu(dofs, refold_data)
+        hts = refold_data.hts_ro_d.copy_to_host()
+        refold_data.dofs = refold_data.dofs_ro_d.copy_to_host()
+        refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape((-1,3,4))
 
         htrefold.compute_hts_for_bonded_atoms( dofs, refold_data2 )
         htrefold.compute_hts_for_jump_atoms( refold_data2 )
