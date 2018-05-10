@@ -12,6 +12,24 @@ from .operations import forwardKin, backwardKin, resolveDerivs
 
 @attr.s(auto_attribs=True, frozen=True)
 class KinematicOp:
+    """torch.autograd compatible forward kinematic operator.
+
+    Perform forward (dof to coordinate) kinematics within torch.autograd
+    compute graph. Provides support for forward kinematics over of a subset of
+    source dofs, as specified by the provided DOFMetadata entries.
+
+    A kinematic system is defined by a combination of mobile and fixed dofs, a
+    KinematicOp manages forward kinematics for mobile dofs within a fixed dof
+    context. The full mobile & fixed dof set is initialized by backward
+    kinematics from a given coordinate state via the `from_coords` factory
+    function.
+
+    KinematicOp provides an interface mirroring an autograd function and can be
+    used via either `__call__` or `apply`. Unlike an autograd function, the Op
+    is reused during compute graph construction and serves as a factory for
+    single use KinematicFun functions.
+    """
+
     kintree: KinTree
     mobile_dofs: DOFMetadata
 
@@ -26,6 +44,7 @@ class KinematicOp:
             mobile_dofs: DOFMetadata,
             kin_coords: Tensor("f8")[:, 3],
     ):
+        """Construct KinematicOp for given mobile dofs via backward kinematics."""
         bkin = backwardKin(kintree, kin_coords)
         src_mobile_dofs = bkin.dofs.raw[mobile_dofs.node_idx,
                                         mobile_dofs.dof_idx]
@@ -51,6 +70,12 @@ class KinematicOp:
 
 
 class KinematicFun(torch.autograd.Function):
+    """Autograd function for KinematicOp.
+
+    A standard, single-use, autograd function implementing the forward &
+    backward passes for a given KinematicOp.
+    """
+
     def __init__(self, kinematic_op: KinematicOp):
         self.kinematic_op = kinematic_op
         super().__init__()

@@ -1,6 +1,6 @@
 import pandas
 
-from tmol.system.residue.kinematics import SystemKinematics
+from tmol.system.residue.kinematics import KinematicDescription
 from tmol.kinematics.metadata import DOFMetadata
 from tmol.kinematics.datatypes import KinTree
 from tmol.system.residue.packed import PackedResidueSystem
@@ -26,18 +26,13 @@ def report_tree_coverage(
         torsion_coverage["node_idx"]
     )]
 
-    return {
-        "missing_torsions": missing_torsions
-        # "missing_bonds":
-        #     sys.atom_metadata[sys.bonds[missing_bonds]]
-        #     [["residue_index", "residue_name", "atom_name"]]
-    }
+    return {"missing_torsions": missing_torsions}
 
 
 def test_system_kinematics(ubq_system):
     tsys = ubq_system
 
-    tsys_kinematics = SystemKinematics.for_system(
+    tsys_kinematics = KinematicDescription.for_system(
         ubq_system.bonds,
         ubq_system.torsion_metadata,
     )

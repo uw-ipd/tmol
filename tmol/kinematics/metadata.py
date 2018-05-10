@@ -17,6 +17,7 @@ from tmol.kinematics.datatypes import NodeType, KinDOF, KinTree
 
 
 class DOFTypes(enum.IntEnum):
+    """High-level class of kinematic DOF types."""
     jump = 0
     bond_angle = enum.auto()
     bond_distance = enum.auto()
@@ -25,6 +26,18 @@ class DOFTypes(enum.IntEnum):
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class DOFMetadata(TensorGroup, ConvertAttrs):
+    """The location, type, and descriptive ids of valid dofs within a KinTree.
+
+    Descriptive entries for dofs within a KinTree, this provides a 1-d
+    structure to select and report a subset of entries within a KinDOF buffer.
+    DOFMetadata sets are used to indicate mobile vs fixed dofs for KinematicOp
+    dof to coordinate functions.
+
+    DOFMetadata supports isomorphic conversion between a DataFrame and
+    TensorGroup representation to support symbolic selection. This converts the
+    IntEnum encoded "dof_type" entry into a string categorical column.
+    """
+
     node_idx: Tensor(torch.long)[...]
     dof_idx: Tensor(torch.long)[...]
 
@@ -34,6 +47,7 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
 
     @classmethod
     def for_kintree(cls, kintree: KinTree):
+        """Return all valid dofs within a KinTree."""
 
         # Setup a dof type table the same shape as the kinematic dofs,
         # marking all potential movable dofs with the abstract dof type.
@@ -74,13 +88,16 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
             parent_id=kintree.id[kintree.parent[node_idx]],
         )
 
-    def to_frame(self):
+    def to_frame(self) -> pandas.DataFrame:
+        assert len(self.shape) == 1
+
         columns = attr.asdict(self)
         columns["dof_type"] = vals_to_name_cat(DOFTypes, columns["dof_type"])
         return pandas.DataFrame(columns)
 
     @classmethod
     def from_frame(cls, frame):
+        """Convert from DataFrame to metadata, discarding any unneeded columns."""
         cols = {n: c.values for n, c in dict(frame).items()}
 
         if isinstance(cols["dof_type"], pandas.Categorical):

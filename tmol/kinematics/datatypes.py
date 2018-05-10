@@ -9,17 +9,16 @@ from tmol.types.attrs import ConvertAttrs
 from tmol.types.functional import convert_args
 
 
-# types of kintree nodes
 class NodeType(enum.IntEnum):
+    """KinTree node types."""
     root = 0
     jump = enum.auto()
     bond = enum.auto()
 
 
-# a representation of the atom-level kinematics
-# stacked torch tensors
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class KinTree(TensorGroup, ConvertAttrs):
+    """Representation of atom-level kinematics."""
 
     id: Tensor(torch.long)[...]  # used as an index so long
     doftype: Tensor(torch.int)[...]
@@ -51,6 +50,7 @@ class KinTree(TensorGroup, ConvertAttrs):
 
     @classmethod
     def root_node(cls):
+        """The global/root kinematic node at KinTree[0]."""
         return cls.node(
             id=-1,
             doftype=NodeType.root,
@@ -61,9 +61,17 @@ class KinTree(TensorGroup, ConvertAttrs):
         )
 
 
-# data structure describing internal coordinates
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class KinDOF(TensorGroup, ConvertAttrs):
+    """Internal coordinate data.
+
+    The KinDOF data structure holds two logical views: the "raw" view a
+    sparsely populated [n,9] tensor of DOF values and a set of named property
+    accessors providing access to specific entries within this array. This is
+    logically equivalent a C union datatype, the interpretation of an entry in
+    the DOF buffer depends on the type of the corresponding KinTree entry.
+    """
+
     raw: Tensor(torch.double)[..., 9]
 
     @property
@@ -79,6 +87,7 @@ class KinDOF(TensorGroup, ConvertAttrs):
 
 
 class BondDOFTypes(enum.IntEnum):
+    """Indices of bond dof types within KinDOF.raw."""
     phi_p = 0
     theta = enum.auto()
     d = enum.auto()
@@ -86,6 +95,7 @@ class BondDOFTypes(enum.IntEnum):
 
 
 class JumpDOFTypes(enum.IntEnum):
+    """Indices of jump dof types within KinDOF.raw."""
     RBx = 0
     RBy = enum.auto()
     RBz = enum.auto()
@@ -97,9 +107,9 @@ class JumpDOFTypes(enum.IntEnum):
     RBgamma = enum.auto()
 
 
-# data structure describing internal coordinates
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class BondDOF(TensorGroup, ConvertAttrs):
+    """A bond dof view of KinDOF."""
     raw: Tensor(torch.double)[..., 4]
 
     @property
@@ -119,9 +129,9 @@ class BondDOF(TensorGroup, ConvertAttrs):
         return self.raw[..., BondDOFTypes.phi_c]
 
 
-# data structure describing internal coordinates
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class JumpDOF(TensorGroup, ConvertAttrs):
+    """A jump dof view of KinDOF."""
     raw: Tensor(torch.double)[..., 9]
 
     @property

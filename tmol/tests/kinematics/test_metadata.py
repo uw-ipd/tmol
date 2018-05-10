@@ -4,12 +4,12 @@ import numpy
 
 from tmol.kinematics.metadata import DOFMetadata
 
-from tmol.system.residue.kinematics import SystemKinematics
+from tmol.system.residue.kinematics import KinematicDescription
 
 
 def test_metadata_dataframe_smoke(ubq_system):
     tsys = ubq_system
-    tkin = SystemKinematics.for_system(tsys.bonds, tsys.torsion_metadata)
+    tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
     restored = DOFMetadata.from_frame(tkin.dof_metadata.to_frame())
 

@@ -16,9 +16,26 @@ from tmol.types.tensor import cat
 
 from .datatypes import (NodeType, KinTree)
 
+ChildParentTuple = Tuple[NDArray(int)[:], NDArray(int)[:]]
+
 
 @attr.s(auto_attribs=True, frozen=True)
 class KinematicBuilder:
+    """Supports assembly of sets of bonded atoms into a valid KinTree.
+
+    Provides utility methods to perform incremental assembly of sets of bonded
+    atoms ("connected components") into a valid KinTree. This involves
+    determination of a spanning DAG for the component beginning from a
+    specified root atom, initialization of reference frames for each atom, and
+    concatenation of this component onto the KinTree via a jump.
+
+    The builder supports "prioritized bonds" within a connected component,
+    which must be present as parent-child relationships within the resulting
+    tree. This ensures that specific dofs are explicitly represented in cases
+    where a cycle in bonded connectivity results in multiple valid spanning
+    trees. (Eg. The proline backbone ring.)
+    """
+
     kintree: KinTree = attr.Factory(KinTree.root_node)
 
     @classmethod
@@ -28,19 +45,19 @@ class KinematicBuilder:
             root: int,
             mandatory_bonds: NDArray(int)[:, 2],
             all_bonds: NDArray(int)[:, 2],
-    ):
+    ) -> ChildParentTuple:
         system_size = max(mandatory_bonds.max(), all_bonds.max()) + 1
 
         weighted_bonds = (
             # All entries must be non-zero or sparse graph tools will entries.
-            cls.bond_csgraph(all_bonds, [-1], system_size) +
-            cls.bond_csgraph(mandatory_bonds, [-1e-5], system_size)
+            cls.bonds_to_csgraph(all_bonds, [-1], system_size) +
+            cls.bonds_to_csgraph(mandatory_bonds, [-1e-5], system_size)
         )
 
         ids, parents = cls.bonds_to_connected_component(root, weighted_bonds)
 
         # Verify construction
-        component_bond_graph = cls.bond_csgraph(
+        component_bond_graph = cls.bonds_to_csgraph(
             numpy.block([[parents[1:], ids[1:]], [ids[1:], parents[1:]]]).T
         )
         bond_present = component_bond_graph[mandatory_bonds[:, 0],
@@ -53,7 +70,7 @@ class KinematicBuilder:
 
     @classmethod
     @convert_args
-    def bond_csgraph(
+    def bonds_to_csgraph(
             cls,
             bonds: NDArray(int)[:, 2],
             weights: NDArray(float)[:] = numpy.ones(1),
@@ -75,11 +92,11 @@ class KinematicBuilder:
             cls,
             root: int,
             bonds: Union[NDArray(int)[:, 2], sparse.spmatrix],
-    ) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    ) -> ChildParentTuple:
         if isinstance(bonds, numpy.ndarray):
             # Bonds are a non-prioritized set of edges, assume arbitrary
             # connectivity from the root is allowed.
-            bond_graph = cls.bond_csgraph(bonds)
+            bond_graph = cls.bonds_to_csgraph(bonds)
         else:
             # Sparse graph with per-bond weights, generate the minimum
             # spanning tree of the connections before traversing from
@@ -95,7 +112,7 @@ class KinematicBuilder:
         assert parents[0] == -9999
         assert numpy.all(parents[1:] >= 0)
 
-        return ids, parents
+        return ids.astype(int), parents.astype(int)
 
     @convert_args
     def append_connected_component(

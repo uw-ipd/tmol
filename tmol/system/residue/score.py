@@ -1,3 +1,5 @@
+from typing import Mapping
+
 import numpy
 import torch
 
@@ -7,7 +9,7 @@ from tmol.kinematics.torch_op import KinematicOp
 from tmol.kinematics.metadata import DOFTypes
 
 from .packed import PackedResidueSystem
-from .kinematics import SystemKinematics
+from .kinematics import KinematicDescription
 
 from tmol.score.types import RealTensor
 
@@ -17,7 +19,12 @@ def system_real_space_graph_params(
         system: PackedResidueSystem,
         drop_missing_atoms: bool = False,
         requires_grad: bool = True,
-):
+) -> Mapping:
+    """Constructor parameters for cartesian space scoring.
+
+    Extract constructor kwargs to initialize a `RealSpaceScoreGraph`
+    and `BondedAtomScoreGraph` subclass.
+    """
     bonds = system.bonds
     coords = (
         torch.from_numpy(system.coords).clone()
@@ -44,9 +51,16 @@ def system_torsion_space_graph_params(
         drop_missing_atoms: bool = False,
         requires_grad: bool = True,
 ):
+    """Constructor parameters for torsion space scoring.
+
+    Extract constructor kwargs to initialize a `DofSpaceScoreGraph` and
+    `BondedAtomScoreGraph` subclass supporting torsion-space scoring. This
+    includes only `bond_torsion` dofs, a subset of valid kinematic dofs for the
+    system.
+    """
 
     # Initialize kinematic tree for the system
-    sys_kin = SystemKinematics.for_system(
+    sys_kin = KinematicDescription.for_system(
         system.bonds, system.torsion_metadata
     )
 
