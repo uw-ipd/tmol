@@ -35,42 +35,90 @@ def HTinv(HTs: HTArray) -> HTArray:
 @validate_args
 def SegScanMinDepth(
         data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator
-) -> Tensor(torch.double):
-    """segmented scan code for passing:
-
-    - HT's down the atom tree
-    - derivs up the atom tree
+):
+    """
+    Segmented scan code for passing:
+        - HT's down the atom tree
+        - derivs up the atom tree
+    This version implements "Algorithm 1" from
+        https://en.wikipedia.org/wiki/Prefix_sum
+    This version optimizes depth at the expense of efficiency.
+    It will be faster if there are many compute units.
     """
     nelts = data.shape[0]
     N = numpy.ceil(numpy.log2(nelts)
-                   )  # this might result in several extra rounds...
+                   )  # this might result in several no-op rounds...
 
     backPointers = parents
     prevBackPointers = torch.arange(nelts, dtype=torch.long)
     toCalc = (prevBackPointers != backPointers)
-    retval = data
 
-    for i in numpy.arange(N):
+    for i in range(int(N)):
         prevBackPointers = backPointers
-        operator(retval, backPointers, toCalc)
+        operator(data, backPointers, toCalc)
         backPointers = prevBackPointers[prevBackPointers]
         toCalc = (prevBackPointers != backPointers)
-
-    return (retval)
 
 
 @validate_args
 def SegScanEfficient(
-        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator
-) -> Tensor(torch.double):
-    pass
+        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator,
+        upwards: bool
+):
+    """
+    Segmented scan code for passing:
+        - HT's down the atom tree
+        - derivs up the atom tree
+    This version implements "Algorithm 2" from
+        https://en.wikipedia.org/wiki/Prefix_sum
+    This version optimizes efficiency while doubling depth.
+    It will be faster if there are few compute units.
+    """
+    nelts = data.shape[0]
+
+    # calculate depth of each element in tree
+    # this logic could be moved into tree construction
+    treedepth = torch.empty(nelts, dtype=torch.long)
+    treedepth[0] = 0
+    for i in range(1, nelts):
+        treedepth[i] = treedepth[parents[i]] + 1
+    maxdepth = torch.max(treedepth)
+    if (upwards):
+        treedepth = maxdepth - treedepth
+
+    N = numpy.ceil(numpy.log2(maxdepth + 1))
+
+    # calculation of backpointer array could also
+    #   be moved to a precompute step
+    backPointers = torch.empty((N + 1, nelts), dtype=torch.long)
+    backPointers[0, :] = parents
+
+    # forward pass
+    # we need to save backward pointers so we can unroll this function
+    for i in range(int(N)):
+        if (upwards):
+            mask = (treedepth % (2 << i)) == ((1 << i) - 1)
+        else:
+            mask = (treedepth % (2 << i)) == ((2 << i) - 1)
+        operator(data, backPointers[i, :], mask)
+        backPointers[i + 1, :] = backPointers[i, :][backPointers[i, :]]
+
+    # backward pass
+    for i in range(int(N - 1), -1, -1):
+        if (upwards):
+            mask = (treedepth % (2 << i)) == ((2 << i) - 1)
+        else:
+            mask = ((treedepth %
+                     (2 << i)) == ((1 << i) - 1)) & (treedepth >= (2 << i))
+        operator(data, backPointers[i, :], mask)
 
 
 @validate_args
 def SegScan(
-        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator
-) -> Tensor(torch.double):
-    return SegScanMinDepth(data, parents, operator)
+        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator,
+        upwards: bool
+):
+    SegScanEfficient(data, parents, operator, upwards)
 
 
 @validate_args
@@ -511,7 +559,7 @@ def forwardKin(kintree: KinTree, dofs: KinDOF) -> ForwardKinResult:
     HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
     # 2) global HTs (rewrite 1->N in-place)
-    SegScan(HTs, kintree.parent, HTcollect)
+    SegScan(HTs, kintree.parent, HTcollect, False)
 
     coords = HTs[:, :3, 3]
     return ForwardKinResult.create(HTs, coords)
@@ -543,8 +591,8 @@ def resolveDerivs(
     f2s = dsc_dx.clone()  # clone input buffer before aggregation
 
     # 2) pass f1/f2s up tree
-    SegScan(f1s, kintree.parent, Fscollect)
-    SegScan(f2s, kintree.parent, Fscollect)
+    SegScan(f1s, kintree.parent, Fscollect, True)
+    SegScan(f2s, kintree.parent, Fscollect, True)
 
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()
