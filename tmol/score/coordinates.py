@@ -40,6 +40,7 @@ class DofSpaceScoreGraph(properties.HasProperties):
             dtype=self.dofs.dtype,
             layout=self.dofs.layout,
             device=self.dofs.device,
+            requires_grad=False,
         )
 
         coords[self.kinop.kintree.id[1:]] = kincoords[1:] # yapf: disable
