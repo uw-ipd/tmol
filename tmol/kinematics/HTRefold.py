@@ -1503,12 +1503,13 @@ def segscan_phi_values(dofs_co, dofs_ro, remapped_phi, bonded_dof_remapping, is_
     for ii in range(int(math.ceil(float(nphi)/512))):
         #2a load data into shared memory
         ii_ind = ii*512 + pos
-        if pos < nphi:
+        if ii_ind < nphi:
             myphi = remapped_phi[ii_ind]
             myeldest = is_eldest_child[ii_ind]
             if pos == 0:
-                myphi += carry_phi
-                myeldest |= carry_eldest
+                if not myeldest:
+                    myphi += carry_phi
+                    myeldest |= carry_eldest
             shared_phi[pos] = myphi
             shared_eldest[pos] = myeldest
         cuda.syncthreads()
@@ -1516,15 +1517,15 @@ def segscan_phi_values(dofs_co, dofs_ro, remapped_phi, bonded_dof_remapping, is_
         #2b begin scan on this segment
         offset = 1
         for jj in range(n_iters):
-            if pos >= offset and pos < nphi :
+            if pos >= offset and ii_ind < nphi :
                 prev_phi = shared_phi[pos - offset]
                 prev_eldest = shared_eldest[pos - offset]
-                myphi += prev_phi
-                myeldest |= prev_eldest
             cuda.syncthreads()
-            if pos >= offset and pos < nphi :
+            if pos >= offset and ii_ind < nphi :
                 if not myeldest :
+                    myphi += prev_phi
                     shared_phi[pos] = myphi
+                    myeldest |= prev_eldest
                     shared_eldest[pos] = myeldest
             offset *= 2
             cuda.syncthreads()
@@ -1630,6 +1631,7 @@ def initialize_hts_gpu( dofs, refold_data ):
     compute_all_hts[nblocks,512](dofs_ro_d, hts_ro_d, is_bonded_atom_d, refold_data.natoms )
 
     hts = hts_ro_d.copy_to_host()
+    refold_data.dofs = dofs_ro_d.copy_to_host()
     refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape((-1,3,4))
     #refold_data.hts[5,2,3] = 1234
     #print("hts"); print(refold_data.hts)

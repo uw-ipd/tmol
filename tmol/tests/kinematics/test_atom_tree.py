@@ -1006,10 +1006,56 @@ class TestAtomTree(unittest.TestCase):
         htrefold.compute_hts_for_bonded_atoms( dofs, refold_data2 )
         htrefold.compute_hts_for_jump_atoms( refold_data2 )
 
-        print("refold_data.hts"); print(refold_data.hts)
-        print("refold_data2.hts"); print(refold_data2.hts)
+        #print("refold_data.hts"); print(refold_data.hts)
+        #print("refold_data2.hts"); print(refold_data2.hts)
 
         for i in range(refold_data.natoms):
+            for j in range(3):
+                for k in range(4):
+                    self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
+
+
+    def test_numba_ht_calculation2( self ):
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
+        atom_tree = atree.tree_from_residues(res_reader.chemical_db, residues)
+
+        #residues, nodes, atom_tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
+        refold_data2 = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
+
+        #dofs = self.dofs_for_franks_multi_jump_atom_tree( nodes, bas, jas )
+        dofs = numpy.zeros((refold_data.natoms,9))
+        count = 0
+        for res_ptrs in atom_tree.atom_pointer_list:
+            for at in res_ptrs :
+                if not at.is_jump :
+                    dofs[count,0] = at.d
+                    dofs[count,1] = at.theta
+                    dofs[count,2] = at.phi
+                else :
+                    for i in range(3):
+                        dofs[count,i+0] = at.rb[i]
+                        dofs[count,i+3] = at.rot_delta[i]
+                        dofs[count,i+6] = at.rot[i]
+                count += 1
+
+
+        htrefold.initialize_hts_gpu(dofs, refold_data)
+
+        htrefold.compute_hts_for_bonded_atoms( dofs, refold_data2 )
+        htrefold.compute_hts_for_jump_atoms( refold_data2 )
+
+        #print("refold_data.hts"); print(refold_data.hts)
+        #print("refold_data2.hts"); print(refold_data2.hts)
+
+        for i in range(refold_data.natoms):
+            print(i); print(refold_data.dofs[i,:]); print(refold_data2.dofs[i,:])
+            for j in range(9):
+                self.assertAlmostEqual(refold_data.dofs[i,j], refold_data2.dofs[i,j],5)
+
+        for i in range(refold_data.natoms):
+            print(i);print(refold_data.hts[i,:,:]);print(refold_data2.hts[i,:,:])
             for j in range(3):
                 for k in range(4):
                     self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
