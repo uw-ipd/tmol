@@ -1,21 +1,21 @@
 import torch
 
-from tmol.score.coordinates import RealSpaceScoreGraph
+from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 
-from tmol.system.residue.score import system_real_space_graph_params
+from tmol.system.residue.score import system_cartesian_space_graph_params
 
 
 class HBGraph(
         HBondScoreGraph,
-        RealSpaceScoreGraph,
+        CartesianAtomicCoordinateProvider,
 ):
     pass
 
 
 def test_hbond_smoke(ubq_system):
     hbond_graph = HBGraph(
-        **system_real_space_graph_params(ubq_system, requires_grad=True)
+        **system_cartesian_space_graph_params(ubq_system, requires_grad=True)
     )
 
     nan_scores = torch.nonzero(torch.isnan(hbond_graph.hbond_scores))
@@ -35,7 +35,7 @@ def test_hbond_smoke_bbonly(bb_hbond_database, ubq_system):
 
     hbond_graph = HBGraph(
         hbond_database=bb_hbond_database,
-        **system_real_space_graph_params(ubq_system, requires_grad=True)
+        **system_cartesian_space_graph_params(ubq_system, requires_grad=True)
     )
 
     nan_scores = torch.nonzero(torch.isnan(hbond_graph.hbond_scores))
