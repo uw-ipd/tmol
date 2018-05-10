@@ -70,7 +70,7 @@ def SegScanEfficient(
 def SegScan(
         data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator
 ) -> Tensor(torch.double):
-    SegScanMinDepth(data, parents, operator)
+    return SegScanMinDepth(data, parents, operator)
 
 
 @validate_args
