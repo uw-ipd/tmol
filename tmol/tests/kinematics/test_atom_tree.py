@@ -7,6 +7,7 @@ import tmol.system.residue.io as pdbio
 import tmol.io.pdb_parsing as pdb_parsing
 import numpy
 import math
+import time
 
 
 class temp_class:
@@ -43,25 +44,35 @@ def print_res1_tree(residues, root, depth=0):
 def faux_score(coords):
     # Frank's dummy score
     natoms = coords.shape[0]
-    dists = numpy.sqrt(numpy.square(coords[:,numpy.newaxis]-coords).sum(axis=2))
-    igraph = numpy.bitwise_and(numpy.triu(~numpy.eye(dists.shape[0],dtype=bool)),dists < 3.4).nonzero();
-    score = (3.4-dists[igraph])*(3.4-dists[igraph])
+    dists = numpy.sqrt(
+        numpy.square(coords[:, numpy.newaxis] - coords).sum(axis=2)
+    )
+    igraph = numpy.bitwise_and(
+        numpy.triu(~numpy.eye(dists.shape[0], dtype=bool)), dists < 3.4
+    ).nonzero()
+    score = (3.4 - dists[igraph]) * (3.4 - dists[igraph])
     return numpy.sum(score)
+
 
 def faux_score_derivs(coords):
     natoms = coords.shape[0]
     #print("faux score derivs, natoms=", natoms)
-    dxs = coords[:,numpy.newaxis]-coords
+    dxs = coords[:, numpy.newaxis] - coords
     dists = numpy.sqrt(numpy.square(dxs).sum(axis=2))
-    igraph = numpy.bitwise_and(numpy.triu(~numpy.eye(dists.shape[0],dtype=bool)),dists < 3.4).nonzero();
+    igraph = numpy.bitwise_and(
+        numpy.triu(~numpy.eye(dists.shape[0], dtype=bool)), dists < 3.4
+    ).nonzero()
 
-    dEdxs = numpy.zeros([natoms,natoms,3])
-    dEdxs[igraph[0],igraph[1],:] = -2 * (3.4-dists[igraph].reshape(-1,1)) * dxs[igraph]/dists[igraph].reshape(-1,1);
+    dEdxs = numpy.zeros([natoms, natoms, 3])
+    dEdxs[igraph[0], igraph[1], :] = -2 * (
+        3.4 - dists[igraph].reshape(-1, 1)
+    ) * dxs[igraph] / dists[igraph].reshape(-1, 1)
 
-    dEdx = numpy.zeros([natoms,3])
+    dEdx = numpy.zeros([natoms, 3])
     dEdx = dEdxs.sum(axis=1) - dEdxs.sum(axis=0)
 
     return dEdx
+
 
 class TestAtomTree(unittest.TestCase):
     def test_homogeneous_transform_default_ctor(self):
@@ -298,7 +309,8 @@ class TestAtomTree(unittest.TestCase):
         #    fid.writelines( pdb_parsing.to_pdb( atom_records ) )
 
     def test_atomtree_refold_info_setup1(self):
-        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree(
+        )
         #nodes, coords = self.create_franks_multi_jump_atom_tree()
 
         atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
@@ -310,27 +322,29 @@ class TestAtomTree(unittest.TestCase):
         tree = atree.AtomTree(nodes[0], atom_node_list)
 
         # faux residues object
-        residues = [ temp_class() for x in range(5) ]
-        residues[0].coords = numpy.zeros((3,3))
-        residues[1].coords = numpy.zeros((5,3))
-        residues[2].coords = numpy.zeros((5,3))
-        residues[3].coords = numpy.zeros((5,3))
-        residues[4].coords = numpy.zeros((5,3))
+        residues = [temp_class() for x in range(5)]
+        residues[0].coords = numpy.zeros((3, 3))
+        residues[1].coords = numpy.zeros((5, 3))
+        residues[2].coords = numpy.zeros((5, 3))
+        residues[3].coords = numpy.zeros((5, 3))
+        residues[4].coords = numpy.zeros((5, 3))
 
-        dofs = numpy.zeros((23,9))
+        dofs = numpy.zeros((23, 9))
 
         # the bonded atom indices in Frank's example
-        bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
+        bas = [
+            0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22
+        ]
         for ba in bas:
-            dofs[ba,0] = nodes[ba].d
-            dofs[ba,1] = nodes[ba].theta
-            dofs[ba,2] = nodes[ba].phi
-        jas = [3,8,13,18]
+            dofs[ba, 0] = nodes[ba].d
+            dofs[ba, 1] = nodes[ba].theta
+            dofs[ba, 2] = nodes[ba].phi
+        jas = [3, 8, 13, 18]
         for ja in jas:
             for i in range(3):
-                dofs[ja,i+0] = nodes[ja].rb[i]
-                dofs[ja,i+3] = nodes[ja].rot_delta[i]
-                dofs[ja,i+6] = nodes[ja].rot[i]
+                dofs[ja, i + 0] = nodes[ja].rb[i]
+                dofs[ja, i + 3] = nodes[ja].rot_delta[i]
+                dofs[ja, i + 6] = nodes[ja].rot[i]
 
         ordered_roots, refold_data, atoms_for_controlling_torsions, refold_index_2_atomid, atomid_2_refold_index = \
             htrefold.initialize_ht_refold_data( residues, tree )
@@ -548,12 +562,12 @@ class TestAtomTree(unittest.TestCase):
         nodes[0].update_internal_coords()
 
         # faux residues object
-        residues = [ temp_class() for x in range(5) ]
-        residues[0].coords = numpy.zeros((3,3))
-        residues[1].coords = numpy.zeros((5,3))
-        residues[2].coords = numpy.zeros((5,3))
-        residues[3].coords = numpy.zeros((5,3))
-        residues[4].coords = numpy.zeros((5,3))
+        residues = [temp_class() for x in range(5)]
+        residues[0].coords = numpy.zeros((3, 3))
+        residues[1].coords = numpy.zeros((5, 3))
+        residues[2].coords = numpy.zeros((5, 3))
+        residues[3].coords = numpy.zeros((5, 3))
+        residues[4].coords = numpy.zeros((5, 3))
 
         atom_node_list = [[nodes[0],nodes[1],nodes[2]], \
                           [nodes[3],nodes[4],nodes[5],nodes[6],nodes[7]], \
@@ -564,32 +578,34 @@ class TestAtomTree(unittest.TestCase):
         tree = atree.AtomTree(nodes[0], atom_node_list)
 
         # the bonded atoms
-        bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
+        bas = [
+            0, 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 17, 19, 20, 21, 22
+        ]
         # the jump atoms
-        jas = [3,8,13,18]
+        jas = [3, 8, 13, 18]
 
         return residues, nodes, tree, coords, bas, jas
 
-    def dofs_for_franks_multi_jump_atom_tree( self, nodes, bas, jas ):
-        dofs = numpy.zeros((23,9))
+    def dofs_for_franks_multi_jump_atom_tree(self, nodes, bas, jas):
+        dofs = numpy.zeros((23, 9))
 
         # the bonded atom indices in Frank's example
         #bas = [0,1,2,4,5,6,7,9,10,11,12,14,15,16,17,19,20,21,22]
         for ba in bas:
-            dofs[ba,0] = nodes[ba].d
-            dofs[ba,1] = nodes[ba].theta
-            dofs[ba,2] = nodes[ba].phi
+            dofs[ba, 0] = nodes[ba].d
+            dofs[ba, 1] = nodes[ba].theta
+            dofs[ba, 2] = nodes[ba].phi
         #jas = [3,8,13,18]
         for ja in jas:
             for i in range(3):
-                dofs[ja,i+0] = nodes[ja].rb[i]
-                dofs[ja,i+3] = nodes[ja].rot_delta[i]
-                dofs[ja,i+6] = nodes[ja].rot[i]
+                dofs[ja, i + 0] = nodes[ja].rb[i]
+                dofs[ja, i + 3] = nodes[ja].rot_delta[i]
+                dofs[ja, i + 6] = nodes[ja].rot[i]
         return dofs
 
-
     def test_atomtree_w_jump_atoms(self):
-        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree(
+        )
         #nodes, coords = self.create_franks_multi_jump_atom_tree()
         #print_tree_no_names( nodes[0] )
 
@@ -805,29 +821,33 @@ class TestAtomTree(unittest.TestCase):
         res_reader = pdbio.ResidueReader()
         residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
         atom_tree = atree.tree_from_residues(res_reader.chemical_db, residues)
-        refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, atom_tree
+        )
         ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure(
-            residues, atom_tree,
-            refold_data.coalesced_ind_2_refold_index, refold_data.refold_index_2_coalesced_ind
+            residues, atom_tree, refold_data.coalesced_ind_2_refold_index,
+            refold_data.refold_index_2_coalesced_ind
         )
 
         atom_f1f2s = numpy.random.random((ag_tree.natoms + 1, 6))
         atom_f1f2s[ag_tree.natoms, :] = 0.
         f1f2sum = htrefold.cpu_f1f2_summation2(atom_f1f2s, ag_tree)
 
-
     def test_numpy_ht_refold(self):
-        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
-        dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes,bas,jas)
-        refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
+        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree(
+        )
+        dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes, bas, jas)
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, tree
+        )
         coords_out = coords.copy()
-        htrefold.cpu_htrefold_2( dofs, refold_data, coords_out )
+        htrefold.cpu_htrefold_2(dofs, refold_data, coords_out)
         #print( "coords"); print( coords )
         #print( "coords_out"); print( coords_out )
 
         for ii, node in enumerate(nodes):
             self.assertAlmostEqual(
-                numpy.linalg.norm(coords_out[ii,:] - coords[ii, :]), 0
+                numpy.linalg.norm(coords_out[ii, :] - coords[ii, :]), 0
             )
 
     def test_numpy_ht_refold_2(self):
@@ -835,51 +855,56 @@ class TestAtomTree(unittest.TestCase):
         residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
         tree = atree.tree_from_residues(res_reader.chemical_db, residues)
 
-        refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, tree
+        )
 
-        dofs = numpy.zeros((refold_data.natoms,9))
+        dofs = numpy.zeros((refold_data.natoms, 9))
         count = 0
         for res_ptrs in tree.atom_pointer_list:
-            for at in res_ptrs :
-                if not at.is_jump :
-                    dofs[count,0] = at.d
-                    dofs[count,1] = at.theta
-                    dofs[count,2] = at.phi
-                else :
+            for at in res_ptrs:
+                if not at.is_jump:
+                    dofs[count, 0] = at.d
+                    dofs[count, 1] = at.theta
+                    dofs[count, 2] = at.phi
+                else:
                     for i in range(3):
-                        dofs[count,i+0] = at.rb[i]
-                        dofs[count,i+3] = at.rot_delta[i]
-                        dofs[count,i+6] = at.rot[i]
+                        dofs[count, i + 0] = at.rb[i]
+                        dofs[count, i + 3] = at.rot_delta[i]
+                        dofs[count, i + 6] = at.rot[i]
                 count += 1
-        coords_out = numpy.zeros( (refold_data.natoms,3))
+        coords_out = numpy.zeros((refold_data.natoms, 3))
         #print("dofs");print(dofs)
-        htrefold.cpu_htrefold_2( dofs, refold_data, coords_out )
+        htrefold.cpu_htrefold_2(dofs, refold_data, coords_out)
         #print("coords_out");print(coords_out)
 
         count = 0
         for res_ptrs in tree.atom_pointer_list:
-            for at in res_ptrs :
+            for at in res_ptrs:
                 #print(coords_out[count,:],"vs",at.xyz)
                 self.assertAlmostEqual(
-                    numpy.linalg.norm(coords_out[count,:] - at.xyz), 0
-                    )
+                    numpy.linalg.norm(coords_out[count, :] - at.xyz), 0
+                )
                 count += 1
 
+    def test_dof_derivative_calculations(self):
+        residues, nodes, atom_tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree(
+        )
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, atom_tree
+        )
 
-    def test_dof_derivative_calculations( self ):
-        residues, nodes, atom_tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
-        refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
-
-        dofs = self.dofs_for_franks_multi_jump_atom_tree( nodes, bas, jas )
+        dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes, bas, jas)
         ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree, \
              refold_data.coalesced_ind_2_refold_index, refold_data.refold_index_2_coalesced_ind )
         dofs_working = dofs.copy()
         delta_coords = coords.copy()
-        htrefold.cpu_htrefold_2( dofs, refold_data, delta_coords )
-        print("refold_data.hts"); print(refold_data.hts)
+        htrefold.cpu_htrefold_2(dofs, refold_data, delta_coords)
+        print("refold_data.hts")
+        print(refold_data.hts)
 
-        score = faux_score( coords )
-        cart_derivs = faux_score_derivs( coords )
+        score = faux_score(coords)
+        cart_derivs = faux_score_derivs(coords)
 
         # Debugging: trying to make sure that the f2s that were recursively summed
         # matched the f2s that should have been summed
@@ -913,103 +938,130 @@ class TestAtomTree(unittest.TestCase):
         #    print(ii,numpy.sum(cart_derivs[numpy.array(desc_list)],0))
 
         #print("cart_derivs"); print(cart_derivs)
-        dscore_ddofs_analytic = htrefold.compute_dscore_ddofs( coords, dofs, ag_tree, refold_data.hts, cart_derivs )
+        dscore_ddofs_analytic = htrefold.compute_dscore_ddofs(
+            coords, dofs, ag_tree, refold_data.hts, cart_derivs
+        )
         #print("dscore_ddofs_analytic"); print( dscore_ddofs_analytic )
-        dscore_ddofs_numeric = numpy.zeros((23,6))
+        dscore_ddofs_numeric = numpy.zeros((23, 6))
         count_ci = 0
-        for ii in range(23) :
+        for ii in range(23):
             ndofs = 3 if ii in bas else 6
-            for jj in range(ndofs) :
+            for jj in range(ndofs):
                 delta = 1e-8
-                dofs_working[ii,jj] = dofs[ii,jj] + delta
-                htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
+                dofs_working[ii, jj] = dofs[ii, jj] + delta
+                htrefold.cpu_htrefold_2(
+                    dofs_working, refold_data, delta_coords
+                )
                 score_pdelta = faux_score(delta_coords)
-                dofs_working[ii,jj] = dofs[ii,jj] - delta
-                htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
+                dofs_working[ii, jj] = dofs[ii, jj] - delta
+                htrefold.cpu_htrefold_2(
+                    dofs_working, refold_data, delta_coords
+                )
                 score_mdelta = faux_score(delta_coords)
-                dscore_ddofs_numeric[count_ci,jj] = ( score_pdelta - score_mdelta ) / ( 2*delta)
+                dscore_ddofs_numeric[count_ci, jj] = (
+                    score_pdelta - score_mdelta
+                ) / (2 * delta)
             count_ci += 1
         #print( "dscore_ddofs_numeric"); print(dscore_ddofs_numeric)
         for ii in range(23):
             ndofs = 3 if ii in bas else 6
             for jj in range(ndofs):
-                self.assertAlmostEqual(dscore_ddofs_numeric[ii,jj], dscore_ddofs_analytic[ii,jj],5)
-                dofs_working[ii,jj] = dofs[ii,jj]
+                self.assertAlmostEqual(
+                    dscore_ddofs_numeric[ii, jj],
+                    dscore_ddofs_analytic[ii, jj], 5
+                )
+                dofs_working[ii, jj] = dofs[ii, jj]
 
-
-    def do_not_test_dof_derivative_calculations_2( self ):
+    def do_not_test_dof_derivative_calculations_2(self):
         res_reader = pdbio.ResidueReader()
         residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
         atom_tree = atree.tree_from_residues(res_reader.chemical_db, residues)
 
         #residues, nodes, atom_tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
-        refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, atom_tree
+        )
 
         #dofs = self.dofs_for_franks_multi_jump_atom_tree( nodes, bas, jas )
-        dofs = numpy.zeros((refold_data.natoms,9))
+        dofs = numpy.zeros((refold_data.natoms, 9))
         count = 0
         for res_ptrs in atom_tree.atom_pointer_list:
-            for at in res_ptrs :
-                if not at.is_jump :
-                    dofs[count,0] = at.d
-                    dofs[count,1] = at.theta
-                    dofs[count,2] = at.phi
-                else :
+            for at in res_ptrs:
+                if not at.is_jump:
+                    dofs[count, 0] = at.d
+                    dofs[count, 1] = at.theta
+                    dofs[count, 2] = at.phi
+                else:
                     for i in range(3):
-                        dofs[count,i+0] = at.rb[i]
-                        dofs[count,i+3] = at.rot_delta[i]
-                        dofs[count,i+6] = at.rot[i]
+                        dofs[count, i + 0] = at.rb[i]
+                        dofs[count, i + 3] = at.rot_delta[i]
+                        dofs[count, i + 6] = at.rot[i]
                 count += 1
 
         ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure(residues, atom_tree, \
              refold_data.coalesced_ind_2_refold_index, refold_data.refold_index_2_coalesced_ind )
         dofs_working = dofs.copy()
-        coords = numpy.zeros((refold_data.natoms,3))
+        coords = numpy.zeros((refold_data.natoms, 3))
         delta_coords = coords.copy()
-        htrefold.cpu_htrefold_2( dofs, refold_data, coords )
+        htrefold.cpu_htrefold_2(dofs, refold_data, coords)
 
-        score = faux_score( coords )
-        cart_derivs = faux_score_derivs( coords )
+        score = faux_score(coords)
+        cart_derivs = faux_score_derivs(coords)
 
         #print("cart_derivs"); print(cart_derivs)
-        dscore_ddofs_analytic = htrefold.compute_dscore_ddofs( coords, dofs, ag_tree, refold_data.hts, cart_derivs )
+        dscore_ddofs_analytic = htrefold.compute_dscore_ddofs(
+            coords, dofs, ag_tree, refold_data.hts, cart_derivs
+        )
         #print("dscore_ddofs_analytic"); print( dscore_ddofs_analytic )
-        dscore_ddofs_numeric = numpy.zeros((refold_data.natoms,6))
+        dscore_ddofs_numeric = numpy.zeros((refold_data.natoms, 6))
         count_ci = 0
-        for ii in range(refold_data.natoms) :
-            ndofs = 6 #3 if ii in bas else 6
-            for jj in range(ndofs) :
+        for ii in range(refold_data.natoms):
+            ndofs = 6  #3 if ii in bas else 6
+            for jj in range(ndofs):
                 delta = 1e-8
-                dofs_working[ii,jj] = dofs[ii,jj] + delta
-                htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
+                dofs_working[ii, jj] = dofs[ii, jj] + delta
+                htrefold.cpu_htrefold_2(
+                    dofs_working, refold_data, delta_coords
+                )
                 score_pdelta = faux_score(delta_coords)
-                dofs_working[ii,jj] = dofs[ii,jj] - delta
-                htrefold.cpu_htrefold_2(dofs_working, refold_data, delta_coords)
+                dofs_working[ii, jj] = dofs[ii, jj] - delta
+                htrefold.cpu_htrefold_2(
+                    dofs_working, refold_data, delta_coords
+                )
                 score_mdelta = faux_score(delta_coords)
-                dscore_ddofs_numeric[count_ci,jj] = ( score_pdelta - score_mdelta ) / ( 2*delta)
+                dscore_ddofs_numeric[count_ci, jj] = (
+                    score_pdelta - score_mdelta
+                ) / (2 * delta)
             count_ci += 1
         #print( "dscore_ddofs_numeric"); print(dscore_ddofs_numeric)
         for ii in range(refold_data.natoms):
-            ndofs = 6 # if ii in bas else 6
+            ndofs = 6  # if ii in bas else 6
             for jj in range(ndofs):
-                self.assertAlmostEqual(dscore_ddofs_numeric[ii,jj], dscore_ddofs_analytic[ii,jj],5)
-                dofs_working[ii,jj] = dofs[ii,jj]
+                self.assertAlmostEqual(
+                    dscore_ddofs_numeric[ii, jj],
+                    dscore_ddofs_analytic[ii, jj], 5
+                )
+                dofs_working[ii, jj] = dofs[ii, jj]
 
-    def test_numba_ht_calculation( self ):
-        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
-        dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes,bas,jas)
-        refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
-        refold_data2 = htrefold.initialize_whole_structure_refold_data( residues, tree )
+    def test_numba_ht_calculation(self):
+        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree(
+        )
+        dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes, bas, jas)
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, tree
+        )
+        refold_data2 = htrefold.initialize_whole_structure_refold_data(
+            residues, tree
+        )
 
         htrefold.initialize_hts_gpu(dofs, refold_data)
 
         hts = refold_data.hts_ro_d.copy_to_host()
         refold_data.dofs = refold_data.dofs_ro_d.copy_to_host()
-        refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape((-1,3,4))
+        refold_data.hts[:refold_data.natoms, :3, :4] = hts.reshape((-1, 3, 4))
 
-        htrefold.compute_hts_for_bonded_atoms( dofs, refold_data2 )
-        htrefold.compute_hts_for_jump_atoms( refold_data2 )
-
+        htrefold.compute_hts_for_bonded_atoms(dofs, refold_data2)
+        htrefold.compute_hts_for_jump_atoms(refold_data2)
 
         #print("refold_data.hts"); print(refold_data.hts)
         #print("refold_data2.hts"); print(refold_data2.hts)
@@ -1017,13 +1069,15 @@ class TestAtomTree(unittest.TestCase):
         for i in range(refold_data.natoms):
             for j in range(3):
                 for k in range(4):
-                    self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
+                    self.assertAlmostEqual(
+                        refold_data.hts[i, j, k], refold_data2.hts[i, j, k], 5
+                    )
 
-        htrefold.segscan_hts_gpu( refold_data )
+        htrefold.segscan_hts_gpu(refold_data)
         hts = refold_data.hts_ro_d.copy_to_host()
-        refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape(-1,3,4)
+        refold_data.hts[:refold_data.natoms, :3, :4] = hts.reshape(-1, 3, 4)
 
-        htrefold.cpu_htrefold_2( dofs, refold_data2, coords )
+        htrefold.cpu_htrefold_2(dofs, refold_data2, coords)
 
         #print("gpu hts:"); print(refold_data.hts)
         #print("cpu hts:"); print(refold_data2.hts)
@@ -1032,41 +1086,47 @@ class TestAtomTree(unittest.TestCase):
             #print(i);print(refold_data.hts[i,:,:]);print(refold_data2.hts[i,:,:])
             for j in range(3):
                 for k in range(4):
-                    self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
+                    self.assertAlmostEqual(
+                        refold_data.hts[i, j, k], refold_data2.hts[i, j, k], 5
+                    )
 
-    def test_numba_ht_calculation2( self ):
+    def test_numba_ht_calculation2(self):
         res_reader = pdbio.ResidueReader()
         residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
         atom_tree = atree.tree_from_residues(res_reader.chemical_db, residues)
 
         #residues, nodes, atom_tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
-        refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
-        refold_data2 = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, atom_tree
+        )
+        refold_data2 = htrefold.initialize_whole_structure_refold_data(
+            residues, atom_tree
+        )
 
         #dofs = self.dofs_for_franks_multi_jump_atom_tree( nodes, bas, jas )
-        dofs = numpy.zeros((refold_data.natoms,9))
+        dofs = numpy.zeros((refold_data.natoms, 9))
         count = 0
         for res_ptrs in atom_tree.atom_pointer_list:
-            for at in res_ptrs :
-                if not at.is_jump :
-                    dofs[count,0] = at.d
-                    dofs[count,1] = at.theta
-                    dofs[count,2] = at.phi
-                else :
+            for at in res_ptrs:
+                if not at.is_jump:
+                    dofs[count, 0] = at.d
+                    dofs[count, 1] = at.theta
+                    dofs[count, 2] = at.phi
+                else:
                     for i in range(3):
-                        dofs[count,i+0] = at.rb[i]
-                        dofs[count,i+3] = at.rot_delta[i]
-                        dofs[count,i+6] = at.rot[i]
+                        dofs[count, i + 0] = at.rb[i]
+                        dofs[count, i + 3] = at.rot_delta[i]
+                        dofs[count, i + 6] = at.rot[i]
                 count += 1
 
-
+        htrefold.send_refold_data_to_the_gpu(dofs, refold_data)
         htrefold.initialize_hts_gpu(dofs, refold_data)
         hts = refold_data.hts_ro_d.copy_to_host()
         refold_data.dofs = refold_data.dofs_ro_d.copy_to_host()
-        refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape((-1,3,4))
+        refold_data.hts[:refold_data.natoms, :3, :4] = hts.reshape((-1, 3, 4))
 
-        htrefold.compute_hts_for_bonded_atoms( dofs, refold_data2 )
-        htrefold.compute_hts_for_jump_atoms( refold_data2 )
+        htrefold.compute_hts_for_bonded_atoms(dofs, refold_data2)
+        htrefold.compute_hts_for_jump_atoms(refold_data2)
 
         #print("refold_data.hts"); print(refold_data.hts)
         #print("refold_data2.hts"); print(refold_data2.hts)
@@ -1074,20 +1134,24 @@ class TestAtomTree(unittest.TestCase):
         for i in range(refold_data.natoms):
             #print(i); print(refold_data.dofs[i,:]); print(refold_data2.dofs[i,:])
             for j in range(9):
-                self.assertAlmostEqual(refold_data.dofs[i,j], refold_data2.dofs[i,j],5)
+                self.assertAlmostEqual(
+                    refold_data.dofs[i, j], refold_data2.dofs[i, j], 5
+                )
 
         for i in range(refold_data.natoms):
             #print(i);print(refold_data.hts[i,:,:]);print(refold_data2.hts[i,:,:])
             for j in range(3):
                 for k in range(4):
-                    self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
+                    self.assertAlmostEqual(
+                        refold_data.hts[i, j, k], refold_data2.hts[i, j, k], 5
+                    )
 
-        htrefold.segscan_hts_gpu( refold_data )
+        htrefold.segscan_hts_gpu(refold_data)
         hts = refold_data.hts_ro_d.copy_to_host()
-        refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape(-1,3,4)
+        refold_data.hts[:refold_data.natoms, :3, :4] = hts.reshape(-1, 3, 4)
 
-        coords = numpy.zeros((refold_data.natoms,3))
-        htrefold.cpu_htrefold_2( dofs, refold_data2, coords )
+        coords = numpy.zeros((refold_data.natoms, 3))
+        htrefold.cpu_htrefold_2(dofs, refold_data2, coords)
 
         #print("gpu hts:"); print(refold_data.hts)
         #print("cpu hts:"); print(refold_data2.hts)
@@ -1096,4 +1160,14 @@ class TestAtomTree(unittest.TestCase):
             #print(i);print(refold_data.hts[i,:,:]);print(refold_data2.hts[i,:,:])
             for j in range(3):
                 for k in range(4):
-                    self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],4)
+                    self.assertAlmostEqual(
+                        refold_data.hts[i, j, k], refold_data2.hts[i, j, k], 4
+                    )
+
+        start_time = time.time()
+
+        for i in range(100):
+            htrefold.initialize_hts_gpu(dofs, refold_data)
+            htrefold.segscan_hts_gpu(refold_data)
+
+        print("--- refold %f seconds ---" % (time.time() - start_time) / 100)
