@@ -7,7 +7,7 @@ import tmol.score
 
 import tmol.system.residue.restypes as restypes
 from tmol.system.residue.packed import PackedResidueSystem
-from tmol.system.residue.score import system_real_graph_params
+from tmol.system.residue.score import system_real_space_graph_params
 
 import tmol.database
 from tmol.score.hbond.identification import HBondElementAnalysis
@@ -97,7 +97,7 @@ def test_bb_identification(bb_hbond_database, ubq_system):
             "acceptor_type": "hbacc_PBA",
         })
 
-    test_params = system_real_graph_params(tsys, requires_grad=False)
+    test_params = system_real_space_graph_params(tsys, requires_grad=False)
 
     hbe = HBondElementAnalysis.setup(
         hbond_database=bb_hbond_database,

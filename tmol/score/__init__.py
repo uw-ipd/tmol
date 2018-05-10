@@ -4,19 +4,18 @@ import tmol.io.generic
 import tmol.io.pdb_parsing as pdb_parsing
 
 from .bonded_atom import BondedAtomScoreGraph
-from .coordinates import RealSpaceScoreGraph
 from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
 from .hbond import HBondScoreGraph
 from .total_score import TotalScoreComponentsGraph
+from .coordinates import RealSpaceScoreGraph, DofSpaceScoreGraph
 
 
-class ScoreGraph(
+class TotalScoreGraph(
         HBondScoreGraph,
         LJLKScoreGraph,
         BlockedInteratomicDistanceGraph,
         BondedAtomScoreGraph,
-        RealSpaceScoreGraph,
         TotalScoreComponentsGraph,
 ):
     pass
@@ -61,3 +60,6 @@ def score_graph_to_cdjson(score_graph):
     bonds = list(map(tuple, score_graph.bonds))
 
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)
+
+
+__all__ = (TotalScoreGraph, RealSpaceScoreGraph, DofSpaceScoreGraph)
