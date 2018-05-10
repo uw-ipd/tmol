@@ -994,3 +994,9 @@ class TestAtomTree(unittest.TestCase):
                 self.assertAlmostEqual(dscore_ddofs_numeric[ii,jj], dscore_ddofs_analytic[ii,jj],5)
                 dofs_working[ii,jj] = dofs[ii,jj]
                 
+    def test_numba_ht_calculation( self ):
+        residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes,bas,jas)
+        refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
+
+        htrefold.initialize_hts_gpu(dofs, refold_data)
