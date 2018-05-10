@@ -260,7 +260,18 @@ def JumpDerivatives(
 
 @validate_args
 def BondTransforms(dofs: BondDOF) -> HTArray:
-    """BOND dofs -> HTs"""
+    """
+    BOND dofs -> HTs
+
+    each bond has four dofs: [phi_p, theta, d, phi_c]
+    in the local frame:
+        - phi_p and phi_c are a rotation about x
+        - theta is a rotation about z
+        - d is a translation along x
+    the matrix below is a composition:
+        M <- rot(phi_p, [1,0,0]) @ rot(theta, [0,0,1]
+           @ trans(d, [1,0,0]) @ rot(phi_c, [1,0,0])
+    """
     natoms, = dofs.shape
 
     cpp = torch.cos(dofs.phi_p)
@@ -295,7 +306,20 @@ def BondTransforms(dofs: BondDOF) -> HTArray:
 
 @validate_args
 def InvBondTransforms(Ms: HTArray) -> BondDOF:
-    """HTs -> BOND dofs"""
+    """
+    HTs -> BOND dofs
+
+    Given the matrix definition in BondTransforms, we calculate the dofs
+    that give rise to this HT.  General case:
+
+    d =
+
+    special case below handles a "singularity," that is, a configuration
+    where there are multiple parameterizations that give the same HT
+
+    Specifically, when theta==0, the rx rotation can be put into
+    phi_c or phi_p (we use phi_c)
+    """
     nbondatoms = Ms.shape[0]
 
     dofs = BondDOF.empty(nbondatoms)
@@ -319,6 +343,7 @@ def InvBondTransforms(Ms: HTArray) -> BondDOF:
     dofs.phi_c[~theta0_selector] = torch.atan2(
         Ms[~theta0_selector, 0, 2], -Ms[~theta0_selector, 0, 1]
     )
+
     dofs.theta[~theta0_selector] = torch.atan2(
         torch.sqrt(
             Ms[~theta0_selector, 0, 1] * Ms[~theta0_selector, 0, 1] +
@@ -342,9 +367,17 @@ def BondDerivatives(
 
     end_p_pos = Mparents[:, 0:3, 3]
     phi_p_axes = Mparents[:, 0:3, 0]
-    theta_axes = Ms[:, 0:3, 2]
     end_c_pos = Ms[:, 0:3, 3]
     phi_c_axes = Ms[:, 0:3, 0]
+
+    # to get the theta axis, we need to undo the phi_c rotation (about x)
+    phicrots = torch.zeros([nbondatoms, 3, 3], dtype=torch.double)
+    phicrots[:, 0, 0] = 1
+    phicrots[:, 1, 1] = torch.cos(-dofs.phi_c)
+    phicrots[:, 1, 2] = -torch.sin(-dofs.phi_c)
+    phicrots[:, 2, 1] = torch.sin(-dofs.phi_c)
+    phicrots[:, 2, 2] = torch.cos(-dofs.phi_c)
+    theta_axes = torch.matmul(Ms[:, 0:3, 0:3], phicrots)[:, 0:3, 2]
 
     dsc_ddofs = BondDOF.zeros((nbondatoms, ))
 
