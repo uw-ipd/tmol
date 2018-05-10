@@ -1050,12 +1050,12 @@ class TestAtomTree(unittest.TestCase):
         #print("refold_data2.hts"); print(refold_data2.hts)
 
         for i in range(refold_data.natoms):
-            print(i); print(refold_data.dofs[i,:]); print(refold_data2.dofs[i,:])
+            #print(i); print(refold_data.dofs[i,:]); print(refold_data2.dofs[i,:])
             for j in range(9):
                 self.assertAlmostEqual(refold_data.dofs[i,j], refold_data2.dofs[i,j],5)
 
         for i in range(refold_data.natoms):
-            print(i);print(refold_data.hts[i,:,:]);print(refold_data2.hts[i,:,:])
+            #print(i);print(refold_data.hts[i,:,:]);print(refold_data2.hts[i,:,:])
             for j in range(3):
                 for k in range(4):
                     self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
