@@ -268,7 +268,7 @@ def initialize_whole_structure_refold_data( residues, atom_tree ):
     refold_data.bonded_dof_remapping = create_bonded_dof_remapping( ba2aid, atomid_2_coalesced_ind )
     refold_data.bonded_atom_has_sibling = create_bonded_atom_has_sibling_boolvect( aid2ba, refold_index_2_atomid )
     refold_data.which_phi_for_bonded_atom_w_sibling = create_refold_index_2_bonded_atom_mapping( aid2ba, refold_index_2_atomid )
-    refold_data.remapped_phi_2_refold_index = numpy.fromiter((atomid_2_coalesced_ind[id.res][id.atomno] for id in ba2aid),dtype=int)
+    refold_data.remapped_phi_2_refold_index = numpy.fromiter((atomid_2_refold_index[id.res][id.atomno] for id in ba2aid),dtype=int)
     print("refold_data.remapped_phi_2_refold_index"); print(refold_data.remapped_phi_2_refold_index)
     refold_data.is_eldest_child = create_eldest_child_array( ba2aid, aid2ba, aids_of_eldest_siblings )
     refold_data.is_eldest_child_working = refold_data.is_eldest_child.copy()
@@ -1595,11 +1595,11 @@ def compute_all_hts( dofs, hts, is_bonded_atom, natoms):
             dx, dy, dz = dofs[pos,0], dofs[pos,1], dofs[pos,2]
             ri, rj, rk = dofs[pos,3], dofs[pos,4], dofs[pos,5]
 
-            upstream_frame = frame_from_jump_dofs( dx, dy, dz, ri, rj, rk )
+            Rdelta = frame_from_jump_dofs( dx, dy, dz, ri, rj, rk )
 
             ri, rj, rk = dofs[pos,6], dofs[pos,7], dofs[pos,8]
-            downstream_frame = frame_from_jump_dofs( 0., 0., 0., ri, rj, rk )
-            newframe = ht_multiply( upstream_frame, downstream_frame )
+            Rglobal = frame_from_jump_dofs( 0., 0., 0., ri, rj, rk )
+            newframe = ht_multiply( Rdelta, Rglobal )
 
         for i in range(12):
             hts[pos,i] = newframe[i]
@@ -1630,4 +1630,6 @@ def initialize_hts_gpu( dofs, refold_data ):
     compute_all_hts[nblocks,512](dofs_ro_d, hts_ro_d, is_bonded_atom_d, refold_data.natoms )
 
     hts = hts_ro_d.copy_to_host()
-    print("hts"); print(hts)
+    refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape((-1,3,4))
+    #refold_data.hts[5,2,3] = 1234
+    #print("hts"); print(refold_data.hts)

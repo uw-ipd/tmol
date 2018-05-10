@@ -876,6 +876,7 @@ class TestAtomTree(unittest.TestCase):
         dofs_working = dofs.copy()
         delta_coords = coords.copy()
         htrefold.cpu_htrefold_2( dofs, refold_data, delta_coords )
+        print("refold_data.hts"); print(refold_data.hts)
 
         score = faux_score( coords )
         cart_derivs = faux_score_derivs( coords )
@@ -998,5 +999,19 @@ class TestAtomTree(unittest.TestCase):
         residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
         dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes,bas,jas)
         refold_data = htrefold.initialize_whole_structure_refold_data( residues, tree )
+        refold_data2 = htrefold.initialize_whole_structure_refold_data( residues, tree )
 
         htrefold.initialize_hts_gpu(dofs, refold_data)
+
+        htrefold.compute_hts_for_bonded_atoms( dofs, refold_data2 )
+        htrefold.compute_hts_for_jump_atoms( refold_data2 )
+
+        print("refold_data.hts"); print(refold_data.hts)
+        print("refold_data2.hts"); print(refold_data2.hts)
+
+        for i in range(refold_data.natoms):
+            for j in range(3):
+                for k in range(4):
+                    self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
+
+        
