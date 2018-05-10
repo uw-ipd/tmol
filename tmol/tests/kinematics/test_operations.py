@@ -259,7 +259,7 @@ def test_perturb(kintree, coords):
     numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
 
 
-@pytest.mark.xfail
+#@pytest.mark.xfail
 def test_root_sibling_derivs():
     """Verify derivatives in post-jump bonded siblings."""
     NATOMS = 6
@@ -276,7 +276,7 @@ def test_root_sibling_derivs():
     kintree[2] = KinTree.node(1, BOND, 1, 2, 1, 3)
     kintree[3] = KinTree.node(1, BOND, 1, 3, 1, 2)
     kintree[4] = KinTree.node(1, BOND, 1, 4, 1, 2)
-    kintree[5] = KinTree.node(1, BOND, 4, 5, 4, 2)
+    kintree[5] = KinTree.node(1, BOND, 4, 5, 4, 1)  #fd: 2->1
 
     coords = torch.tensor([
         [0.000, 0.000, 0.000],
