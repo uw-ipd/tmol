@@ -807,7 +807,7 @@ class TestAtomTree(unittest.TestCase):
         atom_tree = atree.tree_from_residues(res_reader.chemical_db, residues)
         refold_data = htrefold.initialize_whole_structure_refold_data( residues, atom_tree )
         ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure(
-            residues, atom_tree, 
+            residues, atom_tree,
             refold_data.coalesced_ind_2_refold_index, refold_data.refold_index_2_coalesced_ind
         )
 
@@ -935,7 +935,7 @@ class TestAtomTree(unittest.TestCase):
             for jj in range(ndofs):
                 self.assertAlmostEqual(dscore_ddofs_numeric[ii,jj], dscore_ddofs_analytic[ii,jj],5)
                 dofs_working[ii,jj] = dofs[ii,jj]
-                
+
 
     def do_not_test_dof_derivative_calculations_2( self ):
         res_reader = pdbio.ResidueReader()
@@ -994,7 +994,7 @@ class TestAtomTree(unittest.TestCase):
             for jj in range(ndofs):
                 self.assertAlmostEqual(dscore_ddofs_numeric[ii,jj], dscore_ddofs_analytic[ii,jj],5)
                 dofs_working[ii,jj] = dofs[ii,jj]
-                
+
     def test_numba_ht_calculation( self ):
         residues, nodes, tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
         dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes,bas,jas)
@@ -1019,6 +1019,20 @@ class TestAtomTree(unittest.TestCase):
                 for k in range(4):
                     self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
 
+        htrefold.segscan_hts_gpu( refold_data )
+        hts = refold_data.hts_ro_d.copy_to_host()
+        refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape(-1,3,4)
+
+        htrefold.cpu_htrefold_2( dofs, refold_data2, coords )
+
+        #print("gpu hts:"); print(refold_data.hts)
+        #print("cpu hts:"); print(refold_data2.hts)
+
+        for i in range(refold_data.natoms):
+            #print(i);print(refold_data.hts[i,:,:]);print(refold_data2.hts[i,:,:])
+            for j in range(3):
+                for k in range(4):
+                    self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
 
     def test_numba_ht_calculation2( self ):
         res_reader = pdbio.ResidueReader()
@@ -1068,4 +1082,18 @@ class TestAtomTree(unittest.TestCase):
                 for k in range(4):
                     self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],5)
 
-        
+        htrefold.segscan_hts_gpu( refold_data )
+        hts = refold_data.hts_ro_d.copy_to_host()
+        refold_data.hts[:refold_data.natoms,:3,:4] = hts.reshape(-1,3,4)
+
+        coords = numpy.zeros((refold_data.natoms,3))
+        htrefold.cpu_htrefold_2( dofs, refold_data2, coords )
+
+        #print("gpu hts:"); print(refold_data.hts)
+        #print("cpu hts:"); print(refold_data2.hts)
+
+        for i in range(refold_data.natoms):
+            #print(i);print(refold_data.hts[i,:,:]);print(refold_data2.hts[i,:,:])
+            for j in range(3):
+                for k in range(4):
+                    self.assertAlmostEqual(refold_data.hts[i,j,k], refold_data2.hts[i,j,k],4)

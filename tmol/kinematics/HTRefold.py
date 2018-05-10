@@ -112,7 +112,8 @@ class WholeStructureRefoldData:
     is_eldest_child_d: numba.types.Array = None
     is_bonded_atom_d: numba.types.Array = None
     remapped_phi_2_refold_ind_d: numba.types.Array = None
-
+    parents_d: numba.types.Array = None
+    is_root_d: numba.types.Array = None
 
 
 # grr -- recursive data structures are a PITA in attr
@@ -579,7 +580,7 @@ def cpu_htrefold_2( dofs, refold_data, coords ):
     #print( "hts final"); print( hts )
     coords[:] = hts[refold_data.coalesced_ind_2_refold_index,0:3,3]
 
-def gpu_refold( dofs, refold_data, coords ):
+def gpu_htrefold( dofs, refold_data, coords ):
     ''' Numba version of the refold algorithm now still using numpy for most arrays, but actually
     running on the GPU with cuda'''
 
@@ -1555,7 +1556,7 @@ def segscan_phi_values(dofs_co, dofs_ro, remapped_phi, bonded_dof_remapping, is_
             carry_eldest = shared_eldest[511]
         cuda.syncthreads()
 
-@cuta.jit('float32[:,:], boolean[:], int32[:], int32, int32, int32')
+@cuda.jit('float32[:,:], boolean[:], int32[:], int32, int32, int32')
 def segscan_ht_interval( hts, is_root, parent_ind, natoms, start, end ):
     # this should be executed as a single thread block with nthreads = 512
     # "end" is actually one past the last element; compare i < end
@@ -1564,23 +1565,29 @@ def segscan_ht_interval( hts, is_root, parent_ind, natoms, start, end ):
     pos = cuda.grid(1)
     niters = int(math.ceil(float(end-start)/512))
     carry_ht = identity_ht()
-    carry_is_root = True
+    carry_is_root = False
     for ii in range(niters):
         ii_ind = ii*512+start+pos
         #load data into shared memory
         if ii_ind < end :
             for jj in range(12):
-                shared_hts[pos,jj] = hts[ii_ind,jj] # TO DO: minimize bank conflicts
+                shared_hts[pos,jj] = hts[ii_ind,jj] # TO DO: minimize bank conflicts -- align memory reads
             shared_is_root[pos] = is_root[ii_ind]
             myht = ht_load_from_shared(shared_hts,pos)
             parent = parent_ind[ii_ind]
+            htchanged = False
             if parent != natoms :
                 parent_ht = ht_load_from_global(hts,parent)
                 myht = ht_multiply( parent_ht, myht )
+                htchanged = True
+                ht_save_to_shared( shared_hts, pos, myht )
             myroot = shared_is_root[pos]
-            if pos == 0 and not carry_is_root:
+            if pos == 0 and not myroot:
                 myht = ht_multiply( carry_ht, myht )
                 myroot |= carry_is_root
+                htchanged = True
+            if htchanged:
+                ht_save_to_shared( shared_hts, pos, myht )
         cuda.syncthreads()
         offset = 1
 
@@ -1612,7 +1619,7 @@ def segscan_ht_interval( hts, is_root, parent_ind, natoms, start, end ):
         cuda.syncthreads()
 
 
-@cuta.jit(device=True):
+@cuda.jit(device=True)
 def identity_ht():
     return (1., 0., 0., 0.,   0., 1., 0., 0.,  0., 0., 1., 0. )
 
@@ -1753,6 +1760,20 @@ def initialize_hts_gpu( dofs, refold_data ):
 
 def segscan_hts_gpu( refold_data ):
     rd = refold_data
+
+    rd.parents_d = cuda.to_device(rd.parents)
+    #print("rd.parents"); print(rd.parents)
+    rd.is_root_d = cuda.to_device(rd.is_root)
     
     # for each depth, run a separate segmented scan
     for ii, iirange in enumerate(refold_data.atom_range_for_depth):
+        #print("ii", ii, iirange)
+        segscan_ht_interval[1,512]( rd.hts_ro_d, rd.is_root_d, rd.parents_d, rd.natoms, *iirange)
+        #hts = rd.hts_ro_d.copy_to_host()
+        #print("ht[3]"); print(hts[3,:])
+        #print("ht[6]"); print(hts[6,:])
+        #eye3 = numpy.eye(4); eye6 = numpy.eye(4)
+        #eye3[0:3,0:4] = hts[3,:].reshape(3,4);
+        #eye6[0:3,0:4] = hts[6,:].reshape(3,4);
+        #print("ht[3]*ht[6]"); print(numpy.matmul(eye3,eye6))
+
