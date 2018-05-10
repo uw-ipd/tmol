@@ -1,5 +1,3 @@
-import pytest
-
 import torch
 
 from tmol.system.residue.packed import PackedResidueSystem
@@ -30,7 +28,7 @@ class DofSpaceScore(
     pass
 
 
-def test_torsion_space_by_real_space(ubq_system):
+def test_torsion_space_by_real_space_total_score(ubq_system):
 
     real_space = RealSpaceScore(**system_real_space_graph_params(ubq_system))
 
@@ -44,35 +42,49 @@ def test_torsion_space_by_real_space(ubq_system):
     assert (real_total == torsion_total).all()
 
 
-# Potentially failing due to issue #45. To verify.
-@pytest.mark.xfail
-def test_torsion_space_gradcheck(ubq_res):
-    test_system = PackedResidueSystem.from_residues(ubq_res[:6])
+def test_torsion_space_coord_smoke(ubq_system):
+    tsys = ubq_system
 
-    torsion_space = DofSpaceScore(
-        **system_torsion_space_graph_params(test_system)
-    )
+    torsion_space = DofSpaceScore(**system_torsion_space_graph_params(tsys))
 
-    start_dofs = torsion_space.dofs.clone()
+    start_dofs = torch.tensor(torsion_space.dofs, requires_grad=True)
+    start_coords = torch.tensor(torsion_space.coords, requires_grad=False)
+    cmask = torch.isnan(start_coords).sum(dim=-1) == 0
 
-    def total_score(dofs):
+    def coord_residuals(dofs):
         torsion_space.dofs = dofs
-        return torsion_space.total_score
+        return (torsion_space.coords[cmask] -
+                start_coords[cmask]).norm(dim=-1).sum()
 
-    assert torch.autograd.gradcheck(total_score, (start_dofs, ))
+    torch.random.manual_seed(1663)
+    pdofs = torch.tensor((torch.rand_like(start_dofs) - .5) * 1e-2,
+                         requires_grad=True)
+
+    assert pdofs.requires_grad
+
+    res = coord_residuals(pdofs)
+    assert res.requires_grad
+
+    res.backward(retain_graph=True)
+    assert pdofs.grad is not None
 
 
-def test_real_space_gradcheck(ubq_res):
-    test_system = PackedResidueSystem.from_residues(ubq_res[:6])
-    real_space = RealSpaceScore(**system_real_space_graph_params(test_system))
+def test_torsion_space_to_coordinate_gradcheck(ubq_res):
+    tsys = PackedResidueSystem.from_residues(ubq_res[:6])
 
-    coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
-    start_coords = real_space.coords[coord_mask]
+    torsion_space = DofSpaceScore(**system_torsion_space_graph_params(tsys))
 
-    def total_score(coords):
-        state_coords = real_space.coords.detach().clone()
-        state_coords[coord_mask] = coords
+    start_dofs = torsion_space.dofs.detach().clone().requires_grad_()
+    start_coords = torsion_space.coords.detach().clone()
 
-        return real_space.total_score
+    cmask = torch.isnan(start_coords).sum(dim=-1) == 0
 
-    assert torch.autograd.gradcheck(total_score, (start_coords, ))
+    def coord_residuals(dofs):
+        torsion_space.dofs = dofs
+        res = (torsion_space.coords[cmask] - (start_coords[cmask])).sum(dim=-1)
+
+        return res
+
+    assert torch.autograd.gradcheck(
+        coord_residuals, (start_dofs, ), eps=5e-3, atol=5e-4, rtol=5e-3
+    )

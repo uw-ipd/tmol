@@ -59,12 +59,20 @@ def gradcheck_test_system(
     return (tkin.kintree, tkin.dof_metadata, kincoords)
 
 
-def kop_gradcheck_report(kop, dofs, start_dofs):
-    result = kop(start_dofs)
+def kop_gradcheck_report(
+        kop, dofs, start_dofs, eps=1e-6, atol=1e-5, rtol=1e-3
+):
+    initial_gradcheck = torch.autograd.gradcheck(
+        kop, (start_dofs, ), raise_exception=False
+    )
 
-    eps = 1e-6
-    atol = 1e-5
-    rtol = 1e-3
+    if initial_gradcheck:
+        # Initial exhausive gradcheck succeeded.
+        return
+
+    # Intiial gradcheck failed, generate a more specific failure report.
+
+    result = kop(start_dofs)
 
     # Extract results from torch/autograd/gradcheck.py
     (analytical, ), reentrant, correct_grad_sizes = get_analytical_jacobian(
@@ -99,39 +107,8 @@ def kop_gradcheck_report(kop, dofs, start_dofs):
         f"Failed DOF metadata:\n{dof_summary.iloc[failing_dofs]}\n\n"
     )
 
-
-def test_kinematic_torch_op_gradcheck_report(gradcheck_test_system):
-    kintree, dofs, kincoords = gradcheck_test_system
-
-    kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
-    )
-    start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
-
-    kop_gradcheck_report(kop, dofs, start_dofs)
-
-
-def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
-    kintree, dofs, kincoords = gradcheck_test_system
-
-    # Temporary workaround for #45, disable theta for post-jump siblings
-    post_root_siblings = ((dofs.parent_id == 0) &
-                          (dofs.dof_type == DOFTypes.bond_angle))
-    dofs = dofs[~post_root_siblings]
-
-    kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
-    )
-
-    start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
-
-    assert torch.autograd.gradcheck(
-        kop.apply, (start_dofs, ), raise_exception=True
-    )
+    # Rerun gradcheck to w/ exception to return full error.
+    torch.autograd.gradcheck(kop, (start_dofs, ), raise_exception=True)
 
 
 def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
@@ -158,6 +135,25 @@ def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
     kop_gradcheck_report(kop, dofs, start_dofs)
 
 
+def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
+    kintree, dofs, kincoords = gradcheck_test_system
+
+    # Temporary workaround for #45, disable theta for post-jump siblings
+    post_root_siblings = ((dofs.parent_id == 0) &
+                          (dofs.dof_type == DOFTypes.bond_angle))
+    dofs = dofs[~post_root_siblings]
+
+    kop = KinematicOp.from_coords(
+        kintree,
+        dofs,
+        kincoords,
+    )
+
+    start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
+
+    kop_gradcheck_report(kop, dofs, start_dofs)
+
+
 def test_kinematic_torch_op_smoke(
         gradcheck_test_system, pytorch_backward_coverage
 ):
@@ -176,3 +172,5 @@ def test_kinematic_torch_op_smoke(
 
     total = coords.sum()
     total.backward()
+
+    assert start_dofs.grad is not None
