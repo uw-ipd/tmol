@@ -3,7 +3,7 @@ from functools import singledispatch
 import numpy
 import torch
 
-from torch.autograd import Variable
+from torch import Tensor
 
 
 @singledispatch
@@ -20,4 +20,4 @@ def exp(x, out=None):
     return numpy.exp(x, out=out)
 
 
-exp.register(Variable)(torch.exp)
+exp.register(Tensor)(torch.exp)
