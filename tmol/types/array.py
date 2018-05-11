@@ -7,7 +7,7 @@ import numpy
 
 from .shape import Shape
 
-from .tensor import TensorType
+from .tensor import TensorType, _cat_internal
 
 
 class Casting(enum.Enum):
@@ -39,3 +39,8 @@ class NDArray(TensorType, typing._TypingBase, _root=True):
         self.validate(value)
 
         return value
+
+
+@_cat_internal.register(numpy.ndarray)
+def _cat_ndarray(first, rest, dim=0, out=None):
+    return numpy.concatenate([first] + list(rest), axis=dim, out=out)

@@ -55,6 +55,7 @@ def test_validate_attrs(example):
 
 @pytest.mark.xfail
 def test_set_post_init():
+    """Object validation does not function on setattr, only on init."""
     v = ValidateObj(1, "abc")
     with pytest.raises(TypeError):
         v.a = "one"
