@@ -36,7 +36,8 @@ class ThresholdDistanceCount(
     @property
     def component_total_score_terms(self):
         return ScoreComponentAttributes(
-            "threshold_count", "total_threshold_count", None
+            name="threshold_count",
+            total="total_threshold_count",
         )
 
     @property

@@ -11,7 +11,6 @@ from tmol.utility.mixins import gather_superclass_properies
 class ScoreComponentAttributes:
     name: str
     total: str
-    atomic: str
 
 
 @reactive_attrs(auto_attribs=True)
