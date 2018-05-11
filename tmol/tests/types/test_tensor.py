@@ -60,18 +60,20 @@ def test_attr_checking():
         v[:5]
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class SubGroup(TensorGroup):
+    a: Tensor(float)[...]
+    b: Tensor(float)[..., 5]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class MultiGroup(TensorGroup):
+    g1: SubGroup
+    g2: SubGroup
+    idx: Tensor(int)[..., 2]
+
+
 def test_nested_group():
-    @attr.s(auto_attribs=True, frozen=True, slots=True)
-    class SubGroup(TensorGroup):
-        a: Tensor(float)[...]
-        b: Tensor(float)[..., 5]
-
-    @attr.s(auto_attribs=True, frozen=True, slots=True)
-    class MultiGroup(TensorGroup):
-        g1: SubGroup
-        g2: SubGroup
-        idx: Tensor(int)[..., 2]
-
     s = MultiGroup.ones((3, 5))
     assert s.g1.a.shape == (3, 5)
     assert s.g1.b.shape == (3, 5, 5)
@@ -100,6 +102,68 @@ def test_nested_group():
     numpy.testing.assert_allclose(s.g1.b[0], torch.full((5, 5), numpy.pi))
     numpy.testing.assert_allclose(s.g1.a[1], torch.full((5, ), 1.0))
     numpy.testing.assert_allclose(s.g1.b[1], torch.full((5, 5), 1.0))
+
+
+def test_tensor_group_reshape():
+    # Test reshape operations over nested groups
+    start = MultiGroup.full(10, numpy.pi)
+
+    assert start.g1.a.shape == (10, )
+    assert start.g1.b.shape == (10, 5)
+
+    assert start.g2.a.shape == (10, )
+    assert start.g2.b.shape == (10, 5)
+
+    assert start.idx.shape == (10, 2)
+
+    # Standard reshape, but with a list
+    reshape = start.reshape((2, 5))
+
+    assert reshape.g1.a.shape == (2, 5)
+    assert reshape.g1.b.shape == (2, 5, 5)
+
+    assert reshape.g2.a.shape == (2, 5)
+    assert reshape.g2.b.shape == (2, 5, 5)
+
+    assert reshape.idx.shape == (2, 5, 2)
+
+    # Test args shape and implied dimension
+    rereshape = start.reshape(5, -1)
+    assert rereshape.g1.a.shape == (5, 2)
+    assert rereshape.g1.b.shape == (5, 2, 5)
+
+    assert rereshape.g2.a.shape == (5, 2)
+    assert rereshape.g2.b.shape == (5, 2, 5)
+
+    assert rereshape.idx.shape == (5, 2, 2)
+
+    # Test flatten to implied dimension
+    restore = reshape.reshape(-1)
+    assert restore.g1.a.shape == (10, )
+    assert restore.g1.b.shape == (10, 5)
+
+    assert restore.g2.a.shape == (10, )
+    assert restore.g2.b.shape == (10, 5)
+
+    assert restore.idx.shape == (10, 2)
+
+
+def test_tensor_group_invalid_reshape():
+    @attr.s(auto_attribs=True)
+    class InvalidType(TensorGroup):
+        a: int  # Invalid non-tensor member
+        b: Tensor(float)[...]
+        c: Tensor(float)[..., 2]
+
+    inv = InvalidType(a=1, b=torch.empty(10), c=torch.empty((10, 2)))
+
+    with pytest.raises(TypeError):
+        inv.reshape((5, 2))
+
+    valid_tensor = SubGroup.empty(10)
+    valid_tensor.reshape(5, 2)
+    with pytest.raises(RuntimeError):
+        valid_tensor.reshape(20)
 
 
 def test_tensorgroup_smoke():
