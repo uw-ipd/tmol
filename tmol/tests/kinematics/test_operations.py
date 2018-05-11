@@ -6,7 +6,9 @@ from math import nan
 
 import pytest
 
-from tmol.kinematics.operations import (backwardKin, forwardKin, resolveDerivs)
+from tmol.kinematics.operations import (
+    SegScanStrategy, backwardKin, forwardKin, resolveDerivs
+)
 
 from tmol.kinematics.datatypes import (KinDOF, NodeType, KinTree)
 
@@ -195,10 +197,16 @@ def test_score_smoketest(coords):
 
 def test_interconversion(kintree, coords):
     bkin = backwardKin(kintree, coords)
-    refold = forwardKin(kintree, bkin.dofs)
+    refold_eff = forwardKin(kintree, bkin.dofs, SegScanStrategy.efficient)
 
     #fd: with single precision 1e-9 is too strict
-    numpy.testing.assert_allclose(coords, refold.coords, atol=1e-6)
+    numpy.testing.assert_allclose(coords, refold_eff.coords, atol=1e-6)
+
+    bkin = backwardKin(kintree, coords)
+    refold_mindepth = forwardKin(kintree, bkin.dofs, SegScanStrategy.min_depth)
+
+    #fd: with single precision 1e-9 is too strict
+    numpy.testing.assert_allclose(coords, refold_mindepth.coords, atol=1e-6)
 
 
 def test_perturb(kintree, coords):
@@ -301,6 +309,28 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
     #     are likely due to changes in the "dummy score"
     numpy.testing.assert_allclose(
         dsc_dtors_analytic.raw[1:], expected_analytic_derivs[1:], atol=1e-4
+    )
+
+
+def test_f1f2_resolution_strategies_match(kintree, coords):
+    NATOMS, _ = coords.shape
+    bkin = backwardKin(kintree, coords)
+    HTs, dofs = bkin.hts, bkin.dofs
+
+    # Compute analytic derivs
+    dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
+    dsc_dx[1:] = dscore(coords[1:, :])
+    dsc_dtors_analytic_eff = resolveDerivs(
+        kintree, dofs, HTs, dsc_dx, SegScanStrategy.efficient
+    )
+    dsc_dtors_analytic_min_depth = resolveDerivs(
+        kintree, dofs, HTs, dsc_dx, SegScanStrategy.min_depth
+    )
+
+    numpy.testing.assert_allclose(
+        dsc_dtors_analytic_eff.raw[1:],
+        dsc_dtors_analytic_min_depth.raw[1:],
+        atol=1e-7
     )
 
 
