@@ -1,3 +1,4 @@
+from enum import Enum
 import attr
 import numpy
 import torch
@@ -30,6 +31,12 @@ def HTinv(HTs: HTArray) -> HTArray:
     )
     HTinvs[:, 3, :3] = 0
     return HTinvs
+
+
+class SegScanStrategy(Enum):
+    efficient = "efficient"
+    min_depth = "min_depth"
+    default = efficient
 
 
 @validate_args
@@ -115,10 +122,18 @@ def SegScanEfficient(
 
 @validate_args
 def SegScan(
-        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator,
-        upwards: bool
+        data: Tensor(torch.double),
+        parents: Tensor(torch.long)[:],
+        operator,
+        upwards: bool,
+        scan_strategy: SegScanStrategy = SegScanStrategy.default
 ):
-    SegScanEfficient(data, parents, operator, upwards)
+    if scan_strategy == SegScanStrategy.efficient:
+        SegScanEfficient(data, parents, operator, upwards)
+    elif scan_strategy == SegScanStrategy.min_depth:
+        SegScanEfficient(data, parents, operator, upwards)
+    else:
+        raise NotImplementedError
 
 
 @validate_args
@@ -537,7 +552,11 @@ class ForwardKinResult:
 
 
 @validate_args
-def forwardKin(kintree: KinTree, dofs: KinDOF) -> ForwardKinResult:
+def forwardKin(
+        kintree: KinTree,
+        dofs: KinDOF,
+        scan_strategy: SegScanStrategy = SegScanStrategy.default
+) -> ForwardKinResult:
     """dofs -> HTs, xyzs
 
       - "forward" kinematics
@@ -559,7 +578,7 @@ def forwardKin(kintree: KinTree, dofs: KinDOF) -> ForwardKinResult:
     HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
     # 2) global HTs (rewrite 1->N in-place)
-    SegScan(HTs, kintree.parent, HTcollect, False)
+    SegScan(HTs, kintree.parent, HTcollect, False, scan_strategy)
 
     coords = HTs[:, :3, 3]
     return ForwardKinResult.create(HTs, coords)
@@ -571,6 +590,7 @@ def resolveDerivs(
         dofs: KinDOF,
         HTs: HTArray,
         dsc_dx: CoordArray,
+        scan_strategy: SegScanStrategy = SegScanStrategy.default
 ) -> KinDOF:
     """xyz derivs -> dof derivs
 
@@ -591,8 +611,8 @@ def resolveDerivs(
     f2s = dsc_dx.clone()  # clone input buffer before aggregation
 
     # 2) pass f1/f2s up tree
-    SegScan(f1s, kintree.parent, Fscollect, True)
-    SegScan(f2s, kintree.parent, Fscollect, True)
+    SegScan(f1s, kintree.parent, Fscollect, True, scan_strategy)
+    SegScan(f2s, kintree.parent, Fscollect, True, scan_strategy)
 
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()
