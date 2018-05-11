@@ -41,7 +41,9 @@ class SegScanStrategy(Enum):
 
 @validate_args
 def SegScanMinDepth(
-        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator
+        data: Tensor(torch.double),
+        parents: Tensor(torch.long)[:],
+        operator,
 ):
     """
     Segmented scan code for passing:
@@ -69,8 +71,10 @@ def SegScanMinDepth(
 
 @validate_args
 def SegScanEfficient(
-        data: Tensor(torch.double), parents: Tensor(torch.long)[:], operator,
-        upwards: bool
+        data: Tensor(torch.double),
+        parents: Tensor(torch.long)[:],
+        operator,
+        upwards: bool,
 ):
     """
     Segmented scan code for passing:
@@ -131,7 +135,7 @@ def SegScan(
     if scan_strategy == SegScanStrategy.efficient:
         SegScanEfficient(data, parents, operator, upwards)
     elif scan_strategy == SegScanStrategy.min_depth:
-        SegScanEfficient(data, parents, operator, upwards)
+        SegScanMinDepth(data, parents, operator)
     else:
         raise NotImplementedError
 
