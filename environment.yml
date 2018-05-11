@@ -15,5 +15,4 @@ dependencies:
     - pint
     - attrs
     - cattrs
-    - properties
     - frozendict

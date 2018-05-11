@@ -1,12 +1,8 @@
 import attr
-from properties import Instance
 from typing import Optional
 
 import torch
 import numpy
-
-from tmol.properties.array import VariableT, Array
-from tmol.properties.reactive import derived_from
 
 from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..interatomic_distance import InteratomicDistanceGraphBase
@@ -27,9 +23,12 @@ from .params import HBondParamResolver, HBondPairParams
 import tmol.database
 from tmol.database.scoring import HBondDatabase
 
+from tmol.utility.reactive import reactive_attrs, reactive_property
+
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 pair_descr_dtype = numpy.dtype(donor_dtype.descr + acceptor_dtype.descr)
 
@@ -98,68 +97,69 @@ class HBondPairs(ValidateAttrs):
         )
 
 
+@reactive_attrs(auto_attribs=True)
 class HBondScoreGraph(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
 
-    hbond_database: HBondDatabase = Instance(
-        "hbond parameter database",
-        HBondDatabase,
-        default=tmol.database.default.scoring.hbond
-    )
+    hbond_database: HBondDatabase = tmol.database.default.scoring.hbond
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.atom_pair_dist_thresholds.add(
-            self.hbond_database.global_parameters.threshold_distance
-        )
-        self.score_components.add(
-            ScoreComponentAttributes("hbond", "total_hbond", None)
-        )
+    @property
+    def component_total_score_terms(self):
+        return ScoreComponentAttributes("hbond", "total_hbond", None)
 
-    @derived_from(
-        "hbond_database",
-        Instance("hbond pair parameter resolver", HBondParamResolver)
-    )
-    def hbond_param_resolver(self) -> HBondParamResolver:
-        return HBondParamResolver.from_database(self.hbond_database)
+    @property
+    def component_atom_pair_dist_threshold(self):
+        return self.hbond_database.global_parameters.threshold_distance
 
-    @derived_from(("hbond_database", "atom_types", "bonds"),
-                  Instance(
-                      "hbond score elements in target =graph",
-                      HBondElementAnalysis
-                  ))
-    def hbond_elements(self) -> HBondElementAnalysis:
+    @reactive_property
+    @validate_args
+    def hbond_param_resolver(
+            hbond_database: HBondDatabase
+    ) -> HBondParamResolver:
+        "hbond pair parameter resolver"
+        return HBondParamResolver.from_database(hbond_database)
+
+    @reactive_property
+    @validate_args
+    def hbond_elements(
+            hbond_database: HBondDatabase,
+            atom_types: NDArray(object)[:],
+            bonds: NDArray(int)[:, 2],
+    ) -> HBondElementAnalysis:
+        """hbond score elements in target graph"""
         return HBondElementAnalysis.setup(
-            hbond_database=self.hbond_database,
-            atom_types=self.atom_types,
-            bonds=self.bonds
+            hbond_database=hbond_database, atom_types=atom_types, bonds=bonds
         )
 
-    @derived_from(("hbond_param_resolver", "hbond_elements"),
-                  Instance(
-                      "hbond pair metadata and parameters in target graph",
-                      HBondPairs
-                  ))
-    def hbond_pairs(self) -> HBondPairs:
-        return HBondPairs.setup(self.hbond_param_resolver, self.hbond_elements)
+    @reactive_property
+    @validate_args
+    def hbond_pairs(
+            hbond_param_resolver: HBondParamResolver,
+            hbond_elements: HBondElementAnalysis,
+    ) -> HBondPairs:
+        """hbond pair metadata and parameters in target graph"""
+        return HBondPairs.setup(hbond_param_resolver, hbond_elements)
 
-    @derived_from(
-        ("coords", "hbond_pairs"),
-        VariableT("donor-sp2 hbond scores"),
-    )
-    def donor_sp2_hbond(self):
+    @reactive_property
+    @validate_args
+    def donor_sp2_hbond(
+            coords: Tensor(torch.float)[:, 3],
+            hbond_pairs: HBondPairs,
+            hbond_database: HBondDatabase,
+    ) -> Tensor(torch.float)[:]:
+        """donor-sp2 hbond scores"""
 
-        donor_sp2_pairs = self.hbond_pairs.donor_sp2_pairs
-        donor_sp2_pair_params = self.hbond_pairs.donor_sp2_pair_params
+        donor_sp2_pairs = hbond_pairs.donor_sp2_pairs
+        donor_sp2_pair_params = hbond_pairs.donor_sp2_pair_params
 
         if len(donor_sp2_pairs) == 0:
-            return self.coords.new(0)
+            return coords.new(0)
 
         return hbond_donor_sp2_score(
-            d=self.coords[donor_sp2_pairs["d"]],
-            h=self.coords[donor_sp2_pairs["h"]],
-            a=self.coords[donor_sp2_pairs["a"]],
-            b=self.coords[donor_sp2_pairs["b"]],
-            b0=self.coords[donor_sp2_pairs["b0"]],
+            d=coords[donor_sp2_pairs["d"]],
+            h=coords[donor_sp2_pairs["h"]],
+            a=coords[donor_sp2_pairs["a"]],
+            b=coords[donor_sp2_pairs["b"]],
+            b0=coords[donor_sp2_pairs["b0"]],
 
             # type pair parameters
             glob_accwt=(donor_sp2_pair_params.acceptor_weight),
@@ -176,33 +176,35 @@ class HBondScoreGraph(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
 
             # global parameters
             hb_sp2_range_span=(
-                self.hbond_database.global_parameters.hb_sp2_range_span
+                hbond_database.global_parameters.hb_sp2_range_span
             ),
             hb_sp2_BAH180_rise=(
-                self.hbond_database.global_parameters.hb_sp2_BAH180_rise
+                hbond_database.global_parameters.hb_sp2_BAH180_rise
             ),
             hb_sp2_outer_width=(
-                self.hbond_database.global_parameters.hb_sp2_outer_width
+                hbond_database.global_parameters.hb_sp2_outer_width
             ),
         )
 
-    @derived_from(
-        ("coords", "hbond_elements"),
-        VariableT("donor-sp3 hbond scores"),
-    )
-    def donor_sp3_hbond(self):
-        donor_sp3_pairs = self.hbond_pairs.donor_sp3_pairs
-        donor_sp3_pair_params = self.hbond_pairs.donor_sp3_pair_params
+    @reactive_property
+    @validate_args
+    def donor_sp3_hbond(
+            coords: Tensor(torch.float)[:, 3],
+            hbond_pairs: HBondPairs,
+            hbond_database: HBondDatabase,
+    ) -> Tensor(torch.float)[:]:
+        donor_sp3_pairs = hbond_pairs.donor_sp3_pairs
+        donor_sp3_pair_params = hbond_pairs.donor_sp3_pair_params
 
         if len(donor_sp3_pairs) == 0:
-            return self.coords.new(0)
+            return coords.new(0)
 
         return hbond_donor_sp3_score(
-            d=self.coords[donor_sp3_pairs["d"]],
-            h=self.coords[donor_sp3_pairs["h"]],
-            a=self.coords[donor_sp3_pairs["a"]],
-            b=self.coords[donor_sp3_pairs["b"]],
-            b0=self.coords[donor_sp3_pairs["b0"]],
+            d=coords[donor_sp3_pairs["d"]],
+            h=coords[donor_sp3_pairs["h"]],
+            a=coords[donor_sp3_pairs["a"]],
+            b=coords[donor_sp3_pairs["b"]],
+            b0=coords[donor_sp3_pairs["b0"]],
 
             # type pair parameters
             glob_accwt=(donor_sp3_pair_params.acceptor_weight),
@@ -219,27 +221,31 @@ class HBondScoreGraph(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
 
             # global parameters
             hb_sp3_softmax_fade=(
-                self.hbond_database.global_parameters.hb_sp3_softmax_fade
+                hbond_database.global_parameters.hb_sp3_softmax_fade
             ),
         )
 
-    @derived_from(
-        ("coords", "hbond_elements"),
-        VariableT("donor-ring hbond scores"),
-    )
-    def donor_ring_hbond(self):
-        donor_ring_pairs = self.hbond_pairs.donor_ring_pairs
-        donor_ring_pair_params = self.hbond_pairs.donor_ring_pair_params
+    @reactive_property
+    @validate_args
+    def donor_ring_hbond(
+            coords: Tensor(torch.float)[:, 3],
+            hbond_pairs: HBondPairs,
+            hbond_database: HBondDatabase,
+    ) -> Tensor(torch.float)[:]:
+        """donor-ring hbond scores"""
+
+        donor_ring_pairs = hbond_pairs.donor_ring_pairs
+        donor_ring_pair_params = hbond_pairs.donor_ring_pair_params
 
         if len(donor_ring_pairs) == 0:
-            return self.coords.new(0)
+            return coords.new(0)
 
         return hbond_donor_ring_score(
-            d=self.coords[donor_ring_pairs["d"]],
-            h=self.coords[donor_ring_pairs["h"]],
-            a=self.coords[donor_ring_pairs["a"]],
-            b=self.coords[donor_ring_pairs["b"]],
-            b0=self.coords[donor_ring_pairs["b0"]],
+            d=coords[donor_ring_pairs["d"]],
+            h=coords[donor_ring_pairs["h"]],
+            a=coords[donor_ring_pairs["a"]],
+            b=coords[donor_ring_pairs["b"]],
+            b0=coords[donor_ring_pairs["b0"]],
 
             # type pair parameters
             glob_accwt=(donor_ring_pair_params.acceptor_weight),
@@ -255,36 +261,39 @@ class HBondScoreGraph(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
             cosAHD_bounds=(donor_ring_pair_params.cosAHD.bound),
         )
 
-    @derived_from(
-        ("donor_sp2_hbond", "donor_sp3_hbond", "donor_ring_hbond"),
-        VariableT("total hbond score"),
-    )
-    def total_hbond(self):
-        return self.donor_sp2_hbond.sum() + self.donor_sp3_hbond.sum(
-        ) + self.donor_ring_hbond.sum()
+    @reactive_property
+    @validate_args
+    def total_hbond(
+            donor_sp2_hbond: Tensor(torch.float)[:],
+            donor_sp3_hbond: Tensor(torch.float)[:],
+            donor_ring_hbond: Tensor(torch.float)[:],
+    ) -> Tensor(torch.float):
+        """total hbond score"""
+        return (
+            donor_sp2_hbond.sum() + donor_sp3_hbond.sum() +
+            donor_ring_hbond.sum()
+        )
 
-    @derived_from(
-        ("donor_sp2_hbond", "donor_sp3_hbond", "donor_ring_hbond"),
-        VariableT("total hbond score"),
-    )
-    def hbond_scores(self):
+    @reactive_property
+    @validate_args
+    def hbond_scores(
+            donor_sp2_hbond: Tensor(torch.float)[:],
+            donor_sp3_hbond: Tensor(torch.float)[:],
+            donor_ring_hbond: Tensor(torch.float)[:],
+    ) -> Tensor(torch.float)[:]:
         return torch.cat((
-            self.donor_sp2_hbond,
-            self.donor_sp3_hbond,
-            self.donor_ring_hbond,
+            donor_sp2_hbond,
+            donor_sp3_hbond,
+            donor_ring_hbond,
         ))
 
-    @derived_from(
-        "hbond_pairs",
-        Array(
-            "hbond pair metadata in target graph",
-            dtype=pair_descr_dtype,
-        )[:]
-    )
-    def hbond_pair_metadata(self):
+    @reactive_property
+    @validate_args
+    def hbond_pair_metadata(hbond_pairs: HBondPairs
+                            ) -> NDArray(pair_descr_dtype)[:]:
         """All hbond pairs, in order of "sp2"/"sp3"/"ring"."""
         return numpy.concatenate((
-            self.hbond_pairs.donor_sp2_pairs,
-            self.hbond_pairs.donor_sp3_pairs,
-            self.hbond_pairs.donor_ring_pairs,
+            hbond_pairs.donor_sp2_pairs,
+            hbond_pairs.donor_sp3_pairs,
+            hbond_pairs.donor_ring_pairs,
         ))

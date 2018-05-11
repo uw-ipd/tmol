@@ -7,7 +7,6 @@ import cattr
 
 import os
 import yaml
-import properties
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -73,7 +72,7 @@ class Residue:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class ChemicalDatabase(properties.HasProperties):
+class ChemicalDatabase:
     atom_types: Tuple[str, ...]
     residues: Tuple[Residue, ...]
 

@@ -3,7 +3,6 @@ pandas>=0.22
 requests>=2.0
 scipy>=1.0
 toolz>=0.9.0
-properties>=0.4.0
 attrs>=17
 cattrs>=0.6
 frozendict>=1.0

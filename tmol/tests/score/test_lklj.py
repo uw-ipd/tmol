@@ -8,11 +8,14 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJLKScoreGraph
 from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 
+from tmol.utility.reactive import reactive_attrs
 
+
+@reactive_attrs
 class LJLKGraph(
-        LJLKScoreGraph,
-        BlockedInteratomicDistanceGraph,
         CartesianAtomicCoordinateProvider,
+        BlockedInteratomicDistanceGraph,
+        LJLKScoreGraph,
 ):
     pass
 

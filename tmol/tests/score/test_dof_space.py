@@ -13,17 +13,21 @@ from tmol.score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 
+from tmol.utility.reactive import reactive_attrs
 
+
+@reactive_attrs
 class RealSpaceScore(
-        TotalScoreGraph,
         CartesianAtomicCoordinateProvider,
+        TotalScoreGraph,
 ):
     pass
 
 
+@reactive_attrs
 class DofSpaceScore(
-        TotalScoreGraph,
         KinematicAtomicCoordinateProvider,
+        TotalScoreGraph,
 ):
     pass
 

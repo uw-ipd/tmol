@@ -1,7 +1,6 @@
 import unittest
 import torch
 import numpy
-import properties
 
 from scipy.spatial.distance import pdist, squareform
 
@@ -19,36 +18,35 @@ from tmol.score.interatomic_distance import (
     NaiveInteratomicDistanceGraph,
     BlockedInteratomicDistanceGraph,
 )
-from tmol.properties.reactive import derived_from
-from tmol.properties.array import VariableT
 
 from tmol.tests.data.pdb import data as test_pdbs
 
 from tmol.system.residue.score import system_cartesian_space_graph_params
 
+from tmol.utility.reactive import reactive_attrs, reactive_property
 
-class ThresholdDistanceCount(InteratomicDistanceGraphBase,
-                             TotalScoreComponentsGraph):
-    threshold_distance = properties.Float(
-        "scoring count distance", min=0, cast=True
-    )
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+@reactive_attrs(auto_attribs=True)
+class ThresholdDistanceCount(
+        InteratomicDistanceGraphBase,
+        TotalScoreComponentsGraph,
+):
+    threshold_distance: float
 
-        self.score_components.add(
-            ScoreComponentAttributes(
-                "threshold_count", "total_threshold_count", None
-            )
+    @property
+    def component_total_score_terms(self):
+        return ScoreComponentAttributes(
+            "threshold_count", "total_threshold_count", None
         )
-        self.atom_pair_dist_thresholds.add(self.threshold_distance)
 
-    @derived_from(
-        "atom_pair_dist",
-        VariableT("number of bonds under threshold distance")
-    )
-    def total_threshold_count(self):
-        return ((self.atom_pair_dist < self.threshold_distance)
+    @property
+    def component_atom_pair_dist_threshold(self):
+        return self.threshold_distance
+
+    @reactive_property
+    def total_threshold_count(atom_pair_dist, threshold_distance):
+        "number of bonds under threshold distance"
+        return ((atom_pair_dist < threshold_distance)
                 .type(torch.LongTensor).sum())
 
 
@@ -61,9 +59,10 @@ class TestInteratomicDistance(unittest.TestCase):
 
         scipy_distance = squareform(pdist(test_structure.coords))
 
+        @reactive_attrs
         class TestGraph(
-                NaiveInteratomicDistanceGraph,
                 CartesianAtomicCoordinateProvider,
+                NaiveInteratomicDistanceGraph,
         ):
             pass
 
@@ -82,17 +81,19 @@ class TestInteratomicDistance(unittest.TestCase):
         )
         test_params["threshold_distance"] = 6
 
+        @reactive_attrs
         class NaiveGraph(
+                CartesianAtomicCoordinateProvider,
                 ThresholdDistanceCount,
                 NaiveInteratomicDistanceGraph,
-                CartesianAtomicCoordinateProvider,
         ):
             pass
 
+        @reactive_attrs
         class BlockedGraph(
+                CartesianAtomicCoordinateProvider,
                 ThresholdDistanceCount,
                 BlockedInteratomicDistanceGraph,
-                CartesianAtomicCoordinateProvider,
         ):
             pass
 
