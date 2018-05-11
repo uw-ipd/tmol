@@ -1,5 +1,6 @@
 import attr
 from properties import Instance
+from typing import Optional
 
 import torch
 import numpy
@@ -7,7 +8,7 @@ import numpy
 from tmol.properties.array import VariableT, Array
 from tmol.properties.reactive import derived_from
 
-from ..bonded_atom import ScoreComponentAttributes
+from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..interatomic_distance import InteratomicDistanceGraphBase
 
 from .potentials import (
@@ -36,13 +37,13 @@ pair_descr_dtype = numpy.dtype(donor_dtype.descr + acceptor_dtype.descr)
 @attr.s(frozen=True, auto_attribs=True, slots=True)
 class HBondPairs(ValidateAttrs):
     donor_sp2_pairs: NDArray(pair_descr_dtype)[:]
-    donor_sp2_pair_params: HBondPairParams
+    donor_sp2_pair_params: Optional[HBondPairParams]
 
     donor_sp3_pairs: NDArray(pair_descr_dtype)[:]
-    donor_sp3_pair_params: HBondPairParams
+    donor_sp3_pair_params: Optional[HBondPairParams]
 
     donor_ring_pairs: NDArray(pair_descr_dtype)[:]
-    donor_ring_pair_params: HBondPairParams
+    donor_ring_pair_params: Optional[HBondPairParams]
 
     @staticmethod
     @validate_args
@@ -73,19 +74,19 @@ class HBondPairs(ValidateAttrs):
         donor_sp2_pair_params = (
             params[donor_sp2_pairs["donor_type"],
                    donor_sp2_pairs["acceptor_type"]]
-        )
+        ) if len(donor_sp2_pairs) else None
 
         donor_sp3_pairs = cls._cross_pairs(elems.donors, elems.sp3_acceptors)
         donor_sp3_pair_params = (
             params[donor_sp3_pairs["donor_type"],
                    donor_sp3_pairs["acceptor_type"]]
-        )
+        ) if len(donor_sp3_pairs) else None
 
         donor_ring_pairs = cls._cross_pairs(elems.donors, elems.ring_acceptors)
         donor_ring_pair_params = (
             params[donor_ring_pairs["donor_type"],
                    donor_ring_pairs["acceptor_type"]]
-        )
+        ) if len(donor_ring_pairs) else None
 
         return cls(
             donor_sp2_pairs=donor_sp2_pairs,
@@ -97,7 +98,7 @@ class HBondPairs(ValidateAttrs):
         )
 
 
-class HBondScoreGraph(InteratomicDistanceGraphBase):
+class HBondScoreGraph(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
 
     hbond_database: HBondDatabase = Instance(
         "hbond parameter database",
