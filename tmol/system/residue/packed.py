@@ -10,6 +10,16 @@ import pandas
 from typing import Sequence
 
 from .restypes import Residue
+from .datatypes import (
+    atom_metadata_dtype,
+    torsion_metadata_dtype,
+    connection_metadata_dtype,
+)
+
+
+def _ceil_to_size(size, val):
+    d, m = numpy.divmod(val, size)
+    return (d + (m != 0).astype(int)) * size
 
 
 class PackedResidueSystem(HasProperties):
@@ -41,46 +51,17 @@ class PackedResidueSystem(HasProperties):
         "inter-atomic bond indices", dtype=int, cast="unsafe"
     )[:, 2]
 
-    atom_metadata_dtype = numpy.dtype([
-        ("residue_name", object),
-        ("atom_name", object),
-        ("atom_type", object),
-        ("atom_index", object),
-        ("residue_index", float),
-    ])
-
     atom_metadata: numpy.ndarray = Array(
         "atom metada", dtype=atom_metadata_dtype
     )[:]
-
-    torsion_metadata_dtype = numpy.dtype([
-        ("residue_index", int),
-        ("name", object),
-        ("atom_index_a", float),
-        ("atom_index_b", float),
-        ("atom_index_c", float),
-        ("atom_index_d", float),
-    ])
 
     torsion_metadata: numpy.ndarray = Array(
         "torsion metada", dtype=torsion_metadata_dtype
     )[:]
 
-    connection_metadata_dtype = numpy.dtype([
-        ("from_residue_index", int),
-        ("from_connection_name", object),
-        ("to_residue_index", int),
-        ("to_connection_name", object),
-    ])
-
     connection_metadata: numpy.ndarray = Array(
         "connection metada", dtype=connection_metadata_dtype
     )[:]
-
-    @staticmethod
-    def _ceil_to_size(size, val):
-        d, m = numpy.divmod(val, size)
-        return (d + (m != 0).astype(int)) * size
 
     @classmethod
     def from_residues(cls, res: Sequence[Residue], block_size=8):
@@ -92,7 +73,7 @@ class PackedResidueSystem(HasProperties):
         #
         # Ceil each residue's size to generate residue segments
         res_lengths = numpy.array([len(r.coords) for r in res])
-        res_segment_lengths = cls._ceil_to_size(block_size, res_lengths)
+        res_segment_lengths = _ceil_to_size(block_size, res_lengths)
 
         segment_ends = res_segment_lengths.cumsum()
         segment_starts = numpy.empty_like(segment_ends)
@@ -110,9 +91,12 @@ class PackedResidueSystem(HasProperties):
             for r, start in zip(res, res_aidx)
         ]
 
+        # TODO temporary hack to ensure that -1 is a valid "non-atom" index
+        assert (res_lengths[-1] % block_size) != 0
+
         ### Generate atom metadata
 
-        atom_metadata = numpy.empty(buffer_size, cls.atom_metadata_dtype)
+        atom_metadata = numpy.empty(buffer_size, atom_metadata_dtype)
         atom_metadata["atom_index"] = numpy.arange(len(atom_metadata))
         atom_metadata["residue_index"] = None
 
@@ -166,7 +150,7 @@ class PackedResidueSystem(HasProperties):
 
         # Unpack the connection metadata table
         connection_metadata = numpy.empty(
-            len(connection_index), dtype=cls.connection_metadata_dtype
+            len(connection_index), dtype=connection_metadata_dtype
         )
 
         connection_metadata['from_residue_index'] = \
@@ -309,27 +293,39 @@ class PackedResidueSystem(HasProperties):
                     columns={"residue_index": "d.residue", "atom_name": "d.atom", "atom_index": "d.atom_index"}),
             )).sort_index("columns") # yapf: disable
         else:
-            torsion_index = pandas.DataFrame(
-                columns=[
-                    "residue_index",
-                    "name",
-                    "a.atom_index",
-                    "b.atom_index",
-                    "c.atom_index",
-                    "d.atom_index",
-                ]
-            )
+            torsion_index = pandas.DataFrame({
+                "residue_index": numpy.empty(0, float),
+                "name": numpy.empty(0, object),
+                "a.atom_index": numpy.empty(0, float),
+                "b.atom_index": numpy.empty(0, float),
+                "c.atom_index": numpy.empty(0, float),
+                "d.atom_index": numpy.empty(0, float),
+            })
 
-        ### Unpack the merge frame into atomic indices
+        pandas.DataFrame
+
+        # Unpack the merge frame into atomic indices, fixing up any missing values to
+        # point to the "-1" atom, which will have nan coordinates.
+        def nan_to_neg1(v):
+            return numpy.where(~numpy.isnan(v), v, -1).astype(int)
+
         torsion_metadata = numpy.empty(
-            len(torsion_index), cls.torsion_metadata_dtype
+            len(torsion_index), torsion_metadata_dtype
         )
         torsion_metadata["residue_index"] = torsion_index["residue_index"]
         torsion_metadata["name"] = torsion_index["name"]
-        torsion_metadata["atom_index_a"] = torsion_index["a.atom_index"]
-        torsion_metadata["atom_index_b"] = torsion_index["b.atom_index"]
-        torsion_metadata["atom_index_c"] = torsion_index["c.atom_index"]
-        torsion_metadata["atom_index_d"] = torsion_index["d.atom_index"]
+        torsion_metadata["atom_index_a"] = nan_to_neg1(
+            torsion_index["a.atom_index"]
+        )
+        torsion_metadata["atom_index_b"] = nan_to_neg1(
+            torsion_index["b.atom_index"]
+        )
+        torsion_metadata["atom_index_c"] = nan_to_neg1(
+            torsion_index["c.atom_index"]
+        )
+        torsion_metadata["atom_index_d"] = nan_to_neg1(
+            torsion_index["d.atom_index"]
+        )
 
         result = cls(
             block_size=block_size,
