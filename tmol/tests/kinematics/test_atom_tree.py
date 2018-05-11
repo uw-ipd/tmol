@@ -1099,12 +1099,14 @@ class TestAtomTree(unittest.TestCase):
         refold_data = htrefold.initialize_whole_structure_refold_data(
             residues, atom_tree
         )
+        print("natoms", refold_data.natoms)
+
         refold_data2 = htrefold.initialize_whole_structure_refold_data(
             residues, atom_tree
         )
 
         #dofs = self.dofs_for_franks_multi_jump_atom_tree( nodes, bas, jas )
-        dofs = numpy.zeros((refold_data.natoms, 9))
+        dofs = numpy.zeros((refold_data.natoms, 9), dtype=numpy.float32)
         count = 0
         for res_ptrs in atom_tree.atom_pointer_list:
             for at in res_ptrs:
@@ -1120,7 +1122,9 @@ class TestAtomTree(unittest.TestCase):
                 count += 1
 
         htrefold.send_refold_data_to_the_gpu(dofs, refold_data)
+        print("1")
         htrefold.initialize_hts_gpu(dofs, refold_data)
+        print("2")
         hts = refold_data.hts_ro_d.copy_to_host()
         refold_data.dofs = refold_data.dofs_ro_d.copy_to_host()
         refold_data.hts[:refold_data.natoms, :3, :4] = hts.reshape((-1, 3, 4))
@@ -1146,7 +1150,9 @@ class TestAtomTree(unittest.TestCase):
                         refold_data.hts[i, j, k], refold_data2.hts[i, j, k], 5
                     )
 
+        print("3")
         htrefold.segscan_hts_gpu(refold_data)
+        print("4")
         hts = refold_data.hts_ro_d.copy_to_host()
         refold_data.hts[:refold_data.natoms, :3, :4] = hts.reshape(-1, 3, 4)
 
@@ -1166,8 +1172,10 @@ class TestAtomTree(unittest.TestCase):
 
         start_time = time.time()
 
-        for i in range(100):
+        for i in range(1000):
             htrefold.initialize_hts_gpu(dofs, refold_data)
             htrefold.segscan_hts_gpu(refold_data)
 
-        print("--- refold %f seconds ---" % (time.time() - start_time) / 100)
+        print(
+            "--- refold %f seconds ---" % ((time.time() - start_time) / 1000)
+        )

@@ -302,7 +302,8 @@ def initialize_whole_structure_refold_data(residues, atom_tree):
         aid2ba, refold_index_2_atomid
     )
     refold_data.remapped_phi_2_refold_index = numpy.fromiter(
-        (atomid_2_refold_index[id.res][id.atomno] for id in ba2aid), dtype=int
+        (atomid_2_refold_index[id.res][id.atomno] for id in ba2aid),
+        dtype=numpy.int32
     )
     refold_data.is_eldest_child = create_eldest_child_array(
         ba2aid, aid2ba, aids_of_eldest_siblings
@@ -346,7 +347,7 @@ def initialize_whole_structure_refold_data(residues, atom_tree):
     refold_data.parents[:natoms] = numpy.fromiter(
         ((ard.parent_index if ard.parent_index != -1 else natoms)
          for ard in atom_refold_data),
-        dtype=int
+        dtype=numpy.int32
     )
     refold_data.parents[0] = natoms
     # root is listed as its own parent?
@@ -1452,7 +1453,7 @@ def create_bonded_dof_remapping(ba2aid, aid2ci):
     #print( "aid2ci" ); print( aid2ci )
 
     return numpy.fromiter((aid2ci[aid.res][aid.atomno] for aid in ba2aid),
-                          dtype=int)
+                          dtype=numpy.int32)
 
     #ba2ci = numpy.zeros( (ba2aid.shape[0]) )
     #for ii, aid in enumerate( ba2aid ) :
@@ -1608,8 +1609,9 @@ def map_dofs_from_coalesced_to_refold_order(dofs_co, dofs_ro, ri2ci, natoms):
             dofs_ro[pos, ii] = dofs_co[ci, ii]
 
 
+#@cuda.jit
 @cuda.jit(
-    'float32[:,:],float32[:,:],float32[:,:],int32[:],boolean[:],int32[:],int32,int32'
+    'float32[:,:],float32[:,:],float32[:],int32[:],boolean[:],int32[:],int32,int32'
 )
 def segscan_phi_values(
         dofs_co, dofs_ro, remapped_phi, bonded_dof_remapping, is_eldest_child,
@@ -1673,83 +1675,22 @@ def segscan_phi_values(
         cuda.syncthreads()
 
 
-@cuda.jit('void(float32[:,:], boolean[:], int32[:], int32, int32, int32)')
-def segscan_ht_interval(hts, is_root, parent_ind, natoms, start, end):
-    # this should be executed as a single thread block with nthreads = 512
-    # "end" is actually one past the last element; compare i < end
-    shared_hts = cuda.shared.array((512, 12), numba.float32)
-    shared_is_root = cuda.shared.array((512), numba.int32)
-    pos = cuda.grid(1)
-    niters = int(math.ceil(float(end - start) / 512))
-    zero = numba.float32(0.)
-    one = numba.float32(1.)
-    #carry_ht = identity_ht(numba.float32(1.), numba.float32(0.))
-    carry_ht = (
+#@cuda.jit(device=True)
+#def returntrue():
+#    return (True, True, True)
+
+
+@cuda.jit(device=True)
+def identity_ht():
+    one = numba.float32(1.0)
+    zero = numba.float32(0.0)
+    return (
         one, zero, zero, zero, zero, one, zero, zero, zero, zero, one, zero
     )
-    carry_is_root = False
-    for ii in range(niters):
-        ii_ind = ii * 512 + start + pos
-        #load data into shared memory
-        if ii_ind < end:
-            for jj in range(12):
-                shared_hts[pos, jj] = hts[
-                    ii_ind, jj
-                ]  # TO DO: minimize bank conflicts -- align memory reads
-            shared_is_root[pos] = is_root[ii_ind]
-            myht = ht_load_from_shared(shared_hts, pos)
-            parent = parent_ind[ii_ind]
-            htchanged = False
-            if parent != natoms:
-                parent_ht = ht_load_from_global(hts, parent)
-                myht = ht_multiply(parent_ht, myht)
-                htchanged = True
-                ht_save_to_shared(shared_hts, pos, myht)
-            myroot = shared_is_root[pos]
-            if pos == 0 and not myroot:
-                myht = ht_multiply(carry_ht, myht)
-                myroot |= carry_is_root
-                htchanged = True
-            if htchanged:
-                ht_save_to_shared(shared_hts, pos, myht)
-        cuda.syncthreads()
-        offset = 1
-
-        # begin scan on this segment
-        for jj in range(9):  #log2(512) == 9
-            if pos >= offset and ii_ind < end:
-                prev_ht = ht_load_from_shared(shared_hts, pos - offset)
-                prev_root = shared_is_root[pos - offset]
-            cuda.syncthreads()
-            if pos >= offset and ii_ind < end:
-                if not myroot:
-                    myht = ht_multiply(prev_ht, myht)
-                    myroot |= prev_root
-                    ht_save_to_shared(shared_hts, pos, myht)
-                    shared_is_root[pos] = myroot
-            offset *= 2
-            cuda.syncthreads()
-
-        # write the shared hts to global memory
-        if ii_ind < end:
-            for jj in range(12):
-                hts[ii_ind, jj] = shared_hts[pos, jj]
-
-        # save the carry
-        if pos == 0:
-            carry_ht = ht_load_from_shared(shared_hts, 511)
-            carry_is_root = shared_is_root[511]
-
-        cuda.syncthreads()
-
-
-###@cuda.jit(device=True)
-###def identity_ht(one,zero):
-###    return (one,zero,zero,zero, zero,one,zero,zero, zero,zero,one,zero)
-###    #return (1.,0.,0.,0.,  0.,1.,0.,0.,   0.,0.,0.,1.)
-###    #return (numba.float32(1.), numba.float32(0.), numba.float32(0.), numba.float32(0.), \
-###    #        numba.float32(0.), numba.float32(1.), numba.float32(0.), numba.float32(0.), \
-###    #        numba.float32(0.), numba.float32(0.), numba.float32(1.), numba.float32(0.) )
+    #return (1.,0.,0.,0.,  0.,1.,0.,0.,   0.,0.,0.,1.)
+    #return (numba.float32(1.), numba.float32(0.), numba.float32(0.), numba.float32(0.), \
+    #        numba.float32(0.), numba.float32(1.), numba.float32(0.), numba.float32(0.), \
+    #        numba.float32(0.), numba.float32(0.), numba.float32(1.), numba.float32(0.) )
 
 
 @cuda.jit(device=True)
@@ -1770,7 +1711,8 @@ def ht_load_from_global(hts, pos):
     return (v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11)
 
 
-@cuda.jit('types.UniTuple[float32,12](float32[:,:],int32)', device=True)
+@cuda.jit(device=True)
+#@cuda.jit('UniTuple(float32,12)(float32[:,:],int32)', device=True)
 def ht_load_from_shared(shared_hts, pos):
     # TO DO: avoid bank conflicts when reading from shared memory
     #return (shared_hts[pos,i] for i in range(12))
@@ -1835,7 +1777,7 @@ def frame_from_jump_dofs(dx, dy, dz, ri, rj, rk):
              -sj,   cj*si,    cj*ci,    dz )
 
 
-@cuda.jit('float32[:,:], boolean[:], float32[:,:], int32')
+@cuda.jit('float32[:,:], float32[:,:], boolean[:], int32')
 def compute_all_hts(dofs, hts, is_bonded_atom, natoms):
     pos = cuda.grid(1)
     if pos < natoms:
@@ -1855,11 +1797,89 @@ def compute_all_hts(dofs, hts, is_bonded_atom, natoms):
             Rdelta = frame_from_jump_dofs(dx, dy, dz, ri, rj, rk)
 
             ri, rj, rk = dofs[pos, 6], dofs[pos, 7], dofs[pos, 8]
-            Rglobal = frame_from_jump_dofs(0., 0., 0., ri, rj, rk)
+            Rglobal = frame_from_jump_dofs(
+                numba.float32(0.), numba.float32(0.), numba.float32(0.), ri,
+                rj, rk
+            )
             newframe = ht_multiply(Rdelta, Rglobal)
 
         for i in range(12):
             hts[pos, i] = newframe[i]
+
+
+@cuda.jit('float32[:,:], boolean[:], int32[:], int32, int32, int32')
+def segscan_ht_interval(hts, is_root, parent_ind, natoms, start, end):
+    # this should be executed as a single thread block with nthreads = 512
+    # "end" is actually one past the last element; compare i < end
+    shared_hts = cuda.shared.array((512, 12), numba.float32)
+    shared_is_root = cuda.shared.array((512), numba.int32)
+
+    pos = cuda.grid(1)
+    niters = (end - start - 1) / 512 + 1
+    zero = numba.float32(0.)
+    one = numba.float32(1.)
+    carry_ht = identity_ht()
+
+    #carry_ht = identity_ht(numba.float32(1.), numba.float32(0.))
+    carry_ht = (
+        one, zero, zero, zero, zero, one, zero, zero, zero, zero, one, zero
+    )
+    #myht = (
+    #    one, zero, zero, zero, zero, one, zero, zero, zero, zero, one, zero
+    #)
+    carry_is_root = False
+    for ii in range(niters):
+        ii_ind = ii * 512 + start + pos
+        #load data into shared memory
+        if ii_ind < end:
+            for jj in range(12):
+                # TO DO: minimize bank conflicts -- align memory reads
+                shared_hts[pos, jj] = hts[ii_ind, jj]
+            shared_is_root[pos] = is_root[ii_ind]
+            myht = ht_load_from_shared(shared_hts, pos)
+            parent = parent_ind[ii_ind].item()
+            htchanged = False
+            if parent != natoms:
+                parent_ht = ht_load_from_global(hts, parent)
+                myht = ht_multiply(parent_ht, myht)
+                htchanged = True
+            myroot = shared_is_root[pos]
+            if pos == 0 and not myroot:
+                myht = ht_multiply(carry_ht, myht)
+                myroot |= carry_is_root
+                shared_is_root[0] = myroot
+                htchanged = True
+            if htchanged:
+                ht_save_to_shared(shared_hts, pos, myht)
+        cuda.syncthreads()
+
+        # begin scan on this segment
+        offset = 1
+        for jj in range(9):  #log2(512) == 9
+            if pos >= offset and ii_ind < end:
+                prev_ht = ht_load_from_shared(shared_hts, pos - offset)
+                prev_root = shared_is_root[pos - offset]
+            cuda.syncthreads()
+            if pos >= offset and ii_ind < end:
+                if not myroot:
+                    myht = ht_multiply(prev_ht, myht)
+                    myroot |= prev_root
+                    ht_save_to_shared(shared_hts, pos, myht)
+                    shared_is_root[pos] = myroot
+            offset *= 2
+            cuda.syncthreads()
+
+        # write the shared hts to global memory
+        if ii_ind < end:
+            for jj in range(12):
+                hts[ii_ind, jj] = shared_hts[pos, jj]
+
+        # save the carry
+        if pos == 0:
+            carry_ht = ht_load_from_shared(shared_hts, 511)
+            carry_is_root = shared_is_root[511]
+
+        cuda.syncthreads()
 
 
 def send_refold_data_to_the_gpu(dofs, refold_data):
@@ -1869,7 +1889,9 @@ def send_refold_data_to_the_gpu(dofs, refold_data):
         numpy.zeros((rd.natoms, 12), dtype=numpy.float32)
     )
     rd.dofs_co_d = cuda.to_device(dofs)
-    rd.dofs_ro_d = cuda.to_device(numpy.zeros((rd.natoms, 9)))
+    rd.dofs_ro_d = cuda.to_device(
+        numpy.zeros((rd.natoms, 9), dtype=numpy.float32)
+    )
     rd.refold_index_2_coalesced_ind_d = cuda.to_device(
         rd.refold_index_2_coalesced_ind
     )
@@ -1893,6 +1915,9 @@ def send_refold_data_to_the_gpu(dofs, refold_data):
 def initialize_hts_gpu(dofs, refold_data):
     #gpu = cuda.get_current_device()
     #max_threads = gpu.MAX_THREADS_PER_BLOCK
+
+    rd = refold_data  # alias, to conserve space
+    n_phi = rd.remapped_phi_2_refold_index.shape[0]
 
     nblocks = int(numpy.ceil(float(rd.natoms) / 512))
     map_dofs_from_coalesced_to_refold_order[nblocks, 512](
@@ -1922,8 +1947,11 @@ def segscan_hts_gpu(refold_data):
     for ii, iirange in enumerate(refold_data.atom_range_for_depth):
         #print("ii", ii, iirange)
         segscan_ht_interval[1, 512](
-            rd.hts_ro_d, rd.is_root_d, rd.parents_d, rd.natoms, *iirange
+            rd.hts_ro_d, rd.is_root_d, rd.parents_d, rd.natoms, iirange[0],
+            iirange[1]
         )
+        pass
+
         #hts = rd.hts_ro_d.copy_to_host()
         #print("ht[3]"); print(hts[3,:])
         #print("ht[6]"); print(hts[6,:])
