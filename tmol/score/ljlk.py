@@ -16,8 +16,8 @@ from tmol.properties.array import Array, VariableT, TensorT
 
 import tmol.utility.genericnumeric as gn
 
-from .bonded_atom import ScoreComponentAttributes
 from .interatomic_distance import InteratomicDistanceGraphBase
+from .total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from .types import RealTensor
 
 import tmol.database
@@ -355,7 +355,7 @@ def lk_score(
     )
 
 
-class LJLKScoreGraph(InteratomicDistanceGraphBase):
+class LJLKScoreGraph(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
 
     ljlk_database: LJLKDatabase = Instance(
         "ljlk parameter database",

@@ -1,9 +1,4 @@
-import functools
-
 import numpy
-
-import torch
-import torch.autograd
 
 import tmol.io.generic
 import tmol.io.pdb_parsing as pdb_parsing
@@ -12,33 +7,16 @@ from .bonded_atom import BondedAtomScoreGraph
 from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
 from .hbond import HBondScoreGraph
-from .types import RealTensor
+from .total_score import TotalScoreComponentsGraph
+from .coordinates import CartesianAtomicCoordinateProvider, KinematicAtomicCoordinateProvider
 
 
-@functools.singledispatch
-def system_graph_params(system, drop_missing_atoms=False, requires_grad=True):
-    bonds = system.bonds
-    coords = torch.autograd.Variable(
-        RealTensor(system.coords), requires_grad=requires_grad
-    )
-    atom_types = system.atom_metadata["atom_type"].copy()
-
-    if drop_missing_atoms:
-        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
-
-    return dict(
-        system_size=len(coords),
-        bonds=bonds,
-        coords=coords,
-        atom_types=atom_types,
-    )
-
-
-class ScoreGraph(
+class TotalScoreGraph(
         HBondScoreGraph,
         LJLKScoreGraph,
         BlockedInteratomicDistanceGraph,
         BondedAtomScoreGraph,
+        TotalScoreComponentsGraph,
 ):
     pass
 
@@ -82,3 +60,9 @@ def score_graph_to_cdjson(score_graph):
     bonds = list(map(tuple, score_graph.bonds))
 
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)
+
+
+__all__ = (
+    TotalScoreGraph, CartesianAtomicCoordinateProvider,
+    KinematicAtomicCoordinateProvider
+)

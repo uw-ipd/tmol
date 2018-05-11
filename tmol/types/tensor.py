@@ -1,3 +1,4 @@
+import functools
 import attr
 
 from .shape import Shape
@@ -83,6 +84,19 @@ class TensorType:
             **kwargs,
         )
 
+    def _broadcasted_shape(self, instance):
+        """Get the "broadcast" dimensions of a given instance."""
+        broadcast, *subshape = [d.size for d in self.shape.dims]
+        if broadcast is not Ellipsis:
+            raise TypeError(f"Tensor must be of broadcast shape: {self}")
+
+        instance_shape = instance.shape
+        if not subshape:
+            return instance.shape
+        else:
+            assert len(instance_shape) >= len(subshape)
+            return instance_shape[:-len(subshape)]
+
 
 class TensorGroup:
     def __getitem__(self, idx):
@@ -100,7 +114,7 @@ class TensorGroup:
 
     def __setitem__(self, idx, value):
         for a in self.__attrs_attrs__:
-            getattr(self, a.name)[idx] = getattr(value, a.name)[idx]
+            getattr(self, a.name)[idx] = getattr(value, a.name)
 
     @classmethod
     def full(cls, shape, fill_value, **kwargs):
@@ -136,12 +150,77 @@ class TensorGroup:
             },
         )
 
+    @classmethod
+    def _broadcasted_shape(cls, instance):
+        field_shapes = {
+            a.type._broadcasted_shape(getattr(instance, a.name))
+            for a in attr.fields(cls)
+        }
+
+        assert len(field_shapes) == 1, \
+            f"Group contained inconsistent shapes: {field_shapes}"
+
+        return field_shapes.pop()
+
+    @property
+    def shape(self):
+        return self._broadcasted_shape(self)
+
+    def __len__(self):
+        return self.shape[0]
+
+
+def cat(seq, dim=0, out=None):
+    first, *rest = seq
+    return _cat_internal(first, rest, dim=dim, out=out)
+
+
+@functools.singledispatch
+def _cat_internal(first_element, rest, dim=0, out=None):
+    raise NotImplementedError(
+        f"Unknown tensor type for cat, needs _cat_internal overload: {first_element}"
+    )
+
+
+@_cat_internal.register(TensorGroup)
+def _cat_tensorgroup(first, rest, dim=0, out=None):
+    if out is not None:
+        raise NotImplementedError(
+            "TensorGroup cat does not support 'out' parameter."
+        )
+    cls = type(first)
+
+    if dim < 0:
+        component_ndims = {
+            len(type(v)._broadcasted_shape(v))
+            for v in (first, ) + tuple(rest)
+        }
+        if len(component_ndims) > 1:
+            raise ValueError("Can not broadcast cat with negative dimension.")
+
+        ndim = component_ndims.pop()
+        real_dim = ndim + dim
+
+        if real_dim < 0:
+            raise ValueError(f"Specified dim: {dim} execeeding ndim: {ndim}")
+
+        dim = real_dim
+
+    return cls(
+        **{
+            a.name:
+            cat([getattr(first, a.name)] + [getattr(e, a.name) for e in rest],
+                dim=dim)
+            for a in attr.fields(cls)
+        },
+    )
+
 
 @get_validator.register(TensorType)
-def validate_ndarray(ndarray_type):
-    return ndarray_type.validate
+def validate_ndarray(tensor_type):
+    return tensor_type.validate
 
 
 @get_converter.register(TensorType)
-def convert_ndarray(ndarray_type):
-    return ndarray_type.convert
+def convert_ndarray(tensor_type):
+    return tensor_type.convert
