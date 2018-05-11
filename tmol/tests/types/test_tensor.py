@@ -158,7 +158,7 @@ def test_tensorgroup_cat():
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class S(TensorGroup):
         a: Tensor(float)[...]
-        b: Tensor(float)[..., 5]
+        b: NDArray(float)[..., 5]
 
     @attr.s(auto_attribs=True, frozen=True, slots=True)
     class M(TensorGroup):
@@ -170,6 +170,8 @@ def test_tensorgroup_cat():
 
     # Simple valid cat
     m3 = tensor.cat((m1, m2), dim=1)
+
+    assert len(m3) == 3
 
     assert m3.foo.shape == (3, 10, 2)
     numpy.testing.assert_array_equal(
