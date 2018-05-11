@@ -6,6 +6,7 @@ import torch
 import attr
 
 from tmol.types.tensor import TensorGroup, TensorType
+import tmol.types.tensor as tensor
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
@@ -151,3 +152,61 @@ def test_tensorgroup_smoke():
     val = TorchTensorGroup.empty((10, 100))
     assert val.a.shape == (10, 100)
     assert val.coord.shape == (10, 100, 3)
+
+
+def test_tensorgroup_cat():
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class S(TensorGroup):
+        a: Tensor(float)[...]
+        b: Tensor(float)[..., 5]
+
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class M(TensorGroup):
+        s: S
+        foo: Tensor(int)[..., 2]
+
+    m1 = M.full((3, 3), 1)
+    m2 = M.full((3, 7), 2)
+
+    # Simple valid cat
+    m3 = tensor.cat((m1, m2), dim=1)
+
+    assert m3.foo.shape == (3, 10, 2)
+    numpy.testing.assert_array_equal(
+        m3.foo, numpy.concatenate((m1.foo, m2.foo), axis=1)
+    )
+
+    assert m3.s.shape == (3, 10)
+    numpy.testing.assert_array_equal(
+        m3.s.a, numpy.concatenate((m1.s.a, m2.s.a), axis=1)
+    )
+    numpy.testing.assert_array_equal(
+        m3.s.b, numpy.concatenate((m1.s.b, m2.s.b), axis=1)
+    )
+
+    # Negative dimension spec
+    m3 = tensor.cat((m1, m2), dim=-1)
+
+    assert m3.foo.shape == (3, 10, 2)
+    numpy.testing.assert_array_equal(
+        m3.foo, numpy.concatenate((m1.foo, m2.foo), axis=1)
+    )
+
+    assert m3.s.shape == (3, 10)
+    numpy.testing.assert_array_equal(
+        m3.s.a, numpy.concatenate((m1.s.a, m2.s.a), axis=1)
+    )
+    numpy.testing.assert_array_equal(
+        m3.s.b, numpy.concatenate((m1.s.b, m2.s.b), axis=1)
+    )
+
+    # Invalid dimension, mismatch shape
+    with pytest.raises(RuntimeError):
+        tensor.cat((m1, m2))
+
+    # Invalid dimension, exeeds bounds
+    with pytest.raises(RuntimeError):
+        tensor.cat((m1, m2), dim=3)
+
+    with pytest.raises(ValueError):
+        tensor.cat((m1, m2), dim=-5)
