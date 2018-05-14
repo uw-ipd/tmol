@@ -850,18 +850,10 @@ class TestAtomTree(unittest.TestCase):
                 numpy.linalg.norm(coords_out[ii, :] - coords[ii, :]), 0
             )
 
-    def test_numpy_ht_refold_2(self):
-        res_reader = pdbio.ResidueReader()
-        residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
-        tree = atree.tree_from_residues(res_reader.chemical_db, residues)
-
-        refold_data = htrefold.initialize_whole_structure_refold_data(
-            residues, tree
-        )
-
-        dofs = numpy.zeros((refold_data.natoms, 9))
+    def dofs_from_atom_tree( self, refold_data, atom_tree ):
+        dofs = numpy.zeros((refold_data.natoms, 9), dtype=numpy.float32)
         count = 0
-        for res_ptrs in tree.atom_pointer_list:
+        for res_ptrs in atom_tree.atom_pointer_list:
             for at in res_ptrs:
                 if not at.is_jump:
                     dofs[count, 0] = at.d
@@ -873,6 +865,33 @@ class TestAtomTree(unittest.TestCase):
                         dofs[count, i + 3] = at.rot_delta[i]
                         dofs[count, i + 6] = at.rot[i]
                 count += 1
+        return dofs
+
+    def test_numpy_ht_refold_2(self):
+        res_reader = pdbio.ResidueReader()
+        residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
+        tree = atree.tree_from_residues(res_reader.chemical_db, residues)
+
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, tree
+        )
+
+        # dofs = numpy.zeros((refold_data.natoms, 9))
+        # count = 0
+        # for res_ptrs in tree.atom_pointer_list:
+        #     for at in res_ptrs:
+        #         if not at.is_jump:
+        #             dofs[count, 0] = at.d
+        #             dofs[count, 1] = at.theta
+        #             dofs[count, 2] = at.phi
+        #         else:
+        #             for i in range(3):
+        #                 dofs[count, i + 0] = at.rb[i]
+        #                 dofs[count, i + 3] = at.rot_delta[i]
+        #                 dofs[count, i + 6] = at.rot[i]
+        #         count += 1
+        dofs = self.dofs_from_atom_tree(refold_data, tree)
+        
         coords_out = numpy.zeros((refold_data.natoms, 3))
         #print("dofs");print(dofs)
         htrefold.cpu_htrefold_2(dofs, refold_data, coords_out)
@@ -1106,25 +1125,9 @@ class TestAtomTree(unittest.TestCase):
         )
 
         #dofs = self.dofs_for_franks_multi_jump_atom_tree( nodes, bas, jas )
-        dofs = numpy.zeros((refold_data.natoms, 9), dtype=numpy.float32)
-        count = 0
-        for res_ptrs in atom_tree.atom_pointer_list:
-            for at in res_ptrs:
-                if not at.is_jump:
-                    dofs[count, 0] = at.d
-                    dofs[count, 1] = at.theta
-                    dofs[count, 2] = at.phi
-                else:
-                    for i in range(3):
-                        dofs[count, i + 0] = at.rb[i]
-                        dofs[count, i + 3] = at.rot_delta[i]
-                        dofs[count, i + 6] = at.rot[i]
-                count += 1
 
         htrefold.send_refold_data_to_the_gpu(dofs, refold_data)
-        print("1")
         htrefold.initialize_hts_gpu(dofs, refold_data)
-        print("2")
         hts = refold_data.hts_ro_d.copy_to_host()
         refold_data.dofs = refold_data.dofs_ro_d.copy_to_host()
         refold_data.hts[:refold_data.natoms, :3, :4] = hts.reshape((-1, 3, 4))
@@ -1150,9 +1153,7 @@ class TestAtomTree(unittest.TestCase):
                         refold_data.hts[i, j, k], refold_data2.hts[i, j, k], 5
                     )
 
-        print("3")
         htrefold.segscan_hts_gpu(refold_data)
-        print("4")
         hts = refold_data.hts_ro_d.copy_to_host()
         refold_data.hts[:refold_data.natoms, :3, :4] = hts.reshape(-1, 3, 4)
 
@@ -1179,3 +1180,49 @@ class TestAtomTree(unittest.TestCase):
         print(
             "--- refold %f seconds ---" % ((time.time() - start_time) / 1000)
         )
+
+    def test_f1f2segscan_gpu_1(self):
+        #res_reader = pdbio.ResidueReader()
+        #residues = res_reader.parse_pdb(test_pdbs["1UBQ"])
+        #atom_tree = atree.tree_from_residues(res_reader.chemical_db, residues)
+        residues, nodes, atom_tree, coords, bas, jas = self.create_franks_multi_jump_atom_tree()
+        dofs = self.dofs_for_franks_multi_jump_atom_tree(nodes, bas, jas)
+        refold_data = htrefold.initialize_whole_structure_refold_data(
+            residues, atom_tree
+        )
+        #dofs = self.dofs_from_atom_tree(refold_data, atom_tree)
+        htrefold.send_refold_data_to_the_gpu(dofs, refold_data)
+        htrefold.initialize_hts_gpu(dofs, refold_data)
+        htrefold.segscan_hts_gpu(refold_data)
+            
+        ag_tree = htrefold.create_abe_go_f1f2sum_tree_for_structure(
+            residues, atom_tree, refold_data.coalesced_ind_2_refold_index,
+            refold_data.refold_index_2_coalesced_ind
+        )
+
+        # create random f2s, but construct f1 to match f2
+        atom_f1f2s = numpy.random.random((ag_tree.natoms+1, 6))
+        atom_f1f2s[ag_tree.natoms,:] = 0
+        atom_f1f2s[:ag_tree.natoms,0:3] = numpy.cross(coords,coords-atom_f1f2s[:ag_tree.natoms,3:6])
+        atom_f1f2s_cpu = atom_f1f2s.copy()
+        #print("cpu atom f1f2s")
+        #print(atom_f1f2s_cpu)
+
+        # compute gold answer into atom_f1f2s_cpu array
+        f1f2sum = htrefold.cpu_f1f2_summation2(atom_f1f2s_cpu, ag_tree)
+        f1f2sum_co = f1f2sum[ag_tree.ci2dsi]
+
+        # now call the gpu verson
+        atom_f2s = atom_f1f2s[:,3:6].copy()
+        htrefold.segscan_f1f2s_gpu( atom_f2s, ag_tree, refold_data )
+
+        atom_f1f2s_gpu_dso = ag_tree.f1f2s_dso_d.copy_to_host()
+        atom_f1f2s_gpu_co = atom_f1f2s_gpu_dso[ ag_tree.ci2dsi ]
+
+        #print("f1f2sum cpu"); print(f1f2sum_co)
+        #print("f1f2sum gpu"); print(atom_f1f2s_gpu_co)
+    
+        for ii in range(f1f2sum_co.shape[0]):
+            #print( ii, f1f2sum_co[ii,:], atom_f1f2s_gpu_co[ii,:])
+            for jj in range(6):
+                self.assertAlmostEqual(f1f2sum_co[ii,jj], atom_f1f2s_gpu_co[ii,jj],5)

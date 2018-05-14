@@ -106,7 +106,7 @@ class WholeStructureRefoldData:
     hts_ro_d: numba.types.Array = None
     dofs_co_d: numba.types.Array = None
     dofs_ro_d: numba.types.Array = None
-    refold_index_2_coalesced_ind_d: numba.types.Array = None
+    #refold_index_2_coalesced_ind_d: numba.types.Array = None
     bonded_dof_remapping_d: numba.types.Array = None
     coalesced_ind_2_refold_index_d: numba.types.Array = None
     refold_index_2_coalesced_ind_d: numba.types.Array = None
@@ -116,6 +116,7 @@ class WholeStructureRefoldData:
     remapped_phi_2_refold_ind_d: numba.types.Array = None
     parents_d: numba.types.Array = None
     is_root_d: numba.types.Array = None
+    coords_co_d: numba.types.Array = None
 
 
 # grr -- recursive data structures are a PITA in attr
@@ -164,7 +165,8 @@ class AbeGoDerivsumTree:
     natoms: int = 0
     nnodes: int = 0
     has_initial_f1f2: numpy.array = None
-    atom_indices: numpy.array = None
+    atom_indices: numpy.array = None # effectively dsi2ci, with nnodes as a sentinel for unmapped
+    ci2dsi: numpy.array = None
     is_leaf: numpy.array = None
     is_leaf_working: numpy.array = None
     prior_children: numpy.matrix = None
@@ -203,7 +205,11 @@ class AbeGoDerivsumTree:
     jump_z_axes: numpy.matrix = None
     jump_hts_working: numpy.matrix = None
     jump_parent_hts_working: numpy.matrix = None
-
+    f2s_co_d: numba.types.Array = None
+    f1f2s_dso_d: numba.types.Array = None
+    prior_children_dso_d: numba.types.Array = None
+    is_leaf_d: numba.types.Array = None
+    ci2dsi_d: numba.types.Array = None
 
 def initialize_ht_refold_data(residues, tree):
     tree_path_data = []
@@ -388,6 +394,7 @@ def create_abe_go_f1f2sum_tree_for_structure(
     ag_tree.has_initial_f1f2 = numpy.zeros((n_derivsum_nodes + 1), dtype=bool)
     ag_tree.atom_indices = numpy.ones((n_derivsum_nodes + 1), dtype=numpy.int
                                       ) * n_atoms
+    ag_tree.ci2dsi = numpy.zeros((n_atoms),dtype=numpy.int)
     ag_tree.is_leaf = numpy.zeros((n_derivsum_nodes), dtype=bool)
     ag_tree.is_leaf_working = numpy.zeros((n_derivsum_nodes), dtype=bool)
     ag_tree.prior_children = numpy.ones((n_derivsum_nodes + 1, max_branch),
@@ -653,52 +660,6 @@ def gpu_htrefold(dofs, refold_data, coords):
     send_refold_data_to_the_gpu(dofs, refold_data)
     initialize_hts_gpu(dofs, refold_data)
     segscan_hts_gpu(refold_data)
-
-    #natoms = refold_data.natoms
-    #hts = refold_data.hts
-    #ht_temps = refold_data.ht_temps
-    #compute_hts_for_bonded_atoms( dofs, refold_data )
-    #compute_hts_for_jump_atoms( refold_data )
-    #
-    ##print("ri2ci");print( refold_data.refold_index_2_coalesced_ind)
-    ##print("hts"); print(refold_data.hts)
-    #
-    #refold_data.is_root_working[:] = refold_data.is_root # in-place copy
-    ##print("refold_data.is_root"); print(refold_data.is_root)
-    #
-    #for ii, iirange in enumerate( refold_data.atom_range_for_depth ) :
-    #    ii_view_ht = hts[iirange[0]:iirange[1]]
-    #    ii_view_ht_temp = ht_temps[iirange[0]:iirange[1]]
-    #    ii_parent = refold_data.parents[iirange[0]:iirange[1]]
-    #    ii_is_root = refold_data.is_root_working[iirange[0]:iirange[1]]
-    #    # initialize with my parent's transform multiplied by my transform from my parent
-    #    #if ii==1:
-    #    #    print( ii, "ii_parent" ); print( ii_parent )
-    #    #    print( "iirange" ); print( iirange )
-    #    #    print( "hts[ii_parent]" ); print( hts[ii_parent][-10:])
-    #    #    print( "ii_view_ht" ); print( ii_view_ht[-10:] )
-    #    ii_view_ht_temp[:] = numpy.matmul(hts[ii_parent],ii_view_ht)
-    #    ii_view_ht[:] = ii_view_ht_temp
-    #    ii_ind = refold_data.lookback_inds[:refold_data.natoms_at_depth[ii]]
-    #    #print("ii_ind"); print( ii_ind )
-    #    offset = 1
-    #    #print("int(numpy.ceil(numpy.log2(ii_view_ht.shape[0])))", int(numpy.ceil(numpy.log2(ii_view_ht.shape[0]))) )
-    #    for jj in range(int(numpy.ceil(numpy.log2(ii_view_ht.shape[0])))):
-    #        #if ii==1:
-    #        #    print( "ii, jj", ii, jj )
-    #        #    print( "ii_view_ht" ); print( ii_view_ht[-10:] )
-    #        #    print( "ii_is_root" ); print(ii_is_root[-10:])
-    #        #    print( "(ii_ind >= offset) & (~ii_is_root)" ); print( ((ii_ind >= offset) & (~ii_is_root))[-10:]  )
-    #        #    print( "ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset" ); print( (ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset )[-10:])
-    #        ii_view_ht_temp[(ii_ind >= offset) & (~ii_is_root) ] = numpy.matmul( ii_view_ht[ ii_ind[(ii_ind >= offset) & (~ii_is_root) ] - offset ], ii_view_ht[ (ii_ind >= offset) & (~ii_is_root) ] )
-    #        #if ii==1:
-    #        #    print( "ii_view_ht_temp" ); print( ii_view_ht_temp[-10:])
-    #        ii_view_ht[:] = ii_view_ht_temp
-    #        ii_is_root[ii_ind >= offset] |= ii_is_root[ii_ind[ii_ind >= offset] - offset]
-    #        offset *= 2
-    #
-    ##print( "hts final"); print( hts )
-    #coords[:] = hts[refold_data.coalesced_ind_2_refold_index,0:3,3]
 
 
 def compute_hts_for_bonded_atoms(dofs_in, refold_data):
@@ -1339,8 +1300,9 @@ def visit_all_abe_go_tree_nodes(root, ag_tree, atomid_2_atomindex):
         count_other_children += 1
     #print("ag_tree.prior_children"); print(ag_tree.prior_children[dsi,:])
     if root.theta_d_node or root.jump_node:
-        ag_tree.atom_indices[dsi] = atomid_2_atomindex[root.id.atomid.res
-                                                       ][root.id.atomid.atomno]
+        ci = atomid_2_atomindex[root.id.atomid.res][root.id.atomid.atomno]
+        ag_tree.atom_indices[dsi] = ci
+        ag_tree.ci2dsi[ci] = dsi
 
     if root.younger_sibling:
         visit_all_abe_go_tree_nodes(
@@ -1375,9 +1337,9 @@ def get_coalesced_ordering(residues):
     count = 0
     for ii, res in enumerate(residues):
         for jj in range(res.coords.shape[0]):
-            coalesced_ind_2_atomid[count] = atree.AtomID(ii, jj)
-            atomid_2_coalesced_ind[ii][jj] = count
-            count += 1
+           coalesced_ind_2_atomid[count] = atree.AtomID(ii, jj)
+           atomid_2_coalesced_ind[ii][jj] = count
+           count += 1
 
     return atomid_2_coalesced_ind, coalesced_ind_2_atomid
 
@@ -1815,18 +1777,8 @@ def segscan_ht_interval(hts, is_root, parent_ind, natoms, start, end):
     shared_is_root = cuda.shared.array((512), numba.int32)
 
     pos = cuda.grid(1)
-    niters = (end - start - 1) / 512 + 1
-    zero = numba.float32(0.)
-    one = numba.float32(1.)
+    niters = (end - start - 1) // 512 + 1
     carry_ht = identity_ht()
-
-    #carry_ht = identity_ht(numba.float32(1.), numba.float32(0.))
-    carry_ht = (
-        one, zero, zero, zero, zero, one, zero, zero, zero, zero, one, zero
-    )
-    #myht = (
-    #    one, zero, zero, zero, zero, one, zero, zero, zero, zero, one, zero
-    #)
     carry_is_root = False
     for ii in range(niters):
         ii_ind = ii * 512 + start + pos
@@ -1853,7 +1805,7 @@ def segscan_ht_interval(hts, is_root, parent_ind, natoms, start, end):
                 ht_save_to_shared(shared_hts, pos, myht)
         cuda.syncthreads()
 
-        # begin scan on this segment
+        # begin segmented scan on this section
         offset = 1
         for jj in range(9):  #log2(512) == 9
             if pos >= offset and ii_ind < end:
@@ -1881,6 +1833,15 @@ def segscan_ht_interval(hts, is_root, parent_ind, natoms, start, end):
 
         cuda.syncthreads()
 
+@cuda.jit('float32[:,:], float32[:,:], int32[:], int32')
+def convert_refold_hts_to_coalesced_coords( hts_ro, coords_co, ri2ci, natoms ):
+    pos = cuda.grid(1) # let threadId == refold index
+    if pos < natoms:        
+        ci = ri2ci[pos]
+        coords_co[ci,0] = hts_ro[pos,3] 
+        coords_co[ci,1] = hts_ro[pos,7] 
+        coords_co[ci,2] = hts_ro[pos,11]
+    
 
 def send_refold_data_to_the_gpu(dofs, refold_data):
     rd = refold_data
@@ -1910,6 +1871,7 @@ def send_refold_data_to_the_gpu(dofs, refold_data):
     )
     rd.parents_d = cuda.to_device(rd.parents)
     rd.is_root_d = cuda.to_device(rd.is_root)
+    rd.coords_co_d = cuda.to_device(numpy.zeros((rd.natoms,3)))
 
 
 def initialize_hts_gpu(dofs, refold_data):
@@ -1944,13 +1906,12 @@ def segscan_hts_gpu(refold_data):
     rd = refold_data
 
     # for each depth, run a separate segmented scan
-    for ii, iirange in enumerate(refold_data.atom_range_for_depth):
+    for ii, iirange in enumerate(rd.atom_range_for_depth):
         #print("ii", ii, iirange)
         segscan_ht_interval[1, 512](
             rd.hts_ro_d, rd.is_root_d, rd.parents_d, rd.natoms, iirange[0],
             iirange[1]
         )
-        pass
 
         #hts = rd.hts_ro_d.copy_to_host()
         #print("ht[3]"); print(hts[3,:])
@@ -1959,3 +1920,182 @@ def segscan_hts_gpu(refold_data):
         #eye3[0:3,0:4] = hts[3,:].reshape(3,4);
         #eye6[0:3,0:4] = hts[6,:].reshape(3,4);
         #print("ht[3]*ht[6]"); print(numpy.matmul(eye3,eye6))
+
+
+    nblocks = (rd.natoms-1)//512+1
+    convert_refold_hts_to_coalesced_coords[nblocks,512](rd.hts_ro_d, rd.coords_co_d, rd.refold_index_2_coalesced_ind_d, rd.natoms)
+
+
+@cuda.jit(device=True)
+def load_v3( v3s, pos ):
+    x = v3s[pos,0]
+    y = v3s[pos,1]
+    z = v3s[pos,2]
+    return (x,y,z)
+
+@cuda.jit(device=True)
+def v3_cross( a, b ):
+    res_0 = a[1]*b[2] - a[2]*b[1]
+    res_1 = a[2]*b[0] - a[0]*b[2]
+    res_2 = a[0]*b[1] - a[1]*b[0]
+    return (res_0, res_1, res_2)
+
+@cuda.jit(device=True)
+def v3_sub( a, b ):
+    return (a[0]-b[0], a[1]-b[1], a[2]-b[2])
+
+@cuda.jit( 'float32[:,:], int32')
+def zero_f1f2_dso(f1f2s_dso, n_derivsum_nodes):
+    pos = cuda.grid(1)
+    if pos < n_derivsum_nodes:
+        for i in range(6):
+            f1f2s_dso[pos,0] = 0
+
+@cuda.jit( 'float32[:,:], float32[:,:], float64[:,:], int32[:], int32' )
+def compute_f1s_from_f2s(coords_co,f2s_co,f1f2s_dso,ci2dsi,natoms):
+    pos = cuda.grid(1)
+    if pos < natoms:
+        f2 = load_v3(f2s_co,pos)
+        #f2x = f2s_co[pos, 0]
+        #f2y = f2s_co[pos, 1]
+        #f2z = f2s_co[pos, 2]
+        coord = load_v3(coords_co,pos)
+        #coordx = coords_co[pos, 0]
+        #coordy = coords_co[pos, 1]
+        #coordz = coords_co[pos, 2]
+        #f2 = (f2x, f2y, f2z)
+        #coord = (coordx, coordy, coordz)
+        f1 = v3_cross(coord, v3_sub(coord, f2))
+        dsi = ci2dsi[pos]
+        f1f2s_dso[dsi,0] = f1[0]
+        f1f2s_dso[dsi,1] = f1[1]
+        f1f2s_dso[dsi,2] = f1[2]
+        f1f2s_dso[dsi,3] = f2[0]
+        f1f2s_dso[dsi,4] = f2[1]
+        f1f2s_dso[dsi,5] = f2[2]
+
+@cuda.jit(device=True)
+def load_f1f2s(f1f2s, ind):
+    v0 = f1f2s[ind,0]
+    v1 = f1f2s[ind,1] 
+    v2 = f1f2s[ind,2]
+    v3 = f1f2s[ind,3] 
+    v4 = f1f2s[ind,4]
+    v5 = f1f2s[ind,5] 
+    return (v0,v1,v2,v3,v4,v5)
+
+@cuda.jit(device=True)
+def add_f1f2s(v1, v2):
+    res0 = v1[0] + v2[0]
+    res1 = v1[1] + v2[1]
+    res2 = v1[2] + v2[2]
+    res3 = v1[3] + v2[3]
+    res4 = v1[4] + v2[4]
+    res5 = v1[5] + v2[5]
+    return (res0, res1, res2, res3, res4, res5)
+
+@cuda.jit(device=True)
+def save_f1f2s(f1f2s, ind, v):
+    for i in range(6):
+        f1f2s[ind,i] = v[i]
+
+@cuda.jit(device=True)
+def zero_f1f2s():
+    zero = numba.float64(0.)
+    return (zero, zero, zero, zero, zero, zero )
+
+# f1f2 summation should probably be at double precision
+@cuda.jit( 'float64[:,:], int32[:,:], boolean[:], int32, int32, int32' )
+def segscan_f1f2s_up_tree( f1f2s_dso, prior_children, is_leaf, start, end, n_derivsum_nodes ):
+    shared_f1f2s = cuda.shared.array((512,6), numba.float64)
+    shared_is_leaf = cuda.shared.array((512), numba.int32)
+
+    pos = cuda.grid(1)
+    niters = (end-start-1) // 512 + 1
+    carry_f1f2s = zero_f1f2s()
+    carry_is_leaf = False
+    for ii in range( niters ):
+        ii_ind = ii * 512 + start + pos
+        if ii_ind < end:
+            for jj in range(6):
+                # TO DO: minimize bank conflicts -- align memory reads
+                shared_f1f2s[pos, jj] = f1f2s_dso[ii_ind, jj]
+            shared_is_leaf[pos] = is_leaf[ii_ind]
+            myf1f2s = load_f1f2s(shared_f1f2s, pos)
+            my_leaf = shared_is_leaf[pos]
+            f1f2s_changed = False
+            for jj in range(prior_children.shape[1]):
+                jj_child = prior_children[ii_ind,jj]
+                if jj_child != n_derivsum_nodes:
+                    child_f1f2s = load_f1f2s(f1f2s_dso,jj_child)
+                    myf1f2s = add_f1f2s(myf1f2s,child_f1f2s)
+                    f1f2s_changed = True
+            if pos == 0 and not my_leaf:
+                myf1f2s = add_f1f2s(carry_f1f2s,myf1f2s)
+                my_leaf |= carry_is_leaf
+                shared_is_leaf[0] = my_leaf
+                f1f2s_changed = True
+            if f1f2s_changed:
+                save_f1f2s( shared_f1f2s, pos, myf1f2s )
+        cuda.syncthreads()
+    
+        # begin segmented scan on this section
+        offset = 1
+        for jj in range(9):
+            if pos >= offset and ii_ind < end:
+                prev_f1f2s = load_f1f2s(shared_f1f2s,pos-offset)
+                prev_leaf = shared_is_leaf[pos-offset]
+            cuda.syncthreads()
+            if pos >= offset and ii_ind < end:
+                if not my_leaf:
+                    myf1f2s = add_f1f2s(myf1f2s, prev_f1f2s)
+                    my_leaf |= prev_leaf
+                    save_f1f2s( shared_f1f2s, pos, myf1f2s )
+                    shared_is_leaf[pos] = my_leaf
+            offset *= 2
+            cuda.syncthreads()
+
+        # write the f1f2s to global memory
+        if ii_ind < end:
+            save_f1f2s( f1f2s_dso, ii_ind, myf1f2s )
+
+        # save the carry
+        if pos == 0 :
+            carry_f1f2s = load_f1f2s( shared_f1f2s, 511 )
+            carry_is_leaf = shared_is_leaf[511]
+
+        cuda.syncthreads()
+                
+def send_abe_go_tree_to_gpu(ag_tree, f2s_co):
+    agt = ag_tree
+    agt.f2s_co_d = cuda.to_device(f2s_co)
+    agt.f1f2s_dso_d = cuda.to_device(numpy.zeros((agt.nnodes,6),dtype="float64"))
+    agt.prior_children_dso_d = cuda.to_device(agt.prior_children)
+    agt.is_leaf_d = cuda.to_device(agt.is_leaf)
+    agt.ci2dsi_d = cuda.to_device(agt.ci2dsi)
+                
+
+def segscan_f1f2s_gpu(atom_f2s, ag_tree, refold_data):
+    rd = refold_data
+    agt = ag_tree
+
+    send_abe_go_tree_to_gpu(ag_tree, atom_f2s, )
+
+    # 1 write zeros to all positions in the f1f2_dso tensor
+    blocksize = 512
+    nblocks = (agt.nnodes-1)//blocksize + 1
+    zero_f1f2_dso[nblocks, blocksize](agt.f1f2s_dso_d, agt.nnodes)
+
+    # 2 compute f1 from f2 for all atoms and map them to their representative node in the Abe Go Tree
+    blocksize = 512
+    nblocks = (agt.natoms-1)//512 + 1
+    compute_f1s_from_f2s[ nblocks, blocksize ]( rd.coords_co_d, agt.f2s_co_d, agt.f1f2s_dso_d, agt.ci2dsi_d, agt.natoms ) 
+
+    # 3 for each depth, run a separate segmented scan, first accumulating f1f2s fom any prior children
+    for ii, iirange in enumerate(agt.atom_range_for_depth):
+        segscan_f1f2s_up_tree[1, 512](
+            agt.f1f2s_dso_d, agt.prior_children_dso_d, agt.is_leaf_d, iirange[0],
+            iirange[1], agt.nnodes
+        )
+                                
+
