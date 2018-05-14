@@ -5,7 +5,7 @@ import torch
 import numpy
 
 from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
-from ..interatomic_distance import InteratomicDistanceGraphBase
+from ..bonded_atom import BondedAtomScoreGraph
 
 from .potentials import (
     hbond_donor_sp2_score,
@@ -98,16 +98,24 @@ class HBondPairs(ValidateAttrs):
 
 
 @reactive_attrs(auto_attribs=True)
-class HBondScoreGraph(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
+class HBondScoreGraph(
+        BondedAtomScoreGraph,
+        TotalScoreComponentsGraph,
+):
 
     hbond_database: HBondDatabase = tmol.database.default.scoring.hbond
 
     @property
     def component_total_score_terms(self):
-        return ScoreComponentAttributes("hbond", "total_hbond", None)
+        """Expose hbond score sum as total_score term."""
+        return ScoreComponentAttributes(
+            name="hbond",
+            total="total_hbond",
+        )
 
     @property
     def component_atom_pair_dist_threshold(self):
+        """Expose threshold distance for InteratomicDisanceGraph."""
         return self.hbond_database.global_parameters.threshold_distance
 
     @reactive_property
