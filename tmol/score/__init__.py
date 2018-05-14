@@ -2,6 +2,7 @@ import numpy
 
 import tmol.io.generic
 import tmol.io.pdb_parsing as pdb_parsing
+from tmol.utility.reactive import reactive_attrs
 
 from .bonded_atom import BondedAtomScoreGraph
 from .interatomic_distance import BlockedInteratomicDistanceGraph
@@ -11,6 +12,7 @@ from .total_score import TotalScoreComponentsGraph
 from .coordinates import CartesianAtomicCoordinateProvider, KinematicAtomicCoordinateProvider
 
 
+@reactive_attrs
 class TotalScoreGraph(
         HBondScoreGraph,
         LJLKScoreGraph,

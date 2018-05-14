@@ -1,13 +1,13 @@
 import toolz
+import attr
 import cattr
-
-from properties import HasProperties, List, Integer, Instance
-from tmol.properties.array import Array
 
 import numpy
 import pandas
 
 from typing import Sequence
+
+from tmol.types.array import NDArray
 
 from .restypes import Residue
 from .datatypes import (
@@ -22,46 +22,30 @@ def _ceil_to_size(size, val):
     return (d + (m != 0).astype(int)) * size
 
 
-class PackedResidueSystem(HasProperties):
+@attr.s(auto_attribs=True, slots=True)
+class PackedResidueSystem:
 
-    block_size: int = Integer(
-        "coord buffer block size, residue start indicies are aligned to block boundries",
-        min=1,
-        cast=True
-    )
+    # coord buffer block size, residue start indices are aligned to block boundaries
+    block_size: int
 
-    residues: Sequence[Residue] = List(
-        "residue objects packed into system",
-        prop=Instance("attached residue", Residue)
-    )
+    # residue objects packed into system
+    residues: Sequence[Residue]
 
-    res_start_ind: Sequence[int] = Array(
-        "residue start indicies within `coords`", dtype=int
-    )[:]
+    # residue start indicies within `coords`
+    res_start_ind: NDArray(int)[:]
 
-    system_size: int = Integer("total system size")
+    # total system size
+    system_size: int
 
-    coords: numpy.ndarray = Array(
-        "atomic coordinate buffer, nan-filled in 'unused' regions",
-        dtype=float,
-        cast="unsafe"
-    )[:, 3]
+    # atomic coordinate buffer, nan-filled in 'unused' regions
+    coords: NDArray(float)[:, 3]
 
-    bonds: numpy.ndarray = Array(
-        "inter-atomic bond indices", dtype=int, cast="unsafe"
-    )[:, 2]
+    # inter-atomic bond indices
+    bonds: NDArray(int)[:, 2]
 
-    atom_metadata: numpy.ndarray = Array(
-        "atom metada", dtype=atom_metadata_dtype
-    )[:]
-
-    torsion_metadata: numpy.ndarray = Array(
-        "torsion metada", dtype=torsion_metadata_dtype
-    )[:]
-
-    connection_metadata: numpy.ndarray = Array(
-        "connection metada", dtype=connection_metadata_dtype
-    )[:]
+    atom_metadata: NDArray(atom_metadata_dtype)[:]
+    torsion_metadata: NDArray(torsion_metadata_dtype)[:]
+    connection_metadata: NDArray(connection_metadata_dtype)[:]
 
     @classmethod
     def from_residues(cls, res: Sequence[Residue], block_size=8):
@@ -338,7 +322,5 @@ class PackedResidueSystem(HasProperties):
             bonds=bonds,
             coords=cbuff,
         )
-
-        result.validate()
 
         return result

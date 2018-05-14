@@ -3,30 +3,32 @@ import toolz
 import numpy
 import pandas
 
-import tmol.database
+from tmol.utility.reactive import reactive_attrs
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 
-import tmol.system.residue.packed
+from tmol.system.residue.packed import PackedResidueSystem
 from tmol.system.residue.score import system_cartesian_space_graph_params
 
 
 def hbond_score_comparison(rosetta_baseline):
     test_system = (
-        tmol.system.residue.packed.PackedResidueSystem()
-        .from_residues(rosetta_baseline.tmol_residues)
-    )  # yapf: disable
+        PackedResidueSystem.from_residues(rosetta_baseline.tmol_residues)
+    )
 
+    @reactive_attrs
     class HBGraph(
-            HBondScoreGraph,
             CartesianAtomicCoordinateProvider,
+            HBondScoreGraph,
     ):
         pass
 
     hbond_graph = HBGraph(
-        **
-        system_cartesian_space_graph_params(test_system, requires_grad=False)
+        **system_cartesian_space_graph_params(
+            test_system,
+            requires_grad=False,
+        )
     )
 
     # Extract list of hbonds from packed system into summary table

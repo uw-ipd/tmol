@@ -1,40 +1,44 @@
-import properties
-
 import torch
 import numpy
 
 import scipy.sparse
 
-from tmol.properties.reactive import derived_from
-from tmol.properties.array import Array, VariableT
+from tmol.utility.reactive import reactive_attrs, reactive_property
+
+from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 
-class BondedAtomScoreGraph(properties.HasProperties):
-    system_size = properties.Integer(
-        "number of atoms in system", min=1, cast=True
-    )
-    atom_types = Array("atomic types", dtype=object)[:]
+@reactive_attrs(auto_attribs=True)
+class BondedAtomScoreGraph:
+    # Number of atoms in the system
+    system_size: int
 
-    bonds = Array("inter-atomic bond indices", dtype=int, cast="unsafe")[:, 2]
+    # String atom types
+    atom_types: NDArray(object)[:]
 
-    @derived_from("atom_types", VariableT("mask of 'real' atom indicies"))
-    def real_atoms(self):
-        return (
-            torch.ByteTensor((self.atom_types != None).astype(numpy.ubyte))
-        )  # noqa: E711 - None != is a vectorized check for None.
+    # Inter-atomic bond indices
+    bonds: NDArray(int)[:, 2]
 
-    @derived_from(
-        "bonds",
-        Array("inter-atomic minimum bonded path length", dtype="f4")[:, :]
-    )
-    def bonded_path_length(self):
+    @reactive_property
+    def real_atoms(atom_types: NDArray(object)[:], ) -> Tensor(bool)[:]:
+        """Mask of 'real' atomic indices in the system."""
+        return (torch.ByteTensor((atom_types != None).astype(numpy.ubyte))
+                )  # noqa: E711 - None != is a vectorized check for None.
+
+    @reactive_property
+    def bonded_path_length(
+            bonds: NDArray(int)[:, 2],
+            system_size: int,
+    ) -> NDArray("f4")[:, :]:
+        """Dense inter-atomic bonded path length distance matrix."""
         return scipy.sparse.csgraph.shortest_path(
             scipy.sparse.coo_matrix(
                 (
-                    numpy.ones(self.bonds.shape[0], dtype=bool),
-                    (self.bonds[:, 0], self.bonds[:, 1])
+                    numpy.ones(bonds.shape[0], dtype=bool),
+                    (bonds[:, 0], bonds[:, 1])
                 ),
-                shape=(self.system_size, self.system_size),
+                shape=(system_size, system_size),
             ),
             directed=False,
             unweighted=True
