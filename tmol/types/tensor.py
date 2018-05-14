@@ -1,3 +1,4 @@
+import collections
 import functools
 import attr
 
@@ -44,6 +45,8 @@ class TensorType:
     def _expanded_shape(self, shape):
         if isinstance(shape, int):
             shape = (shape, )
+        elif not isinstance(shape, tuple):
+            shape = tuple(shape)
 
         broadcast, *subshape = [d.size for d in self.shape.dims]
         if broadcast is not Ellipsis:
@@ -116,6 +119,36 @@ class TensorGroup:
         for a in self.__attrs_attrs__:
             getattr(self, a.name)[idx] = getattr(value, a.name)
 
+    def reshape(self, *shape):
+        if not all(isinstance(a.type, TensorType) or
+                   issubclass(a.type, TensorGroup)
+                   for a in attr.fields(type(self))): # yapf: disable
+            raise TypeError("All fields must be TensorType or TensorGroup.")
+
+        if len(shape) == 1 and isinstance(shape[0], collections.Sequence):
+            shape = tuple(shape[0])
+        else:
+            shape = tuple(shape)
+
+        reshapes = {
+            a.name: a.type._expanded_shape(shape)
+            for a in attr.fields(type(self))
+        }
+
+        return attr.evolve(
+            self, **{
+                n: getattr(self, n).reshape(reshapes[n])
+                for n in (f.name for f in attr.fields(type(self)))
+            }
+        )
+
+    @property
+    def shape(self):
+        return self._broadcasted_shape(self)
+
+    def __len__(self):
+        return self.shape[0]
+
     @classmethod
     def full(cls, shape, fill_value, **kwargs):
         return cls(
@@ -162,12 +195,9 @@ class TensorGroup:
 
         return field_shapes.pop()
 
-    @property
-    def shape(self):
-        return self._broadcasted_shape(self)
-
-    def __len__(self):
-        return self.shape[0]
+    @classmethod
+    def _expanded_shape(cls, shape):
+        return shape
 
 
 def cat(seq, dim=0, out=None):
