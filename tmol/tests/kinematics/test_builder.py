@@ -6,8 +6,9 @@ from tmol.kinematics import (
     forwardKin,
 )
 
+from tmol.kinematics.datatypes import RefoldData, determine_refold_indices
 from tmol.kinematics.builder import KinematicBuilder
-
+from tmol.tests.kinematics.test_torch_op import gradcheck_test_system
 
 def test_builder_refold(ubq_system):
     tsys = ubq_system
@@ -79,3 +80,9 @@ def test_builder_framing(ubq_system):
         kintree.frame_z[normal_atoms],
         kintree.parent[kintree.parent[normal_atoms]]
     )
+
+def test_gpu_refold_ordering(gradcheck_test_system):
+    kintree, dof_metadata, kincoords = gradcheck_test_system
+    refold_data = RefoldData(kintree.id.shape[0])
+    determine_refold_indices( kintree, refold_data)
+    #numpy.testing.assert_array_equal(numpy.arange(4), [0,1,2,5])
