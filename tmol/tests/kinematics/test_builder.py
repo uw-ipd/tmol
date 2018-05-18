@@ -1,12 +1,14 @@
 import numpy
 import torch
+from numba import cuda
 
 from tmol.kinematics import (
     backwardKin,
     forwardKin,
 )
 
-from tmol.kinematics.datatypes import RefoldData, determine_refold_indices
+import tmol.kinematics.datatypes
+from tmol.kinematics.datatypes import RefoldData
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.tests.kinematics.test_torch_op import gradcheck_test_system
 
@@ -82,7 +84,58 @@ def test_builder_framing(ubq_system):
     )
 
 def test_gpu_refold_ordering(gradcheck_test_system):
+    from tmol.kinematics.datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
+    from tmol.kinematics.operations import BondTransforms, JumpTransforms
+
+    numpy.set_printoptions(threshold=numpy.nan,precision=3)
+
     kintree, dof_metadata, kincoords = gradcheck_test_system
     refold_data = RefoldData(kintree.id.shape[0])
-    determine_refold_indices( kintree, refold_data)
+    tmol.kinematics.datatypes.determine_refold_indices(kintree, refold_data)
+    tmol.kinematics.datatypes.send_refold_data_to_gpu(refold_data)
+
+    dofs = backwardKin(kintree, kincoords).dofs
+
+    # 1) local HTs
+    HTs = torch.empty([refold_data.natoms, 4, 4], dtype=torch.double)
+
+    assert kintree.doftype[0] == NodeType.root
+    assert kintree.parent[0] == 0
+    HTs[0] = torch.eye(4)
+
+    bondSelector = kintree.doftype == NodeType.bond
+    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
+
+    jumpSelector = kintree.doftype == NodeType.jump
+    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
+
+
+    tmol.kinematics.datatypes.send_refold_data_to_gpu(refold_data)
+    if HTs.type() == 'torch.cuda.FloatTensor':
+        HTs_d = tmol.kinematics.datatypes.get_devicendarray(HTs)
+    else:
+        HTs_d = cuda.to_device(HTs.numpy())
+        #print("HTs in kintree order");print(HTs.numpy())
+
+    tmol.kinematics.datatypes.segscan_hts_gpu(HTs_d, refold_data)
+
+    if HTs.type() == 'torch.cuda.FloatTensor':
+        pass
+    else:
+        HTs = HTs_d.copy_to_host()
+    refold_kincoords = HTs[:,:3,3].copy()
+
+    #print("hts_ro");
+    #print(refold_data.hts_ro_d.copy_to_host())
+
+    #print("kincoords")
+    #print(kincoords)
+    #print("refold_kincoords")
+    #print(refold_kincoords)
+    #for i in range(refold_data.natoms):
+    #    print( "gpu", refold_kincoords[i,:], "vs gold", kincoords[i,:], numpy.abs(refold_kincoords[i,:]-kincoords[i,:]))
+    numpy.testing.assert_allclose(kincoords, refold_kincoords,1e-5)
+
+    #print(refold_data.ri2ki)
     #numpy.testing.assert_array_equal(numpy.arange(4), [0,1,2,5])
+    

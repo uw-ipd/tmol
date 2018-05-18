@@ -4,6 +4,8 @@ import attr
 import typing
 import numpy
 import numba
+from numba import cuda
+
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
@@ -189,21 +191,32 @@ class RefoldData:
     ki2ri: numpy.array = attr.ib(init=False)# numpy.ones((self.natoms), dtype="int32")*-1
 
     parent_ko: numpy.array = attr.ib(init=False)
+    parent_ro: numpy.array = attr.ib(init=False)
     child_on_subpath_ko: numpy.array = attr.ib(init=False) #numpy.ones((self.natoms),dtype="int32")*-1
     len_longest_subpath_ko: Tensor(torch.long)[...] = attr.ib(init=False)# numpy.zeros((self.natoms),dtype="int32")
     subpath_root_ko: numpy.array = attr.ib(init=False) #numpy.full((self.natoms),True,dtype="boolean")
     atom_depth_ko: numpy.array = attr.ib(init=False)  #numpy.zeros((self.natoms),dtype="int32")
     depth_offsets: numpy.array = None
+    atom_range_for_depth: typing.List[typing.Tuple[int, int]] = None
+    subpath_root_ro: numpy.array = attr.ib(init=False) 
+
+    hts_ro_d: numba.types.Array = None
+    parent_ro_d: numba.types.Array = None
+    is_root_d: numba.types.Array = None
+    ri2ki_d: numba.types.Array = None
+    ki2ri_d: numba.types.Array = None
 
     def __attrs_post_init__(self):
         self.ri2ki = numpy.ones((self.natoms), dtype="int32")*-1
         self.ki2ri = numpy.ones((self.natoms), dtype="int32")*-1
         
         self.parent_ko = numpy.zeros((self.natoms),dtype="int32")
+        self.parent_ro = numpy.zeros((self.natoms),dtype="int32")
         self.child_on_subpath_ko = numpy.ones((self.natoms),dtype="int32")*-1
         self.len_longest_subpath_ko = numpy.zeros((self.natoms),dtype="int32")
         self.subpath_root_ko = numpy.full((self.natoms),True,dtype="bool")
         self.atom_depth_ko = numpy.zeros((self.natoms),dtype="int32")
+        self.subpath_root_ro = numpy.full((self.natoms),True,dtype="bool")
         
 
 def identify_longest_subpaths(refold_data):
@@ -214,57 +227,71 @@ def identify_longest_subpaths(refold_data):
         refold_data.child_on_subpath_ko, refold_data.subpath_root_ko )
 
 @numba.jit(nopython=True)
-def __identify_longest_subpaths(natoms, parent, len_longest_subpath_ko, child_on_subpath_ko, subpath_root_ko):
+def __identify_longest_subpaths(natoms, parent_ko, len_longest_subpath_ko, child_on_subpath_ko, subpath_root_ko):
     for ii in range(natoms-1,-1,-1):
         len_longest_subpath_ko[ii] += 1
         ii_subpath = len_longest_subpath_ko[ii]
-        ii_parent = parent[ii]
+        ii_parent = parent_ko[ii]
         if len_longest_subpath_ko[ii_parent] < ii_subpath and ii_parent != ii:
             len_longest_subpath_ko[ii_parent] = ii_subpath
             child_on_subpath_ko[ii_parent] = ii
         subpath_root_ko[child_on_subpath_ko[ii]] = False
 
-def recursively_identify_longest_subpaths(kintree, refold_data, kin_atom_ind):
-    if kin_atom_ind >= refold_data.natoms: return
-    rd = refold_data
-    kt = kintree
+def identify_path_depths(refold_data):
+    '''Breadth-first traversal of the tree where the depth for a node is one greater
+    than the depth of its parent if it is the root of a subpath'''
+    __identify_path_depths(
+        refold_data.natoms, refold_data.parent_ko, refold_data.atom_depth_ko,
+        refold_data.subpath_root_ko)
 
-    recursively_identify_longest_subpaths(kintree, refold_data, kin_atom_ind+1)
 
-    rd.len_longest_subpath_ko[kin_atom_ind] += 1
-    my_subpath = rd.len_longest_subpath_ko[kin_atom_ind]
-    parent = kt.parent[kin_atom_ind]
-    if rd.len_longest_subpath_ko[parent] < my_subpath and parent != kin_atom_ind:
-        rd.len_longest_subpath_ko[parent] = my_subpath
-        rd.child_on_subpath_ko[parent] = kin_atom_ind
-    rd.subpath_root_ko[rd.child_on_subpath_ko[kin_atom_ind]] = False
+@numba.jit(nopython=True)
+def __identify_path_depths(natoms, parent_ko, atom_depth_ko, subpath_root_ko):
+    for ii in range(natoms):
+        ii_parent = parent_ko[ii]
+        ii_depth = atom_depth_ko[ii_parent]
+        if subpath_root_ko[ii] and ii_parent != ii:
+            ii_depth += 1
+        atom_depth_ko[ii] = ii_depth
+        
 
-def recursively_identify_path_depths(kintree, refold_data, kin_atom_ind):
-    if kin_atom_ind >= refold_data.natoms: return
-    rd = refold_data
-    kt = kintree
+#def recursively_identify_path_depths(kintree, refold_data, kin_atom_ind):
+#    if kin_atom_ind >= refold_data.natoms: return
+#    rd = refold_data
+#    kt = kintree
+#
+#    parent = kt.parent[kin_atom_ind]
+#    depth = rd.atom_depth_ko[parent]
+#    if rd.subpath_root_ko[kin_atom_ind] and parent != kin_atom_ind:
+#        depth += 1
+#    rd.atom_depth_ko[kin_atom_ind] = depth
+#    recursively_identify_path_depths(kintree, refold_data, kin_atom_ind+1)
 
-    parent = kt.parent[kin_atom_ind]
-    depth = rd.atom_depth_ko[parent]
-    if rd.subpath_root_ko[kin_atom_ind] and parent != kin_atom_ind:
-        depth += 1
-    rd.atom_depth_ko[kin_atom_ind] = depth
-    recursively_identify_path_depths(kintree, refold_data, kin_atom_ind+1)
+#def recursively_assign_refold_indices(kintree, refold_data, kin_atom_ind, refold_index):
+#    refold_data.ri2ki[refold_index] = kin_atom_ind
+#    refold_data.ki2ri[kin_atom_ind] = refold_index
+#    child = refold_data.child_on_subpath_ko[kin_atom_ind]
+#    if child != -1:
+#        recursively_assign_refold_indices(
+#            kintree, refold_data,
+#            child, refold_index+1 )
 
-def recursively_assign_refold_indices(kintree, refold_data, kin_atom_ind, refold_index):
-    refold_data.ri2ki[refold_index] = kin_atom_ind
-    refold_data.ki2ri[kin_atom_ind] = refold_index
-    child = refold_data.child_on_subpath_ko[kin_atom_ind]
-    if child != -1:
-        recursively_assign_refold_indices(
-            kintree, refold_data,
-            child, refold_index+1 )
+@numba.jit(nopython=True)
+def finalize_refold_indices(roots, depth_offset, child_on_subpath_ko, ri2ki, ki2ri):
+    count = depth_offset
+    for root in roots:
+        nextatom = root
+        while nextatom != -1:
+            ri2ki[count] = nextatom
+            ki2ri[nextatom] = count
+            nextatom = child_on_subpath_ko[nextatom]
+            count += 1
 
 def determine_refold_indices(kintree, refold_data):
     refold_data.parent_ko[:] = kintree.parent
-    #recursively_identify_longest_subpaths(kintree, refold_data, 0)
     identify_longest_subpaths(refold_data)
-    recursively_identify_path_depths(kintree, refold_data, 0)
+    identify_path_depths(refold_data)
+    #recursively_identify_path_depths(kintree, refold_data, 0)
 
     # ok, sum the path lengths at each depth
     rd = refold_data
@@ -276,20 +303,204 @@ def determine_refold_indices(kintree, refold_data):
         rd.len_longest_subpath_ko[ rd.subpath_root_ko ] )
     rd.depth_offsets[1:] = numpy.cumsum(rd.depth_offsets)[:-1]
     rd.depth_offsets[0] = 0
-
+    rd.atom_range_for_depth = []
+    for i in range(rd.ndepths-1):
+        rd.atom_range_for_depth.append(
+            (rd.depth_offsets[i], rd.depth_offsets[i+1])
+        )
+    rd.atom_range_for_depth.append((rd.depth_offsets[-1],rd.natoms))
     subpath_roots = numpy.nonzero(rd.subpath_root_ko)[0]
     root_depths = rd.atom_depth_ko[subpath_roots]
     for ii in range(rd.ndepths):
         ii_roots = subpath_roots[root_depths == ii]
-        count = rd.depth_offsets[ii]
-        for jj in ii_roots:
-            recursively_assign_refold_indices(kintree, refold_data, jj, count )
-            count += rd.len_longest_subpath_ko[jj]
+        finalize_refold_indices(
+            ii_roots, rd.depth_offsets[ii], 
+            rd.child_on_subpath_ko,
+            rd.ri2ki, rd.ki2ri )
 
     assert numpy.all( rd.ri2ki != -1 )
     assert numpy.all( rd.ki2ri != -1 )
-    
+
+    rd.subpath_root_ro[:] = rd.subpath_root_ko[rd.ri2ki]
+    rd.parent_ro = numpy.full((rd.natoms),-1,dtype="int32")
+    rd.parent_ro[rd.subpath_root_ro] = rd.ki2ri[rd.parent_ko[rd.ri2ki][rd.subpath_root_ro]]
+    rd.parent_ro[0] = -1
+
+def send_refold_data_to_gpu(refold_data):
+    rd = refold_data
+    rd.hts_ro_d = cuda.to_device(
+        numpy.zeros((rd.natoms, 12), dtype=numpy.float32)
+    )
+    rd.is_root_d = cuda.to_device(rd.subpath_root_ro)
+    rd.ri2ki_d = cuda.to_device(rd.ri2ki)
+    rd.ki2ri_d = cuda.to_device(rd.ki2ri)
+    rd.parent_ro_d = cuda.to_device(rd.parent_ro)
+
+@cuda.jit
+def reorder_starting_hts( natoms, hts_ko, hts_ro, ki2ri ):
+    pos = cuda.grid(1)
+    if pos < natoms:
+        ri = ki2ri[pos]
+        for i in range(12):
+            hts_ro[ri,i] = hts_ko[pos,i//4,i%4]
+
+@cuda.jit
+def reorder_final_hts( natoms, hts_ko, hts_ro, ki2ri ):
+    pos = cuda.grid(1)
+    if pos < natoms:
+        ri = ki2ri[pos]
+        for i in range(12):
+            hts_ko[pos,i//4,i%4] = hts_ro[ri,i]
+
+
+@cuda.jit(device=True)
+def identity_ht():
+    one = numba.float32(1.0)
+    zero = numba.float32(0.0)
+    return (
+        one, zero, zero, zero, zero, one, zero, zero, zero, zero, one, zero
+    )
+
+@cuda.jit(device=True)
+def ht_load(hts, pos):
+    v0 = hts[pos, 0]
+    v1 = hts[pos, 1]
+    v2 = hts[pos, 2]
+    v3 = hts[pos, 3]
+    v4 = hts[pos, 4]
+    v5 = hts[pos, 5]
+    v6 = hts[pos, 6]
+    v7 = hts[pos, 7]
+    v8 = hts[pos, 8]
+    v9 = hts[pos, 9]
+    v10 = hts[pos, 10]
+    v11 = hts[pos, 11]
+    return (v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11)
+
+@cuda.jit(device=True)
+def ht_save(shared_hts, pos, ht):
+    for i in range(12):
+        shared_hts[pos, i] = ht[i]
+
+@cuda.jit(device=True)
+def ht_save_to_n_x_12(hts, pos, ht):
+    for i in range(12):
+        hts[pos, i] = ht[i]
+
+@cuda.jit(device=True)
+def ht_save_to_n_x_4_x_4(hts, pos, ht):
+    for i in range(12):
+        hts[pos, i//4, i%4] = ht[i]
+
+@cuda.jit(device=True)
+def ht_multiply(ht1, ht2):
+
+    r0 = ht1[0] * ht2[0] + ht1[1] * ht2[4] + ht1[2] * ht2[8]
+    r1 = ht1[0] * ht2[1] + ht1[1] * ht2[5] + ht1[2] * ht2[9]
+    r2 = ht1[0] * ht2[2] + ht1[1] * ht2[6] + ht1[2] * ht2[10]
+    r3 = ht1[0] * ht2[3] + ht1[1] * ht2[7] + ht1[2] * ht2[11] + ht1[3]
+
+    r4 = ht1[4] * ht2[0] + ht1[5] * ht2[4] + ht1[6] * ht2[8]
+    r5 = ht1[4] * ht2[1] + ht1[5] * ht2[5] + ht1[6] * ht2[9]
+    r6 = ht1[4] * ht2[2] + ht1[5] * ht2[6] + ht1[6] * ht2[10]
+    r7 = ht1[4] * ht2[3] + ht1[5] * ht2[7] + ht1[6] * ht2[11] + ht1[7]
+
+    r8 = ht1[8] * ht2[0] + ht1[9] * ht2[4] + ht1[10] * ht2[8]
+    r9 = ht1[8] * ht2[1] + ht1[9] * ht2[5] + ht1[10] * ht2[9]
+    r10 = ht1[8] * ht2[2] + ht1[9] * ht2[6] + ht1[10] * ht2[10]
+    r11 = ht1[8] * ht2[3] + ht1[9] * ht2[7] + ht1[10] * ht2[11] + ht1[11]
+
+    return (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11)
+
+@cuda.jit('float32[:,:], boolean[:], int32[:], int32, int32, int32')
+def segscan_ht_interval(hts, is_root, parent_ind, natoms, start, end):
+    # this should be executed as a single thread block with nthreads = 512
+    # "end" is actually one past the last element; compare ii < end
+    shared_hts = cuda.shared.array((512, 12), numba.float32)
+    shared_is_root = cuda.shared.array((512), numba.int32)
+
+    pos = cuda.grid(1)
+    niters = (end - start - 1) // 512 + 1
+    carry_ht = identity_ht()
+    carry_is_root = False
+    for ii in range(niters):
+        ii_ind = ii * 512 + start + pos
+        #load data into shared memory
+        if ii_ind < end:
+            for jj in range(12):
+                # TO DO: minimize bank conflicts -- align memory reads
+                shared_hts[pos, jj] = hts[ii_ind, jj]
+            shared_is_root[pos] = is_root[ii_ind]
+            myht = ht_load(shared_hts, pos)
+            parent = parent_ind[ii_ind].item()
+            htchanged = False
+            if parent != -1:
+                parent_ht = ht_load(hts, parent)
+                myht = ht_multiply(parent_ht, myht)
+                htchanged = True
+            myroot = shared_is_root[pos]
+            if pos == 0 and not myroot:
+                myht = ht_multiply(carry_ht, myht)
+                myroot |= carry_is_root
+                shared_is_root[0] = myroot
+                htchanged = True
+            if htchanged:
+                ht_save(shared_hts, pos, myht)
+        cuda.syncthreads()
+
+        # begin segmented scan on this section
+        offset = 1
+        for jj in range(9):  #log2(512) == 9
+            if pos >= offset and ii_ind < end:
+                prev_ht = ht_load(shared_hts, pos - offset)
+                prev_root = shared_is_root[pos - offset]
+            cuda.syncthreads()
+            if pos >= offset and ii_ind < end:
+                if not myroot:
+                    myht = ht_multiply(prev_ht, myht)
+                    myroot |= prev_root
+                    ht_save(shared_hts, pos, myht)
+                    shared_is_root[pos] = myroot
+            offset *= 2
+            cuda.syncthreads()
+
+        # write the shared hts to global memory
+        if ii_ind < end:
+            for jj in range(12):
+                hts[ii_ind, jj] = shared_hts[pos, jj]
+
+        # save the carry
+        if pos == 0:
+            carry_ht = ht_load(shared_hts, 511)
+            carry_is_root = shared_is_root[511]
+
+        cuda.syncthreads()
 
 
 
-    
+def get_devicendarray(t):
+    '''Convert a device-allocated pytorch tensor into a numba DeviceNDArray'''
+    #print(t.type())
+    assert t.type() == 'torch.cuda.FloatTensor'
+    ctx = cuda.cudadrv.driver.driver.get_context()
+    mp = cuda.cudadrv.driver.MemoryPointer(ctx, ctypes.c_ulong(t.data_ptr()), t.numel()*4)
+    return cuda.cudadrv.devicearray.DeviceNDArray(t.size(), [i*4 for i in t.stride()], numpy.dtype('float32'),
+        gpu_data=mp, stream=torch.cuda.current_stream().cuda_stream)
+
+def segscan_hts_gpu(hts_ko,refold_data):
+    rd = refold_data
+
+    nblocks = (rd.natoms-1) // 512 + 1
+    reorder_starting_hts[nblocks,512](
+        rd.natoms, hts_ko, rd.hts_ro_d, rd.ki2ri_d)
+
+    # for each depth, run a separate segmented scan
+    for iirange in rd.atom_range_for_depth:
+        #print(iirange)
+        segscan_ht_interval[1, 512](
+            rd.hts_ro_d, rd.is_root_d, rd.parent_ro_d, rd.natoms, iirange[0],
+            iirange[1]
+        )
+
+    reorder_final_hts[nblocks,512](
+        rd.natoms, hts_ko, rd.hts_ro_d, rd.ki2ri_d)
