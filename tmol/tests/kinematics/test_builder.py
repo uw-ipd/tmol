@@ -86,18 +86,19 @@ def test_builder_framing(ubq_system):
     )
 
 
-def test_gpu_refold_ordering(ubq_system):
+#def test_gpu_refold_ordering(ubq_system):
+def test_gpu_refold_ordering(gradcheck_test_system):
     from tmol.kinematics.datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
     from tmol.kinematics.operations import BondTransforms, JumpTransforms
 
     numpy.set_printoptions(threshold=numpy.nan, precision=3)
 
-    #kintree, dof_metadata, kincoords = gradcheck_test_system
-    tsys = ubq_system
-    kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
-    ).kintree
-    kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
+    kintree, dof_metadata, kincoords = gradcheck_test_system
+    #tsys = ubq_system
+    #kintree = KinematicBuilder().append_connected_component(
+    #    *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
+    #).kintree
+    #kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
     refold_data = RefoldData(kintree.id.shape[0])
     tmol.kinematics.datatypes.determine_refold_indices(kintree, refold_data)
@@ -132,7 +133,9 @@ def test_gpu_refold_ordering(ubq_system):
     else:
         HTs = HTs_d.copy_to_host()
     refold_kincoords = HTs[:, :3, 3].copy()
-    refold_kincoords[0, :] = numpy.nan
+
+    # needed for ubq_system, but not gradcheck_test_system:
+    # refold_kincoords[0, :] = numpy.nan
 
     numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
 
@@ -144,3 +147,5 @@ def test_gpu_refold_ordering(ubq_system):
     #print(
     #    "--- refold %f seconds ---" % ((time.time() - start_time) / 10000)
     #)
+
+    tmol.kinematics.datatypes.determine_derivsum_indices(kintree, refold_data)
