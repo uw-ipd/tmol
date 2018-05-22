@@ -4,11 +4,11 @@ import torch
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-from .datatypes import KinTree, KinDOF
+from .datatypes import KinTree, KinDOF, RefoldData
 from .metadata import DOFMetadata
 
-from .operations import forwardKin, backwardKin, resolveDerivs
-
+from .operations import forwardKin2, backwardKin, resolveDerivs2
+from .gpu_operations import refold_data_from_kintree
 
 @attr.s(auto_attribs=True, frozen=True)
 class KinematicOp:
@@ -31,6 +31,7 @@ class KinematicOp:
     """
 
     kintree: KinTree
+    refold_data: RefoldData
     mobile_dofs: DOFMetadata
 
     src_dofs: KinDOF
@@ -46,11 +47,13 @@ class KinematicOp:
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""
         bkin = backwardKin(kintree, kin_coords)
+        refold_data = refold_data_from_kintree(kintree)
         src_mobile_dofs = bkin.dofs.raw[mobile_dofs.node_idx,
                                         mobile_dofs.dof_idx]
 
         return cls(
             kintree=kintree,
+            refold_data=refold_data,
             mobile_dofs=mobile_dofs,
             src_dofs=bkin.dofs,
             src_mobile_dofs=src_mobile_dofs,
@@ -92,7 +95,10 @@ class KinematicFun(torch.autograd.Function):
         working_dofs.raw[ctx.kinematic_op.mobile_dofs.node_idx,
                          ctx.kinematic_op.mobile_dofs.dof_idx] = dofs
 
-        fkin = forwardKin(ctx.kinematic_op.kintree, working_dofs)
+        fkin = forwardKin2(
+            ctx.kinematic_op.kintree, ctx.kinematic_op.refold_data,
+            working_dofs
+        )
 
         ctx.save_for_backward(working_dofs.raw, fkin.hts)
 
@@ -106,8 +112,9 @@ class KinematicFun(torch.autograd.Function):
         working_dofs_raw, hts = ctx.saved_tensors
         working_dofs = KinDOF(raw=working_dofs_raw)
 
-        working_derivs = resolveDerivs(
+        working_derivs = resolveDerivs2(
             ctx.kinematic_op.kintree,
+            ctx.kinematic_op.refold_data,
             working_dofs,
             hts,
             coord_grads,
