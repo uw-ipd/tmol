@@ -284,8 +284,8 @@ def compute_branching_factor(refold_data):
         refold_data.natoms, refold_data.parent_ko,
         refold_data.branching_factor_ko, refold_data.branchiest_child_ko
     )
-    print("refold_data.branching_factor_ko", refold_data.branching_factor_ko)
-    print("refold_data.branchiest_child_ko", refold_data.branchiest_child_ko)
+    #print("refold_data.branching_factor_ko", refold_data.branching_factor_ko)
+    #print("refold_data.branchiest_child_ko", refold_data.branchiest_child_ko)
 
 
 @numba.jit(nopython=True)
@@ -435,8 +435,8 @@ def determine_derivsum_indices(kintree, refold_data):
 
     mark_derivsum_first_children(refold_data)
     max_n_nonpath_children = max(rd.n_nonpath_children_ko)
-    rd.non_path_children_ko = numpy.ones((rd.natoms, max_n_nonpath_children),
-                                         dtype="int32") * -1
+    rd.non_path_children_ko = numpy.full(
+        (rd.natoms, max_n_nonpath_children), -1, dtype="int32")
     list_non_first_derivsum_children(refold_data)
     find_derivsum_path_depths(refold_data)
 
@@ -464,6 +464,9 @@ def determine_derivsum_indices(kintree, refold_data):
             rd.ki2dsi, rd.dsi2ki
         )
 
+    #print("ki2dsi"); print(rd.ki2dsi)
+    #print("dsi2ki"); print(rd.dsi2ki)
+
     assert numpy.all(rd.ki2dsi != -1)
     assert numpy.all(rd.dsi2ki != -1)
 
@@ -472,9 +475,12 @@ def determine_derivsum_indices(kintree, refold_data):
     )
     for ii in range(rd.non_path_children_ko.shape[1]):
         child_exists = rd.non_path_children_ko[:, ii] != -1
-        rd.non_path_children_dso[child_exists[rd.dsi2ki], ii] = rd.ki2dsi[
+        rd.non_path_children_dso[child_exists, ii] = rd.ki2dsi[
             rd.non_path_children_ko[child_exists, ii]
         ]
+    # now all the identies of the children have been remapped, but they
+    # are in the wrong order; so reorder them.
+    rd.non_path_children_dso = rd.non_path_children_dso[rd.dsi2ki]
     rd.is_leaf_dso[:] = rd.is_derivsum_leaf_ko[rd.dsi2ki]
 
 
@@ -684,8 +690,8 @@ def mark_derivsum_first_children(refold_data):
             rd.n_nonpath_children_ko[ii_parent] += 1
             rd.is_derivsum_root_ko[ii] = True
         rd.is_derivsum_leaf_ko[ii] = rd.derivsum_first_child_ko[ii] == -1
-    print("rd.is_derivsum_root_ko")
-    print(rd.is_derivsum_root_ko)
+    #print("rd.is_derivsum_root_ko")
+    #print(rd.is_derivsum_root_ko)
 
 
 def list_non_first_derivsum_children(refold_data):

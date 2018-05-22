@@ -149,3 +149,17 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     #)
 
     tmol.kinematics.datatypes.determine_derivsum_indices(kintree, refold_data)
+    for ii in range(refold_data.natoms):
+        for jj in range(refold_data.non_path_children_ko.shape[1]):
+            child = refold_data.non_path_children_ko[ii,jj] 
+            assert child == -1 or refold_data.parent_ko[ child ] == ii
+        first_child = refold_data.derivsum_first_child_ko[ii]
+        assert first_child == -1 or refold_data.parent_ko[first_child] == ii
+
+
+    for ii in range(refold_data.natoms):
+        for jj in range(refold_data.non_path_children_ko.shape[1]):
+            child = refold_data.non_path_children_dso[ii,jj]
+            ii_ki = refold_data.dsi2ki[ii]
+            #print(ii,ii_ki,jj,"child",child,"child dsi",refold_data.dsi2ki[child],refold_data.parent_ko[refold_data.dsi2ki[child]])
+            assert child == -1 or ii_ki == refold_data.parent_ko[refold_data.dsi2ki[child]]
