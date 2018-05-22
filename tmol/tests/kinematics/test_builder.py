@@ -8,7 +8,7 @@ from tmol.kinematics import (
     forwardKin,
 )
 
-import tmol.kinematics.datatypes
+import tmol.kinematics.gpu_operations
 from tmol.kinematics.datatypes import RefoldData
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.tests.kinematics.test_torch_op import gradcheck_test_system
@@ -100,9 +100,21 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     #).kintree
     #kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
-    refold_data = RefoldData(kintree.id.shape[0])
-    tmol.kinematics.datatypes.determine_refold_indices(kintree, refold_data)
-    tmol.kinematics.datatypes.send_refold_data_to_gpu(refold_data)
+    refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(kintree)
+
+    for ii in range(refold_data.natoms):
+        for jj in range(refold_data.non_path_children_ko.shape[1]):
+            child = refold_data.non_path_children_ko[ii,jj] 
+            assert child == -1 or refold_data.parent_ko[ child ] == ii
+        first_child = refold_data.derivsum_first_child_ko[ii]
+        assert first_child == -1 or refold_data.parent_ko[first_child] == ii
+
+    for ii in range(refold_data.natoms):
+        for jj in range(refold_data.non_path_children_ko.shape[1]):
+            child = refold_data.non_path_children_dso[ii,jj]
+            ii_ki = refold_data.dsi2ki[ii]
+            #print(ii,ii_ki,jj,"child",child,"child dsi",refold_data.dsi2ki[child],refold_data.parent_ko[refold_data.dsi2ki[child]])
+            assert child == -1 or ii_ki == refold_data.parent_ko[refold_data.dsi2ki[child]]
 
     dofs = backwardKin(kintree, kincoords).dofs
 
@@ -119,10 +131,9 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     jumpSelector = kintree.doftype == NodeType.jump
     HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
-    tmol.kinematics.datatypes.send_refold_data_to_gpu(refold_data)
-    HTs_d = tmol.kinematics.datatypes.get_devicendarray(HTs)
+    HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
 
-    tmol.kinematics.datatypes.segscan_hts_gpu(HTs_d, refold_data)
+    tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
 
     HTs = HTs_d.copy_to_host()
     refold_kincoords = HTs[:, :3, 3].copy()
@@ -141,21 +152,6 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     #    "--- refold %f seconds ---" % ((time.time() - start_time) / 10000)
     #)
 
-    tmol.kinematics.datatypes.determine_derivsum_indices(kintree, refold_data)
-    for ii in range(refold_data.natoms):
-        for jj in range(refold_data.non_path_children_ko.shape[1]):
-            child = refold_data.non_path_children_ko[ii,jj] 
-            assert child == -1 or refold_data.parent_ko[ child ] == ii
-        first_child = refold_data.derivsum_first_child_ko[ii]
-        assert first_child == -1 or refold_data.parent_ko[first_child] == ii
-
-
-    for ii in range(refold_data.natoms):
-        for jj in range(refold_data.non_path_children_ko.shape[1]):
-            child = refold_data.non_path_children_dso[ii,jj]
-            ii_ki = refold_data.dsi2ki[ii]
-            #print(ii,ii_ki,jj,"child",child,"child dsi",refold_data.dsi2ki[child],refold_data.parent_ko[refold_data.dsi2ki[child]])
-            assert child == -1 or ii_ki == refold_data.parent_ko[refold_data.dsi2ki[child]]
 
     # ok, now, let's see that f1f2 summation is functioning properly
     f1s = torch.arange(refold_data.natoms*3,dtype=torch.float64).reshape((refold_data.natoms,3))/512.
@@ -168,10 +164,8 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     SegScan(f1s, kintree.parent, Fscollect, True)
     SegScan(f2s, kintree.parent, Fscollect, True)
 
-    tmol.kinematics.datatypes.send_derivsum_data_to_gpu(refold_data)
-
     f1f2s_d = cuda.to_device(f1f2s)
-    tmol.kinematics.datatypes.segscan_f1f2s_gpu(f1f2s_d, refold_data)
+    tmol.kinematics.gpu_operations.segscan_f1f2s_gpu(f1f2s_d, refold_data)
 
     f1f2s = f1f2s_d.copy_to_host()
 
