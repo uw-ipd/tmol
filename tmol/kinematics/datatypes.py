@@ -456,6 +456,7 @@ def determine_derivsum_indices(kintree, refold_data):
         rd.derivsum_atom_range_for_depth.append(
             (depth_offsets[ii], depth_offsets[ii + 1])
         )
+    rd.derivsum_atom_range_for_depth.append((depth_offsets[-1],rd.natoms))
     derivsum_leaves = numpy.nonzero(rd.is_derivsum_leaf_ko)[0]
     for ii in range(rd.n_derivsum_depths):
         ii_leaves = derivsum_leaves[leaf_path_depths == ii]
@@ -479,7 +480,7 @@ def determine_derivsum_indices(kintree, refold_data):
             rd.non_path_children_ko[child_exists, ii]
         ]
     # now all the identies of the children have been remapped, but they
-    # are in the wrong order; so reorder them.
+    # are still in kintree order; so reorder them to derivsum order.
     rd.non_path_children_dso = rd.non_path_children_dso[rd.dsi2ki]
     rd.is_leaf_dso[:] = rd.is_derivsum_leaf_ko[rd.dsi2ki]
 
@@ -845,7 +846,7 @@ def segscan_f1f2s_up_tree(
             f1f2s_changed = False
             for jj in range(prior_children.shape[1]):
                 jj_child = prior_children[ii_ind, jj]
-                if jj_child != n_derivsum_nodes:
+                if jj_child != -1:
                     child_f1f2s = load_f1f2s(f1f2s_dso, jj_child)
                     myf1f2s = add_f1f2s(myf1f2s, child_f1f2s)
                     f1f2s_changed = True
@@ -894,7 +895,7 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
     )
 
     for iirange in rd.derivsum_atom_range_for_depth:
-        segscan_f1f2s_up_tree(
+        segscan_f1f2s_up_tree[1,512](
             rd.f1f2s_dso_d, rd.non_path_children_dso_d, rd.is_leaf_dso_d,
             iirange[0], iirange[1], rd.natoms
         )

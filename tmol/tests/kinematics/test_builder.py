@@ -158,13 +158,12 @@ def test_gpu_refold_ordering(gradcheck_test_system):
             assert child == -1 or ii_ki == refold_data.parent_ko[refold_data.dsi2ki[child]]
 
     # ok, now, let's see that f1f2 summation is functioning properly
-    f1s = torch.randn((refold_data.natoms,3),dtype=torch.float64)
-    f2s = torch.randn((refold_data.natoms,3),dtype=torch.float64)
+    f1s = torch.arange(refold_data.natoms*3,dtype=torch.float64).reshape((refold_data.natoms,3))/512.
+    f2s = torch.arange(refold_data.natoms*3,dtype=torch.float64).reshape((refold_data.natoms,3))/512.
+
     f1f2s = numpy.zeros((refold_data.natoms,6))
     f1f2s[:,0:3] = f1s
     f1f2s[:,3:6] = f2s
-
-    print(f1f2s[:10,:])
 
     SegScan(f1s, kintree.parent, Fscollect, True)
     SegScan(f2s, kintree.parent, Fscollect, True)
@@ -177,4 +176,9 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     f1f2s = f1f2s_d.copy_to_host()
 
     f1f2s_gold = numpy.concatenate((f1s,f2s),axis=1)
+
+    # clear the 0th entry; its contents are garbage
+    f1f2s_gold[0,:] = 0;
+    f1f2s[0,:] = 0
+
     numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)
