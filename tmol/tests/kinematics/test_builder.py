@@ -89,7 +89,7 @@ def test_builder_framing(ubq_system):
 #def test_gpu_refold_ordering(ubq_system):
 def test_gpu_refold_ordering(gradcheck_test_system):
     from tmol.kinematics.datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
-    from tmol.kinematics.operations import BondTransforms, JumpTransforms
+    from tmol.kinematics.operations import BondTransforms, JumpTransforms, SegScan, Fscollect
 
     numpy.set_printoptions(threshold=numpy.nan, precision=3)
 
@@ -120,18 +120,11 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
     tmol.kinematics.datatypes.send_refold_data_to_gpu(refold_data)
-    if HTs.type() == 'torch.cuda.FloatTensor':
-        HTs_d = tmol.kinematics.datatypes.get_devicendarray(HTs)
-    else:
-        HTs_d = cuda.to_device(HTs.numpy())
-        #print("HTs in kintree order");print(HTs.numpy())
+    HTs_d = tmol.kinematics.datatypes.get_devicendarray(HTs)
 
     tmol.kinematics.datatypes.segscan_hts_gpu(HTs_d, refold_data)
 
-    if HTs.type() == 'torch.cuda.FloatTensor':
-        pass
-    else:
-        HTs = HTs_d.copy_to_host()
+    HTs = HTs_d.copy_to_host()
     refold_kincoords = HTs[:, :3, 3].copy()
 
     # needed for ubq_system, but not gradcheck_test_system:
@@ -163,3 +156,25 @@ def test_gpu_refold_ordering(gradcheck_test_system):
             ii_ki = refold_data.dsi2ki[ii]
             #print(ii,ii_ki,jj,"child",child,"child dsi",refold_data.dsi2ki[child],refold_data.parent_ko[refold_data.dsi2ki[child]])
             assert child == -1 or ii_ki == refold_data.parent_ko[refold_data.dsi2ki[child]]
+
+    # ok, now, let's see that f1f2 summation is functioning properly
+    f1s = torch.randn((refold_data.natoms,3),dtype=torch.float64)
+    f2s = torch.randn((refold_data.natoms,3),dtype=torch.float64)
+    f1f2s = numpy.zeros((refold_data.natoms,6))
+    f1f2s[:,0:3] = f1s
+    f1f2s[:,3:6] = f2s
+
+    print(f1f2s[:10,:])
+
+    SegScan(f1s, kintree.parent, Fscollect, True)
+    SegScan(f2s, kintree.parent, Fscollect, True)
+
+    tmol.kinematics.datatypes.send_derivsum_data_to_gpu(refold_data)
+
+    f1f2s_d = cuda.to_device(f1f2s)
+    tmol.kinematics.datatypes.segscan_f1f2s_gpu(f1f2s_d, refold_data)
+
+    f1f2s = f1f2s_d.copy_to_host()
+
+    f1f2s_gold = numpy.concatenate((f1s,f2s),axis=1)
+    numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)

@@ -646,18 +646,22 @@ def segscan_ht_interval(hts, is_root, parent_ind, natoms, start, end):
 def get_devicendarray(t):
     '''Convert a device-allocated pytorch tensor into a numba DeviceNDArray'''
     #print(t.type())
-    assert t.type() == 'torch.cuda.FloatTensor'
-    ctx = cuda.cudadrv.driver.driver.get_context()
-    mp = cuda.cudadrv.driver.MemoryPointer(
-        ctx, ctypes.c_ulong(t.data_ptr()),
-        t.numel() * 4
-    )
-    return cuda.cudadrv.devicearray.DeviceNDArray(
-        t.size(), [i * 4 for i in t.stride()],
-        numpy.dtype('float32'),
-        gpu_data=mp,
-        stream=torch.cuda.current_stream().cuda_stream
-    )
+    if t.type() == 'torch.cuda.FloatTensor':
+        ctx = cuda.cudadrv.driver.driver.get_context()
+        mp = cuda.cudadrv.driver.MemoryPointer(
+            ctx, ctypes.c_ulong(t.data_ptr()),
+            t.numel() * 4
+        )
+        return cuda.cudadrv.devicearray.DeviceNDArray(
+            t.size(), [i * 4 for i in t.stride()],
+            numpy.dtype('float32'),
+            gpu_data=mp,
+            stream=torch.cuda.current_stream().cuda_stream
+        )
+    else:
+        # We're using the numba cuda simulator; this will let us modify the underlying
+        # numpy array in numba on the CPU. Neat!
+        return cuda.to_device(t.numpy())
 
 
 def segscan_hts_gpu(hts_ko, refold_data):
@@ -758,6 +762,13 @@ def finalize_derivsum_indices(
                 break
             nextatom = parent[nextatom]
 
+def send_derivsum_data_to_gpu(refold_data):
+    refold_data.ki2dsi_d = cuda.to_device(refold_data.ki2dsi)
+    refold_data.f1f2s_dso_d = \
+        cuda.to_device(numpy.zeros((refold_data.natoms,6),dtype="float64"))
+    refold_data.is_leaf_dso_d = cuda.to_device(refold_data.is_leaf_dso)
+    refold_data.non_path_children_dso_d = \
+        cuda.to_device(refold_data.non_path_children_dso)
 
 @cuda.jit(device=True)
 def load_f1f2s(f1f2s, ind):
@@ -791,6 +802,23 @@ def save_f1f2s(f1f2s, ind, v):
 def zero_f1f2s():
     zero = numba.float64(0.)
     return (zero, zero, zero, zero, zero, zero)
+
+@cuda.jit
+def reorder_starting_f1f2s(natoms, f1f2s_ko, f1f2s_dso, ki2dsi):
+    pos = cuda.grid(1)
+    if pos < natoms:
+        dsi = ki2dsi[pos]
+        for i in range(6):
+            f1f2s_dso[dsi, i] = f1f2s_ko[pos, i]
+
+
+@cuda.jit
+def reorder_final_f1f2s(natoms, f1f2s_ko, f1f2s_dso, ki2dsi):
+    pos = cuda.grid(1)
+    if pos < natoms:
+        dsi = ki2dsi[pos]
+        for i in range(6):
+            f1f2s_ko[pos, i] = f1f2s_dso[dsi, i]
 
 
 # f1f2 summation should probably be at double precision
