@@ -14,6 +14,7 @@ from tmol.kinematics.datatypes import (KinDOF, NodeType, KinTree)
 
 from tmol.kinematics.gpu_operations import (refold_data_from_kintree)
 
+
 def score(coords):
     """Dummy scorefunction for a conformation."""
     #assert coords.shape == (20, 3)
@@ -334,11 +335,12 @@ def test_f1f2_resolution_strategies_match(kintree, coords):
         atol=1e-7
     )
 
+
 def test_f1f2_resolution_strategies_match2(kintree, coords):
     NATOMS, _ = coords.shape
     bkin = backwardKin(kintree, coords)
     HTs, dofs = bkin.hts, bkin.dofs
-    refold_data = refold_data_from_kintree( kintree )
+    refold_data = refold_data_from_kintree(kintree)
 
     # Compute analytic derivs
     dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
@@ -346,13 +348,13 @@ def test_f1f2_resolution_strategies_match2(kintree, coords):
     dsc_dtors_analytic_eff = resolveDerivs(
         kintree, dofs, HTs, dsc_dx, SegScanStrategy.efficient
     )
-    dsc_dtors_analytic_min_depth = resolveDerivs2(
+    dsc_dtors_analytic_numba = resolveDerivs2(
         kintree, refold_data, dofs, HTs, dsc_dx
     )
 
     numpy.testing.assert_allclose(
         dsc_dtors_analytic_eff.raw[1:],
-        dsc_dtors_analytic_min_depth.raw[1:],
+        dsc_dtors_analytic_numba.raw[1:],
         atol=1e-7
     )
 

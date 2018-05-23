@@ -665,6 +665,7 @@ def forwardKin(
     coords = HTs[:, :3, 3]
     return ForwardKinResult.create(HTs, coords)
 
+
 @validate_args
 def forwardKin2(
         kintree: KinTree,
@@ -730,6 +731,9 @@ def resolveDerivs(
     SegScan(f1s, kintree.parent, Fscollect, True, scan_strategy)
     SegScan(f2s, kintree.parent, Fscollect, True, scan_strategy)
 
+    #print("frank f1s"); print(f1s)
+    #print("frank f2s"); print(f2s)
+
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()
 
@@ -753,12 +757,10 @@ def resolveDerivs(
 
     return dsc_ddofs
 
+
 @validate_args
 def resolveDerivs2(
-        kintree: KinTree,
-        refold_data: RefoldData,
-        dofs: KinDOF,
-        HTs: HTArray,
+        kintree: KinTree, refold_data: RefoldData, dofs: KinDOF, HTs: HTArray,
         dsc_dx: CoordArray
 ) -> KinDOF:
     """xyz derivs -> dof derivs
@@ -781,11 +783,17 @@ def resolveDerivs2(
 
     # 2) sum f1/f2s up tree, from leaves toward the root using numba
     # implementation of segmented scan
-    f1f2s = torch.cat((f1s,f2s),1)
+    f1f2s = torch.cat((f1s, f2s), 1)
     f1f2s_d = get_devicendarray(f1f2s)
     segscan_f1f2s_gpu(f1f2s_d, refold_data)
-    f1s[:] = f1f2s[:,0:3]
-    f2s[:] = f1f2s[:,3:6]
+    #print("f1f2s_gpu"); print(f1f2s_d)
+    #print("f1f2s tensor?"); print(f1f2s.numpy())
+
+    f1s[:] = f1f2s[:, 0:3]
+    f2s[:] = f1f2s[:, 3:6]
+
+    #print("numba f1s"); print(f1s)
+    #print("numba f2s"); print(f2s)
 
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()
