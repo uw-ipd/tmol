@@ -11,7 +11,7 @@ from tmol.types.torch import Tensor
 
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
-from tmol.kinematics.torch_op import KinematicOp
+from tmol.kinematics.torch_op import KinematicOp, KinematicFun
 
 from tmol.system.residue.packed import PackedResidueSystem
 from tmol.system.residue.restypes import Residue
@@ -39,8 +39,11 @@ def test_kinematic_torch_op_refold(ubq_system):
 
     refold_kincoords = kop.apply(kop.src_mobile_dofs)
 
-    numpy.testing.assert_allclose(kincoords, refold_kincoords)
-
+    #numpy.set_printoptions(threshold=numpy.nan, precision=3)
+    #print("kincoords");print(kincoords.numpy());
+    #print("refold_kincoords");print(refold_kincoords.numpy());
+    #print("diff");print((kincoords - refold_kincoords).numpy());
+    numpy.testing.assert_allclose(kincoords, refold_kincoords,atol=1e-6)
 
 @pytest.fixture
 def gradcheck_test_system(

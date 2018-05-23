@@ -759,8 +759,7 @@ def resolveDerivs2(
         refold_data: RefoldData,
         dofs: KinDOF,
         HTs: HTArray,
-        dsc_dx: CoordArray,
-        scan_strategy: SegScanStrategy = SegScanStrategy.default
+        dsc_dx: CoordArray
 ) -> KinDOF:
     """xyz derivs -> dof derivs
 
@@ -785,6 +784,8 @@ def resolveDerivs2(
     f1f2s = torch.cat((f1s,f2s),1)
     f1f2s_d = get_devicendarray(f1f2s)
     segscan_f1f2s_gpu(f1f2s_d, refold_data)
+    f1s[:] = f1f2s[:,0:3]
+    f2s[:] = f1f2s[:,3:6]
 
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()

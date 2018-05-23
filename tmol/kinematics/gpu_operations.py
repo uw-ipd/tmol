@@ -452,7 +452,7 @@ def send_refold_data_to_gpu(
     parent_ro
 ):
     hts_ro_d = cuda.to_device(
-        numpy.zeros((natoms, 12), dtype=numpy.float32)
+        numpy.zeros((natoms, 12), dtype=numpy.float64)
     )
     is_root_d = cuda.to_device(subpath_root_ro)
     ri2ki_d = cuda.to_device(ri2ki)
@@ -544,11 +544,11 @@ def ht_multiply(ht1, ht2):
     return (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11)
 
 
-@cuda.jit('float32[:,:], boolean[:], int32[:], int32, int32, int32')
+@cuda.jit('float64[:,:], boolean[:], int32[:], int32, int32, int32')
 def segscan_ht_interval(hts, is_root, parent_ind, natoms, start, end):
     # this should be executed as a single thread block with nthreads = 512
     # "end" is actually one past the last element; compare ii < end
-    shared_hts = cuda.shared.array((512, 12), numba.float32)
+    shared_hts = cuda.shared.array((512, 12), numba.float64)
     shared_is_root = cuda.shared.array((512), numba.int32)
 
     pos = cuda.grid(1)
