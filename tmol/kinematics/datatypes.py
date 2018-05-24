@@ -195,7 +195,6 @@ class RefoldData:
     non_subpath_parent_ro: numpy.array
     branching_factor_ko: numpy.array
     subpath_child_ko: numpy.array
-    child_on_refold_subpath_ko: numpy.array
     subpath_length_ko: numpy.array
     subpath_root_ko: numpy.array
     atom_depth_ko: numpy.array

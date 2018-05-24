@@ -76,12 +76,11 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         non_path_children_ko, is_derivsum_root_ko, subpath_length_ko
     )
 
-    child_on_refold_subpath_ko[:] = subpath_child_ko
     #subpath_length_ko[:] = derivsum_path_length_ko
     subpath_root_ko[:] = is_derivsum_root_ko[:]
 
     #identify_longest_subpaths(
-    #    natoms, parent_ko, subpath_length_ko, child_on_refold_subpath_ko,
+    #    natoms, parent_ko, subpath_length_ko, subpath_child_ko,
     #    subpath_root_ko
     #)
  
@@ -92,7 +91,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
 
     determine_refold_indices(
         natoms, ndepths, atom_depth_ko, subpath_root_ko,
-        subpath_length_ko, atom_range_for_depth, child_on_refold_subpath_ko,
+        subpath_length_ko, atom_range_for_depth, subpath_child_ko,
         ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
     )
 
@@ -119,7 +118,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
 
     return RefoldData(
         natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro,
-        branching_factor_ko, subpath_child_ko, child_on_refold_subpath_ko,
+        branching_factor_ko, subpath_child_ko,
         subpath_length_ko, subpath_root_ko, atom_depth_ko,
         atom_range_for_depth, subpath_root_ro, n_derivsum_depths,
         is_derivsum_root_ko, is_derivsum_leaf_ko,
@@ -253,7 +252,7 @@ def compute_branching_factor(
 
 @numba.jit(nopython=True)
 def identify_longest_subpaths(
-        natoms, parent_ko, subpath_length_ko, child_on_refold_subpath_ko,
+        natoms, parent_ko, subpath_length_ko, subpath_child_ko,
         subpath_root_ko
 ):
     for ii in range(natoms - 1, -1, -1):
@@ -262,8 +261,8 @@ def identify_longest_subpaths(
         ii_parent = parent_ko[ii]
         if subpath_length_ko[ii_parent] < ii_subpath and ii_parent != ii:
             subpath_length_ko[ii_parent] = ii_subpath
-            child_on_refold_subpath_ko[ii_parent] = ii
-        subpath_root_ko[child_on_refold_subpath_ko[ii]] = False
+            subpath_child_ko[ii_parent] = ii
+        subpath_root_ko[subpath_child_ko[ii]] = False
 
 
 @numba.jit(nopython=True)
@@ -291,7 +290,7 @@ def identify_path_depths(natoms, parent_ko, atom_depth_ko, subpath_root_ko):
 #def recursively_assign_refold_indices(kintree, refold_data, kin_atom_ind, refold_index):
 #    refold_data.ri2ki[refold_index] = kin_atom_ind
 #    refold_data.ki2ri[kin_atom_ind] = refold_index
-#    child = refold_data.child_on_refold_subpath_ko[kin_atom_ind]
+#    child = refold_data.subpath_child_ko[kin_atom_ind]
 #    if child != -1:
 #        recursively_assign_refold_indices(
 #            kintree, refold_data,
@@ -300,7 +299,7 @@ def identify_path_depths(natoms, parent_ko, atom_depth_ko, subpath_root_ko):
 
 @numba.jit(nopython=True)
 def finalize_refold_indices(
-        roots, depth_offset, child_on_refold_subpath_ko, ri2ki, ki2ri
+        roots, depth_offset, subpath_child_ko, ri2ki, ki2ri
 ):
     count = depth_offset
     for root in roots:
@@ -308,13 +307,13 @@ def finalize_refold_indices(
         while nextatom != -1:
             ri2ki[count] = nextatom
             ki2ri[nextatom] = count
-            nextatom = child_on_refold_subpath_ko[nextatom]
+            nextatom = subpath_child_ko[nextatom]
             count += 1
 
 
 def determine_refold_indices(
         natoms, ndepths, atom_depth_ko, subpath_root_ko,
-        subpath_length_ko, atom_range_for_depth, child_on_refold_subpath_ko,
+        subpath_length_ko, atom_range_for_depth, subpath_child_ko,
         ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
 ):
     # sum the path lengths at each depth
@@ -334,7 +333,7 @@ def determine_refold_indices(
     for ii in range(ndepths):
         ii_roots = subpath_roots[root_depths == ii]
         finalize_refold_indices(
-            ii_roots, depth_offsets[ii], child_on_refold_subpath_ko, ri2ki, ki2ri
+            ii_roots, depth_offsets[ii], subpath_child_ko, ri2ki, ki2ri
         )
 
     #print("ri2ki"); print(ri2ki)

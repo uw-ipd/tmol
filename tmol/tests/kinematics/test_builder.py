@@ -112,7 +112,7 @@ def test_gpu_refold_ordering(gradcheck_test_system):
             refold_data.non_subpath_parent_ro[ii_ri] == -1 or \
             refold_data.non_subpath_parent_ro[ii_ri] == parent_ri
 
-        child_ki = refold_data.child_on_refold_subpath_ko[ii_ki]
+        child_ki = refold_data.subpath_child_ko[ii_ki]
         assert child_ki == -1 or \
             refold_data.non_subpath_parent_ro[refold_data.ki2ri[child_ki]] == -1
 
