@@ -18,6 +18,32 @@ from .datatypes import KinTree, RefoldData
 @validate_args
 def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
 
+    natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro, \
+        branching_factor_ko, subpath_child_ko, \
+        subpath_length_ko, is_subpath_root_ko, is_subpath_leaf_ko, \
+        refold_atom_depth_ko, refold_atom_range_for_depth, subpath_root_ro, \
+        is_leaf_dso, n_nonpath_children_ko, \
+        derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki, \
+        non_path_children_ko, non_path_children_dso = \
+        construct_refold_and_derivsum_orderings(kintree)
+
+    is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d = \
+        send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro)
+
+
+    ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d = \
+        send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso)
+
+    return RefoldData(
+        natoms, 
+        refold_atom_range_for_depth, derivsum_atom_range_for_depth,
+        non_subpath_parent_ro_d,
+        is_root_ro_d, ki2ri_d, ki2dsi_d, is_leaf_dso_d,
+        non_path_children_dso_d
+    )
+
+
+def construct_refold_and_derivsum_orderings(kintree: KinTree):
     natoms = kintree.id.shape[0]
 
     # Forward kinematics data initialization
@@ -93,9 +119,6 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
     )
 
-    is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d = \
-        send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro)
-
 
     n_derivsum_depths = derivsum_path_depth_ko[0] + 1
 
@@ -111,28 +134,17 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
     #print("dsi2ki"); print(dsi2ki)
     #print("non_path_children_dso"); print(non_path_children_dso)
 
-    ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d = \
-        send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso)
 
-    return RefoldData(
-        natoms, 
-        refold_atom_range_for_depth, derivsum_atom_range_for_depth,
-        non_subpath_parent_ro_d,
-        is_root_ro_d, ki2ri_d, ki2dsi_d, is_leaf_dso_d,
-        non_path_children_dso_d
+
+    return (
+        natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro,
+        branching_factor_ko, subpath_child_ko,
+        subpath_length_ko, is_subpath_root_ko, is_subpath_leaf_ko,
+        refold_atom_depth_ko, refold_atom_range_for_depth, subpath_root_ro,
+        is_leaf_dso, n_nonpath_children_ko,
+        derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki,
+        non_path_children_ko, non_path_children_dso
     )
-
-    #return RefoldData(
-    #    natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro,
-    #    branching_factor_ko, subpath_child_ko,
-    #    subpath_length_ko, is_subpath_root_ko, is_subpath_leaf_ko,
-    #    refold_atom_depth_ko, refold_atom_range_for_depth, subpath_root_ro,
-    #    is_leaf_dso, n_nonpath_children_ko,
-    #    derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki,
-    #    non_path_children_ko, non_path_children_dso, non_subpath_parent_ro_d,
-    #    is_root_ro_d, ki2ri_d, ki2dsi_d, is_leaf_dso_d,
-    #    non_path_children_dso_d
-    #)
 
 
 ###   @attr.s(auto_attribs=True)
