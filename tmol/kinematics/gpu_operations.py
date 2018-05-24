@@ -228,29 +228,6 @@ def find_refold_path_depths(natoms, parent_ko, refold_atom_depth_ko, is_subpath_
             ii_depth += 1
         refold_atom_depth_ko[ii] = ii_depth
 
-
-#def recursively_identify_path_depths(kintree, refold_data, kin_atom_ind):
-#    if kin_atom_ind >= refold_data.natoms: return
-#    rd = refold_data
-#    kt = kintree
-#
-#    parent = kt.parent[kin_atom_ind]
-#    depth = rd.refold_atom_depth_ko[parent]
-#    if rd.is_subpath_root_ko[kin_atom_ind] and parent != kin_atom_ind:
-#        depth += 1
-#    rd.refold_atom_depth_ko[kin_atom_ind] = depth
-#    recursively_identify_path_depths(kintree, refold_data, kin_atom_ind+1)
-
-#def recursively_assign_refold_indices(kintree, refold_data, kin_atom_ind, refold_index):
-#    refold_data.ri2ki[refold_index] = kin_atom_ind
-#    refold_data.ki2ri[kin_atom_ind] = refold_index
-#    child = refold_data.subpath_child_ko[kin_atom_ind]
-#    if child != -1:
-#        recursively_assign_refold_indices(
-#            kintree, refold_data,
-#            child, refold_index+1 )
-
-
 @numba.jit(nopython=True)
 def finalize_refold_indices(
         roots, depth_offset, subpath_child_ko, ri2ki, ki2ri
