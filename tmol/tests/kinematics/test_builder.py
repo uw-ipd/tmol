@@ -120,7 +120,7 @@ def test_gpu_refold_ordering(gradcheck_test_system):
         for jj in range(refold_data.non_path_children_ko.shape[1]):
             child = refold_data.non_path_children_ko[ii, jj]
             assert child == -1 or refold_data.parent_ko[child] == ii
-        first_child = refold_data.derivsum_first_child_ko[ii]
+        first_child = refold_data.subpath_child_ko[ii]
         assert first_child == -1 or refold_data.parent_ko[first_child] == ii
 
     for ii in range(refold_data.natoms):
