@@ -203,7 +203,6 @@ class RefoldData:
 
     # Data used for f1f2 summation
     n_derivsum_depths: int
-    is_derivsum_root_ko: numpy.array
     is_derivsum_leaf_ko: numpy.array
     is_leaf_dso: numpy.array
     n_nonpath_children_ko: numpy.array

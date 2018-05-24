@@ -31,11 +31,10 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
     subpath_child_ko = numpy.full((natoms), -1, dtype="int32")
     child_on_refold_subpath_ko = numpy.full((natoms), -1, dtype="int32")
     subpath_length_ko = numpy.zeros((natoms), dtype="int32")
-    subpath_root_ko = numpy.full((natoms), True, dtype="bool")
+    subpath_root_ko = numpy.full((natoms), False, dtype="bool")
     atom_depth_ko = numpy.zeros((natoms), dtype="int32")
     subpath_root_ro = numpy.full((natoms), True, dtype="bool")
 
-    is_derivsum_root_ko = numpy.full((natoms), False, dtype="bool")
     is_derivsum_leaf_ko = numpy.full((natoms), False, dtype="bool")
     #derivsum_path_length_ko = numpy.full((natoms), 0, dtype="int32")
     is_leaf_dso = numpy.full((natoms), False, dtype="bool")
@@ -55,7 +54,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
     # F1F2 summation
     mark_derivsum_first_children(
         natoms, parent_ko, subpath_child_ko,
-        n_nonpath_children_ko, is_derivsum_root_ko, is_derivsum_leaf_ko
+        n_nonpath_children_ko, subpath_root_ko, is_derivsum_leaf_ko
     )
 
     max_n_nonpath_children = max(n_nonpath_children_ko)
@@ -67,16 +66,16 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
                                        dtype="int32")
 
     list_non_first_derivsum_children(
-        natoms, is_derivsum_root_ko, parent_ko, non_path_children_ko
+        natoms, subpath_root_ko, parent_ko, non_path_children_ko
     )
 
     find_derivsum_path_depths(
         natoms, subpath_child_ko, derivsum_path_depth_ko,
-        non_path_children_ko, is_derivsum_root_ko, subpath_length_ko
+        non_path_children_ko, subpath_root_ko, subpath_length_ko
     )
 
     #subpath_length_ko[:] = derivsum_path_length_ko
-    subpath_root_ko[:] = is_derivsum_root_ko[:]
+    #subpath_root_ko[:] = subpath_root_ko[:]
 
     #identify_longest_subpaths(
     #    natoms, parent_ko, subpath_length_ko, subpath_child_ko,
@@ -103,7 +102,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
     derivsum_atom_range_for_depth = []
     determine_derivsum_indices(
         natoms, n_derivsum_depths, derivsum_path_depth_ko,
-        subpath_length_ko, is_derivsum_leaf_ko, is_derivsum_root_ko,
+        subpath_length_ko, is_derivsum_leaf_ko, subpath_root_ko,
         derivsum_atom_range_for_depth, parent_ko, ki2dsi, dsi2ki,
         non_path_children_ko, non_path_children_dso, is_leaf_dso
     )
@@ -120,7 +119,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         branching_factor_ko, subpath_child_ko,
         subpath_length_ko, subpath_root_ko, atom_depth_ko,
         atom_range_for_depth, subpath_root_ro, n_derivsum_depths,
-        is_derivsum_root_ko, is_derivsum_leaf_ko,
+        is_derivsum_leaf_ko,
         is_leaf_dso, n_nonpath_children_ko,
         derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki,
         non_path_children_ko, non_path_children_dso, hts_ro_d, non_subpath_parent_ro_d,
@@ -349,7 +348,7 @@ def determine_refold_indices(
 
 def determine_derivsum_indices(
         natoms, n_derivsum_depths, derivsum_path_depth_ko,
-        subpath_length_ko, is_derivsum_leaf_ko, is_derivsum_root_ko,
+        subpath_length_ko, is_derivsum_leaf_ko, subpath_root_ko,
         derivsum_atom_range_for_depth, parent_ko, ki2dsi, dsi2ki,
         non_path_children_ko, non_path_children_dso, is_leaf_dso
 ):
@@ -371,7 +370,7 @@ def determine_derivsum_indices(
     for ii in range(n_derivsum_depths):
         ii_leaves = derivsum_leaves[leaf_path_depths == ii]
         finalize_derivsum_indices(
-            ii_leaves, depth_offsets[ii], parent_ko, is_derivsum_root_ko,
+            ii_leaves, depth_offsets[ii], parent_ko, subpath_root_ko,
             ki2dsi, dsi2ki
         )
 
@@ -604,26 +603,26 @@ def segscan_hts_gpu(hts_ko, refold_data):
 
 def mark_derivsum_first_children(
         natoms, parent_ko, subpath_child_ko,
-        n_nonpath_children_ko, is_derivsum_root_ko, is_derivsum_leaf_ko
+        n_nonpath_children_ko, subpath_root_ko, is_derivsum_leaf_ko
 ):
     for ii in range(natoms - 1, -1, -1):
         ii_parent = parent_ko[ii]
         if ii == ii_parent:
-            is_derivsum_root_ko[ii] = True
+            subpath_root_ko[ii] = True
         elif subpath_child_ko[ii_parent] != ii:
             n_nonpath_children_ko[ii_parent] += 1
-            is_derivsum_root_ko[ii] = True
+            subpath_root_ko[ii] = True
         is_derivsum_leaf_ko[ii] = subpath_child_ko[ii] == -1
-    #print("rd.is_derivsum_root_ko")
-    #print(rd.is_derivsum_root_ko)
+    #print("rd.subpath_root_ko")
+    #print(rd.subpath_root_ko)
 
 
 def list_non_first_derivsum_children(
-        natoms, is_derivsum_root_ko, parent_ko, non_path_children_ko
+        natoms, subpath_root_ko, parent_ko, non_path_children_ko
 ):
     count_n_nonfirst_children = numpy.zeros((natoms), dtype=numpy.int32)
     for ii in range(natoms):
-        if is_derivsum_root_ko[ii]:
+        if subpath_root_ko[ii]:
             ii_parent = parent_ko[ii]
             if ii_parent == ii: continue
             ii_child_ind = count_n_nonfirst_children[ii_parent]
@@ -634,7 +633,7 @@ def list_non_first_derivsum_children(
 
 def find_derivsum_path_depths(
         natoms, subpath_child_ko, derivsum_path_depth_ko,
-        non_path_children_ko, is_derivsum_root_ko, subpath_length_ko
+        non_path_children_ko, subpath_root_ko, subpath_length_ko
 ):
     for ii in range(natoms - 1, -1, -1):
         # my depth is the larger of my first child's depth, or
@@ -656,7 +655,7 @@ def find_derivsum_path_depths(
         # if this is the root of a derivsum path (remember, paths are summed
         # leaf to root), then visit all of the nodes on the path and mark them
         # with my depth. I'm not sure this is necessary
-        if is_derivsum_root_ko[ii]:
+        if subpath_root_ko[ii]:
             next_node = subpath_child_ko[ii]
             path_length = 1
             leaf_node = ii
