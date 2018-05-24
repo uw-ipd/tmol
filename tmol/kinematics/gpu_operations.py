@@ -93,7 +93,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
     )
 
-    hts_ro_d, is_root_ro_d, ri2ki_d, ki2ri_d, non_subpath_parent_ro_d = \
+    is_root_ro_d, ri2ki_d, ki2ri_d, non_subpath_parent_ro_d = \
         send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro)
 
 
@@ -121,7 +121,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         atom_depth_ko, atom_range_for_depth, subpath_root_ro,
         is_leaf_dso, n_nonpath_children_ko,
         derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki,
-        non_path_children_ko, non_path_children_dso, hts_ro_d, non_subpath_parent_ro_d,
+        non_path_children_ko, non_path_children_dso, non_subpath_parent_ro_d,
         is_root_ro_d, ri2ki_d, ki2ri_d, ki2dsi_d, f1f2s_dso_d, is_leaf_dso_d,
         non_path_children_dso_d
     )
@@ -391,13 +391,12 @@ def determine_derivsum_indices(
 
 
 def send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro):
-    hts_ro_d = cuda.to_device(numpy.zeros((natoms, 12), dtype=numpy.float64))
     is_root_ro_d = cuda.to_device(subpath_root_ro)
     ri2ki_d = cuda.to_device(ri2ki)
     ki2ri_d = cuda.to_device(ki2ri)
     non_subpath_parent_ro_d = cuda.to_device(non_subpath_parent_ro)
 
-    return hts_ro_d, is_root_ro_d, ri2ki_d, ki2ri_d, non_subpath_parent_ro_d
+    return is_root_ro_d, ri2ki_d, ki2ri_d, non_subpath_parent_ro_d
 
 
 @cuda.jit
@@ -584,20 +583,22 @@ def get_devicendarray(t):
 def segscan_hts_gpu(hts_ko, refold_data):
     rd = refold_data
 
+    hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
+
     nblocks = (rd.natoms - 1) // 512 + 1
     reorder_starting_hts[nblocks, 512](
-        rd.natoms, hts_ko, rd.hts_ro_d, rd.ki2ri_d
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
     )
 
     # for each depth, run a separate segmented scan
     for iirange in rd.atom_range_for_depth:
         #print(iirange)
         segscan_ht_interval[1, 256](
-            rd.hts_ro_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
+            hts_ro_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
             rd.natoms, iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks, 512](rd.natoms, hts_ko, rd.hts_ro_d, rd.ki2ri_d)
+    reorder_final_hts[nblocks, 512](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
 
 def mark_derivsum_first_children(

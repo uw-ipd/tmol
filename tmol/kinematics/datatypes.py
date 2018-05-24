@@ -212,7 +212,6 @@ class RefoldData:
     non_path_children_ko: numpy.array
     non_path_children_dso: numpy.array
 
-    hts_ro_d: numba.types.Array
     non_subpath_parent_ro_d: numba.types.Array
     is_root_ro_d: numba.types.Array
     ri2ki_d: numba.types.Array
