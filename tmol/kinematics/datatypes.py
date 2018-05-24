@@ -196,14 +196,13 @@ class RefoldData:
     branching_factor_ko: numpy.array
     subpath_child_ko: numpy.array
     subpath_length_ko: numpy.array
-    subpath_root_ko: numpy.array
+    is_subpath_root_ko: numpy.array
+    is_subpath_leaf_ko: numpy.array
     atom_depth_ko: numpy.array
     atom_range_for_depth: typing.List[typing.Tuple[int, int]]
     subpath_root_ro: numpy.array
 
     # Data used for f1f2 summation
-    n_derivsum_depths: int
-    is_derivsum_leaf_ko: numpy.array
     is_leaf_dso: numpy.array
     n_nonpath_children_ko: numpy.array
     derivsum_path_depth_ko: numpy.array
