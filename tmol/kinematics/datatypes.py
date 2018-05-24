@@ -192,11 +192,11 @@ class RefoldData:
 
     # Data used for forward kinematics
     parent_ko: numpy.array
-    parent_ro: numpy.array
+    non_subpath_parent_ro: numpy.array
     branching_factor_ko: numpy.array
     branchiest_child_ko: numpy.array
-    child_on_subpath_ko: numpy.array
-    len_longest_subpath_ko: Tensor(torch.long)[...]
+    child_on_refold_subpath_ko: numpy.array
+    subpath_length_ko: numpy.array
     subpath_root_ko: numpy.array
     atom_depth_ko: numpy.array
     atom_range_for_depth: typing.List[typing.Tuple[int, int]]
@@ -206,7 +206,6 @@ class RefoldData:
     n_derivsum_depths: int
     is_derivsum_root_ko: numpy.array
     is_derivsum_leaf_ko: numpy.array
-    derivsum_path_length_ko: numpy.array
     is_leaf_dso: numpy.array
     derivsum_first_child_ko: numpy.array
     n_nonpath_children_ko: numpy.array
@@ -218,7 +217,7 @@ class RefoldData:
     non_path_children_dso: numpy.array
 
     hts_ro_d: numba.types.Array
-    parent_ro_d: numba.types.Array
+    non_subpath_parent_ro_d: numba.types.Array
     is_root_d: numba.types.Array
     ri2ki_d: numba.types.Array
     ki2ri_d: numba.types.Array

@@ -52,7 +52,7 @@ def gradcheck_test_system(
                   DOFMetadata,
                   Tensor("f8")[:, 3],
                   ]:
-    tsys = PackedResidueSystem.from_residues(ubq_res[:4])
+    tsys = PackedResidueSystem.from_residues(ubq_res[9:10])
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
     coords = torch.from_numpy(tsys.coords)
