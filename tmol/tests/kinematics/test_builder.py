@@ -100,7 +100,9 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     #).kintree
     #kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
-    refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(kintree)
+    refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(
+        kintree
+    )
 
     for ii_ki in range(refold_data.natoms):
         parent_ki = refold_data.parent_ko[ii_ki]
@@ -116,17 +118,19 @@ def test_gpu_refold_ordering(gradcheck_test_system):
 
     for ii in range(refold_data.natoms):
         for jj in range(refold_data.non_path_children_ko.shape[1]):
-            child = refold_data.non_path_children_ko[ii,jj]
-            assert child == -1 or refold_data.parent_ko[ child ] == ii
+            child = refold_data.non_path_children_ko[ii, jj]
+            assert child == -1 or refold_data.parent_ko[child] == ii
         first_child = refold_data.derivsum_first_child_ko[ii]
         assert first_child == -1 or refold_data.parent_ko[first_child] == ii
 
     for ii in range(refold_data.natoms):
         for jj in range(refold_data.non_path_children_ko.shape[1]):
-            child = refold_data.non_path_children_dso[ii,jj]
+            child = refold_data.non_path_children_dso[ii, jj]
             ii_ki = refold_data.dsi2ki[ii]
             #print(ii,ii_ki,jj,"child",child,"child dsi",refold_data.dsi2ki[child],refold_data.parent_ko[refold_data.dsi2ki[child]])
-            assert child == -1 or ii_ki == refold_data.parent_ko[refold_data.dsi2ki[child]]
+            assert child == -1 or ii_ki == refold_data.parent_ko[
+                refold_data.dsi2ki[child]
+            ]
 
     dofs = backwardKin(kintree, kincoords).dofs
 
@@ -147,8 +151,8 @@ def test_gpu_refold_ordering(gradcheck_test_system):
 
     tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
 
-    HTs = HTs_d.copy_to_host()
-    refold_kincoords = HTs[:, :3, 3].copy()
+    #HTs = HTs_d.copy_to_host()
+    refold_kincoords = HTs.numpy()[:, :3, 3].copy()
 
     # needed for ubq_system, but not gradcheck_test_system:
     # refold_kincoords[0, :] = numpy.nan
@@ -164,14 +168,17 @@ def test_gpu_refold_ordering(gradcheck_test_system):
     #    "--- refold %f seconds ---" % ((time.time() - start_time) / 10000)
     #)
 
-
     # ok, now, let's see that f1f2 summation is functioning properly
-    f1s = torch.arange(refold_data.natoms*3,dtype=torch.float64).reshape((refold_data.natoms,3))/512.
-    f2s = torch.arange(refold_data.natoms*3,dtype=torch.float64).reshape((refold_data.natoms,3))/512.
+    f1s = torch.arange(
+        refold_data.natoms * 3, dtype=torch.float64
+    ).reshape((refold_data.natoms, 3)) / 512.
+    f2s = torch.arange(
+        refold_data.natoms * 3, dtype=torch.float64
+    ).reshape((refold_data.natoms, 3)) / 512.
 
-    f1f2s = numpy.zeros((refold_data.natoms,6))
-    f1f2s[:,0:3] = f1s
-    f1f2s[:,3:6] = f2s
+    f1f2s = numpy.zeros((refold_data.natoms, 6))
+    f1f2s[:, 0:3] = f1s
+    f1f2s[:, 3:6] = f2s
 
     SegScan(f1s, kintree.parent, Fscollect, True)
     SegScan(f2s, kintree.parent, Fscollect, True)
@@ -181,10 +188,10 @@ def test_gpu_refold_ordering(gradcheck_test_system):
 
     f1f2s = f1f2s_d.copy_to_host()
 
-    f1f2s_gold = numpy.concatenate((f1s,f2s),axis=1)
+    f1f2s_gold = numpy.concatenate((f1s, f2s), axis=1)
 
     # clear the 0th entry; its contents are garbage
-    f1f2s_gold[0,:] = 0;
-    f1f2s[0,:] = 0
+    f1f2s_gold[0, :] = 0
+    f1f2s[0, :] = 0
 
     numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)
