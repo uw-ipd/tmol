@@ -216,7 +216,7 @@ class RefoldData:
 
     hts_ro_d: numba.types.Array
     non_subpath_parent_ro_d: numba.types.Array
-    is_root_d: numba.types.Array
+    is_root_ro_d: numba.types.Array
     ri2ki_d: numba.types.Array
     ki2ri_d: numba.types.Array
 

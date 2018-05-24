@@ -39,7 +39,6 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
     is_derivsum_leaf_ko = numpy.full((natoms), False, dtype="bool")
     #derivsum_path_length_ko = numpy.full((natoms), 0, dtype="int32")
     is_leaf_dso = numpy.full((natoms), False, dtype="bool")
-    is_root_dso = numpy.full((natoms), False, dtype="bool")
     derivsum_first_child_ko = numpy.full((natoms), -1, dtype="int32")
     n_nonpath_children_ko = numpy.full((natoms), 0, dtype="int32")
     derivsum_path_depth_ko = numpy.full((natoms), -1, dtype="int32")
@@ -95,7 +94,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
     )
 
-    hts_ro_d, is_root_d, ri2ki_d, ki2ri_d, non_subpath_parent_ro_d = \
+    hts_ro_d, is_root_ro_d, ri2ki_d, ki2ri_d, non_subpath_parent_ro_d = \
         send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro)
 
 
@@ -125,7 +124,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         is_leaf_dso, n_nonpath_children_ko,
         derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki,
         non_path_children_ko, non_path_children_dso, hts_ro_d, non_subpath_parent_ro_d,
-        is_root_d, ri2ki_d, ki2ri_d, ki2dsi_d, f1f2s_dso_d, is_leaf_dso_d,
+        is_root_ro_d, ri2ki_d, ki2ri_d, ki2dsi_d, f1f2s_dso_d, is_leaf_dso_d,
         non_path_children_dso_d
     )
 
@@ -171,7 +170,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
 ###
 ###       hts_ro_d: numba.types.Array = None
 ###       non_subpath_parent_ro_d: numba.types.Array = None
-###       is_root_d: numba.types.Array = None
+###       is_root_ro_d: numba.types.Array = None
 ###       ri2ki_d: numba.types.Array = None
 ###       ki2ri_d: numba.types.Array = None
 ###
@@ -205,7 +204,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
 ###                                                     0,
 ###                                                     dtype="int32")
 ###           self.is_leaf_dso = numpy.full((self.natoms), False, dtype="bool")
-###           self.is_root_dso = numpy.full((self.natoms), False, dtype="bool")
+###           self.is_root_ro_dso = numpy.full((self.natoms), False, dtype="bool")
 ###           self.derivsum_first_child_ko = numpy.full((self.natoms),
 ###                                                     -1,
 ###                                                     dtype="int32")
@@ -395,12 +394,12 @@ def determine_derivsum_indices(
 
 def send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro):
     hts_ro_d = cuda.to_device(numpy.zeros((natoms, 12), dtype=numpy.float64))
-    is_root_d = cuda.to_device(subpath_root_ro)
+    is_root_ro_d = cuda.to_device(subpath_root_ro)
     ri2ki_d = cuda.to_device(ri2ki)
     ki2ri_d = cuda.to_device(ki2ri)
     non_subpath_parent_ro_d = cuda.to_device(non_subpath_parent_ro)
 
-    return hts_ro_d, is_root_d, ri2ki_d, ki2ri_d, non_subpath_parent_ro_d
+    return hts_ro_d, is_root_ro_d, ri2ki_d, ki2ri_d, non_subpath_parent_ro_d
 
 
 @cuda.jit
@@ -596,8 +595,8 @@ def segscan_hts_gpu(hts_ko, refold_data):
     for iirange in rd.atom_range_for_depth:
         #print(iirange)
         segscan_ht_interval[1, 256](
-            rd.hts_ro_d, rd.is_root_d, rd.non_subpath_parent_ro_d, rd.natoms, iirange[0],
-            iirange[1]
+            rd.hts_ro_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
+            rd.natoms, iirange[0], iirange[1]
         )
 
     reorder_final_hts[nblocks, 512](rd.natoms, hts_ko, rd.hts_ro_d, rd.ki2ri_d)
