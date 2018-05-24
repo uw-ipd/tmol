@@ -17,6 +17,50 @@ from .datatypes import KinTree, RefoldData
 
 @validate_args
 def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
+    '''Constructs a RefoldData object for a given KinTree
+
+    The RefoldObject divides the tree into a set of paths. Along each
+    path is a continuous chain of atoms that either 1) require their
+    coordinate frames computed as a cumulative product of homogeneous
+    transforms for the coordinate update algorithm, or 2) require the
+    cumulative sum of their f1f2 vectors for the derivative calculation
+    algorithm. In both cases, these paths can be processed efficiently
+    on the GPU using an algorithm called "scan."
+
+    Each path in the tree is labeled with a depth: a path with depth
+    i may depend on the values computed for atoms with depths 0..i-1.
+    All of the paths of the same depth can be processed in a single
+    kernel execution using a variation on scan called "segmented scan."
+
+    In order to divide the tree into these paths, this class constructs
+    two reorderings of the atoms: a refold ordering (ro) using refold
+    indices (ri) and a derivsum ordering (dso) using derivsum indices (di).
+    The original ordering from the kintree is the kintree ordering (ko)
+    using kintree indices (ki). The indexing in this code is HAIRY, and
+    so all arrays are labled with the indexing they are using. There are
+    two sets of interconversion arrays for going from kintree indexing
+    to 1) refold indexing, and to 2) derivsum indexing: ki2ri & ri2ki and
+    ki2dsi & dsi2ki.
+
+    The algorithm for dividing the tree into paths minimizes the number
+    of depths in the tree. For any node in the tree, one of its children
+    will be in the same path with it, and all other children will be
+    roots of their own subtrees. The minimum-depth division of paths
+    is computed by lableling the "branching factor" of each atom. The
+    branching factor of an atom is 0 if it has no children; if it does
+    have children, it is the largest of the branching factors of what
+    the atom designates as its on-path child and one-greater than the
+    branching factor of any of its other children. Each node then may
+    select the child with the largest branching factor as its on-path
+    child to minimize its branching factor. This division produces
+    a minimum depth tree of paths.
+
+    The same set of paths is used for both the refold algorithm and
+    the derivative summation; the refold algorithm starts at path
+    roots and multiplies homogeneous transforms towards the leaves.
+    The derivative summation algorithm starts at the leaves and sums
+    upwards towards the roots.
+    '''
 
     natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro, \
         branching_factor_ko, subpath_child_ko, \
