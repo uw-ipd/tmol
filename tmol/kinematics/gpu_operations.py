@@ -111,7 +111,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
     #print("dsi2ki"); print(dsi2ki)
     #print("non_path_children_dso"); print(non_path_children_dso)
 
-    ki2dsi_d, f1f2s_dso_d, is_leaf_dso_d, non_path_children_dso_d = \
+    ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d = \
         send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso)
 
     return RefoldData(
@@ -122,7 +122,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         is_leaf_dso, n_nonpath_children_ko,
         derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki,
         non_path_children_ko, non_path_children_dso, non_subpath_parent_ro_d,
-        is_root_ro_d, ri2ki_d, ki2ri_d, ki2dsi_d, f1f2s_dso_d, is_leaf_dso_d,
+        is_root_ro_d, ri2ki_d, ki2ri_d, ki2dsi_d, is_leaf_dso_d,
         non_path_children_dso_d
     )
 
@@ -690,12 +690,10 @@ def send_derivsum_data_to_gpu(
         natoms, ki2dsi, is_leaf_dso, non_path_children_dso
 ):
     ki2dsi_d = cuda.to_device(ki2dsi)
-    f1f2s_dso_d = \
-        cuda.to_device(numpy.zeros((natoms,6),dtype="float64"))
     is_leaf_dso_d = cuda.to_device(is_leaf_dso)
     non_path_children_dso_d = \
         cuda.to_device(non_path_children_dso)
-    return ki2dsi_d, f1f2s_dso_d, is_leaf_dso_d, non_path_children_dso_d
+    return ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d
 
 
 @cuda.jit(device=True)
@@ -817,17 +815,19 @@ def segscan_f1f2s_up_tree(
 
 def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
     rd = refold_data
+    f1f2s_dso_d = cuda.device_array((rd.natoms,6),dtype="float64")
+
     nblocks = (rd.natoms - 1) // 512 + 1
     reorder_starting_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, rd.f1f2s_dso_d, rd.ki2dsi_d
+        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
     )
 
     for iirange in rd.derivsum_atom_range_for_depth:
         segscan_f1f2s_up_tree[1, 512](
-            rd.f1f2s_dso_d, rd.non_path_children_dso_d, rd.is_leaf_dso_d,
+            f1f2s_dso_d, rd.non_path_children_dso_d, rd.is_leaf_dso_d,
             iirange[0], iirange[1], rd.natoms
         )
 
     reorder_final_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, rd.f1f2s_dso_d, rd.ki2dsi_d
+        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
     )

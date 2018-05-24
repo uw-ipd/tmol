@@ -218,6 +218,5 @@ class RefoldData:
     ki2ri_d: numba.types.Array
 
     ki2dsi_d: numba.types.Array
-    f1f2s_dso_d: numba.types.Array
     is_leaf_dso_d: numba.types.Array
     non_path_children_dso_d: numba.types.Array
