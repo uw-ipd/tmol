@@ -77,21 +77,18 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
         natoms, parent_ko, branching_factor_ko, subpath_child_ko
     )
 
-    # F1F2 summation
-    mark_derivsum_first_children(
+    mark_path_children_and_count_nonpath_children(
         natoms, parent_ko, subpath_child_ko,
         n_nonpath_children_ko, is_subpath_root_ko, is_subpath_leaf_ko
     )
 
     max_n_nonpath_children = max(n_nonpath_children_ko)
-    non_path_children_ko = numpy.full((natoms, max_n_nonpath_children),
-                                      -1,
-                                      dtype="int32")
-    non_path_children_dso = numpy.full((natoms, max_n_nonpath_children),
-                                       -1,
-                                       dtype="int32")
+    non_path_children_ko = numpy.full(
+        (natoms, max_n_nonpath_children), -1, dtype="int32")
+    non_path_children_dso = numpy.full(
+        (natoms, max_n_nonpath_children), -1, dtype="int32")
 
-    list_non_first_derivsum_children(
+    list_nonpath_children(
         natoms, is_subpath_root_ko, parent_ko, non_path_children_ko
     )
 
@@ -108,7 +105,7 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
     #    is_subpath_root_ko
     #)
  
-    identify_path_depths(natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko)
+    find_refold_path_depths(natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko)
     ndepths = max(refold_atom_depth_ko) + 1
 
     refold_atom_range_for_depth = []
@@ -118,7 +115,6 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
         subpath_length_ko, refold_atom_range_for_depth, subpath_child_ko,
         ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
     )
-
 
     n_derivsum_depths = derivsum_path_depth_ko[0] + 1
 
@@ -133,8 +129,6 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
     #print("ki2dsi"); print(ki2dsi)
     #print("dsi2ki"); print(dsi2ki)
     #print("non_path_children_dso"); print(non_path_children_dso)
-
-
 
     return (
         natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro,
@@ -182,7 +176,7 @@ def identify_longest_subpaths(
 
 
 @numba.jit(nopython=True)
-def identify_path_depths(natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko):
+def find_refold_path_depths(natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko):
     for ii in range(natoms):
         ii_parent = parent_ko[ii]
         ii_depth = refold_atom_depth_ko[ii_parent]
@@ -519,7 +513,7 @@ def segscan_hts_gpu(hts_ko, refold_data):
 
 
 @numba.jit(nopython=True)
-def mark_derivsum_first_children(
+def mark_path_children_and_count_nonpath_children(
         natoms, parent_ko, subpath_child_ko,
         n_nonpath_children_ko, is_subpath_root_ko, is_subpath_leaf_ko
 ):
@@ -536,7 +530,7 @@ def mark_derivsum_first_children(
 
 
 @numba.jit(nopython=True)
-def list_non_first_derivsum_children(
+def list_nonpath_children(
         natoms, is_subpath_root_ko, parent_ko, non_path_children_ko
 ):
     count_n_nonfirst_children = numpy.zeros((natoms), dtype=numpy.int32)
