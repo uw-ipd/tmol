@@ -102,9 +102,21 @@ def test_gpu_refold_ordering(gradcheck_test_system):
 
     refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(kintree)
 
+    for ii_ki in range(refold_data.natoms):
+        parent_ki = refold_data.parent_ko[ii_ki]
+        ii_ri = refold_data.ki2ri[ii_ki]
+        parent_ri = refold_data.ki2ri[parent_ki]
+        assert parent_ki == ii_ki or \
+            refold_data.parent_ro[ii_ri] == -1 or \
+            refold_data.parent_ro[ii_ri] == parent_ri
+
+        child_ki = refold_data.child_on_subpath_ko[ii_ki]
+        assert child_ki == -1 or \
+            refold_data.parent_ro[refold_data.ki2ri[child_ki]] == -1
+
     for ii in range(refold_data.natoms):
         for jj in range(refold_data.non_path_children_ko.shape[1]):
-            child = refold_data.non_path_children_ko[ii,jj] 
+            child = refold_data.non_path_children_ko[ii,jj]
             assert child == -1 or refold_data.parent_ko[ child ] == ii
         first_child = refold_data.derivsum_first_child_ko[ii]
         assert first_child == -1 or refold_data.parent_ko[first_child] == ii
