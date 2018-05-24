@@ -32,7 +32,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
     child_on_refold_subpath_ko = numpy.full((natoms), -1, dtype="int32")
     subpath_length_ko = numpy.zeros((natoms), dtype="int32")
     is_subpath_root_ko = numpy.full((natoms), False, dtype="bool")
-    atom_depth_ko = numpy.zeros((natoms), dtype="int32")
+    refold_atom_depth_ko = numpy.zeros((natoms), dtype="int32")
     subpath_root_ro = numpy.full((natoms), True, dtype="bool")
 
     is_subpath_leaf_ko = numpy.full((natoms), False, dtype="bool")
@@ -82,14 +82,14 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
     #    is_subpath_root_ko
     #)
  
-    identify_path_depths(natoms, parent_ko, atom_depth_ko, is_subpath_root_ko)
-    ndepths = max(atom_depth_ko) + 1
+    identify_path_depths(natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko)
+    ndepths = max(refold_atom_depth_ko) + 1
 
-    atom_range_for_depth = []
+    refold_atom_range_for_depth = []
 
     determine_refold_indices(
-        natoms, ndepths, atom_depth_ko, is_subpath_root_ko,
-        subpath_length_ko, atom_range_for_depth, subpath_child_ko,
+        natoms, ndepths, refold_atom_depth_ko, is_subpath_root_ko,
+        subpath_length_ko, refold_atom_range_for_depth, subpath_child_ko,
         ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
     )
 
@@ -115,16 +115,24 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
         send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso)
 
     return RefoldData(
-        natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro,
-        branching_factor_ko, subpath_child_ko,
-        subpath_length_ko, is_subpath_root_ko, is_subpath_leaf_ko,
-        atom_depth_ko, atom_range_for_depth, subpath_root_ro,
-        is_leaf_dso, n_nonpath_children_ko,
-        derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki,
-        non_path_children_ko, non_path_children_dso, non_subpath_parent_ro_d,
+        natoms, 
+        refold_atom_range_for_depth, derivsum_atom_range_for_depth,
+        non_subpath_parent_ro_d,
         is_root_ro_d, ki2ri_d, ki2dsi_d, is_leaf_dso_d,
         non_path_children_dso_d
     )
+
+    #return RefoldData(
+    #    natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro,
+    #    branching_factor_ko, subpath_child_ko,
+    #    subpath_length_ko, is_subpath_root_ko, is_subpath_leaf_ko,
+    #    refold_atom_depth_ko, refold_atom_range_for_depth, subpath_root_ro,
+    #    is_leaf_dso, n_nonpath_children_ko,
+    #    derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki,
+    #    non_path_children_ko, non_path_children_dso, non_subpath_parent_ro_d,
+    #    is_root_ro_d, ki2ri_d, ki2dsi_d, is_leaf_dso_d,
+    #    non_path_children_dso_d
+    #)
 
 
 ###   @attr.s(auto_attribs=True)
@@ -146,9 +154,9 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
 ###       child_on_refold_subpath_ko: numpy.array = attr.ib(init=False)
 ###       subpath_length_ko: Tensor(torch.long)[...] = attr.ib(init=False)
 ###       is_subpath_root_ko: numpy.array = attr.ib(init=False)
-###       atom_depth_ko: numpy.array = attr.ib(init=False)
+###       refold_atom_depth_ko: numpy.array = attr.ib(init=False)
 ###       depth_offsets: numpy.array = None
-###       atom_range_for_depth: typing.List[typing.Tuple[int, int]] = None
+###       refold_atom_range_for_depth: typing.List[typing.Tuple[int, int]] = None
 ###       subpath_root_ro: numpy.array = attr.ib(init=False)
 ###
 ###       # Data used for f1f2 summation
@@ -189,7 +197,7 @@ def refold_data_from_kintree(kintree: KinTree) -> RefoldData:
 ###                                                 ) * -1
 ###           self.subpath_length_ko = numpy.zeros((self.natoms), dtype="int32")
 ###           self.is_subpath_root_ko = numpy.full((self.natoms), True, dtype="bool")
-###           self.atom_depth_ko = numpy.zeros((self.natoms), dtype="int32")
+###           self.refold_atom_depth_ko = numpy.zeros((self.natoms), dtype="int32")
 ###           self.subpath_root_ro = numpy.full((self.natoms), True, dtype="bool")
 ###
 ###           self.is_derivsum_root_ko = numpy.full((self.natoms),
@@ -263,13 +271,13 @@ def identify_longest_subpaths(
 
 
 @numba.jit(nopython=True)
-def identify_path_depths(natoms, parent_ko, atom_depth_ko, is_subpath_root_ko):
+def identify_path_depths(natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko):
     for ii in range(natoms):
         ii_parent = parent_ko[ii]
-        ii_depth = atom_depth_ko[ii_parent]
+        ii_depth = refold_atom_depth_ko[ii_parent]
         if is_subpath_root_ko[ii] and ii_parent != ii:
             ii_depth += 1
-        atom_depth_ko[ii] = ii_depth
+        refold_atom_depth_ko[ii] = ii_depth
 
 
 #def recursively_identify_path_depths(kintree, refold_data, kin_atom_ind):
@@ -278,10 +286,10 @@ def identify_path_depths(natoms, parent_ko, atom_depth_ko, is_subpath_root_ko):
 #    kt = kintree
 #
 #    parent = kt.parent[kin_atom_ind]
-#    depth = rd.atom_depth_ko[parent]
+#    depth = rd.refold_atom_depth_ko[parent]
 #    if rd.is_subpath_root_ko[kin_atom_ind] and parent != kin_atom_ind:
 #        depth += 1
-#    rd.atom_depth_ko[kin_atom_ind] = depth
+#    rd.refold_atom_depth_ko[kin_atom_ind] = depth
 #    recursively_identify_path_depths(kintree, refold_data, kin_atom_ind+1)
 
 #def recursively_assign_refold_indices(kintree, refold_data, kin_atom_ind, refold_index):
@@ -309,24 +317,24 @@ def finalize_refold_indices(
 
 
 def determine_refold_indices(
-        natoms, ndepths, atom_depth_ko, is_subpath_root_ko,
-        subpath_length_ko, atom_range_for_depth, subpath_child_ko,
+        natoms, ndepths, refold_atom_depth_ko, is_subpath_root_ko,
+        subpath_length_ko, refold_atom_range_for_depth, subpath_child_ko,
         ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
 ):
     # sum the path lengths at each depth
     depth_offsets = numpy.zeros((ndepths), dtype="int32")
     numpy.add.at(
-        depth_offsets, atom_depth_ko[is_subpath_root_ko],
+        depth_offsets, refold_atom_depth_ko[is_subpath_root_ko],
         subpath_length_ko[is_subpath_root_ko]
     )
     depth_offsets[1:] = numpy.cumsum(depth_offsets)[:-1]
     depth_offsets[0] = 0
     for i in range(ndepths - 1):
-        atom_range_for_depth.append((depth_offsets[i], depth_offsets[i + 1]))
-    atom_range_for_depth.append((depth_offsets[-1], natoms))
+        refold_atom_range_for_depth.append((depth_offsets[i], depth_offsets[i + 1]))
+    refold_atom_range_for_depth.append((depth_offsets[-1], natoms))
 
     subpath_roots = numpy.nonzero(is_subpath_root_ko)[0]
-    root_depths = atom_depth_ko[subpath_roots]
+    root_depths = refold_atom_depth_ko[subpath_roots]
     for ii in range(ndepths):
         ii_roots = subpath_roots[root_depths == ii]
         finalize_refold_indices(
@@ -590,7 +598,7 @@ def segscan_hts_gpu(hts_ko, refold_data):
     )
 
     # for each depth, run a separate segmented scan
-    for iirange in rd.atom_range_for_depth:
+    for iirange in rd.refold_atom_range_for_depth:
         #print(iirange)
         segscan_ht_interval[1, 256](
             hts_ro_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,

@@ -185,32 +185,17 @@ class JumpDOF(TensorGroup, ConvertAttrs):
 
 @attr.s(auto_attribs=True, frozen=True)
 class RefoldData:
+    '''The refold data class partitions a KinTree into a set of paths so that
+    scan can be run on each path 1) from root to leaf for forward kinematics, and
+    2) from leaf to root for f1f2 derivative summation. To accomplish this, the
+    RefoldData class reorders the atoms from the original KinTree order ("ko")
+    where atoms are known by their kintree-index ("ki") into 1) their refold order
+    ("ro") where atoms are known by their refold index ("ri") and 2) their 
+    deriv-sum order ("dso") where atoms are known by their deriv-sum index.'''
+
     natoms: int
-    ndepths: int
-    ri2ki: numpy.array
-    ki2ri: numpy.array
-
-    # Data used for forward kinematics
-    parent_ko: numpy.array
-    non_subpath_parent_ro: numpy.array
-    branching_factor_ko: numpy.array
-    subpath_child_ko: numpy.array
-    subpath_length_ko: numpy.array
-    is_subpath_root_ko: numpy.array
-    is_subpath_leaf_ko: numpy.array
-    atom_depth_ko: numpy.array
-    atom_range_for_depth: typing.List[typing.Tuple[int, int]]
-    subpath_root_ro: numpy.array
-
-    # Data used for f1f2 summation
-    is_leaf_dso: numpy.array
-    n_nonpath_children_ko: numpy.array
-    derivsum_path_depth_ko: numpy.array
+    refold_atom_range_for_depth: typing.List[typing.Tuple[int, int]]
     derivsum_atom_range_for_depth: typing.List[typing.Tuple[int, int]]
-    ki2dsi: numpy.array
-    dsi2ki: numpy.array
-    non_path_children_ko: numpy.array
-    non_path_children_dso: numpy.array
 
     # Pointers to device arrays used in forward kinematics
     non_subpath_parent_ro_d: numba.types.Array
