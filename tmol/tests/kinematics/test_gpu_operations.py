@@ -16,6 +16,7 @@ from tmol.tests.kinematics.test_torch_op import gradcheck_test_system
 from tmol.kinematics.datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
 from tmol.kinematics.operations import BondTransforms, JumpTransforms, SegScan, Fscollect
 
+
 def test_gpu_refold_data_construction(ubq_system):
     tsys = ubq_system
     kintree = KinematicBuilder().append_connected_component(
@@ -31,7 +32,6 @@ def test_gpu_refold_data_construction(ubq_system):
         derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki, \
         non_path_children_ko, non_path_children_dso = \
         tmol.kinematics.gpu_operations.construct_refold_and_derivsum_orderings(kintree)
-
 
     for ii_ki in range(natoms):
         parent_ki = parent_ko[ii_ki]
@@ -58,6 +58,7 @@ def test_gpu_refold_data_construction(ubq_system):
             ii_ki = dsi2ki[ii]
             #print(ii,ii_ki,jj,"child",child,"child dsi",refold_data.dsi2ki[child],refold_data.parent_ko[refold_data.dsi2ki[child]])
             assert child == -1 or ii_ki == parent_ko[dsi2ki[child]]
+
 
 #def test_gpu_refold_ordering(gradcheck_test_system):
 def TEMP_test_gpu_refold_ordering(ubq_system):
@@ -140,6 +141,7 @@ def TEMP_test_gpu_refold_ordering(ubq_system):
 
     numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)
 
+
 def test_gpu_segscan2(ubq_system):
 
     numpy.set_printoptions(threshold=numpy.nan, precision=3)
@@ -193,12 +195,8 @@ def test_gpu_segscan2(ubq_system):
     numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
 
     # Timing
-    #start_time = time.time()
-    #for i in range(10000):
-    #    tmol.kinematics.datatypes.segscan_hts_gpu(HTs_d, refold_data)
-    #
-    #print(
-    #    "--- refold %f seconds ---" % ((time.time() - start_time) / 10000)
-    #)
+    start_time = time.time()
+    for i in range(1000):
+        tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
 
- 
+    print("--- refold %f seconds ---" % ((time.time() - start_time) / 1000))
