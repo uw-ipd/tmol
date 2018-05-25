@@ -60,7 +60,7 @@ def test_gpu_refold_data_construction(ubq_system):
             assert child == -1 or ii_ki == parent_ko[dsi2ki[child]]
 
 #def test_gpu_refold_ordering(gradcheck_test_system):
-def test_gpu_refold_ordering(ubq_system):
+def TEMP_test_gpu_refold_ordering(ubq_system):
 
     #numpy.set_printoptions(threshold=numpy.nan, precision=3)
 
@@ -139,3 +139,66 @@ def test_gpu_refold_ordering(ubq_system):
     f1f2s[0, :] = 0
 
     numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)
+
+def test_gpu_segscan2(ubq_system):
+
+    numpy.set_printoptions(threshold=numpy.nan, precision=3)
+
+    #kintree, dof_metadata, kincoords = gradcheck_test_system
+
+    tsys = ubq_system
+    kintree = KinematicBuilder().append_connected_component(
+        *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
+    ).kintree
+    kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
+
+    refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(
+        kintree
+    )
+
+    dofs = backwardKin(kintree, kincoords).dofs
+
+    # 1) local HTs
+    HTs = torch.empty([refold_data.natoms, 4, 4], dtype=torch.double)
+
+    assert kintree.doftype[0] == NodeType.root
+    assert kintree.parent[0] == 0
+    HTs[0] = torch.eye(4)
+
+    bondSelector = kintree.doftype == NodeType.bond
+    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
+
+    jumpSelector = kintree.doftype == NodeType.jump
+    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
+
+    HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
+
+    tmol.kinematics.gpu_operations.segscan_hts_gpu2(HTs_d, refold_data)
+
+    #HTs = HTs_d.copy_to_host()
+    refold_kincoords = HTs.numpy()[:, :3, 3].copy()
+
+    # needed for ubq_system, but not gradcheck_test_system:
+    refold_kincoords[0, :] = numpy.nan
+
+    ki2ri = refold_data.ki2ri_d.copy_to_host()
+    ri2ki = ki2ri.copy()
+    for i in range(ki2ri.shape[0]):
+        ri2ki[ki2ri[i]] = i
+
+    #for i in range(kincoords.shape[0]):
+    #    print(i, ri2ki[i], kincoords[ri2ki[i],:].numpy() - refold_kincoords[ri2ki[i],:])
+    #print("max diff:", numpy.max(numpy.abs(kincoords[1:,:].numpy() - refold_kincoords[1:,:])))
+
+    numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
+
+    # Timing
+    #start_time = time.time()
+    #for i in range(10000):
+    #    tmol.kinematics.datatypes.segscan_hts_gpu(HTs_d, refold_data)
+    #
+    #print(
+    #    "--- refold %f seconds ---" % ((time.time() - start_time) / 10000)
+    #)
+
+ 
