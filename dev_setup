@@ -45,9 +45,10 @@ def call(command):
     return subprocess.call(command, shell=True)
 
 
+check_call("environments/render")
+
 # Requires an active root conda installation see:
 # https://conda.io/miniconda.html
-check_call("requirements/render")
 check_call(
     "conda env update -n %s -f environment.%s.dev.yml" %
     (args.name, args.type)

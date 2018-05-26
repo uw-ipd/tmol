@@ -1,7 +1,6 @@
 steps:
   - label: ':hammer: Build Runner'
     command: |
-      requirements/render
       docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
   - label: ':shrug: Test'
     command: |

@@ -13,9 +13,9 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Render requirements
+          name: Render environments
           command: |
-            requirements/render
+            environments/render
 
       - restore_cache:
           keys:

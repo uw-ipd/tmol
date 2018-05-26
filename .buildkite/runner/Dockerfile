@@ -1,5 +1,4 @@
 FROM nvidia/cuda:9.1-runtime-ubuntu16.04
-
 # Installation steps from https://hub.docker.com/r/continuumio/miniconda3/~/dockerfile/
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
@@ -26,5 +25,6 @@ RUN chmod +x /usr/bin/tini
 ENTRYPOINT [ "/usr/bin/tini", "--" ]
 CMD [ "/bin/bash" ]
 
-ADD environment.cuda.test.yml /environment.yml
-RUN conda env update -n base -f /environment.yml && conda clean -tipsy
+COPY environments /environments
+RUN /environments/render
+RUN conda env update -n base -f /environment.cuda.test.yml && conda clean -tipsy
