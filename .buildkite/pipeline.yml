@@ -2,21 +2,27 @@ steps:
   - label: ':hammer: Build Runner'
     command: |
       docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
-  - label: ':shrug: Test'
+  - label: ':shrug: Testing'
+    # Run non-linting tests in a single process, relying on internal multithreading
     command: |
+      echo "--- environment"
+      conda info
+      conda list
+
       echo "--- nvidia-smi"
       nvidia-smi
 
-      failed=0
-
       echo "+++ tests"
-      # Run non-linting tests in a single process, relying on internal multithreading
       pytest -v -k 'not linting'
+    plugins:
+      uw-ipd/docker:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
 
+  - label: ':microscope: Linting'
+    command: |
       echo "+++ linting"
-      # Run linting tests in multiple processes to speed up execution
       pytest -n auto -k 'linting'
-
     plugins:
       uw-ipd/docker:
         runtime: "nvidia"
