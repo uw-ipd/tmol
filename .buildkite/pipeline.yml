@@ -1,0 +1,25 @@
+steps:
+  - label: ':hammer: Build Runner'
+    command: |
+      requirements/render
+      docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
+  - label: ':shrug: Test'
+    command: |
+      echo "--- nvidia-smi"
+      nvidia-smi
+
+      failed=0
+
+      echo "+++ tests"
+      # Run non-linting tests in a single process, relying on internal multithreading
+      (pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/test.xml 2>&1 | tee report/test.log) || failed=1
+
+      echo "+++ linting"
+      # Run linting tests in multiple processes to speed up execution
+      (pytest -n ${NUM_THREADS} -k 'linting' 2>&1 --junitxml=report/linting/linting.xml | tee report/linting.log) || failed=1
+
+      exit $failed
+    plugins:
+      uw-ipd/docker:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
