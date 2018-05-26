@@ -1,3 +1,6 @@
+# Rendered environment definitions
+environment.*.yml
+
 dask-worker-space
 
 # Created by https://www.gitignore.io/api/python,jupyternotebook

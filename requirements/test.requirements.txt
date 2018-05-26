@@ -1,0 +1,5 @@
+codecov
+yapf
+
+pytest-xdist
+pytest-faulthandler

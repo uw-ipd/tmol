@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+import io
+import os
+
+root = os.path.dirname(__file__)
+
+def render(components):
+
+    dependencies = []
+    requirements = []
+
+    for c in components:
+        dp = os.path.join(root, "%s.dependencies.txt" % c)
+        rp = os.path.join(root, "%s.requirements.txt" % c)
+
+        if os.path.exists(dp):
+            dependencies.append("# %s" % c)
+            dependencies.extend(
+                "- %s" % l.strip()
+                for l in open(dp, "r").readlines()
+                if l.strip()
+            )
+
+        if os.path.exists(rp):
+            requirements.append("# %s" % c)
+            requirements.extend(
+                "- %s" % l.strip()
+                for l in open(rp, "r").readlines()
+                if l.strip()
+            )
+
+    env = io.StringIO()
+    print("dependencies:", file=env)
+    for d in dependencies:
+        print("  %s" % d, file=env)
+    print("  - pip:", file=env)
+    for r in requirements:
+        print("    %s" % r, file=env)
+
+    return env.getvalue()
+
+with open("environment.cpu.dev.yml", "w") as of:
+    of.write(render(["core", "cpu", "test", "dev"]))
+
+with open("environment.cuda.dev.yml", "w") as of:
+    of.write(render(["core", "cuda", "test", "dev"]))
+
+with open("environment.cpu.test.yml", "w") as of:
+    of.write(render(["core", "cpu", "test"]))
+
+with open("environment.cuda.test.yml", "w") as of:
+    of.write(render(["core", "cuda", "test"]))

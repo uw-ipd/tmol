@@ -12,9 +12,14 @@ jobs:
     working_directory: ~/workspace
     steps:
       - checkout
+      - run:
+          name: Render requirements
+          command: |
+            requirements/render
+
       - restore_cache:
           keys:
-            - v1-conda-{{ checksum "environment.yml" }}
+            - v1-conda-{{ checksum "environment.cpu.test.yml" }}
       - run:
           name: Install dependencies
           command: |
@@ -23,16 +28,15 @@ jobs:
             conda install -n base 'conda>=4.5'
             conda info -a
             conda config --set always_yes yes --set changeps1 no
-            conda env update -f environment.yml
+            conda env update -n tmol -f environment.cpu.test.yml
             source activate tmol
-            pip install -r requirements.tests.txt
 
             conda clean -tipsy
       - save_cache:
           paths:
             - /opt/conda/pkgs
             - ~/.conda/pkgs
-          key: v1-conda-{{ checksum "environment.yml" }}
+          key: v1-conda-{{ checksum "environment.cpu.test.yml" }}
           background: true
 
       - run:
