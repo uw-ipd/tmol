@@ -1,5 +1,5 @@
 codecov
-yapf
+yapf==0.21
 
 pytest-xdist
 pytest-faulthandler
