@@ -1,4 +1,4 @@
-def test_failure(self):
+def test_failure():
     assert False, """Test failure.
 
     Testing multiline test failure."""

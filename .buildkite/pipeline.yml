@@ -2,6 +2,9 @@ steps:
   - label: ':hammer: Build Runner'
     command: |
       docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
+  - label: ':stop: Fail'
+    command: |
+      exit 1
   - label: ':shrug: Testing'
     # Run non-linting tests in a single process, relying on internal multithreading
     command: |
