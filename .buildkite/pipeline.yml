@@ -2,30 +2,22 @@ steps:
   - label: ':hammer: Build Runner'
     command: |
       docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
-  - label: ':bomb: Fail'
+  - label: ':clipboard: Environment'
     command: |
-      exit 1
-  - label: ':bomb: :docker: Fail'
-    command: |
-      exit 1
+      echo "--- environment"
+      conda info
+      conda list
+
+      echo "--- nvidia-smi"
+      nvidia-smi
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
 
-  - label: ':bomb: :docker: Fail'
+  - label: ':electric_plug: Setup'
     command: |
-      exit 1
-    plugins:
-      uw-ipd/docker#1861bbe:
-        runtime: "nvidia"
-        image: "tmol-runner:${BUILDKITE_JOB_ID}"
-
-  - label: ':bomb: :docker: Error Prop'
-    command: |
-      set -x
-      ONE=1
-      exit $$ONE
+      pip install -e .
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
@@ -34,26 +26,13 @@ steps:
   - label: ':shrug: Testing'
     # Run non-linting tests in a single process, relying on internal multithreading
     command: |
-      echo "--- Testing"
-      set -x
-
-      echo "--- environment"
-      conda info
-      conda list
-
-      echo "--- nvidia-smi"
-      nvidia-smi
-
-      echo "--- pip install"
-      pip install -e .
-
       echo "+++ pytest"
 
       mkdir -p report/test
 
       pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/junit.xml
 
-      export PYTEST_RESULT=$$?
+      PYTEST_RESULT=$$?
 
       echo "--- report"
       # Must upload here, rather than via artifact path, so components are available for the test summary.
@@ -78,7 +57,8 @@ steps:
   - label: ':microscope: Linting'
     command: |
       echo "+++ linting"
-      pytest -n auto -k 'linting' --junitxml=report/linting/junit.xml 2>&1 | tee report/linting/log.txt
+      
+      pytest -n auto -k 'linting' --junitxml=report/linting/junit.xml
 
       PYTEST_RESULT=$$?
 
@@ -86,7 +66,7 @@ steps:
       # Must upload here, rather than via artifact path, so components are available for the test summary.
       buildkite-agent artifact upload "report/linting/*"
 
-      exit $$PYTEST_RESULT
+      exit $${PYTEST_RESULT}
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
