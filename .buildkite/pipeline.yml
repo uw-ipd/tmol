@@ -1,9 +1,12 @@
 steps:
+  ### Assemble dependencies in runner image
   - label: ':hammer: Build Runner'
     command: |
       docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
+
+  ### Test installation from source
+  # Note that this tests setup and *does not* modify the runtime environment below.
   - label: ':electric_plug: Setup'
-    # Note that this tests setup and *does not* modify the runtime environment below.
     command: |
       pip install .
     plugins:
@@ -11,6 +14,7 @@ steps:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
 
+  ### Run tests and generate coverage reports
   - label: ':shrug: Testing'
     # Run non-linting tests in a single process, relying on internal multithreading
     command: |
@@ -32,6 +36,7 @@ steps:
           type: details
         context: test-summary
 
+  ### Run formatting/linting checks.
   - label: ':microscope: Linting'
     command: |
       pytest -n auto -k 'linting' --junitxml=linting.junit.xml
@@ -42,6 +47,7 @@ steps:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
 
+  ### Report test environment, test results and codecov
   - label: ':clipboard: Report'
     command: |
       echo "--- environment"
