@@ -29,7 +29,7 @@ steps:
       uw-ipd/docker:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
-      bugcrowd/test-summary#v1.3.0:
+      uw-ipd/test-summary:
         inputs:
           - label: tests
             artifact_path: report/test/junit.xml
@@ -50,7 +50,7 @@ steps:
       uw-ipd/docker:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
-      bugcrowd/test-summary#v1.3.0:
+      uw-ipd/test-summary:
         inputs:
           - label: linting
             artifact_path: report/linting/junit.xml
