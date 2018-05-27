@@ -70,8 +70,6 @@ jobs:
 
             .circleci/fixup_test_report.py report/test/test.xml report/linting/linting.xml
 
-            codecov -F pytest
-
             exit $failed
 
       - store_test_results:
