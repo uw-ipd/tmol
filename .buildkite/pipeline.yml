@@ -27,14 +27,6 @@ steps:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
-      uw-ipd/test-summary#8fa3c9a:
-        inputs:
-          - label: tests
-            artifact_path: report/test/junit.xml
-            type: junit
-        formatter:
-          type: details
-        context: test-summary
 
   ### Run formatting/linting checks.
   - label: ':microscope: Linting'
