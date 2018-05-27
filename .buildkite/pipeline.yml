@@ -28,6 +28,7 @@ steps:
       uw-ipd/docker:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
+        debug: true
 
   - label: ':microscope: Linting'
     command: |
