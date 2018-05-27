@@ -2,19 +2,6 @@ steps:
   - label: ':hammer: Build Runner'
     command: |
       docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
-  - label: ':clipboard: Environment'
-    command: |
-      echo "--- environment"
-      conda info
-      conda list
-
-      echo "--- nvidia-smi"
-      nvidia-smi
-    plugins:
-      uw-ipd/docker#1861bbe:
-        runtime: "nvidia"
-        image: "tmol-runner:${BUILDKITE_JOB_ID}"
-
   - label: ':electric_plug: Setup'
     command: |
       pip install -e .
@@ -34,13 +21,12 @@ steps:
 
       PYTEST_RESULT=$$?
 
-      echo "--- report"
-      # Must upload here, rather than via artifact path, so components are available for the test summary.
-      buildkite-agent artifact upload "report/test/*"
-
+      echo "--- codecov"
       codecov -F pytest
 
       exit $${PYTEST_RESULT}
+    artifact_paths:
+      - report/test/*
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
@@ -71,11 +57,25 @@ steps:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
+  - label: ':clipboard: Report'
+    command: |
+      echo "--- environment"
+      conda info
+      conda list
+
+      echo "--- nvidia-smi"
+      nvidia-smi
+    plugins:
+      uw-ipd/docker#1861bbe:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
       uw-ipd/test-summary#8fa3c9a:
         inputs:
           - label: linting
             artifact_path: report/linting/junit.xml
             type: junit
+          - label: test
+            artifact_path: report/test/junit.xml
+            type: junit
         formatter:
           type: details
-        context: test-summary
