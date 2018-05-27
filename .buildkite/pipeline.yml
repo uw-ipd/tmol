@@ -3,8 +3,9 @@ steps:
     command: |
       docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
   - label: ':electric_plug: Setup'
+    # Note that this tests setup and *does not* modify the runtime environment below.
     command: |
-      pip install -e .
+      pip install .
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
@@ -13,20 +14,11 @@ steps:
   - label: ':shrug: Testing'
     # Run non-linting tests in a single process, relying on internal multithreading
     command: |
-      echo "+++ pytest"
-
-      mkdir -p report/test
-
-      pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/junit.xml
-
-      PYTEST_RESULT=$$?
-
-      echo "--- codecov"
-      codecov -F pytest
-
-      exit $${PYTEST_RESULT}
+      pytest -v -k 'not linting' --cov=./tmol --cov-report=annotate:tmol.testing.coverage --cov-report=html:tmol.testing.coverage --junitxml=testing.junit.xml
     artifact_paths:
-      - report/test/*
+      - testing.junit.xml
+      - tmol.testing.coverage/**/*
+      - .coverage
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
@@ -42,21 +34,14 @@ steps:
 
   - label: ':microscope: Linting'
     command: |
-      echo "+++ linting"
-      
-      pytest -n auto -k 'linting' --junitxml=report/linting/junit.xml
-
-      PYTEST_RESULT=$$?
-
-      echo "--- report"
-      # Must upload here, rather than via artifact path, so components are available for the test summary.
-      buildkite-agent artifact upload "report/linting/*"
-
-      exit $${PYTEST_RESULT}
+      pytest -n auto -k 'linting' --junitxml=linting.junit.xml
+    artifact_paths:
+      - linting.junit.xml
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
+
   - label: ':clipboard: Report'
     command: |
       echo "--- environment"
@@ -65,17 +50,21 @@ steps:
 
       echo "--- nvidia-smi"
       nvidia-smi
+
+      echo "--- codecov"
+      buildkite-agent artifact download .coverage .
+      codecov -F pytest
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
       uw-ipd/test-summary#8fa3c9a:
         inputs:
-          - label: linting
-            artifact_path: report/linting/junit.xml
+          - label: Testing
+            artifact_path: testing.junit.xml
             type: junit
-          - label: test
-            artifact_path: report/test/junit.xml
+          - label: Linting
+            artifact_path: linting.junit.xml
             type: junit
         formatter:
           type: details
