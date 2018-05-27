@@ -2,9 +2,25 @@ steps:
   - label: ':hammer: Build Runner'
     command: |
       docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
-  - label: ':stop: Fail'
+  - label: ':bomb: Fail'
     command: |
       exit 1
+  - label: ':bomb: :docker: Fail'
+    command: |
+      exit 1
+    plugins:
+      uw-ipd/docker#1861bbe:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+
+  - label: ':bomb: :docker: Fail'
+    command: |
+      exit 1
+    plugins:
+      uw-ipd/docker#1861bbe:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+
   - label: ':shrug: Testing'
     # Run non-linting tests in a single process, relying on internal multithreading
     command: |
