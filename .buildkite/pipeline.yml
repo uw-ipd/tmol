@@ -18,10 +18,9 @@ steps:
   - label: ':shrug: Testing'
     # Run non-linting tests in a single process, relying on internal multithreading
     command: |
-      pytest -v -k 'not linting' --cov=./tmol --cov-report=annotate:tmol.testing.coverage --cov-report=html:tmol.testing.coverage --junitxml=testing.junit.xml
+      pytest -v -k 'not linting' --cov=./tmol --junitxml=testing.junit.xml
     artifact_paths:
       - testing.junit.xml
-      - tmol.testing.coverage/**/*
       - .coverage
     plugins:
       uw-ipd/docker#1861bbe:
