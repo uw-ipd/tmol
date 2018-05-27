@@ -37,13 +37,18 @@ steps:
       echo "+++ pytest"
 
       mkdir -p report/test
-      pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/junit.xml 2>&1 | tee report/test/log.txt
+
+      pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/junit.xml
+
+      PYTEST_RESULT=\$?
 
       echo "--- report"
       # Must upload here, rather than via artifact path, so components are available for the test summary.
       buildkite-agent artifact upload "report/test/*"
 
       codecov -F pytest
+
+      exit $PYTEST_RESULT
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
@@ -62,9 +67,13 @@ steps:
       echo "+++ linting"
       pytest -n auto -k 'linting' --junitxml=report/linting/junit.xml 2>&1 | tee report/linting/log.txt
 
+      PYTEST_RESULT=\$?
+
       echo "--- report"
       # Must upload here, rather than via artifact path, so components are available for the test summary.
       buildkite-agent artifact upload "report/linting/*"
+
+      exit $PYTEST_RESULT
     plugins:
       uw-ipd/docker#1861bbe:
         runtime: "nvidia"
