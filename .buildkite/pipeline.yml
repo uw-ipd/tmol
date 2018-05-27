@@ -23,12 +23,18 @@ steps:
       echo "--- report"
       buildkite-agent artifact upload "report/test/*"
     plugins:
-      junit-annotate#v1.2.0:
-        artifacts: report/test/test.xml
       uw-ipd/docker:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
         debug: true
+      bugcrowd/test-summary#v1.3.0:
+        inputs:
+          - label: tests
+            artifact_path: report/test/test.xml
+            type: junit
+        formatter:
+          type: details
+        context: test-summary
 
   - label: ':microscope: Linting'
     command: |
