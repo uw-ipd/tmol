@@ -12,25 +12,27 @@ steps:
       echo "--- nvidia-smi"
       nvidia-smi
 
-      echo "--- setup"
+      echo "--- pip install"
       pip install -e .
 
-      echo "+++ tests"
+      echo "+++ pytest"
 
       mkdir -p report/test
-      pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/test.xml 2>&1 | tee report/test/log.txt
+      pytest -v -k 'not linting' --cov=./tmol --junitxml=report/test/junit.xml 2>&1 | tee report/test/log.txt
 
       echo "--- report"
+      # Must upload here, rather than via artifact path, so components are available for the test summary.
       buildkite-agent artifact upload "report/test/*"
+
+      codecov -F pytest
     plugins:
       uw-ipd/docker:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
-        debug: true
       bugcrowd/test-summary#v1.3.0:
         inputs:
           - label: tests
-            artifact_path: report/test/test.xml
+            artifact_path: report/test/junit.xml
             type: junit
         formatter:
           type: details
@@ -39,8 +41,20 @@ steps:
   - label: ':microscope: Linting'
     command: |
       echo "+++ linting"
-      pytest -n auto -k 'linting'
+      pytest -n auto -k 'linting' --junitxml=report/linting/junit.xml 2>&1 | tee report/linting/log.txt
+
+      echo "--- report"
+      # Must upload here, rather than via artifact path, so components are available for the test summary.
+      buildkite-agent artifact upload "report/linting/*"
     plugins:
       uw-ipd/docker:
         runtime: "nvidia"
         image: "tmol-runner:${BUILDKITE_JOB_ID}"
+      bugcrowd/test-summary#v1.3.0:
+        inputs:
+          - label: linting
+            artifact_path: report/linting/junit.xml
+            type: junit
+        formatter:
+          type: details
+        context: test-summary
