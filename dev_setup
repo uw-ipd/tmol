@@ -1,19 +1,93 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-set -e
-set -x
+import os
+import json
+import subprocess
+import logging
+import argparse
+import platform
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+)
+
+parser = argparse.ArgumentParser(
+    description='Setup tmol development environment.'
+)
+parser.add_argument(
+    '--env_type',
+    choices=["cuda", "cpu", "infer"],
+    default="infer",
+    help="Setup cuda or cpu environment, default to cuda if `nvcc` is available."
+)
+parser.add_argument(
+    '-n',
+    '--name',
+    type=str,
+    default="tmol",
+    help="Name of target conda environment."
+)
+parser.add_argument(
+    '--dry-run',
+    default=False,
+    action="store_true",
+    help="Only display what setup commands would have been executed."
+)
+args = parser.parse_args()
+
+
+def check_call(command):
+    logging.info(command)
+    if args.dry_run:
+        return
+    return subprocess.check_call(command, shell=True)
+
+
+def call(command):
+    logging.info(command)
+    if args.dry_run:
+        return
+    return subprocess.call(command, shell=True)
+
+
+def resolve_env_type(env_type):
+    if platform.system() == "Linux":
+        if env_type is "infer":
+            try:
+                check_call("nvcc -V")
+                return "linux.cuda"
+            except subprocess.CalledProcessError:
+                return "linux.cpu"
+        else:
+            return "linux." + env_type
+
+    else:
+        assert platform.system() == "Darwin" and env_type is not "cuda"
+
+        return "osx.cpu"
+
+
+check_call(
+    "environments/render %s dev > environment.yml" %
+    resolve_env_type(args.env_type)
+)
 
 # Requires an active root conda installation see:
 # https://conda.io/miniconda.html
-conda env update -f environment.yml
-conda env update -f dev_environment.yml
+check_call("conda env update -n %s -f environment.yml" % args.name)
 
 # Conda 4.4+ compatible activation
-eval "`conda shell.posix activate tmol`"
-pip install -e .
+conda_envs = json.loads(
+    subprocess.check_output("conda env list --json", shell=True).decode()
+)
+envpath = [p for p in conda_envs["envs"] if os.path.basename(p) == args.name]
+if len(envpath) == 1:
+    envpath = envpath[0]
+else:
+    raise ValueError("Target env not present.")
 
-set +e
-pushd .git/hooks
-ln -s ../../.post-checkout post-checkout
-ln -s ../../.pre-commit pre-commit
-popd
+check_call("%s/bin/pip install -e ." % envpath)
+
+call("ln -s ../../.post-checkout .git/hooks/post-checkout")
+call("ln -s ../../.pre-commit .git/hooks/pre-commit")

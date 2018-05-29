@@ -1,0 +1,8 @@
+python=3.6
+ipython
+numpy
+pandas==0.22
+scipy
+requests
+toolz
+pyyaml

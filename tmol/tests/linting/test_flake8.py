@@ -1,3 +1,5 @@
+import io
+
 import pytest
 
 from flake8.main import application
@@ -25,14 +27,20 @@ def flake8_file(filename):
         raise KeyboardInterrupt
 
     app.formatter.start()
+
+    reportbuf = io.StringIO()
+    app.formatter.output_fd = reportbuf
+
     app.report_errors()
     # app.report_statistics()
     # app.report_benchmarks()
+    report = reportbuf.getvalue()
     app.formatter.stop()
 
-    return app.result_count
+    return app.result_count, report
 
 
 @pytest.mark.parametrize("filename", lint_files)
 def test_flake8_file(filename):
-    assert not flake8_file(filename), f"flake8 errors in file: {filename}"
+    errors, report = flake8_file(filename)
+    assert not errors, f"flake8 errors in file: {filename}\n{report}"
