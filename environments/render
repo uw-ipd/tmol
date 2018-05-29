@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 import io
 import os
+import argparse
 
 root = os.path.dirname(__file__)
+
 
 def render(components):
 
@@ -39,14 +41,27 @@ def render(components):
 
     return env.getvalue()
 
-with open("environment.cpu.dev.yml", "w") as of:
-    of.write(render(["core", "cpu", "test", "dev"]))
 
-with open("environment.cuda.dev.yml", "w") as of:
-    of.write(render(["core", "cuda", "test", "dev"]))
+parser = argparse.ArgumentParser(
+    description='Render environment.yml for target configuration.'
+)
+parser.add_argument(
+    'platform',
+    choices=["linux.cuda", "linux.cpu", "osx.cpu"],
+)
+parser.add_argument(
+    'target',
+    choices=["run", "test", "dev"],
+)
+args = parser.parse_args()
 
-with open("environment.cpu.test.yml", "w") as of:
-    of.write(render(["core", "cpu", "test"]))
+layers = (
+    ["core", args.platform] +
+    {
+        "run": [],
+        "test": ["test"],
+        "dev": ["test", "dev"],
+    }[args.target]
+)
 
-with open("environment.cuda.test.yml", "w") as of:
-    of.write(render(["core", "cuda", "test"]))
+print(render(layers))

@@ -5,6 +5,7 @@ import json
 import subprocess
 import logging
 import argparse
+import platform
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,7 +16,9 @@ parser = argparse.ArgumentParser(
     description='Setup tmol development environment.'
 )
 parser.add_argument(
-    '--env_type', choices=["cuda", "cpu", "infer"], default="infer",
+    '--env_type',
+    choices=["cuda", "cpu", "infer"],
+    default="infer",
     help="Setup cuda or cpu environment, default to cuda if `nvcc` is available."
 )
 parser.add_argument(
@@ -49,24 +52,30 @@ def call(command):
 
 
 def resolve_env_type(env_type):
-    if env_type is "infer":
-        try:
-            check_call("nvcc -V")
-            return "cuda"
-        except subprocess.CalledProcessError:
-            return "cpu"
+    if platform.system() == "Linux":
+        if env_type is "infer":
+            try:
+                check_call("nvcc -V")
+                return "linux.cuda"
+            except subprocess.CalledProcessError:
+                return "linux.cpu"
+        else:
+            return "linux." + env_type
+
     else:
-        return env_type
+        assert platform.system() == "Darwin" and env_type is not "cuda"
+
+        return "osx.cpu"
 
 
-check_call("environments/render")
+check_call(
+    "environments/render %s dev > environment.yml" %
+    resolve_env_type(args.env_type)
+)
 
 # Requires an active root conda installation see:
 # https://conda.io/miniconda.html
-check_call(
-    "conda env update -n %s -f environment.%s.dev.yml" %
-    (args.name, resolve_env_type(args.env_type))
-)
+check_call("conda env update -n %s -f environment.yml" % args.name)
 
 # Conda 4.4+ compatible activation
 conda_envs = json.loads(

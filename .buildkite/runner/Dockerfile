@@ -45,5 +45,6 @@ RUN curl -s https://api.github.com/repos/buildkite/agent/releases/latest | \
 
 ### Setup test environment
 COPY environments /environments
-RUN /environments/render
-RUN conda env update -n base -f /environment.cuda.test.yml && conda clean -tipsy
+RUN /environments/render linux.cuda test > /environment.yml && \
+    conda env update -n base -f /environment.yml && \
+    conda clean -tipsy

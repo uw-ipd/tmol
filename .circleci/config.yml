@@ -15,11 +15,11 @@ jobs:
       - run:
           name: Render environments
           command: |
-            environments/render
+            environments/render linux.cpu test > environment.yml
 
       - restore_cache:
           keys:
-            - v1-conda-{{ checksum "environment.cpu.test.yml" }}
+            - v1-conda-{{ checksum "environment.yml" }}
       - run:
           name: Install dependencies
           command: |
@@ -28,7 +28,7 @@ jobs:
             conda install -n base 'conda>=4.5'
             conda info -a
             conda config --set always_yes yes --set changeps1 no
-            conda env update -n tmol -f environment.cpu.test.yml
+            conda env update -n tmol -f environment.yml
             source activate tmol
 
             conda clean -tipsy
@@ -36,7 +36,7 @@ jobs:
           paths:
             - /opt/conda/pkgs
             - ~/.conda/pkgs
-          key: v1-conda-{{ checksum "environment.cpu.test.yml" }}
+          key: v1-conda-{{ checksum "environment.yml" }}
           background: true
 
       - run:

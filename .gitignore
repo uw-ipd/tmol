@@ -1,5 +1,5 @@
 # Rendered environment definitions
-environment.*.yml
+environment.yml
 
 dask-worker-space
 
