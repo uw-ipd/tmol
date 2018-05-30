@@ -8,7 +8,9 @@ import attr
 from tmol.types.tensor import TensorGroup, TensorType
 import tmol.types.tensor as tensor
 from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
+from tmol.types.torch import Tensor, like_kwargs
+
+from tmol.tests.cuda import requires_cuda
 
 
 def test_tensortype_instancecheck():
@@ -276,3 +278,96 @@ def test_tensorgroup_cat():
 
     with pytest.raises(ValueError):
         tensor.cat((m1, m2), dim=-5)
+
+
+def test_tensorgroup_to_dtypes():
+    @attr.s(auto_attribs=True, frozen=True)
+    class STG(TensorGroup):
+        s: Tensor("f4")[..., 3, 3]
+
+    @attr.s(auto_attribs=True, frozen=True)
+    class TG(TensorGroup):
+        s: Tensor("f4")[..., 3]
+        d: Tensor("f8")[...]
+        sub: STG
+
+    cpu_float = dict(
+        dtype=torch.float, layout=torch.strided, device=torch.device("cpu")
+    )
+
+    cpu_double = dict(
+        dtype=torch.double, layout=torch.strided, device=torch.device("cpu")
+    )
+
+    cpu_het_group = TG.full(10, numpy.pi)
+    assert like_kwargs(cpu_het_group.s) == cpu_float
+    assert like_kwargs(cpu_het_group.d) == cpu_double
+    assert like_kwargs(cpu_het_group.sub.s) == cpu_float
+
+    cpu_float_group = cpu_het_group.to(torch.float)
+    assert like_kwargs(cpu_float_group.s) == cpu_float
+    assert like_kwargs(cpu_float_group.d) == cpu_float
+    assert like_kwargs(cpu_float_group.sub.s) == cpu_float
+
+    cpu_double_group = cpu_het_group.to(torch.double)
+    assert like_kwargs(cpu_double_group.s) == cpu_double
+    assert like_kwargs(cpu_double_group.d) == cpu_double
+    assert like_kwargs(cpu_double_group.sub.s) == cpu_double
+
+    # Assert noop if not changes needed
+    assert cpu_het_group.to(torch.float) is not cpu_het_group
+    assert cpu_float_group.to(torch.float) is cpu_float_group
+
+
+@requires_cuda
+def test_tensorgroup_to_device():
+    @attr.s(auto_attribs=True, frozen=True)
+    class STG(TensorGroup):
+        s: Tensor("f4")[..., 3, 3]
+
+    @attr.s(auto_attribs=True, frozen=True)
+    class TG(TensorGroup):
+        s: Tensor("f4")[..., 3]
+        d: Tensor("f8")[...]
+        sub: STG
+
+    cpu_float = dict(
+        dtype=torch.float,
+        layout=torch.strided,
+        device=torch.device("cpu"),
+    )
+    cpu_double = dict(
+        dtype=torch.double,
+        layout=torch.strided,
+        device=torch.device("cpu"),
+    )
+    cuda_float = dict(
+        dtype=torch.float,
+        layout=torch.strided,
+        device=torch.device("cuda", torch.cuda.current_device()),
+    )
+    cuda_double = dict(
+        dtype=torch.double,
+        layout=torch.strided,
+        device=torch.device("cuda", torch.cuda.current_device()),
+    )
+
+    cpu_het_group = TG.full(10, numpy.pi)
+    assert like_kwargs(cpu_het_group.s) == cpu_float
+    assert like_kwargs(cpu_het_group.d) == cpu_double
+    assert like_kwargs(cpu_het_group.sub.s) == cpu_float
+
+    cuda_het_group = cpu_het_group.to(torch.device("cuda"))
+    assert like_kwargs(cuda_het_group.s) == cuda_float
+    assert like_kwargs(cuda_het_group.d) == cuda_double
+    assert like_kwargs(cuda_het_group.sub.s) == cuda_float
+
+    cuda_float_group = cpu_het_group.to(torch.device("cuda"), torch.float)
+    assert like_kwargs(cuda_float_group.s) == cuda_float
+    assert like_kwargs(cuda_float_group.d) == cuda_float
+    assert like_kwargs(cuda_float_group.sub.s) == cuda_float
+
+    cuda_double_group = cuda_float_group.to(torch.double)
+    assert like_kwargs(cuda_double_group.s) == cuda_double
+    assert like_kwargs(cuda_double_group.d) == cuda_double
+    assert like_kwargs(cuda_double_group.sub.s) == cuda_double
