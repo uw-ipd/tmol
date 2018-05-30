@@ -6,6 +6,7 @@ from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 
+from ..device import TorchDevice
 from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..interatomic_distance import InteratomicDistanceGraphBase
 from ..bonded_atom import BondedAtomScoreGraph
@@ -22,6 +23,7 @@ class LJLKScoreGraph(
         InteratomicDistanceGraphBase,
         BondedAtomScoreGraph,
         TotalScoreComponentsGraph,
+        TorchDevice,
 ):
     ljlk_database: LJLKDatabase = tmol.database.default.scoring.ljlk
 

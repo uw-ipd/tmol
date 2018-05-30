@@ -43,6 +43,7 @@ def system_cartesian_space_graph_params(
         bonds=bonds,
         coords=coords,
         atom_types=atom_types,
+        device=device,
     )
 
 
@@ -94,4 +95,5 @@ def system_torsion_space_graph_params(
         kinop=kop,
         bonds=bonds,
         atom_types=atom_types,
+        device=device,
     )
