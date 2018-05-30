@@ -93,6 +93,7 @@ def SegScanEfficient(
     treedepth[0] = 0
     for i in range(1, nelts):
         treedepth[i] = treedepth[parents[i]] + 1
+    treedepth = treedepth.to(data.device)
     maxdepth = torch.max(treedepth)
     if (upwards):
         treedepth = maxdepth - treedepth
@@ -101,7 +102,9 @@ def SegScanEfficient(
 
     # calculation of backpointer array could also
     #   be moved to a precompute step
-    backPointers = torch.empty((N + 1, nelts), dtype=torch.long)
+    backPointers = torch.empty((N + 1, nelts),
+                               dtype=torch.long,
+                               device=data.device)
     backPointers[0, :] = parents
 
     # forward pass
@@ -147,7 +150,10 @@ def HTcollect(
         toCalc: Tensor(torch.uint8)[:],
 ) -> None:
     """segmented scan "down" operator: aggregate HTs"""
-    HTs[toCalc] = torch.matmul(HTs[ptrs][toCalc], HTs[toCalc])
+    a = HTs[ptrs[toCalc]]
+    b = HTs[toCalc]
+    res = a @ b
+    HTs[toCalc] = res
 
 
 @validate_args
@@ -196,7 +202,9 @@ def JumpTransforms(dofs: JumpDOF) -> HTArray:
     cs = ci * sk
     sc = si * ck
     ss = si * sk
-    Rdelta = torch.zeros([natoms, 4, 4], dtype=torch.double)
+    Rdelta = torch.zeros((natoms, 4, 4),
+                         dtype=HTArray.dtype,
+                         device=dofs.raw.device)
     Rdelta[:, 0, 0] = cj * ck
     Rdelta[:, 0, 1] = sj * sc - cs
     Rdelta[:, 0, 2] = sj * cc + ss
@@ -223,7 +231,9 @@ def JumpTransforms(dofs: JumpDOF) -> HTArray:
     cs = ci * sk
     sc = si * ck
     ss = si * sk
-    Rglobal = torch.zeros([natoms, 4, 4], dtype=torch.double)
+    Rglobal = torch.zeros((natoms, 4, 4),
+                          dtype=HTArray.dtype,
+                          device=dofs.raw.device)
     Rglobal[:, 0, 0] = cj * ck
     Rglobal[:, 0, 1] = sj * sc - cs
     Rglobal[:, 0, 2] = sj * cc + ss
@@ -257,7 +267,7 @@ def InvJumpTransforms(Ms: HTArray) -> JumpDOF:
 
     njumpatoms = Ms.shape[0]
 
-    dofs = JumpDOF.empty(njumpatoms)
+    dofs = JumpDOF.empty(njumpatoms, device=Ms.device)
 
     dofs.RBx[:] = Ms[:, 0, 3]
     dofs.RBy[:] = Ms[:, 1, 3]
@@ -317,7 +327,7 @@ def JumpDerivatives(
     """
     # trans dofs
     njumpatoms, = dofs.shape
-    dsc_ddofs = JumpDOF.zeros((njumpatoms, ))
+    dsc_ddofs = JumpDOF.zeros((njumpatoms, ), device=dofs.raw.device)
 
     x_axes = Mparents[:, 0:3, 0]
     y_axes = Mparents[:, 0:3, 1]
@@ -331,7 +341,9 @@ def JumpDerivatives(
     end_pos = Ms[:, 0:3, 3]
     rotdof3_axes = -Mparents[:, 0:3, 2]
 
-    zrots = torch.zeros([njumpatoms, 3, 3], dtype=torch.double)
+    zrots = torch.zeros([njumpatoms, 3, 3],
+                        dtype=torch.double,
+                        device=dofs.raw.device)
     zrots[:, 0, 0] = torch.cos(dofs.RBdel_gamma)
     zrots[:, 0, 1] = -torch.sin(dofs.RBdel_gamma)
     zrots[:, 1, 0] = torch.sin(dofs.RBdel_gamma)
@@ -339,7 +351,9 @@ def JumpDerivatives(
     zrots[:, 2, 2] = 1
     rotdof2_axes = -torch.matmul(Mparents[:, 0:3, 0:3], zrots)[:, 0:3, 1]
 
-    yrots = torch.zeros([njumpatoms, 3, 3], dtype=torch.double)
+    yrots = torch.zeros([njumpatoms, 3, 3],
+                        dtype=torch.double,
+                        device=dofs.raw.device)
     yrots[:, 0, 0] = torch.cos(-dofs.RBdel_beta)
     yrots[:, 0, 2] = -torch.sin(-dofs.RBdel_beta)
     yrots[:, 1, 1] = 1
@@ -397,7 +411,9 @@ def BondTransforms(dofs: BondDOF) -> HTArray:
     d = dofs.d
 
     # rot(ph_p, +x) * rot(th, +z) * trans(d, +x) * rot(ph_c, +x)
-    Ms = torch.empty([natoms, 4, 4], dtype=torch.double)
+    Ms = torch.empty([natoms, 4, 4],
+                     dtype=HTArray.dtype,
+                     device=dofs.raw.device)
     Ms[:, 0, 0] = cth
     Ms[:, 0, 1] = -cpc * sth
     Ms[:, 0, 2] = spc * sth
@@ -434,7 +450,7 @@ def InvBondTransforms(Ms: HTArray) -> BondDOF:
     """
     nbondatoms = Ms.shape[0]
 
-    dofs = BondDOF.empty(nbondatoms)
+    dofs = BondDOF.empty(nbondatoms, device=Ms.device)
 
     # d is always the same logic
     dofs.d[:] = Ms[:, :3, 3].norm(dim=1)
@@ -545,7 +561,7 @@ def HTs_from_frames(
         return v / torch.norm(v, dim=-1, keepdim=True)
 
     if out is None:
-        out = torch.zeros([natoms, 4, 4], dtype=torch.double)
+        out = torch.zeros([natoms, 4, 4], dtype=torch.double, device=Cs.device)
     else:
         assert out.shape[0] == natoms
 
@@ -559,7 +575,7 @@ def HTs_from_frames(
     yaxis[:] = unit_norm(torch.cross(zaxis, xaxis))
     center[:] = Cs
 
-    out[:, 3] = torch.tensor([0, 0, 0, 1])
+    out[:, 3] = torch.tensor([0, 0, 0, 1], device=out.device)
 
     return (out)
 
@@ -584,15 +600,15 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     natoms = coords.shape[0]
 
     # 1) global HTs
-    HTs = numpy.empty((natoms, 4, 4))
-
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
 
     # fd: not sure of a torch isnan check?
     #assert (torch.norm(coords[0, :], dim=-1) == 0)
 
-    HTs = torch.empty((natoms, 4, 4), dtype=torch.double)
+    HTs = torch.empty((natoms, 4, 4),
+                      dtype=HTArray.dtype,
+                      device=coords.device)
     HTs[0] = torch.eye(4)
     HTs_from_frames(
         coords[1:],
@@ -603,14 +619,16 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     )
 
     # 2) local HTs
-    localHTs = torch.empty([natoms, 4, 4], dtype=torch.double)
+    localHTs = torch.empty((natoms, 4, 4),
+                           dtype=HTArray.dtype,
+                           device=coords.device)
     localHTs[0] = torch.eye(4)
     localHTs[1:] = torch.matmul(
         HTinv(HTs[kintree.parent[1:].squeeze(), :, :]), HTs[1:, :, :]
     )
 
     # 3) dofs
-    dofs = KinDOF.full(natoms, numpy.nan)
+    dofs = KinDOF.full(natoms, numpy.nan, device=coords.device)
 
     bondSelector = kintree.doftype == NodeType.bond
     dofs.bond[bondSelector] = InvBondTransforms(localHTs[bondSelector])
@@ -646,7 +664,9 @@ def forwardKin(
     assert len(kintree) == len(dofs)
 
     # 1) local HTs
-    HTs = torch.empty([natoms, 4, 4], dtype=torch.double)
+    HTs = torch.empty([natoms, 4, 4],
+                      dtype=HTArray.dtype,
+                      device=dofs.raw.device)
 
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
