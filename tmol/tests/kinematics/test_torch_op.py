@@ -29,10 +29,7 @@ def test_kinematic_torch_op_refold_cuda(ubq_system):
         (tkin.dof_metadata.dof_type == DOFTypes.bond_torsion)
     ]
 
-    coords = torch.from_numpy(tsys.coords).to(torch.device("cuda"))
-
-    kincoords = coords[tkin.kintree.id]
-    kincoords[torch.isnan(kincoords)] = 0.0
+    kincoords = tkin.extract_kincoords(tsys.coords).to(torch.device("cuda"))
 
     kop = KinematicOp.from_coords(
         tkin.kintree,
@@ -53,10 +50,7 @@ def test_kinematic_torch_op_refold(ubq_system):
         (tkin.dof_metadata.dof_type == DOFTypes.bond_torsion)
     ]
 
-    coords = torch.from_numpy(tsys.coords)
-
-    kincoords = coords[tkin.kintree.id]
-    kincoords[torch.isnan(kincoords)] = 0.0
+    kincoords = tkin.extract_kincoords(tsys.coords).to(torch.device("cuda"))
 
     kop = KinematicOp.from_coords(
         tkin.kintree,
@@ -79,11 +73,11 @@ def gradcheck_test_system(
     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
-    coords = torch.from_numpy(tsys.coords)
-    kincoords = coords[tkin.kintree.id]
-    kincoords[torch.isnan(kincoords)] = 0.0
-
-    return (tkin.kintree, tkin.dof_metadata, kincoords)
+    return (
+        tkin.kintree,
+        tkin.dof_metadata,
+        tkin.extract_kincoords(tsys.coords),
+    )
 
 
 def kop_gradcheck_report(

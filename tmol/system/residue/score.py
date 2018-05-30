@@ -71,16 +71,8 @@ def system_torsion_space_graph_params(
         (sys_kin.dof_metadata.dof_type == DOFTypes.bond_torsion)
     ]
 
-    # Extract current state coordinates to render current dofs
-    coords = torch.from_numpy(system.coords)
-    kincoords = coords[sys_kin.kintree.id]
-
-    # Global frame @ 0
-    kincoords[0] = 0
-    if torch.isnan(kincoords[1:]).any():
-        raise ValueError("torsion space dofs do not support missing atoms")
-
-    kincoords = kincoords.to(device)
+    # Extract kinematic-derived coordinates
+    kincoords = sys_kin.extract_kincoords(system.coords).to(device)
 
     # Initialize op for torsion-space kinematics
     kop = KinematicOp.from_coords(
@@ -97,7 +89,7 @@ def system_torsion_space_graph_params(
         atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
 
     return dict(
-        system_size=len(coords),
+        system_size=len(system.coords),
         dofs=kop.src_mobile_dofs.clone().requires_grad_(requires_grad),
         kinop=kop,
         bonds=bonds,

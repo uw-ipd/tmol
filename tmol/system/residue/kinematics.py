@@ -1,7 +1,10 @@
 import attr
+
+import torch
 import numpy
 
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
 from tmol.kinematics.builder import KinematicBuilder
@@ -51,3 +54,27 @@ class KinematicDescription:
             kintree=builder.kintree,
             dof_metadata=DOFMetadata.for_kintree(kintree),
         )
+
+    def extract_kincoords(
+            self,
+            coords: NDArray(float)[:, 3],
+    ) -> Tensor(torch.double)[:, 3]:
+        """Extract the kinematic-derived coordinates from system coords.
+
+        Extract kinematic-derived coordiantes, specified by kintree.id,
+        from the system coordinate buffere and set the proper global origin.
+        """
+
+        # Extract current state coordinates to render current dofs
+        kincoords = torch.from_numpy(coords)[self.kintree.id]
+
+        # Convert the -1 origin, a nan-coord, to zero
+        assert self.kintree.id[0] == -1
+        assert torch.isnan(kincoords[0]).all()
+        kincoords[0] = 0
+
+        # Verify all kinematic coords are present
+        if torch.isnan(kincoords[1:]).any():
+            raise ValueError("kincoords dependent on nan coordinates")
+
+        return kincoords
