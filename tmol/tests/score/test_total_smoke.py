@@ -1,5 +1,3 @@
-import torch
-
 from tmol.system.residue.score import (
     system_cartesian_space_graph_params,
     system_torsion_space_graph_params,
@@ -12,8 +10,6 @@ from tmol.score.coordinates import (
 )
 
 from tmol.utility.reactive import reactive_attrs
-
-from tmol.tests.torch import requires_cuda
 
 
 @reactive_attrs
@@ -32,28 +28,17 @@ class DofSpaceScore(
     pass
 
 
-def test_torsion_space_smoke(ubq_system):
-    DofSpaceScore(**system_torsion_space_graph_params(ubq_system)).total_score
-
-
-def test_real_space_smoke(ubq_system):
-    RealSpaceScore(**system_cartesian_space_graph_params(ubq_system)
-                   ).total_score
-
-
-@requires_cuda
-def test_torsion_space_cuda_smoke(ubq_system):
-    DofSpaceScore(
-        **system_torsion_space_graph_params(
-            ubq_system, device=torch.device("cuda")
-        )
+def test_torsion_space_smoke(ubq_system, torch_device):
+    total_score = DofSpaceScore(
+        **system_torsion_space_graph_params(ubq_system, device=torch_device)
     ).total_score
 
+    assert total_score.device == torch_device
 
-@requires_cuda
-def test_real_space_cuda_smoke(ubq_system):
-    RealSpaceScore(
-        **system_cartesian_space_graph_params(
-            ubq_system, device=torch.device("cuda")
-        )
+
+def test_real_space_smoke(ubq_system, torch_device):
+    total_score = RealSpaceScore(
+        **system_cartesian_space_graph_params(ubq_system, device=torch_device)
     ).total_score
+
+    assert total_score.device == torch_device
