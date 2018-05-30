@@ -1,0 +1,67 @@
+steps:
+  ### Assemble dependencies in runner image
+  - label: ':hammer: Build Runner'
+    command: |
+      docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
+
+  ### Test installation from source
+  # Note that this tests setup and *does not* modify the runtime environment below.
+  - label: ':electric_plug: Setup'
+    command: |
+      pip install .
+    plugins:
+      uw-ipd/docker#1861bbe:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+
+  ### Run tests and generate coverage reports
+  - label: ':shrug: Testing'
+    # Run non-linting tests in a single process, relying on internal multithreading
+    command: |
+      pytest -v -k 'not linting' --cov=./tmol --junitxml=testing.junit.xml
+    artifact_paths:
+      - testing.junit.xml
+      - .coverage
+    plugins:
+      uw-ipd/docker#1861bbe:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+
+  ### Run formatting/linting checks.
+  - label: ':microscope: Linting'
+    command: |
+      pytest -n auto -k 'linting' --junitxml=linting.junit.xml
+    artifact_paths:
+      - linting.junit.xml
+    plugins:
+      uw-ipd/docker#1861bbe:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+
+  ### Report test environment, test results and codecov
+  - label: ':clipboard: Report'
+    command: |
+      echo "--- environment"
+      conda info
+      conda list
+
+      echo "--- nvidia-smi"
+      nvidia-smi
+
+      echo "--- codecov"
+      buildkite-agent artifact download .coverage .
+      codecov -F pytest
+    plugins:
+      uw-ipd/docker#1861bbe:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+      uw-ipd/test-summary#8fa3c9a:
+        inputs:
+          - label: Testing
+            artifact_path: testing.junit.xml
+            type: junit
+          - label: Linting
+            artifact_path: linting.junit.xml
+            type: junit
+        formatter:
+          type: details

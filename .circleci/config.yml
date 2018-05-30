@@ -12,6 +12,11 @@ jobs:
     working_directory: ~/workspace
     steps:
       - checkout
+      - run:
+          name: Render environments
+          command: |
+            environments/render linux.cpu test > environment.yml
+
       - restore_cache:
           keys:
             - v1-conda-{{ checksum "environment.yml" }}
@@ -23,9 +28,8 @@ jobs:
             conda install -n base 'conda>=4.5'
             conda info -a
             conda config --set always_yes yes --set changeps1 no
-            conda env update -f environment.yml
+            conda env update -n tmol -f environment.yml
             source activate tmol
-            pip install -r requirements.tests.txt
 
             conda clean -tipsy
       - save_cache:
@@ -65,8 +69,6 @@ jobs:
             (pytest -n ${NUM_THREADS} -k 'linting' 2>&1 --junitxml=report/linting/linting.xml | tee report/linting.log) || failed=1
 
             .circleci/fixup_test_report.py report/test/test.xml report/linting/linting.xml
-
-            codecov -F pytest
 
             exit $failed
 
