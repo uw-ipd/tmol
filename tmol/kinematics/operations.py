@@ -1,6 +1,9 @@
 from enum import Enum
 import attr
 import numpy
+
+import scipy.sparse.csgraph
+
 import torch
 from typing import Optional
 
@@ -89,11 +92,20 @@ def SegScanEfficient(
 
     # calculate depth of each element in tree
     # this logic could be moved into tree construction
-    treedepth = torch.empty(nelts, dtype=torch.long)
-    treedepth[0] = 0
-    for i in range(1, nelts):
-        treedepth[i] = treedepth[parents[i]] + 1
-    treedepth = treedepth.to(data.device)
+    pmat = scipy.sparse.coo_matrix(
+        (
+            numpy.full(len(parents), 1), (
+                parents.numpy(),
+                numpy.arange(len(parents)),
+            )
+        ),
+        shape=[len(parents)] * 2,
+    )
+
+    treedepth = torch.from_numpy(
+        scipy.sparse.csgraph.dijkstra(pmat, indices=[0], unweighted=True)[0]
+    ).to(data.device)
+
     maxdepth = torch.max(treedepth)
     if (upwards):
         treedepth = maxdepth - treedepth
