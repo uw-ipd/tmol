@@ -17,7 +17,7 @@ from tmol.system.residue.packed import PackedResidueSystem
 from tmol.system.residue.restypes import Residue
 from tmol.system.residue.kinematics import KinematicDescription
 
-from tmol.tests.cuda import requires_cuda
+from tmol.tests.torch import requires_cuda
 
 
 @requires_cuda
@@ -182,7 +182,7 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
 
 
 def test_kinematic_torch_op_smoke(
-        gradcheck_test_system, pytorch_backward_coverage
+        gradcheck_test_system, torch_backward_coverage
 ):
     kintree, dofs, kincoords = gradcheck_test_system
 
@@ -195,7 +195,7 @@ def test_kinematic_torch_op_smoke(
     start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
 
     coords = kop(start_dofs)
-    coords.register_hook(pytorch_backward_coverage)
+    coords.register_hook(torch_backward_coverage)
 
     total = coords.sum()
     total.backward()

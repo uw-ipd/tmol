@@ -1,4 +1,4 @@
-from .cuda import requires_cuda
+from .torch import requires_cuda
 
 
 @requires_cuda

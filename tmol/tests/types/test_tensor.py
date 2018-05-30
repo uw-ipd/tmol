@@ -10,7 +10,7 @@ import tmol.types.tensor as tensor
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor, like_kwargs
 
-from tmol.tests.cuda import requires_cuda
+from tmol.tests.torch import requires_cuda
 
 
 def test_tensortype_instancecheck():
