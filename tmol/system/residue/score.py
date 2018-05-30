@@ -19,6 +19,7 @@ def system_cartesian_space_graph_params(
         system: PackedResidueSystem,
         drop_missing_atoms: bool = False,
         requires_grad: bool = True,
+        device: torch.device = torch.device("cpu"),
 ) -> Mapping:
     """Constructor parameters for cartesian space scoring.
 
@@ -28,7 +29,7 @@ def system_cartesian_space_graph_params(
     bonds = system.bonds
     coords = (
         torch.from_numpy(system.coords).clone()
-        .to(RealTensor.dtype)
+        .to(device, RealTensor.dtype)
         .requires_grad_(requires_grad)
     ) # yapf: disable
 
@@ -50,6 +51,7 @@ def system_torsion_space_graph_params(
         system: PackedResidueSystem,
         drop_missing_atoms: bool = False,
         requires_grad: bool = True,
+        device: torch.device = torch.device("cpu"),
 ):
     """Constructor parameters for torsion space scoring.
 
@@ -77,6 +79,8 @@ def system_torsion_space_graph_params(
     kincoords[0] = 0
     if torch.isnan(kincoords[1:]).any():
         raise ValueError("torsion space dofs do not support missing atoms")
+
+    kincoords = kincoords.to(device)
 
     # Initialize op for torsion-space kinematics
     kop = KinematicOp.from_coords(
