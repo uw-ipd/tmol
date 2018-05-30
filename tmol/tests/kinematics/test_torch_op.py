@@ -17,11 +17,8 @@ from tmol.system.residue.packed import PackedResidueSystem
 from tmol.system.residue.restypes import Residue
 from tmol.system.residue.kinematics import KinematicDescription
 
-from tmol.tests.torch import requires_cuda
 
-
-@requires_cuda
-def test_kinematic_torch_op_refold_cuda(ubq_system):
+def test_kinematic_torch_op_refold(ubq_system, torch_device):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
@@ -29,28 +26,7 @@ def test_kinematic_torch_op_refold_cuda(ubq_system):
         (tkin.dof_metadata.dof_type == DOFTypes.bond_torsion)
     ]
 
-    kincoords = tkin.extract_kincoords(tsys.coords).to(torch.device("cuda"))
-
-    kop = KinematicOp.from_coords(
-        tkin.kintree,
-        torsion_dofs,
-        kincoords,
-    )
-
-    refold_kincoords = kop.apply(kop.src_mobile_dofs)
-
-    numpy.testing.assert_allclose(kincoords, refold_kincoords)
-
-
-def test_kinematic_torch_op_refold(ubq_system):
-    tsys = ubq_system
-    tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
-
-    torsion_dofs = tkin.dof_metadata[
-        (tkin.dof_metadata.dof_type == DOFTypes.bond_torsion)
-    ]
-
-    kincoords = tkin.extract_kincoords(tsys.coords).to(torch.device("cuda"))
+    kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
 
     kop = KinematicOp.from_coords(
         tkin.kintree,
