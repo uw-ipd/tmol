@@ -18,7 +18,17 @@ from tmol.system.residue.restypes import Residue
 from tmol.system.residue.kinematics import KinematicDescription
 
 
-def test_kinematic_torch_op_refold(ubq_system, torch_device):
+@pytest.mark.benchmark(
+    group="kinematic_forward_op",
+    min_rounds=10,
+    warmup=True,
+    warmup_iterations=10,
+)
+def test_torsion_refold_ubq(
+        benchmark,
+        ubq_system,
+        torch_device,
+):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
@@ -34,9 +44,11 @@ def test_kinematic_torch_op_refold(ubq_system, torch_device):
         kincoords,
     )
 
-    refold_kincoords = kop.apply(kop.src_mobile_dofs)
+    @benchmark
+    def refold_kincoords():
+        return kop.apply(kop.src_mobile_dofs)
 
-    numpy.testing.assert_allclose(kincoords, refold_kincoords)
+    torch.testing.assert_allclose(refold_kincoords, kincoords)
 
 
 @pytest.fixture
