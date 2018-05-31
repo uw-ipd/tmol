@@ -8,7 +8,6 @@ from tmol.kinematics import (
     forwardKin,
 )
 
-import tmol.kinematics.gpu_operations
 from tmol.kinematics.datatypes import RefoldData
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.tests.kinematics.test_torch_op import gradcheck_test_system
@@ -84,5 +83,3 @@ def test_builder_framing(ubq_system):
         kintree.frame_z[normal_atoms],
         kintree.parent[kintree.parent[normal_atoms]]
     )
-
-

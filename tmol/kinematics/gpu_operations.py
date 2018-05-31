@@ -426,7 +426,8 @@ def ht_multiply(ht1, ht2):
     return (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11)
 
 
-@cuda.jit('float64[:,:], boolean[:], int32[:], int32, int32, int32')
+#@cuda.jit('float64[:,:], boolean[:], int32[:], int32, int32, int32')
+@cuda.jit
 def segscan_ht_interval_one_thread_block(
         hts, is_root, parent_ind, natoms, start, end
 ):
@@ -493,9 +494,10 @@ def segscan_ht_interval_one_thread_block(
         cuda.syncthreads()
 
 
-@cuda.jit(
-    'float64[:,:], float64[:,:], boolean[:], boolean[:], int32[:], int32, int32, int32'
-)
+#@cuda.jit(
+#    'float64[:,:], float64[:,:], boolean[:], boolean[:], int32[:], int32, int32, int32'
+#)
+@cuda.jit
 def segscan_ht_interval_many_thread_blocks_1(
         hts, hts_int, is_root, is_root_int, parent_ind, natoms, start, end
 ):
@@ -553,7 +555,8 @@ def segscan_ht_interval_many_thread_blocks_1(
         is_root_int[cuda.blockIdx.x] = myroot
 
 
-@cuda.jit('float64[:,:], boolean[:], int32')
+#@cuda.jit('float64[:,:], boolean[:], int32')
+@cuda.jit
 def segscan_ht_interval_one_thread_block_2(hts, is_root, n_intermediates):
     # this should be executed as a single thread block with nthreads = 256
     # compare ii < natoms
@@ -616,9 +619,10 @@ def segscan_ht_interval_one_thread_block_2(hts, is_root, n_intermediates):
         cuda.syncthreads()
 
 
-@cuda.jit(
-    'float64[:,:], float64[:,:], boolean[:], int32[:], int32, int32, int32'
-)
+#@cuda.jit(
+#    'float64[:,:], float64[:,:], boolean[:], int32[:], int32, int32, int32'
+#)
+@cuda.jit
 def segscan_ht_interval_many_thread_blocks_3(
         hts, hts_int, is_root, parent_ind, natoms, start, end
 ):
@@ -719,8 +723,9 @@ def segscan_hts_gpu(hts_ko, refold_data):
     hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_hts[nblocks, 512, stream
-                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    reorder_starting_hts[nblocks, 512, stream](
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    )
 
     # for each depth, run a separate segmented scan
     for iirange in rd.refold_atom_range_for_depth:
@@ -730,8 +735,9 @@ def segscan_hts_gpu(hts_ko, refold_data):
             iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks, 512, stream
-                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    reorder_final_hts[nblocks, 512, stream](
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    )
 
 
 def segscan_hts_gpu2(hts_ko, refold_data):
@@ -746,8 +752,9 @@ def segscan_hts_gpu2(hts_ko, refold_data):
     nblocks256 = (rd.natoms - 1) // 256 + 1
     nblocks512 = (rd.natoms - 1) // 512 + 1
 
-    reorder_starting_hts[nblocks512, 512, stream
-                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    reorder_starting_hts[nblocks512, 512, stream](
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    )
 
     # for each depth, run a separate segmented scan
     for iirange in rd.refold_atom_range_for_depth:
@@ -784,8 +791,9 @@ def segscan_hts_gpu2(hts_ko, refold_data):
             rd.natoms, iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks512, 512, stream
-                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    reorder_final_hts[nblocks512, 512, stream](
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    )
 
 
 @numba.jit(nopython=True)
@@ -939,7 +947,8 @@ def reorder_final_f1f2s(natoms, f1f2s_ko, f1f2s_dso, ki2dsi):
 
 
 # f1f2 summation should probably be at double precision
-@cuda.jit('float64[:,:], int32[:,:], boolean[:], int32, int32, int32')
+#@cuda.jit('float64[:,:], int32[:,:], boolean[:], int32, int32, int32')
+@cuda.jit
 def segscan_f1f2s_up_tree(
         f1f2s_dso, prior_children, is_leaf, start, end, n_derivsum_nodes
 ):
@@ -1008,8 +1017,9 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
     f1f2s_dso_d = cuda.device_array((rd.natoms, 6), dtype="float64")
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_f1f2s[nblocks, 512
-                           ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
+    reorder_starting_f1f2s[nblocks, 512](
+        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
+    )
 
     for iirange in rd.derivsum_atom_range_for_depth:
         segscan_f1f2s_up_tree[1, 512](
@@ -1017,5 +1027,6 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
             iirange[0], iirange[1], rd.natoms
         )
 
-    reorder_final_f1f2s[nblocks, 512
-                        ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
+    reorder_final_f1f2s[nblocks, 512](
+        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
+    )
