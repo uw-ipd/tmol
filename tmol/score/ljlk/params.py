@@ -122,7 +122,11 @@ class LJLKParamResolver(ValidateAttrs):
 
     @classmethod
     @validate_args
-    def from_database(cls, ljlk_database: LJLKDatabase):
+    def from_database(
+            cls,
+            ljlk_database: LJLKDatabase,
+            device: torch.device,
+    ):
         """Initialize param resolver for all atom types in database."""
 
         # Generate a full atom type index, appending a "None" value at index -1
@@ -134,7 +138,7 @@ class LJLKParamResolver(ValidateAttrs):
         # Convert float entries into 1-d tensors
         global_params = LJLKGlobalParams(
             **{
-                n: torch.tensor(v)
+                n: torch.tensor(v, device=device)
                 for n, v in cattr.unstructure(ljlk_database.global_parameters)
                 .items()
             }
@@ -157,8 +161,11 @@ class LJLKParamResolver(ValidateAttrs):
         # Convert the param record dataframe into typed TensorGroup
         type_params = LJLKTypeParams(
             **{
-                f.name:
-                torch.tensor(param_records[f.name].values, dtype=f.type.dtype)
+                f.name: torch.tensor(
+                    param_records[f.name].values,
+                    dtype=f.type.dtype,
+                    device=device,
+                )
                 for f in attr.fields(LJLKTypeParams)
             }
         )

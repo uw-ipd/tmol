@@ -18,7 +18,7 @@ from tmol.system.residue.restypes import Residue
 from tmol.system.residue.kinematics import KinematicDescription
 
 
-def test_kinematic_torch_op_refold(ubq_system):
+def test_kinematic_torch_op_refold(ubq_system, torch_device):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
@@ -26,10 +26,7 @@ def test_kinematic_torch_op_refold(ubq_system):
         (tkin.dof_metadata.dof_type == DOFTypes.bond_torsion)
     ]
 
-    coords = torch.from_numpy(tsys.coords)
-
-    kincoords = coords[tkin.kintree.id]
-    kincoords[torch.isnan(kincoords)] = 0.0
+    kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
 
     kop = KinematicOp.from_coords(
         tkin.kintree,
@@ -52,11 +49,11 @@ def gradcheck_test_system(
     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
-    coords = torch.from_numpy(tsys.coords)
-    kincoords = coords[tkin.kintree.id]
-    kincoords[torch.isnan(kincoords)] = 0.0
-
-    return (tkin.kintree, tkin.dof_metadata, kincoords)
+    return (
+        tkin.kintree,
+        tkin.dof_metadata,
+        tkin.extract_kincoords(tsys.coords),
+    )
 
 
 def kop_gradcheck_report(
@@ -155,7 +152,7 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
 
 
 def test_kinematic_torch_op_smoke(
-        gradcheck_test_system, pytorch_backward_coverage
+        gradcheck_test_system, torch_backward_coverage
 ):
     kintree, dofs, kincoords = gradcheck_test_system
 
@@ -168,7 +165,7 @@ def test_kinematic_torch_op_smoke(
     start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
 
     coords = kop(start_dofs)
-    coords.register_hook(pytorch_backward_coverage)
+    coords.register_hook(torch_backward_coverage)
 
     total = coords.sum()
     total.backward()

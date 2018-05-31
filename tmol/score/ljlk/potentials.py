@@ -1,5 +1,4 @@
 import torch
-import numpy as np
 
 from tmol.types.functional import validate_args
 
@@ -25,7 +24,9 @@ def render_pair_parameters(
     # result buffer the size of the direct broadcast of the two input parameter sets.
     assert len(params_a.shape) == len(params_b.shape)
     result_shape = [max(d) for d in zip(params_a.shape, params_b.shape)]
-    params_p = LJLKTypePairParams.empty(result_shape)
+    params_p = LJLKTypePairParams.empty(
+        result_shape, device=global_params.max_dis.device
+    )
 
     # lj
     # these are only dependent on atom1/atom2 ... can this be more efficient?
@@ -59,7 +60,7 @@ def render_pair_parameters(
     sigma6 = sigma * sigma * sigma
     sigma6 = sigma6 * sigma6
     sigma12 = sigma6 * sigma6
-    wdepth = np.sqrt(params_a.lj_wdepth * params_b.lj_wdepth)
+    wdepth = torch.sqrt(params_a.lj_wdepth * params_b.lj_wdepth)
 
     params_p.lj_sigma[:] = sigma
     params_p.lj_wdepth[:] = wdepth
@@ -116,33 +117,33 @@ def render_pair_parameters(
     x_thresh2 = (dis_rad2 * dis_rad2) * params_p.lk_inv_lambda2_2
 
     spline_close1_y0 = (
-        np.exp(-x_thresh1) * params_p.lk_coeff1 * inv_thresh_dis2
+        torch.exp(-x_thresh1) * params_p.lk_coeff1 * inv_thresh_dis2
     )
     spline_close2_y0 = (
-        np.exp(-x_thresh2) * params_p.lk_coeff2 * inv_thresh_dis2
+        torch.exp(-x_thresh2) * params_p.lk_coeff2 * inv_thresh_dis2
     )
     params_p.lk_spline_close_y0[:] = spline_close1_y0 + spline_close2_y0
 
     ##
     # near spline
     # fd: in code this is "rounded" to the nearest gridpoint
-    switch = np.minimum(spline_close1_y0, spline_close2_y0)
-    params_p.lk_spline_close_x0[:] = np.sqrt(
-        np.maximum(switch * switch - 1.5, 0.0)
+    switch = torch.min(spline_close1_y0, spline_close2_y0)
+    params_p.lk_spline_close_x0[:] = torch.sqrt(
+        torch.max(switch * switch - 1.5, switch.new_zeros(1))
     )
-    params_p.lk_spline_close_x1[:] = np.sqrt(switch * switch + 1.0)
+    params_p.lk_spline_close_x1[:] = torch.sqrt(switch * switch + 1.0)
 
     invdist_close = 1 / (params_p.lk_spline_close_x1)
     invdist2_close = invdist_close * invdist_close
 
     dis_rad_x1 = (params_p.lk_spline_close_x1 - params_p.lj_rad1)
     x_x1 = (dis_rad_x1 * dis_rad_x1) * params_p.lk_inv_lambda2_1
-    y_1 = np.exp(-x_x1) * params_p.lk_coeff1 * invdist2_close
+    y_1 = torch.exp(-x_x1) * params_p.lk_coeff1 * invdist2_close
     dy_1 = -2 * (dis_rad_x1 * params_p.lk_inv_lambda2_1 + invdist_close) * y_1
 
     dis_rad_x2 = (params_p.lk_spline_close_x1 - params_p.lj_rad2)
     x_x2 = (dis_rad_x2 * dis_rad_x2) * params_p.lk_inv_lambda2_2
-    y_2 = np.exp(-x_x2) * params_p.lk_coeff2 * invdist2_close
+    y_2 = torch.exp(-x_x2) * params_p.lk_coeff2 * invdist2_close
     dy_2 = -2 * (dis_rad_x2 * params_p.lk_inv_lambda2_2 + invdist_close) * y_2
 
     params_p.lk_spline_close_y1[:] = (y_1 + y_2)
@@ -155,12 +156,12 @@ def render_pair_parameters(
 
     dis_rad_x3 = global_params.spline_start - params_p.lj_rad1
     x_x3 = (dis_rad_x3 * dis_rad_x3) * params_p.lk_inv_lambda2_1
-    y_3 = np.exp(-x_x3) * params_p.lk_coeff1 * invdist2_far
+    y_3 = torch.exp(-x_x3) * params_p.lk_coeff1 * invdist2_far
     dy_3 = -2 * (dis_rad_x3 * params_p.lk_inv_lambda2_1 + invdist_far) * y_3
 
     dis_rad_x4 = global_params.spline_start - params_p.lj_rad2
     x_x4 = (dis_rad_x4 * dis_rad_x4) * params_p.lk_inv_lambda2_2
-    y_4 = np.exp(-x_x4) * params_p.lk_coeff2 * invdist2_far
+    y_4 = torch.exp(-x_x4) * params_p.lk_coeff2 * invdist2_far
     dy_4 = -2 * (dis_rad_x4 * params_p.lk_inv_lambda2_2 + invdist_far) * y_4
 
     params_p.lk_spline_far_y0[:] = (y_3 + y_4)
@@ -228,7 +229,7 @@ def lj_score(
     return torch.where(
         interaction_weight > 0,
         interaction_weight * raw_lj,
-        torch.zeros(1, dtype=real, requires_grad=False),
+        interaction_weight.new_zeros(1, requires_grad=False),
     )
 
 
@@ -315,5 +316,5 @@ def lk_score(
     return torch.where(
         interaction_weight > 0,
         interaction_weight * raw_lk,
-        torch.zeros(1, dtype=real, requires_grad=False),
+        interaction_weight.new_zeros(1, requires_grad=False),
     )

@@ -13,8 +13,6 @@ from tmol.types.torch import Tensor
 
 from .bonded_atom import BondedAtomScoreGraph
 
-from .types import RealTensor
-
 
 def _nan_to_num(var):
     vals = var.detach()
@@ -137,11 +135,12 @@ class BlockedDistanceAnalysis:
 
         # yapf: disable
         c_isnan = torch.isnan(coords)
-        coords = coords.where(~c_isnan, RealTensor([0]))
+        coords = coords.where(~c_isnan, coords.new_zeros(1))
 
         nonnan_atoms = (c_isnan.sum(dim=-1) == 0)
         atoms_per_block = (
-            nonnan_atoms.reshape(nb, bs).sum(dim=-1).type(RealTensor))
+            nonnan_atoms.reshape(nb, bs).sum(dim=-1).to(coords.dtype)
+        )
 
         nonnan_blocks = atoms_per_block > 0
 
@@ -161,7 +160,7 @@ class BlockedDistanceAnalysis:
             .norm(dim=-1)
             .where(
                 nonnan_atoms.reshape((nb, bs)),
-                RealTensor([0]))
+                coords.new_zeros(1))
             .max(dim=1)[0]
         )
 

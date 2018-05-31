@@ -4,6 +4,7 @@ from typing import Optional
 import torch
 import numpy
 
+from ..device import TorchDevice
 from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..bonded_atom import BondedAtomScoreGraph
 
@@ -67,25 +68,30 @@ class HBondPairs(ValidateAttrs):
 
     @classmethod
     @validate_args
-    def setup(cls, params: HBondParamResolver, elems: HBondElementAnalysis):
+    def setup(
+            cls,
+            params: HBondParamResolver,
+            elems: HBondElementAnalysis,
+            device: torch.device,
+    ):
         # Get blocks of acceptor/donor pairs for each set of identified acceptors
         donor_sp2_pairs = cls._cross_pairs(elems.donors, elems.sp2_acceptors)
         donor_sp2_pair_params = (
             params[donor_sp2_pairs["donor_type"],
                    donor_sp2_pairs["acceptor_type"]]
-        ) if len(donor_sp2_pairs) else None
+        ).to(device) if len(donor_sp2_pairs) else None
 
         donor_sp3_pairs = cls._cross_pairs(elems.donors, elems.sp3_acceptors)
         donor_sp3_pair_params = (
             params[donor_sp3_pairs["donor_type"],
                    donor_sp3_pairs["acceptor_type"]]
-        ) if len(donor_sp3_pairs) else None
+        ).to(device) if len(donor_sp3_pairs) else None
 
         donor_ring_pairs = cls._cross_pairs(elems.donors, elems.ring_acceptors)
         donor_ring_pair_params = (
             params[donor_ring_pairs["donor_type"],
                    donor_ring_pairs["acceptor_type"]]
-        ) if len(donor_ring_pairs) else None
+        ).to(device) if len(donor_ring_pairs) else None
 
         return cls(
             donor_sp2_pairs=donor_sp2_pairs,
@@ -101,6 +107,7 @@ class HBondPairs(ValidateAttrs):
 class HBondScoreGraph(
         BondedAtomScoreGraph,
         TotalScoreComponentsGraph,
+        TorchDevice,
 ):
 
     hbond_database: HBondDatabase = tmol.database.default.scoring.hbond
@@ -143,9 +150,10 @@ class HBondScoreGraph(
     def hbond_pairs(
             hbond_param_resolver: HBondParamResolver,
             hbond_elements: HBondElementAnalysis,
+            device: torch.device,
     ) -> HBondPairs:
         """hbond pair metadata and parameters in target graph"""
-        return HBondPairs.setup(hbond_param_resolver, hbond_elements)
+        return HBondPairs.setup(hbond_param_resolver, hbond_elements, device)
 
     @reactive_property
     @validate_args

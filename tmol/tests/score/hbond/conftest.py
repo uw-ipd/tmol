@@ -90,9 +90,18 @@ bb_hbond_config = yaml.load(
 """
 )
 
+_test_hbond_databases = {
+    "default": tmol.database.default.scoring.hbond,
+    "bb_only":
+        cattr.structure(bb_hbond_config, tmol.database.scoring.HBondDatabase),
+}
+
+
+@pytest.fixture(params=list(_test_hbond_databases))
+def test_hbond_database(request):
+    return _test_hbond_databases[request.param]
+
 
 @pytest.fixture
 def bb_hbond_database():
-    return cattr.structure(
-        bb_hbond_config, tmol.database.scoring.HBondDatabase
-    )
+    return _test_hbond_databases["bb_only"]
