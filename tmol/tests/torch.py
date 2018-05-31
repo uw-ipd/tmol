@@ -13,7 +13,12 @@ requires_cuda = pytest.mark.skipif(not cuda_available, reason="Requires cuda.")
 @pytest.fixture(params=["cpu", requires_cuda("cuda")])
 def torch_device(request):
     """Paramterized test fixure to cover cpu & cuda torch devices."""
-    return torch.device(request.param)
+    if request.param == "cpu":
+        return torch.device("cpu")
+    elif request.param == "cuda":
+        return torch.device("cuda", torch.cuda.current_device())
+    else:
+        raise NotImplementedError
 
 
 @pytest.fixture

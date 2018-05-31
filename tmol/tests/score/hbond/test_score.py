@@ -25,7 +25,7 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     nan_scores = torch.nonzero(torch.isnan(hbond_graph.hbond_scores))
     assert len(nan_scores) == 0
     assert (hbond_graph.total_hbond != 0).all()
-    assert hbond_graph.total_score.device.type == torch_device.type
+    assert hbond_graph.total_score.device == torch_device
 
     hbond_graph.total_hbond.backward()
     nan_grads = torch.nonzero(torch.isnan(hbond_graph.coords.grad))

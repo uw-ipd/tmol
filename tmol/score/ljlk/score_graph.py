@@ -42,9 +42,12 @@ class LJLKScoreGraph(
 
     @reactive_property
     @validate_args
-    def param_resolver(ljlk_database: LJLKDatabase, ) -> LJLKParamResolver:
+    def param_resolver(
+            ljlk_database: LJLKDatabase,
+            device: torch.device,
+    ) -> LJLKParamResolver:
         """Parameter tensor groups and atom-type to parameter resolver."""
-        return LJLKParamResolver.from_database(ljlk_database)
+        return LJLKParamResolver.from_database(ljlk_database, device)
 
     @reactive_property
     @validate_args
@@ -52,12 +55,15 @@ class LJLKScoreGraph(
             bonded_path_length: NDArray("f4")[:, :],
             atom_types: NDArray(object)[:],
             real_atoms: Tensor(bool)[:],
+            device: torch.device,
     ) -> Tensor(torch.float)[:, :]:
         """lj&lk interaction weight, bonded cutoff"""
 
-        bonded_path_length = torch.from_numpy(bonded_path_length)
+        bonded_path_length = torch.from_numpy(bonded_path_length).to(device)
 
-        result = torch.ones(bonded_path_length.shape, dtype=torch.float)
+        result = bonded_path_length.new_ones(
+            bonded_path_length.shape, dtype=torch.float
+        )
 
         result[bonded_path_length < 4] = 0
         result[bonded_path_length == 4] = .2

@@ -11,8 +11,6 @@ from tmol.kinematics.metadata import DOFTypes
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
-from tmol.score.types import RealTensor
-
 
 @validate_args
 def system_cartesian_space_graph_params(
@@ -28,10 +26,12 @@ def system_cartesian_space_graph_params(
     """
     bonds = system.bonds
     coords = (
-        torch.from_numpy(system.coords).clone()
-        .to(device, RealTensor.dtype)
-        .requires_grad_(requires_grad)
-    ) # yapf: disable
+        torch.tensor(
+            system.coords,
+            dtype=torch.float,
+            device=device,
+        ).requires_grad_(requires_grad)
+    )
 
     atom_types = system.atom_metadata["atom_type"].copy()
 
