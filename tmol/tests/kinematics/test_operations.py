@@ -11,8 +11,8 @@ from tmol.kinematics.operations import (
 )
 
 from tmol.kinematics.datatypes import (KinDOF, NodeType, KinTree)
-
 from tmol.kinematics.gpu_operations import (refold_data_from_kintree)
+from tmol.tests.torch import requires_cuda
 
 
 def score(coords):
@@ -336,6 +336,7 @@ def test_f1f2_resolution_strategies_match(kintree, coords):
     )
 
 
+@requires_cuda
 def test_f1f2_resolution_strategies_match2(kintree, coords):
     NATOMS, _ = coords.shape
     bkin = backwardKin(kintree, coords)

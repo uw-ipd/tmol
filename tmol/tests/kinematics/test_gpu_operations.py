@@ -16,6 +16,8 @@ from tmol.tests.kinematics.test_torch_op import gradcheck_test_system
 from tmol.kinematics.datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
 from tmol.kinematics.operations import BondTransforms, JumpTransforms, SegScan, Fscollect
 
+from tmol.tests.torch import requires_cuda
+
 
 def test_gpu_refold_data_construction(ubq_system):
     tsys = ubq_system
@@ -60,8 +62,8 @@ def test_gpu_refold_data_construction(ubq_system):
             assert child == -1 or ii_ki == parent_ko[dsi2ki[child]]
 
 
-#def test_gpu_refold_ordering(gradcheck_test_system):
-def TEMP_test_gpu_refold_ordering(ubq_system):
+@requires_cuda
+def test_gpu_refold_ordering(ubq_system):
 
     #numpy.set_printoptions(threshold=numpy.nan, precision=3)
 
@@ -142,6 +144,7 @@ def TEMP_test_gpu_refold_ordering(ubq_system):
     numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)
 
 
+@requires_cuda
 def test_gpu_segscan2(ubq_system):
 
     numpy.set_printoptions(threshold=numpy.nan, precision=3)

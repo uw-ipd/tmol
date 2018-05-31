@@ -17,7 +17,10 @@ from tmol.system.residue.packed import PackedResidueSystem
 from tmol.system.residue.restypes import Residue
 from tmol.system.residue.kinematics import KinematicDescription
 
+from tmol.tests.torch import requires_cuda
 
+
+@requires_cuda
 def test_kinematic_torch_op_refold(ubq_system, torch_device):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
@@ -112,6 +115,7 @@ def kop_gradcheck_report(
     torch.autograd.gradcheck(kop, (start_dofs, ), raise_exception=True)
 
 
+@requires_cuda
 def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
     kintree, dofs, kincoords = gradcheck_test_system
 
@@ -136,6 +140,7 @@ def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
     kop_gradcheck_report(kop, dofs, start_dofs)
 
 
+@requires_cuda
 def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
     kintree, dofs, kincoords = gradcheck_test_system
 
@@ -155,6 +160,7 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
     kop_gradcheck_report(kop, dofs, start_dofs)
 
 
+@requires_cuda
 def test_kinematic_torch_op_smoke(
         gradcheck_test_system, torch_backward_coverage
 ):
