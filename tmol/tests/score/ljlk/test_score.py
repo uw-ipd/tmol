@@ -1,6 +1,4 @@
-import pytest
 import torch
-import numpy
 
 from tmol.system.residue.score import system_cartesian_space_graph_params
 
@@ -18,58 +16,6 @@ class LJLKGraph(
         LJLKScoreGraph,
 ):
     pass
-
-
-@pytest.mark.xfail
-def test_ljlk_numpyros_comparison(ubq_system):
-    test_structure = ubq_system
-
-    test_params = system_cartesian_space_graph_params(
-        test_structure,
-        drop_missing_atoms=False,
-        requires_grad=False,
-    )
-
-    expected_scores = {
-        'lj_atr': -425.3,
-        'lj_rep': 248.8,
-        'lk': 255.8,
-    }
-
-    numpy.testing.assert_allclose(
-        LJLKGraph(**test_params).total_lj.detach(),
-        expected_scores["lj_atr"] + expected_scores["lj_rep"],
-        rtol=5e-3
-    )
-
-    numpy.testing.assert_allclose(
-        LJLKGraph(**test_params).total_lk.detach(),
-        expected_scores["lk"],
-        rtol=5e-3
-    )
-
-
-def test_baseline_comparison(ubq_system, torch_device):
-    test_structure = ubq_system
-
-    test_params = system_cartesian_space_graph_params(
-        test_structure,
-        drop_missing_atoms=False,
-        requires_grad=False,
-        device=torch_device,
-    )
-
-    test_graph = LJLKGraph(**test_params)
-
-    expected_scores = {
-        'total_lj': -176.5,
-        'total_lk': 249.3,
-    }
-
-    for term, val in expected_scores.items():
-        numpy.testing.assert_allclose(
-            getattr(test_graph, term).detach(), val, rtol=5e-3
-        )
 
 
 def save_intermediate_grad(var):
