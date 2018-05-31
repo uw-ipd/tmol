@@ -1,4 +1,3 @@
-import pytest
 import torch
 
 from tmol.system.residue.score import system_cartesian_space_graph_params
@@ -24,52 +23,6 @@ def save_intermediate_grad(var):
         var.grad = grad
 
     var.register_hook(store_grad)
-
-
-@pytest.mark.benchmark(
-    group="score_term",
-    min_rounds=10,
-    warmup=True,
-    warmup_iterations=10,
-)
-@pytest.mark.parametrize(
-    "benchmark_pass",
-    ["total", "forward", "backward"],
-)
-def test_ljlk_ubq_score(
-        benchmark,
-        benchmark_pass,
-        ubq_system,
-        torch_device,
-):
-    score_graph = LJLKGraph(
-        **system_cartesian_space_graph_params(
-            ubq_system,
-            requires_grad=True,
-            device=torch_device,
-        )
-    )
-
-    # Score once to prep graph
-    score_graph.total_score
-
-    if benchmark_pass is "total":
-
-        @benchmark
-        def total():
-            score_graph.coords = score_graph.coords
-            return score_graph.step()
-    elif benchmark_pass is "forward":
-
-        @benchmark
-        def forward():
-            score_graph.coords = score_graph.coords
-            return float(score_graph.total_score)
-    elif benchmark_pass is "backward":
-
-        @benchmark
-        def backward():
-            score_graph.total_score.backward(retain_graph=True)
 
 
 def test_ljlk_smoke(ubq_system, torch_device):
