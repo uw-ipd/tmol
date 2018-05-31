@@ -10,6 +10,7 @@ from .metadata import DOFMetadata
 from .operations import forwardKin2, backwardKin, resolveDerivs2
 from .gpu_operations import refold_data_from_kintree
 
+
 @attr.s(auto_attribs=True, frozen=True)
 class KinematicOp:
     """torch.autograd compatible forward kinematic operator.

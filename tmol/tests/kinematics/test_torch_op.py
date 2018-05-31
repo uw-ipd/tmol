@@ -40,7 +40,8 @@ def test_kinematic_torch_op_refold(ubq_system, torch_device):
     #print("kincoords");print(kincoords.numpy());
     #print("refold_kincoords");print(refold_kincoords.numpy());
     #print("diff");print((kincoords - refold_kincoords).numpy());
-    numpy.testing.assert_allclose(kincoords, refold_kincoords,atol=1e-6)
+    numpy.testing.assert_allclose(kincoords, refold_kincoords, atol=1e-6)
+
 
 @pytest.fixture
 def gradcheck_test_system(
