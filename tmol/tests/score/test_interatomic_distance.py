@@ -49,12 +49,19 @@ class ThresholdDistanceCount(
                 .type(torch.LongTensor).sum())
 
 
+@pytest.mark.benchmark(
+    group="interatomic_distance_calculation",
+    min_rounds=10,
+    warmup=True,
+    warmup_iterations=10,
+)
 @pytest.mark.parametrize(
     "interatomic_distance_component",
     [NaiveInteratomicDistanceGraph, BlockedInteratomicDistanceGraph],
     ids=["naive", "blocked"],
 )
 def test_interatomic_distance(
+        benchmark,
         ubq_system,
         interatomic_distance_component,
         torch_device,
@@ -89,4 +96,15 @@ def test_interatomic_distance(
         rtol=1e-4
     )
 
-    assert scipy_count == dgraph.total_score
+    @benchmark
+    def total_score():
+        # Reset graph by setting coord values,
+        # triggering full recalc.
+        dgraph.coords = test_params["coords"]
+
+        # Calculate total score, rather than atom pair distances
+        # As naive implemenation returns a more precise set of distances
+        # to the resulting score function.
+        return dgraph.total_score
+
+    assert scipy_count == total_score
