@@ -9,6 +9,7 @@ from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jaco
 
 from tmol.types.torch import Tensor
 
+from tmol.kinematics.operations import SegScanStrategy
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.torch_op import KinematicOp
@@ -16,6 +17,11 @@ from tmol.kinematics.torch_op import KinematicOp
 from tmol.system.residue.packed import PackedResidueSystem
 from tmol.system.residue.restypes import Residue
 from tmol.system.residue.kinematics import KinematicDescription
+
+
+@pytest.fixture(params=["efficient", "min_depth"])
+def scan_strategy(request):
+    return SegScanStrategy(request.param)
 
 
 @pytest.mark.benchmark(
@@ -28,6 +34,7 @@ def test_torsion_refold_ubq(
         benchmark,
         ubq_system,
         torch_device,
+        scan_strategy,
 ):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
@@ -42,6 +49,7 @@ def test_torsion_refold_ubq(
         tkin.kintree,
         torsion_dofs,
         kincoords,
+        scan_strategy=scan_strategy,
     )
 
     @benchmark
