@@ -4,6 +4,7 @@ import tmol.io.generic
 import tmol.io.pdb_parsing as pdb_parsing
 from tmol.utility.reactive import reactive_attrs
 
+from .device import TorchDevice
 from .bonded_atom import BondedAtomScoreGraph
 from .interatomic_distance import BlockedInteratomicDistanceGraph
 from .ljlk import LJLKScoreGraph
@@ -19,6 +20,7 @@ class TotalScoreGraph(
         BlockedInteratomicDistanceGraph,
         BondedAtomScoreGraph,
         TotalScoreComponentsGraph,
+        TorchDevice,
 ):
     pass
 

@@ -49,13 +49,14 @@ def test_ljlk_numpyros_comparison(ubq_system):
     )
 
 
-def test_baseline_comparison(ubq_system):
+def test_baseline_comparison(ubq_system, torch_device):
     test_structure = ubq_system
 
     test_params = system_cartesian_space_graph_params(
         test_structure,
         drop_missing_atoms=False,
         requires_grad=False,
+        device=torch_device,
     )
 
     test_graph = LJLKGraph(**test_params)
@@ -78,9 +79,13 @@ def save_intermediate_grad(var):
     var.register_hook(store_grad)
 
 
-def test_ljlk_smoke(ubq_system):
+def test_ljlk_smoke(ubq_system, torch_device):
     score_graph = LJLKGraph(
-        **system_cartesian_space_graph_params(ubq_system, requires_grad=True)
+        **system_cartesian_space_graph_params(
+            ubq_system,
+            requires_grad=True,
+            device=torch_device,
+        )
     )
 
     save_intermediate_grad(score_graph.lj)

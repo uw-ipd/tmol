@@ -102,11 +102,19 @@ class TensorType:
 
 
 class TensorGroup:
-    def __getitem__(self, idx):
-        if not all(isinstance(a.type, TensorType) or
-                   issubclass(a.type, TensorGroup)
-                   for a in attr.fields(type(self))): # yapf: disable
+    @property
+    def _pure_tensor(self):
+        return all(
+            isinstance(a.type, TensorType) or issubclass(a.type, TensorGroup)
+            for a in attr.fields(type(self))
+        )
+
+    def _check_pure_tensor(self):
+        if not self._pure_tensor:
             raise TypeError("All fields must be TensorType or TensorGroup.")
+
+    def __getitem__(self, idx):
+        self._check_pure_tensor()
 
         return attr.evolve(
             self, **{
@@ -120,10 +128,7 @@ class TensorGroup:
             getattr(self, a.name)[idx] = getattr(value, a.name)
 
     def reshape(self, *shape):
-        if not all(isinstance(a.type, TensorType) or
-                   issubclass(a.type, TensorGroup)
-                   for a in attr.fields(type(self))): # yapf: disable
-            raise TypeError("All fields must be TensorType or TensorGroup.")
+        self._check_pure_tensor()
 
         if len(shape) == 1 and isinstance(shape[0], collections.Sequence):
             shape = tuple(shape[0])
@@ -198,6 +203,34 @@ class TensorGroup:
     @classmethod
     def _expanded_shape(cls, shape):
         return shape
+
+    def to(self, *args, **kwargs):
+        """Perform dtype and/or device conversion for all subtensors via torch.Tensor.to.
+
+        Note that this may be an invalid operations if the TensorGroup contains
+        heterogenous tensor dtypes.
+
+        Performs Tensor dtype and/or device conversion. A :class:`torch.dtype` and :class:`torch.device` are
+        inferred from the arguments of ``self.to(*args, **kwargs)``.
+
+        If all subtensors already have the correct dtype and device then ``self`` is returned.
+        """
+
+        self._check_pure_tensor()
+
+        components = attr.asdict(self, recurse=False)
+        to_components = {
+            k: v.to(*args, **kwargs)
+            for k, v in components.items()
+        }
+
+        diff = set(
+            n for n in components if components[n] is not to_components[n]
+        )
+        if not diff:
+            return self
+        else:
+            return attr.evolve(self, **to_components)
 
 
 def cat(seq, dim=0, out=None):

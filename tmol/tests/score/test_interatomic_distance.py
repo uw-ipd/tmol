@@ -6,6 +6,8 @@ from scipy.spatial.distance import pdist, squareform
 
 from tmol.system.residue.io import read_pdb
 
+from tmol.score.device import TorchDevice
+
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
 )
@@ -64,6 +66,7 @@ class TestInteratomicDistance(unittest.TestCase):
         class TestGraph(
                 CartesianAtomicCoordinateProvider,
                 NaiveInteratomicDistanceGraph,
+                TorchDevice,
         ):
             pass
 
@@ -87,6 +90,7 @@ class TestInteratomicDistance(unittest.TestCase):
                 CartesianAtomicCoordinateProvider,
                 ThresholdDistanceCount,
                 NaiveInteratomicDistanceGraph,
+                TorchDevice,
         ):
             pass
 
@@ -95,6 +99,7 @@ class TestInteratomicDistance(unittest.TestCase):
                 CartesianAtomicCoordinateProvider,
                 ThresholdDistanceCount,
                 BlockedInteratomicDistanceGraph,
+                TorchDevice,
         ):
             pass
 
