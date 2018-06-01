@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
@@ -34,3 +35,25 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     hbond_graph.total_hbond.backward()
     nan_grads = torch.nonzero(torch.isnan(hbond_graph.coords.grad))
     assert len(nan_grads) == 0
+
+
+@pytest.mark.benchmark(
+    group="score_setup",
+)
+def test_hbond_score_setup(benchmark, ubq_system, torch_device):
+    graph_params = system_cartesian_space_graph_params(
+        ubq_system,
+        requires_grad=True,
+        device=torch_device,
+    )
+
+    @benchmark
+    def score_graph():
+        score_graph = HBGraph(**graph_params)
+
+        # Non-coordinate depdendent components for scoring
+        score_graph.hbond_pairs
+
+        return score_graph
+
+    # TODO fordas add test assertions
