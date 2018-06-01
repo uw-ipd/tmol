@@ -1,13 +1,13 @@
 import torch
-import numpy as np
 
 from tmol.types.functional import validate_args
 
 from tmol.types.torch import Tensor
 
-from .params import (LKBallGlobalParams, LKBallTypePairParams)
+#from .params import (LKBallGlobalParams, LKBallTypePairParams)
 
 Params = Tensor(torch.float)[...]
+CoordArray = Tensor(torch.double)[:, 3]
 
 
 # get lk energy, 1-sided
@@ -54,13 +54,9 @@ def get_lk_1way(
     # analytic LK part
     analytic_selector = ((dist >= lk_spline_close_x1) & (dist < spline_start))
 
-    dis1 = dist - lj_rad1
-    dis2 = dist - lj_rad2
-    x1 = dis1 * dis1 * lk_inv_lambda2_1
-    x2 = dis2 * dis2 * lk_inv_lambda2_2
-    analytic_component = invdist2 * (
-        torch.exp(-x1) * lk_coeff1 + torch.exp(-x2) * lk_coeff2
-    )
+    dis = dist - lj_rad
+    x = dis * dis * lk_inv_lambda2
+    analytic_component = invdist2 * ( torch.exp(-x1) * lk_coeff1 )
 
     x0 = spline_start
     x1 = max_dis
@@ -88,7 +84,7 @@ def get_lk_1way(
 # (donor waters are trivial and built in-line)
 @validate_args
 def build_acc_waters(
-        a: Coords, b: Coords, b0: Coords, d: Params, angle: Params,
+        a: CoordArray, b: CoordArray, b0: CoordArray, d: Params, angle: Params,
         theta: Params
 ) -> HTArray:
     natoms, = a.shape
@@ -141,9 +137,9 @@ def build_acc_waters(
 @validate_args
 def lkball_score_donor_1way(
         # Input coordinates
-        d: Coords,
-        h: Coords,
-        desolv: Params,
+        d: CoordArray,
+        h: CoordArray,
+        desolv: CoordArray,
 
         # dist d->desolv
         dist: Params,
@@ -198,9 +194,9 @@ def lkball_score_donor_1way(
 @validate_args
 def lkball_score_sp2_acc_1way(
         # Input coordinates
-        a: Coords,
-        b: Coords,
-        b0: Coords,
+        a: CoordArray,
+        b: CoordArray,
+        b0: CoordArray,
 
         # dist d->desolv
         dist: Params,
@@ -262,9 +258,9 @@ def lkball_score_sp2_acc_1way(
 @validate_args
 def lkball_score_sp3_acc_1way(
         # Input coordinates
-        a: Coords,
-        b: Coords,
-        b0: Coords,
+        a: CoordArray,
+        b: CoordArray,
+        b0: CoordArray,
 
         # dist d->desolv
         dist: Params,
@@ -304,9 +300,9 @@ def lkball_score_sp3_acc_1way(
 @validate_args
 def lkball_score_ring_acc_1way(
         # Input coordinates
-        a: Coords,
-        b: Coords,
-        b0: Coords,
+        a: CoordArray,
+        b: CoordArray,
+        b0: CoordArray,
 
         # dist d->desolv
         dist: Params,
@@ -338,3 +334,21 @@ def lkball_score_ring_acc_1way(
         lk_spline_close_y1, lk_spline_far_dy0, lk_spline_far_y0,
         lkb_ramp_width_A2, lkb_dist, spline_start, max_dis
     )
+
+
+# score lkbridge from water/water pair (e.g., donor, donor)
+@validate_args
+def lkbridge_score_from_water_water(
+        a1: CoordArray,
+        w11: CoordArray,
+        a2: CoordArray,
+        w21: CoordArray,
+
+        # Global score parameters
+        lkbr_overlap_width_A2: Params,
+        lkbr_overlap_gap2: Params,
+        lkbr_angle_widthscale: Params
+):
+
+
+
