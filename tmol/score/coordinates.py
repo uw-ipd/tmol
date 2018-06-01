@@ -14,14 +14,8 @@ class CartesianAtomicCoordinateProvider:
     # Source atomic coordinates
     coords: Tensor("f4")[:, 3]
 
-    def step(self):
-        """Recalculate total_score and gradients wrt/ coords. Does not clear coord grads."""
-
+    def reset_total_score(self):
         self.coords = self.coords
-
-        # TODO asford broken by total score issue?
-        self.total_score.backward()
-        return self.total_score
 
 
 @reactive_attrs(auto_attribs=True)
@@ -54,11 +48,5 @@ class KinematicAtomicCoordinateProvider:
 
         return coords.to(torch.float)
 
-    def step(self):
-        """Recalculate total_score and gradients wrt/ dofs. Does not clear dof grads."""
-
-        self.coords = self.coords
-
-        # TODO asford broken by total score issue?
-        self.total_score.backward()
-        return self.total_score
+    def reset_total_score(self):
+        self.dofs = self.dofs
