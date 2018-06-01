@@ -3,4 +3,4 @@ yapf==0.21
 
 pytest-xdist
 pytest-faulthandler
-pytest-benchmark
+git+https://github.com/uw-ipd/pytest-benchmark@a14db84
