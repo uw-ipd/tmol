@@ -29,7 +29,6 @@ def test_torch_cuda_smoke():
 )
 @pytest.mark.benchmark(
     group="float_perf",
-    warmup=True,
 )
 def test_float_perf(benchmark, torch_device, dtype):
     import torch

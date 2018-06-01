@@ -26,9 +26,6 @@ def scan_strategy(request):
 
 @pytest.mark.benchmark(
     group="kinematic_forward_op",
-    min_rounds=10,
-    warmup=True,
-    warmup_iterations=10,
 )
 def test_torsion_refold_ubq(
         benchmark,

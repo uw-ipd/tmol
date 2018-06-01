@@ -54,9 +54,6 @@ class LJLKScore(
 )
 @pytest.mark.benchmark(
     group="score_components",
-    min_rounds=10,
-    warmup=True,
-    warmup_iterations=10,
 )
 def test_graph(
         benchmark,

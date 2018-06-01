@@ -51,9 +51,6 @@ class ThresholdDistanceCount(
 
 @pytest.mark.benchmark(
     group="interatomic_distance_calculation",
-    min_rounds=10,
-    warmup=True,
-    warmup_iterations=10,
 )
 @pytest.mark.parametrize(
     "interatomic_distance_component",
