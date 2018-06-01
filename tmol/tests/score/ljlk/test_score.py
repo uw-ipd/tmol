@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from tmol.system.residue.score import system_cartesian_space_graph_params
@@ -67,3 +68,26 @@ def test_ljlk_smoke(ubq_system, torch_device):
 
     nan_coord_grads = torch.nonzero(torch.isnan(score_graph.coords.grad))
     assert len(nan_coord_grads) == 0
+
+
+@pytest.mark.benchmark(
+    group="score_setup",
+)
+def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
+    graph_params = system_cartesian_space_graph_params(
+        ubq_system,
+        requires_grad=True,
+        device=torch_device,
+    )
+
+    @benchmark
+    def score_graph():
+        score_graph = LJLKGraph(**graph_params)
+
+        # Non-coordinate depdendent components for scoring
+        score_graph.ljlk_atom_pair_params
+        score_graph.ljlk_interaction_weight
+
+        return score_graph
+
+    # TODO fordas add test assertions
