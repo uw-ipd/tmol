@@ -56,7 +56,7 @@ def get_lk_1way(
 
     dis = dist - lj_rad
     x = dis * dis * lk_inv_lambda2
-    analytic_component = invdist2 * ( torch.exp(-x1) * lk_coeff1 )
+    analytic_component = invdist2 * (torch.exp(-x1) * lk_coeff1)
 
     x0 = spline_start
     x1 = max_dis
@@ -334,21 +334,3 @@ def lkball_score_ring_acc_1way(
         lk_spline_close_y1, lk_spline_far_dy0, lk_spline_far_y0,
         lkb_ramp_width_A2, lkb_dist, spline_start, max_dis
     )
-
-
-# score lkbridge from water/water pair (e.g., donor, donor)
-@validate_args
-def lkbridge_score_from_water_water(
-        a1: CoordArray,
-        w11: CoordArray,
-        a2: CoordArray,
-        w21: CoordArray,
-
-        # Global score parameters
-        lkbr_overlap_width_A2: Params,
-        lkbr_overlap_gap2: Params,
-        lkbr_angle_widthscale: Params
-):
-
-
-
