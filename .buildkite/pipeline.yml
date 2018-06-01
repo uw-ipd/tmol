@@ -65,3 +65,12 @@ steps:
             type: junit
         formatter:
           type: details
+
+  ### Run benchmark tests
+  - label: ':racehorse: Benchmark'
+    command: |
+      pytest --benchmark-only --benchmark-enable
+    plugins:
+      uw-ipd/docker#1861bbe:
+        runtime: "nvidia"
+        image: "tmol-runner:${BUILDKITE_JOB_ID}"
