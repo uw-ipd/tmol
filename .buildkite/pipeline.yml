@@ -17,6 +17,36 @@ steps:
         run: test
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
+  ### Report test environment, test results and codecov
+  - label: ':clipboard: Report'
+    command: |
+      echo "--- environment"
+      conda info
+      conda list
+
+      echo "--- nvidia-smi"
+      nvidia-smi
+
+      #echo "--- codecov"
+      #/buildkite/bin/buildkite-agent artifact download .coverage .
+      #codecov -F pytest
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        run: test
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+      #uw-ipd/test-summary#8fa3c9a:
+      #  inputs:
+      #    - label: Testing
+      #      artifact_path: testing.junit.xml
+      #      type: junit
+      #    - label: Linting
+      #      artifact_path: linting.junit.xml
+      #      type: junit
+      #  formatter:
+      #    type: details
+
+
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing'
     # Run non-linting tests in a single process, relying on internal multithreading
@@ -42,35 +72,6 @@ steps:
         config: .buildkite/docker-compose.yml
         run: test
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
-
-  ### Report test environment, test results and codecov
-  - label: ':clipboard: Report'
-    command: |
-      echo "--- environment"
-      conda info
-      conda list
-
-      echo "--- nvidia-smi"
-      nvidia-smi
-
-      echo "--- codecov"
-      /buildkite/bin/buildkite-agent artifact download .coverage .
-      codecov -F pytest
-    plugins:
-      uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        run: test
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
-      uw-ipd/test-summary#8fa3c9a:
-        inputs:
-          - label: Testing
-            artifact_path: testing.junit.xml
-            type: junit
-          - label: Linting
-            artifact_path: linting.junit.xml
-            type: junit
-        formatter:
-          type: details
 
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
