@@ -35,12 +35,7 @@ steps:
 
   ### Report test environment, test results and codecov
   - label: ':clipboard: Report'
-    command: .buildkite/bin/report
     plugins:
-      uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        run: test
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
       uw-ipd/test-summary#8fa3c9a:
         inputs:
           - label: Testing
