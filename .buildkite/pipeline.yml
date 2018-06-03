@@ -61,11 +61,6 @@ steps:
         config: .buildkite/docker-compose.yml
         run: test
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
-        env:
-          - BUILDKITE_JOB_ID
-          - BUILDKITE_BUILD_ID
-          - BUILDKITE_AGENT_ACCESS_TOKEN
-
       uw-ipd/test-summary#8fa3c9a:
         inputs:
           - label: Testing
