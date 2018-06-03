@@ -1,8 +1,10 @@
 steps:
   ### Assemble dependencies in runner image
-  - label: ':hammer: Build Runner'
-    command: |
-      docker build -f .buildkite/runner/Dockerfile . -t tmol-runner:${BUILDKITE_JOB_ID} -t tmol-runner:${BUILDKITE_COMMIT}
+  - label: ':hammer: Build'
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        build: test
 
   ### Test installation from source
   # Note that this tests setup and *does not* modify the runtime environment below.
@@ -10,9 +12,10 @@ steps:
     command: |
       pip install .
     plugins:
-      uw-ipd/docker#1861bbe:
-        runtime: "nvidia"
-        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        run: test
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing'
@@ -23,9 +26,10 @@ steps:
       - testing.junit.xml
       - .coverage
     plugins:
-      uw-ipd/docker#1861bbe:
-        runtime: "nvidia"
-        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        run: test
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
   ### Run formatting/linting checks.
   - label: ':microscope: Linting'
@@ -34,9 +38,10 @@ steps:
     artifact_paths:
       - linting.junit.xml
     plugins:
-      uw-ipd/docker#1861bbe:
-        runtime: "nvidia"
-        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        run: test
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
   ### Report test environment, test results and codecov
   - label: ':clipboard: Report'
@@ -49,12 +54,18 @@ steps:
       nvidia-smi
 
       echo "--- codecov"
-      buildkite-agent artifact download .coverage .
+      /buildkite/bin/buildkite-agent artifact download .coverage .
       codecov -F pytest
     plugins:
-      uw-ipd/docker#1861bbe:
-        runtime: "nvidia"
-        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        run: test
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+        env:
+          - BUILDKITE_JOB_ID
+          - BUILDKITE_BUILD_ID
+          - BUILDKITE_AGENT_ACCESS_TOKEN
+
       uw-ipd/test-summary#8fa3c9a:
         inputs:
           - label: Testing
@@ -76,6 +87,7 @@ steps:
     artifact_paths:
       - benchmark/**/*
     plugins:
-      uw-ipd/docker#1861bbe:
-        runtime: "nvidia"
-        image: "tmol-runner:${BUILDKITE_JOB_ID}"
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        run: test
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"

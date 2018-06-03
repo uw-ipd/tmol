@@ -61,3 +61,5 @@ COPY environments /environments
 RUN /environments/render linux.cuda test > /environment.yml && \
     conda env update -n base -f /environment.yml && \
     conda clean -tipsy
+
+COPY . /tmol/

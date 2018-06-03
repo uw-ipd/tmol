@@ -1,0 +1,12 @@
+version: '2.3'
+services:
+  test:
+    build:
+      context: ..
+      dockerfile: .buildkite/test/Dockerfile
+    runtime: nvidia
+    volumes:
+      - buildkite:/buildkite
+volumes:
+  buildkite:
+    external: True
