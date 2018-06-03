@@ -3,7 +3,13 @@
 set -x
 set -e
 
-BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUILDKITE_BRANCH}
-BENCHMARK_RESULT=${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
+if [ -n "$BUILDKITE" ]; then
+  BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUILDKITE_BRANCH}
+  BENCHMARK_RESULT=${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
+else
+  BENCHMARK_DIR=benchmark/dev/${HOSTNAME}/`git rev-parse --abbrev-ref HEAD`
+  BENCHMARK_RESULT=${BENCHMARK_DIR}/`git describe --tags --dirty`.json 
+fi
+
 mkdir -p $BENCHMARK_DIR
 pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1 --benchmark-sort=fullname --benchmark-json=${BENCHMARK_RESULT}
