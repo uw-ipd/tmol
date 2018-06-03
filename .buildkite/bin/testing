@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -x
+set -e
+
+pytest -v -k 'not linting' --cov=./tmol --junitxml=testing.junit.xml

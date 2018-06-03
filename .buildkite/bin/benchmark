@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -x
+set -e
+
+BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUILDKITE_BRANCH}
+BENCHMARK_RESULT=${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
+mkdir -p $BENCHMARK_DIR
+pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1 --benchmark-sort=fullname --benchmark-json=${BENCHMARK_RESULT}

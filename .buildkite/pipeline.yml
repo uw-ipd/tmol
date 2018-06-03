@@ -1,85 +1,60 @@
 steps:
-  ### Assemble dependencies in runner image
-  - label: ':hammer: Build'
-    plugins:
-      uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        build: test
-
   ### Test installation from source
   # Note that this tests setup and *does not* modify the runtime environment below.
   - label: ':electric_plug: Setup'
-    command: |
-      pip install .
+    command: .buildkite/bin/setup
     plugins:
       uw-ipd/docker-compose#run_workdir:
         config: .buildkite/docker-compose.yml
         run: test
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
-
-  ### Report test environment, test results and codecov
-  - label: ':clipboard: Report'
-    command: |
-      echo "--- environment"
-      conda info
-      conda list
-
-      echo "--- nvidia-smi"
-      nvidia-smi
-
-      #echo "--- codecov"
-      #/buildkite/bin/buildkite-agent artifact download .coverage .
-      #codecov -F pytest
-    plugins:
-      uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        run: test
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
-      #uw-ipd/test-summary#8fa3c9a:
-      #  inputs:
-      #    - label: Testing
-      #      artifact_path: testing.junit.xml
-      #      type: junit
-      #    - label: Linting
-      #      artifact_path: linting.junit.xml
-      #      type: junit
-      #  formatter:
-      #    type: details
 
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing'
-    # Run non-linting tests in a single process, relying on internal multithreading
-    command: |
-      pytest -v -k 'not linting' --cov=./tmol --junitxml=testing.junit.xml
+    command: .buildkite/bin/testing
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        run: test
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
     artifact_paths:
       - testing.junit.xml
       - .coverage
-    plugins:
-      uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        run: test
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
   ### Run formatting/linting checks.
   - label: ':microscope: Linting'
-    command: |
-      pytest -n auto -k 'linting' --junitxml=linting.junit.xml
-    artifact_paths:
-      - linting.junit.xml
+    command: .buildkite/bin/linting
     plugins:
       uw-ipd/docker-compose#run_workdir:
         config: .buildkite/docker-compose.yml
         run: test
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+    artifact_paths:
+      - linting.junit.xml
+
+  ### Report test environment, test results and codecov
+  - label: ':clipboard: Report'
+    command: .buildkite/bin/report
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        config: .buildkite/docker-compose.yml
+        run: test
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+      uw-ipd/test-summary#8fa3c9a:
+        inputs:
+          - label: Testing
+            artifact_path: testing.junit.xml
+            type: junit
+          - label: Linting
+            artifact_path: linting.junit.xml
+            type: junit
+        formatter:
+          type: details
 
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
-    command: |
-      BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUILDKITE_BRANCH}
-      BENCHMARK_RESULT=$${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
-      mkdir -p $$BENCHMARK_DIR
-      pytest --benchmark-enable --benchmark-only --benchmark-max-time=.1 --benchmark-sort=fullname --benchmark-json=$${BENCHMARK_RESULT}
+    command: .buildkite/bin/benchmark
     artifact_paths:
       - benchmark/**/*
     plugins:
