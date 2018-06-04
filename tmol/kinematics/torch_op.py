@@ -7,7 +7,7 @@ from tmol.types.functional import validate_args
 from .datatypes import KinTree, KinDOF
 from .metadata import DOFMetadata
 
-from .operations import forwardKin, backwardKin, resolveDerivs
+from .operations import forwardKin, backwardKin, resolveDerivs, SegScanStrategy
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -36,6 +36,8 @@ class KinematicOp:
     src_dofs: KinDOF
     src_mobile_dofs: Tensor("f8")[:]
 
+    scan_strategy: SegScanStrategy = SegScanStrategy.default
+
     @classmethod
     @validate_args
     def from_coords(
@@ -43,6 +45,7 @@ class KinematicOp:
             kintree: KinTree,
             mobile_dofs: DOFMetadata,
             kin_coords: Tensor("f8")[:, 3],
+            **kwargs,
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""
         bkin = backwardKin(kintree, kin_coords)
@@ -54,6 +57,7 @@ class KinematicOp:
             mobile_dofs=mobile_dofs,
             src_dofs=bkin.dofs,
             src_mobile_dofs=src_mobile_dofs,
+            **kwargs
         )
 
     def __call__(
@@ -92,7 +96,11 @@ class KinematicFun(torch.autograd.Function):
         working_dofs.raw[ctx.kinematic_op.mobile_dofs.node_idx,
                          ctx.kinematic_op.mobile_dofs.dof_idx] = dofs
 
-        fkin = forwardKin(ctx.kinematic_op.kintree, working_dofs)
+        fkin = forwardKin(
+            ctx.kinematic_op.kintree,
+            working_dofs,
+            scan_strategy=ctx.kinematic_op.scan_strategy,
+        )
 
         ctx.save_for_backward(working_dofs.raw, fkin.hts)
 
@@ -111,6 +119,7 @@ class KinematicFun(torch.autograd.Function):
             working_dofs,
             hts,
             coord_grads,
+            scan_strategy=ctx.kinematic_op.scan_strategy,
         )
 
         result_derivs = working_derivs.raw[

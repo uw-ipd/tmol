@@ -175,9 +175,9 @@ def Fscollect(
         toCalc: Tensor(torch.uint8)[:],
 ) -> None:
     """segmented scan "up" operator: aggregate f1/f2s"""
-    #numpy.add.at(fs, ptrs[toCalc], fs[toCalc])
-    offsets = torch.tensor([0, 1, 2], dtype=torch.long).unsqueeze(0)
-    indices = torch.tensor(ptrs.unsqueeze(1) * 3 + offsets)
+    offsets = torch.tensor([0, 1, 2], dtype=ptrs.dtype,
+                           device=ptrs.device).unsqueeze(0)
+    indices = (ptrs.unsqueeze(1) * 3 + offsets)
     fs.put_(indices[toCalc, :], fs[toCalc, :], accumulate=True)
 
 
@@ -524,7 +524,7 @@ def BondDerivatives(
     phi_c_axes = Ms[:, 0:3, 0]
 
     # to get the theta axis, we need to undo the phi_c rotation (about x)
-    phicrots = torch.zeros([nbondatoms, 3, 3], dtype=torch.double)
+    phicrots = Ms.new_zeros([nbondatoms, 3, 3])
     phicrots[:, 0, 0] = 1
     phicrots[:, 1, 1] = torch.cos(-dofs.phi_c)
     phicrots[:, 1, 2] = -torch.sin(-dofs.phi_c)
@@ -532,7 +532,7 @@ def BondDerivatives(
     phicrots[:, 2, 2] = torch.cos(-dofs.phi_c)
     theta_axes = torch.matmul(Ms[:, 0:3, 0:3], phicrots)[:, 0:3, 2]
 
-    dsc_ddofs = BondDOF.zeros((nbondatoms, ))
+    dsc_ddofs = BondDOF.zeros((nbondatoms, ), device=Ms.device)
 
     # the einsums are doing dot products on stacks of ints
     dsc_ddofs.d[:] = torch.einsum('ij,ij->i', (phi_c_axes, f2s))

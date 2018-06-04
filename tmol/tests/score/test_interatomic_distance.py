@@ -1,10 +1,8 @@
-import unittest
+import pytest
 import torch
 import numpy
 
 from scipy.spatial.distance import pdist, squareform
-
-from tmol.system.residue.io import read_pdb
 
 from tmol.score.device import TorchDevice
 
@@ -21,8 +19,6 @@ from tmol.score.interatomic_distance import (
     BlockedInteratomicDistanceGraph,
 )
 
-from tmol.tests.data.pdb import data as test_pdbs
-
 from tmol.system.residue.score import system_cartesian_space_graph_params
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -33,7 +29,7 @@ class ThresholdDistanceCount(
         InteratomicDistanceGraphBase,
         TotalScoreComponentsGraph,
 ):
-    threshold_distance: float
+    threshold_distance: float = 6.0
 
     @property
     def component_total_score_terms(self):
@@ -53,67 +49,59 @@ class ThresholdDistanceCount(
                 .type(torch.LongTensor).sum())
 
 
-class TestInteratomicDistance(unittest.TestCase):
-    def test_naive_distance_calculation(self):
-        test_structure = read_pdb(test_pdbs["1ubq"])
-        test_params = system_cartesian_space_graph_params(
-            test_structure, drop_missing_atoms=True
-        )
+@pytest.mark.benchmark(
+    group="interatomic_distance_calculation",
+)
+@pytest.mark.parametrize(
+    "interatomic_distance_component",
+    [NaiveInteratomicDistanceGraph, BlockedInteratomicDistanceGraph],
+    ids=["naive", "blocked"],
+)
+def test_interatomic_distance(
+        benchmark,
+        ubq_system,
+        interatomic_distance_component,
+        torch_device,
+):
+    test_params = system_cartesian_space_graph_params(
+        ubq_system,
+        drop_missing_atoms=True,
+        device=torch_device,
+    )
 
-        scipy_distance = squareform(pdist(test_structure.coords))
+    @reactive_attrs
+    class TestGraph(
+            CartesianAtomicCoordinateProvider,
+            interatomic_distance_component,
+            ThresholdDistanceCount,
+            TorchDevice,
+    ):
+        pass
 
-        @reactive_attrs
-        class TestGraph(
-                CartesianAtomicCoordinateProvider,
-                NaiveInteratomicDistanceGraph,
-                TorchDevice,
-        ):
-            pass
+    dgraph = TestGraph(**test_params)
 
-        dgraph = TestGraph(**test_params)
+    scipy_distance = pdist(ubq_system.coords)
+    scipy_count = numpy.count_nonzero(
+        scipy_distance[~numpy.isnan(scipy_distance)] < 6.0
+    )
 
-        numpy.testing.assert_allclose(
-            numpy.nan_to_num(scipy_distance[tuple(dgraph.atom_pair_inds)]),
-            numpy.nan_to_num(dgraph.atom_pair_dist.detach()),
-            rtol=1e-4
-        )
+    numpy.testing.assert_allclose(
+        numpy.nan_to_num(
+            squareform(scipy_distance)[tuple(dgraph.atom_pair_inds)]
+        ),
+        numpy.nan_to_num(dgraph.atom_pair_dist.detach()),
+        rtol=1e-4
+    )
 
-    def test_block_distance_by_naive(self):
-        test_structure = read_pdb(test_pdbs["1ubq"])
-        test_params = system_cartesian_space_graph_params(
-            test_structure, drop_missing_atoms=True
-        )
-        test_params["threshold_distance"] = 6
+    @benchmark
+    def total_score():
+        # Reset graph by setting coord values,
+        # triggering full recalc.
+        dgraph.coords = test_params["coords"]
 
-        @reactive_attrs
-        class NaiveGraph(
-                CartesianAtomicCoordinateProvider,
-                ThresholdDistanceCount,
-                NaiveInteratomicDistanceGraph,
-                TorchDevice,
-        ):
-            pass
+        # Calculate total score, rather than atom pair distances
+        # As naive implemenation returns a more precise set of distances
+        # to the resulting score function.
+        return dgraph.total_score
 
-        @reactive_attrs
-        class BlockedGraph(
-                CartesianAtomicCoordinateProvider,
-                ThresholdDistanceCount,
-                BlockedInteratomicDistanceGraph,
-                TorchDevice,
-        ):
-            pass
-
-        scipy_distance = pdist(test_structure.coords)
-        scipy_count = numpy.count_nonzero(
-            scipy_distance[~numpy.isnan(scipy_distance)] < 6.0
-        )
-
-        self.assertEqual(
-            scipy_count,
-            NaiveGraph(**test_params).total_score,
-        )
-
-        self.assertEqual(
-            NaiveGraph(**test_params).total_score,
-            BlockedGraph(**test_params).total_score,
-        )
+    assert scipy_count == total_score

@@ -5,3 +5,4 @@ codecov
 yapf==0.21
 flake8
 pytest-faulthandler
+pytest-benchmark
