@@ -1,6 +1,9 @@
 # Rendered environment definitions
 environment.yml
 
+# Benchmark results
+benchmark
+
 dask-worker-space
 
 # Created by https://www.gitignore.io/api/python,jupyternotebook

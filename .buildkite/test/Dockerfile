@@ -44,7 +44,22 @@ RUN curl -s https://api.github.com/repos/buildkite/agent/releases/latest | \
     xargs curl -L | tar -xz -C /usr/local/bin ./buildkite-agent
 
 ### Setup test environment
+# Layering setup to allow partial caching of conda packages
+
+RUN conda update -n base conda && conda clean -tipsy
+
+COPY environments/core.dependencies.txt /environments/
+RUN conda install -n base --file /environments/core.dependencies.txt && conda clean -tipsy
+
+COPY environments/linux.cuda.dependencies.txt /environments/
+RUN conda install -n base --file /environments/linux.cuda.dependencies.txt && conda clean -tipsy
+
+COPY environments/test.dependencies.txt /environments/
+RUN conda install -n base --file /environments/test.dependencies.txt && conda clean -tipsy
+
 COPY environments /environments
 RUN /environments/render linux.cuda test > /environment.yml && \
     conda env update -n base -f /environment.yml && \
     conda clean -tipsy
+
+COPY . /tmol/
