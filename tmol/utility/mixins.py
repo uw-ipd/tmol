@@ -29,3 +29,39 @@ def gather_superclass_properies(
             vals[qualified_name(base_class)] = prop.fget(obj)
 
     return vals
+
+
+def cooperative_superclass_factory(
+        cls,
+        factory_func_name,
+        *args,
+        **kwargs,
+):
+    """Gather class factory components from subclasses and create object.
+
+    Traverses a class __mro__ in *reverse* order accumulating __init__
+    parameters via calls to class-level factory functions. Each factory
+    function generates __init__ parameters by inspecting the factory function
+    args, kwargs & current parameters and returning a parameter dict. Params
+    are accumulated from factories via `dict.update`, making the partial
+    results of param generation availabe to up-MRO factory functions.
+
+    Note that the factory functions receive all current params as kwargs. In
+    cases when the total class MRO is unknown a factory function should accept,
+    and likely ignore, unknown kwargs. (Eg. `def factory(cls, known, **_)`)
+
+    Returns a dict of kwarg params accumulated from factory functions.
+    """
+
+    params = dict()
+
+    factory_functions = [
+        getattr(base, factory_func_name)
+        for base in reversed(cls.mro())
+        if factory_func_name in base.__dict__
+    ]
+
+    for f in factory_functions:
+        params.update(f(*args, **kwargs, **params))
+
+    return params
