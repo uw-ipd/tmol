@@ -90,6 +90,11 @@ def test_cooperative_factory_kwargs():
     with pytest.raises(TypeError):
         BarFoo.setup(1)
 
+    # Test that param values mask factory kwargs
+    result = FooBar.setup(1, b=1000)
+    assert result.b == 1
+    assert result.f == 2
+
     @attr.s(auto_attribs=True)
     class BoundVal(Setup):
         v: int

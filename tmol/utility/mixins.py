@@ -1,6 +1,7 @@
 """Utility functions to support mixin classes."""
 
 from typing import Dict, Any, NewType, Union, Callable, Type
+from toolz.dicttoolz import merge
 
 QualifiedName = NewType("QualifiedName", str)
 
@@ -62,6 +63,7 @@ def cooperative_superclass_factory(
     ]
 
     for f in factory_functions:
-        params.update(f(*args, **kwargs, **params))
+        # merge so params mask kwargs
+        params.update(f(*args, **merge(kwargs, params)))
 
     return params
