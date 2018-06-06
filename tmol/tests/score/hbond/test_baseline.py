@@ -8,8 +8,8 @@ from tmol.utility.reactive import reactive_attrs
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 
-from tmol.system.residue.packed import PackedResidueSystem
-from tmol.system.residue.score import system_cartesian_space_graph_params
+from tmol.system.packed import PackedResidueSystem
+from tmol.system.score import system_cartesian_space_graph_params
 
 
 def hbond_score_comparison(rosetta_baseline):

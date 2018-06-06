@@ -19,7 +19,7 @@ from tmol.score.interatomic_distance import (
     BlockedInteratomicDistanceGraph,
 )
 
-from tmol.system.residue.score import system_cartesian_space_graph_params
+from tmol.system.score import system_cartesian_space_graph_params
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 

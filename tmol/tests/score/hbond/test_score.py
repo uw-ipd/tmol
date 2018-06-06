@@ -5,7 +5,7 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.device import TorchDevice
 
-from tmol.system.residue.score import system_cartesian_space_graph_params
+from tmol.system.score import system_cartesian_space_graph_params
 from tmol.utility.reactive import reactive_attrs
 
 

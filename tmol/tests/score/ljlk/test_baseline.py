@@ -3,7 +3,7 @@ import numpy
 
 from tmol.utility.reactive import reactive_attrs
 
-from tmol.system.residue.score import system_cartesian_space_graph_params
+from tmol.system.score import system_cartesian_space_graph_params
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJLKScoreGraph

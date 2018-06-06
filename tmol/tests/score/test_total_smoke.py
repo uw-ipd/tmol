@@ -1,4 +1,4 @@
-from tmol.system.residue.score import (
+from tmol.system.score import (
     system_cartesian_space_graph_params,
     system_torsion_space_graph_params,
 )

@@ -19,7 +19,7 @@ from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 from tmol.score.ljlk import LJLKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 
-from tmol.system.residue.score import system_cartesian_space_graph_params, system_torsion_space_graph_params
+from tmol.system.score import system_cartesian_space_graph_params, system_torsion_space_graph_params
 
 
 @reactive_attrs

@@ -14,9 +14,9 @@ from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.torch_op import KinematicOp
 
-from tmol.system.residue.packed import PackedResidueSystem
-from tmol.system.residue.restypes import Residue
-from tmol.system.residue.kinematics import KinematicDescription
+from tmol.system.packed import PackedResidueSystem
+from tmol.system.restypes import Residue
+from tmol.system.kinematics import KinematicDescription
 
 
 @pytest.fixture(params=["efficient", "min_depth"])

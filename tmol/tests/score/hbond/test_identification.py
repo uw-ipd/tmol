@@ -5,9 +5,9 @@ import pandas
 
 import tmol.score
 
-import tmol.system.residue.restypes as restypes
-from tmol.system.residue.packed import PackedResidueSystem
-from tmol.system.residue.score import system_cartesian_space_graph_params
+import tmol.system.restypes as restypes
+from tmol.system.packed import PackedResidueSystem
+from tmol.system.score import system_cartesian_space_graph_params
 
 import tmol.database
 from tmol.score.hbond.identification import HBondElementAnalysis
