@@ -3,7 +3,7 @@ import numpy
 
 from tmol.utility.reactive import reactive_attrs
 
-from tmol.system.score import system_cartesian_space_graph_params
+from tmol.system.score import extract_graph_parameters
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJLKScoreGraph
@@ -21,19 +21,18 @@ class LJLKGraph(
 
 @pytest.mark.xfail
 def test_ljlk_numpyros_comparison(ubq_system):
-    test_structure = ubq_system
-
-    test_params = system_cartesian_space_graph_params(
-        test_structure,
-        drop_missing_atoms=False,
-        requires_grad=False,
-    )
-
     expected_scores = {
         'lj_atr': -425.3,
         'lj_rep': 248.8,
         'lk': 255.8,
     }
+
+    test_params = extract_graph_parameters(
+        LJLKGraph,
+        ubq_system,
+        drop_missing_atoms=False,
+        requires_grad=False,
+    )
 
     numpy.testing.assert_allclose(
         LJLKGraph(**test_params).total_lj.detach(),
@@ -49,16 +48,15 @@ def test_ljlk_numpyros_comparison(ubq_system):
 
 
 def test_baseline_comparison(ubq_system, torch_device):
-    test_structure = ubq_system
-
-    test_params = system_cartesian_space_graph_params(
-        test_structure,
-        drop_missing_atoms=False,
-        requires_grad=False,
-        device=torch_device,
+    test_graph = LJLKGraph(
+        **extract_graph_parameters(
+            LJLKGraph,
+            ubq_system,
+            drop_missing_atoms=False,
+            requires_grad=False,
+            device=torch_device,
+        )
     )
-
-    test_graph = LJLKGraph(**test_params)
 
     expected_scores = {
         'total_lj': -176.5,

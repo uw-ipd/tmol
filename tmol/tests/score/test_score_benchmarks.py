@@ -19,7 +19,7 @@ from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 from tmol.score.ljlk import LJLKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 
-from tmol.system.score import system_cartesian_space_graph_params, system_torsion_space_graph_params
+from tmol.system.score import extract_graph_parameters
 
 
 @reactive_attrs
@@ -99,7 +99,8 @@ def test_graph(
 ):
     if issubclass(graph_class, CartesianAtomicCoordinateProvider):
         score_graph = graph_class(
-            **system_cartesian_space_graph_params(
+            **extract_graph_parameters(
+                graph_class,
                 ubq_system,
                 requires_grad=True,
                 device=torch_device,
@@ -107,7 +108,8 @@ def test_graph(
         )
     elif issubclass(graph_class, KinematicAtomicCoordinateProvider):
         score_graph = graph_class(
-            **system_torsion_space_graph_params(
+            **extract_graph_parameters(
+                graph_class,
                 ubq_system,
                 requires_grad=True,
                 device=torch_device,

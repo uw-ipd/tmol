@@ -1,30 +1,61 @@
-from typing import Mapping
-
 import numpy
 import torch
 
-from tmol.types.functional import validate_args
+from ..types.functional import validate_args
 
-from tmol.kinematics.torch_op import KinematicOp
-from tmol.kinematics.metadata import DOFTypes
+from ..kinematics.torch_op import KinematicOp
+from ..kinematics.metadata import DOFTypes
+
+from ..score import (
+    TorchDevice,
+    BondedAtomScoreGraph,
+    CartesianAtomicCoordinateProvider,
+    KinematicAtomicCoordinateProvider,
+)
 
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
 
 @validate_args
-def system_cartesian_space_graph_params(
+def system_device_graph_inputs(
         system: PackedResidueSystem,
         drop_missing_atoms: bool = False,
         requires_grad: bool = True,
         device: torch.device = torch.device("cpu"),
-) -> Mapping:
-    """Constructor parameters for cartesian space scoring.
+):
+    """Extract constructor kwargs to initialize a `TorchDevice`."""
+    return {"device": device}
 
-    Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`
-    and `BondedAtomScoreGraph` subclass.
-    """
+
+@validate_args
+def system_bond_graph_inputs(
+        system: PackedResidueSystem,
+        drop_missing_atoms: bool = False,
+        requires_grad: bool = True,
+        device: torch.device = torch.device("cpu"),
+):
+    """Extract constructor kwargs to initialize a `BondedAtomScoreGraph`."""
+
     bonds = system.bonds
+
+    atom_types = system.atom_metadata["atom_type"].copy()
+
+    if drop_missing_atoms:
+        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
+
+    return {"bonds": bonds, "atom_types": atom_types}
+
+
+@validate_args
+def system_cartesian_graph_inputs(
+        system: PackedResidueSystem,
+        drop_missing_atoms: bool = False,
+        requires_grad: bool = True,
+        device: torch.device = torch.device("cpu"),
+):
+    """Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`"""
+
     coords = (
         torch.tensor(
             system.coords,
@@ -33,22 +64,11 @@ def system_cartesian_space_graph_params(
         ).requires_grad_(requires_grad)
     )
 
-    atom_types = system.atom_metadata["atom_type"].copy()
-
-    if drop_missing_atoms:
-        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
-
-    return dict(
-        system_size=len(coords),
-        bonds=bonds,
-        coords=coords,
-        atom_types=atom_types,
-        device=device,
-    )
+    return {"coords": coords, "system_size": len(coords)}
 
 
 @validate_args
-def system_torsion_space_graph_params(
+def system_torsion_graph_inputs(
         system: PackedResidueSystem,
         drop_missing_atoms: bool = False,
         requires_grad: bool = True,
@@ -82,18 +102,40 @@ def system_torsion_space_graph_params(
         kincoords,
     )
 
-    # Bond/type data
-    bonds = system.bonds
-    atom_types = system.atom_metadata["atom_type"].copy()
-
-    if drop_missing_atoms:
-        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
-
     return dict(
-        system_size=len(system.coords),
         dofs=kop.src_mobile_dofs.clone().requires_grad_(requires_grad),
         kinop=kop,
-        bonds=bonds,
-        atom_types=atom_types,
-        device=device,
+        system_size=len(system.coords),
     )
+
+
+graph_input_components = {
+    TorchDevice: system_device_graph_inputs,
+    BondedAtomScoreGraph: system_bond_graph_inputs,
+    CartesianAtomicCoordinateProvider: system_cartesian_graph_inputs,
+    KinematicAtomicCoordinateProvider: system_torsion_graph_inputs,
+}
+
+
+def extract_graph_parameters(
+        graph_class: type,
+        system: PackedResidueSystem,
+        drop_missing_atoms: bool = False,
+        requires_grad: bool = True,
+        device: torch.device = torch.device("cpu"),
+):
+    graph_inputs = {}
+
+    for graph_component in graph_class.mro():
+        input_component = graph_input_components.get(graph_component, None)
+        if input_component:
+            graph_inputs.update(
+                input_component(
+                    system,
+                    drop_missing_atoms,
+                    requires_grad,
+                    device,
+                )
+            )
+
+    return graph_inputs

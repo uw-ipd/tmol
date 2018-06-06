@@ -19,7 +19,7 @@ from tmol.score.interatomic_distance import (
     BlockedInteratomicDistanceGraph,
 )
 
-from tmol.system.score import system_cartesian_space_graph_params
+from tmol.system.score import extract_graph_parameters
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
@@ -63,12 +63,6 @@ def test_interatomic_distance(
         interatomic_distance_component,
         torch_device,
 ):
-    test_params = system_cartesian_space_graph_params(
-        ubq_system,
-        drop_missing_atoms=True,
-        device=torch_device,
-    )
-
     @reactive_attrs
     class TestGraph(
             CartesianAtomicCoordinateProvider,
@@ -78,6 +72,12 @@ def test_interatomic_distance(
     ):
         pass
 
+    test_params = extract_graph_parameters(
+        TestGraph,
+        ubq_system,
+        drop_missing_atoms=True,
+        device=torch_device,
+    )
     dgraph = TestGraph(**test_params)
 
     scipy_distance = pdist(ubq_system.coords)

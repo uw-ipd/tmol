@@ -5,7 +5,7 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.device import TorchDevice
 
-from tmol.system.score import system_cartesian_space_graph_params
+from tmol.system.score import extract_graph_parameters
 from tmol.utility.reactive import reactive_attrs
 
 
@@ -22,8 +22,8 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     """`bb_only` covers cases missing specific classes of acceptors."""
     hbond_graph = HBGraph(
         hbond_database=test_hbond_database,
-        **system_cartesian_space_graph_params(
-            ubq_system, requires_grad=True, device=torch_device
+        **extract_graph_parameters(
+            HBGraph, ubq_system, requires_grad=True, device=torch_device
         )
     )
 
@@ -41,7 +41,8 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     group="score_setup",
 )
 def test_hbond_score_setup(benchmark, ubq_system, torch_device):
-    graph_params = system_cartesian_space_graph_params(
+    graph_params = extract_graph_parameters(
+        HBGraph,
         ubq_system,
         requires_grad=True,
         device=torch_device,

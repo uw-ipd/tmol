@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tmol.system.score import system_cartesian_space_graph_params
+from tmol.system.score import extract_graph_parameters
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJLKScoreGraph
@@ -28,7 +28,8 @@ def save_intermediate_grad(var):
 
 def test_ljlk_smoke(ubq_system, torch_device):
     score_graph = LJLKGraph(
-        **system_cartesian_space_graph_params(
+        **extract_graph_parameters(
+            LJLKGraph,
             ubq_system,
             requires_grad=True,
             device=torch_device,
@@ -74,7 +75,8 @@ def test_ljlk_smoke(ubq_system, torch_device):
     group="score_setup",
 )
 def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
-    graph_params = system_cartesian_space_graph_params(
+    graph_params = extract_graph_parameters(
+        LJLKGraph,
         ubq_system,
         requires_grad=True,
         device=torch_device,

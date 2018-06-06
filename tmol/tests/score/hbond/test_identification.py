@@ -7,7 +7,7 @@ import tmol.score
 
 import tmol.system.restypes as restypes
 from tmol.system.packed import PackedResidueSystem
-from tmol.system.score import system_cartesian_space_graph_params
+from tmol.system.score import system_bond_graph_inputs
 
 import tmol.database
 from tmol.score.hbond.identification import HBondElementAnalysis
@@ -97,9 +97,7 @@ def test_bb_identification(bb_hbond_database, ubq_system):
             "acceptor_type": "hbacc_PBA",
         })
 
-    test_params = system_cartesian_space_graph_params(
-        tsys, requires_grad=False
-    )
+    test_params = system_bond_graph_inputs(tsys)
 
     hbe = HBondElementAnalysis.setup(
         hbond_database=bb_hbond_database,

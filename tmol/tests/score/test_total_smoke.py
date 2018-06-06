@@ -1,6 +1,5 @@
 from tmol.system.score import (
-    system_cartesian_space_graph_params,
-    system_torsion_space_graph_params,
+    extract_graph_parameters,
 )
 
 from tmol.score import TotalScoreGraph
@@ -30,7 +29,9 @@ class DofSpaceScore(
 
 def test_torsion_space_smoke(ubq_system, torch_device):
     total_score = DofSpaceScore(
-        **system_torsion_space_graph_params(ubq_system, device=torch_device)
+        **extract_graph_parameters(
+            DofSpaceScore, ubq_system, device=torch_device
+        )
     ).total_score
 
     assert total_score.device == torch_device
@@ -38,7 +39,9 @@ def test_torsion_space_smoke(ubq_system, torch_device):
 
 def test_real_space_smoke(ubq_system, torch_device):
     total_score = RealSpaceScore(
-        **system_cartesian_space_graph_params(ubq_system, device=torch_device)
+        **extract_graph_parameters(
+            RealSpaceScore, ubq_system, device=torch_device
+        )
     ).total_score
 
     assert total_score.device == torch_device

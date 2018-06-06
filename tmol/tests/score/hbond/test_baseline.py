@@ -9,7 +9,7 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 
 from tmol.system.packed import PackedResidueSystem
-from tmol.system.score import system_cartesian_space_graph_params
+from tmol.system.score import extract_graph_parameters
 
 
 def hbond_score_comparison(rosetta_baseline):
@@ -25,7 +25,8 @@ def hbond_score_comparison(rosetta_baseline):
         pass
 
     hbond_graph = HBGraph(
-        **system_cartesian_space_graph_params(
+        **extract_graph_parameters(
+            HBGraph,
             test_system,
             requires_grad=False,
         )

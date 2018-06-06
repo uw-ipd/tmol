@@ -3,8 +3,7 @@ import torch
 from tmol.system.packed import PackedResidueSystem
 
 from tmol.system.score import (
-    system_cartesian_space_graph_params,
-    system_torsion_space_graph_params,
+    extract_graph_parameters,
 )
 
 from tmol.score import TotalScoreGraph
@@ -36,7 +35,7 @@ def test_torsion_space_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
 
     torsion_space = DofSpaceScore(
-        **system_torsion_space_graph_params(test_system)
+        **extract_graph_parameters(DofSpaceScore, test_system)
     )
 
     start_dofs = torsion_space.dofs.clone()
@@ -57,7 +56,7 @@ def test_torsion_space_gradcheck(ubq_res):
 def test_real_space_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
     real_space = RealSpaceScore(
-        **system_cartesian_space_graph_params(test_system)
+        **extract_graph_parameters(RealSpaceScore, test_system)
     )
 
     coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
