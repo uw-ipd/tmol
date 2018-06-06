@@ -4,6 +4,7 @@ from typing import Optional
 import torch
 import numpy
 
+from ..database import ParamDB
 from ..device import TorchDevice
 from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..bonded_atom import BondedAtomScoreGraph
@@ -21,7 +22,6 @@ from .identification import (
 )
 from .params import HBondParamResolver, HBondPairParams
 
-import tmol.database
 from tmol.database.scoring import HBondDatabase
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -107,10 +107,15 @@ class HBondPairs(ValidateAttrs):
 class HBondScoreGraph(
         BondedAtomScoreGraph,
         TotalScoreComponentsGraph,
+        ParamDB,
         TorchDevice,
 ):
 
-    hbond_database: HBondDatabase = tmol.database.default.scoring.hbond
+    hbond_database: HBondDatabase = attr.ib()
+
+    @hbond_database.default
+    def _default_hbond_database(self):
+        return self.parameter_database.scoring.hbond
 
     @property
     def component_total_score_terms(self):

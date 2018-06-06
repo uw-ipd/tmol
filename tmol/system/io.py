@@ -1,6 +1,6 @@
 import logging
 import typing
-from typing import Mapping, Collection
+from typing import Mapping, Collection, Optional
 
 import attr
 import cattr
@@ -10,8 +10,8 @@ from toolz.curried import groupby
 from tmol.utility import unique_val
 import tmol.io.pdb_parsing as pdb_parsing
 import tmol.database.chemical
-from tmol.database import default as _default
 
+from tmol.database import ParameterDatabase
 from tmol.database.chemical import ChemicalDatabase
 
 from .restypes import ResidueType, Residue
@@ -25,10 +25,16 @@ ResName3 = typing.NewType("ResName3", str)
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class ResidueReader:
-    chemical_db: ChemicalDatabase
-    residue_types: Mapping[ResName3, ResidueType]
+    __default = None
 
-    logger: logging.Logger = ClassLogger
+    @classmethod
+    def get_default(cls) -> "ResidueReader":
+        """Load and return reader over default parameter database."""
+        if cls.__default is None:
+            cls.__default = cls.from_database(
+                ParameterDatabase.get_default().chemical
+            )
+        return cls.__default
 
     @classmethod
     def from_database(cls, chemical_db: ChemicalDatabase):
@@ -44,6 +50,11 @@ class ResidueReader:
             chemical_db=chemical_db,
             residue_types=residue_types,
         )
+
+    chemical_db: ChemicalDatabase
+    residue_types: Mapping[ResName3, ResidueType]
+
+    logger: logging.Logger = ClassLogger
 
     def resolve_type(self, resn: ResName3,
                      atomns: Collection[str]) -> ResidueType:
@@ -116,12 +127,13 @@ class ResidueReader:
         ]  # yapf: disable
 
 
-default_residue_reader = ResidueReader.from_database(_default.chemical)
-
-
 def read_pdb(
-        pdb_string: str, residue_reader: ResidueReader = default_residue_reader
+        pdb_string: str,
+        residue_reader: Optional[ResidueReader] = None,
 ) -> PackedResidueSystem:
+    if not residue_reader:
+        residue_reader = ResidueReader.get_default()
+
     res = residue_reader.parse_pdb(pdb_string)
 
     return PackedResidueSystem.from_residues(res)
