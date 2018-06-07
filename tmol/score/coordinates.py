@@ -1,3 +1,4 @@
+from typing import Optional
 from functools import singledispatch
 
 import torch
@@ -19,9 +20,13 @@ class CartesianAtomicCoordinateProvider(Factory):
     def factory_for(
             other,
             device: torch.device,
-            requires_grad: bool = True,
+            requires_grad: Optional[bool] = None,
+            **_,
     ):
         """`clone`-factory, extract coords from other."""
+        if requires_grad is None:
+            requires_grad = other.coords.requires_grad
+
         coords = torch.tensor(
             other.coords,
             dtype=torch.float,
@@ -44,9 +49,14 @@ class KinematicAtomicCoordinateProvider(Factory):
     def factory_for(
             other,
             device: torch.device,
-            requires_grad: bool = True,
+            requires_grad: Optional[bool] = None,
+            **_,
     ):
         """`clone`-factory, extract kinop and dofs from other."""
+
+        if requires_grad is None:
+            requires_grad = other.dofs.requires_grad
+
         kinop = other.kinop
 
         if other.dofs.device != device:

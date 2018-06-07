@@ -17,7 +17,7 @@ from .factory import Factory
 class BondedAtomScoreGraph(Factory):
     @staticmethod
     @singledispatch
-    def factory_for(other):
+    def factory_for(other, **_):
         """`clone`-factory, extract atom types and bonds from other."""
         return dict(
             atom_types=other.atom_types,

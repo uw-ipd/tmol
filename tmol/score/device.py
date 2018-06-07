@@ -10,7 +10,7 @@ from .factory import Factory
 class TorchDevice(Factory):
     @staticmethod
     @singledispatch
-    def factory_for(other, device=None):
+    def factory_for(other, device=None, **_):
         """`clone`-factory, extract device from other if not provided."""
         if device is None:
             device = other.device
