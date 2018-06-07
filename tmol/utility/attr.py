@@ -35,7 +35,7 @@ class AttrMutableMapping(AttrMapping, MutableMapping):
 
     def __setitem__(self, key, value):
         if key not in self.__attrs_keys__():
-            return KeyError(key)
+            raise KeyError(key)
 
         return setattr(self, key, value)
 
