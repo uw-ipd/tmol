@@ -2,10 +2,6 @@ import torch
 
 from tmol.system.packed import PackedResidueSystem
 
-from tmol.system.score import (
-    extract_graph_parameters,
-)
-
 from tmol.score import TotalScoreGraph
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
@@ -34,9 +30,7 @@ class DofSpaceScore(
 def test_torsion_space_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
 
-    torsion_space = DofSpaceScore(
-        **extract_graph_parameters(DofSpaceScore, test_system)
-    )
+    torsion_space = DofSpaceScore.build_for(test_system)
 
     start_dofs = torsion_space.dofs.clone()
 
@@ -55,9 +49,7 @@ def test_torsion_space_gradcheck(ubq_res):
 
 def test_real_space_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
-    real_space = RealSpaceScore(
-        **extract_graph_parameters(RealSpaceScore, test_system)
-    )
+    real_space = RealSpaceScore.build_for(test_system)
 
     coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
     start_coords = real_space.coords[coord_mask]

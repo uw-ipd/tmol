@@ -3,8 +3,6 @@ import numpy
 
 from tmol.utility.reactive import reactive_attrs
 
-from tmol.system.score import extract_graph_parameters
-
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJLKScoreGraph
 from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
@@ -27,35 +25,29 @@ def test_ljlk_numpyros_comparison(ubq_system):
         'lk': 255.8,
     }
 
-    test_params = extract_graph_parameters(
-        LJLKGraph,
+    test_graph = LJLKGraph.build_for(
         ubq_system,
         drop_missing_atoms=False,
         requires_grad=False,
     )
 
     numpy.testing.assert_allclose(
-        LJLKGraph(**test_params).total_lj.detach(),
+        test_graph.total_lj.detach(),
         expected_scores["lj_atr"] + expected_scores["lj_rep"],
         rtol=5e-3
     )
 
     numpy.testing.assert_allclose(
-        LJLKGraph(**test_params).total_lk.detach(),
-        expected_scores["lk"],
-        rtol=5e-3
+        test_graph.total_lk.detach(), expected_scores["lk"], rtol=5e-3
     )
 
 
 def test_baseline_comparison(ubq_system, torch_device):
-    test_graph = LJLKGraph(
-        **extract_graph_parameters(
-            LJLKGraph,
-            ubq_system,
-            drop_missing_atoms=False,
-            requires_grad=False,
-            device=torch_device,
-        )
+    test_graph = LJLKGraph.build_for(
+        ubq_system,
+        drop_missing_atoms=False,
+        requires_grad=False,
+        device=torch_device,
     )
 
     expected_scores = {

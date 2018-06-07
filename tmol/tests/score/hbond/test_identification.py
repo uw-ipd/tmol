@@ -7,7 +7,7 @@ import tmol.score
 
 import tmol.system.restypes as restypes
 from tmol.system.packed import PackedResidueSystem
-from tmol.system.score import system_bond_graph_inputs
+from tmol.system.score_support import bonded_atoms_for_system
 
 import tmol.database
 from tmol.score.hbond.identification import HBondElementAnalysis
@@ -100,7 +100,7 @@ def test_bb_identification(bb_hbond_database, ubq_system):
             "acceptor_type": "hbacc_PBA",
         })
 
-    test_params = system_bond_graph_inputs(tsys)
+    test_params = bonded_atoms_for_system(tsys)
 
     hbe = HBondElementAnalysis.setup(
         hbond_database=bb_hbond_database,

@@ -2,10 +2,6 @@ import torch
 
 from tmol.system.packed import PackedResidueSystem
 
-from tmol.system.score import (
-    extract_graph_parameters,
-)
-
 from tmol.score import TotalScoreGraph
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
@@ -33,13 +29,8 @@ class DofSpaceScore(
 
 def test_torsion_space_by_real_space_total_score(ubq_system):
 
-    real_space = RealSpaceScore(
-        **extract_graph_parameters(RealSpaceScore, ubq_system)
-    )
-
-    torsion_space = DofSpaceScore(
-        **extract_graph_parameters(DofSpaceScore, ubq_system)
-    )
+    real_space = RealSpaceScore.build_for(ubq_system)
+    torsion_space = DofSpaceScore.build_for(ubq_system)
 
     real_total = real_space.step()
     torsion_total = torsion_space.step()
@@ -48,11 +39,7 @@ def test_torsion_space_by_real_space_total_score(ubq_system):
 
 
 def test_torsion_space_coord_smoke(ubq_system):
-    tsys = ubq_system
-
-    torsion_space = DofSpaceScore(
-        **extract_graph_parameters(DofSpaceScore, tsys)
-    )
+    torsion_space = DofSpaceScore.build_for(ubq_system)
 
     start_dofs = torch.tensor(torsion_space.dofs, requires_grad=True)
     start_coords = torch.tensor(torsion_space.coords, requires_grad=False)
@@ -79,9 +66,7 @@ def test_torsion_space_coord_smoke(ubq_system):
 def test_torsion_space_to_coordinate_gradcheck(ubq_res):
     tsys = PackedResidueSystem.from_residues(ubq_res[:6])
 
-    torsion_space = DofSpaceScore(
-        **extract_graph_parameters(DofSpaceScore, tsys)
-    )
+    torsion_space = DofSpaceScore.build_for(tsys)
 
     start_dofs = torsion_space.dofs.detach().clone().requires_grad_()
     start_coords = torsion_space.coords.detach().clone()

@@ -17,26 +17,20 @@ from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
 
+@TorchDevice.factory_for.register(PackedResidueSystem)
 @validate_args
-def system_device_graph_inputs(
+def device_for_system(system, device=torch.device("cpu"), **_):
+    """Default to cpu device."""
+    return dict(device=device, )
+
+
+@BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
+@validate_args
+def bonded_atoms_for_system(
         system: PackedResidueSystem,
         drop_missing_atoms: bool = False,
-        requires_grad: bool = True,
-        device: torch.device = torch.device("cpu"),
+        **_,
 ):
-    """Extract constructor kwargs to initialize a `TorchDevice`."""
-    return {"device": device}
-
-
-@validate_args
-def system_bond_graph_inputs(
-        system: PackedResidueSystem,
-        drop_missing_atoms: bool = False,
-        requires_grad: bool = True,
-        device: torch.device = torch.device("cpu"),
-):
-    """Extract constructor kwargs to initialize a `BondedAtomScoreGraph`."""
-
     bonds = system.bonds
 
     atom_types = system.atom_metadata["atom_type"].copy()
@@ -44,15 +38,19 @@ def system_bond_graph_inputs(
     if drop_missing_atoms:
         atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
 
-    return {"bonds": bonds, "atom_types": atom_types}
+    return dict(
+        bonds=bonds,
+        atom_types=atom_types,
+    )
 
 
+@CartesianAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
 @validate_args
-def system_cartesian_graph_inputs(
+def coords_for_system(
         system: PackedResidueSystem,
-        drop_missing_atoms: bool = False,
+        device: torch.device,
         requires_grad: bool = True,
-        device: torch.device = torch.device("cpu"),
+        **_,
 ):
     """Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`"""
 
@@ -64,15 +62,16 @@ def system_cartesian_graph_inputs(
         ).requires_grad_(requires_grad)
     )
 
-    return {"coords": coords, "system_size": len(coords)}
+    return dict(coords=coords, )
 
 
+@KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
 @validate_args
 def system_torsion_graph_inputs(
         system: PackedResidueSystem,
-        drop_missing_atoms: bool = False,
+        device: torch.device,
         requires_grad: bool = True,
-        device: torch.device = torch.device("cpu"),
+        **_,
 ):
     """Constructor parameters for torsion space scoring.
 
@@ -105,37 +104,4 @@ def system_torsion_graph_inputs(
     return dict(
         dofs=kop.src_mobile_dofs.clone().requires_grad_(requires_grad),
         kinop=kop,
-        system_size=len(system.coords),
     )
-
-
-graph_input_components = {
-    TorchDevice: system_device_graph_inputs,
-    BondedAtomScoreGraph: system_bond_graph_inputs,
-    CartesianAtomicCoordinateProvider: system_cartesian_graph_inputs,
-    KinematicAtomicCoordinateProvider: system_torsion_graph_inputs,
-}
-
-
-def extract_graph_parameters(
-        graph_class: type,
-        system: PackedResidueSystem,
-        drop_missing_atoms: bool = False,
-        requires_grad: bool = True,
-        device: torch.device = torch.device("cpu"),
-):
-    graph_inputs = {}
-
-    for graph_component in graph_class.mro():
-        input_component = graph_input_components.get(graph_component, None)
-        if input_component:
-            graph_inputs.update(
-                input_component(
-                    system,
-                    drop_missing_atoms,
-                    requires_grad,
-                    device,
-                )
-            )
-
-    return graph_inputs

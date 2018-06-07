@@ -9,7 +9,6 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 
 from tmol.system.packed import PackedResidueSystem
-from tmol.system.score import extract_graph_parameters
 
 
 def hbond_score_comparison(rosetta_baseline):
@@ -24,12 +23,9 @@ def hbond_score_comparison(rosetta_baseline):
     ):
         pass
 
-    hbond_graph = HBGraph(
-        **extract_graph_parameters(
-            HBGraph,
-            test_system,
-            requires_grad=False,
-        )
+    hbond_graph = HBGraph.build_for(
+        test_system,
+        requires_grad=False,
     )
 
     # Extract list of hbonds from packed system into summary table

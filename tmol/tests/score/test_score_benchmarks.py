@@ -19,8 +19,6 @@ from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 from tmol.score.ljlk import LJLKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 
-from tmol.system.score import extract_graph_parameters
-
 
 @reactive_attrs
 class DofSpaceDummy(
@@ -97,26 +95,11 @@ def test_graph(
         ubq_system,
         torch_device,
 ):
-    if issubclass(graph_class, CartesianAtomicCoordinateProvider):
-        score_graph = graph_class(
-            **extract_graph_parameters(
-                graph_class,
-                ubq_system,
-                requires_grad=True,
-                device=torch_device,
-            )
-        )
-    elif issubclass(graph_class, KinematicAtomicCoordinateProvider):
-        score_graph = graph_class(
-            **extract_graph_parameters(
-                graph_class,
-                ubq_system,
-                requires_grad=True,
-                device=torch_device,
-            )
-        )
-    else:
-        raise NotImplementedError
+    score_graph = graph_class.build_for(
+        ubq_system,
+        requires_grad=True,
+        device=torch_device,
+    )
 
     # Score once to prep graph
     score_graph.total_score
@@ -124,20 +107,29 @@ def test_graph(
     if benchmark_pass is "full":
 
         @benchmark
-        def full():
-            return float(score_graph.step())
+        def run():
+            total = score_graph.step()
+            float(total)
+
+            return total
 
     elif benchmark_pass is "forward":
 
         @benchmark
-        def forward():
+        def run():
             score_graph.reset_total_score()
-            float(score_graph.total_score)
+            total = score_graph.total_score
+            float(total)
 
+            return total
     elif benchmark_pass is "backward":
 
         @benchmark
-        def backward():
-            score_graph.total_score.backward(retain_graph=True)
+        def run():
+            total = score_graph.total_score
+            total.backward(retain_graph=True)
+            return total
     else:
         raise NotImplementedError
+
+    assert run.device == torch_device

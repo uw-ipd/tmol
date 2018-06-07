@@ -1,3 +1,5 @@
+from functools import singledispatch
+
 import torch
 import numpy
 
@@ -8,17 +10,30 @@ from tmol.utility.reactive import reactive_attrs, reactive_property
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
+from .factory import Factory
+
 
 @reactive_attrs(auto_attribs=True)
-class BondedAtomScoreGraph:
-    # Number of atoms in the system
-    system_size: int
+class BondedAtomScoreGraph(Factory):
+    @staticmethod
+    @singledispatch
+    def factory_for(other):
+        """`clone`-factory, extract atom types and bonds from other."""
+        return dict(
+            atom_types=other.atom_types,
+            bonds=other.bonds,
+        )
 
     # String atom types
     atom_types: NDArray(object)[:]
 
     # Inter-atomic bond indices
     bonds: NDArray(int)[:, 2]
+
+    @reactive_property
+    def system_size(atom_types) -> int:
+        """Number of atom locations within the system."""
+        return len(atom_types)
 
     @reactive_property
     def real_atoms(atom_types: NDArray(object)[:], ) -> Tensor(bool)[:]:

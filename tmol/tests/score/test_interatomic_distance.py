@@ -19,8 +19,6 @@ from tmol.score.interatomic_distance import (
     BlockedInteratomicDistanceGraph,
 )
 
-from tmol.system.score import extract_graph_parameters
-
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
 
@@ -72,13 +70,11 @@ def test_interatomic_distance(
     ):
         pass
 
-    test_params = extract_graph_parameters(
-        TestGraph,
+    dgraph = TestGraph.build_for(
         ubq_system,
         drop_missing_atoms=True,
         device=torch_device,
     )
-    dgraph = TestGraph(**test_params)
 
     scipy_distance = pdist(ubq_system.coords)
     scipy_count = numpy.count_nonzero(
@@ -97,7 +93,7 @@ def test_interatomic_distance(
     def total_score():
         # Reset graph by setting coord values,
         # triggering full recalc.
-        dgraph.coords = test_params["coords"]
+        dgraph.coords = dgraph.coords
 
         # Calculate total score, rather than atom pair distances
         # As naive implemenation returns a more precise set of distances

@@ -1,8 +1,6 @@
 import pytest
 import torch
 
-from tmol.system.score import extract_graph_parameters
-
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJLKScoreGraph
 from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
@@ -27,13 +25,10 @@ def save_intermediate_grad(var):
 
 
 def test_ljlk_smoke(ubq_system, torch_device):
-    score_graph = LJLKGraph(
-        **extract_graph_parameters(
-            LJLKGraph,
-            ubq_system,
-            requires_grad=True,
-            device=torch_device,
-        )
+    score_graph = LJLKGraph.build_for(
+        ubq_system,
+        requires_grad=True,
+        device=torch_device,
     )
 
     save_intermediate_grad(score_graph.lj)
@@ -75,8 +70,7 @@ def test_ljlk_smoke(ubq_system, torch_device):
     group="score_setup",
 )
 def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
-    graph_params = extract_graph_parameters(
-        LJLKGraph,
+    graph_params = LJLKGraph.init_parameters_for(
         ubq_system,
         requires_grad=True,
         device=torch_device,
