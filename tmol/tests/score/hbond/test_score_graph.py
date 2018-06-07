@@ -1,5 +1,9 @@
+import copy
+
 import pytest
 import torch
+
+from tmol.database import ParameterDatabase
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
@@ -55,3 +59,33 @@ def test_hbond_score_setup(benchmark, ubq_system, torch_device):
         return score_graph
 
     # TODO fordas add test assertions
+
+
+def test_hbond_database_clone_factory(ubq_system):
+    clone_db = copy.copy(ParameterDatabase.get_default().scoring.hbond)
+
+    src: HBGraph = HBGraph.build_for(ubq_system)
+    assert src.hbond_database is ParameterDatabase.get_default().scoring.hbond
+
+    # Parameter database is overridden via kwarg
+    src: HBGraph = HBGraph.build_for(ubq_system, hbond_database=clone_db)
+    assert src.hbond_database is clone_db
+
+    # Parameter database is referenced on clone
+    clone: HBGraph = HBGraph.build_for(src)
+    assert clone.hbond_database is src.hbond_database
+
+    # Parameter database is overriden on clone via kwarg
+    clone: HBGraph = HBGraph.build_for(
+        src, hbond_database=ParameterDatabase.get_default().scoring.hbond
+    )
+    assert clone.hbond_database is not src.hbond_database
+    assert clone.hbond_database is ParameterDatabase.get_default().scoring.hbond
+
+    # Standard init results in default db
+    params = HBGraph.init_parameters_for(ubq_system)
+
+    del params["hbond_database"]
+    src = HBGraph(**params)
+
+    assert src.hbond_database is ParameterDatabase.get_default().scoring.hbond
