@@ -5,8 +5,7 @@ steps:
     command: .buildkite/bin/setup
     plugins:
       uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        run: test
+        run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
 
@@ -15,8 +14,7 @@ steps:
     command: .buildkite/bin/testing
     plugins:
       uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        run: test
+        run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
     artifact_paths:
       - testing.junit.xml
@@ -27,13 +25,11 @@ steps:
     command: .buildkite/bin/linting
     plugins:
       uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        run: test
+        run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
     artifact_paths:
       - linting.junit.xml
 
-  ### Report test environment, test results and codecov
   - label: ':clipboard: Report'
     plugins:
       uw-ipd/test-summary#8fa3c9a:
@@ -54,6 +50,5 @@ steps:
       - benchmark/**/*
     plugins:
       uw-ipd/docker-compose#run_workdir:
-        config: .buildkite/docker-compose.yml
-        run: test
+        run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
