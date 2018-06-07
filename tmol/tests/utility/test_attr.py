@@ -76,5 +76,6 @@ def test_attr_mapping():
     class NotAttr(AttrMapping):
         f: int = 1
 
+    na = NotAttr()
     with pytest.raises(TypeError):
-        NotAttr["f"]
+        na["f"]
