@@ -17,6 +17,7 @@ from tmol.score import (
 
 @reactive_attrs
 class TCart(CartesianAtomicCoordinateProvider, TotalScoreGraph):
+    """Cart total."""
     pass
 
 

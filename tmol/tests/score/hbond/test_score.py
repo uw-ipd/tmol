@@ -19,13 +19,10 @@ class HBGraph(
 
 def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     """`bb_only` covers cases missing specific classes of acceptors."""
-    hbond_graph = HBGraph(
+    hbond_graph = HBGraph.build_for(
+        ubq_system,
+        device=torch_device,
         hbond_database=test_hbond_database,
-        **HBGraph.init_parameters_for(
-            ubq_system,
-            requires_grad=True,
-            device=torch_device,
-        )
     )
 
     nan_scores = torch.nonzero(torch.isnan(hbond_graph.hbond_scores))

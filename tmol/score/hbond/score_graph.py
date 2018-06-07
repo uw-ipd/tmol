@@ -8,6 +8,7 @@ from ..database import ParamDB
 from ..device import TorchDevice
 from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..bonded_atom import BondedAtomScoreGraph
+from ..factory import Factory
 
 from .potentials import (
     hbond_donor_sp2_score,
@@ -22,6 +23,7 @@ from .identification import (
 )
 from .params import HBondParamResolver, HBondPairParams
 
+from tmol.database import ParameterDatabase
 from tmol.database.scoring import HBondDatabase
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -109,7 +111,27 @@ class HBondScoreGraph(
         TotalScoreComponentsGraph,
         ParamDB,
         TorchDevice,
+        Factory,
 ):
+    @staticmethod
+    def factory_for(
+            val,
+            parameter_database: ParameterDatabase,
+            hbond_database: Optional[HBondDatabase] = None,
+            **_
+    ):
+        """Overridable clone-constructor.
+
+        Initialize from `val.hbond_database` if possible, otherwise from
+        `parameter_database.scoring.hbond`.
+        """
+        if hbond_database is None:
+            if getattr(val, "hbond_database", None):
+                hbond_database = val.hbond_database
+            else:
+                hbond_database = parameter_database.scoring.hbond
+
+        return dict(hbond_database=hbond_database, )
 
     hbond_database: HBondDatabase = attr.ib()
 
