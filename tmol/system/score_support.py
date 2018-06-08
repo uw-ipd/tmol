@@ -7,7 +7,6 @@ from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
 
 from ..score import (
-    TorchDevice,
     BondedAtomScoreGraph,
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
@@ -15,13 +14,6 @@ from ..score import (
 
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
-
-
-@TorchDevice.factory_for.register(PackedResidueSystem)
-@validate_args
-def device_for_system(system, device=torch.device("cpu"), **_):
-    """Default to cpu device."""
-    return dict(device=device, )
 
 
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
