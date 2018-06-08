@@ -1,11 +1,14 @@
+import copy
+
 import pytest
 import torch
+
+from tmol.database import ParameterDatabase
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.device import TorchDevice
 
-from tmol.system.residue.score import system_cartesian_space_graph_params
 from tmol.utility.reactive import reactive_attrs
 
 
@@ -20,11 +23,10 @@ class HBGraph(
 
 def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     """`bb_only` covers cases missing specific classes of acceptors."""
-    hbond_graph = HBGraph(
+    hbond_graph = HBGraph.build_for(
+        ubq_system,
+        device=torch_device,
         hbond_database=test_hbond_database,
-        **system_cartesian_space_graph_params(
-            ubq_system, requires_grad=True, device=torch_device
-        )
     )
 
     nan_scores = torch.nonzero(torch.isnan(hbond_graph.hbond_scores))
@@ -41,7 +43,7 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     group="score_setup",
 )
 def test_hbond_score_setup(benchmark, ubq_system, torch_device):
-    graph_params = system_cartesian_space_graph_params(
+    graph_params = HBGraph.init_parameters_for(
         ubq_system,
         requires_grad=True,
         device=torch_device,
@@ -57,3 +59,33 @@ def test_hbond_score_setup(benchmark, ubq_system, torch_device):
         return score_graph
 
     # TODO fordas add test assertions
+
+
+def test_hbond_database_clone_factory(ubq_system):
+    clone_db = copy.copy(ParameterDatabase.get_default().scoring.hbond)
+
+    src: HBGraph = HBGraph.build_for(ubq_system)
+    assert src.hbond_database is ParameterDatabase.get_default().scoring.hbond
+
+    # Parameter database is overridden via kwarg
+    src: HBGraph = HBGraph.build_for(ubq_system, hbond_database=clone_db)
+    assert src.hbond_database is clone_db
+
+    # Parameter database is referenced on clone
+    clone: HBGraph = HBGraph.build_for(src)
+    assert clone.hbond_database is src.hbond_database
+
+    # Parameter database is overriden on clone via kwarg
+    clone: HBGraph = HBGraph.build_for(
+        src, hbond_database=ParameterDatabase.get_default().scoring.hbond
+    )
+    assert clone.hbond_database is not src.hbond_database
+    assert clone.hbond_database is ParameterDatabase.get_default().scoring.hbond
+
+    # Standard init results in default db
+    params = HBGraph.init_parameters_for(ubq_system)
+
+    del params["hbond_database"]
+    src = HBGraph(**params)
+
+    assert src.hbond_database is ParameterDatabase.get_default().scoring.hbond

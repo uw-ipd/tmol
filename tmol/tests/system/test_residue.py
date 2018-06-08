@@ -1,8 +1,8 @@
 import pytest
 
 from tmol.tests.data.pdb import data as test_pdbs
-from tmol.system.residue.io import read_pdb
-from tmol.system.residue.packed import PackedResidueSystem
+from tmol.system.io import read_pdb
+from tmol.system.packed import PackedResidueSystem
 
 test_names = ["1QYS", "1UBQ"]
 

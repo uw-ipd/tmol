@@ -90,10 +90,10 @@ class PoseScoreWrapper:
 
     @property
     def tmol_residues(self):
-        from tmol.system.residue.io import default_residue_reader
+        from tmol.system.io import ResidueReader
 
         return [
-            default_residue_reader.parse_atom_block(atoms)
+            ResidueReader.get_default().parse_atom_block(atoms)
             for (chaini, resi), atoms in self.atoms.groupby(["chaini", "resi"])
         ]
 

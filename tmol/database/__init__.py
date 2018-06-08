@@ -7,6 +7,17 @@ from .scoring import ScoringDatabase
 
 @attr.s
 class ParameterDatabase:
+    __default = None
+
+    @classmethod
+    def get_default(cls) -> "ParameterDatabase":
+        """Load and return default parameter database."""
+        if cls.__default is None:
+            cls.__default = ParameterDatabase.from_file(
+                os.path.join(os.path.dirname(__file__), "default")
+            )
+        return cls.__default
+
     scoring: ScoringDatabase = attr.ib()
     chemical: ChemicalDatabase = attr.ib()
 
@@ -18,8 +29,3 @@ class ParameterDatabase:
                 os.path.join(path, "chemical")
             )
         )
-
-
-default = ParameterDatabase.from_file(
-    os.path.join(os.path.dirname(__file__), "default")
-)

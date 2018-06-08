@@ -5,15 +5,18 @@ import pandas
 
 import tmol.score
 
-import tmol.system.residue.restypes as restypes
-from tmol.system.residue.packed import PackedResidueSystem
-from tmol.system.residue.score import system_cartesian_space_graph_params
+import tmol.system.restypes as restypes
+from tmol.system.packed import PackedResidueSystem
+from tmol.system.score_support import bonded_atoms_for_system
 
 import tmol.database
 from tmol.score.hbond.identification import HBondElementAnalysis
 
 
-def test_ambig_identification(water_box_system: PackedResidueSystem):
+def test_ambig_identification(
+        default_database: tmol.database.ParameterDatabase,
+        water_box_system: PackedResidueSystem,
+):
     """Tests identification in cases with 'ambiguous' acceptor bases."""
 
     atom_frame = pandas.DataFrame.from_records(
@@ -47,7 +50,7 @@ def test_ambig_identification(water_box_system: PackedResidueSystem):
     assert len(expected_acceptors) == len(water_box_system.residues)
 
     element_analysis: HBondElementAnalysis = HBondElementAnalysis.setup(
-        hbond_database=tmol.database.default.scoring.hbond,
+        hbond_database=default_database.scoring.hbond,
         atom_types=water_box_system.atom_metadata["atom_type"],
         bonds=water_box_system.bonds,
     )
@@ -97,9 +100,7 @@ def test_bb_identification(bb_hbond_database, ubq_system):
             "acceptor_type": "hbacc_PBA",
         })
 
-    test_params = system_cartesian_space_graph_params(
-        tsys, requires_grad=False
-    )
+    test_params = bonded_atoms_for_system(tsys)
 
     hbe = HBondElementAnalysis.setup(
         hbond_database=bb_hbond_database,
@@ -121,8 +122,10 @@ def test_bb_identification(bb_hbond_database, ubq_system):
     )
 
 
-def test_identification_by_ljlk_types():
-    db_res = tmol.database.default.chemical.residues
+def test_identification_by_ljlk_types(
+        default_database: tmol.database.ParameterDatabase
+):
+    db_res = default_database.chemical.residues
     types = [
         cattr.structure(cattr.unstructure(r), restypes.ResidueType)
         for r in db_res
@@ -130,7 +133,7 @@ def test_identification_by_ljlk_types():
 
     lj_types = {
         t.name: t
-        for t in tmol.database.default.scoring.ljlk.atom_type_parameters
+        for t in default_database.scoring.ljlk.atom_type_parameters
     }
 
     for t in types:
@@ -138,7 +141,7 @@ def test_identification_by_ljlk_types():
         bonds = t.bond_indicies
 
         hbe = HBondElementAnalysis.setup(
-            hbond_database=tmol.database.default.scoring.hbond,
+            hbond_database=default_database.scoring.hbond,
             atom_types=atom_types.astype(object),
             bonds=bonds
         )

@@ -1,30 +1,51 @@
-from typing import Mapping
-
 import numpy
 import torch
 
-from tmol.types.functional import validate_args
+from ..types.functional import validate_args
 
-from tmol.kinematics.torch_op import KinematicOp
-from tmol.kinematics.metadata import DOFTypes
+from ..kinematics.torch_op import KinematicOp
+from ..kinematics.metadata import DOFTypes
+
+from ..score import (
+    BondedAtomScoreGraph,
+    CartesianAtomicCoordinateProvider,
+    KinematicAtomicCoordinateProvider,
+)
 
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
 
+@BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
-def system_cartesian_space_graph_params(
+def bonded_atoms_for_system(
         system: PackedResidueSystem,
         drop_missing_atoms: bool = False,
-        requires_grad: bool = True,
-        device: torch.device = torch.device("cpu"),
-) -> Mapping:
-    """Constructor parameters for cartesian space scoring.
-
-    Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`
-    and `BondedAtomScoreGraph` subclass.
-    """
+        **_,
+):
     bonds = system.bonds
+
+    atom_types = system.atom_metadata["atom_type"].copy()
+
+    if drop_missing_atoms:
+        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
+
+    return dict(
+        bonds=bonds,
+        atom_types=atom_types,
+    )
+
+
+@CartesianAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
+@validate_args
+def coords_for_system(
+        system: PackedResidueSystem,
+        device: torch.device,
+        requires_grad: bool = True,
+        **_,
+):
+    """Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`"""
+
     coords = (
         torch.tensor(
             system.coords,
@@ -33,26 +54,16 @@ def system_cartesian_space_graph_params(
         ).requires_grad_(requires_grad)
     )
 
-    atom_types = system.atom_metadata["atom_type"].copy()
-
-    if drop_missing_atoms:
-        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
-
-    return dict(
-        system_size=len(coords),
-        bonds=bonds,
-        coords=coords,
-        atom_types=atom_types,
-        device=device,
-    )
+    return dict(coords=coords, )
 
 
+@KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
 @validate_args
-def system_torsion_space_graph_params(
+def system_torsion_graph_inputs(
         system: PackedResidueSystem,
-        drop_missing_atoms: bool = False,
+        device: torch.device,
         requires_grad: bool = True,
-        device: torch.device = torch.device("cpu"),
+        **_,
 ):
     """Constructor parameters for torsion space scoring.
 
@@ -82,18 +93,7 @@ def system_torsion_space_graph_params(
         kincoords,
     )
 
-    # Bond/type data
-    bonds = system.bonds
-    atom_types = system.atom_metadata["atom_type"].copy()
-
-    if drop_missing_atoms:
-        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
-
     return dict(
-        system_size=len(system.coords),
         dofs=kop.src_mobile_dofs.clone().requires_grad_(requires_grad),
         kinop=kop,
-        bonds=bonds,
-        atom_types=atom_types,
-        device=device,
     )

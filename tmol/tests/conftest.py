@@ -1,5 +1,9 @@
 import subprocess
 
+from .database import (
+    default_database,
+)
+
 # Import support fixtures
 from .support.rosetta import (
     pyrosetta,
@@ -54,6 +58,7 @@ __all__ = (
     pytest_benchmark_update_machine_info,
     pyrosetta,
     rosetta_database,
+    default_database,
     ubq_pdb,
     ubq_res,
     ubq_system,

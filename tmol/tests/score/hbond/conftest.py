@@ -5,8 +5,7 @@ import yaml
 
 import tmol.database.scoring
 
-bb_hbond_config = yaml.load(
-    """
+bb_hbond_config = """
     global_parameters:
         hb_sp2_range_span: 1.6
         hb_sp2_BAH180_rise: 0.75
@@ -88,20 +87,25 @@ bb_hbond_config = yaml.load(
         c_j: 1619.04116204
         c_k: -347.50157909
 """
-)
-
-_test_hbond_databases = {
-    "default": tmol.database.default.scoring.hbond,
-    "bb_only":
-        cattr.structure(bb_hbond_config, tmol.database.scoring.HBondDatabase),
-}
-
-
-@pytest.fixture(params=list(_test_hbond_databases))
-def test_hbond_database(request):
-    return _test_hbond_databases[request.param]
 
 
 @pytest.fixture
 def bb_hbond_database():
-    return _test_hbond_databases["bb_only"]
+    return cattr.structure(
+        yaml.load(bb_hbond_config), tmol.database.scoring.HBondDatabase
+    )
+
+
+@pytest.fixture
+def default_hbond_database():
+    return tmol.database.ParameterDatabase.get_default().scoring.hbond
+
+
+@pytest.fixture(params=["default", "bb_only"])
+def test_hbond_database(request):
+    if request.param is "default":
+        return default_hbond_database()
+    elif request.param is "bb_only":
+        return bb_hbond_database()
+    else:
+        raise NotImplementedError

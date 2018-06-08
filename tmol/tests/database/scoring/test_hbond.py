@@ -1,11 +1,11 @@
 import toolz
 import itertools
+import tmol.database
 
 
-def test_hbond_defs():
-    from tmol.database import default
+def test_hbond_defs(default_database: tmol.database.ParameterDatabase):
 
-    db = default.scoring.hbond
+    db = default_database.scoring.hbond
 
     poly_params = set(p.name for p in db.polynomial_parameters)
     assert len(poly_params) == len(db.polynomial_parameters)

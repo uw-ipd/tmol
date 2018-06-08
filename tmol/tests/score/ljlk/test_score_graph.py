@@ -1,8 +1,9 @@
+import copy
+
 import pytest
 import torch
 
-from tmol.system.residue.score import system_cartesian_space_graph_params
-
+from tmol.database import ParameterDatabase
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJLKScoreGraph
 from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
@@ -27,12 +28,10 @@ def save_intermediate_grad(var):
 
 
 def test_ljlk_smoke(ubq_system, torch_device):
-    score_graph = LJLKGraph(
-        **system_cartesian_space_graph_params(
-            ubq_system,
-            requires_grad=True,
-            device=torch_device,
-        )
+    score_graph = LJLKGraph.build_for(
+        ubq_system,
+        requires_grad=True,
+        device=torch_device,
     )
 
     save_intermediate_grad(score_graph.lj)
@@ -74,7 +73,7 @@ def test_ljlk_smoke(ubq_system, torch_device):
     group="score_setup",
 )
 def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
-    graph_params = system_cartesian_space_graph_params(
+    graph_params = LJLKGraph.init_parameters_for(
         ubq_system,
         requires_grad=True,
         device=torch_device,
@@ -91,3 +90,33 @@ def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
         return score_graph
 
     # TODO fordas add test assertions
+
+
+def test_ljlk_database_clone_factory(ubq_system):
+    clone_db = copy.copy(ParameterDatabase.get_default().scoring.ljlk)
+
+    src: LJLKGraph = LJLKGraph.build_for(ubq_system)
+    assert src.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
+
+    # Parameter database is overridden via kwarg
+    src: LJLKGraph = LJLKGraph.build_for(ubq_system, ljlk_database=clone_db)
+    assert src.ljlk_database is clone_db
+
+    # Parameter database is referenced on clone
+    clone: LJLKGraph = LJLKGraph.build_for(src)
+    assert clone.ljlk_database is src.ljlk_database
+
+    # Parameter database is overriden on clone via kwarg
+    clone: LJLKGraph = LJLKGraph.build_for(
+        src, ljlk_database=ParameterDatabase.get_default().scoring.ljlk
+    )
+    assert clone.ljlk_database is not src.ljlk_database
+    assert clone.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
+
+    # Standard init results in default db
+    params = LJLKGraph.init_parameters_for(ubq_system)
+
+    del params["ljlk_database"]
+    src = LJLKGraph(**params)
+
+    assert src.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
