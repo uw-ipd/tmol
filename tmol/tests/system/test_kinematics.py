@@ -1,9 +1,9 @@
 import pandas
 
-from tmol.system.residue.kinematics import KinematicDescription
+from tmol.system.kinematics import KinematicDescription
 from tmol.kinematics.metadata import DOFMetadata
 from tmol.kinematics.datatypes import KinTree
-from tmol.system.residue.packed import PackedResidueSystem
+from tmol.system.packed import PackedResidueSystem
 
 
 def report_tree_coverage(

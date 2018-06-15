@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -x
+
+echo "--- environment"
+conda info
+conda list
+
+echo "--- nvidia-smi"
+nvidia-smi
+
+echo "+++ tests"
+set -e
+pytest -v -k 'not linting' --cov=./tmol --junitxml=testing.junit.xml
+set +e
+
+echo "--- codecov"
+codecov -F pytest

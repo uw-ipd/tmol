@@ -11,14 +11,14 @@ def ubq_pdb():
 
 @pytest.fixture(scope="session")
 def ubq_res():
-    from tmol.system.residue.io import default_residue_reader
+    from tmol.system.io import ResidueReader
 
-    return default_residue_reader.parse_pdb(pdb.data["1ubq"])
+    return ResidueReader.get_default().parse_pdb(pdb.data["1ubq"])
 
 
 @pytest.fixture()
 def ubq_system():
-    from tmol.system.residue.io import read_pdb
+    from tmol.system.io import read_pdb
 
     return read_pdb(pdb.data["1ubq"])
 
@@ -31,11 +31,11 @@ def ubq_rosetta_baseline():
 
 @pytest.fixture()
 def water_box_res():
-    from tmol.system.residue.io import default_residue_reader
-    return default_residue_reader.parse_pdb(pdb.data["water_box"])
+    from tmol.system.io import ResidueReader
+    return ResidueReader.get_default().parse_pdb(pdb.data["water_box"])
 
 
 @pytest.fixture()
 def water_box_system():
-    from tmol.system.residue.io import read_pdb
+    from tmol.system.io import read_pdb
     return read_pdb(pdb.data["water_box"])

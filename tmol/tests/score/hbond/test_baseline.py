@@ -8,8 +8,7 @@ from tmol.utility.reactive import reactive_attrs
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 
-from tmol.system.residue.packed import PackedResidueSystem
-from tmol.system.residue.score import system_cartesian_space_graph_params
+from tmol.system.packed import PackedResidueSystem
 
 
 def hbond_score_comparison(rosetta_baseline):
@@ -24,11 +23,9 @@ def hbond_score_comparison(rosetta_baseline):
     ):
         pass
 
-    hbond_graph = HBGraph(
-        **system_cartesian_space_graph_params(
-            test_system,
-            requires_grad=False,
-        )
+    hbond_graph = HBGraph.build_for(
+        test_system,
+        requires_grad=False,
     )
 
     # Extract list of hbonds from packed system into summary table

@@ -1,3 +1,6 @@
+from typing import Optional
+from functools import singledispatch
+
 import torch
 import math
 
@@ -7,25 +10,67 @@ from tmol.utility.reactive import reactive_attrs, reactive_property
 
 from tmol.types.torch import Tensor
 
+from .factory import Factory
+
 
 @reactive_attrs(auto_attribs=True)
-class CartesianAtomicCoordinateProvider:
+class CartesianAtomicCoordinateProvider(Factory):
+    @staticmethod
+    @singledispatch
+    def factory_for(
+            other,
+            device: torch.device,
+            requires_grad: Optional[bool] = None,
+            **_,
+    ):
+        """`clone`-factory, extract coords from other."""
+        if requires_grad is None:
+            requires_grad = other.coords.requires_grad
+
+        coords = torch.tensor(
+            other.coords,
+            dtype=torch.float,
+            device=device,
+        ).requires_grad_(requires_grad)
+
+        return dict(coords=coords)
 
     # Source atomic coordinates
-    coords: Tensor("f4")[:, 3]
+    coords: Tensor(torch.float)[:, 3]
 
-    def step(self):
-        """Recalculate total_score and gradients wrt/ coords. Does not clear coord grads."""
-
+    def reset_total_score(self):
         self.coords = self.coords
-
-        # TODO asford broken by total score issue?
-        self.total_score.backward()
-        return self.total_score
 
 
 @reactive_attrs(auto_attribs=True)
-class KinematicAtomicCoordinateProvider:
+class KinematicAtomicCoordinateProvider(Factory):
+    @staticmethod
+    @singledispatch
+    def factory_for(
+            other,
+            device: torch.device,
+            requires_grad: Optional[bool] = None,
+            **_,
+    ):
+        """`clone`-factory, extract kinop and dofs from other."""
+
+        if requires_grad is None:
+            requires_grad = other.dofs.requires_grad
+
+        kinop = other.kinop
+
+        if other.dofs.device != device:
+            raise ValueError("Unable to change device for kinematic ops.")
+
+        dofs = torch.tensor(
+            other.dofs, device=device
+        ).requires_grad_(requires_grad)
+
+        return dict(
+            kinop=kinop,
+            dofs=dofs,
+        )
+
     # Source mobile dofs
     dofs: Tensor("f4")[:]
 
@@ -54,11 +99,5 @@ class KinematicAtomicCoordinateProvider:
 
         return coords.to(torch.float)
 
-    def step(self):
-        """Recalculate total_score and gradients wrt/ dofs. Does not clear dof grads."""
-
-        self.coords = self.coords
-
-        # TODO asford broken by total score issue?
-        self.total_score.backward()
-        return self.total_score
+    def reset_total_score(self):
+        self.dofs = self.dofs

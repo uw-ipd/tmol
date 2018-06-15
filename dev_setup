@@ -68,8 +68,9 @@ def resolve_env_type(env_type):
         return "osx.cpu"
 
 
+check_call("echo name: %s > environment.yml" % args.name)
 check_call(
-    "environments/render %s dev > environment.yml" %
+    "environments/render %s dev >> environment.yml" %
     resolve_env_type(args.env_type)
 )
 

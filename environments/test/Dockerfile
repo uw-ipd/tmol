@@ -27,23 +27,20 @@ RUN chmod +x /usr/bin/tini
 ENTRYPOINT [ "/usr/bin/tini", "--" ]
 CMD [ "/bin/bash" ]
 
-### Install Buildkite Agent
-# Installs the buildkite agent binary into /usr/local/bin
-# This allows use of buildkite-agent in docker steps if the source agent
-# is running within a docker container, as the agent binary is *not* present in the host.
-# 
-# Requires subsequent environment vars in job steps
-#   --env BUILDKITE_JOB_ID
-#   --env BUILDKITE_BUILD_ID
-#   --env BUILDKITE_AGENT_ACCESS_TOKEN
-#
-# Add to /usr/local/bin so the above env vars can be set via the docker buildkite plugin
-# without masking the binary via the /usr/bin/buildkite-agent bindmount
-RUN curl -s https://api.github.com/repos/buildkite/agent/releases/latest | \
-    grep browser_download_url | grep buildkite-agent-linux-amd64 | sed 's/"browser_download_url"://' | \
-    xargs curl -L | tar -xz -C /usr/local/bin ./buildkite-agent
-
 ### Setup test environment
+# Layering setup to allow partial caching of conda packages
+
+RUN conda update -n base conda && conda clean -tipsy
+
+COPY environments/core.dependencies.txt /environments/
+RUN conda install -n base --file /environments/core.dependencies.txt && conda clean -tipsy
+
+COPY environments/linux.cuda.dependencies.txt /environments/
+RUN conda install -n base --file /environments/linux.cuda.dependencies.txt && conda clean -tipsy
+
+COPY environments/test.dependencies.txt /environments/
+RUN conda install -n base --file /environments/test.dependencies.txt && conda clean -tipsy
+
 COPY environments /environments
 RUN /environments/render linux.cuda test > /environment.yml && \
     conda env update -n base -f /environment.yml && \

@@ -1,9 +1,9 @@
+import copy
+
 import pytest
 import torch
-import numpy
 
-from tmol.system.residue.score import system_cartesian_space_graph_params
-
+from tmol.database import ParameterDatabase
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJLKScoreGraph
 from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
@@ -20,58 +20,6 @@ class LJLKGraph(
     pass
 
 
-@pytest.mark.xfail
-def test_ljlk_numpyros_comparison(ubq_system):
-    test_structure = ubq_system
-
-    test_params = system_cartesian_space_graph_params(
-        test_structure,
-        drop_missing_atoms=False,
-        requires_grad=False,
-    )
-
-    expected_scores = {
-        'lj_atr': -425.3,
-        'lj_rep': 248.8,
-        'lk': 255.8,
-    }
-
-    numpy.testing.assert_allclose(
-        LJLKGraph(**test_params).total_lj.detach(),
-        expected_scores["lj_atr"] + expected_scores["lj_rep"],
-        rtol=5e-3
-    )
-
-    numpy.testing.assert_allclose(
-        LJLKGraph(**test_params).total_lk.detach(),
-        expected_scores["lk"],
-        rtol=5e-3
-    )
-
-
-def test_baseline_comparison(ubq_system, torch_device):
-    test_structure = ubq_system
-
-    test_params = system_cartesian_space_graph_params(
-        test_structure,
-        drop_missing_atoms=False,
-        requires_grad=False,
-        device=torch_device,
-    )
-
-    test_graph = LJLKGraph(**test_params)
-
-    expected_scores = {
-        'total_lj': -176.5,
-        'total_lk': 249.3,
-    }
-
-    for term, val in expected_scores.items():
-        numpy.testing.assert_allclose(
-            getattr(test_graph, term).detach(), val, rtol=5e-3
-        )
-
-
 def save_intermediate_grad(var):
     def store_grad(grad):
         var.grad = grad
@@ -80,12 +28,10 @@ def save_intermediate_grad(var):
 
 
 def test_ljlk_smoke(ubq_system, torch_device):
-    score_graph = LJLKGraph(
-        **system_cartesian_space_graph_params(
-            ubq_system,
-            requires_grad=True,
-            device=torch_device,
-        )
+    score_graph = LJLKGraph.build_for(
+        ubq_system,
+        requires_grad=True,
+        device=torch_device,
     )
 
     save_intermediate_grad(score_graph.lj)
@@ -121,3 +67,56 @@ def test_ljlk_smoke(ubq_system, torch_device):
 
     nan_coord_grads = torch.nonzero(torch.isnan(score_graph.coords.grad))
     assert len(nan_coord_grads) == 0
+
+
+@pytest.mark.benchmark(
+    group="score_setup",
+)
+def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
+    graph_params = LJLKGraph.init_parameters_for(
+        ubq_system,
+        requires_grad=True,
+        device=torch_device,
+    )
+
+    @benchmark
+    def score_graph():
+        score_graph = LJLKGraph(**graph_params)
+
+        # Non-coordinate depdendent components for scoring
+        score_graph.ljlk_atom_pair_params
+        score_graph.ljlk_interaction_weight
+
+        return score_graph
+
+    # TODO fordas add test assertions
+
+
+def test_ljlk_database_clone_factory(ubq_system):
+    clone_db = copy.copy(ParameterDatabase.get_default().scoring.ljlk)
+
+    src: LJLKGraph = LJLKGraph.build_for(ubq_system)
+    assert src.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
+
+    # Parameter database is overridden via kwarg
+    src: LJLKGraph = LJLKGraph.build_for(ubq_system, ljlk_database=clone_db)
+    assert src.ljlk_database is clone_db
+
+    # Parameter database is referenced on clone
+    clone: LJLKGraph = LJLKGraph.build_for(src)
+    assert clone.ljlk_database is src.ljlk_database
+
+    # Parameter database is overriden on clone via kwarg
+    clone: LJLKGraph = LJLKGraph.build_for(
+        src, ljlk_database=ParameterDatabase.get_default().scoring.ljlk
+    )
+    assert clone.ljlk_database is not src.ljlk_database
+    assert clone.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
+
+    # Standard init results in default db
+    params = LJLKGraph.init_parameters_for(ubq_system)
+
+    del params["ljlk_database"]
+    src = LJLKGraph(**params)
+
+    assert src.ljlk_database is ParameterDatabase.get_default().scoring.ljlk

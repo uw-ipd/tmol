@@ -9,18 +9,38 @@ from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jaco
 
 from tmol.types.torch import Tensor
 
+from tmol.kinematics.operations import SegScanStrategy
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.torch_op import KinematicOp, KinematicFun
 
-from tmol.system.residue.packed import PackedResidueSystem
-from tmol.system.residue.restypes import Residue
-from tmol.system.residue.kinematics import KinematicDescription
+from tmol.system.packed import PackedResidueSystem
+from tmol.system.restypes import Residue
+from tmol.system.kinematics import KinematicDescription
 
 from tmol.tests.torch import requires_cuda
 
+# TEMP TEMP TEMP
+# I'm pretty sure we won't need this after this PR
+#
+# @pytest.fixture(params=["efficient", "min_depth"])
+# def scan_strategy(request):
+#     return SegScanStrategy(request.param)
+#
+#
+# def test_torsion_refold_ubq(
+#         benchmark,
+#         ubq_system,
+#         torch_device,
+#         scan_strategy,
+# ):
 
-@requires_cuda
+#@pytest.mark.benchmark(
+#    group="kinematic_forward_op",
+#)
+
+
+#@requires_cuda
 def test_kinematic_torch_op_refold(ubq_system, torch_device):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
@@ -35,15 +55,26 @@ def test_kinematic_torch_op_refold(ubq_system, torch_device):
         tkin.kintree,
         torsion_dofs,
         kincoords,
+        scan_strategy="efficient",
     )
 
     refold_kincoords = kop.apply(kop.src_mobile_dofs)
 
-    #numpy.set_printoptions(threshold=numpy.nan, precision=3)
-    #print("kincoords");print(kincoords.numpy());
-    #print("refold_kincoords");print(refold_kincoords.numpy());
-    #print("diff");print((kincoords - refold_kincoords).numpy());
-    numpy.testing.assert_allclose(kincoords, refold_kincoords, atol=1e-6)
+    # @benchmark
+    #def refold_kincoords():
+    #    return kop.apply(kop.src_mobile_dofs)
+
+    # <<<<<<< HEAD
+    #     #numpy.set_printoptions(threshold=numpy.nan, precision=3)
+    #     #print("kincoords");print(kincoords.numpy());
+    #     #print("refold_kincoords");print(refold_kincoords.numpy());
+    #     #print("diff");print((kincoords - refold_kincoords).numpy());
+    #     numpy.testing.assert_allclose(kincoords, refold_kincoords, atol=1e-6)
+    # =======
+    torch.testing.assert_allclose(refold_kincoords, kincoords)
+
+
+#>>>>>>> master
 
 
 @pytest.fixture

@@ -1,17 +1,14 @@
-import unittest
 from collections import Counter
 
 
-class TestLKLJScoringDatabase(unittest.TestCase):
-    def test_ljlk_defs(self):
-        from tmol.database import default
+def test_ljlk_defs(default_database):
 
-        db = default.scoring.ljlk
-        atom_type_counts = Counter(n.name for n in db.atom_type_parameters)
+    db = default_database.scoring.ljlk
+    atom_type_counts = Counter(n.name for n in db.atom_type_parameters)
 
-        for at in atom_type_counts:
-            assert atom_type_counts[at] == 1, \
-                f"Duplicate ljlk type parameter: {at}"
+    for at in atom_type_counts:
+        assert atom_type_counts[at] == 1, \
+            f"Duplicate ljlk type parameter: {at}"
 
-        for at in db.atom_type_parameters:
-            assert at.name in default.chemical.atom_types
+    for at in db.atom_type_parameters:
+        assert at.name in default_database.chemical.atom_types

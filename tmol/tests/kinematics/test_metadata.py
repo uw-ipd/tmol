@@ -4,7 +4,7 @@ import numpy
 
 from tmol.kinematics.metadata import DOFMetadata
 
-from tmol.system.residue.kinematics import KinematicDescription
+from tmol.system.kinematics import KinematicDescription
 
 
 def test_metadata_dataframe_smoke(ubq_system):

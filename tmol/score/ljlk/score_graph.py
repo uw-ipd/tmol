@@ -1,3 +1,7 @@
+from typing import Optional
+
+import attr
+
 import torch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -6,13 +10,15 @@ from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 
+from tmol.database import ParameterDatabase
+from tmol.database.scoring import LJLKDatabase
+
+from ..database import ParamDB
 from ..device import TorchDevice
 from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..interatomic_distance import InteratomicDistanceGraphBase
 from ..bonded_atom import BondedAtomScoreGraph
-
-import tmol.database
-from tmol.database.scoring import LJLKDatabase
+from ..factory import Factory
 
 from .potentials import lj_score, lk_score
 from .params import LJLKParamResolver, LJLKTypePairParams
@@ -23,9 +29,35 @@ class LJLKScoreGraph(
         InteratomicDistanceGraphBase,
         BondedAtomScoreGraph,
         TotalScoreComponentsGraph,
+        ParamDB,
         TorchDevice,
+        Factory,
 ):
-    ljlk_database: LJLKDatabase = tmol.database.default.scoring.ljlk
+    @staticmethod
+    def factory_for(
+            val,
+            parameter_database: ParameterDatabase,
+            ljlk_database: Optional[LJLKDatabase] = None,
+            **_
+    ):
+        """Overridable clone-constructor.
+
+        Initialize from `val.ljlk_database` if possible, otherwise from
+        `parameter_database.scoring.ljlk`.
+        """
+        if ljlk_database is None:
+            if getattr(val, "ljlk_database", None):
+                ljlk_database = val.ljlk_database
+            else:
+                ljlk_database = parameter_database.scoring.ljlk
+
+        return dict(ljlk_database=ljlk_database, )
+
+    ljlk_database: LJLKDatabase = attr.ib()
+
+    @ljlk_database.default
+    def _default_ljlk_database(self):
+        return self.parameter_database.scoring.ljlk
 
     @property
     def component_total_score_terms(self):

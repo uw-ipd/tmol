@@ -66,3 +66,15 @@ class TotalScoreComponentsGraph:
             getattr(self, component_name)
             for component_name in self.total_score_components
         )
+
+    def step(self):
+        """Recalculate total_score and gradients wrt/ dofs or coords.
+
+        Does not reset dof or coord grads.
+        """
+
+        self.reset_total_score()
+
+        # TODO asford broken by total score issue?
+        self.total_score.backward()
+        return self.total_score
