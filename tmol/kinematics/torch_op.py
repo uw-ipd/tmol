@@ -48,11 +48,12 @@ class KinematicOp:
             kintree: KinTree,
             mobile_dofs: DOFMetadata,
             kin_coords: Tensor("f8")[:, 3],
+            device: torch.device,
             **kwargs,
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""
         bkin = backwardKin(kintree, kin_coords)
-        refold_data = refold_data_from_kintree(kintree)
+        refold_data = refold_data_from_kintree(kintree, device)
         src_mobile_dofs = bkin.dofs.raw[mobile_dofs.node_idx,
                                         mobile_dofs.dof_idx]
 

@@ -62,7 +62,7 @@ def test_gpu_refold_data_construction(ubq_system):
             assert child == -1 or ii_ki == parent_ko[dsi2ki[child]]
 
 
-@requires_cuda
+#@requires_cuda
 def test_gpu_refold_ordering(ubq_system):
 
     #numpy.set_printoptions(threshold=numpy.nan, precision=3)
@@ -76,7 +76,7 @@ def test_gpu_refold_ordering(ubq_system):
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
     refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(
-        kintree
+        kintree, torch.device("cuda")
     )
 
     dofs = backwardKin(kintree, kincoords).dofs
@@ -144,7 +144,7 @@ def test_gpu_refold_ordering(ubq_system):
     numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)
 
 
-@requires_cuda
+#@requires_cuda
 def test_gpu_segscan2(ubq_system):
 
     numpy.set_printoptions(threshold=numpy.nan, precision=3)
@@ -158,7 +158,7 @@ def test_gpu_segscan2(ubq_system):
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
     refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(
-        kintree
+        kintree, torch.device("cuda")
     )
 
     dofs = backwardKin(kintree, kincoords).dofs
@@ -197,9 +197,9 @@ def test_gpu_segscan2(ubq_system):
 
     numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
 
-    # Timing
-    start_time = time.time()
-    for i in range(1000):
-        tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
-
-    print("--- refold %f seconds ---" % ((time.time() - start_time) / 1000))
+    # # Timing
+    # start_time = time.time()
+    # for i in range(1000):
+    #     tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
+    #
+    # print("--- refold %f seconds ---" % ((time.time() - start_time) / 1000))
