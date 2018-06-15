@@ -35,12 +35,10 @@ from tmol.tests.torch import requires_cuda
 #         scan_strategy,
 # ):
 
-#@pytest.mark.benchmark(
-#    group="kinematic_forward_op",
-#)
 
-
-#@requires_cuda
+@pytest.mark.benchmark(
+    group="kinematic_forward_op",
+)
 def test_kinematic_torch_op_refold(ubq_system, torch_device):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
@@ -55,7 +53,8 @@ def test_kinematic_torch_op_refold(ubq_system, torch_device):
         tkin.kintree,
         torsion_dofs,
         kincoords,
-        torch.device("cpu"),
+        torch.device("cpu")
+        if not torch.cuda.is_available() else torch.device("cuda"),
         scan_strategy="efficient",
     )
 
@@ -73,9 +72,6 @@ def test_kinematic_torch_op_refold(ubq_system, torch_device):
     #     numpy.testing.assert_allclose(kincoords, refold_kincoords, atol=1e-6)
     # =======
     torch.testing.assert_allclose(refold_kincoords, kincoords)
-
-
-#>>>>>>> master
 
 
 @pytest.fixture
@@ -147,7 +143,6 @@ def kop_gradcheck_report(
     torch.autograd.gradcheck(kop, (start_dofs, ), raise_exception=True)
 
 
-@requires_cuda
 def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
     kintree, dofs, kincoords = gradcheck_test_system
 
@@ -157,9 +152,7 @@ def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
     dofs = dofs[~post_root_siblings]
 
     kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
+        kintree, dofs, kincoords, torch.device("cpu")
     )
 
     torch.random.manual_seed(1663)
@@ -172,7 +165,6 @@ def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
     kop_gradcheck_report(kop, dofs, start_dofs)
 
 
-@requires_cuda
 def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
     kintree, dofs, kincoords = gradcheck_test_system
 
@@ -182,9 +174,9 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
     dofs = dofs[~post_root_siblings]
 
     kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
+        kintree, dofs, kincoords,
+        torch.device("cpu")
+        if not torch.cuda.is_available() else torch.device("cuda")
     )
 
     start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
@@ -192,16 +184,15 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
     kop_gradcheck_report(kop, dofs, start_dofs)
 
 
-@requires_cuda
 def test_kinematic_torch_op_smoke(
         gradcheck_test_system, torch_backward_coverage
 ):
     kintree, dofs, kincoords = gradcheck_test_system
 
     kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
+        kintree, dofs, kincoords,
+        torch.device("cpu")
+        if not torch.cuda.is_available() else torch.device("cuda")
     )
 
     start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)

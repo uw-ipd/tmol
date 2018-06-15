@@ -730,19 +730,21 @@ def forwardKin2(
         # i.e. we are not using the GPU version, and therefore we'll
         # just run an iterative pass over all the HTs using numba's
         # "nopython" compilation mode to make it superfast
-        import time
-        HTscopy = HTs.clone()
-        scan_strategy = SegScanStrategy("efficient")
-        start_time = time.time()
-        for ii in range(10000):
-            HTscopy[:] = HTs
 
-            #SegScan(HTscopy, kintree.parent, HTcollect, False, scan_strategy)
-            iterative_refold(HTscopy.numpy(), kintree.parent.numpy())
-        end_time = time.time()
-        print(
-            "---- refold %f seconds ----" % ((end_time - start_time) / 10000)
-        )
+        # import time
+        # HTscopy = HTs.clone()
+        # scan_strategy = SegScanStrategy("efficient")
+        # start_time = time.time()
+        # for ii in range(10000):
+        #     HTscopy[:] = HTs
+        #
+        #     #SegScan(HTscopy, kintree.parent, HTcollect, False, scan_strategy)
+        #     iterative_refold2(HTscopy.numpy(), kintree.parent.numpy())
+        # end_time = time.time()
+        # print(
+        #     "---- refold %f seconds ----" % ((end_time - start_time) / 10000)
+        # )
+
         iterative_refold(HTs.numpy(), kintree.parent.numpy())
     else:
         # 2) numba segmented scan algorithm
@@ -836,10 +838,33 @@ def resolveDerivs2(
     # 2) sum f1/f2s up tree, from leaves toward the root using numba
     # implementation of segmented scan
     f1f2s = torch.cat((f1s, f2s), 1)
-    f1f2s_d = get_devicendarray(f1f2s)
-    segscan_f1f2s_gpu(f1f2s_d, refold_data)
-    #print("f1f2s_gpu"); print(f1f2s_d)
-    #print("f1f2s tensor?"); print(f1f2s.numpy())
+    if refold_data.natoms != kintree.id.shape[0]:
+        # i.e. we're running on the CPU so we can use an iterative algorithm
+        # for accumulating the f1s and f2s
+
+        # import time
+        # #f1f2scopy = f1f2s.clone()
+        # f1scopy = f1s.clone(); f2scopy = f2s.clone();
+        # scan_strategy = SegScanStrategy("efficient")
+        # start_time = time.time()
+        # for ii in range(1000):
+        #     f1scopy[:] = f1s
+        #     f2scopy[:] = f2s
+        #     SegScan(f1scopy, kintree.parent, Fscollect, True, scan_strategy)
+        #     SegScan(f2scopy, kintree.parent, Fscollect, True, scan_strategy)
+        #     #iterative_f1f2_summation(f1f2scopy.numpy(), kintree.parent.numpy())
+        # end_time = time.time()
+        # print(
+        #     "---- f1f2 summation %f seconds ----" % ((end_time - start_time) / 1000)
+        # )
+
+        iterative_f1f2_summation(f1f2s.numpy(), kintree.parent.numpy())
+
+    else:
+        f1f2s_d = get_devicendarray(f1f2s)
+        segscan_f1f2s_gpu(f1f2s_d, refold_data)
+        #print("f1f2s_gpu"); print(f1f2s_d)
+        #print("f1f2s tensor?"); print(f1f2s.numpy())
 
     f1s[:] = f1f2s[:, 0:3]
     f2s[:] = f1f2s[:, 3:6]
@@ -875,3 +900,44 @@ def resolveDerivs2(
 def iterative_refold(hts, parent):
     for ii in range(1, hts.shape[0]):
         hts[ii, :, :] = hts[parent[ii], :, :] @ hts[ii, :, :]
+
+
+# @numba.jit(nopython=True)
+# def iterative_refold2(hts, parent):
+#     for ii in range(1, hts.shape[0]):
+#         pii = parent[ii]
+#         hts0 = hts[pii, 0, 0] * hts[ii, 0, 0] + hts[pii, 0, 1] * hts[ii, 1, 0] + hts[pii, 0, 2] * hts[ii, 2, 0]
+#         hts1 = hts[pii, 0, 0] * hts[ii, 0, 1] + hts[pii, 0, 1] * hts[ii, 1, 1] + hts[pii, 0, 2] * hts[ii, 2, 1]
+#         hts2 = hts[pii, 0, 0] * hts[ii, 0, 2] + hts[pii, 0, 1] * hts[ii, 1, 2] + hts[pii, 0, 2] * hts[ii, 2, 2]
+#         hts3 = hts[pii, 0, 0] * hts[ii, 0, 3] + hts[pii, 0, 1] * hts[ii, 1, 3] + hts[pii, 0, 2] * hts[ii, 2, 3] + hts[pii, 0, 3]
+#
+#         hts4 = hts[pii, 1, 0] * hts[ii, 0, 0] + hts[pii, 1, 1] * hts[ii, 1, 0] + hts[pii, 1, 2] * hts[ii, 2, 0]
+#         hts5 = hts[pii, 1, 0] * hts[ii, 0, 1] + hts[pii, 1, 1] * hts[ii, 1, 1] + hts[pii, 1, 2] * hts[ii, 2, 1]
+#         hts6 = hts[pii, 1, 0] * hts[ii, 0, 2] + hts[pii, 1, 1] * hts[ii, 1, 2] + hts[pii, 1, 2] * hts[ii, 2, 2]
+#         hts7 = hts[pii, 1, 0] * hts[ii, 0, 3] + hts[pii, 1, 1] * hts[ii, 1, 3] + hts[pii, 1, 2] * hts[ii, 2, 3] + hts[pii, 1, 3]
+#
+#         hts8  = hts[pii, 2, 0] * hts[ii, 0, 0] + hts[pii, 2, 1] * hts[ii, 1, 0] + hts[pii, 2, 2] * hts[ii, 2, 0]
+#         hts9  = hts[pii, 2, 0] * hts[ii, 0, 1] + hts[pii, 2, 1] * hts[ii, 1, 1] + hts[pii, 2, 2] * hts[ii, 2, 1]
+#         hts10 = hts[pii, 2, 0] * hts[ii, 0, 2] + hts[pii, 2, 1] * hts[ii, 1, 2] + hts[pii, 2, 2] * hts[ii, 2, 2]
+#         hts11 = hts[pii, 2, 0] * hts[ii, 0, 3] + hts[pii, 2, 1] * hts[ii, 1, 3] + hts[pii, 2, 2] * hts[ii, 2, 3] + hts[pii, 2, 3]
+#
+#         hts[ii,0,0] = hts0
+#         hts[ii,0,1] = hts1
+#         hts[ii,0,2] = hts2
+#         hts[ii,0,3] = hts3
+#
+#         hts[ii,1,0] = hts4
+#         hts[ii,1,1] = hts5
+#         hts[ii,1,2] = hts6
+#         hts[ii,1,3] = hts7
+#
+#         hts[ii,2,0] = hts8
+#         hts[ii,2,1] = hts9
+#         hts[ii,2,2] = hts10
+#         hts[ii,2,3] = hts11
+
+
+@numba.jit(nopython=True)
+def iterative_f1f2_summation(f1f2s, parent):
+    for ii in range(f1f2s.shape[0] - 1, 0, -1):
+        f1f2s[parent[ii], :] += f1f2s[ii, :]

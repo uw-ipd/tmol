@@ -126,12 +126,8 @@ class KinematicFun(torch.autograd.Function):
         working_dofs = KinDOF(raw=working_dofs_raw)
 
         working_derivs = resolveDerivs2(
-            ctx.kinematic_op.kintree,
-            ctx.kinematic_op.refold_data,
-            working_dofs,
-            hts,
-            coord_grads,
-            scan_strategy=ctx.kinematic_op.scan_strategy,
+            ctx.kinematic_op.kintree, ctx.kinematic_op.refold_data,
+            working_dofs, hts, coord_grads
         )
 
         result_derivs = working_derivs.raw[
