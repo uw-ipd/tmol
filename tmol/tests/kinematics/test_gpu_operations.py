@@ -76,7 +76,7 @@ def test_gpu_refold_ordering(ubq_system):
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
     refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(
-        kintree, torch.device("cpu")
+        kintree, torch.device("cuda")
     )
 
     dofs = backwardKin(kintree, kincoords).dofs
@@ -158,7 +158,7 @@ def test_gpu_segscan2(ubq_system):
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
     refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(
-        kintree, torch.device("cpu")
+        kintree, torch.device("cuda")
     )
 
     dofs = backwardKin(kintree, kincoords).dofs

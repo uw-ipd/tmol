@@ -689,6 +689,7 @@ def segscan_ht_interval_many_thread_blocks_3(
 
 
 def get_devicendarray(t):
+    import ctypes
     '''Convert a device-allocated pytorch tensor into a numba DeviceNDArray'''
     #print("get_devicendarray",t.type())
     if t.type() == 'torch.cuda.FloatTensor':
@@ -728,9 +729,8 @@ def segscan_hts_gpu(hts_ko, refold_data):
     hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_hts[nblocks, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_starting_hts[nblocks, 512, stream
+                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
     # for each depth, run a separate segmented scan
     for iirange in rd.refold_atom_range_for_depth:
@@ -740,9 +740,8 @@ def segscan_hts_gpu(hts_ko, refold_data):
             iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_final_hts[nblocks, 512, stream
+                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
 
 def segscan_hts_gpu2(hts_ko, refold_data):
@@ -757,9 +756,8 @@ def segscan_hts_gpu2(hts_ko, refold_data):
     nblocks256 = (rd.natoms - 1) // 256 + 1
     nblocks512 = (rd.natoms - 1) // 512 + 1
 
-    reorder_starting_hts[nblocks512, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_starting_hts[nblocks512, 512, stream
+                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
     # for each depth, run a separate segmented scan
     for iirange in rd.refold_atom_range_for_depth:
@@ -796,9 +794,8 @@ def segscan_hts_gpu2(hts_ko, refold_data):
             rd.natoms, iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks512, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_final_hts[nblocks512, 512, stream
+                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
 
 @numba.jit(nopython=True)
@@ -1022,9 +1019,8 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
     f1f2s_dso_d = cuda.device_array((rd.natoms, 6), dtype="float64")
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
-    )
+    reorder_starting_f1f2s[nblocks, 512
+                           ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
 
     for iirange in rd.derivsum_atom_range_for_depth:
         segscan_f1f2s_up_tree[1, 512](
@@ -1032,6 +1028,5 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
             iirange[0], iirange[1], rd.natoms
         )
 
-    reorder_final_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
-    )
+    reorder_final_f1f2s[nblocks, 512
+                        ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)

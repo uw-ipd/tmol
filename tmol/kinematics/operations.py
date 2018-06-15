@@ -714,7 +714,9 @@ def forwardKin2(
     assert len(kintree) == len(dofs)
 
     # 1) local HTs
-    HTs = torch.empty([natoms, 4, 4], dtype=torch.double)
+    HTs = torch.empty([natoms, 4, 4],
+                      dtype=torch.double,
+                      device=dofs.raw.device)
 
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0

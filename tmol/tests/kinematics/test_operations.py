@@ -341,7 +341,7 @@ def test_f1f2_resolution_strategies_match2(kintree, coords):
     NATOMS, _ = coords.shape
     bkin = backwardKin(kintree, coords)
     HTs, dofs = bkin.hts, bkin.dofs
-    refold_data = refold_data_from_kintree(kintree)
+    refold_data = refold_data_from_kintree(kintree, torch.device("cuda"))
 
     # Compute analytic derivs
     dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
