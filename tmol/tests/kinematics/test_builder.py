@@ -1,16 +1,12 @@
 import numpy
 import torch
-from numba import cuda
-import time
 
 from tmol.kinematics import (
     backwardKin,
     forwardKin,
 )
 
-from tmol.kinematics.datatypes import RefoldData
 from tmol.kinematics.builder import KinematicBuilder
-from tmol.tests.kinematics.test_torch_op import gradcheck_test_system
 
 
 def test_builder_refold(ubq_system):

@@ -860,7 +860,9 @@ def resolveDerivs2(
         #     "---- f1f2 summation %f seconds ----" % ((end_time - start_time) / 1000)
         # )
 
-        iterative_f1f2_summation(f1f2s.numpy(), kintree.parent.numpy())
+        iterative_f1f2_summation(
+            f1f2s.detach().numpy(), kintree.parent.numpy()
+        )
 
     else:
         f1f2s_d = get_devicendarray(f1f2s)

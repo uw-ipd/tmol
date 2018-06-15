@@ -1,16 +1,9 @@
-import enum
 import torch
-import attr
-import typing
 import numpy
 import numba
 from numba import cuda
 
-from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
-
-from tmol.types.attrs import ConvertAttrs
-from tmol.types.functional import convert_args, validate_args
+from tmol.types.functional import validate_args
 
 from .datatypes import KinTree, RefoldData
 
@@ -79,7 +72,6 @@ def refold_data_from_kintree(
         is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d = \
             send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro)
 
-
         ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d = \
             send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso)
 
@@ -102,7 +94,7 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
     non_subpath_parent_ro = numpy.full((natoms), -1, dtype="int32")
     branching_factor_ko = numpy.full((natoms), -1, dtype="int32")
     subpath_child_ko = numpy.full((natoms), -1, dtype="int32")
-    child_on_refold_subpath_ko = numpy.full((natoms), -1, dtype="int32")
+    #child_on_refold_subpath_ko = numpy.full((natoms), -1, dtype="int32")
     subpath_length_ko = numpy.zeros((natoms), dtype="int32")
     is_subpath_root_ko = numpy.full((natoms), False, dtype="bool")
     refold_atom_depth_ko = numpy.zeros((natoms), dtype="int32")
@@ -111,7 +103,7 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
     is_subpath_leaf_ko = numpy.full((natoms), False, dtype="bool")
     #derivsum_path_length_ko = numpy.full((natoms), 0, dtype="int32")
     is_leaf_dso = numpy.full((natoms), False, dtype="bool")
-    derivsum_first_child_ko = numpy.full((natoms), -1, dtype="int32")
+    #derivsum_first_child_ko = numpy.full((natoms), -1, dtype="int32")
     n_nonpath_children_ko = numpy.full((natoms), 0, dtype="int32")
     derivsum_path_depth_ko = numpy.full((natoms), -1, dtype="int32")
     derivsum_atom_range_for_depth = []
@@ -202,7 +194,8 @@ def compute_branching_factor(
             ii_bf = 0
             branching_factor[ii] = ii_bf
         ii_parent = parent[ii]
-        if ii == ii_parent: continue
+        if ii == ii_parent:
+            continue
         parent_bf = branching_factor[ii_parent]
         if parent_bf == -1:
             branching_factor[ii_parent] = ii_bf
@@ -729,8 +722,9 @@ def segscan_hts_gpu(hts_ko, refold_data):
     hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_hts[nblocks, 512, stream
-                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    reorder_starting_hts[nblocks, 512, stream](
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    )
 
     # for each depth, run a separate segmented scan
     for iirange in rd.refold_atom_range_for_depth:
@@ -740,8 +734,9 @@ def segscan_hts_gpu(hts_ko, refold_data):
             iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks, 512, stream
-                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    reorder_final_hts[nblocks, 512, stream](
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    )
 
 
 def segscan_hts_gpu2(hts_ko, refold_data):
@@ -753,11 +748,11 @@ def segscan_hts_gpu2(hts_ko, refold_data):
     hts_inter_d = cuda.device_array((nblocks32, 12), dtype=numpy.float64)
     is_root_inter_d = cuda.device_array((nblocks32), dtype=numpy.bool)
 
-    nblocks256 = (rd.natoms - 1) // 256 + 1
     nblocks512 = (rd.natoms - 1) // 512 + 1
 
-    reorder_starting_hts[nblocks512, 512, stream
-                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    reorder_starting_hts[nblocks512, 512, stream](
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    )
 
     # for each depth, run a separate segmented scan
     for iirange in rd.refold_atom_range_for_depth:
@@ -794,8 +789,9 @@ def segscan_hts_gpu2(hts_ko, refold_data):
             rd.natoms, iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks512, 512, stream
-                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    reorder_final_hts[nblocks512, 512, stream](
+        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    )
 
 
 @numba.jit(nopython=True)
@@ -823,7 +819,8 @@ def list_nonpath_children(
     for ii in range(natoms):
         if is_subpath_root_ko[ii]:
             ii_parent = parent_ko[ii]
-            if ii_parent == ii: continue
+            if ii_parent == ii:
+                continue
             ii_child_ind = count_n_nonfirst_children[ii_parent]
             non_path_children_ko[ii_parent, ii_child_ind] = ii
             count_n_nonfirst_children[ii_parent] += 1
@@ -844,7 +841,8 @@ def find_derivsum_path_depths(
             ii_depth = derivsum_path_depth_ko[ii_child]
             #print(ii,"child",ii_child,"depth",ii_depth)
         for other_child in non_path_children_ko[ii, :]:
-            if other_child == -1: continue
+            if other_child == -1:
+                continue
             other_child_depth = derivsum_path_depth_ko[other_child]
             #print("ii",ii,"other_child",other_child,"other_child_depth",other_child_depth)
             if ii_depth < other_child_depth + 1:
@@ -1019,8 +1017,9 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
     f1f2s_dso_d = cuda.device_array((rd.natoms, 6), dtype="float64")
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_f1f2s[nblocks, 512
-                           ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
+    reorder_starting_f1f2s[nblocks, 512](
+        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
+    )
 
     for iirange in rd.derivsum_atom_range_for_depth:
         segscan_f1f2s_up_tree[1, 512](
@@ -1028,5 +1027,6 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
             iirange[0], iirange[1], rd.natoms
         )
 
-    reorder_final_f1f2s[nblocks, 512
-                        ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
+    reorder_final_f1f2s[nblocks, 512](
+        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
+    )

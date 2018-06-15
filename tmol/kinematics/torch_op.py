@@ -7,8 +7,8 @@ from tmol.types.functional import validate_args
 from .datatypes import KinTree, KinDOF, RefoldData
 from .metadata import DOFMetadata
 
-from .operations import forwardKin, forwardKin2, backwardKin, \
-    resolveDerivs, resolveDerivs2, SegScanStrategy
+from .operations import forwardKin2, backwardKin, \
+    resolveDerivs2, SegScanStrategy
 from .gpu_operations import refold_data_from_kintree
 
 

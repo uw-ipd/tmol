@@ -9,16 +9,16 @@ from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jaco
 
 from tmol.types.torch import Tensor
 
-from tmol.kinematics.operations import SegScanStrategy
+#from tmol.kinematics.operations import SegScanStrategy
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
-from tmol.kinematics.torch_op import KinematicOp, KinematicFun
+from tmol.kinematics.torch_op import KinematicOp
 
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.restypes import Residue
 from tmol.system.kinematics import KinematicDescription
 
-from tmol.tests.torch import requires_cuda
+#from tmol.tests.torch import requires_cuda
 
 # TEMP TEMP TEMP
 # I'm pretty sure we won't need this after this PR

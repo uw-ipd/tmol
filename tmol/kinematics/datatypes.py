@@ -2,9 +2,7 @@ import enum
 import torch
 import attr
 import typing
-import numpy
 import numba
-from numba import cuda
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
@@ -190,7 +188,7 @@ class RefoldData:
     2) from leaf to root for f1f2 derivative summation. To accomplish this, the
     RefoldData class reorders the atoms from the original KinTree order ("ko")
     where atoms are known by their kintree-index ("ki") into 1) their refold order
-    ("ro") where atoms are known by their refold index ("ri") and 2) their 
+    ("ro") where atoms are known by their refold index ("ri") and 2) their
     deriv-sum order ("dso") where atoms are known by their deriv-sum index.'''
 
     natoms: int

@@ -1,20 +1,12 @@
 import numpy
 import torch
 from numba import cuda
-import time
-
-from tmol.kinematics import (
-    backwardKin,
-    forwardKin,
-)
 
 import tmol.kinematics.gpu_operations
-from tmol.kinematics.datatypes import RefoldData
 from tmol.kinematics.builder import KinematicBuilder
-from tmol.tests.kinematics.test_torch_op import gradcheck_test_system
 
-from tmol.kinematics.datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
-from tmol.kinematics.operations import BondTransforms, JumpTransforms, SegScan, Fscollect
+from tmol.kinematics.datatypes import NodeType
+from tmol.kinematics.operations import backwardKin, BondTransforms, JumpTransforms, SegScan, Fscollect
 
 from tmol.tests.torch import requires_cuda
 
@@ -24,7 +16,7 @@ def test_gpu_refold_data_construction(ubq_system):
     kintree = KinematicBuilder().append_connected_component(
         *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
     ).kintree
-    kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
+    torch.DoubleTensor(tsys.coords[kintree.id])
 
     natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro, \
         branching_factor_ko, subpath_child_ko, \
@@ -107,6 +99,7 @@ def test_gpu_refold_ordering(ubq_system):
     numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
 
     # Timing
+    #import time
     #start_time = time.time()
     #for i in range(10000):
     #    tmol.kinematics.datatypes.segscan_hts_gpu(HTs_d, refold_data)
@@ -198,6 +191,7 @@ def test_gpu_segscan2(ubq_system):
     numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
 
     # # Timing
+    # import time
     # start_time = time.time()
     # for i in range(1000):
     #     tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
