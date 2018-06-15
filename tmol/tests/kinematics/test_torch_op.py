@@ -55,6 +55,7 @@ def test_kinematic_torch_op_refold(ubq_system, torch_device):
         tkin.kintree,
         torsion_dofs,
         kincoords,
+        torch.device("cpu"),
         scan_strategy="efficient",
     )
 

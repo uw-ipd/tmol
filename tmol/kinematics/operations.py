@@ -1,6 +1,7 @@
 from enum import Enum
 import attr
 import numpy
+import numba
 
 import scipy.sparse.csgraph
 
@@ -725,9 +726,28 @@ def forwardKin2(
     jumpSelector = kintree.doftype == NodeType.jump
     HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
-    # 2) numba segmented scan algorithm
-    HTs_d = get_devicendarray(HTs)
-    segscan_hts_gpu(HTs_d, refold_data)
+    if refold_data.natoms != kintree.id.shape[0]:
+        # i.e. we are not using the GPU version, and therefore we'll
+        # just run an iterative pass over all the HTs using numba's
+        # "nopython" compilation mode to make it superfast
+        import time
+        HTscopy = HTs.clone()
+        scan_strategy = SegScanStrategy("efficient")
+        start_time = time.time()
+        for ii in range(10000):
+            HTscopy[:] = HTs
+
+            #SegScan(HTscopy, kintree.parent, HTcollect, False, scan_strategy)
+            iterative_refold(HTscopy.numpy(), kintree.parent.numpy())
+        end_time = time.time()
+        print(
+            "---- refold %f seconds ----" % ((end_time - start_time) / 10000)
+        )
+        iterative_refold(HTs.numpy(), kintree.parent.numpy())
+    else:
+        # 2) numba segmented scan algorithm
+        HTs_d = get_devicendarray(HTs)
+        segscan_hts_gpu(HTs_d, refold_data)
 
     coords = HTs[:, :3, 3]
     return ForwardKinResult.create(HTs, coords)
@@ -849,3 +869,9 @@ def resolveDerivs2(
     )
 
     return dsc_ddofs
+
+
+@numba.jit(nopython=True)
+def iterative_refold(hts, parent):
+    for ii in range(1, hts.shape[0]):
+        hts[ii, :, :] = hts[parent[ii], :, :] @ hts[ii, :, :]
