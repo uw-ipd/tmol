@@ -7,6 +7,7 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+      uw-ipd/github-checks#v0.0.1:
 
 
   ### Run tests and generate coverage reports
@@ -16,6 +17,7 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+      uw-ipd/github-checks#v0.0.1:
     artifact_paths:
       - testing.junit.xml
       - .coverage
@@ -27,6 +29,7 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+      uw-ipd/github-checks#v0.0.1:
     artifact_paths:
       - linting.junit.xml
 
@@ -52,3 +55,4 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+      uw-ipd/github-checks#v0.0.1:
