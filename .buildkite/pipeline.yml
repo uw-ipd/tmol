@@ -4,7 +4,7 @@ steps:
   - label: ':electric_plug: Setup'
     command: .buildkite/bin/setup
     plugins:
-      uw-ipd/docker-compose#run_workdir:
+      uw-ipd/docker-compose#default_volumes:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
       uw-ipd/github-checks#v0.0.1:
@@ -14,7 +14,7 @@ steps:
   - label: ':shrug: Testing'
     command: .buildkite/bin/testing
     plugins:
-      uw-ipd/docker-compose#run_workdir:
+      uw-ipd/docker-compose#default_volumes:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
       uw-ipd/github-checks#v0.0.1:
@@ -26,7 +26,7 @@ steps:
   - label: ':microscope: Linting'
     command: .buildkite/bin/linting
     plugins:
-      uw-ipd/docker-compose#run_workdir:
+      uw-ipd/docker-compose#default_volumes:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
       uw-ipd/github-checks#v0.0.1:
@@ -52,7 +52,7 @@ steps:
     artifact_paths:
       - benchmark/**/*
     plugins:
-      uw-ipd/docker-compose#run_workdir:
+      uw-ipd/docker-compose#default_volumes:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
       uw-ipd/github-checks#v0.0.1:

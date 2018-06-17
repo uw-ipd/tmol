@@ -9,8 +9,6 @@ services:
   buildkite:
     extends:
       service: test
-    volumes:
-      - buildkite:/buildkite
     environment:
       - BUILDKITE
       - BUILDKITE_PIPELINE_SLUG
@@ -29,7 +27,3 @@ services:
     volumes:
       - .:/tmol
     working_dir: /tmol
-
-volumes:
-  buildkite:
-    external: True
