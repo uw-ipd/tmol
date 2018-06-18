@@ -192,15 +192,17 @@ class RefoldData:
     deriv-sum order ("dso") where atoms are known by their deriv-sum index.'''
 
     natoms: int
-    refold_atom_range_for_depth: typing.List[typing.Tuple[int, int]]
-    derivsum_atom_range_for_depth: typing.List[typing.Tuple[int, int]]
+    #refold_atom_range_for_depth: typing.List[typing.Tuple[int, int]]
+    #derivsum_atom_range_for_depth: typing.List[typing.Tuple[int, int]]
 
     # Pointers to device arrays used in forward kinematics
     non_subpath_parent_ro_d: numba.types.Array
     is_root_ro_d: numba.types.Array
     ki2ri_d: numba.types.Array
+    refold_atom_ranges_d: numba.types.Array
 
     # Pointers to device arrays used in f1f2 summation
     ki2dsi_d: numba.types.Array
     is_leaf_dso_d: numba.types.Array
     non_path_children_dso_d: numba.types.Array
+    derivsum_atom_ranges_d: numba.types.Array

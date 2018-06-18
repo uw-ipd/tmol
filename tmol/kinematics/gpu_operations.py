@@ -58,7 +58,7 @@ def refold_data_from_kintree(
     '''
 
     if device.type == "cpu":
-        return RefoldData(0, [], [], None, None, None, None, None, None)
+        return RefoldData(0, None, None, None, None, None, None, None, None)
     else:
         natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro, \
             branching_factor_ko, subpath_child_ko, \
@@ -69,16 +69,16 @@ def refold_data_from_kintree(
             non_path_children_ko, non_path_children_dso = \
             construct_refold_and_derivsum_orderings(kintree)
 
-        is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d = \
-            send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro)
+        is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d, refold_atom_ranges_d = \
+            send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro, refold_atom_range_for_depth)
 
-        ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d = \
-            send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso)
+        ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d, derivsum_atom_ranges_d = \
+            send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso, derivsum_atom_range_for_depth)
 
         return RefoldData(
-            natoms, refold_atom_range_for_depth, derivsum_atom_range_for_depth,
-            non_subpath_parent_ro_d, is_root_ro_d, ki2ri_d, ki2dsi_d,
-            is_leaf_dso_d, non_path_children_dso_d
+            natoms, non_subpath_parent_ro_d, is_root_ro_d, ki2ri_d,
+            refold_atom_ranges_d, ki2dsi, is_leaf_dso_d,
+            non_path_children_dso_d, derivsum_atom_ranges_d
         )
 
 
@@ -151,7 +151,7 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
     )
     ndepths = max(refold_atom_depth_ko) + 1
 
-    refold_atom_range_for_depth = []
+    refold_atom_range_for_depth = numpy.full((ndepths, 2), -1, dtype="int32")
 
     determine_refold_indices(
         natoms, ndepths, refold_atom_depth_ko, is_subpath_root_ko,
@@ -161,7 +161,8 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
 
     n_derivsum_depths = derivsum_path_depth_ko[0] + 1
 
-    derivsum_atom_range_for_depth = []
+    derivsum_atom_range_for_depth = numpy.full((n_derivsum_depths, 2), -1,
+                                               "int32")
     determine_derivsum_indices(
         natoms, n_derivsum_depths, derivsum_path_depth_ko, subpath_length_ko,
         is_subpath_leaf_ko, is_subpath_root_ko, derivsum_atom_range_for_depth,
@@ -260,10 +261,10 @@ def determine_refold_indices(
     depth_offsets[1:] = numpy.cumsum(depth_offsets)[:-1]
     depth_offsets[0] = 0
     for i in range(ndepths - 1):
-        refold_atom_range_for_depth.append(
-            (depth_offsets[i], depth_offsets[i + 1])
-        )
-    refold_atom_range_for_depth.append((depth_offsets[-1], natoms))
+        refold_atom_range_for_depth[i, 0] = depth_offsets[i]
+        refold_atom_range_for_depth[i, 1] = depth_offsets[i + 1]
+    refold_atom_range_for_depth[ndepths - 1, 0] = depth_offsets[-1]
+    refold_atom_range_for_depth[ndepths - 1, 1] = natoms
 
     subpath_roots = numpy.nonzero(is_subpath_root_ko)[0]
     root_depths = refold_atom_depth_ko[subpath_roots]
@@ -302,10 +303,12 @@ def determine_derivsum_indices(
     depth_offsets[0] = 0
 
     for ii in range(n_derivsum_depths - 1):
-        derivsum_atom_range_for_depth.append(
-            (depth_offsets[ii], depth_offsets[ii + 1])
-        )
-    derivsum_atom_range_for_depth.append((depth_offsets[-1], natoms))
+        derivsum_atom_range_for_depth[ii, 0] = depth_offsets[ii]
+        derivsum_atom_range_for_depth[ii, 1] = depth_offsets[ii + 1]
+    derivsum_atom_range_for_depth[n_derivsum_depths -
+                                  1, 0] = depth_offsets[n_derivsum_depths - 1]
+    derivsum_atom_range_for_depth[n_derivsum_depths - 1, 1] = natoms
+
     derivsum_leaves = numpy.nonzero(is_subpath_leaf_ko)[0]
     for ii in range(n_derivsum_depths):
         ii_leaves = derivsum_leaves[leaf_path_depths == ii]
@@ -332,13 +335,15 @@ def determine_derivsum_indices(
 
 
 def send_refold_data_to_gpu(
-        natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro
+        natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro,
+        refold_atom_range_for_depth
 ):
     is_root_ro_d = cuda.to_device(subpath_root_ro)
     ki2ri_d = cuda.to_device(ki2ri)
     non_subpath_parent_ro_d = cuda.to_device(non_subpath_parent_ro)
+    refold_atom_ranges_d = cuda.to_device(refold_atom_range_for_depth)
 
-    return is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d
+    return is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d, refold_atom_ranges_d
 
 
 @cuda.jit
@@ -427,69 +432,74 @@ def ht_multiply(ht1, ht2):
 #@cuda.jit('float64[:,:], boolean[:], int32[:], int32, int32, int32')
 @cuda.jit
 def segscan_ht_interval_one_thread_block(
-        hts, is_root, parent_ind, natoms, start, end
+        hts, is_root, parent_ind, atom_ranges
 ):
     # this should be executed as a single thread block with nthreads = 256
-    # "end" is actually one past the last element; compare ii < end
+
     shared_hts = cuda.shared.array((256, 12), numba.float64)
     shared_is_root = cuda.shared.array((256), numba.int32)
 
     pos = cuda.grid(1)
-    niters = (end - start - 1) // 256 + 1
-    carry_ht = identity_ht()
-    carry_is_root = False
-    for ii in range(niters):
-        ii_ind = ii * 256 + start + pos
-        #load data into shared memory
-        if ii_ind < end:
-            for jj in range(12):
-                # TO DO: minimize bank conflicts -- align memory reads
-                shared_hts[pos, jj] = hts[ii_ind, jj]
-            shared_is_root[pos] = is_root[ii_ind]
-            myht = ht_load(shared_hts, pos)
-            parent = parent_ind[ii_ind].item()
-            htchanged = False
-            if parent != -1:
-                parent_ht = ht_load(hts, parent)
-                myht = ht_multiply(parent_ht, myht)
-                htchanged = True
-            myroot = shared_is_root[pos]
-            if pos == 0 and not myroot:
-                myht = ht_multiply(carry_ht, myht)
-                myroot |= carry_is_root
-                shared_is_root[0] = myroot
-                htchanged = True
-            if htchanged:
-                ht_save(shared_hts, pos, myht)
-        cuda.syncthreads()
 
-        # begin segmented scan on this section
-        offset = 1
-        for jj in range(8):  #log2(256) == 8
-            if pos >= offset and ii_ind < end:
-                prev_ht = ht_load(shared_hts, pos - offset)
-                prev_root = shared_is_root[pos - offset]
-            cuda.syncthreads()
-            if pos >= offset and ii_ind < end:
-                if not myroot:
-                    myht = ht_multiply(prev_ht, myht)
-                    myroot |= prev_root
+    for depth in range(atom_ranges.shape[0]):
+        start = atom_ranges[depth, 0]
+        end = atom_ranges[depth, 1]
+
+        niters = (end - start - 1) // 256 + 1
+        carry_ht = identity_ht()
+        carry_is_root = False
+        for ii in range(niters):
+            ii_ind = ii * 256 + start + pos
+            #load data into shared memory
+            if ii_ind < end:
+                for jj in range(12):
+                    # TO DO: minimize bank conflicts -- align memory reads
+                    shared_hts[pos, jj] = hts[ii_ind, jj]
+                shared_is_root[pos] = is_root[ii_ind]
+                myht = ht_load(shared_hts, pos)
+                parent = parent_ind[ii_ind].item()
+                htchanged = False
+                if parent != -1:
+                    parent_ht = ht_load(hts, parent)
+                    myht = ht_multiply(parent_ht, myht)
+                    htchanged = True
+                myroot = shared_is_root[pos]
+                if pos == 0 and not myroot:
+                    myht = ht_multiply(carry_ht, myht)
+                    myroot |= carry_is_root
+                    shared_is_root[0] = myroot
+                    htchanged = True
+                if htchanged:
                     ht_save(shared_hts, pos, myht)
-                    shared_is_root[pos] = myroot
-            offset *= 2
             cuda.syncthreads()
 
-        # write the shared hts to global memory
-        if ii_ind < end:
-            for jj in range(12):
-                hts[ii_ind, jj] = shared_hts[pos, jj]
+            # begin segmented scan on this section
+            offset = 1
+            for jj in range(8):  #log2(256) == 8
+                if pos >= offset and ii_ind < end:
+                    prev_ht = ht_load(shared_hts, pos - offset)
+                    prev_root = shared_is_root[pos - offset]
+                cuda.syncthreads()
+                if pos >= offset and ii_ind < end:
+                    if not myroot:
+                        myht = ht_multiply(prev_ht, myht)
+                        myroot |= prev_root
+                        ht_save(shared_hts, pos, myht)
+                        shared_is_root[pos] = myroot
+                offset *= 2
+                cuda.syncthreads()
 
-        # save the carry
-        if pos == 0:
-            carry_ht = ht_load(shared_hts, 255)
-            carry_is_root = shared_is_root[255]
+            # write the shared hts to global memory
+            if ii_ind < end:
+                for jj in range(12):
+                    hts[ii_ind, jj] = shared_hts[pos, jj]
 
-        cuda.syncthreads()
+            # save the carry
+            if pos == 0:
+                carry_ht = ht_load(shared_hts, 255)
+                carry_is_root = shared_is_root[255]
+
+            cuda.syncthreads()
 
 
 #@cuda.jit(
@@ -722,21 +732,16 @@ def segscan_hts_gpu(hts_ko, refold_data):
     hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_hts[nblocks, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
+    reorder_starting_hts[nblocks, 512, stream
+                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+
+    segscan_ht_interval_one_thread_block[1, 256, stream](
+        hts_ro_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
+        rd.refold_atom_ranges_d
     )
 
-    # for each depth, run a separate segmented scan
-    for iirange in rd.refold_atom_range_for_depth:
-        #print(iirange)
-        segscan_ht_interval_one_thread_block[1, 256, stream](
-            hts_ro_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d, rd.natoms,
-            iirange[0], iirange[1]
-        )
-
-    reorder_final_hts[nblocks, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_final_hts[nblocks, 512, stream
+                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
 
 def segscan_hts_gpu2(hts_ko, refold_data):
@@ -750,9 +755,8 @@ def segscan_hts_gpu2(hts_ko, refold_data):
 
     nblocks512 = (rd.natoms - 1) // 512 + 1
 
-    reorder_starting_hts[nblocks512, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_starting_hts[nblocks512, 512, stream
+                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
     # for each depth, run a separate segmented scan
     for iirange in rd.refold_atom_range_for_depth:
@@ -789,9 +793,8 @@ def segscan_hts_gpu2(hts_ko, refold_data):
             rd.natoms, iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks512, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_final_hts[nblocks512, 512, stream
+                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
 
 @numba.jit(nopython=True)
@@ -885,13 +888,16 @@ def finalize_derivsum_indices(
 
 
 def send_derivsum_data_to_gpu(
-        natoms, ki2dsi, is_leaf_dso, non_path_children_dso
+        natoms, ki2dsi, is_leaf_dso, non_path_children_dso,
+        derivsum_atom_range_for_depth
 ):
     ki2dsi_d = cuda.to_device(ki2dsi)
     is_leaf_dso_d = cuda.to_device(is_leaf_dso)
     non_path_children_dso_d = \
         cuda.to_device(non_path_children_dso)
-    return ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d
+    derivsum_atom_ranges_d = \
+                             cuda.to_device(derivsum_atom_range_for_depth)
+    return ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d, derivsum_atom_ranges_d
 
 
 @cuda.jit(device=True)
@@ -950,66 +956,70 @@ def reorder_final_f1f2s(natoms, f1f2s_ko, f1f2s_dso, ki2dsi):
 #@cuda.jit('float64[:,:], int32[:,:], boolean[:], int32, int32, int32')
 @cuda.jit
 def segscan_f1f2s_up_tree(
-        f1f2s_dso, prior_children, is_leaf, start, end, n_derivsum_nodes
+        f1f2s_dso, prior_children, is_leaf, derivsum_atom_ranges
 ):
     shared_f1f2s = cuda.shared.array((512, 6), numba.float64)
     shared_is_leaf = cuda.shared.array((512), numba.int32)
-
     pos = cuda.grid(1)
-    niters = (end - start - 1) // 512 + 1
-    carry_f1f2s = zero_f1f2s()
-    carry_is_leaf = False
-    for ii in range(niters):
-        ii_ind = ii * 512 + start + pos
-        if ii_ind < end:
-            for jj in range(6):
-                # TO DO: minimize bank conflicts -- align memory reads
-                shared_f1f2s[pos, jj] = f1f2s_dso[ii_ind, jj]
-            shared_is_leaf[pos] = is_leaf[ii_ind]
-            myf1f2s = load_f1f2s(shared_f1f2s, pos)
-            my_leaf = shared_is_leaf[pos]
-            f1f2s_changed = False
-            for jj in range(prior_children.shape[1]):
-                jj_child = prior_children[ii_ind, jj]
-                if jj_child != -1:
-                    child_f1f2s = load_f1f2s(f1f2s_dso, jj_child)
-                    myf1f2s = add_f1f2s(myf1f2s, child_f1f2s)
+
+    for depth in range(derivsum_atom_ranges.shape[0]):
+        start = derivsum_atom_ranges[depth, 0]
+        end = derivsum_atom_ranges[depth, 1]
+
+        niters = (end - start - 1) // 512 + 1
+        carry_f1f2s = zero_f1f2s()
+        carry_is_leaf = False
+        for ii in range(niters):
+            ii_ind = ii * 512 + start + pos
+            if ii_ind < end:
+                for jj in range(6):
+                    # TO DO: minimize bank conflicts -- align memory reads
+                    shared_f1f2s[pos, jj] = f1f2s_dso[ii_ind, jj]
+                shared_is_leaf[pos] = is_leaf[ii_ind]
+                myf1f2s = load_f1f2s(shared_f1f2s, pos)
+                my_leaf = shared_is_leaf[pos]
+                f1f2s_changed = False
+                for jj in range(prior_children.shape[1]):
+                    jj_child = prior_children[ii_ind, jj]
+                    if jj_child != -1:
+                        child_f1f2s = load_f1f2s(f1f2s_dso, jj_child)
+                        myf1f2s = add_f1f2s(myf1f2s, child_f1f2s)
+                        f1f2s_changed = True
+                if pos == 0 and not my_leaf:
+                    myf1f2s = add_f1f2s(carry_f1f2s, myf1f2s)
+                    my_leaf |= carry_is_leaf
+                    shared_is_leaf[0] = my_leaf
                     f1f2s_changed = True
-            if pos == 0 and not my_leaf:
-                myf1f2s = add_f1f2s(carry_f1f2s, myf1f2s)
-                my_leaf |= carry_is_leaf
-                shared_is_leaf[0] = my_leaf
-                f1f2s_changed = True
-            if f1f2s_changed:
-                save_f1f2s(shared_f1f2s, pos, myf1f2s)
-        cuda.syncthreads()
-
-        # begin segmented scan on this section
-        offset = 1
-        for jj in range(9):
-            if pos >= offset and ii_ind < end:
-                prev_f1f2s = load_f1f2s(shared_f1f2s, pos - offset)
-                prev_leaf = shared_is_leaf[pos - offset]
-            cuda.syncthreads()
-            if pos >= offset and ii_ind < end:
-                if not my_leaf:
-                    myf1f2s = add_f1f2s(myf1f2s, prev_f1f2s)
-                    my_leaf |= prev_leaf
+                if f1f2s_changed:
                     save_f1f2s(shared_f1f2s, pos, myf1f2s)
-                    shared_is_leaf[pos] = my_leaf
-            offset *= 2
             cuda.syncthreads()
 
-        # write the f1f2s to global memory
-        if ii_ind < end:
-            save_f1f2s(f1f2s_dso, ii_ind, myf1f2s)
+            # begin segmented scan on this section
+            offset = 1
+            for jj in range(9):
+                if pos >= offset and ii_ind < end:
+                    prev_f1f2s = load_f1f2s(shared_f1f2s, pos - offset)
+                    prev_leaf = shared_is_leaf[pos - offset]
+                cuda.syncthreads()
+                if pos >= offset and ii_ind < end:
+                    if not my_leaf:
+                        myf1f2s = add_f1f2s(myf1f2s, prev_f1f2s)
+                        my_leaf |= prev_leaf
+                        save_f1f2s(shared_f1f2s, pos, myf1f2s)
+                        shared_is_leaf[pos] = my_leaf
+                offset *= 2
+                cuda.syncthreads()
 
-        # save the carry
-        if pos == 0:
-            carry_f1f2s = load_f1f2s(shared_f1f2s, 511)
-            carry_is_leaf = shared_is_leaf[511]
+            # write the f1f2s to global memory
+            if ii_ind < end:
+                save_f1f2s(f1f2s_dso, ii_ind, myf1f2s)
 
-        cuda.syncthreads()
+            # save the carry
+            if pos == 0:
+                carry_f1f2s = load_f1f2s(shared_f1f2s, 511)
+                carry_is_leaf = shared_is_leaf[511]
+
+            cuda.syncthreads()
 
 
 def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
@@ -1017,16 +1027,13 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
     f1f2s_dso_d = cuda.device_array((rd.natoms, 6), dtype="float64")
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
+    reorder_starting_f1f2s[nblocks, 512
+                           ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
+
+    segscan_f1f2s_up_tree[1, 512](
+        f1f2s_dso_d, rd.non_path_children_dso_d, rd.is_leaf_dso_d,
+        rd.derivsum_atom_ranges_d
     )
 
-    for iirange in rd.derivsum_atom_range_for_depth:
-        segscan_f1f2s_up_tree[1, 512](
-            f1f2s_dso_d, rd.non_path_children_dso_d, rd.is_leaf_dso_d,
-            iirange[0], iirange[1], rd.natoms
-        )
-
-    reorder_final_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
-    )
+    reorder_final_f1f2s[nblocks, 512
+                        ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
