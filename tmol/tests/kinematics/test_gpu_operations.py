@@ -86,12 +86,15 @@ def test_gpu_refold_ordering(ubq_system):
     jumpSelector = kintree.doftype == NodeType.jump
     HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
-    HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
+    # temp
+    HTs_d = cuda.to_device(HTs.numpy())
+    #HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
 
     tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
 
-    #HTs = HTs_d.copy_to_host()
-    refold_kincoords = HTs.numpy()[:, :3, 3].copy()
+    HTs = HTs_d.copy_to_host()
+    refold_kincoords = HTs[:, :3, 3].copy()
+    # temp refold_kincoords = HTs.numpy()[:, :3, 3].copy()
 
     # needed for ubq_system, but not gradcheck_test_system:
     refold_kincoords[0, :] = numpy.nan

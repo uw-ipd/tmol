@@ -355,6 +355,19 @@ def reorder_starting_hts(natoms, hts_ko, hts_ro, ki2ri):
             hts_ro[ri, i] = hts_ko[pos, i // 4, i % 4]
 
 
+@cuda.jit(device=True)
+def reorder_starting_hts_256(hts_ko, hts_ro, ki2ri):
+    natoms = hts_ko.shape[0]
+    pos = cuda.grid(1)
+    niters = (natoms - 1) // 256 + 1
+    for ii in range(niters):
+        which = pos + 256 * ii
+        if which < natoms:
+            ri = ki2ri[which]
+            for i in range(12):
+                hts_ro[ri, i] = hts_ko[which, i // 4, i % 4]
+
+
 @cuda.jit
 def reorder_final_hts(natoms, hts_ko, hts_ro, ki2ri):
     pos = cuda.grid(1)
@@ -362,6 +375,19 @@ def reorder_final_hts(natoms, hts_ko, hts_ro, ki2ri):
         ri = ki2ri[pos]
         for i in range(12):
             hts_ko[pos, i // 4, i % 4] = hts_ro[ri, i]
+
+
+@cuda.jit(device=True)
+def reorder_final_hts_256(hts_ko, hts_ro, ki2ri):
+    natoms = hts_ko.shape[0]
+    pos = cuda.grid(1)
+    niters = (natoms - 1) // 256 + 1
+    for ii in range(niters):
+        which = pos + 256 * ii
+        if which < natoms:
+            ri = ki2ri[which]
+            for i in range(12):
+                hts_ko[which, i // 4, i % 4] = hts_ro[ri, i]
 
 
 @cuda.jit(device=True)
@@ -391,9 +417,32 @@ def ht_load(hts, pos):
 
 
 @cuda.jit(device=True)
+def ht_load_from_shared(hts, pos):
+    v0 = hts[0, pos]
+    v1 = hts[1, pos]
+    v2 = hts[2, pos]
+    v3 = hts[3, pos]
+    v4 = hts[4, pos]
+    v5 = hts[5, pos]
+    v6 = hts[6, pos]
+    v7 = hts[7, pos]
+    v8 = hts[8, pos]
+    v9 = hts[9, pos]
+    v10 = hts[10, pos]
+    v11 = hts[11, pos]
+    return (v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11)
+
+
+@cuda.jit(device=True)
 def ht_save(shared_hts, pos, ht):
     for i in range(12):
         shared_hts[pos, i] = ht[i]
+
+
+@cuda.jit(device=True)
+def ht_save_to_shared(shared_hts, pos, ht):
+    for i in range(12):
+        shared_hts[i, pos] = ht[i]
 
 
 @cuda.jit(device=True)
@@ -431,12 +480,15 @@ def ht_multiply(ht1, ht2):
 
 #@cuda.jit('float64[:,:], boolean[:], int32[:], int32, int32, int32')
 @cuda.jit
-def segscan_ht_interval_one_thread_block(
-        hts, is_root, parent_ind, atom_ranges
+def segscan_ht_intervals_one_thread_block(
+        hts_ko, ki2ri, hts, is_root, parent_ind, atom_ranges
 ):
     # this should be executed as a single thread block with nthreads = 256
 
-    shared_hts = cuda.shared.array((256, 12), numba.float64)
+    reorder_starting_hts_256(hts_ko, hts, ki2ri)
+    cuda.syncthreads()
+
+    shared_hts = cuda.shared.array((12, 256), numba.float64)
     shared_is_root = cuda.shared.array((256), numba.int32)
 
     pos = cuda.grid(1)
@@ -454,9 +506,9 @@ def segscan_ht_interval_one_thread_block(
             if ii_ind < end:
                 for jj in range(12):
                     # TO DO: minimize bank conflicts -- align memory reads
-                    shared_hts[pos, jj] = hts[ii_ind, jj]
+                    shared_hts[jj, pos] = hts[ii_ind, jj]
                 shared_is_root[pos] = is_root[ii_ind]
-                myht = ht_load(shared_hts, pos)
+                myht = ht_load_from_shared(shared_hts, pos)
                 parent = parent_ind[ii_ind].item()
                 htchanged = False
                 if parent != -1:
@@ -470,21 +522,21 @@ def segscan_ht_interval_one_thread_block(
                     shared_is_root[0] = myroot
                     htchanged = True
                 if htchanged:
-                    ht_save(shared_hts, pos, myht)
+                    ht_save_to_shared(shared_hts, pos, myht)
             cuda.syncthreads()
 
             # begin segmented scan on this section
             offset = 1
             for jj in range(8):  #log2(256) == 8
                 if pos >= offset and ii_ind < end:
-                    prev_ht = ht_load(shared_hts, pos - offset)
+                    prev_ht = ht_load_from_shared(shared_hts, pos - offset)
                     prev_root = shared_is_root[pos - offset]
                 cuda.syncthreads()
                 if pos >= offset and ii_ind < end:
                     if not myroot:
                         myht = ht_multiply(prev_ht, myht)
                         myroot |= prev_root
-                        ht_save(shared_hts, pos, myht)
+                        ht_save_to_shared(shared_hts, pos, myht)
                         shared_is_root[pos] = myroot
                 offset *= 2
                 cuda.syncthreads()
@@ -492,14 +544,16 @@ def segscan_ht_interval_one_thread_block(
             # write the shared hts to global memory
             if ii_ind < end:
                 for jj in range(12):
-                    hts[ii_ind, jj] = shared_hts[pos, jj]
+                    hts[ii_ind, jj] = shared_hts[jj, pos]
 
             # save the carry
             if pos == 0:
-                carry_ht = ht_load(shared_hts, 255)
+                carry_ht = ht_load_from_shared(shared_hts, 255)
                 carry_is_root = shared_is_root[255]
 
             cuda.syncthreads()
+
+    reorder_final_hts_256(hts_ko, hts, ki2ri)
 
 
 #@cuda.jit(
@@ -732,16 +786,16 @@ def segscan_hts_gpu(hts_ko, refold_data):
     hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_hts[nblocks, 512, stream
-                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    #reorder_starting_hts[nblocks, 512, stream
+    #                     ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
-    segscan_ht_interval_one_thread_block[1, 256, stream](
-        hts_ro_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
-        rd.refold_atom_ranges_d
+    segscan_ht_intervals_one_thread_block[1, 256, stream](
+        hts_ko, rd.ki2ri_d, hts_ro_d, rd.is_root_ro_d,
+        rd.non_subpath_parent_ro_d, rd.refold_atom_ranges_d
     )
 
-    reorder_final_hts[nblocks, 512, stream
-                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
+    #reorder_final_hts[nblocks, 512, stream
+    #                  ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
 
 def segscan_hts_gpu2(hts_ko, refold_data):
