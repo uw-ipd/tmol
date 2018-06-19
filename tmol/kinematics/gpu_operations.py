@@ -596,11 +596,6 @@ def warp_segscan_hts1(
         shared_is_root[pos] = res
         temp_syncthreads()
 
-    #if pos == 0:
-    #    print("shared is root", start)
-    #    for i in range(256):
-    #        print(shared_is_root[i])
-
     mindex = shared_is_root[pos]
 
     # pull down the hts from global memory into shared memory, and then
@@ -623,11 +618,6 @@ def warp_segscan_hts1(
             ht_save_to_shared(shared_hts, pos, myht)
 
     cuda.syncthreads()
-
-    #if pos == 0:
-    #    for i in range(256):
-    #        ht = ht_load_from_shared(shared_hts,i)
-    #        print("ht before scan",i,*ht)
 
     # now scan, unrolling the traditional for loop (does it really save time?)
     if lane >= mindex + 1 and ht_ind < end:
@@ -671,11 +661,6 @@ def warp_segscan_hts1(
     temp_syncthreads()
     #myht = ht_multiply_prev_and_store( pos, 16, myht, shared_hts)
 
-    #if pos == 0:
-    #    for i in range(256):
-    #        ht = ht_load_from_shared(shared_hts,i)
-    #        print("ht after scan",i,*ht)
-
     if lane == 31:
         # now lets write out the intermediate results
         ht_save_to_shared(int_hts, warp_id, myht)
@@ -698,11 +683,11 @@ def warp_segscan_hts2(int_hts, int_is_root):
     if pos < 8:
         myht = ht_load_from_shared(int_hts, pos)
 
-    # scan the isroot flags to compute the mindex
-    if int_is_root[pos]:
-        int_is_root[pos] = pos
-    else:
-        int_is_root[pos] = 0
+        # scan the isroot flags to compute the mindex
+        if int_is_root[pos]:
+            int_is_root[pos] = pos
+        else:
+            int_is_root[pos] = 0
 
     if pos >= 1 and pos < 8:
         res = max(int_is_root[pos - 1], int_is_root[pos])
@@ -725,41 +710,31 @@ def warp_segscan_hts2(int_hts, int_is_root):
     if pos < 8:
         mindex = int_is_root[pos]
 
-    if pos == 0:
-        print("intermediate is root")
-        for i in range(8):
-            print(int_is_root[i])
-
     # now scan, unrolling the traditional for loop (does it really save time?)
-    if pos >= mindex + 1 and pos < 8:
+    if pos < 8 and pos >= mindex + 1:
         prevht = ht_load_from_shared(int_hts, pos - 1)
     temp_syncthreads()
-    if pos >= mindex + 1 and pos < 8:
+    if pos < 8 and pos >= mindex + 1:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(int_hts, pos, myht)
     temp_syncthreads()
     #ht_multiply_prev_and_store( pos, 1, myht, int_hts)
-    if pos >= mindex + 2 and pos < 8:
+    if pos < 8 and pos >= mindex + 2:
         prevht = ht_load_from_shared(int_hts, pos - 2)
     temp_syncthreads()
-    if pos >= mindex + 2 and pos < 8:
+    if pos < 8 and pos >= mindex + 2:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(int_hts, pos, myht)
     temp_syncthreads()
     #ht_multiply_prev_and_store( pos, 2, myht, int_hts)
-    if pos >= mindex + 4 and pos < 8:
+    if pos < 8 and pos >= mindex + 4:
         prevht = ht_load_from_shared(int_hts, pos - 4)
     temp_syncthreads()
-    if pos >= mindex + 4 and pos < 8:
+    if pos < 8 and pos >= mindex + 4:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(int_hts, pos, myht)
     temp_syncthreads()
     #ht_multiply_prev_and_store( pos, 4, myht, int_hts)
-
-    if pos == 0:
-        for i in range(8):
-            ht = ht_load_from_shared(int_hts, i)
-            print("intermediate ht", i, *ht)
 
 
 @cuda.jit
@@ -792,10 +767,6 @@ def segscan_ht_intervals_one_thread_block2(
         niters = (end - start - 1) // 256 + 1
         carry_ht = identity_ht()
         for ii in range(niters):
-            if pos == 0:
-                print(
-                    "Depth", depth, "iteration", ii, "start", start + ii * 256
-                )
 
             ii_start = start + ii * 256
 
@@ -819,15 +790,10 @@ def segscan_ht_intervals_one_thread_block2(
 
             # stage 3:
             if will_accumulate and warp_id != 0 and ii_start + pos < end:
-                start_ht = myht
                 prev_ht = ht_load_from_shared(
                     shared_intermediate_hts, warp_id - 1
                 )
                 myht = ht_multiply(prev_ht, myht)
-                print("Final HT", warp_id, pos, ii_start + pos, *start_ht)
-                #print( "prev", *prev_ht)
-                #print( "final", *myht )
-                print(pos, *myht)
             if ii_start + pos < end:
                 ht_save(hts, ii_start + pos, myht)
             ht_save_to_shared(shared_hts, pos, myht)
@@ -836,8 +802,6 @@ def segscan_ht_intervals_one_thread_block2(
             # save the carry
             if pos == 0:
                 carry_ht = ht_load_from_shared(shared_hts, 255)
-                print("Carry HT:", 55)
-                print(carry_ht[3], carry_ht[7], carry_ht[11])
 
             cuda.syncthreads()
 
