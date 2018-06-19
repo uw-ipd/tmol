@@ -12,9 +12,44 @@ from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase,
     NaiveInteratomicDistanceGraph,
     BlockedInteratomicDistanceGraph,
+    BlockedDistanceAnalysis,
 )
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
+
+
+def test_blocked_interatomic_distance_nulls(multilayer_test_coords):
+    """Test that interatomic distance properly sparsifies null blocks."""
+    null_padded = multilayer_test_coords.new_full((4, 24 + 8, 3), numpy.nan)
+    null_padded[:, :24, :] = multilayer_test_coords
+
+    for l in range(len(multilayer_test_coords)):
+        bda = BlockedDistanceAnalysis.setup(
+            block_size=8, coords=multilayer_test_coords[l]
+        )
+        np_bda = BlockedDistanceAnalysis.setup(block_size=8, coords=null_padded[l])
+        assert (bda.block_triu_inds == np_bda.block_triu_inds).all()
+
+
+def test_blocked_interatomic_distance_layered(multilayer_test_coords):
+    threshold_distance = 6.0
+
+    expected_block_interactions = torch.Tensor(
+        [
+            [[1, 0, 0], [0, 1, 0], [0, 0, 1]],  # 0-------1------2
+            [[1, 0, 0], [0, 1, 0], [0, 0, 1]],  # 2-------1------0
+            [[1, 1, 0], [1, 1, 1], [0, 1, 1]],  # ----0---1---2---
+            [[1, 1, 1], [1, 1, 1], [1, 1, 1]],  # -------012------
+        ]
+    ).to(dtype=torch.uint8)
+
+    for l in range(len(multilayer_test_coords)):
+        bda = BlockedDistanceAnalysis.setup(
+            coords=multilayer_test_coords[l], block_size=8
+        )
+        ebi = expected_block_interactions[l]
+        bi = bda.dense_min_dist < threshold_distance
+        assert (bi == ebi).all()
 
 
 @reactive_attrs(auto_attribs=True)
@@ -43,7 +78,7 @@ class ThresholdDistanceCount(InteratomicDistanceGraphBase, TotalScoreComponentsG
     [NaiveInteratomicDistanceGraph, BlockedInteratomicDistanceGraph],
     ids=["naive", "blocked"],
 )
-def test_interatomic_distance(
+def test_interatomic_distance_smoke(
     benchmark, ubq_system, interatomic_distance_component, torch_device
 ):
     @reactive_attrs
