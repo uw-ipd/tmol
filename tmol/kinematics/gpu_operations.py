@@ -94,16 +94,13 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
     non_subpath_parent_ro = numpy.full((natoms), -1, dtype="int32")
     branching_factor_ko = numpy.full((natoms), -1, dtype="int32")
     subpath_child_ko = numpy.full((natoms), -1, dtype="int32")
-    #child_on_refold_subpath_ko = numpy.full((natoms), -1, dtype="int32")
     subpath_length_ko = numpy.zeros((natoms), dtype="int32")
     is_subpath_root_ko = numpy.full((natoms), False, dtype="bool")
     refold_atom_depth_ko = numpy.zeros((natoms), dtype="int32")
     subpath_root_ro = numpy.full((natoms), True, dtype="bool")
 
     is_subpath_leaf_ko = numpy.full((natoms), False, dtype="bool")
-    #derivsum_path_length_ko = numpy.full((natoms), 0, dtype="int32")
     is_leaf_dso = numpy.full((natoms), False, dtype="bool")
-    #derivsum_first_child_ko = numpy.full((natoms), -1, dtype="int32")
     n_nonpath_children_ko = numpy.full((natoms), 0, dtype="int32")
     derivsum_path_depth_ko = numpy.full((natoms), -1, dtype="int32")
     derivsum_atom_range_for_depth = []
@@ -138,14 +135,6 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
         is_subpath_root_ko, subpath_length_ko
     )
 
-    #subpath_length_ko[:] = derivsum_path_length_ko
-    #is_subpath_root_ko[:] = is_subpath_root_ko[:]
-
-    #identify_longest_subpaths(
-    #    natoms, parent_ko, subpath_length_ko, subpath_child_ko,
-    #    is_subpath_root_ko
-    #)
-
     find_refold_path_depths(
         natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko
     )
@@ -169,10 +158,6 @@ def construct_refold_and_derivsum_orderings(kintree: KinTree):
         parent_ko, ki2dsi, dsi2ki, non_path_children_ko, non_path_children_dso,
         is_leaf_dso
     )
-
-    #print("ki2dsi"); print(ki2dsi)
-    #print("dsi2ki"); print(dsi2ki)
-    #print("non_path_children_dso"); print(non_path_children_dso)
 
     return (
         natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro,
@@ -274,8 +259,6 @@ def determine_refold_indices(
             ii_roots, depth_offsets[ii], subpath_child_ko, ri2ki, ki2ri
         )
 
-    #print("ri2ki"); print(ri2ki)
-
     assert numpy.all(ri2ki != -1)
     assert numpy.all(ki2ri != -1)
 
@@ -284,8 +267,6 @@ def determine_refold_indices(
                                                    [subpath_root_ro]]
     non_subpath_parent_ro[0] = -1
 
-    #print("non_subpath_parent_ro"); print(non_subpath_parent_ro)
-
 
 def determine_derivsum_indices(
         natoms, n_derivsum_depths, derivsum_path_depth_ko, subpath_length_ko,
@@ -293,7 +274,6 @@ def determine_derivsum_indices(
         parent_ko, ki2dsi, dsi2ki, non_path_children_ko, non_path_children_dso,
         is_leaf_dso
 ):
-
     leaf_path_depths = derivsum_path_depth_ko[is_subpath_leaf_ko]
     leaf_path_lengths = subpath_length_ko[is_subpath_leaf_ko]
 
@@ -305,8 +285,8 @@ def determine_derivsum_indices(
     for ii in range(n_derivsum_depths - 1):
         derivsum_atom_range_for_depth[ii, 0] = depth_offsets[ii]
         derivsum_atom_range_for_depth[ii, 1] = depth_offsets[ii + 1]
-    derivsum_atom_range_for_depth[n_derivsum_depths - 1, 0
-                                  ] = depth_offsets[n_derivsum_depths - 1]
+    derivsum_atom_range_for_depth[n_derivsum_depths -
+                                  1, 0] = depth_offsets[n_derivsum_depths - 1]
     derivsum_atom_range_for_depth[n_derivsum_depths - 1, 1] = natoms
 
     derivsum_leaves = numpy.nonzero(is_subpath_leaf_ko)[0]
@@ -316,9 +296,6 @@ def determine_derivsum_indices(
             ii_leaves, depth_offsets[ii], parent_ko, is_subpath_root_ko,
             ki2dsi, dsi2ki
         )
-
-    #print("ki2dsi"); print(rd.ki2dsi)
-    #print("dsi2ki"); print(rd.dsi2ki)
 
     assert numpy.all(ki2dsi != -1)
     assert numpy.all(dsi2ki != -1)
@@ -478,7 +455,6 @@ def ht_multiply(ht1, ht2):
     return (r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11)
 
 
-#@cuda.jit('float64[:,:], boolean[:], int32[:], int32, int32, int32')
 @cuda.jit
 def segscan_ht_intervals_one_thread_block(
         hts_ko, ki2ri, hts, is_root, parent_ind, atom_ranges
@@ -508,7 +484,7 @@ def segscan_ht_intervals_one_thread_block(
                     shared_hts[jj, pos] = hts[ii_ind, jj]
                 shared_is_root[pos] = is_root[ii_ind]
                 myht = ht_load_from_shared(shared_hts, pos)
-                parent = parent_ind[ii_ind].item()
+                parent = parent_ind[ii_ind]
                 htchanged = False
                 if parent != -1:
                     parent_ht = ht_load(hts, parent)
@@ -556,69 +532,234 @@ def segscan_ht_intervals_one_thread_block(
 
 
 @cuda.jit(device=True)
-def warp_segscan_hts(
-        hts, isroot, parent_ind, carry_ht, carry_isroot, shared_hts,
-        shared_isroot, int_hts, int_isroot, start, end
+def temp_syncthreads():
+    cuda.syncthreads()
+
+
+@cuda.jit(device=True)
+def ht_multiply_prev_and_store(pos, offset, myht, shared_hts):
+    prevht = ht_load_from_shared(shared_hts, pos - offset)
+    temp_syncthreads()
+    myht = ht_multiply(prevht, myht)
+    ht_save_to_shared(shared_hts, pos, myht)
+    temp_syncthreads()
+    return myht
+
+
+@cuda.jit(device=True)
+def warp_segscan_hts1(
+        pos, warp_id, hts, is_root, parent_ind, carry_ht, shared_hts,
+        shared_is_root, int_hts, int_is_root, start, end
 ):
-    pos = cuda.grid(1)
     ht_ind = start + pos
     lane = pos & 31
     if ht_ind < end:
+        shared_is_root[pos] = is_root[ht_ind]
+    else:
+        shared_is_root[pos] = False
+    temp_syncthreads()
+
+    warp_first = warp_id << 5  # ie warp_id * 32; is this faster than multiplication?
+    warp_last = warp_first + 31
+    warp_is_open = shared_is_root[warp_first] == 0
+
+    myht = identity_ht()
+
+    if shared_is_root[pos]:
+        shared_is_root[pos] = lane
+
+    # now compute mindex by performing a scan on shared_is_root
+    # using "max" as the associative operator
+    if lane >= 1:
+        res = max(shared_is_root[pos - 1], shared_is_root[pos])
+        temp_syncthreads()
+        shared_is_root[pos] = res
+        temp_syncthreads()
+    if lane >= 2:
+        res = max(shared_is_root[pos - 2], shared_is_root[pos])
+        temp_syncthreads()
+        shared_is_root[pos] = res
+        temp_syncthreads()
+    if lane >= 4:
+        res = max(shared_is_root[pos - 4], shared_is_root[pos])
+        temp_syncthreads()
+        shared_is_root[pos] = res
+        temp_syncthreads()
+    if lane >= 8:
+        res = max(shared_is_root[pos - 8], shared_is_root[pos])
+        temp_syncthreads()
+        shared_is_root[pos] = res
+        temp_syncthreads()
+    if lane >= 16:
+        res = max(shared_is_root[pos - 16], shared_is_root[pos])
+        temp_syncthreads()
+        shared_is_root[pos] = res
+        temp_syncthreads()
+
+    #if pos == 0:
+    #    print("shared is root", start)
+    #    for i in range(256):
+    #        print(shared_is_root[i])
+
+    mindex = shared_is_root[pos]
+
+    # pull down the hts from global memory into shared memory, and then
+    # into thread-local memory. Then integrate the parent's HT into root
+    # nodes (i.e. nodes whose parent is not listed as -1)
+    if ht_ind < end:
         for jj in range(12):
             shared_hts[jj, pos] = hts[ht_ind, jj]
-        shared_is_root[pos] = is_root[ht_ind]
         myht = ht_load_from_shared(shared_hts, pos)
-        parent = parent_ind[ht_ind].item()
+        parent = parent_ind[ht_ind]
         htchanged = False
         if parent != -1:
             parent_ht = ht_load(hts, parent)
             myht = ht_multiply(parent_ht, myht)
             htchanged = True
-        myroot = shared_is_root[pos]
-        if pos == 0 and not myroot:
+        if pos == 0 and warp_is_open:
             myht = ht_multiply(carry_ht, myht)
-            myroot |= carry_is_root
-            shared_is_root[0] = myroot
             htchanged = True
         if htchanged:
             ht_save_to_shared(shared_hts, pos, myht)
 
-        # now scan, unrolling the traditional for loop (does it really save time?)
-        if lane >= 1 and not myroot:
-            prevht = ht_load_from_shared(shared_hts, pos - 1)
-            myht = ht_multiply(prevht, myht)
-            myroot |= shared_is_root[pos - 1]
-            ht_save_to_shared(shared_hts, pos, myht)
-            shared_is_root[pos] = myroot
-        if lane >= 2 and not myroot:
-            prevht = ht_load_from_shared(shared_hts, pos - 2)
-            myht = ht_multiply(prevht, myht)
-            myroot |= shared_is_root[pos - 2]
-            ht_save_to_shared(shared_hts, pos, myht)
-            shared_is_root[pos] = myroot
-        if lane >= 4 and not myroot:
-            prevht = ht_load_from_shared(shared_hts, pos - 4)
-            myht = ht_multiply(prevht, myht)
-            myroot |= shared_is_root[pos - 4]
-            ht_save_to_shared(shared_hts, pos, myht)
-            shared_is_root[pos] = myroot
-        if lane >= 8 and not myroot:
-            prevht = ht_load_from_shared(shared_hts, pos - 8)
-            myht = ht_multiply(prevht, myht)
-            myroot |= shared_is_root[pos - 8]
-            ht_save_to_shared(shared_hts, pos, myht)
-            shared_is_root[pos] = myroot
-        if lane >= 16 and not myroot:
-            prevht = ht_load_from_shared(shared_hts, pos - 16)
-            myht = ht_multiply(prevht, myht)
-            myroot |= shared_is_root[pos - 16]
-            ht_save_to_shared(shared_hts, pos, myht)
-            shared_is_root[pos] = myroot
+    cuda.syncthreads()
+
+    #if pos == 0:
+    #    for i in range(256):
+    #        ht = ht_load_from_shared(shared_hts,i)
+    #        print("ht before scan",i,*ht)
+
+    # now scan, unrolling the traditional for loop (does it really save time?)
+    if lane >= mindex + 1 and ht_ind < end:
+        #myht = ht_multiply_prev_and_store( pos, 1, myht, shared_hts)
+        prevht = ht_load_from_shared(shared_hts, pos - 1)
+    temp_syncthreads()
+    if lane >= mindex + 1 and ht_ind < end:
+        myht = ht_multiply(prevht, myht)
+        ht_save_to_shared(shared_hts, pos, myht)
+    temp_syncthreads()
+    if lane >= mindex + 2 and ht_ind < end:
+        prevht = ht_load_from_shared(shared_hts, pos - 2)
+    temp_syncthreads()
+    if lane >= mindex + 2 and ht_ind < end:
+        myht = ht_multiply(prevht, myht)
+        ht_save_to_shared(shared_hts, pos, myht)
+    temp_syncthreads()
+    #myht = ht_multiply_prev_and_store( pos, 2, myht, shared_hts)
+    if lane >= mindex + 4 and ht_ind < end:
+        prevht = ht_load_from_shared(shared_hts, pos - 4)
+    temp_syncthreads()
+    if lane >= mindex + 4 and ht_ind < end:
+        myht = ht_multiply(prevht, myht)
+        ht_save_to_shared(shared_hts, pos, myht)
+    temp_syncthreads()
+    #myht = ht_multiply_prev_and_store( pos, 4, myht, shared_hts)
+    if lane >= mindex + 8 and ht_ind < end:
+        prevht = ht_load_from_shared(shared_hts, pos - 8)
+    temp_syncthreads()
+    if lane >= mindex + 8 and ht_ind < end:
+        myht = ht_multiply(prevht, myht)
+        ht_save_to_shared(shared_hts, pos, myht)
+    temp_syncthreads()
+    #myht = ht_multiply_prev_and_store( pos, 8, myht, shared_hts)
+    if lane >= mindex + 16 and ht_ind < end:
+        prevht = ht_load_from_shared(shared_hts, pos - 16)
+    temp_syncthreads()
+    if lane >= mindex + 16 and ht_ind < end:
+        myht = ht_multiply(prevht, myht)
+        ht_save_to_shared(shared_hts, pos, myht)
+    temp_syncthreads()
+    #myht = ht_multiply_prev_and_store( pos, 16, myht, shared_hts)
+
+    #if pos == 0:
+    #    for i in range(256):
+    #        ht = ht_load_from_shared(shared_hts,i)
+    #        print("ht after scan",i,*ht)
+
     if lane == 31:
         # now lets write out the intermediate results
-        # lastht = ht_load_from_shared( shared_hts, pos + 31 )
-        ht_save_to_shared(int_hts, pos // 32, myht)
-        int_isroot[pos // 32] = myroot
+        ht_save_to_shared(int_hts, warp_id, myht)
+        int_is_root[warp_id] = mindex != 0 or not warp_is_open
+
+    # for the third stage of this intra-block scan, record whether this
+    # thread should accumulate the scanned intermediate HT from stage 2
+    will_accumulate = warp_is_open and mindex == 0
+
+    return myht, will_accumulate
+
+
+@cuda.jit(device=True)
+def warp_segscan_hts2(int_hts, int_is_root):
+    """Now we'll perform a rapid inclusive scan on the int_hts, to merge
+    the scanned HTs of all the warps in the thread block. The only threads
+    that ought to execute this code are threads 0-7"""
+
+    pos = cuda.grid(1)
+    if pos < 8:
+        myht = ht_load_from_shared(int_hts, pos)
+
+    # scan the isroot flags to compute the mindex
+    if int_is_root[pos]:
+        int_is_root[pos] = pos
+    else:
+        int_is_root[pos] = 0
+
+    if pos >= 1 and pos < 8:
+        res = max(int_is_root[pos - 1], int_is_root[pos])
+    temp_syncthreads()
+    if pos >= 1 and pos < 8:
+        int_is_root[pos] = res
+    temp_syncthreads()
+    if pos >= 2 and pos < 8:
+        res = max(int_is_root[pos - 2], int_is_root[pos])
+    temp_syncthreads()
+    if pos >= 2 and pos < 8:
+        int_is_root[pos] = res
+    temp_syncthreads()
+    if pos >= 4 and pos < 8:
+        res = max(int_is_root[pos - 4], int_is_root[pos])
+    temp_syncthreads()
+    if pos >= 4 and pos < 8:
+        int_is_root[pos] = res
+    temp_syncthreads()
+    if pos < 8:
+        mindex = int_is_root[pos]
+
+    if pos == 0:
+        print("intermediate is root")
+        for i in range(8):
+            print(int_is_root[i])
+
+    # now scan, unrolling the traditional for loop (does it really save time?)
+    if pos >= mindex + 1 and pos < 8:
+        prevht = ht_load_from_shared(int_hts, pos - 1)
+    temp_syncthreads()
+    if pos >= mindex + 1 and pos < 8:
+        myht = ht_multiply(prevht, myht)
+        ht_save_to_shared(int_hts, pos, myht)
+    temp_syncthreads()
+    #ht_multiply_prev_and_store( pos, 1, myht, int_hts)
+    if pos >= mindex + 2 and pos < 8:
+        prevht = ht_load_from_shared(int_hts, pos - 2)
+    temp_syncthreads()
+    if pos >= mindex + 2 and pos < 8:
+        myht = ht_multiply(prevht, myht)
+        ht_save_to_shared(int_hts, pos, myht)
+    temp_syncthreads()
+    #ht_multiply_prev_and_store( pos, 2, myht, int_hts)
+    if pos >= mindex + 4 and pos < 8:
+        prevht = ht_load_from_shared(int_hts, pos - 4)
+    temp_syncthreads()
+    if pos >= mindex + 4 and pos < 8:
+        myht = ht_multiply(prevht, myht)
+        ht_save_to_shared(int_hts, pos, myht)
+    temp_syncthreads()
+    #ht_multiply_prev_and_store( pos, 4, myht, int_hts)
+
+    if pos == 0:
+        for i in range(8):
+            ht = ht_load_from_shared(int_hts, i)
+            print("intermediate ht", i, *ht)
 
 
 @cuda.jit
@@ -629,6 +770,9 @@ def segscan_ht_intervals_one_thread_block2(
     # The idea behind this version is to run within-warp scans to get
     # the carry; then to run a quick one-warp version of scan on the carries;
     # and finally, to apply the carries back to the original warp sections.
+
+    pos = cuda.grid(1)
+    warp_id = pos >> 5  # bit shift by 5 because warp size is 32
 
     reorder_starting_hts_256(hts_ko, hts, ki2ri)
     cuda.syncthreads()
@@ -647,232 +791,246 @@ def segscan_ht_intervals_one_thread_block2(
 
         niters = (end - start - 1) // 256 + 1
         carry_ht = identity_ht()
-        carry_is_root = False
         for ii in range(niters):
-
-            warp_segscan_hts1(
-                hts, isroot, carry_ht, carry_is_root, shared_hts,
-                shared_is_root, shared_intermediate_hts,
-                shared_intermediate_is_root, start + ii * 32, end
-            )
-            cuda.syncthreads()
-
-            if pos < 8:
-                warp_segscan_hts2(
-                    shared_intermediate_hts, shared_intermediate_is_root
+            if pos == 0:
+                print(
+                    "Depth", depth, "iteration", ii, "start", start + ii * 256
                 )
-            cuda.syncthreads()
 
-            warp_segscan_hts3(
-                hts, isroot, carry_ht, carry_is_root, shared_hts,
+            ii_start = start + ii * 256
+
+            # stage 1:
+            myht, will_accumulate = warp_segscan_hts1(
+                pos, warp_id, hts, is_root, parent_ind, carry_ht, shared_hts,
                 shared_is_root, shared_intermediate_hts,
-                shared_intermediate_is_root, start + ii * 32, end
+                shared_intermediate_is_root, ii_start, end
             )
             cuda.syncthreads()
 
-            # write the shared hts to global memory
-            ii_ind = ii * 256 + pos
-            if ii_ind < end:
-                for jj in range(12):
-                    hts[ii_ind, jj] = shared_hts[jj, pos]
+            # stage 2:
+            warp_segscan_hts2(
+                shared_intermediate_hts, shared_intermediate_is_root
+            )
+            #if pos < 8:
+            #    warp_segscan_hts2(
+            #        shared_intermediate_hts, shared_intermediate_is_root
+            #    )
+            cuda.syncthreads()
+
+            # stage 3:
+            if will_accumulate and warp_id != 0 and ii_start + pos < end:
+                start_ht = myht
+                prev_ht = ht_load_from_shared(
+                    shared_intermediate_hts, warp_id - 1
+                )
+                myht = ht_multiply(prev_ht, myht)
+                print("Final HT", warp_id, pos, ii_start + pos, *start_ht)
+                #print( "prev", *prev_ht)
+                #print( "final", *myht )
+                print(pos, *myht)
+            if ii_start + pos < end:
+                ht_save(hts, ii_start + pos, myht)
+            ht_save_to_shared(shared_hts, pos, myht)
+            cuda.syncthreads()
 
             # save the carry
             if pos == 0:
                 carry_ht = ht_load_from_shared(shared_hts, 255)
-                carry_is_root = shared_is_root[255]
+                print("Carry HT:", 55)
+                print(carry_ht[3], carry_ht[7], carry_ht[11])
 
             cuda.syncthreads()
 
     reorder_final_hts_256(hts_ko, hts, ki2ri)
 
 
-#@cuda.jit(
-#    'float64[:,:], float64[:,:], boolean[:], boolean[:], int32[:], int32, int32, int32'
-#)
-@cuda.jit
-def segscan_ht_interval_many_thread_blocks_1(
-        hts, hts_int, is_root, is_root_int, parent_ind, natoms, start, end
-):
-    '''This should be executed as many separate thread blocks with nthreads = 32
-    As all 32 threads will run in a single warp, there is no need for synchronization
-    steps, as the threads are all executed in lock step.
-    "end" is actually one past the last element; compare ii < end'''
-
-    shared_hts = cuda.shared.array((32, 12), numba.float64)
-    shared_is_root = cuda.shared.array((32), numba.int32)
-
-    pos = cuda.grid(1)
-    warp_pos = pos & 31
-
-    ii_ind = start + pos
-    myht = identity_ht()
-    myroot = False
-    if ii_ind < end:
-        for jj in range(12):
-            # TO DO: minimize bank conflicts -- align memory reads
-            shared_hts[warp_pos, jj] = hts[ii_ind, jj]
-        shared_is_root[warp_pos] = is_root[ii_ind]
-        myht = ht_load(shared_hts, warp_pos)
-        parent = parent_ind[ii_ind].item()
-        htchanged = False
-        if parent != -1:
-            parent_ht = ht_load(hts, parent)
-            myht = ht_multiply(parent_ht, myht)
-            htchanged = True
-        myroot = shared_is_root[warp_pos]
-        if htchanged:
-            ht_save(shared_hts, warp_pos, myht)
-    cuda.syncthreads()
-
-    # begin segmented scan
-    offset = 1
-    for jj in range(6):  #log2(256) == 8
-        if warp_pos >= offset and ii_ind < end:
-            if not myroot:
-                prev_ht = ht_load(shared_hts, warp_pos - offset)
-                prev_root = shared_is_root[warp_pos - offset]
-        cuda.syncthreads()
-        if warp_pos >= offset and ii_ind < end:
-            if not myroot:
-                myht = ht_multiply(prev_ht, myht)
-                myroot |= prev_root
-                ht_save(shared_hts, warp_pos, myht)
-                shared_is_root[warp_pos] = myroot
-        cuda.syncthreads()
-        offset *= 2
-
-    # save the carry
-    if warp_pos == 31:
-        ht_save(hts_int, cuda.blockIdx.x, myht)
-        is_root_int[cuda.blockIdx.x] = myroot
-
-
-#@cuda.jit('float64[:,:], boolean[:], int32')
-@cuda.jit
-def segscan_ht_interval_one_thread_block_2(hts, is_root, n_intermediates):
-    # this should be executed as a single thread block with nthreads = 256
-    # compare ii < natoms
-    # There is significant thread synchronization here as there are multiple
-    # warps running within this single thread block.
-    # 256 is the maximum number of double-precision HTs that fit in shared memory
-    # on the GPU that I'm running on, so that's the size thread block
-    # that I'll be running.
-
-    shared_hts = cuda.shared.array((256, 12), numba.float64)
-    shared_is_root = cuda.shared.array((256), numba.int32)
-
-    pos = cuda.grid(1)
-    n_iterations = (n_intermediates - 1) // 256 + 1
-    carry_ht = identity_ht()
-    carry_is_root = False
-    for ii in range(n_iterations):
-        ii_ind = ii * 256 + pos
-        #load data into shared memory
-        if ii_ind < n_intermediates:
-            for jj in range(12):
-                # TO DO: minimize bank conflicts -- align memory reads
-                shared_hts[pos, jj] = hts[ii_ind, jj]
-            shared_is_root[pos] = is_root[ii_ind]
-            myht = ht_load(shared_hts, pos)
-            myroot = shared_is_root[pos]
-            if pos == 0 and not myroot:
-                myht = ht_multiply(carry_ht, myht)
-                myroot |= carry_is_root
-                shared_is_root[0] = myroot
-                ht_save(shared_hts, pos, myht)
-        cuda.syncthreads()
-
-        # begin segmented scan on this section
-        offset = 1
-        for jj in range(8):  # log2(256) == 8
-            if pos >= offset and ii_ind < n_intermediates:
-                prev_ht = ht_load(shared_hts, pos - offset)
-                prev_root = shared_is_root[pos - offset]
-            cuda.syncthreads()
-            if pos >= offset and ii_ind < n_intermediates:
-                if not myroot:
-                    myht = ht_multiply(prev_ht, myht)
-                    myroot |= prev_root
-                    ht_save(shared_hts, pos, myht)
-                    shared_is_root[pos] = myroot
-            offset *= 2
-            cuda.syncthreads()
-
-        # write the shared hts to global memory
-        if ii_ind < n_intermediates:
-            for jj in range(12):
-                hts[ii_ind, jj] = shared_hts[pos, jj]
-
-        # save the carry
-        if pos == 0:
-            carry_ht = ht_load(shared_hts, 255)
-            carry_is_root = shared_is_root[255]
-
-        cuda.syncthreads()
-
-
-#@cuda.jit(
-#    'float64[:,:], float64[:,:], boolean[:], int32[:], int32, int32, int32'
-#)
-@cuda.jit
-def segscan_ht_interval_many_thread_blocks_3(
-        hts, hts_int, is_root, parent_ind, natoms, start, end
-):
-    '''This should be executed as many separate thread blocks with nthreads = 32
-    As all 32 threads will run in a single warp, there is no need for synchronization
-    steps, as the threads are all executed in lock step.
-    "end" is actually one past the last element; compare ii < end'''
-
-    shared_hts = cuda.shared.array((32, 12), numba.float64)
-    shared_is_root = cuda.shared.array((32), numba.int32)
-
-    pos = cuda.grid(1)
-    warp_pos = pos & 31
-
-    ii_ind = start + pos
-    if ii_ind < end:
-        for jj in range(12):
-            # TO DO: minimize bank conflicts -- align memory reads
-            shared_hts[warp_pos, jj] = hts[ii_ind, jj]
-        shared_is_root[warp_pos] = is_root[ii_ind]
-        myht = ht_load(shared_hts, warp_pos)
-        parent = parent_ind[ii_ind].item()
-        htchanged = False
-        if parent != -1:
-            parent_ht = ht_load(hts, parent)
-            myht = ht_multiply(parent_ht, myht)
-            htchanged = True
-        myroot = shared_is_root[warp_pos]
-        if warp_pos == 0 and cuda.blockIdx.x > 0 and not myroot:
-            carry_ht = ht_load(hts_int, cuda.blockIdx.x - 1)
-            #print("carry_ht", carry_ht)
-            myht = ht_multiply(carry_ht, myht)
-            htchanged = True
-        if htchanged:
-            ht_save(shared_hts, warp_pos, myht)
-    cuda.syncthreads()
-
-    # begin segmented scan
-    offset = 1
-    for jj in range(6):  #log2(256) == 8
-        if warp_pos >= offset and ii_ind < end:
-            if not myroot:
-                prev_ht = ht_load(shared_hts, warp_pos - offset)
-                prev_root = shared_is_root[warp_pos - offset]
-        cuda.syncthreads()
-        if warp_pos >= offset and ii_ind < end:
-            if not myroot:
-                myht = ht_multiply(prev_ht, myht)
-                myroot |= prev_root
-                ht_save(shared_hts, warp_pos, myht)
-                shared_is_root[warp_pos] = myroot
-        offset *= 2
-        cuda.syncthreads()
-
-    #save the HTs to global memory
-    if ii_ind < end:
-        for jj in range(12):
-            hts[ii_ind, jj] = shared_hts[warp_pos, jj]
+### #@cuda.jit(
+### #    'float64[:,:], float64[:,:], boolean[:], boolean[:], int32[:], int32, int32, int32'
+### #)
+### @cuda.jit
+### def segscan_ht_interval_many_thread_blocks_1(
+###         hts, hts_int, is_root, is_root_int, parent_ind, natoms, start, end
+### ):
+###     '''This should be executed as many separate thread blocks with nthreads = 32
+###     As all 32 threads will run in a single warp, there is no need for synchronization
+###     steps, as the threads are all executed in lock step.
+###     "end" is actually one past the last element; compare ii < end'''
+###
+###     shared_hts = cuda.shared.array((32, 12), numba.float64)
+###     shared_is_root = cuda.shared.array((32), numba.int32)
+###
+###     pos = cuda.grid(1)
+###     warp_pos = pos & 31
+###
+###     ii_ind = start + pos
+###     myht = identity_ht()
+###     myroot = False
+###     if ii_ind < end:
+###         for jj in range(12):
+###             # TO DO: minimize bank conflicts -- align memory reads
+###             shared_hts[warp_pos, jj] = hts[ii_ind, jj]
+###         shared_is_root[warp_pos] = is_root[ii_ind]
+###         myht = ht_load(shared_hts, warp_pos)
+###         parent = parent_ind[ii_ind].item()
+###         htchanged = False
+###         if parent != -1:
+###             parent_ht = ht_load(hts, parent)
+###             myht = ht_multiply(parent_ht, myht)
+###             htchanged = True
+###         myroot = shared_is_root[warp_pos]
+###         if htchanged:
+###             ht_save(shared_hts, warp_pos, myht)
+###     cuda.syncthreads()
+###
+###     # begin segmented scan
+###     offset = 1
+###     for jj in range(6):  #log2(256) == 8
+###         if warp_pos >= offset and ii_ind < end:
+###             if not myroot:
+###                 prev_ht = ht_load(shared_hts, warp_pos - offset)
+###                 prev_root = shared_is_root[warp_pos - offset]
+###         cuda.syncthreads()
+###         if warp_pos >= offset and ii_ind < end:
+###             if not myroot:
+###                 myht = ht_multiply(prev_ht, myht)
+###                 myroot |= prev_root
+###                 ht_save(shared_hts, warp_pos, myht)
+###                 shared_is_root[warp_pos] = myroot
+###         cuda.syncthreads()
+###         offset *= 2
+###
+###     # save the carry
+###     if warp_pos == 31:
+###         ht_save(hts_int, cuda.blockIdx.x, myht)
+###         is_root_int[cuda.blockIdx.x] = myroot
+###
+###
+### #@cuda.jit('float64[:,:], boolean[:], int32')
+### @cuda.jit
+### def segscan_ht_interval_one_thread_block_2(hts, is_root, n_intermediates):
+###     # this should be executed as a single thread block with nthreads = 256
+###     # compare ii < natoms
+###     # There is significant thread synchronization here as there are multiple
+###     # warps running within this single thread block.
+###     # 256 is the maximum number of double-precision HTs that fit in shared memory
+###     # on the GPU that I'm running on, so that's the size thread block
+###     # that I'll be running.
+###
+###     shared_hts = cuda.shared.array((256, 12), numba.float64)
+###     shared_is_root = cuda.shared.array((256), numba.int32)
+###
+###     pos = cuda.grid(1)
+###     n_iterations = (n_intermediates - 1) // 256 + 1
+###     carry_ht = identity_ht()
+###     carry_is_root = False
+###     for ii in range(n_iterations):
+###         ii_ind = ii * 256 + pos
+###         #load data into shared memory
+###         if ii_ind < n_intermediates:
+###             for jj in range(12):
+###                 # TO DO: minimize bank conflicts -- align memory reads
+###                 shared_hts[pos, jj] = hts[ii_ind, jj]
+###             shared_is_root[pos] = is_root[ii_ind]
+###             myht = ht_load(shared_hts, pos)
+###             myroot = shared_is_root[pos]
+###             if pos == 0 and not myroot:
+###                 myht = ht_multiply(carry_ht, myht)
+###                 myroot |= carry_is_root
+###                 shared_is_root[0] = myroot
+###                 ht_save(shared_hts, pos, myht)
+###         cuda.syncthreads()
+###
+###         # begin segmented scan on this section
+###         offset = 1
+###         for jj in range(8):  # log2(256) == 8
+###             if pos >= offset and ii_ind < n_intermediates:
+###                 prev_ht = ht_load(shared_hts, pos - offset)
+###                 prev_root = shared_is_root[pos - offset]
+###             cuda.syncthreads()
+###             if pos >= offset and ii_ind < n_intermediates:
+###                 if not myroot:
+###                     myht = ht_multiply(prev_ht, myht)
+###                     myroot |= prev_root
+###                     ht_save(shared_hts, pos, myht)
+###                     shared_is_root[pos] = myroot
+###             offset *= 2
+###             cuda.syncthreads()
+###
+###         # write the shared hts to global memory
+###         if ii_ind < n_intermediates:
+###             for jj in range(12):
+###                 hts[ii_ind, jj] = shared_hts[pos, jj]
+###
+###         # save the carry
+###         if pos == 0:
+###             carry_ht = ht_load(shared_hts, 255)
+###             carry_is_root = shared_is_root[255]
+###
+###         cuda.syncthreads()
+###
+###
+### #@cuda.jit(
+### #    'float64[:,:], float64[:,:], boolean[:], int32[:], int32, int32, int32'
+### #)
+### @cuda.jit
+### def segscan_ht_interval_many_thread_blocks_3(
+###         hts, hts_int, is_root, parent_ind, natoms, start, end
+### ):
+###     '''This should be executed as many separate thread blocks with nthreads = 32
+###     As all 32 threads will run in a single warp, there is no need for synchronization
+###     steps, as the threads are all executed in lock step.
+###     "end" is actually one past the last element; compare ii < end'''
+###
+###     shared_hts = cuda.shared.array((32, 12), numba.float64)
+###     shared_is_root = cuda.shared.array((32), numba.int32)
+###
+###     pos = cuda.grid(1)
+###     warp_pos = pos & 31
+###
+###     ii_ind = start + pos
+###     if ii_ind < end:
+###         for jj in range(12):
+###             # TO DO: minimize bank conflicts -- align memory reads
+###             shared_hts[warp_pos, jj] = hts[ii_ind, jj]
+###         shared_is_root[warp_pos] = is_root[ii_ind]
+###         myht = ht_load(shared_hts, warp_pos)
+###         parent = parent_ind[ii_ind].item()
+###         htchanged = False
+###         if parent != -1:
+###             parent_ht = ht_load(hts, parent)
+###             myht = ht_multiply(parent_ht, myht)
+###             htchanged = True
+###         myroot = shared_is_root[warp_pos]
+###         if warp_pos == 0 and cuda.blockIdx.x > 0 and not myroot:
+###             carry_ht = ht_load(hts_int, cuda.blockIdx.x - 1)
+###             #print("carry_ht", carry_ht)
+###             myht = ht_multiply(carry_ht, myht)
+###             htchanged = True
+###         if htchanged:
+###             ht_save(shared_hts, warp_pos, myht)
+###     cuda.syncthreads()
+###
+###     # begin segmented scan
+###     offset = 1
+###     for jj in range(6):  #log2(256) == 8
+###         if warp_pos >= offset and ii_ind < end:
+###             if not myroot:
+###                 prev_ht = ht_load(shared_hts, warp_pos - offset)
+###                 prev_root = shared_is_root[warp_pos - offset]
+###         cuda.syncthreads()
+###         if warp_pos >= offset and ii_ind < end:
+###             if not myroot:
+###                 myht = ht_multiply(prev_ht, myht)
+###                 myroot |= prev_root
+###                 ht_save(shared_hts, warp_pos, myht)
+###                 shared_is_root[warp_pos] = myroot
+###         offset *= 2
+###         cuda.syncthreads()
+###
+###     #save the HTs to global memory
+###     if ii_ind < end:
+###         for jj in range(12):
+###             hts[ii_ind, jj] = shared_hts[warp_pos, jj]
 
 
 def get_devicendarray(t):
@@ -919,7 +1077,7 @@ def segscan_hts_gpu(hts_ko, refold_data):
     #reorder_starting_hts[nblocks, 512, stream
     #                     ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
-    segscan_ht_intervals_one_thread_block[1, 256, stream](
+    segscan_ht_intervals_one_thread_block2[1, 256, stream](
         hts_ko, rd.ki2ri_d, hts_ro_d, rd.is_root_ro_d,
         rd.non_subpath_parent_ro_d, rd.refold_atom_ranges_d
     )
@@ -939,9 +1097,8 @@ def segscan_hts_gpu2(hts_ko, refold_data):
 
     nblocks512 = (rd.natoms - 1) // 512 + 1
 
-    reorder_starting_hts[nblocks512, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_starting_hts[nblocks512, 512, stream
+                         ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
     # for each depth, run a separate segmented scan
     for iirange in rd.refold_atom_range_for_depth:
@@ -978,9 +1135,8 @@ def segscan_hts_gpu2(hts_ko, refold_data):
             rd.natoms, iirange[0], iirange[1]
         )
 
-    reorder_final_hts[nblocks512, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
+    reorder_final_hts[nblocks512, 512, stream
+                      ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
 
 @numba.jit(nopython=True)
@@ -1213,15 +1369,13 @@ def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
     f1f2s_dso_d = cuda.device_array((rd.natoms, 6), dtype="float64")
 
     nblocks = (rd.natoms - 1) // 512 + 1
-    reorder_starting_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
-    )
+    reorder_starting_f1f2s[nblocks, 512
+                           ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
 
     segscan_f1f2s_up_tree[1, 512](
         f1f2s_dso_d, rd.non_path_children_dso_d, rd.is_leaf_dso_d,
         rd.derivsum_atom_ranges_d
     )
 
-    reorder_final_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
-    )
+    reorder_final_f1f2s[nblocks, 512
+                        ](rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d)
