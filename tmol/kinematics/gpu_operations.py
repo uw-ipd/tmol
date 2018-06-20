@@ -562,39 +562,46 @@ def warp_segscan_hts1(
     warp_first = warp_id << 5  # ie warp_id * 32; is this faster than multiplication?
     warp_last = warp_first + 31
     warp_is_open = shared_is_root[warp_first] == 0
+    temp_syncthreads()
 
     myht = identity_ht()
 
     if shared_is_root[pos]:
         shared_is_root[pos] = lane
+    temp_syncthreads()
 
     # now compute mindex by performing a scan on shared_is_root
     # using "max" as the associative operator
     if lane >= 1:
         res = max(shared_is_root[pos - 1], shared_is_root[pos])
-        temp_syncthreads()
+    temp_syncthreads()
+    if lane >= 1:
         shared_is_root[pos] = res
-        temp_syncthreads()
+    temp_syncthreads()
     if lane >= 2:
         res = max(shared_is_root[pos - 2], shared_is_root[pos])
-        temp_syncthreads()
+    temp_syncthreads()
+    if lane >= 2:
         shared_is_root[pos] = res
-        temp_syncthreads()
+    temp_syncthreads()
     if lane >= 4:
         res = max(shared_is_root[pos - 4], shared_is_root[pos])
-        temp_syncthreads()
+    temp_syncthreads()
+    if lane >= 4:
         shared_is_root[pos] = res
-        temp_syncthreads()
+    temp_syncthreads()
     if lane >= 8:
         res = max(shared_is_root[pos - 8], shared_is_root[pos])
-        temp_syncthreads()
+    temp_syncthreads()
+    if lane >= 8:
         shared_is_root[pos] = res
-        temp_syncthreads()
+    temp_syncthreads()
     if lane >= 16:
         res = max(shared_is_root[pos - 16], shared_is_root[pos])
-        temp_syncthreads()
+    temp_syncthreads()
+    if lane >= 16:
         shared_is_root[pos] = res
-        temp_syncthreads()
+    temp_syncthreads()
 
     mindex = shared_is_root[pos]
 
@@ -617,7 +624,7 @@ def warp_segscan_hts1(
         if htchanged:
             ht_save_to_shared(shared_hts, pos, myht)
 
-    cuda.syncthreads()
+    temp_syncthreads()
 
     # now scan, unrolling the traditional for loop (does it really save time?)
     if lane >= mindex + 1 and ht_ind < end:
@@ -666,6 +673,8 @@ def warp_segscan_hts1(
         ht_save_to_shared(int_hts, warp_id, myht)
         int_is_root[warp_id] = mindex != 0 or not warp_is_open
 
+    temp_syncthreads()
+
     # for the third stage of this intra-block scan, record whether this
     # thread should accumulate the scanned intermediate HT from stage 2
     will_accumulate = warp_is_open and mindex == 0
@@ -689,6 +698,7 @@ def warp_segscan_hts2(int_hts, int_is_root):
         else:
             int_is_root[pos] = 0
 
+    temp_syncthreads()
     if pos >= 1 and pos < 8:
         res = max(int_is_root[pos - 1], int_is_root[pos])
     temp_syncthreads()
