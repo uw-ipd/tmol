@@ -58,7 +58,9 @@ def refold_data_from_kintree(
     '''
 
     if device.type == "cpu":
-        return RefoldData(0, None, None, None, None, None, None, None, None)
+        return RefoldData(
+            0, None, None, None, None, None, None, None, None, None
+        )
     else:
         natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro, \
             branching_factor_ko, subpath_child_ko, \
@@ -69,14 +71,16 @@ def refold_data_from_kintree(
             non_path_children_ko, non_path_children_dso = \
             construct_refold_and_derivsum_orderings(kintree)
 
-        is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d, refold_atom_ranges_d = \
-            send_refold_data_to_gpu(natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro, refold_atom_range_for_depth)
+        is_root_ro_d, ki2ri_d, ri2ki_d, non_subpath_parent_ro_d, refold_atom_ranges_d = \
+            send_refold_data_to_gpu(natoms, subpath_root_ro, ki2ri, ri2ki, \
+                                    non_subpath_parent_ro, refold_atom_range_for_depth)
 
         ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d, derivsum_atom_ranges_d = \
-            send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso, derivsum_atom_range_for_depth)
+            send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso, \
+                                      derivsum_atom_range_for_depth)
 
         return RefoldData(
-            natoms, non_subpath_parent_ro_d, is_root_ro_d, ki2ri_d,
+            natoms, non_subpath_parent_ro_d, is_root_ro_d, ki2ri_d, ri2ki_d,
             refold_atom_ranges_d, ki2dsi, is_leaf_dso_d,
             non_path_children_dso_d, derivsum_atom_ranges_d
         )
@@ -312,15 +316,16 @@ def determine_derivsum_indices(
 
 
 def send_refold_data_to_gpu(
-        natoms, subpath_root_ro, ri2ki, ki2ri, non_subpath_parent_ro,
+        natoms, subpath_root_ro, ki2ri, ri2ki, non_subpath_parent_ro,
         refold_atom_range_for_depth
 ):
     is_root_ro_d = cuda.to_device(subpath_root_ro)
     ki2ri_d = cuda.to_device(ki2ri)
+    ri2ki_d = cuda.to_device(ri2ki)
     non_subpath_parent_ro_d = cuda.to_device(non_subpath_parent_ro)
     refold_atom_ranges_d = cuda.to_device(refold_atom_range_for_depth)
 
-    return is_root_ro_d, ki2ri_d, non_subpath_parent_ro_d, refold_atom_ranges_d
+    return is_root_ro_d, ki2ri_d, ri2ki_d, non_subpath_parent_ro_d, refold_atom_ranges_d
 
 
 @cuda.jit
@@ -411,6 +416,23 @@ def ht_load_from_shared(hts, pos):
 
 
 @cuda.jit(device=True)
+def ht_load_from_nx4x4(hts, pos):
+    v0 = hts[pos, 0, 0]
+    v1 = hts[pos, 0, 1]
+    v2 = hts[pos, 0, 2]
+    v3 = hts[pos, 0, 3]
+    v4 = hts[pos, 1, 0]
+    v5 = hts[pos, 1, 1]
+    v6 = hts[pos, 1, 2]
+    v7 = hts[pos, 1, 3]
+    v8 = hts[pos, 2, 0]
+    v9 = hts[pos, 2, 1]
+    v10 = hts[pos, 2, 2]
+    v11 = hts[pos, 2, 3]
+    return (v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11)
+
+
+@cuda.jit(device=True)
 def ht_save(shared_hts, pos, ht):
     for i in range(12):
         shared_hts[pos, i] = ht[i]
@@ -429,7 +451,7 @@ def ht_save_to_n_x_12(hts, pos, ht):
 
 
 @cuda.jit(device=True)
-def ht_save_to_n_x_4_x_4(hts, pos, ht):
+def ht_save_to_nx4x4(hts, pos, ht):
     for i in range(12):
         hts[pos, i // 4, i % 4] = ht[i]
 
@@ -543,7 +565,7 @@ def ht_multiply_prev_and_store(pos, offset, myht, shared_hts):
 
 @cuda.jit(device=True)
 def warp_segscan_hts1(
-        pos, warp_id, hts, is_root, parent_ind, carry_ht, shared_hts,
+        pos, warp_id, ri2ki, hts_ko, is_root, parent_ind, carry_ht, shared_hts,
         shared_is_root, int_hts, int_is_root, start, end
 ):
     ht_ind = start + pos
@@ -575,18 +597,21 @@ def warp_segscan_hts1(
                        ] = max(shared_is_root[pos - 16], shared_is_root[pos])
 
     mindex = shared_is_root[pos]
+    ki = -1
 
     # pull down the hts from global memory into shared memory, and then
     # into thread-local memory. Then integrate the parent's HT into root
     # nodes (i.e. nodes whose parent is not listed as -1)
     if ht_ind < end:
+        ki = ri2ki[ht_ind]
         for jj in range(12):
-            shared_hts[jj, pos] = hts[ht_ind, jj]
+            shared_hts[jj, pos] = hts_ko[ki, jj // 4, jj % 4]
         myht = ht_load_from_shared(shared_hts, pos)
         parent = parent_ind[ht_ind]
         htchanged = False
         if parent != -1:
-            parent_ht = ht_load(hts, parent)
+            parent_ki = ri2ki[parent]
+            parent_ht = ht_load_from_nx4x4(hts_ko, parent_ki)
             myht = ht_multiply(parent_ht, myht)
             htchanged = True
         if pos == 0 and warp_is_open:
@@ -618,7 +643,7 @@ def warp_segscan_hts1(
     # thread should accumulate the scanned intermediate HT from stage 2
     will_accumulate = warp_is_open and mindex == 0
 
-    return myht, will_accumulate
+    return ki, myht, will_accumulate
 
 
 @cuda.jit(device=True)
@@ -654,7 +679,7 @@ def warp_segscan_hts2(pos, int_hts, int_is_root):
 
 @cuda.jit
 def segscan_ht_intervals_one_thread_block2(
-        hts_ko, ki2ri, hts, is_root, parent_ind, atom_ranges
+        hts_ko, ri2ki, is_root, parent_ind, atom_ranges
 ):
     # this should be executed as a single thread block with nthreads = 256
     # The idea behind this version is to run within-warp scans to get
@@ -664,8 +689,8 @@ def segscan_ht_intervals_one_thread_block2(
     pos = cuda.grid(1)
     warp_id = pos >> 5  # bit shift by 5 because warp size is 32
 
-    reorder_starting_hts_256(hts_ko, hts, ki2ri)
-    cuda.syncthreads()
+    #reorder_starting_hts_256(hts_ko, hts, ki2ri)
+    #cuda.syncthreads()
 
     shared_hts = cuda.shared.array((12, 256), numba.float64)
     shared_is_root = cuda.shared.array((256), numba.int32)
@@ -686,17 +711,14 @@ def segscan_ht_intervals_one_thread_block2(
             ii_start = start + ii * 256
 
             # stage 1:
-            myht, will_accumulate = warp_segscan_hts1(
-                pos, warp_id, hts, is_root, parent_ind, carry_ht, shared_hts,
-                shared_is_root, shared_intermediate_hts,
+            ki, myht, will_accumulate = warp_segscan_hts1(
+                pos, warp_id, ri2ki, hts_ko, is_root, parent_ind, carry_ht,
+                shared_hts, shared_is_root, shared_intermediate_hts,
                 shared_intermediate_is_root, ii_start, end
             )
             cuda.syncthreads()
 
             # stage 2:
-            #warp_segscan_hts2(
-            #    pos, shared_intermediate_hts, shared_intermediate_is_root
-            #)
             if pos < 8:
                 warp_segscan_hts2(
                     pos, shared_intermediate_hts, shared_intermediate_is_root
@@ -710,7 +732,9 @@ def segscan_ht_intervals_one_thread_block2(
                 )
                 myht = ht_multiply(prev_ht, myht)
             if ii_start + pos < end:
-                ht_save(hts, ii_start + pos, myht)
+                ht_save_to_nx4x4(hts_ko, ki, myht)
+                #for jj in range(12):
+                #    hts_ko[ ki, jj // 4, jj % 4 ] = myht[jj]
             ht_save_to_shared(shared_hts, pos, myht)
             cuda.syncthreads()
 
@@ -720,7 +744,7 @@ def segscan_ht_intervals_one_thread_block2(
 
             cuda.syncthreads()
 
-    reorder_final_hts_256(hts_ko, hts, ki2ri)
+    #reorder_final_hts_256(hts_ko, hts, ki2ri)
 
 
 ### #@cuda.jit(
@@ -950,15 +974,15 @@ def segscan_hts_gpu(hts_ko, refold_data):
     rd = refold_data
     stream = cuda.stream()
 
-    hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
+    #hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
 
     nblocks = (rd.natoms - 1) // 512 + 1
     #reorder_starting_hts[nblocks, 512, stream
     #                     ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
     segscan_ht_intervals_one_thread_block2[1, 256, stream](
-        hts_ko, rd.ki2ri_d, hts_ro_d, rd.is_root_ro_d,
-        rd.non_subpath_parent_ro_d, rd.refold_atom_ranges_d
+        hts_ko, rd.ri2ki_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
+        rd.refold_atom_ranges_d
     )
 
     #reorder_final_hts[nblocks, 512, stream

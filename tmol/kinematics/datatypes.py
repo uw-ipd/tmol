@@ -199,6 +199,7 @@ class RefoldData:
     non_subpath_parent_ro_d: numba.types.Array
     is_root_ro_d: numba.types.Array
     ki2ri_d: numba.types.Array
+    ri2ki_d: numba.types.Array
     refold_atom_ranges_d: numba.types.Array
 
     # Pointers to device arrays used in f1f2 summation
