@@ -735,7 +735,6 @@ def segscan_ht_intervals_one_thread_block2(
 def get_devicendarray(t):
     import ctypes
     '''Convert a device-allocated pytorch tensor into a numba DeviceNDArray'''
-    #print("get_devicendarray",t.type())
     if t.type() == 'torch.cuda.FloatTensor':
         ctx = cuda.cudadrv.driver.driver.get_context()
         mp = cuda.cudadrv.driver.MemoryPointer(
@@ -776,19 +775,10 @@ def segscan_hts_gpu(hts_ko, refold_data):
     rd = refold_data
     stream = cuda.stream()
 
-    #hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
-
-    nblocks = (rd.natoms - 1) // 512 + 1
-    #reorder_starting_hts[nblocks, 512, stream
-    #                     ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
-
     segscan_ht_intervals_one_thread_block[1, 256, stream](
         hts_ko, rd.ri2ki_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
         rd.refold_atom_ranges_d
     )
-
-    #reorder_final_hts[nblocks, 512, stream
-    #                  ](rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d)
 
 
 def warp_synchronous_segscan_hts_gpu(hts_ko, refold_data):
@@ -807,61 +797,6 @@ def warp_synchronous_segscan_hts_gpu(hts_ko, refold_data):
     )
 
 
-def segscan_hts_gpu2(hts_ko, refold_data):
-    rd = refold_data
-    stream = cuda.stream()
-
-    hts_ro_d = cuda.device_array((rd.natoms, 12), dtype=numpy.float64)
-    nblocks32 = (rd.natoms - 1) // 32 + 1
-    hts_inter_d = cuda.device_array((nblocks32, 12), dtype=numpy.float64)
-    is_root_inter_d = cuda.device_array((nblocks32), dtype=numpy.bool)
-
-    nblocks512 = (rd.natoms - 1) // 512 + 1
-
-    reorder_starting_hts[nblocks512, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
-
-    # for each depth, run a separate segmented scan
-    for iirange in rd.refold_atom_range_for_depth:
-        # Scan proceeds in three stages: a first stage where each thread block
-        # is performed by a single warp w/ no need for thread synchronization
-        # (since the threads are guaranteed lock step), and the result of each
-        # thread block is written to an intermediate global array of HTs
-        # as well as of is_root booleans (i.e. the segment start booleans
-        # needed for segmented scan). The second step is performed in a single
-        # thread block that performs segmented scan on each of the
-        # intermediates. These are then written back to the intermediate HT
-        # array in global memory. The third and final step is to run
-        # another segmented scan very similar to the first one, but this time
-        # with thread 0 of the block folding in the HT from the global array
-        # of intermediate HTs computed in step two.
-
-        #print(iirange)
-        nblocks_step1 = (iirange[1] - iirange[0] - 1) // 32 + 1
-        segscan_ht_interval_many_thread_blocks_1[nblocks_step1, 32, stream](
-            hts_ro_d, hts_inter_d, rd.is_root_ro_d, is_root_inter_d,
-            rd.non_subpath_parent_ro_d, rd.natoms, iirange[0], iirange[1]
-        )
-
-        #print("intermediate hts after stage 1", hts_inter_d.copy_to_host() )
-
-        nblocks_step2 = (iirange[1] - iirange[0] - 1) // 256 + 1
-        segscan_ht_interval_one_thread_block_2[nblocks_step2, 256, stream](
-            hts_inter_d, is_root_inter_d, nblocks_step1
-        )
-        #print("intermediate hts after stage 2", hts_inter_d.copy_to_host() )
-
-        segscan_ht_interval_many_thread_blocks_3[nblocks_step1, 32, stream](
-            hts_ro_d, hts_inter_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
-            rd.natoms, iirange[0], iirange[1]
-        )
-
-    reorder_final_hts[nblocks512, 512, stream](
-        rd.natoms, hts_ko, hts_ro_d, rd.ki2ri_d
-    )
-
-
 @numba.jit(nopython=True)
 def mark_path_children_and_count_nonpath_children(
         natoms, parent_ko, subpath_child_ko, n_nonpath_children_ko,
@@ -875,8 +810,6 @@ def mark_path_children_and_count_nonpath_children(
             n_nonpath_children_ko[ii_parent] += 1
             is_subpath_root_ko[ii] = True
         is_subpath_leaf_ko[ii] = subpath_child_ko[ii] == -1
-    #print("rd.is_subpath_root_ko")
-    #print(rd.is_subpath_root_ko)
 
 
 @numba.jit(nopython=True)
@@ -892,7 +825,6 @@ def list_nonpath_children(
             ii_child_ind = count_n_nonfirst_children[ii_parent]
             non_path_children_ko[ii_parent, ii_child_ind] = ii
             count_n_nonfirst_children[ii_parent] += 1
-    #print("rd.non_path_children_ko"); print(non_path_children_ko)
 
 
 @numba.jit(nopython=True)
@@ -907,15 +839,12 @@ def find_derivsum_path_depths(
         ii_child = subpath_child_ko[ii]
         if ii_child != -1:
             ii_depth = derivsum_path_depth_ko[ii_child]
-            #print(ii,"child",ii_child,"depth",ii_depth)
         for other_child in non_path_children_ko[ii, :]:
             if other_child == -1:
                 continue
             other_child_depth = derivsum_path_depth_ko[other_child]
-            #print("ii",ii,"other_child",other_child,"other_child_depth",other_child_depth)
             if ii_depth < other_child_depth + 1:
                 ii_depth = other_child_depth + 1
-        #print(ii,"depth",ii_depth)
         derivsum_path_depth_ko[ii] = ii_depth
 
         # if this is the root of a derivsum path (remember, paths are summed
