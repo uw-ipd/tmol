@@ -72,11 +72,11 @@ def refold_data_from_kintree(
             construct_refold_and_derivsum_orderings(kintree)
 
         is_root_ro_d, ki2ri_d, ri2ki_d, non_subpath_parent_ro_d, refold_atom_ranges_d = \
-            send_refold_data_to_gpu(natoms, subpath_root_ro, ki2ri, ri2ki, \
+            send_refold_data_to_gpu(natoms, subpath_root_ro, ki2ri, ri2ki,
                                     non_subpath_parent_ro, refold_atom_range_for_depth)
 
         ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d, derivsum_atom_ranges_d = \
-            send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso, \
+            send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso,
                                       derivsum_atom_range_for_depth)
 
         return RefoldData(
@@ -560,7 +560,6 @@ def warp_segscan_hts1(
         shared_is_root[pos] = is_root[ht_ind]
 
     warp_first = warp_id << 5  # ie warp_id * 32; is this faster than multiplication?
-    warp_last = warp_first + 31
     warp_is_open = shared_is_root[warp_first] == 0
 
     myht = identity_ht()
