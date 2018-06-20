@@ -533,7 +533,8 @@ def segscan_ht_intervals_one_thread_block(
 
 @cuda.jit(device=True)
 def temp_syncthreads():
-    cuda.syncthreads()
+    #cuda.syncthreads()
+    pass
 
 
 @cuda.jit(device=True)
@@ -683,12 +684,11 @@ def warp_segscan_hts1(
 
 
 @cuda.jit(device=True)
-def warp_segscan_hts2(int_hts, int_is_root):
+def warp_segscan_hts2(pos, int_hts, int_is_root):
     """Now we'll perform a rapid inclusive scan on the int_hts, to merge
     the scanned HTs of all the warps in the thread block. The only threads
     that ought to execute this code are threads 0-7"""
 
-    pos = cuda.grid(1)
     if pos < 8:
         myht = ht_load_from_shared(int_hts, pos)
 
@@ -789,13 +789,13 @@ def segscan_ht_intervals_one_thread_block2(
             cuda.syncthreads()
 
             # stage 2:
-            warp_segscan_hts2(
-                shared_intermediate_hts, shared_intermediate_is_root
-            )
-            #if pos < 8:
-            #    warp_segscan_hts2(
-            #        shared_intermediate_hts, shared_intermediate_is_root
-            #    )
+            #warp_segscan_hts2(
+            #    pos, shared_intermediate_hts, shared_intermediate_is_root
+            #)
+            if pos < 8:
+                warp_segscan_hts2(
+                    pos, shared_intermediate_hts, shared_intermediate_is_root
+                )
             cuda.syncthreads()
 
             # stage 3:
