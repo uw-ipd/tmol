@@ -627,49 +627,29 @@ def warp_segscan_hts2(pos, int_hts, int_is_root):
     the scanned HTs of all the warps in the thread block. The only threads
     that ought to execute this code are threads 0-7"""
 
-    if pos < 8:
-        myht = ht_load_from_shared(int_hts, pos)
+    myht = ht_load_from_shared(int_hts, pos)
 
-        # scan the isroot flags to compute the mindex
-        if int_is_root[pos]:
-            int_is_root[pos] = pos
-        else:
-            int_is_root[pos] = 0
+    # scan the isroot flags to compute the mindex
+    if int_is_root[pos]:
+        int_is_root[pos] = pos
+    else:
+        int_is_root[pos] = 0
 
-    if pos >= 1 and pos < 8:
+    if pos >= 1:
         int_is_root[pos] = max(int_is_root[pos - 1], int_is_root[pos])
-    if pos >= 2 and pos < 8:
+    if pos >= 2:
         int_is_root[pos] = max(int_is_root[pos - 2], int_is_root[pos])
-    if pos >= 4 and pos < 8:
+    if pos >= 4:
         int_is_root[pos] = max(int_is_root[pos - 4], int_is_root[pos])
-    if pos < 8:
-        mindex = int_is_root[pos]
+    mindex = int_is_root[pos]
 
     # now scan, unrolling the traditional for loop (does it really save time?)
-    if pos < 8 and pos >= mindex + 1:
-        prevht = ht_load_from_shared(int_hts, pos - 1)
-
-    if pos < 8 and pos >= mindex + 1:
-        myht = ht_multiply(prevht, myht)
-        ht_save_to_shared(int_hts, pos, myht)
-
-    #ht_multiply_prev_and_store( pos, 1, myht, int_hts)
-    if pos < 8 and pos >= mindex + 2:
-        prevht = ht_load_from_shared(int_hts, pos - 2)
-
-    if pos < 8 and pos >= mindex + 2:
-        myht = ht_multiply(prevht, myht)
-        ht_save_to_shared(int_hts, pos, myht)
-
-    #ht_multiply_prev_and_store( pos, 2, myht, int_hts)
-    if pos < 8 and pos >= mindex + 4:
-        prevht = ht_load_from_shared(int_hts, pos - 4)
-
-    if pos < 8 and pos >= mindex + 4:
-        myht = ht_multiply(prevht, myht)
-        ht_save_to_shared(int_hts, pos, myht)
-
-    #ht_multiply_prev_and_store( pos, 4, myht, int_hts)
+    if pos >= mindex + 1:
+        myht = ht_multiply_prev_and_store(pos, 1, myht, int_hts)
+    if pos >= mindex + 2:
+        myht = ht_multiply_prev_and_store(pos, 2, myht, int_hts)
+    if pos >= mindex + 4:
+        myht = ht_multiply_prev_and_store(pos, 4, myht, int_hts)
 
 
 @cuda.jit
