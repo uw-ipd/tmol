@@ -165,11 +165,7 @@ class HBondScoreGraph(
 
         return dict(hbond_database=hbond_database)
 
-    hbond_database: HBondDatabase = attr.ib()
-
-    @hbond_database.default
-    def _default_hbond_database(self):
-        return self.parameter_database.scoring.hbond
+    hbond_database: HBondDatabase
 
     @property
     def component_total_score_terms(self):

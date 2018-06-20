@@ -23,4 +23,4 @@ class TorchDevice(Factory):
         return dict(device=device)
 
     # The target torch device
-    device: torch.device = torch.device("cpu")
+    device: torch.device

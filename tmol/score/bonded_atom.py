@@ -11,10 +11,11 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from .factory import Factory
+from .stacked_system import StackedSystem
 
 
 @reactive_attrs(auto_attribs=True)
-class BondedAtomScoreGraph(Factory):
+class BondedAtomScoreGraph(StackedSystem, Factory):
     @staticmethod
     @singledispatch
     def factory_for(other, **_):
@@ -26,11 +27,6 @@ class BondedAtomScoreGraph(Factory):
 
     # Inter-atomic bond indices
     bonds: NDArray(int)[:, 2]
-
-    @reactive_property
-    def system_size(atom_types) -> int:
-        """Number of atom locations within the system."""
-        return len(atom_types)
 
     @reactive_property
     def real_atoms(atom_types: NDArray(object)[:],) -> Tensor(bool)[:]:

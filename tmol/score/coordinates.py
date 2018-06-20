@@ -11,10 +11,12 @@ from tmol.utility.reactive import reactive_attrs, reactive_property
 from tmol.types.torch import Tensor
 
 from .factory import Factory
+from .stacked_system import StackedSystem
+from .device import TorchDevice
 
 
 @reactive_attrs(auto_attribs=True)
-class CartesianAtomicCoordinateProvider(Factory):
+class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
     @staticmethod
     @singledispatch
     def factory_for(
@@ -31,14 +33,14 @@ class CartesianAtomicCoordinateProvider(Factory):
         return dict(coords=coords)
 
     # Source atomic coordinates
-    coords: Tensor(torch.float)[:, 3]
+    coords: Tensor(torch.float)[:, :, 3]
 
     def reset_total_score(self):
         self.coords = self.coords
 
 
 @reactive_attrs(auto_attribs=True)
-class KinematicAtomicCoordinateProvider(Factory):
+class KinematicAtomicCoordinateProvider(TorchDevice, Factory):
     @staticmethod
     @singledispatch
     def factory_for(

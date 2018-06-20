@@ -1,7 +1,5 @@
 from typing import Optional
 
-import attr
-
 import torch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -53,11 +51,7 @@ class LJLKScoreGraph(
 
         return dict(ljlk_database=ljlk_database)
 
-    ljlk_database: LJLKDatabase = attr.ib()
-
-    @ljlk_database.default
-    def _default_ljlk_database(self):
-        return self.parameter_database.scoring.ljlk
+    ljlk_database: LJLKDatabase
 
     @property
     def component_total_score_terms(self):

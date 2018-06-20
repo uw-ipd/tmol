@@ -1,5 +1,3 @@
-import attr
-
 from typing import Optional
 
 from tmol.utility.reactive import reactive_attrs
@@ -26,9 +24,4 @@ class ParamDB(Factory):
 
         return dict(parameter_database=parameter_database)
 
-    # The target torch device
-    parameter_database: ParameterDatabase = attr.ib()
-
-    @parameter_database.default
-    def _default_parameter_database(self):
-        return ParameterDatabase.get_default()
+    parameter_database: ParameterDatabase

@@ -6,6 +6,7 @@ from ..types.functional import validate_args
 from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
 
+from ..score.stacked_system import StackedSystem
 from ..score.bonded_atom import BondedAtomScoreGraph
 
 from ..score.coordinates import (
@@ -15,6 +16,12 @@ from ..score.coordinates import (
 
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
+
+
+@StackedSystem.factory_for.register(PackedResidueSystem)
+@validate_args
+def stack_params_for_system(system: PackedResidueSystem, **_):
+    return dict(stack_depth=1, system_size=system.system_size)
 
 
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
@@ -39,11 +46,16 @@ def coords_for_system(
 ):
     """Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`"""
 
-    coords = torch.tensor(
-        system.coords, dtype=torch.float, device=device
-    ).requires_grad_(requires_grad)
+    stack_depth = 1
+    system_size = len(system.coords)
 
-    return dict(coords=coords)
+    coords = (
+        torch.tensor(system.coords, dtype=torch.float, device=device).requires_grad_(
+            requires_grad
+        )
+    ).reshape(stack_depth, system_size, 3)
+
+    return dict(coords=coords, stack_depth=stack_depth, system_size=system_size)
 
 
 @KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
