@@ -595,47 +595,19 @@ def warp_segscan_hts1(
         if htchanged:
             ht_save_to_shared(shared_hts, pos, myht)
 
-    # now scan, unrolling the traditional for loop (does it really save time?)
-    if lane >= mindex + 1 and ht_ind < end:
-        #myht = ht_multiply_prev_and_store( pos, 1, myht, shared_hts)
-        prevht = ht_load_from_shared(shared_hts, pos - 1)
-
-    if lane >= mindex + 1 and ht_ind < end:
-        myht = ht_multiply(prevht, myht)
-        ht_save_to_shared(shared_hts, pos, myht)
-
-    if lane >= mindex + 2 and ht_ind < end:
-        prevht = ht_load_from_shared(shared_hts, pos - 2)
-
-    if lane >= mindex + 2 and ht_ind < end:
-        myht = ht_multiply(prevht, myht)
-        ht_save_to_shared(shared_hts, pos, myht)
-
-    #myht = ht_multiply_prev_and_store( pos, 2, myht, shared_hts)
-    if lane >= mindex + 4 and ht_ind < end:
-        prevht = ht_load_from_shared(shared_hts, pos - 4)
-
-    if lane >= mindex + 4 and ht_ind < end:
-        myht = ht_multiply(prevht, myht)
-        ht_save_to_shared(shared_hts, pos, myht)
-
-    #myht = ht_multiply_prev_and_store( pos, 4, myht, shared_hts)
-    if lane >= mindex + 8 and ht_ind < end:
-        prevht = ht_load_from_shared(shared_hts, pos - 8)
-
-    if lane >= mindex + 8 and ht_ind < end:
-        myht = ht_multiply(prevht, myht)
-        ht_save_to_shared(shared_hts, pos, myht)
-
-    #myht = ht_multiply_prev_and_store( pos, 8, myht, shared_hts)
-    if lane >= mindex + 16 and ht_ind < end:
-        prevht = ht_load_from_shared(shared_hts, pos - 16)
-
-    if lane >= mindex + 16 and ht_ind < end:
-        myht = ht_multiply(prevht, myht)
-        ht_save_to_shared(shared_hts, pos, myht)
-
-    #myht = ht_multiply_prev_and_store( pos, 16, myht, shared_hts)
+        # now run segmented scan, unrolling the traditional for loop (does it really save time?)
+        # no synchronization necessary for intra-warp scans since these threads are in
+        # guaranteed lock sttep
+        if lane >= mindex + 1:
+            myht = ht_multiply_prev_and_store(pos, 1, myht, shared_hts)
+        if lane >= mindex + 2:
+            myht = ht_multiply_prev_and_store(pos, 2, myht, shared_hts)
+        if lane >= mindex + 4:
+            myht = ht_multiply_prev_and_store(pos, 4, myht, shared_hts)
+        if lane >= mindex + 8:
+            myht = ht_multiply_prev_and_store(pos, 8, myht, shared_hts)
+        if lane >= mindex + 16:
+            myht = ht_multiply_prev_and_store(pos, 16, myht, shared_hts)
 
     if lane == 31:
         # now lets write out the intermediate results
