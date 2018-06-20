@@ -49,11 +49,11 @@ def coords_for_system(
     stack_depth = 1
     system_size = len(system.coords)
 
-    coords = (
-        torch.tensor(system.coords, dtype=torch.float, device=device).requires_grad_(
-            requires_grad
-        )
-    ).reshape(stack_depth, system_size, 3)
+    coords = torch.tensor(
+        system.coords.reshape(stack_depth, system_size, 3),
+        dtype=torch.float,
+        device=device,
+    ).requires_grad_(requires_grad)
 
     return dict(coords=coords, stack_depth=stack_depth, system_size=system_size)
 

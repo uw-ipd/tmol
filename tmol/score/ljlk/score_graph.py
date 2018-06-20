@@ -108,7 +108,7 @@ class LJLKScoreGraph(
     @reactive_property
     @validate_args
     def lj(
-        atom_pair_inds: Tensor(torch.long)[2, :],
+        atom_pair_inds: Tensor(torch.long)[:, 3],
         atom_pair_dist: Tensor(torch.float)[:],
         ljlk_interaction_weight: Tensor(torch.float)[:, :],
         ljlk_atom_pair_params: LJLKTypePairParams,
@@ -116,7 +116,8 @@ class LJLKScoreGraph(
     ):
         gparams = param_resolver.global_params
         pparams = ljlk_atom_pair_params
-        pidx = (atom_pair_inds[0], atom_pair_inds[1])
+        assert (atom_pair_inds[:, 0] == 0).all()
+        pidx = (atom_pair_inds[:, 1], atom_pair_inds[:, 2])
         return lj_score(
             # Distance
             dist=atom_pair_dist,
@@ -148,7 +149,7 @@ class LJLKScoreGraph(
     @reactive_property
     @validate_args
     def lk(
-        atom_pair_inds: Tensor(torch.long)[2, :],
+        atom_pair_inds: Tensor(torch.long)[:, 3],
         atom_pair_dist: Tensor(torch.float)[:],
         ljlk_interaction_weight: Tensor(torch.float)[:, :],
         ljlk_atom_pair_params: LJLKTypePairParams,
@@ -156,7 +157,8 @@ class LJLKScoreGraph(
     ):
         gparams = param_resolver.global_params
         pparams = ljlk_atom_pair_params
-        pidx = (atom_pair_inds[0], atom_pair_inds[1])
+        assert (atom_pair_inds[:, 0] == 0).all()
+        pidx = (atom_pair_inds[:, 1], atom_pair_inds[:, 2])
         return lk_score(
             # Distance
             dist=atom_pair_dist,
