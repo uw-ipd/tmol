@@ -550,8 +550,6 @@ def warp_segscan_hts1(
     lane = pos & 31
     if ht_ind < end:
         shared_is_root[pos] = is_root[ht_ind]
-    else:
-        shared_is_root[pos] = False
 
     warp_first = warp_id << 5  # ie warp_id * 32; is this faster than multiplication?
     warp_last = warp_first + 31
@@ -565,34 +563,16 @@ def warp_segscan_hts1(
     # now compute mindex by performing a scan on shared_is_root
     # using "max" as the associative operator
     if lane >= 1:
-        res = max(shared_is_root[pos - 1], shared_is_root[pos])
-
-    if lane >= 1:
-        shared_is_root[pos] = res
-
+        shared_is_root[pos] = max(shared_is_root[pos - 1], shared_is_root[pos])
     if lane >= 2:
-        res = max(shared_is_root[pos - 2], shared_is_root[pos])
-
-    if lane >= 2:
-        shared_is_root[pos] = res
-
+        shared_is_root[pos] = max(shared_is_root[pos - 2], shared_is_root[pos])
     if lane >= 4:
-        res = max(shared_is_root[pos - 4], shared_is_root[pos])
-
-    if lane >= 4:
-        shared_is_root[pos] = res
-
+        shared_is_root[pos] = max(shared_is_root[pos - 4], shared_is_root[pos])
     if lane >= 8:
-        res = max(shared_is_root[pos - 8], shared_is_root[pos])
-
-    if lane >= 8:
-        shared_is_root[pos] = res
-
+        shared_is_root[pos] = max(shared_is_root[pos - 8], shared_is_root[pos])
     if lane >= 16:
-        res = max(shared_is_root[pos - 16], shared_is_root[pos])
-
-    if lane >= 16:
-        shared_is_root[pos] = res
+        shared_is_root[pos
+                       ] = max(shared_is_root[pos - 16], shared_is_root[pos])
 
     mindex = shared_is_root[pos]
 
@@ -685,23 +665,11 @@ def warp_segscan_hts2(pos, int_hts, int_is_root):
             int_is_root[pos] = 0
 
     if pos >= 1 and pos < 8:
-        res = max(int_is_root[pos - 1], int_is_root[pos])
-
-    if pos >= 1 and pos < 8:
-        int_is_root[pos] = res
-
+        int_is_root[pos] = max(int_is_root[pos - 1], int_is_root[pos])
     if pos >= 2 and pos < 8:
-        res = max(int_is_root[pos - 2], int_is_root[pos])
-
-    if pos >= 2 and pos < 8:
-        int_is_root[pos] = res
-
+        int_is_root[pos] = max(int_is_root[pos - 2], int_is_root[pos])
     if pos >= 4 and pos < 8:
-        res = max(int_is_root[pos - 4], int_is_root[pos])
-
-    if pos >= 4 and pos < 8:
-        int_is_root[pos] = res
-
+        int_is_root[pos] = max(int_is_root[pos - 4], int_is_root[pos])
     if pos < 8:
         mindex = int_is_root[pos]
 
