@@ -21,7 +21,7 @@ from .kinematics import KinematicDescription
 @StackedSystem.factory_for.register(PackedResidueSystem)
 @validate_args
 def stack_params_for_system(system: PackedResidueSystem, **_):
-    return dict(stack_depth=1, system_size=system.system_size)
+    return dict(stack_depth=1, system_size=int(system.system_size))
 
 
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
@@ -29,12 +29,14 @@ def stack_params_for_system(system: PackedResidueSystem, **_):
 def bonded_atoms_for_system(
     system: PackedResidueSystem, drop_missing_atoms: bool = False, **_
 ):
-    bonds = system.bonds
+    bonds = numpy.empty((len(system.bonds), 3), dtype=int)
+    bonds[:, 0] = 0
+    bonds[:, 1:] = system.bonds
 
-    atom_types = system.atom_metadata["atom_type"].copy()
+    atom_types = system.atom_metadata["atom_type"].copy()[None, :]
 
     if drop_missing_atoms:
-        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
+        atom_types[0, numpy.any(numpy.isnan(system.coords), axis=-1)] = None
 
     return dict(bonds=bonds, atom_types=atom_types)
 

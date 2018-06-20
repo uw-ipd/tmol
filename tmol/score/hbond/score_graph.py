@@ -194,12 +194,15 @@ class HBondScoreGraph(
     @validate_args
     def hbond_elements(
         hbond_database: HBondDatabase,
-        atom_types: NDArray(object)[:],
-        bonds: NDArray(int)[:, 2],
+        atom_types: NDArray(object)[:, :],
+        bonds: NDArray(int)[:, 3],
     ) -> HBondElementAnalysis:
         """hbond score elements in target graph"""
+        assert atom_types.shape[0] == 1
+        assert numpy.all(bonds[:, 0] == 0)
+
         return HBondElementAnalysis.setup(
-            hbond_database=hbond_database, atom_types=atom_types, bonds=bonds
+            hbond_database=hbond_database, atom_types=atom_types[0], bonds=bonds[:, 1:]
         )
 
     @reactive_property

@@ -3,3 +3,4 @@ attrs
 cattrs
 frozendict
 
+sparse==0.3.1
