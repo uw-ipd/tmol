@@ -532,18 +532,12 @@ def segscan_ht_intervals_one_thread_block(
 
 
 @cuda.jit(device=True)
-def temp_syncthreads():
-    #cuda.syncthreads()
-    pass
-
-
-@cuda.jit(device=True)
 def ht_multiply_prev_and_store(pos, offset, myht, shared_hts):
     prevht = ht_load_from_shared(shared_hts, pos - offset)
-    temp_syncthreads()
+
     myht = ht_multiply(prevht, myht)
     ht_save_to_shared(shared_hts, pos, myht)
-    temp_syncthreads()
+
     return myht
 
 
@@ -558,51 +552,47 @@ def warp_segscan_hts1(
         shared_is_root[pos] = is_root[ht_ind]
     else:
         shared_is_root[pos] = False
-    temp_syncthreads()
 
     warp_first = warp_id << 5  # ie warp_id * 32; is this faster than multiplication?
     warp_last = warp_first + 31
     warp_is_open = shared_is_root[warp_first] == 0
-    temp_syncthreads()
 
     myht = identity_ht()
 
     if shared_is_root[pos]:
         shared_is_root[pos] = lane
-    temp_syncthreads()
 
     # now compute mindex by performing a scan on shared_is_root
     # using "max" as the associative operator
     if lane >= 1:
         res = max(shared_is_root[pos - 1], shared_is_root[pos])
-    temp_syncthreads()
+
     if lane >= 1:
         shared_is_root[pos] = res
-    temp_syncthreads()
+
     if lane >= 2:
         res = max(shared_is_root[pos - 2], shared_is_root[pos])
-    temp_syncthreads()
+
     if lane >= 2:
         shared_is_root[pos] = res
-    temp_syncthreads()
+
     if lane >= 4:
         res = max(shared_is_root[pos - 4], shared_is_root[pos])
-    temp_syncthreads()
+
     if lane >= 4:
         shared_is_root[pos] = res
-    temp_syncthreads()
+
     if lane >= 8:
         res = max(shared_is_root[pos - 8], shared_is_root[pos])
-    temp_syncthreads()
+
     if lane >= 8:
         shared_is_root[pos] = res
-    temp_syncthreads()
+
     if lane >= 16:
         res = max(shared_is_root[pos - 16], shared_is_root[pos])
-    temp_syncthreads()
+
     if lane >= 16:
         shared_is_root[pos] = res
-    temp_syncthreads()
 
     mindex = shared_is_root[pos]
 
@@ -625,56 +615,52 @@ def warp_segscan_hts1(
         if htchanged:
             ht_save_to_shared(shared_hts, pos, myht)
 
-    temp_syncthreads()
-
     # now scan, unrolling the traditional for loop (does it really save time?)
     if lane >= mindex + 1 and ht_ind < end:
         #myht = ht_multiply_prev_and_store( pos, 1, myht, shared_hts)
         prevht = ht_load_from_shared(shared_hts, pos - 1)
-    temp_syncthreads()
+
     if lane >= mindex + 1 and ht_ind < end:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(shared_hts, pos, myht)
-    temp_syncthreads()
+
     if lane >= mindex + 2 and ht_ind < end:
         prevht = ht_load_from_shared(shared_hts, pos - 2)
-    temp_syncthreads()
+
     if lane >= mindex + 2 and ht_ind < end:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(shared_hts, pos, myht)
-    temp_syncthreads()
+
     #myht = ht_multiply_prev_and_store( pos, 2, myht, shared_hts)
     if lane >= mindex + 4 and ht_ind < end:
         prevht = ht_load_from_shared(shared_hts, pos - 4)
-    temp_syncthreads()
+
     if lane >= mindex + 4 and ht_ind < end:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(shared_hts, pos, myht)
-    temp_syncthreads()
+
     #myht = ht_multiply_prev_and_store( pos, 4, myht, shared_hts)
     if lane >= mindex + 8 and ht_ind < end:
         prevht = ht_load_from_shared(shared_hts, pos - 8)
-    temp_syncthreads()
+
     if lane >= mindex + 8 and ht_ind < end:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(shared_hts, pos, myht)
-    temp_syncthreads()
+
     #myht = ht_multiply_prev_and_store( pos, 8, myht, shared_hts)
     if lane >= mindex + 16 and ht_ind < end:
         prevht = ht_load_from_shared(shared_hts, pos - 16)
-    temp_syncthreads()
+
     if lane >= mindex + 16 and ht_ind < end:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(shared_hts, pos, myht)
-    temp_syncthreads()
+
     #myht = ht_multiply_prev_and_store( pos, 16, myht, shared_hts)
 
     if lane == 31:
         # now lets write out the intermediate results
         ht_save_to_shared(int_hts, warp_id, myht)
         int_is_root[warp_id] = mindex != 0 or not warp_is_open
-
-    temp_syncthreads()
 
     # for the third stage of this intra-block scan, record whether this
     # thread should accumulate the scanned intermediate HT from stage 2
@@ -698,52 +684,51 @@ def warp_segscan_hts2(pos, int_hts, int_is_root):
         else:
             int_is_root[pos] = 0
 
-    temp_syncthreads()
     if pos >= 1 and pos < 8:
         res = max(int_is_root[pos - 1], int_is_root[pos])
-    temp_syncthreads()
+
     if pos >= 1 and pos < 8:
         int_is_root[pos] = res
-    temp_syncthreads()
+
     if pos >= 2 and pos < 8:
         res = max(int_is_root[pos - 2], int_is_root[pos])
-    temp_syncthreads()
+
     if pos >= 2 and pos < 8:
         int_is_root[pos] = res
-    temp_syncthreads()
+
     if pos >= 4 and pos < 8:
         res = max(int_is_root[pos - 4], int_is_root[pos])
-    temp_syncthreads()
+
     if pos >= 4 and pos < 8:
         int_is_root[pos] = res
-    temp_syncthreads()
+
     if pos < 8:
         mindex = int_is_root[pos]
 
     # now scan, unrolling the traditional for loop (does it really save time?)
     if pos < 8 and pos >= mindex + 1:
         prevht = ht_load_from_shared(int_hts, pos - 1)
-    temp_syncthreads()
+
     if pos < 8 and pos >= mindex + 1:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(int_hts, pos, myht)
-    temp_syncthreads()
+
     #ht_multiply_prev_and_store( pos, 1, myht, int_hts)
     if pos < 8 and pos >= mindex + 2:
         prevht = ht_load_from_shared(int_hts, pos - 2)
-    temp_syncthreads()
+
     if pos < 8 and pos >= mindex + 2:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(int_hts, pos, myht)
-    temp_syncthreads()
+
     #ht_multiply_prev_and_store( pos, 2, myht, int_hts)
     if pos < 8 and pos >= mindex + 4:
         prevht = ht_load_from_shared(int_hts, pos - 4)
-    temp_syncthreads()
+
     if pos < 8 and pos >= mindex + 4:
         myht = ht_multiply(prevht, myht)
         ht_save_to_shared(int_hts, pos, myht)
-    temp_syncthreads()
+
     #ht_multiply_prev_and_store( pos, 4, myht, int_hts)
 
 
