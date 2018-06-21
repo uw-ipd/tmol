@@ -18,15 +18,15 @@ class NodeType(enum.IntEnum):
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class KinTree(TensorGroup, ConvertAttrs):
-    """Representation of atom-level kinematics."""
-
-    # Indices:
-    # id = index for kin-atom into the coords array
-    # parent = kin-atom index of parent for each kin-atom
-    # frame_x = kin-atom index of self
-    # frame_y = kin-atom index of parent
-    # frame_z = kin-atom index of grandparent
-    # backward kinematics routines are in tmol/kinematics/operations.py
+    """Representation of atom-level kinematics.
+    Indices:
+    id = index for kin-atom into the coords array
+    parent = kin-atom index of parent for each kin-atom
+    frame_x = kin-atom index of self
+    frame_y = kin-atom index of parent
+    frame_z = kin-atom index of grandparent
+    backward kinematics routines are in tmol/kinematics/operations.py
+    """
 
     id: Tensor(torch.long)[...]  # used as an index so long
     doftype: Tensor(torch.int)[...]

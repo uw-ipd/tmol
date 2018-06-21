@@ -865,8 +865,6 @@ def reorder_final_f1f2s(natoms, f1f2s_ko, f1f2s_dso, ki2dsi):
             f1f2s_ko[pos, i] = f1f2s_dso[dsi, i]
 
 
-# f1f2 summation should probably be at double precision
-#@cuda.jit('float64[:,:], int32[:,:], boolean[:], int32, int32, int32')
 @cuda.jit
 def segscan_f1f2s_up_tree(
         f1f2s_dso, prior_children, is_leaf, derivsum_atom_ranges
