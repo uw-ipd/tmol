@@ -154,34 +154,18 @@ class Sphere(TensorGroup):
         return cls(center=block_centers, radius=block_radii)
 
 
-# @attr.s(slots=True, auto_attribs=True, frozen=True)
-# class BlockedDistanceAnalysis(ValidateAttrs):
-#     """Sparse inter-coordinate-block mean and minimum distance analysis.
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class SphereDistance(TensorGroup):
+    center_dist: Tensor(torch.float)[...]
+    min_dist: Tensor(torch.float)[...]
 
-#     Inter-block mean and minimum distance analysis for the upper-triangular
-#     component of the inter-block matrix. All values are over non-nan
-#     source coordinates.
+    @classmethod
+    def for_spheres(cls, a: Sphere, b: Sphere):
+        center_dist = (a.center - b.center).norm(dim=-1)
 
-#     Fields:
-#         block_triu_inds: indices of the inter-block interaction matrix for
-#             non-nan blocks, ie. *may* be sparser than full triu indices
-#         block_triu_center_dist: inter-mean distance for block_triu_inds
-#         block_triu_min_dist: min inter-block coordinate distance, calculated by
-#             block-mean & block-radii triangle inequality
-#     """
-#     block_triu_inds: Tensor(torch.long)[:, 2]
-#     block_triu_center_dist: Tensor(torch.float)[:, :]
-#     block_triu_min_dist: Tensor(torch.float)[:, :]
+        min_dist = center_dist - (a.radius + b.radius)
 
-#     def pdist(cls, blocks: Sphere):
-
-#         return cls(
-#             n=blocks.shape[-1],
-#             m=blocks.shape[-1],
-#             block_triu_inds=block_triu_inds,
-#             block_triu_center_dist=block_triu_center_dist,
-#             block_triu_min_dist=block_triu_min_dist,
-#         )
+        return cls(center_dist=center_dist, min_dist=min_dist)
 
 
 @reactive_attrs(auto_attribs=True)
@@ -231,18 +215,9 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
         device = coord_blocks.center.device
         new_tensor = coord_blocks.center.new_tensor
 
-        block_triu_inds = triu_indices(coord_blocks.shape[-1], k=1).to(
-            device=coord_blocks.center.device
+        interblock = SphereDistance.for_spheres(
+            coord_blocks[:, :, None], coord_blocks[:, None, :]
         )
-
-        block_triu_center_dist = (
-            coord_blocks.center[..., block_triu_inds[:, 0], :]
-            - coord_blocks.center[..., block_triu_inds[:, 1], :]
-        ).norm(dim=-1)
-
-        block_triu_min_dist = block_triu_center_dist - coord_blocks.radius[
-            ..., block_triu_inds
-        ].sum(dim=-1)
 
         # Abbreviations used in indexing below
         bs: int = atom_pair_block_size
@@ -253,11 +228,14 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
         #
         # Drop the layer index for now, it will be rejoined back on after
         # expanding block indices into atom indices.
-        interblock_match_indices: Tensor(bool)[:, 2] = (
-            block_triu_min_dist < interatomic_threshold_distance
+        square_dist: Tensor(bool)[:, 3] = (
+            interblock.min_dist < interatomic_threshold_distance
         ).nonzero()
+        interblock_match_indices = square_dist[
+            square_dist[..., 2] < square_dist[..., 1]
+        ]
         interblock_layer_index = interblock_match_indices[:, 0]
-        interblock_pair_index = interblock_match_indices[:, 1]
+        interblock_block_indices = interblock_match_indices[:, 1:]
         n = len(interblock_match_indices)
 
         # Convert the [n] block pair indices in dense atom index tensors.
@@ -266,7 +244,9 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
         #    index tensor and then convert to first-atom-in-block index.
         # 2) Generate [bs, bs] atom index offset meshgrid within a block pair
         # 3) Sum first-atom-index and atom offsets into atom index block
-        first_atom_indices = block_triu_inds[interblock_pair_index] * bs  # Tensor[:, 2]
+
+        # [n, 2]
+        first_atom_indices = interblock_block_indices * bs
 
         # mgrid [2, bs, bs] -> transpose to [bs, bs, 2] -> ravel [bs*bs, 2]
         atom_index_offsets = new_tensor(
