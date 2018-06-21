@@ -38,12 +38,12 @@ def test_interatomic_distance_stacked(
     assert intra_total.shape == (4,)
     assert (intra_total.new_tensor(intra_layer_counts) == intra_total).all()
 
-    inter_total = threshold_distance_score_class.inter_score(
-        score_state, score_state
-    ).total
+    # inter_total = threshold_distance_score_class.inter_score(
+    #     score_state, score_state
+    # ).total
 
-    assert inter_total.shape == (4, 4)
-    assert (inter_total.new_tensor(inter_layer_counts) == inter_total).all()
+    # assert inter_total.shape == (4, 4)
+    # assert (inter_total.new_tensor(inter_layer_counts) == inter_total).all()
 
 
 @pytest.mark.benchmark(group="interatomic_distance_calculation")
