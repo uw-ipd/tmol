@@ -3,8 +3,6 @@ import numpy
 import numba
 from numba import cuda
 
-#from tmol.types.functional import validate_args
-
 from .datatypes import KinTree
 
 
@@ -686,35 +684,35 @@ def get_devicendarray(t):
         return t.numpy()
 
 
-def segscan_hts_gpu(hts_ko, refold_data):
+def segscan_hts_gpu(hts_ko, reordering):
     """Perform a series of segmented scan operations on the input homogeneous transforms
     to compute the coordinates (and coordinate frames) of all atoms in the structure.
     This version uses cuda.syncthreads() calls to ensure that there are no data race
     issues. For this reason, it can be safely run on the CPU using numba's CUDA simulator
     (activated by setting the environment variable NUMBA_ENABLE_CUDASIM=1)"""
 
-    rd = refold_data
+    ro = reordering
     stream = cuda.stream()
 
     segscan_ht_intervals_one_thread_block[1, 256, stream](
-        hts_ko, rd.ri2ki_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
-        rd.refold_atom_ranges_d
+        hts_ko, ro.ri2ki_d, ro.is_root_ro_d, ro.non_subpath_parent_ro_d,
+        ro.refold_atom_ranges_d
     )
 
 
-def warp_synchronous_segscan_hts_gpu(hts_ko, refold_data):
+def warp_synchronous_segscan_hts_gpu(hts_ko, reordering):
     '''Perform a series of segmented scan operations on the input homogeneous transforms
     to compute the coordinates (and coordinate frames) of all atoms in the structure.
     Uses warp-synchronous programming to minimize the number of thread-block synchronization
     events. Warp-synchronous programming is no longer a good idea; it is deprecated-ish
     in CUDA-9 and warp synchronicity is not guaranteed on the Volta architecture. This
     version is also not faser than the other refold version(?!) which surprises me.'''
-    rd = refold_data
+    ro = reordering
     stream = cuda.stream()
 
     segscan_ht_intervals_one_thread_block2[1, 256, stream](
-        hts_ko, rd.ri2ki_d, rd.is_root_ro_d, rd.non_subpath_parent_ro_d,
-        rd.refold_atom_ranges_d
+        hts_ko, ro.ri2ki_d, ro.is_root_ro_d, ro.non_subpath_parent_ro_d,
+        ro.refold_atom_ranges_d
     )
 
 
@@ -937,20 +935,21 @@ def segscan_f1f2s_up_tree(
             cuda.syncthreads()
 
 
-def segscan_f1f2s_gpu(f1f2s_ko, refold_data):
-    rd = refold_data
-    f1f2s_dso_d = cuda.device_array((rd.natoms, 6), dtype="float64")
+def segscan_f1f2s_gpu(f1f2s_ko, reordering):
+    # TO DO: handle f1 and f2 separately; segscan in-place (no reordering kernels)
+    ro = reordering
+    f1f2s_dso_d = cuda.device_array((ro.natoms, 6), dtype="float64")
 
-    nblocks = (rd.natoms - 1) // 512 + 1
+    nblocks = (ro.natoms - 1) // 512 + 1
     reorder_starting_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
+        ro.natoms, f1f2s_ko, f1f2s_dso_d, ro.ki2dsi_d
     )
 
     segscan_f1f2s_up_tree[1, 512](
-        f1f2s_dso_d, rd.non_path_children_dso_d, rd.is_leaf_dso_d,
-        rd.derivsum_atom_ranges_d
+        f1f2s_dso_d, ro.non_path_children_dso_d, ro.is_leaf_dso_d,
+        ro.derivsum_atom_ranges_d
     )
 
     reorder_final_f1f2s[nblocks, 512](
-        rd.natoms, f1f2s_ko, f1f2s_dso_d, rd.ki2dsi_d
+        ro.natoms, f1f2s_ko, f1f2s_dso_d, ro.ki2dsi_d
     )

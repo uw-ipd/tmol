@@ -8,7 +8,7 @@ from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.datatypes import NodeType
 from tmol.kinematics.operations import (
     backwardKin, BondTransforms, JumpTransforms, ExecutionStrategy,
-    GPUKinTreeReordering, SegScanDerivs, Fscollect
+    GPUKinTreeReordering, SegScanDerivs
 )
 
 from tmol.tests.torch import requires_cuda
@@ -121,7 +121,7 @@ def test_gpu_refold_ordering(ubq_system):
     f1f2s[:, 3:6] = f2s
 
     SegScanDerivs(
-        reordering, f1s, f2s, kintree.parent, Fscollect, True,
+        reordering, f1s, f2s, kintree.parent, True,
         ExecutionStrategy.torch_efficient
     )
 
@@ -140,7 +140,7 @@ def test_gpu_refold_ordering(ubq_system):
 
 
 @requires_cuda
-def dont_test_gpu_segscan2(ubq_system, torch_device):
+def test_warp_synchronous_gpu_segscan(ubq_system):
 
     numpy.set_printoptions(threshold=numpy.nan, precision=3)
 
@@ -152,7 +152,9 @@ def dont_test_gpu_segscan2(ubq_system, torch_device):
     ).kintree
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
-    reordering = GPUKinTreeReordering.from_kintree(kintree, torch_device)
+    reordering = GPUKinTreeReordering.from_kintree(
+        kintree, torch.device("cuda")
+    )
 
     dofs = backwardKin(kintree, kincoords).dofs
 
@@ -171,9 +173,10 @@ def dont_test_gpu_segscan2(ubq_system, torch_device):
 
     HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
 
-    tmol.kinematics.gpu_operations.segscan_hts_gpu2(HTs_d, reordering)
+    tmol.kinematics.gpu_operations.warp_synchronous_segscan_hts_gpu(
+        HTs_d, reordering
+    )
 
-    #HTs = HTs_d.copy_to_host()
     refold_kincoords = HTs.numpy()[:, :3, 3].copy()
 
     # needed for ubq_system, but not gradcheck_test_system:
@@ -183,10 +186,6 @@ def dont_test_gpu_segscan2(ubq_system, torch_device):
     ri2ki = ki2ri.copy()
     for i in range(ki2ri.shape[0]):
         ri2ki[ki2ri[i]] = i
-
-    #for i in range(kincoords.shape[0]):
-    #    print(i, ri2ki[i], kincoords[ri2ki[i],:].numpy() - refold_kincoords[ri2ki[i],:])
-    #print("max diff:", numpy.max(numpy.abs(kincoords[1:,:].numpy() - refold_kincoords[1:,:])))
 
     numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
 

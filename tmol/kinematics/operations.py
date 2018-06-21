@@ -292,7 +292,6 @@ def SegScanHTs(
         reordering: GPUKinTreeReordering,
         HTs: Tensor(torch.double),
         parents: Tensor(torch.long)[:],
-        operator,
         upwards: bool,
         strat: ExecutionStrategy = ExecutionStrategy.default
 ):
@@ -309,7 +308,7 @@ def SegScanHTs(
     elif strat == ExecutionStrategy.hand_rolled_cpu:
         iterative_refold(HTs.numpy(), parents.numpy())
     else:
-        TorchSegScan(HTs, parents, operator, upwards, strat)
+        TorchSegScan(HTs, parents, HTcollect, upwards, strat)
 
 
 @validate_args
@@ -318,7 +317,6 @@ def SegScanDerivs(
         f1s: Tensor(torch.double),
         f2s: Tensor(torch.double),
         parents: Tensor(torch.long)[:],
-        operator,
         upwards: bool,
         strat: ExecutionStrategy = ExecutionStrategy.default
 ):
@@ -337,8 +335,8 @@ def SegScanDerivs(
         f1s[:] = f1f2s[:, 0:3]
         f2s[:] = f1f2s[:, 3:6]
     else:
-        TorchSegScan(f1s, parents, operator, upwards, strat)
-        TorchSegScan(f2s, parents, operator, upwards, strat)
+        TorchSegScan(f1s, parents, Fscollect, upwards, strat)
+        TorchSegScan(f2s, parents, Fscollect, upwards, strat)
 
 
 @validate_args
@@ -890,68 +888,10 @@ def forwardKin(
     HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
     # 2) global HTs (rewrite 1->N in-place)
-    SegScanHTs(reordering, HTs, kintree.parent, HTcollect, False, strat)
+    SegScanHTs(reordering, HTs, kintree.parent, False, strat)
 
     coords = HTs[:, :3, 3]
     return ForwardKinResult.create(HTs, coords)
-
-
-#@validate_args
-#def forwardKin2(
-#        kintree: KinTree,
-#        refold_data: GPUKinTreeReordering,
-#        dofs: KinDOF,
-#        execution_strategy: ExecutionStrategy = ExecutionStrategy.default
-#) -> ForwardKinResult:
-#    """dofs -> HTs, xyzs
-#
-#      - "forward" kinematics
-#    """
-#    natoms = len(dofs)
-#    assert len(kintree) == len(dofs)
-#
-#    # 1) local HTs
-#    HTs = torch.empty([natoms, 4, 4],
-#                      dtype=torch.double,
-#                      device=dofs.raw.device)
-#
-#    assert kintree.doftype[0] == NodeType.root
-#    assert kintree.parent[0] == 0
-#    HTs[0] = torch.eye(4)
-#
-#    bondSelector = kintree.doftype == NodeType.bond
-#    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
-#
-#    jumpSelector = kintree.doftype == NodeType.jump
-#    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
-#
-#    if refold_data.natoms != kintree.id.shape[0]:
-#        # i.e. we are not using the GPU version, and therefore we'll
-#        # just run an iterative pass over all the HTs using numba's
-#        # "nopython" compilation mode to make it superfast
-#
-#        # import time
-#        # HTscopy = HTs.clone()
-#        # execution_strategy = ExecutionStrategy("efficient")
-#        # start_time = time.time()
-#        # for ii in range(10000):
-#        #     HTscopy[:] = HTs
-#        #
-#        #     #SegScan(HTscopy, kintree.parent, HTcollect, False, execution_strategy)
-#        #     iterative_refold2(HTscopy.numpy(), kintree.parent.numpy())
-#        # end_time = time.time()
-#        # print(
-#        #     "---- refold %f seconds ----" % ((end_time - start_time) / 10000)
-#        # )
-#
-#        iterative_refold(HTs.numpy(), kintree.parent.numpy())
-#    else:
-#        # 2) numba segmented scan algorithm
-#        HTs_d = get_devicendarray(HTs)
-#        segscan_hts_gpu(HTs_d, refold_data)
-#
-#    coords = HTs[:, :3, 3]
-#    return ForwardKinResult.create(HTs, coords)
 
 
 @validate_args
@@ -983,8 +923,7 @@ def resolveDerivs(
 
     # 2) pass f1/f2s up tree
     SegScanDerivs(
-        reordering, f1s, f2s, kintree.parent, Fscollect, True,
-        execution_strategy
+        reordering, f1s, f2s, kintree.parent, True, execution_strategy
     )
 
     # 3) convert to dscore/dtors
@@ -1009,89 +948,3 @@ def resolveDerivs(
     )
 
     return dsc_ddofs
-
-
-#@validate_args
-#def resolveDerivs2(
-#        kintree: KinTree, refold_data: GPUKinTreeReordering, dofs: KinDOF, HTs: HTArray,
-#        dsc_dx: CoordArray
-#) -> KinDOF:
-#    """xyz derivs -> dof derivs
-#
-#    - derivative mapping using Abe and Go approach
-#    """
-#
-#    assert kintree.doftype[0] == NodeType.root
-#    assert kintree.parent[0] == 0
-#
-#    assert len(kintree) == len(dofs)
-#    assert len(kintree) == len(HTs)
-#    assert len(kintree) == len(dsc_dx)
-#
-#    # 1) local f1/f2s
-#    Xs = HTs[:, 0:3, 3]
-#
-#    f1s = torch.cross(Xs, Xs - dsc_dx)
-#    f2s = dsc_dx.clone()  # clone input buffer before aggregation
-#
-#    # 2) sum f1/f2s up tree, from leaves toward the root using numba
-#    # implementation of segmented scan
-#    f1f2s = torch.cat((f1s, f2s), 1)
-#    if refold_data.natoms != kintree.id.shape[0]:
-#        # i.e. we're running on the CPU so we can use an iterative algorithm
-#        # for accumulating the f1s and f2s
-#
-#        # import time
-#        # #f1f2scopy = f1f2s.clone()
-#        # f1scopy = f1s.clone(); f2scopy = f2s.clone();
-#        # execution_strategy = ExecutionStrategy("efficient")
-#        # start_time = time.time()
-#        # for ii in range(1000):
-#        #     f1scopy[:] = f1s
-#        #     f2scopy[:] = f2s
-#        #     SegScan(f1scopy, kintree.parent, Fscollect, True, execution_strategy)
-#        #     SegScan(f2scopy, kintree.parent, Fscollect, True, execution_strategy)
-#        #     #iterative_f1f2_summation(f1f2scopy.numpy(), kintree.parent.numpy())
-#        # end_time = time.time()
-#        # print(
-#        #     "---- f1f2 summation %f seconds ----" % ((end_time - start_time) / 1000)
-#        # )
-#
-#        iterative_f1f2_summation(
-#            f1f2s.detach().numpy(), kintree.parent.numpy()
-#        )
-#
-#    else:
-#        f1f2s_d = get_devicendarray(f1f2s)
-#        segscan_f1f2s_gpu(f1f2s_d, refold_data)
-#        #print("f1f2s_gpu"); print(f1f2s_d)
-#        #print("f1f2s tensor?"); print(f1f2s.numpy())
-#
-#    f1s[:] = f1f2s[:, 0:3]
-#    f2s[:] = f1f2s[:, 3:6]
-#
-#    #print("numba f1s"); print(f1s)
-#    #print("numba f2s"); print(f2s)
-#
-#    # 3) convert to dscore/dtors
-#    dsc_ddofs = dofs.clone()
-#
-#    bondSelector = kintree.doftype == NodeType.bond
-#    dsc_ddofs.bond[bondSelector] = BondDerivatives(
-#        dofs.bond[bondSelector],
-#        HTs[bondSelector],
-#        HTs[kintree.parent[bondSelector]],
-#        f1s[bondSelector],
-#        f2s[bondSelector],
-#    )
-#
-#    jumpSelector = kintree.doftype == NodeType.jump
-#    dsc_ddofs.jump[jumpSelector] = JumpDerivatives(
-#        dofs.jump[jumpSelector],
-#        HTs[jumpSelector],
-#        HTs[kintree.parent[jumpSelector]],
-#        f1s[jumpSelector],
-#        f2s[jumpSelector],
-#    )
-#
-#    return dsc_ddofs
