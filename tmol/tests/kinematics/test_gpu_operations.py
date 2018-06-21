@@ -6,9 +6,12 @@ import tmol.kinematics.gpu_operations
 from tmol.kinematics.builder import KinematicBuilder
 
 from tmol.kinematics.datatypes import NodeType
-from tmol.kinematics.operations import backwardKin, BondTransforms, JumpTransforms, SegScan, Fscollect
+from tmol.kinematics.operations import (
+    backwardKin, BondTransforms, JumpTransforms, ExecutionStrategy,
+    GPUKinTreeReordering, SegScanHTs, SegScanDerivs, Fscollect
+)
 
-from tmol.tests.torch import requires_cuda
+from tmol.tests.torch import requires_cuda, torch_device
 
 
 def test_gpu_refold_data_construction(ubq_system):
@@ -57,24 +60,20 @@ def test_gpu_refold_data_construction(ubq_system):
 @requires_cuda
 def test_gpu_refold_ordering(ubq_system):
 
-    #numpy.set_printoptions(threshold=numpy.nan, precision=3)
-
-    #kintree, dof_metadata, kincoords = gradcheck_test_system
-
     tsys = ubq_system
     kintree = KinematicBuilder().append_connected_component(
         *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
     ).kintree
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
-    refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(
+    reordering = GPUKinTreeReordering.gpu_reordering_for_kintree(
         kintree, torch.device("cuda")
     )
 
     dofs = backwardKin(kintree, kincoords).dofs
 
     # 1) local HTs
-    HTs = torch.empty([refold_data.natoms, 4, 4], dtype=torch.double)
+    HTs = torch.empty([reordering.natoms, 4, 4], dtype=torch.double)
 
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
@@ -90,7 +89,7 @@ def test_gpu_refold_ordering(ubq_system):
     HTs_d = cuda.to_device(HTs.numpy())
     #HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
 
-    tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
+    tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, reordering)
 
     HTs = HTs_d.copy_to_host()
     refold_kincoords = HTs[:, :3, 3].copy()
@@ -105,27 +104,29 @@ def test_gpu_refold_ordering(ubq_system):
     #import time
     #start_time = time.time()
     #for i in range(10000):
-    #    tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
+    #    tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, reordering)
     #
     #print("--- refold %f seconds ---" % ((time.time() - start_time) / 10000))
 
     # ok, now, let's see that f1f2 summation is functioning properly
     f1s = torch.arange(
-        refold_data.natoms * 3, dtype=torch.float64
-    ).reshape((refold_data.natoms, 3)) / 512.
+        reordering.natoms * 3, dtype=torch.float64
+    ).reshape((reordering.natoms, 3)) / 512.
     f2s = torch.arange(
-        refold_data.natoms * 3, dtype=torch.float64
-    ).reshape((refold_data.natoms, 3)) / 512.
+        reordering.natoms * 3, dtype=torch.float64
+    ).reshape((reordering.natoms, 3)) / 512.
 
-    f1f2s = numpy.zeros((refold_data.natoms, 6))
+    f1f2s = numpy.zeros((reordering.natoms, 6))
     f1f2s[:, 0:3] = f1s
     f1f2s[:, 3:6] = f2s
 
-    SegScan(f1s, kintree.parent, Fscollect, True)
-    SegScan(f2s, kintree.parent, Fscollect, True)
+    SegScanDerivs(
+        reordering, f1s, f2s, kintree.parent, Fscollect, True,
+        ExecutionStrategy.torch_efficient
+    )
 
     f1f2s_d = cuda.to_device(f1f2s)
-    tmol.kinematics.gpu_operations.segscan_f1f2s_gpu(f1f2s_d, refold_data)
+    tmol.kinematics.gpu_operations.segscan_f1f2s_gpu(f1f2s_d, reordering)
 
     f1f2s = f1f2s_d.copy_to_host()
 
@@ -139,7 +140,7 @@ def test_gpu_refold_ordering(ubq_system):
 
 
 @requires_cuda
-def dont_test_gpu_segscan2(ubq_system):
+def dont_test_gpu_segscan2(ubq_system, torch_device):
 
     numpy.set_printoptions(threshold=numpy.nan, precision=3)
 
@@ -151,8 +152,8 @@ def dont_test_gpu_segscan2(ubq_system):
     ).kintree
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
-    refold_data = tmol.kinematics.gpu_operations.refold_data_from_kintree(
-        kintree, torch.device("cuda")
+    reordering = GPUKinTreeReordering.gpu_reordering_for_kintree(
+        kintree, torch_device
     )
 
     dofs = backwardKin(kintree, kincoords).dofs

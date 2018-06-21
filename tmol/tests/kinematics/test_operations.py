@@ -7,12 +7,12 @@ from math import nan
 import pytest
 
 from tmol.kinematics.operations import (
-    SegScanStrategy, backwardKin, forwardKin, resolveDerivs, resolveDerivs2
+    GPUKinTreeReordering, ExecutionStrategy, backwardKin, forwardKin,
+    resolveDerivs
 )
 
 from tmol.kinematics.datatypes import (KinDOF, NodeType, KinTree)
-from tmol.kinematics.gpu_operations import (refold_data_from_kintree)
-from tmol.tests.torch import requires_cuda
+from tmol.tests.torch import requires_cuda, torch_device
 
 
 def score(coords):
@@ -160,6 +160,13 @@ def kintree():
 
 
 @pytest.fixture
+def reordering(torch_device):
+    return GPUKinTreeReordering.gpu_reordering_for_kintree(
+        kintree, torch_device
+    )
+
+
+@pytest.fixture
 def coords():
     NATOMS = 21
     coords = torch.empty([NATOMS, 3], dtype=torch.double)
@@ -197,24 +204,34 @@ def test_score_smoketest(coords):
     score(coords[1:, :])
 
 
-def test_interconversion(kintree, coords):
-    bkin = backwardKin(kintree, coords)
-    refold_eff = forwardKin(kintree, bkin.dofs, SegScanStrategy.efficient)
+def test_interconversion(kintree, reordering, coords):
+    #fd: with single precision 1e-9 is too strict for the assert_allclose calls
 
-    #fd: with single precision 1e-9 is too strict
+    bkin = backwardKin(kintree, coords)
+
+    # torch efficient segmented scan
+    refold_eff = forwardKin(
+        kintree, reordering, bkin.dofs, ExecutionStrategy.torch_efficient
+    )
     numpy.testing.assert_allclose(coords, refold_eff.coords, atol=1e-6)
 
-    bkin = backwardKin(kintree, coords)
-    refold_mindepth = forwardKin(kintree, bkin.dofs, SegScanStrategy.min_depth)
-
-    #fd: with single precision 1e-9 is too strict
+    # torch minimum depth segmented scan
+    refold_mindepth = forwardKin(
+        kintree, reordering, bkin.dofs, ExecutionStrategy.min_depth
+    )
     numpy.testing.assert_allclose(coords, refold_mindepth.coords, atol=1e-6)
 
+    # numba.jitted iterative traversal
+    refold_handrolled = forwardKin(
+        kintree, reordering, bkin.dofs, ExecutionStrategy.hand_rolled_cpu
+    )
+    numpy.testing.assert_allclose(coords, refold_handrolled.coords, atol=1e-6)
 
-def test_perturb(kintree, coords):
+
+def test_perturb(kintree, reordering, coords):
     dofs = backwardKin(kintree, coords).dofs
 
-    pcoords = forwardKin(kintree, dofs).coords
+    pcoords = forwardKin(kintree, reordering, dofs).coords
     assert numpy.allclose(coords, pcoords)
 
     def coord_changed(a, b, atol=1e-3):
@@ -226,7 +243,7 @@ def test_perturb(kintree, coords):
     t_dofs.jump.RBx[6] += 0.2
     t_dofs.jump.RBy[6] += 0.2
     t_dofs.jump.RBz[6] += 0.2
-    pcoords = forwardKin(kintree, t_dofs).coords
+    pcoords = forwardKin(kintree, reordering, t_dofs).coords
 
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     assert numpy.all(coord_changed(pcoords[6:11], coords[6:11]))
@@ -299,7 +316,7 @@ def test_root_sibling_derivs():
     compute_verify_derivs(kintree, coords)
 
 
-def test_derivs(kintree, coords, expected_analytic_derivs):
+def test_derivs(kintree, reordering, coords, expected_analytic_derivs):
     dsc_dtors_numeric, dsc_dtors_analytic = compute_verify_derivs(
         kintree, coords
     )
@@ -314,7 +331,7 @@ def test_derivs(kintree, coords, expected_analytic_derivs):
     )
 
 
-def test_f1f2_resolution_strategies_match(kintree, coords):
+def test_f1f2_resolution_strategies_match(kintree, reordering, coords):
     NATOMS, _ = coords.shape
     bkin = backwardKin(kintree, coords)
     HTs, dofs = bkin.hts, bkin.dofs
@@ -323,10 +340,15 @@ def test_f1f2_resolution_strategies_match(kintree, coords):
     dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
     dsc_dx[1:] = dscore(coords[1:, :])
     dsc_dtors_analytic_eff = resolveDerivs(
-        kintree, dofs, HTs, dsc_dx, SegScanStrategy.efficient
+        kintree, dofs, HTs, dsc_dx, ExecutionStrategy.torch_efficient
     )
     dsc_dtors_analytic_min_depth = resolveDerivs(
-        kintree, dofs, HTs, dsc_dx, SegScanStrategy.min_depth
+        kintree, dofs, HTs, dsc_dx, ExecutionStrategy.torch_min_depth
+    )
+
+    dsc_dtors_handrolled_cpu = resolveDerivs(
+        kintree, reordering, dofs, HTs, dsc_dx,
+        ExecutionStrategy.hand_rolled_cpu
     )
 
     numpy.testing.assert_allclose(
@@ -335,22 +357,29 @@ def test_f1f2_resolution_strategies_match(kintree, coords):
         atol=1e-7
     )
 
+    numpy.testing.assert_allclose(
+        dsc_dtors_analytic_eff.raw[1:],
+        dsc_dtors_hand_rolled_cpu.raw[1:],
+        atol=1e-7
+    )
+
 
 @requires_cuda
-def test_f1f2_resolution_strategies_match2(kintree, coords):
+def test_f1f2_resolution_strategies_match2(kintree, reordering, coords):
     NATOMS, _ = coords.shape
     bkin = backwardKin(kintree, coords)
     HTs, dofs = bkin.hts, bkin.dofs
-    refold_data = refold_data_from_kintree(kintree, torch.device("cuda"))
 
     # Compute analytic derivs
     dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
     dsc_dx[1:] = dscore(coords[1:, :])
     dsc_dtors_analytic_eff = resolveDerivs(
-        kintree, dofs, HTs, dsc_dx, SegScanStrategy.efficient
+        kintree, reordering, dofs, HTs, dsc_dx,
+        ExecutionStrategy.torch_efficient
     )
-    dsc_dtors_analytic_numba = resolveDerivs2(
-        kintree, refold_data, dofs, HTs, dsc_dx
+    dsc_dtors_analytic_numba = resolveDerivs(
+        kintree, reordering, dofs, HTs, dsc_dx,
+        ExecutionStrategy.hand_rolled_gpu
     )
 
     numpy.testing.assert_allclose(
@@ -360,7 +389,7 @@ def test_f1f2_resolution_strategies_match2(kintree, coords):
     )
 
 
-def compute_verify_derivs(kintree, coords):
+def compute_verify_derivs(kintree, reordering, coords):
     NATOMS, _ = coords.shape
     bkin = backwardKin(kintree, coords)
     HTs, dofs = bkin.hts, bkin.dofs
@@ -368,7 +397,7 @@ def compute_verify_derivs(kintree, coords):
     # Compute analytic derivs
     dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
     dsc_dx[1:] = dscore(coords[1:, :])
-    dsc_dtors_analytic = resolveDerivs(kintree, dofs, HTs, dsc_dx)
+    dsc_dtors_analytic = resolveDerivs(kintree, reordering, dofs, HTs, dsc_dx)
 
     # Compute numeric derivs and store node indicies
 

@@ -4,12 +4,11 @@ import torch
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
-from .datatypes import KinTree, KinDOF, RefoldData
+from .datatypes import KinTree, KinDOF
 from .metadata import DOFMetadata
 
-from .operations import forwardKin2, backwardKin, \
-    resolveDerivs2, SegScanStrategy
-from .gpu_operations import refold_data_from_kintree
+from .operations import forwardKin, backwardKin, \
+    resolveDerivs, ExecutionStrategy, GPUKinTreeReordering
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -33,13 +32,13 @@ class KinematicOp:
     """
 
     kintree: KinTree
-    refold_data: RefoldData
+    reordering: GPUKinTreeReordering
     mobile_dofs: DOFMetadata
 
     src_dofs: KinDOF
     src_mobile_dofs: Tensor("f8")[:]
 
-    scan_strategy: SegScanStrategy = SegScanStrategy.default
+    execution_strategy: ExecutionStrategy = ExecutionStrategy.default
 
     @classmethod
     @validate_args
@@ -49,17 +48,20 @@ class KinematicOp:
             mobile_dofs: DOFMetadata,
             kin_coords: Tensor("f8")[:, 3],
             device: torch.device,
+            execution_strategy: ExecutionStrategy = ExecutionStrategy.default,
             **kwargs,
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""
         bkin = backwardKin(kintree, kin_coords)
-        refold_data = refold_data_from_kintree(kintree, device)
+        reordering = GPUKinTreeReordering.gpu_reordering_for_kintree(
+            kintree, device
+        )
         src_mobile_dofs = bkin.dofs.raw[mobile_dofs.node_idx,
                                         mobile_dofs.dof_idx]
 
         return cls(
             kintree=kintree,
-            refold_data=refold_data,
+            reordering=reordering,
             mobile_dofs=mobile_dofs,
             src_dofs=bkin.dofs,
             src_mobile_dofs=src_mobile_dofs,
@@ -102,16 +104,12 @@ class KinematicFun(torch.autograd.Function):
         working_dofs.raw[ctx.kinematic_op.mobile_dofs.node_idx,
                          ctx.kinematic_op.mobile_dofs.dof_idx] = dofs
 
-        fkin = forwardKin2(
-            ctx.kinematic_op.kintree, ctx.kinematic_op.refold_data,
-            working_dofs
+        fkin = forwardKin(
+            ctx.kinematic_op.kintree,
+            ctx.kinematic_op.reordering,
+            working_dofs,
+            strat=ctx.kinematic_op.execution_strategy,
         )
-
-        # fkin = forwardKin(
-        #     ctx.kinematic_op.kintree,
-        #     working_dofs,
-        #     scan_strategy=ctx.kinematic_op.scan_strategy,
-        # )
 
         ctx.save_for_backward(working_dofs.raw, fkin.hts)
 
@@ -125,9 +123,9 @@ class KinematicFun(torch.autograd.Function):
         working_dofs_raw, hts = ctx.saved_tensors
         working_dofs = KinDOF(raw=working_dofs_raw)
 
-        working_derivs = resolveDerivs2(
-            ctx.kinematic_op.kintree, ctx.kinematic_op.refold_data,
-            working_dofs, hts, coord_grads
+        working_derivs = resolveDerivs(
+            ctx.kinematic_op.kintree, ctx.kinematic_op.reordering,
+            working_dofs, hts, coord_grads, ctx.kinematic_op.execution_strategy
         )
 
         result_derivs = working_derivs.raw[
