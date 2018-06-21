@@ -1,7 +1,6 @@
 import enum
 import torch
 import attr
-import numba
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup

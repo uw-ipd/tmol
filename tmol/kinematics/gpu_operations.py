@@ -3,7 +3,7 @@ import numpy
 import numba
 from numba import cuda
 
-from tmol.types.functional import validate_args
+#from tmol.types.functional import validate_args
 
 from .datatypes import KinTree
 

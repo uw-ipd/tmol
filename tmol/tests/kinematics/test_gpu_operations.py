@@ -8,10 +8,10 @@ from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.datatypes import NodeType
 from tmol.kinematics.operations import (
     backwardKin, BondTransforms, JumpTransforms, ExecutionStrategy,
-    GPUKinTreeReordering, SegScanHTs, SegScanDerivs, Fscollect
+    GPUKinTreeReordering, SegScanDerivs, Fscollect
 )
 
-from tmol.tests.torch import requires_cuda, torch_device
+from tmol.tests.torch import requires_cuda
 
 
 def test_gpu_refold_data_construction(ubq_system):
@@ -66,7 +66,7 @@ def test_gpu_refold_ordering(ubq_system):
     ).kintree
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
-    reordering = GPUKinTreeReordering.gpu_reordering_for_kintree(
+    reordering = GPUKinTreeReordering.from_kintree(
         kintree, torch.device("cuda")
     )
 
@@ -152,14 +152,12 @@ def dont_test_gpu_segscan2(ubq_system, torch_device):
     ).kintree
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
 
-    reordering = GPUKinTreeReordering.gpu_reordering_for_kintree(
-        kintree, torch_device
-    )
+    reordering = GPUKinTreeReordering.from_kintree(kintree, torch_device)
 
     dofs = backwardKin(kintree, kincoords).dofs
 
     # 1) local HTs
-    HTs = torch.empty([refold_data.natoms, 4, 4], dtype=torch.double)
+    HTs = torch.empty([reordering.natoms, 4, 4], dtype=torch.double)
 
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
@@ -173,7 +171,7 @@ def dont_test_gpu_segscan2(ubq_system, torch_device):
 
     HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
 
-    tmol.kinematics.gpu_operations.segscan_hts_gpu2(HTs_d, refold_data)
+    tmol.kinematics.gpu_operations.segscan_hts_gpu2(HTs_d, reordering)
 
     #HTs = HTs_d.copy_to_host()
     refold_kincoords = HTs.numpy()[:, :3, 3].copy()
@@ -181,7 +179,7 @@ def dont_test_gpu_segscan2(ubq_system, torch_device):
     # needed for ubq_system, but not gradcheck_test_system:
     refold_kincoords[0, :] = numpy.nan
 
-    ki2ri = refold_data.ki2ri_d.copy_to_host()
+    ki2ri = reordering.ki2ri_d.copy_to_host()
     ri2ki = ki2ri.copy()
     for i in range(ki2ri.shape[0]):
         ri2ki[ki2ri[i]] = i
@@ -196,6 +194,6 @@ def dont_test_gpu_segscan2(ubq_system, torch_device):
     # import time
     # start_time = time.time()
     # for i in range(1000):
-    #     tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, refold_data)
+    #     tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, reordering)
     #
     # print("--- refold %f seconds ---" % ((time.time() - start_time) / 1000))

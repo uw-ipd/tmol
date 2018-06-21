@@ -5,11 +5,12 @@ from tmol.kinematics import (
     backwardKin,
     forwardKin,
 )
-
+#from tmol.tests.torch import torch_device
 from tmol.kinematics.builder import KinematicBuilder
+from tmol.kinematics.operations import GPUKinTreeReordering
 
 
-def test_builder_refold(ubq_system):
+def test_builder_refold(ubq_system, torch_device):
     tsys = ubq_system
 
     kintree = KinematicBuilder().append_connected_component(
@@ -17,8 +18,9 @@ def test_builder_refold(ubq_system):
     ).kintree
 
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
+    reordering = GPUKinTreeReordering.from_kintree(kintree, torch_device)
     refold_kincoords = forwardKin(
-        kintree,
+        kintree, reordering,
         backwardKin(kintree, kincoords).dofs
     ).coords
 

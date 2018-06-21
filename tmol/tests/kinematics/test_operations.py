@@ -12,7 +12,7 @@ from tmol.kinematics.operations import (
 )
 
 from tmol.kinematics.datatypes import (KinDOF, NodeType, KinTree)
-from tmol.tests.torch import requires_cuda, torch_device
+from tmol.tests.torch import requires_cuda
 
 
 def score(coords):
@@ -160,10 +160,8 @@ def kintree():
 
 
 @pytest.fixture
-def reordering(torch_device):
-    return GPUKinTreeReordering.gpu_reordering_for_kintree(
-        kintree, torch_device
-    )
+def reordering(kintree, torch_device):
+    return GPUKinTreeReordering.from_kintree(kintree, torch_device)
 
 
 @pytest.fixture
@@ -217,7 +215,7 @@ def test_interconversion(kintree, reordering, coords):
 
     # torch minimum depth segmented scan
     refold_mindepth = forwardKin(
-        kintree, reordering, bkin.dofs, ExecutionStrategy.min_depth
+        kintree, reordering, bkin.dofs, ExecutionStrategy.torch_min_depth
     )
     numpy.testing.assert_allclose(coords, refold_mindepth.coords, atol=1e-6)
 
@@ -261,7 +259,7 @@ def test_perturb(kintree, reordering, coords):
     rd_dofs.jump.RBdel_beta[6] += 0.2
     rd_dofs.jump.RBdel_gamma[6] += 0.3
 
-    pcoords = forwardKin(kintree, rd_dofs).coords
+    pcoords = forwardKin(kintree, reordering, rd_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
     assert numpy.all(
@@ -276,7 +274,7 @@ def test_perturb(kintree, reordering, coords):
     r_dofs.jump.RBalpha[6] += 0.1
     r_dofs.jump.RBbeta[6] += 0.2
     r_dofs.jump.RBgamma[6] += 0.3
-    pcoords = forwardKin(kintree, r_dofs).coords
+    pcoords = forwardKin(kintree, reordering, r_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
     assert numpy.all(
@@ -286,7 +284,7 @@ def test_perturb(kintree, reordering, coords):
     numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
 
 
-def test_root_sibling_derivs():
+def test_root_sibling_derivs(torch_device):
     """Verify derivatives in post-jump bonded siblings."""
     NATOMS = 6
 
@@ -304,6 +302,8 @@ def test_root_sibling_derivs():
     kintree[4] = KinTree.node(1, BOND, 1, 4, 1, 2)
     kintree[5] = KinTree.node(1, BOND, 4, 5, 4, 1)  #fd: 2->1
 
+    reordering = GPUKinTreeReordering.from_kintree(kintree, torch_device)
+
     coords = torch.tensor([
         [0.000, 0.000, 0.000],
         [2.000, 2.000, 2.000],
@@ -313,12 +313,12 @@ def test_root_sibling_derivs():
         [3.383, 4.339, 1.471],
     ]).to(torch.double)
 
-    compute_verify_derivs(kintree, coords)
+    compute_verify_derivs(kintree, reordering, coords)
 
 
 def test_derivs(kintree, reordering, coords, expected_analytic_derivs):
     dsc_dtors_numeric, dsc_dtors_analytic = compute_verify_derivs(
-        kintree, coords
+        kintree, reordering, coords
     )
 
     # Verify against stored derivatives for regression
@@ -340,10 +340,12 @@ def test_f1f2_resolution_strategies_match(kintree, reordering, coords):
     dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
     dsc_dx[1:] = dscore(coords[1:, :])
     dsc_dtors_analytic_eff = resolveDerivs(
-        kintree, dofs, HTs, dsc_dx, ExecutionStrategy.torch_efficient
+        kintree, reordering, dofs, HTs, dsc_dx,
+        ExecutionStrategy.torch_efficient
     )
     dsc_dtors_analytic_min_depth = resolveDerivs(
-        kintree, dofs, HTs, dsc_dx, ExecutionStrategy.torch_min_depth
+        kintree, reordering, dofs, HTs, dsc_dx,
+        ExecutionStrategy.torch_min_depth
     )
 
     dsc_dtors_handrolled_cpu = resolveDerivs(
@@ -359,7 +361,7 @@ def test_f1f2_resolution_strategies_match(kintree, reordering, coords):
 
     numpy.testing.assert_allclose(
         dsc_dtors_analytic_eff.raw[1:],
-        dsc_dtors_hand_rolled_cpu.raw[1:],
+        dsc_dtors_handrolled_cpu.raw[1:],
         atol=1e-7
     )
 
@@ -420,10 +422,10 @@ def compute_verify_derivs(kintree, reordering, coords):
 
         for j in range(ndof):
             dofs.raw[i, j] += 0.0001
-            coordsAlt = forwardKin(kintree, dofs).coords
+            coordsAlt = forwardKin(kintree, reordering, dofs).coords
             sc_p = score(coordsAlt[1:, :])
             dofs.raw[i, j] -= 0.0002
-            coordsAlt = forwardKin(kintree, dofs).coords
+            coordsAlt = forwardKin(kintree, reordering, dofs).coords
             sc_m = score(coordsAlt[1:, :])
             dofs.raw[i, j] += 0.0001
 

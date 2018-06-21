@@ -53,9 +53,7 @@ class KinematicOp:
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""
         bkin = backwardKin(kintree, kin_coords)
-        reordering = GPUKinTreeReordering.gpu_reordering_for_kintree(
-            kintree, device
-        )
+        reordering = GPUKinTreeReordering.from_kintree(kintree, device)
         src_mobile_dofs = bkin.dofs.raw[mobile_dofs.node_idx,
                                         mobile_dofs.dof_idx]
 

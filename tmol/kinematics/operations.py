@@ -50,11 +50,11 @@ class GPUKinTreeReordering:
     non_path_children_dso_d: numba.types.Array
     derivsum_atom_ranges_d: numba.types.Array
 
-    # Alex: how do I get validate arsgs for a class's construction method?
+    # Alex: how do I get validate args for a class's construction method?
     @staticmethod
-    def gpu_reordering_for_kintree(kintree: KinTree, device: torch.device):
+    def from_kintree(kintree: KinTree, device: torch.device):
         '''Constructs a GPUKinTreeReordering object for a given KinTree
-    
+
         The GPUKinTreeReordering divides the tree into a set of paths. Along
         each path is a continuous chain of atoms that either 1) require their
         coordinate frames computed as a cumulative product of homogeneous
@@ -63,12 +63,12 @@ class GPUKinTreeReordering:
         algorithm. In both cases, these paths can be processed efficiently
         on the GPU using an algorithm called "scan" and batches of these paths
         can be processed at once in a variant called "segmented scan."
-    
+
         Each path in the tree is labeled with a depth: a path with depth
         i may depend on the values computed for atoms with depths 0..i-1.
         All of the paths of the same depth can be processed in a single
         kernel execution with segmented scan.
-    
+
         In order to divide the tree into these paths, this class constructs
         two reorderings of the atoms: a refold ordering (ro) using refold
         indices (ri) and a derivsum ordering (dso) using derivsum indices (di).
@@ -78,7 +78,7 @@ class GPUKinTreeReordering:
         two sets of interconversion arrays for going from kintree indexing
         to 1) refold indexing, and to 2) derivsum indexing: ki2ri & ri2ki and
         ki2dsi & dsi2ki.
-    
+
         The algorithm for dividing the tree into paths minimizes the number
         of depths in the tree. For any node in the tree, one of its children
         will be in the same path with it, and all other children will be
@@ -91,7 +91,7 @@ class GPUKinTreeReordering:
         select the child with the largest branching factor as its on-path
         child to minimize its branching factor. This division produces
         a minimum depth tree of paths.
-    
+
         The same set of paths is used for both the refold algorithm and
         the derivative summation; the refold algorithm starts at path
         roots and multiplies homogeneous transforms towards the leaves.
@@ -304,7 +304,7 @@ def SegScanHTs(
             iterative_refold(HTs.numpy(), parents.numpy())
     elif strat == ExecutionStrategy.hand_rolled_gpu:
         assert (reordering.active())
-        HTs_d = get_device_ndarray(HTs)
+        HTs_d = get_devicendarray(HTs)
         segscan_hts_gpu(HTs_d, reordering)
     elif strat == ExecutionStrategy.hand_rolled_cpu:
         iterative_refold(HTs.numpy(), parents.numpy())
@@ -328,8 +328,8 @@ def SegScanDerivs(
         f1f2s = torch.cat((f1s, f2s), 1)
 
         if reordering.active() and \
-           ( strat == ExecutionStrategy.hand_rolled or \
-             strat == ExecutionStrategy.hand_rolled_gpu ):
+                (strat == ExecutionStrategy.hand_rolled or
+                strat == ExecutionStrategy.hand_rolled_gpu):
             f1f2s_d = get_devicendarray(f1f2s)
             segscan_f1f2s_gpu(f1f2s_d, reordering)
         else:
