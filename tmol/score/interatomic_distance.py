@@ -168,6 +168,74 @@ class SphereDistance(TensorGroup):
         return cls(center_dist=center_dist, min_dist=min_dist)
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class IntraLayerAtomPairs:
+    inds: Tensor(torch.long)[:, 3]
+
+    @classmethod
+    def for_coord_blocks(
+        cls, block_size: int, coord_blocks: Sphere, threshold_distance: float
+    ):
+        # Abbreviations used in indexing below
+        # num_layers, num_blocks
+        nl, nb = coord_blocks.shape
+        bs: int = block_size
+
+        interblock = SphereDistance.for_spheres(
+            coord_blocks[:, :, None, None, None], coord_blocks[:, None, None, :, None]
+        )
+        assert interblock.shape == (nl, nb, 1, nb, 1)
+
+        atom_pair_mask = interblock.min_dist.new_full(
+            (nl, nb, bs, nb, bs), 0, dtype=torch.uint8
+        )
+
+        atom_pair_mask.masked_fill_(interblock.min_dist < threshold_distance, 1)
+        atom_pair_mask = atom_pair_mask.reshape((nl, nb * bs, nb * bs))
+
+        atom_pair_mask.masked_fill_(
+            torch.ones_like(atom_pair_mask[0]).tril()[None, :, :], 0
+        )
+
+        return cls(atom_pair_mask.nonzero())
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class InterLayerAtomPairs:
+    inds: Tensor(torch.long)[:, 4]
+
+    @classmethod
+    def for_coord_blocks(
+        cls,
+        atom_pair_block_size: int,
+        coord_blocks_a: Sphere,
+        coord_blocks_b: Sphere,
+        interatomic_threshold_distance: float,
+    ):
+        # Abbreviations used in indexing below
+        # num_layers_[ab], num_blocks_[ab]
+        nla, nba = coord_blocks_a.shape
+        nlb, nbb = coord_blocks_b.shape
+        # block_size
+        bs: int = atom_pair_block_size
+
+        interblock = SphereDistance.for_spheres(
+            coord_blocks_a[:, :, None, None, None, None],
+            coord_blocks_b[None, None, None, :, :, None],
+        )
+        assert interblock.shape == (nla, nba, 1, nlb, nbb, 1)
+
+        atom_pair_mask = interblock.min_dist.new_full(
+            (nla, nba, bs, nlb, nbb, bs), 0, dtype=torch.uint8
+        )
+        atom_pair_mask.masked_fill_(
+            interblock.min_dist < interatomic_threshold_distance, 1
+        )
+        atom_pair_mask = atom_pair_mask.reshape((nla, nba * bs, nlb, nbb * bs))
+
+        return cls(torch.nonzero(atom_pair_mask))
+
+
 @reactive_attrs(auto_attribs=True)
 class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
     # atom block size for block-neighbor optimization
@@ -199,8 +267,6 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
 
     @reactive_property
     def atom_pair_inds(
-        stack_depth: int,
-        system_size: int,
         atom_pair_block_size: int,
         coord_blocks: Sphere,
         interatomic_threshold_distance: float,
@@ -210,84 +276,8 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
         [layer, atom_i, atom_i] index tensor for all triu (upper triangular)
         per-layer atom pairs.
         """
-
-        # Localize to current device of input analysis
-        device = coord_blocks.center.device
-        new_tensor = coord_blocks.center.new_tensor
-
-        interblock = SphereDistance.for_spheres(
-            coord_blocks[:, :, None], coord_blocks[:, None, :]
-        )
-
-        # Abbreviations used in indexing below
-        bs: int = atom_pair_block_size
-        nb: int = int(system_size / atom_pair_block_size)
-
-        # Convert the triu block-min-dist table to coindexed index tensors
-        # of layer index and block pair index (within the dense triu list)
-        #
-        # Drop the layer index for now, it will be rejoined back on after
-        # expanding block indices into atom indices.
-        square_dist: Tensor(bool)[:, 3] = (
-            interblock.min_dist < interatomic_threshold_distance
-        ).nonzero()
-        interblock_match_indices = square_dist[
-            square_dist[..., 2] < square_dist[..., 1]
-        ]
-        interblock_layer_index = interblock_match_indices[:, 0]
-        interblock_block_indices = interblock_match_indices[:, 1:]
-        n = len(interblock_match_indices)
-
-        # Convert the [n] block pair indices in dense atom index tensors.
-        #
-        # 1) Convert block pair indices into [n, 2] (from_block, to_block)
-        #    index tensor and then convert to first-atom-in-block index.
-        # 2) Generate [bs, bs] atom index offset meshgrid within a block pair
-        # 3) Sum first-atom-index and atom offsets into atom index block
-
-        # [n, 2]
-        first_atom_indices = interblock_block_indices * bs
-
-        # mgrid [2, bs, bs] -> transpose to [bs, bs, 2] -> ravel [bs*bs, 2]
-        atom_index_offsets = new_tensor(
-            numpy.mgrid[:bs, :bs].T, dtype=torch.long
-        ).reshape(-1, 2)
-
-        interblock_atom_pair_ind_blocks = (  # [n, bs * bs, 2]
-            first_atom_indices[:, None, :] + atom_index_offsets[None, :, :]
-        )
-
-        # Stack into [n, bs*bs, 3]
-        # then ravel to [n*bs*bs, 3] (layer, from_a, to_a) index tensor
-        interblock_layer_ind_blocks = interblock_layer_index[:, None, None].expand(
-            -1, bs * bs, 1
-        )
-        interblock_dense_ind = torch.cat(
-            (interblock_layer_ind_blocks, interblock_atom_pair_ind_blocks), dim=-1
-        ).reshape(n * bs * bs, 3)
-
-        # Calculate the intra-block triu atom pair indices
-        #
-        # Similarly, generate first-atom-in-block index for all blocks
-        # Generate the intrablock triu index offsets and sum, then ravel
-        # into atom pair index tensor
-        block_start_ind = torch.arange(nb, dtype=torch.long, device=device) * bs
-        stack_ind = torch.arange(stack_depth, dtype=torch.long, device=device)
-        m = int(bs * (bs - 1) / 2)
-
-        intrablock_atom_pair_ind = (
-            (
-                block_start_ind[:, None, None]
-                + triu_indices(bs, k=1).to(device=device)[None, :, :]  # [nb]  # [m, 2]
-            )
-            .reshape(1, nb * m, 2)
-            .expand(stack_depth, -1, 2)
-        )
-        intrablock_layer_ind = stack_ind[:, None, None].expand(-1, nb * m, 1)
-        intrablock_dense_ind = torch.cat(
-            (intrablock_layer_ind, intrablock_atom_pair_ind), dim=-1
-        ).reshape(stack_depth * nb * m, 3)
-
-        raw_atom_pairs = torch.cat((interblock_dense_ind, intrablock_dense_ind), dim=0)
-
-        return raw_atom_pairs
+        return IntraLayerAtomPairs.for_coord_blocks(
+            block_size=atom_pair_block_size,
+            coord_blocks=coord_blocks,
+            threshold_distance=interatomic_threshold_distance,
+        ).inds
