@@ -14,6 +14,7 @@ from tmol.kinematics.operations import (
 from tmol.tests.torch import requires_cuda
 
 
+@requires_cuda
 def test_gpu_refold_data_construction(ubq_system):
     tsys = ubq_system
     kintree = KinematicBuilder().append_connected_component(
@@ -21,17 +22,22 @@ def test_gpu_refold_data_construction(ubq_system):
     ).kintree
     torch.DoubleTensor(tsys.coords[kintree.id])
 
-    natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro, \
-        branching_factor_ko, subpath_child_ko, \
-        subpath_length_ko, is_subpath_root_ko, is_subpath_leaf_ko, \
-        refold_atom_depth_ko, refold_atom_range_for_depth, subpath_root_ro, \
-        is_leaf_dso, n_nonpath_children_ko, \
-        derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki, \
-        non_path_children_ko, non_path_children_dso = \
-        tmol.kinematics.gpu_operations.construct_refold_and_derivsum_orderings(kintree)
+    ordering = GPUKinTreeReordering.from_kintree(kintree, torch.device("cuda"))
+
+    # Extract path data from tree reordering.
+    natoms = ordering.natoms
+    subpath_child_ko = ordering.subpath_child_ko
+    ki2ri = ordering.ki2ri_d.copy_to_host()
+    dsi2ki = ordering.dsi2ki
+    parent_ko = kintree.parent
+    non_subpath_parent_ro = ordering.non_subpath_parent_ro_d.copy_to_host()
+    subpath_child_ko = ordering.subpath_child_ko
+    non_path_children_ko = ordering.non_path_children_ko
+    non_path_children_dso = ordering.non_path_children_dso_d.copy_to_host()
 
     for ii_ki in range(natoms):
-        parent_ki = parent_ko[ii_ki]
+        parent_ki = kintree.parent[ii_ki]
+
         ii_ri = ki2ri[ii_ki]
         parent_ri = ki2ri[parent_ki]
         assert parent_ki == ii_ki or \
@@ -39,8 +45,7 @@ def test_gpu_refold_data_construction(ubq_system):
             non_subpath_parent_ro[ii_ri] == parent_ri
 
         child_ki = subpath_child_ko[ii_ki]
-        assert child_ki == -1 or \
-            non_subpath_parent_ro[ki2ri[child_ki]] == -1
+        assert child_ki == -1 or non_subpath_parent_ro[ki2ri[child_ki]] == -1
 
     for ii in range(natoms):
         for jj in range(non_path_children_ko.shape[1]):
@@ -53,7 +58,6 @@ def test_gpu_refold_data_construction(ubq_system):
         for jj in range(non_path_children_ko.shape[1]):
             child = non_path_children_dso[ii, jj]
             ii_ki = dsi2ki[ii]
-            #print(ii,ii_ki,jj,"child",child,"child dsi",refold_data.dsi2ki[child],refold_data.parent_ko[refold_data.dsi2ki[child]])
             assert child == -1 or ii_ki == parent_ko[dsi2ki[child]]
 
 

@@ -10,17 +10,65 @@ from .datatypes import KinTree
 
 @attr.s(auto_attribs=True, frozen=True)
 class GPUKinTreeReordering:
-    '''The GPUKinTreeReordering class partitions a KinTree into a set of paths so that
+    """Path plans for parallel kinematic operations.
+
+    The GPUKinTreeReordering class partitions a KinTree into a set of paths so that
     scan can be run on each path 1) from root to leaf for forward kinematics, and
     2) from leaf to root for f1f2 derivative summation. To accomplish this, the
     GPUKinTreeReordering class reorders the atoms from the original KinTree order ("ko")
     where atoms are known by their kintree-index ("ki") into 1) their refold order
     ("ro") where atoms are known by their refold index ("ri") and 2) their
-    deriv-sum order ("dso") where atoms are known by their deriv-sum index.'''
+    deriv-sum order ("dso") where atoms are known by their deriv-sum index.
+
+    The GPUKinTreeReordering divides the tree into a set of paths. Along
+    each path is a continuous chain of atoms that either 1) require their
+    coordinate frames computed as a cumulative product of homogeneous
+    transforms for the coordinate update algorithm, or 2) require the
+    cumulative sum of their f1f2 vectors for the derivative calculation
+    algorithm. In both cases, these paths can be processed efficiently
+    on the GPU using an algorithm called "scan" and batches of these paths
+    can be processed at once in a variant called "segmented scan."
+
+    Each path in the tree is labeled with a depth: a path with depth
+    i may depend on the values computed for atoms with depths 0..i-1.
+    All of the paths of the same depth can be processed in a single
+    kernel execution with segmented scan.
+
+    In order to divide the tree into these paths, this class constructs
+    two reorderings of the atoms: a refold ordering (ro) using refold
+    indices (ri) and a derivsum ordering (dso) using derivsum indices (di).
+    The original ordering from the kintree is the kintree ordering (ko)
+    using kintree indices (ki). The indexing in this code is HAIRY, and
+    so all arrays are labled with the indexing they are using. There are
+    two sets of interconversion arrays for going from kintree indexing
+    to 1) refold indexing, and to 2) derivsum indexing: ki2ri & ri2ki and
+    ki2dsi & dsi2ki.
+
+    The algorithm for dividing the tree into paths minimizes the number
+    of depths in the tree. For any node in the tree, one of its children
+    will be in the same path with it, and all other children will be
+    roots of their own subtrees. The minimum-depth division of paths
+    is computed by lableling the "branching factor" of each atom. The
+    branching factor of an atom is 0 if it has no children; if it does
+    have children, it is the largest of the branching factors of what
+    the atom designates as its on-path child and one-greater than the
+    branching factor of any of its other children. Each node then may
+    select the child with the largest branching factor as its on-path
+    child to minimize its branching factor. This division produces
+    a minimum depth tree of paths.
+
+    The same set of paths is used for both the refold algorithm and
+    the derivative summation; the refold algorithm starts at path
+    roots and multiplies homogeneous transforms towards the leaves.
+    The derivative summation algorithm starts at the leaves and sums
+    upwards towards the roots.
+    """
 
     natoms: int
-    #refold_atom_range_for_depth: typing.List[typing.Tuple[int, int]]
-    #derivsum_atom_range_for_depth: typing.List[typing.Tuple[int, int]]
+
+    subpath_child_ko: numpy.ndarray
+    non_path_children_ko: numpy.ndarray
+    dsi2ki: numpy.ndarray
 
     # Pointers to device arrays used in forward kinematics
     non_subpath_parent_ro_d: numba.types.Array
@@ -36,172 +84,143 @@ class GPUKinTreeReordering:
     derivsum_atom_ranges_d: numba.types.Array
 
     # Alex: how do I get validate args for a class's construction method?
-    @staticmethod
-    def from_kintree(kintree: KinTree, device: torch.device):
-        '''Constructs a GPUKinTreeReordering object for a given KinTree
+    @classmethod
+    def from_kintree(cls, kintree: KinTree, device: torch.device):
+        """Setup for operations over KinTree on given device."""
+        if device.type != "cuda":
+            # TODO: Enable
+            # raise ValueError(
+            #     f"GPUKinTreeReordering not supported for non-cuda devices."
+            #     f" device: {device}"
+            # )
 
-        The GPUKinTreeReordering divides the tree into a set of paths. Along
-        each path is a continuous chain of atoms that either 1) require their
-        coordinate frames computed as a cumulative product of homogeneous
-        transforms for the coordinate update algorithm, or 2) require the
-        cumulative sum of their f1f2 vectors for the derivative calculation
-        algorithm. In both cases, these paths can be processed efficiently
-        on the GPU using an algorithm called "scan" and batches of these paths
-        can be processed at once in a variant called "segmented scan."
-
-        Each path in the tree is labeled with a depth: a path with depth
-        i may depend on the values computed for atoms with depths 0..i-1.
-        All of the paths of the same depth can be processed in a single
-        kernel execution with segmented scan.
-
-        In order to divide the tree into these paths, this class constructs
-        two reorderings of the atoms: a refold ordering (ro) using refold
-        indices (ri) and a derivsum ordering (dso) using derivsum indices (di).
-        The original ordering from the kintree is the kintree ordering (ko)
-        using kintree indices (ki). The indexing in this code is HAIRY, and
-        so all arrays are labled with the indexing they are using. There are
-        two sets of interconversion arrays for going from kintree indexing
-        to 1) refold indexing, and to 2) derivsum indexing: ki2ri & ri2ki and
-        ki2dsi & dsi2ki.
-
-        The algorithm for dividing the tree into paths minimizes the number
-        of depths in the tree. For any node in the tree, one of its children
-        will be in the same path with it, and all other children will be
-        roots of their own subtrees. The minimum-depth division of paths
-        is computed by lableling the "branching factor" of each atom. The
-        branching factor of an atom is 0 if it has no children; if it does
-        have children, it is the largest of the branching factors of what
-        the atom designates as its on-path child and one-greater than the
-        branching factor of any of its other children. Each node then may
-        select the child with the largest branching factor as its on-path
-        child to minimize its branching factor. This division produces
-        a minimum depth tree of paths.
-
-        The same set of paths is used for both the refold algorithm and
-        the derivative summation; the refold algorithm starts at path
-        roots and multiplies homogeneous transforms towards the leaves.
-        The derivative summation algorithm starts at the leaves and sums
-        upwards towards the roots.
-        '''
-
-        if device.type == "cpu":
-            return GPUKinTreeReordering(
-                0, None, None, None, None, None, None, None, None, None
+            return cls(
+                natoms=0,
+                subpath_child_ko=None,
+                non_path_children_ko=None,
+                dsi2ki=None,
+                non_subpath_parent_ro_d=None,
+                is_root_ro_d=None,
+                ki2ri_d=None,
+                ri2ki_d=None,
+                refold_atom_ranges_d=None,
+                ki2dsi_d=None,
+                is_leaf_dso_d=None,
+                non_path_children_dso_d=None,
+                derivsum_atom_ranges_d=None,
             )
-        else:
-            natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro, \
-                branching_factor_ko, subpath_child_ko, \
-                subpath_length_ko, is_subpath_root_ko, is_subpath_leaf_ko, \
-                refold_atom_depth_ko, refold_atom_range_for_depth, subpath_root_ro, \
-                is_leaf_dso, n_nonpath_children_ko, \
-                derivsum_path_depth_ko, derivsum_atom_range_for_depth, ki2dsi, dsi2ki, \
-                non_path_children_ko, non_path_children_dso = \
-                construct_refold_and_derivsum_orderings(kintree)
-
-            is_root_ro_d, ki2ri_d, ri2ki_d, non_subpath_parent_ro_d, refold_atom_ranges_d = \
-                send_refold_data_to_gpu(natoms, subpath_root_ro, ki2ri, ri2ki,
-                                        non_subpath_parent_ro, refold_atom_range_for_depth)
-
-            ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d, derivsum_atom_ranges_d = \
-                send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso,
-                                          derivsum_atom_range_for_depth)
-
-            return GPUKinTreeReordering(
-                natoms, non_subpath_parent_ro_d, is_root_ro_d, ki2ri_d,
-                ri2ki_d, refold_atom_ranges_d, ki2dsi, is_leaf_dso_d,
-                non_path_children_dso_d, derivsum_atom_ranges_d
+        elif device.index is not None and device.index != numba.cuda.get_current_device(
+        ).id:
+            raise ValueError(
+                f"GPUKinTreeReordering target device is not current numba context."
+                f" device: {device} current: {numba.cuda.get_current_device()}"
             )
+
+        natoms = kintree.id.shape[0]
+
+        # Forward kinematics data initialization
+
+        ri2ki = numpy.full((natoms), -1, dtype="int32")
+        ki2ri = numpy.full((natoms), -1, dtype="int32")
+
+        parent_ko = numpy.zeros((natoms), dtype="int32")
+        non_subpath_parent_ro = numpy.full((natoms), -1, dtype="int32")
+        branching_factor_ko = numpy.full((natoms), -1, dtype="int32")
+        subpath_child_ko = numpy.full((natoms), -1, dtype="int32")
+        subpath_length_ko = numpy.zeros((natoms), dtype="int32")
+        is_subpath_root_ko = numpy.full((natoms), False, dtype="bool")
+        refold_atom_depth_ko = numpy.zeros((natoms), dtype="int32")
+        subpath_root_ro = numpy.full((natoms), True, dtype="bool")
+
+        is_subpath_leaf_ko = numpy.full((natoms), False, dtype="bool")
+        is_leaf_dso = numpy.full((natoms), False, dtype="bool")
+        n_nonpath_children_ko = numpy.full((natoms), 0, dtype="int32")
+        derivsum_path_depth_ko = numpy.full((natoms), -1, dtype="int32")
+        derivsum_atom_range_for_depth = []
+        ki2dsi = numpy.full((natoms), -1, dtype="int32")
+        dsi2ki = numpy.full((natoms), -1, dtype="int32")
+
+        parent_ko[:] = kintree.parent
+
+        compute_branching_factor(
+            natoms, parent_ko, branching_factor_ko, subpath_child_ko
+        )
+
+        mark_path_children_and_count_nonpath_children(
+            natoms, parent_ko, subpath_child_ko, n_nonpath_children_ko,
+            is_subpath_root_ko, is_subpath_leaf_ko
+        )
+
+        max_n_nonpath_children = max(n_nonpath_children_ko)
+        non_path_children_ko = numpy.full((natoms, max_n_nonpath_children),
+                                          -1,
+                                          dtype="int32")
+        non_path_children_dso = numpy.full((natoms, max_n_nonpath_children),
+                                           -1,
+                                           dtype="int32")
+
+        list_nonpath_children(
+            natoms, is_subpath_root_ko, parent_ko, non_path_children_ko
+        )
+
+        find_derivsum_path_depths(
+            natoms, subpath_child_ko, derivsum_path_depth_ko,
+            non_path_children_ko, is_subpath_root_ko, subpath_length_ko
+        )
+
+        find_refold_path_depths(
+            natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko
+        )
+        ndepths = max(refold_atom_depth_ko) + 1
+
+        refold_atom_range_for_depth = numpy.full((ndepths, 2),
+                                                 -1,
+                                                 dtype="int32")
+
+        determine_refold_indices(
+            natoms, ndepths, refold_atom_depth_ko, is_subpath_root_ko,
+            subpath_length_ko, refold_atom_range_for_depth, subpath_child_ko,
+            ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
+        )
+
+        n_derivsum_depths = derivsum_path_depth_ko[0] + 1
+
+        derivsum_atom_range_for_depth = numpy.full((n_derivsum_depths, 2), -1,
+                                                   "int32")
+        determine_derivsum_indices(
+            natoms, n_derivsum_depths, derivsum_path_depth_ko,
+            subpath_length_ko, is_subpath_leaf_ko, is_subpath_root_ko,
+            derivsum_atom_range_for_depth, parent_ko, ki2dsi, dsi2ki,
+            non_path_children_ko, non_path_children_dso, is_leaf_dso
+        )
+
+        is_root_ro_d, ki2ri_d, ri2ki_d, non_subpath_parent_ro_d, refold_atom_ranges_d = \
+            send_refold_data_to_gpu(natoms, subpath_root_ro, ki2ri, ri2ki,
+                                    non_subpath_parent_ro, refold_atom_range_for_depth)
+
+        ki2dsi_d, is_leaf_dso_d, non_path_children_dso_d, derivsum_atom_ranges_d = \
+            send_derivsum_data_to_gpu(natoms, ki2dsi, is_leaf_dso, non_path_children_dso,
+                                      derivsum_atom_range_for_depth)
+
+        return cls(
+            natoms=natoms,
+            subpath_child_ko=subpath_child_ko,
+            non_path_children_ko=non_path_children_ko,
+            non_subpath_parent_ro_d=non_subpath_parent_ro_d,
+            dsi2ki=dsi2ki,
+            is_root_ro_d=is_root_ro_d,
+            ki2ri_d=ki2ri_d,
+            ri2ki_d=ri2ki_d,
+            refold_atom_ranges_d=refold_atom_ranges_d,
+            #TODO verify: changed from ki2dsi to ki2dsi_d
+            ki2dsi_d=ki2dsi_d,
+            is_leaf_dso_d=is_leaf_dso_d,
+            non_path_children_dso_d=non_path_children_dso_d,
+            derivsum_atom_ranges_d=derivsum_atom_ranges_d,
+        )
 
     def active(self):
         return self.natoms != 0
-
-
-def construct_refold_and_derivsum_orderings(kintree: KinTree):
-    natoms = kintree.id.shape[0]
-
-    # Forward kinematics data initialization
-
-    ri2ki = numpy.full((natoms), -1, dtype="int32")
-    ki2ri = numpy.full((natoms), -1, dtype="int32")
-
-    parent_ko = numpy.zeros((natoms), dtype="int32")
-    non_subpath_parent_ro = numpy.full((natoms), -1, dtype="int32")
-    branching_factor_ko = numpy.full((natoms), -1, dtype="int32")
-    subpath_child_ko = numpy.full((natoms), -1, dtype="int32")
-    subpath_length_ko = numpy.zeros((natoms), dtype="int32")
-    is_subpath_root_ko = numpy.full((natoms), False, dtype="bool")
-    refold_atom_depth_ko = numpy.zeros((natoms), dtype="int32")
-    subpath_root_ro = numpy.full((natoms), True, dtype="bool")
-
-    is_subpath_leaf_ko = numpy.full((natoms), False, dtype="bool")
-    is_leaf_dso = numpy.full((natoms), False, dtype="bool")
-    n_nonpath_children_ko = numpy.full((natoms), 0, dtype="int32")
-    derivsum_path_depth_ko = numpy.full((natoms), -1, dtype="int32")
-    derivsum_atom_range_for_depth = []
-    ki2dsi = numpy.full((natoms), -1, dtype="int32")
-    dsi2ki = numpy.full((natoms), -1, dtype="int32")
-
-    parent_ko[:] = kintree.parent
-
-    compute_branching_factor(
-        natoms, parent_ko, branching_factor_ko, subpath_child_ko
-    )
-
-    mark_path_children_and_count_nonpath_children(
-        natoms, parent_ko, subpath_child_ko, n_nonpath_children_ko,
-        is_subpath_root_ko, is_subpath_leaf_ko
-    )
-
-    max_n_nonpath_children = max(n_nonpath_children_ko)
-    non_path_children_ko = numpy.full((natoms, max_n_nonpath_children),
-                                      -1,
-                                      dtype="int32")
-    non_path_children_dso = numpy.full((natoms, max_n_nonpath_children),
-                                       -1,
-                                       dtype="int32")
-
-    list_nonpath_children(
-        natoms, is_subpath_root_ko, parent_ko, non_path_children_ko
-    )
-
-    find_derivsum_path_depths(
-        natoms, subpath_child_ko, derivsum_path_depth_ko, non_path_children_ko,
-        is_subpath_root_ko, subpath_length_ko
-    )
-
-    find_refold_path_depths(
-        natoms, parent_ko, refold_atom_depth_ko, is_subpath_root_ko
-    )
-    ndepths = max(refold_atom_depth_ko) + 1
-
-    refold_atom_range_for_depth = numpy.full((ndepths, 2), -1, dtype="int32")
-
-    determine_refold_indices(
-        natoms, ndepths, refold_atom_depth_ko, is_subpath_root_ko,
-        subpath_length_ko, refold_atom_range_for_depth, subpath_child_ko,
-        ri2ki, ki2ri, subpath_root_ro, parent_ko, non_subpath_parent_ro
-    )
-
-    n_derivsum_depths = derivsum_path_depth_ko[0] + 1
-
-    derivsum_atom_range_for_depth = numpy.full((n_derivsum_depths, 2), -1,
-                                               "int32")
-    determine_derivsum_indices(
-        natoms, n_derivsum_depths, derivsum_path_depth_ko, subpath_length_ko,
-        is_subpath_leaf_ko, is_subpath_root_ko, derivsum_atom_range_for_depth,
-        parent_ko, ki2dsi, dsi2ki, non_path_children_ko, non_path_children_dso,
-        is_leaf_dso
-    )
-
-    return (
-        natoms, ndepths, ri2ki, ki2ri, parent_ko, non_subpath_parent_ro,
-        branching_factor_ko, subpath_child_ko, subpath_length_ko,
-        is_subpath_root_ko, is_subpath_leaf_ko, refold_atom_depth_ko,
-        refold_atom_range_for_depth, subpath_root_ro, is_leaf_dso,
-        n_nonpath_children_ko, derivsum_path_depth_ko,
-        derivsum_atom_range_for_depth, ki2dsi, dsi2ki, non_path_children_ko,
-        non_path_children_dso
-    )
 
 
 @numba.jit(nopython=True)
