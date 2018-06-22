@@ -76,7 +76,7 @@ class ScoreComponent:
 
     @classmethod
     def inter_score(cls, target_i, target_j):
-        raise cls._inter_score_type()(target_i, target_j)
+        return cls._inter_score_type()(target_i, target_j)
 
     @classmethod
     def _intra_score_type(cls):
@@ -114,6 +114,7 @@ class ScoreComponent:
         for base, component in cls._score_components():
             if component.inter_container:
                 container_bases.append(component.inter_container)
+                continue
 
             raise NotImplementedError(
                 f"score component does not support inter score container.\n"
@@ -121,10 +122,12 @@ class ScoreComponent:
                 f"component: {component}"
             )
 
-        cls.__resolved_inter_score_type = type(
-            cls.__name__ + "InterContainer",
-            tuple(container_bases),
-            dict(total=reactive_property(total)),
+        cls.__resolved_inter_score_type = reactive_attrs(
+            type(
+                cls.__name__ + "InterContainer",
+                tuple(container_bases),
+                dict(total=reactive_property(total)),
+            )
         )
 
         return cls.__resolved_inter_score_type

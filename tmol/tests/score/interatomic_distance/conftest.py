@@ -12,8 +12,9 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.score_components import ScoreComponent, ScoreComponentClasses
 from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase,
-    NaiveInteratomicDistanceGraph,
+    # NaiveInteratomicDistanceGraph,
     BlockedInteratomicDistanceGraph,
+    InterLayerAtomPairs,
 )
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -38,7 +39,20 @@ class ThresholdDistanceCountIntraScore:
 
     @reactive_property
     def component_total(target):
-        return target.total_threshold_count
+        "number of bonds under threshold distance"
+
+        return (
+            torch.sparse_coo_tensor(
+                target.atom_pair_inds[:, 0][None, :],
+                (target.atom_pair_dist < target.threshold_distance).to(
+                    dtype=torch.float
+                ),
+                (target.stack_depth,),
+                device=target.atom_pair_inds.device,
+            )
+            .coalesce()
+            .to_dense()
+        )
 
 
 @reactive_attrs(auto_attribs=True)
@@ -48,7 +62,31 @@ class ThresholdDistanceCountInterScore:
 
     @reactive_property
     def component_total(target_i, target_j):
-        raise ValueError()
+        assert target_i.threshold_distance == target_j.threshold_distance
+        assert target_i.atom_pair_block_size == target_j.atom_pair_block_size
+
+        pind = InterLayerAtomPairs.for_coord_blocks(
+            target_i.atom_pair_block_size,
+            target_i.coord_blocks,
+            target_j.coord_blocks,
+            target_i.threshold_distance,
+        ).inds
+
+        ci = target_i.coords.detach()
+        cj = target_j.coords.detach()
+
+        pdist = (ci[pind[:, 0], pind[:, 1]] - cj[pind[:, 2], pind[:, 3]]).norm(dim=-1)
+
+        return (
+            torch.sparse_coo_tensor(
+                pind[:, [0, 2]].t(),
+                (pdist < target_i.threshold_distance).to(dtype=torch.float),
+                (target_i.stack_depth, target_j.stack_depth),
+                device=pind.device,
+            )
+            .coalesce()
+            .to_dense()
+        )
 
 
 @reactive_attrs(auto_attribs=True)
@@ -73,25 +111,12 @@ class ThresholdDistanceCount(
     def component_atom_pair_dist_threshold(self):
         return self.threshold_distance
 
-    @reactive_property
-    def total_threshold_count(
-        stack_depth, atom_pair_inds, atom_pair_dist, threshold_distance
-    ):
-        "number of bonds under threshold distance"
-        result = atom_pair_dist.new_zeros((stack_depth,))
-
-        result.put_(
-            atom_pair_inds[:, 0],
-            (atom_pair_dist < threshold_distance).to(dtype=torch.float),
-            accumulate=True,
-        )
-
-        return result
-
 
 @pytest.fixture(
-    params=[NaiveInteratomicDistanceGraph, BlockedInteratomicDistanceGraph],
-    ids=["naive", "blocked"],
+    # params=[NaiveInteratomicDistanceGraph, BlockedInteratomicDistanceGraph],
+    # ids=["naive", "blocked"],
+    params=[BlockedInteratomicDistanceGraph],
+    ids=["blocked"],
 )
 def threshold_distance_score_class(request):
     interatomic_distance_component = request.param

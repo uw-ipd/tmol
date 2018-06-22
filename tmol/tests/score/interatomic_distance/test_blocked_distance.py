@@ -1,4 +1,4 @@
-import torch
+# import torch
 
 # from tmol.score.interatomic_distance import BlockedDistanceAnalysis
 
