@@ -1,3 +1,5 @@
+from typing import Optional
+
 import attr
 
 import torch
@@ -6,10 +8,14 @@ import numba
 from numba import cuda
 
 from .datatypes import KinTree
+from tmol.types.attrs import ValidateAttrs
+
+# Assign rather than import to respect dynamic numba cuda layout
+DeviceNDArray = numba.cuda.devicearray.DeviceNDArray
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class GPUKinTreeReordering:
+class GPUKinTreeReordering(ValidateAttrs):
     """Path plans for parallel kinematic operations.
 
     The GPUKinTreeReordering class partitions a KinTree into a set of paths so that
@@ -66,22 +72,22 @@ class GPUKinTreeReordering:
 
     natoms: int
 
-    subpath_child_ko: numpy.ndarray
-    non_path_children_ko: numpy.ndarray
-    dsi2ki: numpy.ndarray
+    subpath_child_ko: Optional[numpy.ndarray]
+    non_path_children_ko: Optional[numpy.ndarray]
+    dsi2ki: Optional[numpy.ndarray]
 
     # Pointers to device arrays used in forward kinematics
-    non_subpath_parent_ro_d: numba.types.Array
-    is_root_ro_d: numba.types.Array
-    ki2ri_d: numba.types.Array
-    ri2ki_d: numba.types.Array
-    refold_atom_ranges_d: numba.types.Array
+    non_subpath_parent_ro_d: Optional[DeviceNDArray]
+    is_root_ro_d: Optional[DeviceNDArray]
+    ki2ri_d: Optional[DeviceNDArray]
+    ri2ki_d: Optional[DeviceNDArray]
+    refold_atom_ranges_d: Optional[DeviceNDArray]
 
     # Pointers to device arrays used in f1f2 summation
-    ki2dsi_d: numba.types.Array
-    is_leaf_dso_d: numba.types.Array
-    non_path_children_dso_d: numba.types.Array
-    derivsum_atom_ranges_d: numba.types.Array
+    ki2dsi_d: Optional[DeviceNDArray]
+    is_leaf_dso_d: Optional[DeviceNDArray]
+    non_path_children_dso_d: Optional[DeviceNDArray]
+    derivsum_atom_ranges_d: Optional[DeviceNDArray]
 
     # Alex: how do I get validate args for a class's construction method?
     @classmethod
