@@ -808,74 +808,6 @@ def warp_segscan_hts2(pos, int_hts, int_is_root):
         myht = ht_multiply_prev_and_store(pos, 4, myht, int_hts)
 
 
-@cuda.jit
-def segscan_ht_intervals_one_thread_block2(
-        hts_ko, ri2ki, is_root, parent_ind, atom_ranges
-):
-    # this should be executed as a single thread block with nthreads = 256
-    # The idea behind this version is to run within-warp scans to get
-    # the carry; then to run a quick one-warp version of scan on the carries;
-    # and finally, to apply the carries back to the original warp sections.
-
-    pos = cuda.grid(1)
-    warp_id = pos >> 5  # bit shift by 5 because warp size is 32
-
-    #reorder_starting_hts_256(hts_ko, hts, ki2ri)
-    #cuda.syncthreads()
-
-    shared_hts = cuda.shared.array((12, 256), numba.float64)
-    shared_is_root = cuda.shared.array((256), numba.int32)
-
-    shared_intermediate_hts = cuda.shared.array((12, 8), numba.float64)
-    shared_intermediate_is_root = cuda.shared.array((12), numba.int32)
-
-    pos = cuda.grid(1)
-
-    for depth in range(atom_ranges.shape[0]):
-        start = atom_ranges[depth, 0]
-        end = atom_ranges[depth, 1]
-
-        niters = (end - start - 1) // 256 + 1
-        carry_ht = identity_ht()
-        for ii in range(niters):
-
-            ii_start = start + ii * 256
-
-            # stage 1:
-            ki, myht, will_accumulate = warp_segscan_hts1(
-                pos, warp_id, ri2ki, hts_ko, is_root, parent_ind, carry_ht,
-                shared_hts, shared_is_root, shared_intermediate_hts,
-                shared_intermediate_is_root, ii_start, end
-            )
-            cuda.syncthreads()
-
-            # stage 2:
-            if pos < 8:
-                warp_segscan_hts2(
-                    pos, shared_intermediate_hts, shared_intermediate_is_root
-                )
-            cuda.syncthreads()
-
-            # stage 3:
-            if will_accumulate and warp_id != 0 and ii_start + pos < end:
-                prev_ht = ht_load_from_shared(
-                    shared_intermediate_hts, warp_id - 1
-                )
-                myht = ht_multiply(prev_ht, myht)
-            if ii_start + pos < end:
-                ht_save_to_nx4x4(hts_ko, ki, myht)
-                #for jj in range(12):
-                #    hts_ko[ ki, jj // 4, jj % 4 ] = myht[jj]
-            ht_save_to_shared(shared_hts, pos, myht)
-            cuda.syncthreads()
-
-            # save the carry
-            if pos == 0:
-                carry_ht = ht_load_from_shared(shared_hts, 255)
-
-            cuda.syncthreads()
-
-
 def segscan_hts_gpu(hts_ko, reordering):
     """Perform a series of segmented scan operations on the input homogeneous transforms
     to compute the coordinates (and coordinate frames) of all atoms in the structure.
@@ -887,22 +819,6 @@ def segscan_hts_gpu(hts_ko, reordering):
     stream = cuda.stream()
 
     segscan_ht_intervals_one_thread_block[1, 256, stream](
-        hts_ko, ro.ri2ki, ro.is_root_ro, ro.non_subpath_parent_ro,
-        ro.refold_atom_ranges
-    )
-
-
-def warp_synchronous_segscan_hts_gpu(hts_ko, reordering):
-    '''Perform a series of segmented scan operations on the input homogeneous transforms
-    to compute the coordinates (and coordinate frames) of all atoms in the structure.
-    Uses warp-synchronous programming to minimize the number of thread-block synchronization
-    events. Warp-synchronous programming is no longer a good idea; it is deprecated-ish
-    in CUDA-9 and warp synchronicity is not guaranteed on the Volta architecture. This
-    version is also not faser than the other refold version(?!) which surprises me.'''
-    ro = reordering
-    stream = cuda.stream()
-
-    segscan_ht_intervals_one_thread_block2[1, 256, stream](
         hts_ko, ro.ri2ki, ro.is_root_ro, ro.non_subpath_parent_ro,
         ro.refold_atom_ranges
     )

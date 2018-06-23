@@ -11,8 +11,6 @@ from tmol.kinematics.operations import (
     GPUKinTreeReordering, SegScanDerivs
 )
 
-from tmol.utility.numba import as_cuda_array
-
 from tmol.tests.torch import requires_cuda
 
 
@@ -142,30 +140,3 @@ def test_gpu_refold_ordering(ubq_system):
     f1f2s[0, :] = 0
 
     numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)
-
-
-@requires_cuda
-def test_warp_synchronous_gpu_segscan(ubq_system):
-    tsys = ubq_system
-
-    kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
-    ).kintree.to(device="cuda")
-    kincoords = torch.from_numpy(tsys.coords).to(device="cuda")[kintree.id]
-
-    reordering = GPUKinTreeReordering.from_kintree(
-        kintree, torch.device("cuda")
-    )
-
-    HTs = backwardKin(kintree, kincoords).hts
-
-    ### Execute w/ op
-    HTs = HTs.to(device="cuda")
-    tmol.kinematics.gpu_operations.warp_synchronous_segscan_hts_gpu(
-        as_cuda_array(HTs), reordering
-    )
-
-    ### Assert result coords are equal
-    # Ignore root coordinate
-    refold_kincoords = HTs[:, :3, 3]
-    numpy.testing.assert_allclose(kincoords[1:], refold_kincoords[1:], 1e-4)
