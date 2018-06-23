@@ -27,13 +27,13 @@ def test_gpu_refold_data_construction(ubq_system):
     # Extract path data from tree reordering.
     natoms = ordering.natoms
     subpath_child_ko = ordering.subpath_child_ko
-    ki2ri = ordering.ki2ri_d.copy_to_host()
+    ki2ri = ordering.ki2ri.copy_to_host()
     dsi2ki = ordering.dsi2ki
     parent_ko = kintree.parent
-    non_subpath_parent_ro = ordering.non_subpath_parent_ro_d.copy_to_host()
+    non_subpath_parent_ro = ordering.non_subpath_parent_ro.copy_to_host()
     subpath_child_ko = ordering.subpath_child_ko
     non_path_children_ko = ordering.non_path_children_ko
-    non_path_children_dso = ordering.non_path_children_dso_d.copy_to_host()
+    non_path_children_dso = ordering.non_path_children_dso.copy_to_host()
 
     for ii_ki in range(natoms):
         parent_ki = kintree.parent[ii_ki]
@@ -186,7 +186,7 @@ def test_warp_synchronous_gpu_segscan(ubq_system):
     # needed for ubq_system, but not gradcheck_test_system:
     refold_kincoords[0, :] = numpy.nan
 
-    ki2ri = reordering.ki2ri_d.copy_to_host()
+    ki2ri = reordering.ki2ri.copy_to_host()
     ri2ki = ki2ri.copy()
     for i in range(ki2ri.shape[0]):
         ri2ki[ki2ri[i]] = i
