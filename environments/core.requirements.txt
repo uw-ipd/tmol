@@ -2,3 +2,5 @@ pint
 attrs
 cattrs
 frozendict
+numba
+

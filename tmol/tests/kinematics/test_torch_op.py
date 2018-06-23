@@ -9,7 +9,7 @@ from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jaco
 
 from tmol.types.torch import Tensor
 
-from tmol.kinematics.operations import SegScanStrategy
+from tmol.kinematics.operations import ExecutionStrategy
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.torch_op import KinematicOp
@@ -18,20 +18,19 @@ from tmol.system.packed import PackedResidueSystem
 from tmol.system.restypes import Residue
 from tmol.system.kinematics import KinematicDescription
 
+#from tmol.tests.torch import requires_cuda
 
-@pytest.fixture(params=["efficient", "min_depth"])
-def scan_strategy(request):
-    return SegScanStrategy(request.param)
+
+@pytest.fixture(params=["hand_rolled", "torch_efficient", "torch_min_depth"])
+def execution_strategy(request):
+    return ExecutionStrategy(request.param)
 
 
 @pytest.mark.benchmark(
     group="kinematic_forward_op",
 )
-def test_torsion_refold_ubq(
-        benchmark,
-        ubq_system,
-        torch_device,
-        scan_strategy,
+def test_kinematic_torch_op_refold(
+        benchmark, ubq_system, torch_device, execution_strategy
 ):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
@@ -43,11 +42,10 @@ def test_torsion_refold_ubq(
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
 
     kop = KinematicOp.from_coords(
-        tkin.kintree,
-        torsion_dofs,
-        kincoords,
-        scan_strategy=scan_strategy,
+        tkin.kintree, torsion_dofs, kincoords, torch_device, execution_strategy
     )
+
+    #refold_kincoords = kop.apply(kop.src_mobile_dofs)
 
     @benchmark
     def refold_kincoords():
@@ -125,7 +123,9 @@ def kop_gradcheck_report(
     torch.autograd.gradcheck(kop, (start_dofs, ), raise_exception=True)
 
 
-def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
+def test_kinematic_torch_op_gradcheck_perturbed(
+        gradcheck_test_system, torch_device
+):
     kintree, dofs, kincoords = gradcheck_test_system
 
     # Temporary workaround for #45, disable theta for post-jump siblings
@@ -133,11 +133,7 @@ def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
                           (dofs.dof_type == DOFTypes.bond_angle))
     dofs = dofs[~post_root_siblings]
 
-    kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
-    )
+    kop = KinematicOp.from_coords(kintree, dofs, kincoords, torch_device)
 
     torch.random.manual_seed(1663)
     start_dofs = torch.tensor(
@@ -149,7 +145,7 @@ def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system):
     kop_gradcheck_report(kop, dofs, start_dofs)
 
 
-def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
+def test_kinematic_torch_op_gradcheck(gradcheck_test_system, torch_device):
     kintree, dofs, kincoords = gradcheck_test_system
 
     # Temporary workaround for #45, disable theta for post-jump siblings
@@ -157,11 +153,7 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
                           (dofs.dof_type == DOFTypes.bond_angle))
     dofs = dofs[~post_root_siblings]
 
-    kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
-    )
+    kop = KinematicOp.from_coords(kintree, dofs, kincoords, torch_device)
 
     start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
 
@@ -169,15 +161,11 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system):
 
 
 def test_kinematic_torch_op_smoke(
-        gradcheck_test_system, torch_backward_coverage
+        gradcheck_test_system, torch_backward_coverage, torch_device
 ):
     kintree, dofs, kincoords = gradcheck_test_system
 
-    kop = KinematicOp.from_coords(
-        kintree,
-        dofs,
-        kincoords,
-    )
+    kop = KinematicOp.from_coords(kintree, dofs, kincoords, torch_device)
 
     start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
 
