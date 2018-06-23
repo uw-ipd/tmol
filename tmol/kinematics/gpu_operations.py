@@ -876,39 +876,6 @@ def segscan_ht_intervals_one_thread_block2(
             cuda.syncthreads()
 
 
-def get_devicendarray(t):
-    import ctypes
-    '''Convert a device-allocated pytorch tensor into a numba DeviceNDArray'''
-    if t.type() == 'torch.cuda.FloatTensor':
-        ctx = cuda.cudadrv.driver.driver.get_context()
-        mp = cuda.cudadrv.driver.MemoryPointer(
-            ctx, ctypes.c_ulong(t.data_ptr()),
-            t.numel() * 4
-        )
-        return cuda.cudadrv.devicearray.DeviceNDArray(
-            t.size(), [i * 4 for i in t.stride()],
-            numpy.dtype('float32'),
-            gpu_data=mp,
-            stream=torch.cuda.current_stream().cuda_stream
-        )
-    elif t.type() == 'torch.cuda.DoubleTensor':
-        ctx = cuda.cudadrv.driver.driver.get_context()
-        mp = cuda.cudadrv.driver.MemoryPointer(
-            ctx, ctypes.c_ulong(t.data_ptr()),
-            t.numel() * 8
-        )
-        return cuda.cudadrv.devicearray.DeviceNDArray(
-            t.size(), [i * 8 for i in t.stride()],
-            numpy.dtype('float64'),
-            gpu_data=mp,
-            stream=torch.cuda.current_stream().cuda_stream
-        )
-    else:
-        # We're using the numba cuda simulator; this will let us modify the underlying
-        # numpy array in numba on the CPU. Neat!
-        return t.numpy()
-
-
 def segscan_hts_gpu(hts_ko, reordering):
     """Perform a series of segmented scan operations on the input homogeneous transforms
     to compute the coordinates (and coordinate frames) of all atoms in the structure.

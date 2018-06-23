@@ -11,6 +11,8 @@ from tmol.kinematics.operations import (
     GPUKinTreeReordering, SegScanDerivs
 )
 
+from tmol.utility.numba import as_cuda_array
+
 from tmol.tests.torch import requires_cuda
 
 
@@ -91,7 +93,6 @@ def test_gpu_refold_ordering(ubq_system):
 
     # temp
     HTs_d = cuda.to_device(HTs.numpy())
-    #HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
 
     tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, reordering)
 
@@ -145,58 +146,26 @@ def test_gpu_refold_ordering(ubq_system):
 
 @requires_cuda
 def test_warp_synchronous_gpu_segscan(ubq_system):
-
-    numpy.set_printoptions(threshold=numpy.nan, precision=3)
-
-    #kintree, dof_metadata, kincoords = gradcheck_test_system
-
     tsys = ubq_system
+
     kintree = KinematicBuilder().append_connected_component(
         *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
-    ).kintree
-    kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
+    ).kintree.to(device="cuda")
+    kincoords = torch.from_numpy(tsys.coords).to(device="cuda")[kintree.id]
 
     reordering = GPUKinTreeReordering.from_kintree(
         kintree, torch.device("cuda")
     )
 
-    dofs = backwardKin(kintree, kincoords).dofs
+    HTs = backwardKin(kintree, kincoords).hts
 
-    # 1) local HTs
-    HTs = torch.empty([reordering.natoms, 4, 4], dtype=torch.double)
-
-    assert kintree.doftype[0] == NodeType.root
-    assert kintree.parent[0] == 0
-    HTs[0] = torch.eye(4)
-
-    bondSelector = kintree.doftype == NodeType.bond
-    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
-
-    jumpSelector = kintree.doftype == NodeType.jump
-    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
-
-    HTs_d = tmol.kinematics.gpu_operations.get_devicendarray(HTs)
-
+    ### Execute w/ op
+    HTs = HTs.to(device="cuda")
     tmol.kinematics.gpu_operations.warp_synchronous_segscan_hts_gpu(
-        HTs_d, reordering
+        as_cuda_array(HTs), reordering
     )
 
-    refold_kincoords = HTs.numpy()[:, :3, 3].copy()
-
-    # needed for ubq_system, but not gradcheck_test_system:
-    refold_kincoords[0, :] = numpy.nan
-
-    ki2ri = reordering.ki2ri.copy_to_host()
-    ri2ki = ki2ri.copy()
-    for i in range(ki2ri.shape[0]):
-        ri2ki[ki2ri[i]] = i
-
-    numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
-
-    # # Timing
-    # import time
-    # start_time = time.time()
-    # for i in range(1000):
-    #     tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, reordering)
-    #
-    # print("--- refold %f seconds ---" % ((time.time() - start_time) / 1000))
+    ### Assert result coords are equal
+    # Ignore root coordinate
+    refold_kincoords = HTs[:, :3, 3]
+    numpy.testing.assert_allclose(kincoords[1:], refold_kincoords[1:], 1e-4)

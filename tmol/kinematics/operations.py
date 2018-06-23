@@ -14,10 +14,11 @@ from tmol.types.torch import Tensor
 from .datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
 from .gpu_operations import (
     GPUKinTreeReordering,
-    get_devicendarray,
     segscan_hts_gpu,
     segscan_f1f2s_gpu,
 )
+
+from ..utility.numba import as_cuda_array
 
 HTArray = Tensor(torch.double)[:, 4, 4]
 CoordArray = Tensor(torch.double)[:, 3]
@@ -45,22 +46,20 @@ def HTinv(HTs: HTArray) -> HTArray:
 
 class ExecutionStrategy(Enum):
     """
+    Strategy for (forward) coordinate update and (backward) derivative summation operations.
+
     Which algorithm should be used for the formerly-recursive traversal of the kinematic tree for
     coordinate update (aka refold) or derivative-vector summation? The fastest technique is the
     hand-rolled option, written in cuda-like python with numba for the GPU and written as a
     linear pass over the atoms and jitted to be c-speed.
 
     hand_rolled: Dispatch to the hand-rolled GPU implementation if a GPU is available; otherwise, use the CPU version
-    hand_rolled_gpu: Run the GPU segmented scan strategy (numba.cuda.jitted to be very fast)
-    hand_rolled_cpu: Run the CPU iterative strategy (numba.jitted to be very fast)
     torch_efficient: "work efficient" segmented scan written in torch operations
     torch_min_depth: "work inefficient" segmentend scan written in torch operations, but that
                         makes the fewest torch function calls
     """
 
     hand_rolled = "hand_rolled"
-    hand_rolled_gpu = "hand_rolled_gpu"
-    hand_rolled_cpu = "hand_rolled_cpu"
     torch_efficient = "torch_efficient"
     torch_min_depth = "torch_min_depth"
     default = hand_rolled
@@ -82,11 +81,13 @@ def SegScanMinDepth(
     It will be faster if there are many compute units.
     """
     nelts = data.shape[0]
-    N = numpy.ceil(numpy.log2(nelts)
-                   )  # this might result in several no-op rounds...
+    # this might result in several no-op rounds...
+    N = numpy.ceil(numpy.log2(nelts))
 
     backPointers = parents
-    prevBackPointers = torch.arange(nelts, dtype=torch.long)
+    prevBackPointers = torch.arange(
+        nelts, dtype=torch.long, device=parents.device
+    )
     toCalc = (prevBackPointers != backPointers)
 
     for i in range(int(N)):
@@ -119,7 +120,7 @@ def SegScanEfficient(
     pmat = scipy.sparse.coo_matrix(
         (
             numpy.full(len(parents), 1), (
-                parents.numpy(),
+                parents.to("cpu").numpy(),
                 numpy.arange(len(parents)),
             )
         ),
@@ -189,17 +190,11 @@ def SegScanHTs(
         strat: ExecutionStrategy = ExecutionStrategy.default
 ):
     if strat == ExecutionStrategy.hand_rolled:
-        if reordering.active():
-            HTs_d = get_devicendarray(HTs)
+        if HTs.device.type == "cuda":
+            HTs_d = as_cuda_array(HTs)
             segscan_hts_gpu(HTs_d, reordering)
         else:
             iterative_refold(HTs.numpy(), parents.numpy())
-    elif strat == ExecutionStrategy.hand_rolled_gpu:
-        assert (reordering.active())
-        HTs_d = get_devicendarray(HTs)
-        segscan_hts_gpu(HTs_d, reordering)
-    elif strat == ExecutionStrategy.hand_rolled_cpu:
-        iterative_refold(HTs.numpy(), parents.numpy())
     else:
         TorchSegScan(HTs, parents, HTcollect, upwards, strat)
 
@@ -213,15 +208,11 @@ def SegScanDerivs(
         upwards: bool,
         strat: ExecutionStrategy = ExecutionStrategy.default
 ):
-    if strat == ExecutionStrategy.hand_rolled or \
-       strat == ExecutionStrategy.hand_rolled_gpu or \
-       strat == ExecutionStrategy.hand_rolled_cpu:
+    if strat == ExecutionStrategy.hand_rolled:
         f1f2s = torch.cat((f1s, f2s), 1)
 
-        if reordering.active() and \
-                (strat == ExecutionStrategy.hand_rolled or
-                strat == ExecutionStrategy.hand_rolled_gpu):
-            f1f2s_d = get_devicendarray(f1f2s)
+        if f1f2s.device.type == "cuda":
+            f1f2s_d = as_cuda_array(f1f2s)
             segscan_f1f2s_gpu(f1f2s_d, reordering)
         else:
             iterative_f1f2_summation(f1f2s.detach().numpy(), parents.numpy())
