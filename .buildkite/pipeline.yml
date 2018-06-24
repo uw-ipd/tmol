@@ -11,7 +11,8 @@ steps:
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing'
-    command: .buildkite/bin/testing
+    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.junit.xml
+
     plugins:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
@@ -19,6 +20,17 @@ steps:
     artifact_paths:
       - testing.junit.xml
       - .coverage
+
+  ### Run tests and generate coverage reports
+  - label: ':shrug: Testing - CPU'
+    command: .buildkite/bin/testing
+    command: .buildkite/bin/testing --junitxml=testing.cpu.junit.xml
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        run: buildkite-cpu
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+    artifact_paths:
+      - testing.cpu.junit.xml
 
   ### Run formatting/linting checks.
   - label: ':microscope: Linting'
