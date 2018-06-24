@@ -7,7 +7,6 @@ from math import nan
 import pytest
 
 from tmol.kinematics.operations import (
-    GPUKinTreeReordering,
     ExecutionStrategy,
     backwardKin,
     forwardKin,
@@ -210,19 +209,17 @@ def test_score_smoketest(coords):
 
 def test_forward_refold(kintree, coords, torch_device):
     #fd: with single precision 1e-9 is too strict for the assert_allclose calls
-    reordering = GPUKinTreeReordering.from_kintree(kintree, torch_device)
     bkin = backwardKin(kintree, coords)
 
     for es in ExecutionStrategy:
-        fkin = forwardKin(kintree, reordering, bkin.dofs, es)
+        fkin = forwardKin(kintree, bkin.dofs, es)
         numpy.testing.assert_allclose(coords, fkin.coords, atol=1e-6)
 
 
 def test_perturb(kintree, coords, torch_device):
-    reordering = GPUKinTreeReordering.from_kintree(kintree, torch_device)
     dofs = backwardKin(kintree, coords).dofs
 
-    pcoords = forwardKin(kintree, reordering, dofs).coords
+    pcoords = forwardKin(kintree, dofs).coords
     assert numpy.allclose(coords, pcoords)
 
     def coord_changed(a, b, atol=1e-3):
@@ -234,7 +231,7 @@ def test_perturb(kintree, coords, torch_device):
     t_dofs.jump.RBx[6] += 0.2
     t_dofs.jump.RBy[6] += 0.2
     t_dofs.jump.RBz[6] += 0.2
-    pcoords = forwardKin(kintree, reordering, t_dofs).coords
+    pcoords = forwardKin(kintree, t_dofs).coords
 
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     assert numpy.all(coord_changed(pcoords[6:11], coords[6:11]))
@@ -252,7 +249,7 @@ def test_perturb(kintree, coords, torch_device):
     rd_dofs.jump.RBdel_beta[6] += 0.2
     rd_dofs.jump.RBdel_gamma[6] += 0.3
 
-    pcoords = forwardKin(kintree, reordering, rd_dofs).coords
+    pcoords = forwardKin(kintree, rd_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
     assert numpy.all(
@@ -267,7 +264,7 @@ def test_perturb(kintree, coords, torch_device):
     r_dofs.jump.RBalpha[6] += 0.1
     r_dofs.jump.RBbeta[6] += 0.2
     r_dofs.jump.RBgamma[6] += 0.3
-    pcoords = forwardKin(kintree, reordering, r_dofs).coords
+    pcoords = forwardKin(kintree, r_dofs).coords
     numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
     assert numpy.all(
@@ -295,8 +292,6 @@ def test_root_sibling_derivs(torch_device):
     kintree[4] = KinTree.node(1, BOND, 1, 4, 1, 2)
     kintree[5] = KinTree.node(1, BOND, 4, 5, 4, 1)  #fd: 2->1
 
-    reordering = GPUKinTreeReordering.from_kintree(kintree, torch_device)
-
     coords = torch.tensor([
         [0.000, 0.000, 0.000],
         [2.000, 2.000, 2.000],
@@ -306,19 +301,15 @@ def test_root_sibling_derivs(torch_device):
         [3.383, 4.339, 1.471],
     ]).to(torch.double)
 
-    compute_verify_derivs(kintree, reordering, coords)
+    compute_verify_derivs(kintree, coords)
 
 
 def test_derivs(kintree, coords, torch_device, expected_analytic_derivs):
-
-    reordering = GPUKinTreeReordering.from_kintree(kintree, torch_device)
-
-    compute_verify_derivs(kintree, reordering, coords)
+    compute_verify_derivs(kintree, coords)
 
 
 def compute_verify_derivs(
         kintree,
-        reordering,
         coords,
         expected_analytic_derivs=None,
 ):
@@ -346,10 +337,10 @@ def compute_verify_derivs(
 
         for j in range(ndof):
             dofs.raw[i, j] += 0.0001
-            coordsAlt = forwardKin(kintree, reordering, dofs).coords
+            coordsAlt = forwardKin(kintree, dofs).coords
             sc_p = score(coordsAlt[1:, :])
             dofs.raw[i, j] -= 0.0002
-            coordsAlt = forwardKin(kintree, reordering, dofs).coords
+            coordsAlt = forwardKin(kintree, dofs).coords
             sc_m = score(coordsAlt[1:, :])
             dofs.raw[i, j] += 0.0001
 
@@ -362,7 +353,6 @@ def compute_verify_derivs(
 
         dsc_dtors_analytic = resolveDerivs(
             kintree,
-            reordering,
             dofs,
             HTs,
             dsc_dx,

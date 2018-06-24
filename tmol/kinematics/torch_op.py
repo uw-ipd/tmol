@@ -7,8 +7,9 @@ from tmol.types.functional import validate_args
 from .datatypes import KinTree, KinDOF
 from .metadata import DOFMetadata
 
-from .operations import forwardKin, backwardKin, \
-    resolveDerivs, ExecutionStrategy, GPUKinTreeReordering
+from .operations import (
+    forwardKin, backwardKin, resolveDerivs, ExecutionStrategy
+)
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -32,7 +33,6 @@ class KinematicOp:
     """
 
     kintree: KinTree
-    reordering: GPUKinTreeReordering
     mobile_dofs: DOFMetadata
 
     src_dofs: KinDOF
@@ -52,14 +52,15 @@ class KinematicOp:
             **kwargs,
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""
+        kintree = kintree.to(device=kin_coords.device)
+        mobile_dofs = mobile_dofs.to(device=kin_coords.device)
+
         bkin = backwardKin(kintree, kin_coords)
-        reordering = GPUKinTreeReordering.from_kintree(kintree, device)
         src_mobile_dofs = bkin.dofs.raw[mobile_dofs.node_idx,
                                         mobile_dofs.dof_idx]
 
         return cls(
             kintree=kintree,
-            reordering=reordering,
             mobile_dofs=mobile_dofs,
             src_dofs=bkin.dofs,
             src_mobile_dofs=src_mobile_dofs,
@@ -104,7 +105,6 @@ class KinematicFun(torch.autograd.Function):
 
         fkin = forwardKin(
             ctx.kinematic_op.kintree,
-            ctx.kinematic_op.reordering,
             working_dofs,
             strat=ctx.kinematic_op.execution_strategy,
         )
@@ -122,8 +122,11 @@ class KinematicFun(torch.autograd.Function):
         working_dofs = KinDOF(raw=working_dofs_raw)
 
         working_derivs = resolveDerivs(
-            ctx.kinematic_op.kintree, ctx.kinematic_op.reordering,
-            working_dofs, hts, coord_grads, ctx.kinematic_op.execution_strategy
+            kintree=ctx.kinematic_op.kintree,
+            dofs=working_dofs,
+            HTs=hts,
+            dsc_dx=coord_grads,
+            execution_strategy=ctx.kinematic_op.execution_strategy
         )
 
         result_derivs = working_derivs.raw[

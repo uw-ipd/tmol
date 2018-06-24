@@ -18,8 +18,6 @@ from tmol.system.packed import PackedResidueSystem
 from tmol.system.restypes import Residue
 from tmol.system.kinematics import KinematicDescription
 
-#from tmol.tests.torch import requires_cuda
-
 
 @pytest.fixture(params=["hand_rolled", "torch_efficient", "torch_min_depth"])
 def execution_strategy(request):

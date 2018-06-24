@@ -12,11 +12,7 @@ from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 
 from .datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
-from .gpu_operations import (
-    GPUKinTreeReordering,
-    segscan_hts_gpu,
-    segscan_f1f2s_gpu,
-)
+from .gpu_operations import segscan_hts_gpu, segscan_f1f2s_gpu, GPUKinTreeReordering
 
 from ..utility.numba import as_cuda_array
 
@@ -179,48 +175,6 @@ def TorchSegScan(
         SegScanMinDepth(data, parents, operator)
     else:
         raise NotImplementedError
-
-
-@validate_args
-def SegScanHTs(
-        reordering: GPUKinTreeReordering,
-        HTs: Tensor(torch.double),
-        parents: Tensor(torch.long)[:],
-        upwards: bool,
-        strat: ExecutionStrategy = ExecutionStrategy.default
-):
-    if strat == ExecutionStrategy.hand_rolled:
-        if HTs.device.type == "cuda":
-            HTs_d = as_cuda_array(HTs)
-            segscan_hts_gpu(HTs_d, reordering)
-        else:
-            iterative_refold(HTs.numpy(), parents.numpy())
-    else:
-        TorchSegScan(HTs, parents, HTcollect, upwards, strat)
-
-
-@validate_args
-def SegScanDerivs(
-        reordering: GPUKinTreeReordering,
-        f1s: Tensor(torch.double),
-        f2s: Tensor(torch.double),
-        parents: Tensor(torch.long)[:],
-        upwards: bool,
-        strat: ExecutionStrategy = ExecutionStrategy.default
-):
-    if strat == ExecutionStrategy.hand_rolled:
-        f1f2s = torch.cat((f1s, f2s), 1)
-
-        if f1f2s.device.type == "cuda":
-            f1f2s_d = as_cuda_array(f1f2s)
-            segscan_f1f2s_gpu(f1f2s_d, reordering)
-        else:
-            iterative_f1f2_summation(f1f2s.detach().numpy(), parents.numpy())
-        f1s[:] = f1f2s[:, 0:3]
-        f2s[:] = f1f2s[:, 3:6]
-    else:
-        TorchSegScan(f1s, parents, Fscollect, upwards, strat)
-        TorchSegScan(f2s, parents, Fscollect, upwards, strat)
 
 
 @validate_args
@@ -745,7 +699,6 @@ class ForwardKinResult:
 @validate_args
 def forwardKin(
         kintree: KinTree,
-        reordering: GPUKinTreeReordering,
         dofs: KinDOF,
         strat: ExecutionStrategy = ExecutionStrategy.default
 ) -> ForwardKinResult:
@@ -756,7 +709,7 @@ def forwardKin(
     natoms = len(dofs)
     assert len(kintree) == len(dofs)
 
-    # 1) local HTs
+    # 1) Calculate local inter-node HTs from dofs
     HTs = torch.empty([natoms, 4, 4],
                       dtype=HTArray.dtype,
                       device=dofs.raw.device)
@@ -771,8 +724,15 @@ def forwardKin(
     jumpSelector = kintree.doftype == NodeType.jump
     HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
 
-    # 2) global HTs (rewrite 1->N in-place)
-    SegScanHTs(reordering, HTs, kintree.parent, False, strat)
+    # 2) Accumulate local HTs into global HTs (rewrite 1->N in-place)
+    if strat == ExecutionStrategy.hand_rolled:
+        if HTs.device.type == "cuda":
+            HTs_d = as_cuda_array(HTs)
+            segscan_hts_gpu(HTs_d, GPUKinTreeReordering.for_kintree(kintree))
+        else:
+            iterative_refold(HTs.numpy(), kintree.parent.numpy())
+    else:
+        TorchSegScan(HTs, kintree.parent, HTcollect, False, strat)
 
     coords = HTs[:, :3, 3]
     return ForwardKinResult.create(HTs, coords)
@@ -781,7 +741,6 @@ def forwardKin(
 @validate_args
 def resolveDerivs(
         kintree: KinTree,
-        reordering: GPUKinTreeReordering,
         dofs: KinDOF,
         HTs: HTArray,
         dsc_dx: CoordArray,
@@ -806,9 +765,23 @@ def resolveDerivs(
     f2s = dsc_dx.clone()  # clone input buffer before aggregation
 
     # 2) pass f1/f2s up tree
-    SegScanDerivs(
-        reordering, f1s, f2s, kintree.parent, True, execution_strategy
-    )
+    if execution_strategy == ExecutionStrategy.hand_rolled:
+        f1f2s = torch.cat((f1s, f2s), 1)
+
+        if f1f2s.device.type == "cuda":
+            f1f2s_d = as_cuda_array(f1f2s)
+            segscan_f1f2s_gpu(
+                f1f2s_d, GPUKinTreeReordering.for_kintree(kintree)
+            )
+        else:
+            iterative_f1f2_summation(
+                f1f2s.detach().numpy(), kintree.parent.numpy()
+            )
+        f1s[:] = f1f2s[:, 0:3]
+        f2s[:] = f1f2s[:, 3:6]
+    else:
+        TorchSegScan(f1s, kintree.parent, Fscollect, True, execution_strategy)
+        TorchSegScan(f2s, kintree.parent, Fscollect, True, execution_strategy)
 
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()

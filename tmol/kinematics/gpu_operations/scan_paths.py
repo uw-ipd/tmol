@@ -4,7 +4,6 @@ import attr
 
 import numpy
 import numba
-import torch
 
 from ..datatypes import KinTree
 from tmol.types.attrs import ValidateAttrs
@@ -82,6 +81,8 @@ class GPUKinTreeReordering(ValidateAttrs):
     upwards towards the roots.
     """
 
+    kintree_cache_key = "__GPUKinTreeReordering_cache__"
+
     natoms: int
 
     # Operation path definitions
@@ -102,32 +103,40 @@ class GPUKinTreeReordering(ValidateAttrs):
     non_path_children_dso: Optional[DeviceNDArray]
     derivsum_atom_ranges: Optional[DeviceNDArray]
 
-    # Alex: how do I get validate args for a class's construction method?
     @classmethod
     @validate_args
-    def from_kintree(cls, kintree: KinTree, device: torch.device):
-        """Setup for operations over KinTree on given device."""
-        if device.type != "cuda":
-            # TODO: Enable
-            # raise ValueError(
-            #     f"GPUKinTreeReordering not supported for non-cuda devices."
-            #     f" device: {device}"
-            # )
+    def for_kintree(cls, kintree):
+        """Calculate and cache refold ordering over kintree
 
-            return cls(
-                natoms=0,
-                subpath_child_ko=None,
-                non_path_children_ko=None,
-                dsi2ki=None,
-                non_subpath_parent_ro=None,
-                is_root_ro=None,
-                ki2ri=None,
-                ri2ki=None,
-                refold_atom_ranges=None,
-                ki2dsi=None,
-                is_leaf_dso=None,
-                non_path_children_dso=None,
-                derivsum_atom_ranges=None,
+        KinTree data structure is frozen; so it is safe to cache the gpu scan
+        ordering for a single object. Store as a private property of the input
+        kintree, lifetime of the cache will then be managed via the target
+        object.
+        ."""
+
+        if not hasattr(kintree, cls.kintree_cache_key):
+            object.__setattr__(
+                kintree,
+                cls.kintree_cache_key,
+                cls.calculate_from_kintree(kintree),
+            )
+
+        return getattr(kintree, cls.kintree_cache_key)
+
+    @classmethod
+    @validate_args
+    def calculate_from_kintree(cls, kintree: KinTree, device=None):
+        """Setup for operations over KinTree.
+
+        `device` for gpu array is inferred from kintree tensor device.
+        """
+        if device is None:
+            device = kintree.parent.device
+
+        if device.type != "cuda":
+            raise ValueError(
+                f"GPUKinTreeReordering not supported for non-cuda devices."
+                f" device: {device}"
             )
         elif device.index is not None and device.index != numba.cuda.get_current_device(
         ).id:
@@ -249,6 +258,3 @@ class GPUKinTreeReordering(ValidateAttrs):
                 derivsum_ordering.atom_range_for_depth
             ),
         )
-
-    def active(self):
-        return self.natoms != 0

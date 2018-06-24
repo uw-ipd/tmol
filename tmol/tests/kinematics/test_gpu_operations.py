@@ -1,28 +1,27 @@
-import numpy
+import pytest
 import torch
-from numba import cuda
 
-import tmol.kinematics.gpu_operations
 from tmol.kinematics.builder import KinematicBuilder
 
-from tmol.kinematics.datatypes import NodeType
-from tmol.kinematics.operations import (
-    backwardKin, BondTransforms, JumpTransforms, ExecutionStrategy,
-    GPUKinTreeReordering, SegScanDerivs
-)
-
-from tmol.tests.torch import requires_cuda
+from tmol.kinematics.gpu_operations.scan_paths import GPUKinTreeReordering
 
 
-@requires_cuda
-def test_gpu_refold_data_construction(ubq_system):
+def test_gpu_refold_data_construction(ubq_system, torch_device):
     tsys = ubq_system
     kintree = KinematicBuilder().append_connected_component(
         *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
-    ).kintree
-    torch.DoubleTensor(tsys.coords[kintree.id])
+    ).kintree.to(device=torch_device)
 
-    ordering = GPUKinTreeReordering.from_kintree(kintree, torch.device("cuda"))
+    ### If kintree is cpu resident then the gpu parallel scan is invalid
+    if torch_device.type == "cpu":
+        with pytest.raises(ValueError):
+            GPUKinTreeReordering.calculate_from_kintree(kintree)
+        return
+
+    ### Otherwise test the derived ordering
+    ordering = GPUKinTreeReordering.calculate_from_kintree(
+        kintree, torch.device("cuda")
+    )
 
     # Extract path data from tree reordering.
     natoms = ordering.natoms
@@ -59,84 +58,3 @@ def test_gpu_refold_data_construction(ubq_system):
             child = non_path_children_dso[ii, jj]
             ii_ki = dsi2ki[ii]
             assert child == -1 or ii_ki == parent_ko[dsi2ki[child]]
-
-
-@requires_cuda
-def test_gpu_refold_ordering(ubq_system):
-
-    tsys = ubq_system
-    kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
-    ).kintree
-    kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
-
-    reordering = GPUKinTreeReordering.from_kintree(
-        kintree, torch.device("cuda")
-    )
-
-    dofs = backwardKin(kintree, kincoords).dofs
-
-    # 1) local HTs
-    HTs = torch.empty([reordering.natoms, 4, 4], dtype=torch.double)
-
-    assert kintree.doftype[0] == NodeType.root
-    assert kintree.parent[0] == 0
-    HTs[0] = torch.eye(4)
-
-    bondSelector = kintree.doftype == NodeType.bond
-    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
-
-    jumpSelector = kintree.doftype == NodeType.jump
-    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
-
-    # temp
-    HTs_d = cuda.to_device(HTs.numpy())
-
-    tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, reordering)
-
-    HTs = HTs_d.copy_to_host()
-    refold_kincoords = HTs[:, :3, 3].copy()
-    # temp refold_kincoords = HTs.numpy()[:, :3, 3].copy()
-
-    # needed for ubq_system, but not gradcheck_test_system:
-    refold_kincoords[0, :] = numpy.nan
-
-    numpy.testing.assert_allclose(kincoords, refold_kincoords, 1e-4)
-
-    # Timing
-    #import time
-    #start_time = time.time()
-    #for i in range(10000):
-    #    tmol.kinematics.gpu_operations.segscan_hts_gpu(HTs_d, reordering)
-    #
-    #print("--- refold %f seconds ---" % ((time.time() - start_time) / 10000))
-
-    # ok, now, let's see that f1f2 summation is functioning properly
-    f1s = torch.arange(
-        reordering.natoms * 3, dtype=torch.float64
-    ).reshape((reordering.natoms, 3)) / 512.
-    f2s = torch.arange(
-        reordering.natoms * 3, dtype=torch.float64
-    ).reshape((reordering.natoms, 3)) / 512.
-
-    f1f2s = numpy.zeros((reordering.natoms, 6))
-    f1f2s[:, 0:3] = f1s
-    f1f2s[:, 3:6] = f2s
-
-    SegScanDerivs(
-        reordering, f1s, f2s, kintree.parent, True,
-        ExecutionStrategy.torch_efficient
-    )
-
-    f1f2s_d = cuda.to_device(f1f2s)
-    tmol.kinematics.gpu_operations.segscan_f1f2s_gpu(f1f2s_d, reordering)
-
-    f1f2s = f1f2s_d.copy_to_host()
-
-    f1f2s_gold = numpy.concatenate((f1s, f2s), axis=1)
-
-    # clear the 0th entry; its contents are garbage
-    f1f2s_gold[0, :] = 0
-    f1f2s[0, :] = 0
-
-    numpy.testing.assert_allclose(f1f2s_gold, f1f2s, 1e-4)
