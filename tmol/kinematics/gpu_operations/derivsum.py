@@ -3,6 +3,9 @@ import attr
 import numpy
 import numba
 
+from tmol.types.attrs import ValidateAttrs
+from tmol.types.array import NDArray
+
 from .derivsum_jit import (
     reorder_starting_f1f2s,
     segscan_f1f2s_up_tree,
@@ -31,13 +34,17 @@ def segscan_f1f2s_gpu(f1f2s_ko, reordering):
 
 
 @attr.s(auto_attribs=True)
-class DerivsumOrdering:
-    ki2dsi: numpy.ndarray
-    dsi2ki: numpy.ndarray
+class DerivsumOrdering(ValidateAttrs):
+    # [natoms]
+    ki2dsi: NDArray("i4")[:]
+    dsi2ki: NDArray("i4")[:]
+    is_leaf: NDArray("bool")[:]
 
-    is_leaf: numpy.ndarray
-    non_path_children: numpy.ndarray
-    atom_range_for_depth: numpy.ndarray
+    # [natoms, max_num_nonpath_children
+    non_path_children: NDArray("i4")[:, :]
+
+    # [n_path_depths, 2]
+    atom_range_for_depth: NDArray("i4")[:, 2]
 
     @classmethod
     def determine(

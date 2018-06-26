@@ -1,16 +1,14 @@
-from typing import Optional
-
 import attr
 
 import numpy
 import numba
+# from numba.cuda import to_device as to_cuda_device
 
-from ..datatypes import KinTree
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
+from tmol.types.array import NDArray
 
-from numba.cuda import to_device as to_cuda_device
-
+from ..datatypes import KinTree
 from .scan_paths_jit import (
     mark_path_children_and_count_nonpath_children,
     list_nonpath_children,
@@ -86,22 +84,17 @@ class GPUKinTreeReordering(ValidateAttrs):
     natoms: int
 
     # Operation path definitions
-    subpath_child_ko: Optional[numpy.ndarray]
-    non_path_children_ko: Optional[numpy.ndarray]
+    # [natoms]
+    parent_ko: NDArray("i4")[:]
+    subpath_child_ko: NDArray("i4")[:]
+    # [natoms, max_num_nonpath_children]
+    non_path_children_ko: NDArray("i4")[:, :]
 
     # Kinematic refold (forward) data arrays
-    ki2ri: Optional[DeviceNDArray]
-    ri2ki: Optional[DeviceNDArray]
-    non_subpath_parent_ro: Optional[DeviceNDArray]
-    is_root_ro: Optional[DeviceNDArray]
-    refold_atom_ranges: Optional[DeviceNDArray]
+    refold_ordering: RefoldOrdering
 
     # Derivative summation (backward) data arrays
-    ki2dsi: Optional[DeviceNDArray]
-    dsi2ki: Optional[DeviceNDArray]
-    is_leaf_dso: Optional[DeviceNDArray]
-    non_path_children_dso: Optional[DeviceNDArray]
-    derivsum_atom_ranges: Optional[DeviceNDArray]
+    derivsum_ordering: DerivsumOrdering
 
     @classmethod
     @validate_args
@@ -125,28 +118,14 @@ class GPUKinTreeReordering(ValidateAttrs):
 
     @classmethod
     @validate_args
-    def calculate_from_kintree(cls, kintree: KinTree, device=None):
+    def calculate_from_kintree(cls, kintree: KinTree):
         """Setup for operations over KinTree.
 
         `device` for gpu array is inferred from kintree tensor device.
         """
-        if device is None:
-            device = kintree.parent.device
-
-        if device.type != "cuda":
-            raise ValueError(
-                f"GPUKinTreeReordering not supported for non-cuda devices."
-                f" device: {device}"
-            )
-        elif device.index is not None and device.index != numba.cuda.get_current_device(
-        ).id:
-            raise ValueError(
-                f"GPUKinTreeReordering target device is not current numba context."
-                f" device: {device} current: {numba.cuda.get_current_device()}"
-            )
 
         natoms = kintree.id.shape[0]
-        parent_ko = numpy.array(kintree.parent, dtype="i4")
+        parent_ko = numpy.array(kintree.parent.cpu(), dtype="i4")
 
         ### Determine path structure
 
@@ -233,28 +212,31 @@ class GPUKinTreeReordering(ValidateAttrs):
 
         return cls(
             natoms=natoms,
+            parent_ko=parent_ko,
             subpath_child_ko=subpath_child_ko,
             non_path_children_ko=non_path_children_ko,
+            refold_ordering=refold_ordering,
+            derivsum_ordering=derivsum_ordering,
 
-            # Kinematic refold (forward) data arrays
-            ki2ri=to_cuda_device(refold_ordering.ki2ri),
-            ri2ki=to_cuda_device(refold_ordering.ri2ki),
-            non_subpath_parent_ro=to_cuda_device(
-                refold_ordering.non_subpath_parent
-            ),
-            is_root_ro=to_cuda_device(refold_ordering.is_subpath_root),
-            refold_atom_ranges=to_cuda_device(
-                refold_ordering.atom_range_for_depth
-            ),
+            # # Kinematic refold (forward) data arrays
+            # ki2ri=to_cuda_device(refold_ordering.ki2ri),
+            # ri2ki=to_cuda_device(refold_ordering.ri2ki),
+            # non_subpath_parent_ro=to_cuda_device(
+            #     refold_ordering.non_subpath_parent
+            # ),
+            # is_root_ro=to_cuda_device(refold_ordering.is_subpath_root),
+            # refold_atom_ranges=to_cuda_device(
+            #     refold_ordering.atom_range_for_depth
+            # ),
 
-            # Derivative summation (backward) data arrays
-            ki2dsi=to_cuda_device(derivsum_ordering.ki2dsi),
-            dsi2ki=to_cuda_device(derivsum_ordering.dsi2ki),
-            is_leaf_dso=to_cuda_device(derivsum_ordering.is_leaf),
-            non_path_children_dso=to_cuda_device(
-                derivsum_ordering.non_path_children
-            ),
-            derivsum_atom_ranges=to_cuda_device(
-                derivsum_ordering.atom_range_for_depth
-            ),
+            # # Derivative summation (backward) data arrays
+            # ki2dsi=to_cuda_device(derivsum_ordering.ki2dsi),
+            # dsi2ki=to_cuda_device(derivsum_ordering.dsi2ki),
+            # is_leaf_dso=to_cuda_device(derivsum_ordering.is_leaf),
+            # non_path_children_dso=to_cuda_device(
+            #     derivsum_ordering.non_path_children
+            # ),
+            # derivsum_atom_ranges=to_cuda_device(
+            #     derivsum_ordering.atom_range_for_depth
+            # ),
         )

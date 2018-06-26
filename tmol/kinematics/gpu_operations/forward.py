@@ -3,6 +3,9 @@ import attr
 import numpy
 import numba
 
+from tmol.types.attrs import ValidateAttrs
+from tmol.types.array import NDArray
+
 from .forward_jit import segscan_ht_intervals_one_thread_block
 
 
@@ -23,13 +26,17 @@ def segscan_hts_gpu(hts_ko, reordering):
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class RefoldOrdering:
+class RefoldOrdering(ValidateAttrs):
 
-    ri2ki: numpy.ndarray
-    ki2ri: numpy.ndarray
-    is_subpath_root: numpy.ndarray
-    non_subpath_parent: numpy.ndarray
-    atom_range_for_depth: numpy.ndarray
+    # [natoms]
+    ri2ki: NDArray("i4")[:]
+    ki2ri: NDArray("i4")[:]
+
+    is_subpath_root: NDArray("bool")[:]
+    non_subpath_parent: NDArray("i4")[:]
+
+    # [n_path_depths, 2]
+    atom_range_for_depth: NDArray("i4")[:, 2]
 
     @classmethod
     def determine(
