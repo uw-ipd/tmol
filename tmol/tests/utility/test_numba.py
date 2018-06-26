@@ -65,7 +65,7 @@ def test_array_adaptor():
 
 @requires_cuda
 @pytest.mark.skipif(
-    len(numba.cuda.devices.gpus) < 2,
+    not numba.cuda.is_available() or len(numba.cuda.devices.gpus) < 2,
     reason="Requires multiple cuda devices.",
 )
 def test_active_device():
