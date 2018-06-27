@@ -25,6 +25,10 @@ from .torch import (
     torch_backward_coverage,
 )
 
+from .numba import (
+    numba_cudasim,
+)
+
 
 def pytest_collection_modifyitems(session, config, items):
     # Run all linting-tests *after* the functional tests
@@ -67,4 +71,5 @@ __all__ = (
     water_box_res,
     torch_device,
     torch_backward_coverage,
+    numba_cudasim,
 )

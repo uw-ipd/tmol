@@ -5,6 +5,8 @@ import pytest
 
 from tmol.tests.torch import requires_cuda
 
+import torch
+
 import torch.cuda
 import numba.cuda
 
@@ -61,6 +63,50 @@ def test_array_adaptor():
         strided_numba_view.copy_to_host(result_view)
         # Pass back to cuda from host for fp16 comparisons
         assert (strided_cudat == torch.tensor(result_view).to("cuda")).all()
+
+
+@pytest.mark.skipif(
+    numba.cuda.is_available(),
+    reason="Can only test numba_cudasim fixuture if cuda is not available."
+)
+def test_no_cudasim():
+    from tmol.utility.numba import as_cuda_array, is_cuda_array
+
+    data = torch.arange(10)
+    assert data.device.type == "cpu"
+    # When the simulator is *not* enable as_cuda_array errors
+    assert not is_cuda_array(data)
+    with pytest.raises(numba.cuda.cudadrv.error.CudaSupportError):
+        as_cuda_array(data)
+
+
+def test_cudasim_adaptor(numba_cudasim, torch_device):
+    from tmol.utility.numba import as_cuda_array, is_cuda_array
+
+    data = torch.arange(10, device=torch_device)
+
+    if data.device.type == "cpu":
+        # When the simulator is enabled as_cuda_array converts CPU arrays to
+        # fake cuda arrays.
+        assert not is_cuda_array(data)
+
+        data_array = as_cuda_array(data)
+        assert isinstance(
+            data_array, numba.cuda.simulator.cudadrv.devicearray.FakeCUDAArray
+        )
+        numpy.testing.assert_array_equal(data, data_array)
+
+        # Assert that fake array and source share memory
+        data[:2] = numpy.pi
+        numpy.testing.assert_array_equal(data, data_array)
+
+        data_array[-2:] = numpy.pi
+        numpy.testing.assert_array_equal(data, data_array)
+    elif data.device.type == "cuda":
+        # When the simulator is enabled as_cuda_array dies on real cuda arrays.
+        assert is_cuda_array(data)
+        with pytest.raises(ValueError):
+            as_cuda_array(data)
 
 
 @requires_cuda

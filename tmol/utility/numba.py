@@ -14,6 +14,7 @@ from ctypes import c_ulong
 import numpy as np
 import numba
 from numba.cuda.cudadrv import devicearray, devices, driver
+import numba.cuda.simulator as simulator
 
 assert numba.__version__ < "0.39", "Backport of numba v0.39 device array interface no longer needed."
 
@@ -60,11 +61,26 @@ def from_cuda_array_interface(desc, owner=None):
 
 @singledispatch
 def as_cuda_array(obj):
-    """Create a DeviceNDArray from any object that implements
-    the cuda-array-interface.
-    A view of the underlying GPU buffer is created.  No copying of the data
-    is done.  The resulting DeviceNDArray will acquire a reference from `obj`.
+    """Create a DeviceNDArray from any object that implements the
+    cuda-array-interface.
+
+    A view of the underlying GPU buffer is created.  No copying of the data is
+    done.  The resulting DeviceNDArray will acquire a reference from `obj`.
+
+    Shim interface supports creation of *fake* cuda arrays iff the cuda
+    simulator is active as the current context.
     """
+
+    if isinstance(
+            numba.cuda.current_context(),
+            simulator.cudadrv.devices.FakeCUDAContext,
+    ):
+        if is_cuda_array(obj):
+            raise ValueError(
+                "Can not create simulator device array from cuda array."
+            )
+        return simulator.cudadrv.devicearray.FakeCUDAArray(obj.__array__())
+
     if not is_cuda_array(obj):
         raise TypeError("*obj* doesn't implement the cuda array interface.")
     else:
@@ -163,6 +179,13 @@ class TorchCUDAArrayAdaptor:
     @staticmethod
     @as_cuda_array.register(torch.Tensor)
     def as_cuda_array(torch_tensor):
+        if isinstance(
+                numba.cuda.current_context(),
+                simulator.cudadrv.devices.FakeCUDAContext,
+        ):
+            # Fall through to default implementation iff in simulator context
+            return as_cuda_array.dispatch(object)(torch_tensor)
+
         return as_cuda_array(TorchCUDAArrayAdaptor(torch_tensor))
 
     @staticmethod
