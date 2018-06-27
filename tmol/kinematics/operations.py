@@ -1,7 +1,6 @@
 from enum import Enum
 import attr
 import numpy
-import numba
 
 import scipy.sparse.csgraph
 
@@ -10,9 +9,11 @@ from typing import Optional
 
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
+from tmol.types.attrs import ValidateAttrs
 
 from .datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
-from .gpu_operations import segscan_hts_gpu, segscan_f1f2s_gpu, GPUKinTreeReordering
+from .gpu_operations import GPUKinTreeReordering
+from .cpu_operations import iterative_refold, iterative_f1f2_summation
 
 from ..utility.numba import as_cuda_array
 
@@ -201,18 +202,6 @@ def Fscollect(
                            device=ptrs.device).unsqueeze(0)
     indices = (ptrs.unsqueeze(1) * 3 + offsets)
     fs.put_(indices[toCalc, :], fs[toCalc, :], accumulate=True)
-
-
-@numba.jit(nopython=True)
-def iterative_refold(hts, parent):
-    for ii in range(1, hts.shape[0]):
-        hts[ii, :, :] = hts[parent[ii], :, :] @ hts[ii, :, :]
-
-
-@numba.jit(nopython=True)
-def iterative_f1f2_summation(f1f2s, parent):
-    for ii in range(f1f2s.shape[0] - 1, 0, -1):
-        f1f2s[parent[ii], :] += f1f2s[ii, :]
 
 
 @validate_args
@@ -592,6 +581,24 @@ def BondDerivatives(
     return dsc_ddofs
 
 
+def DOFTransforms(dof_types: Tensor(torch.int)[:], dofs: KinDOF) -> HTArray:
+    """Calculate HT representation of given dofs."""
+    HTs = torch.empty([len(dofs), 4, 4],
+                      dtype=HTArray.dtype,
+                      device=dofs.raw.device)
+
+    rootSelector = dof_types == NodeType.root
+    HTs[rootSelector] = torch.eye(4, dtype=HTs.dtype, device=HTs.device)
+
+    bondSelector = dof_types == NodeType.bond
+    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
+
+    jumpSelector = dof_types == NodeType.jump
+    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
+
+    return HTs
+
+
 @validate_args
 def HTs_from_frames(
         Cs: CoordArray,
@@ -626,13 +633,8 @@ def HTs_from_frames(
     return (out)
 
 
-@attr.s(frozen=True, auto_attribs=True)
-class BackKinResult:
-    @classmethod
-    @validate_args
-    def create(cls, hts: HTArray, dofs: KinDOF):
-        return cls(hts, dofs)
-
+@attr.s(frozen=True, auto_attribs=True, slots=True)
+class BackKinResult(ValidateAttrs):
     hts: HTArray
     dofs: KinDOF
 
@@ -682,16 +684,11 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     jumpSelector = kintree.doftype == NodeType.jump
     dofs.jump[jumpSelector] = InvJumpTransforms(localHTs[jumpSelector])
 
-    return BackKinResult.create(HTs, dofs)
+    return BackKinResult(HTs, dofs)
 
 
-@attr.s(frozen=True, auto_attribs=True)
+@attr.s(frozen=True, auto_attribs=True, slots=True)
 class ForwardKinResult:
-    @classmethod
-    @validate_args
-    def create(cls, hts: HTArray, coords: CoordArray):
-        return cls(hts, coords)
-
     hts: HTArray
     coords: CoordArray
 
@@ -706,36 +703,27 @@ def forwardKin(
 
       - "forward" kinematics
     """
-    natoms = len(dofs)
     assert len(kintree) == len(dofs)
-
-    # 1) Calculate local inter-node HTs from dofs
-    HTs = torch.empty([natoms, 4, 4],
-                      dtype=HTArray.dtype,
-                      device=dofs.raw.device)
-
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
-    HTs[0] = torch.eye(4)
 
-    bondSelector = kintree.doftype == NodeType.bond
-    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
-
-    jumpSelector = kintree.doftype == NodeType.jump
-    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
+    # 1) Calculate local inter-node HTs from dofs
+    HTs = DOFTransforms(kintree.doftype, dofs)
 
     # 2) Accumulate local HTs into global HTs (rewrite 1->N in-place)
     if strat == ExecutionStrategy.hand_rolled:
         if HTs.device.type == "cuda":
-            HTs_d = as_cuda_array(HTs)
-            segscan_hts_gpu(HTs_d, GPUKinTreeReordering.for_kintree(kintree))
+            (
+                GPUKinTreeReordering.for_kintree(kintree)
+                .refold_ordering.segscan_hts(HTs, inplace=True)
+            )
         else:
-            iterative_refold(HTs.numpy(), kintree.parent.numpy())
+            iterative_refold(HTs, kintree.parent, inplace=True)
     else:
         TorchSegScan(HTs, kintree.parent, HTcollect, False, strat)
 
     coords = HTs[:, :3, 3]
-    return ForwardKinResult.create(HTs, coords)
+    return ForwardKinResult(HTs, coords)
 
 
 @validate_args
@@ -769,14 +757,13 @@ def resolveDerivs(
         f1f2s = torch.cat((f1s, f2s), 1)
 
         if f1f2s.device.type == "cuda":
-            f1f2s_d = as_cuda_array(f1f2s)
-            segscan_f1f2s_gpu(
-                f1f2s_d, GPUKinTreeReordering.for_kintree(kintree)
+            (
+                GPUKinTreeReordering.for_kintree(kintree)
+                .derivsum_ordering.segscan_f1f2s(as_cuda_array(f1f2s))
             )
+
         else:
-            iterative_f1f2_summation(
-                f1f2s.detach().numpy(), kintree.parent.numpy()
-            )
+            iterative_f1f2_summation(f1f2s, kintree.parent, inplace=True)
         f1s[:] = f1f2s[:, 0:3]
         f2s[:] = f1f2s[:, 3:6]
     else:

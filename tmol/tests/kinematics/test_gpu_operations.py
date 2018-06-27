@@ -1,9 +1,23 @@
+import numpy
+import torch
+import numba
+
+import importlib
+
+from tmol.kinematics.operations import (
+    DOFTransforms,
+    backwardKin,
+    iterative_refold,
+)
 from tmol.kinematics.gpu_operations import (
     GPUKinTreeReordering,
     RefoldOrdering,
     DerivsumOrdering,
     PathPartitioning,
 )
+
+import tmol.kinematics.cpu_operations as cpu_operations
+import tmol.kinematics.gpu_operations as gpu_operations
 
 
 def test_gpu_refold_data_construction(ubq_kintree):
@@ -63,3 +77,39 @@ def test_gpu_refold_data_construction(ubq_kintree):
             child = do.nonpath_children[ii, jj]
             ii_ki = do.dsi2ki[ii]
             assert child == -1 or ii_ki == sp.parent[do.dsi2ki[child]]
+
+
+def test_parallel_and_iterative_refold(
+        ubq_system, ubq_kintree, numba_cuda_or_cudasim
+):
+    target_device = "cpu" if numba.config.ENABLE_CUDASIM else "cuda"
+
+    # Reload jit modules to ensure that current cuda execution environment, set
+    # by fixture, is active for jit functions.
+    importlib.reload(cpu_operations.jit)
+    importlib.reload(gpu_operations.derivsum_jit)
+    importlib.reload(gpu_operations.forward_jit)
+    importlib.reload(gpu_operations.scan_paths_jit)
+
+    coords = torch.tensor(ubq_system.coords[ubq_kintree.id]
+                          ).to(device=target_device)
+    kintree = ubq_kintree.to(device=target_device)
+
+    bkin = backwardKin(ubq_kintree, coords)
+
+    local_hts = DOFTransforms(kintree.doftype, bkin.dofs)
+
+    ### refold from local hts should equal global hts from backward kinematics
+    # iterative case
+
+    iterative_refold_hts = iterative_refold(
+        local_hts.cpu(), kintree.parent.cpu(), inplace=False
+    )
+    numpy.testing.assert_array_almost_equal(bkin.hts, iterative_refold_hts)
+
+    # parallel case
+    parallel_refold_hts = (
+        GPUKinTreeReordering.for_kintree(kintree)
+        .refold_ordering.segscan_hts(local_hts, inplace=False)
+    )
+    numpy.testing.assert_array_almost_equal(bkin.hts, parallel_refold_hts)

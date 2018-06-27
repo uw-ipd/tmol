@@ -5,27 +5,13 @@ import numba
 
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
-from .forward_jit import (
-    segscan_ht_intervals_one_thread_block, finalize_refold_indices
-)
+from tmol.utility.numba import as_cuda_array
+
 from .scan_paths import PathPartitioning
 
-
-def segscan_hts_gpu(hts_ko, reordering):
-    """Perform a series of segmented scan operations on the input homogeneous transforms
-    to compute the coordinates (and coordinate frames) of all atoms in the structure.
-    This version uses cuda.syncthreads() calls to ensure that there are no data race
-    issues. For this reason, it can be safely run on the CPU using numba's CUDA simulator
-    (activated by setting the environment variable NUMBA_ENABLE_CUDASIM=1)"""
-
-    ro = reordering
-    stream = numba.cuda.stream()
-
-    segscan_ht_intervals_one_thread_block[1, 256, stream](
-        hts_ko, ro.ri2ki, ro.is_root_ro, ro.non_subpath_parent_ro,
-        ro.refold_atom_ranges
-    )
+from . import forward_jit
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -80,7 +66,7 @@ class RefoldOrdering(ValidateAttrs):
 
         for ii in range(ndepths):
             ii_roots = subpath_roots[subpath_depths_from_root == ii]
-            finalize_refold_indices(
+            forward_jit.finalize_refold_indices(
                 ii_roots,
                 depth_offsets[ii],
                 scan_paths.subpath_child,
@@ -102,3 +88,29 @@ class RefoldOrdering(ValidateAttrs):
                 -1,
             ),
         )
+
+    def segscan_hts(
+            self,
+            hts_kintree_ordering: Tensor("f8")[:, 4, 4],
+            inplace: bool = False
+    ) -> Tensor("f8")[:, 4, 4]:
+        """Perform a series of segmented scan operations on the input homogeneous transforms
+        to compute the coordinates (and coordinate frames) of all atoms in the structure.
+        This version uses cuda.syncthreads() calls to ensure that there are no data race
+        issues. For this reason, it can be safely run on the CPU using numba's CUDA simulator
+        (activated by setting the environment variable NUMBA_ENABLE_CUDASIM=1)"""
+
+        stream = numba.cuda.stream()
+
+        if not inplace:
+            hts_kintree_ordering = hts_kintree_ordering.clone()
+
+        forward_jit.segscan_ht_intervals_one_thread_block[1, 256, stream](
+            as_cuda_array(hts_kintree_ordering),
+            self.ri2ki,
+            self.is_subpath_root,
+            self.non_subpath_parent,
+            self.atom_range_for_depth,
+        )
+
+        return hts_kintree_ordering

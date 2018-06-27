@@ -6,8 +6,8 @@ from tmol.types.functional import validate_args
 from ..datatypes import KinTree
 
 from .scan_paths import PathPartitioning
-from .forward import segscan_hts_gpu, RefoldOrdering
-from .derivsum import segscan_f1f2s_gpu, DerivsumOrdering
+from .forward import RefoldOrdering
+from .derivsum import DerivsumOrdering
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -147,4 +147,6 @@ class GPUKinTreeReordering(ValidateAttrs):
         # )
 
 
-__all__ = (GPUKinTreeReordering, segscan_hts_gpu, segscan_f1f2s_gpu)
+__all__ = (
+    GPUKinTreeReordering, PathPartitioning, RefoldOrdering, DerivsumOrdering
+)

@@ -27,6 +27,7 @@ from .torch import (
 
 from .numba import (
     numba_cudasim,
+    numba_cuda_or_cudasim,
 )
 
 
@@ -72,4 +73,5 @@ __all__ = (
     torch_device,
     torch_backward_coverage,
     numba_cudasim,
+    numba_cuda_or_cudasim,
 )

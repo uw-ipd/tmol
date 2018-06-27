@@ -5,6 +5,7 @@ import numba
 
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
 from .scan_paths import PathPartitioning
 
@@ -14,26 +15,6 @@ from .derivsum_jit import (
     segscan_f1f2s_up_tree,
     reorder_final_f1f2s,
 )
-
-
-def segscan_f1f2s_gpu(f1f2s_ko, reordering):
-    # TO DO: handle f1 and f2 separately; segscan in-place (no reordering kernels)
-    ro = reordering
-    f1f2s_dso_d = numba.cuda.device_array((ro.natoms, 6), dtype="float64")
-
-    nblocks = (ro.natoms - 1) // 512 + 1
-    reorder_starting_f1f2s[nblocks, 512](
-        ro.natoms, f1f2s_ko, f1f2s_dso_d, ro.ki2dsi
-    )
-
-    segscan_f1f2s_up_tree[1, 512](
-        f1f2s_dso_d, ro.non_path_children_dso, ro.is_leaf_dso,
-        ro.derivsum_atom_ranges
-    )
-
-    reorder_final_f1f2s[nblocks, 512](
-        ro.natoms, f1f2s_ko, f1f2s_dso_d, ro.ki2dsi
-    )
 
 
 @attr.s(auto_attribs=True)
@@ -108,3 +89,44 @@ class DerivsumOrdering(ValidateAttrs):
             )[dsi2ki],
             atom_range_for_depth=atom_range_for_depth
         )
+
+    def segscan_f1f2s(
+            self,
+            f1f2s_kintree_ordering: Tensor("f8")[:, 6],
+            inplace: bool = False
+    ) -> Tensor("f8")[:, 6]:
+        if not inplace:
+            f1f2s_kintree_ordering = f1f2s_kintree_ordering.clone()
+
+        # TODO: handle f1 and f2 separately; segscan in-place (no reordering kernels)
+        natoms = len(f1f2s_kintree_ordering)
+        assert natoms == len(self.dsi2ki)
+
+        f1f2s_dso_d = numba.cuda.device_array((natoms, 6), dtype="float64")
+
+        nblocks = (natoms - 1) // 512 + 1
+
+        #TODO asford: isn't this just an indexing operation?
+        reorder_starting_f1f2s[nblocks, 512](
+            natoms,
+            f1f2s_kintree_ordering,
+            f1f2s_dso_d,
+            self.ki2dsi,
+        )
+
+        segscan_f1f2s_up_tree[1, 512](
+            f1f2s_dso_d,
+            self.nonpath_children,
+            self.is_leaf,
+            self.derivsum_atom_ranges,
+        )
+
+        #TODO asford: isn't this just an indexing operation?
+        reorder_final_f1f2s[nblocks, 512](
+            natoms,
+            f1f2s_kintree_ordering,
+            f1f2s_dso_d,
+            self.ki2dsi,
+        )
+
+        return f1f2s_kintree_ordering
