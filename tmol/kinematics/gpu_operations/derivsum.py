@@ -6,7 +6,10 @@ import numba
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
 
+from .scan_paths import PathPartitioning
+
 from .derivsum_jit import (
+    finalize_derivsum_indices,
     reorder_starting_f1f2s,
     segscan_f1f2s_up_tree,
     reorder_final_f1f2s,
@@ -41,95 +44,67 @@ class DerivsumOrdering(ValidateAttrs):
     is_leaf: NDArray("bool")[:]
 
     # [natoms, max_num_nonpath_children
-    non_path_children: NDArray("i4")[:, :]
+    nonpath_children: NDArray("i4")[:, :]
 
     # [n_path_depths, 2]
     atom_range_for_depth: NDArray("i4")[:, 2]
 
     @classmethod
-    def determine(
-            cls,
-            natoms,
-            parent_ko,
-            derivsum_path_depth_ko,
-            subpath_length_ko,
-            is_subpath_root_ko,
-            is_subpath_leaf_ko,
-            non_path_children_ko,
-    ):
-        n_derivsum_depths = derivsum_path_depth_ko[0] + 1
+    def for_scan_paths(cls, scan_paths: PathPartitioning):
+        natoms = len(scan_paths.parent)
+        ndepths = scan_paths.subpath_depth_from_leaf[0] + 1
 
-        dso = derivsum_ordering = cls(
-            ki2dsi=numpy.full((natoms), -1, dtype="int32"),
-            dsi2ki=numpy.full((natoms), -1, dtype="int32"),
-            is_leaf=numpy.full((natoms), False, dtype="bool"),
-            non_path_children=numpy.full_like(
-                non_path_children_ko,
-                -1,
-                dtype="int32",
-            ),
-            atom_range_for_depth=numpy.full(
-                (n_derivsum_depths, 2),
-                -1,
-                "int32",
-            ),
-        )
+        # Determine the number of atoms present in paths at each path depth,
+        # and the index ranges needed for each depth in the scan buffer.
+        subpath_leaves = numpy.flatnonzero(scan_paths.is_subpath_leaf)
+        subpath_depths_from_leaf = scan_paths.subpath_depth_from_leaf[
+            subpath_leaves
+        ]
+        subpath_lengths = scan_paths.subpath_length[subpath_leaves]
 
-        leaf_path_depths = derivsum_path_depth_ko[is_subpath_leaf_ko]
-        leaf_path_lengths = subpath_length_ko[is_subpath_leaf_ko]
-
-        depth_offsets = numpy.zeros((n_derivsum_depths), dtype="int32")
-        numpy.add.at(depth_offsets, leaf_path_depths, leaf_path_lengths)
+        depth_offsets = numpy.zeros((ndepths), dtype="int32")
+        numpy.add.at(depth_offsets, subpath_depths_from_leaf, subpath_lengths)
         depth_offsets[1:] = numpy.cumsum(depth_offsets)[:-1]
         depth_offsets[0] = 0
 
-        for ii in range(n_derivsum_depths - 1):
-            dso.atom_range_for_depth[ii, 0] = depth_offsets[ii]
-            dso.atom_range_for_depth[ii, 1] = depth_offsets[ii + 1]
+        atom_range_for_depth = numpy.full(
+            (ndepths, 2),
+            -1,
+            dtype="int32",
+        )
 
-        dso.atom_range_for_depth[n_derivsum_depths - 1, 0] = \
-             depth_offsets[n_derivsum_depths - 1]
-        dso.atom_range_for_depth[n_derivsum_depths - 1, 1] = natoms
+        for ii in range(ndepths - 1):
+            atom_range_for_depth[ii, 0] = depth_offsets[ii]
+            atom_range_for_depth[ii, 1] = depth_offsets[ii + 1]
 
-        derivsum_leaves = numpy.nonzero(is_subpath_leaf_ko)[0]
-        for ii in range(n_derivsum_depths):
-            ii_leaves = derivsum_leaves[leaf_path_depths == ii]
-            cls.finalize_derivsum_indices(
+        atom_range_for_depth[ndepths - 1, 0] = depth_offsets[ndepths - 1]
+        atom_range_for_depth[ndepths - 1, 1] = natoms
+
+        dsi2ki = numpy.full((natoms), -1, dtype="int32")
+        ki2dsi = numpy.full((natoms), -1, dtype="int32")
+        for ii in range(ndepths):
+            ii_leaves = subpath_leaves[subpath_depths_from_leaf == ii]
+            finalize_derivsum_indices(
                 leaves=ii_leaves,
                 start_ind=depth_offsets[ii],
-                parent=parent_ko,
-                is_root=is_subpath_root_ko,
-                ki2dsi=dso.ki2dsi,
-                dsi2ki=dso.dsi2ki,
+                parent=scan_paths.parent,
+                is_root=scan_paths.is_subpath_root,
+                ki2dsi=ki2dsi,
+                dsi2ki=dsi2ki,
             )
 
-        assert numpy.all(dso.ki2dsi != -1)
-        assert numpy.all(dso.dsi2ki != -1)
+        assert numpy.all(ki2dsi != -1)
+        assert numpy.all(dsi2ki != -1)
 
-        for ii in range(non_path_children_ko.shape[1]):
-            child_exists = non_path_children_ko[:, ii] != -1
-            dso.non_path_children[child_exists, ii] = dso.ki2dsi[
-                non_path_children_ko[child_exists, ii]
-            ]
-        # now all the identies of the children have been remapped, but they
-        # are still in kintree order; so reorder them to derivsum order.
-        dso.non_path_children[:] = dso.non_path_children[dso.dsi2ki]
-        dso.is_leaf[:] = is_subpath_leaf_ko[dso.dsi2ki]
-
-        return derivsum_ordering
-
-    @staticmethod
-    @numba.jit(nopython=True)
-    def finalize_derivsum_indices(
-            leaves, start_ind, parent, is_root, ki2dsi, dsi2ki
-    ):
-        count = start_ind
-        for leaf in leaves:
-            nextatom = leaf
-            while True:
-                dsi2ki[count] = nextatom
-                ki2dsi[nextatom] = count
-                count += 1
-                if is_root[nextatom]:
-                    break
-                nextatom = parent[nextatom]
+        return cls(
+            dsi2ki=dsi2ki,
+            ki2dsi=ki2dsi,
+            is_leaf=scan_paths.is_subpath_leaf[dsi2ki],
+            # First map nonpath children into dsi indices, then map
+            # the nonpath children array into dsi ordering
+            nonpath_children=numpy.where(
+                scan_paths.nonpath_children != -1,
+                ki2dsi[scan_paths.nonpath_children], -1
+            )[dsi2ki],
+            atom_range_for_depth=atom_range_for_depth
+        )

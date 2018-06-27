@@ -6,7 +6,10 @@ import numba
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
 
-from .forward_jit import segscan_ht_intervals_one_thread_block
+from .forward_jit import (
+    segscan_ht_intervals_one_thread_block, finalize_refold_indices
+)
+from .scan_paths import PathPartitioning
 
 
 def segscan_hts_gpu(hts_ko, reordering):
@@ -39,72 +42,63 @@ class RefoldOrdering(ValidateAttrs):
     atom_range_for_depth: NDArray("i4")[:, 2]
 
     @classmethod
-    def determine(
-            cls,
-            natoms,
-            refold_atom_depth_ko,
-            is_subpath_root_ko,
-            subpath_length_ko,
-            subpath_child_ko,
-            parent_ko,
-    ):
-        ndepths = max(refold_atom_depth_ko) + 1
-        rfo = refold_ordering = cls(
-            ri2ki=numpy.full((natoms), -1, dtype="int32"),
-            ki2ri=numpy.full((natoms), -1, dtype="int32"),
-            atom_range_for_depth=numpy.full(
-                (ndepths, 2),
-                -1,
-                dtype="int32",
-            ),
-            non_subpath_parent=numpy.full((natoms), -1, dtype="int32"),
-            is_subpath_root=numpy.full((natoms), True, dtype="bool"),
-        )
+    def for_scan_paths(cls, scan_paths: PathPartitioning):
+        natoms = len(scan_paths.parent)
+        ndepths = scan_paths.subpath_depth_from_root.max() + 1
 
-        # sum the path lengths at each depth
+        # Determine the number of atoms present in paths at each path depth,
+        # and the index ranges needed for each depth in the scan buffer.
+        subpath_roots = numpy.flatnonzero(scan_paths.is_subpath_root)
+        subpath_depths_from_root = scan_paths.subpath_depth_from_root[
+            subpath_roots
+        ]
+        subpath_lengths = scan_paths.subpath_length[subpath_roots]
+
         depth_offsets = numpy.zeros((ndepths), dtype="int32")
         numpy.add.at(
-            depth_offsets, refold_atom_depth_ko[is_subpath_root_ko],
-            subpath_length_ko[is_subpath_root_ko]
+            depth_offsets,
+            subpath_depths_from_root,
+            subpath_lengths,
         )
         depth_offsets[1:] = numpy.cumsum(depth_offsets)[:-1]
         depth_offsets[0] = 0
 
+        atom_range_for_depth = numpy.full(
+            (ndepths, 2),
+            -1,
+            dtype="int32",
+        )
         for i in range(ndepths - 1):
-            rfo.atom_range_for_depth[i, 0] = depth_offsets[i]
-            rfo.atom_range_for_depth[i, 1] = depth_offsets[i + 1]
-        rfo.atom_range_for_depth[ndepths - 1, 0] = depth_offsets[-1]
-        rfo.atom_range_for_depth[ndepths - 1, 1] = natoms
+            atom_range_for_depth[i, 0] = depth_offsets[i]
+            atom_range_for_depth[i, 1] = depth_offsets[i + 1]
+        atom_range_for_depth[ndepths - 1, 0] = depth_offsets[-1]
+        atom_range_for_depth[ndepths - 1, 1] = natoms
 
-        subpath_roots = numpy.nonzero(is_subpath_root_ko)[0]
-        root_depths = refold_atom_depth_ko[subpath_roots]
+        # Pack paths into scan buffer, path contiguous and grouped by depth.
+        ri2ki = numpy.full((natoms), -1, dtype="int32")
+        ki2ri = numpy.full((natoms), -1, dtype="int32")
+
         for ii in range(ndepths):
-            ii_roots = subpath_roots[root_depths == ii]
-            cls.finalize_refold_indices(
-                ii_roots, depth_offsets[ii], subpath_child_ko, rfo.ri2ki,
-                rfo.ki2ri
+            ii_roots = subpath_roots[subpath_depths_from_root == ii]
+            finalize_refold_indices(
+                ii_roots,
+                depth_offsets[ii],
+                scan_paths.subpath_child,
+                ri2ki,
+                ki2ri,
             )
 
-        assert numpy.all(rfo.ri2ki != -1)
-        assert numpy.all(rfo.ki2ri != -1)
+        assert numpy.all(ri2ki != -1)
+        assert numpy.all(ki2ri != -1)
 
-        rfo.is_subpath_root[:] = is_subpath_root_ko[rfo.ri2ki]
-        rfo.non_subpath_parent[rfo.is_subpath_root] = \
-            rfo.ki2ri[parent_ko[rfo.ri2ki][rfo.is_subpath_root]]
-        rfo.non_subpath_parent[0] = -1
-
-        return refold_ordering
-
-    @staticmethod
-    @numba.jit(nopython=True)
-    def finalize_refold_indices(
-            roots, depth_offset, subpath_child_ko, ri2ki, ki2ri
-    ):
-        count = depth_offset
-        for root in roots:
-            nextatom = root
-            while nextatom != -1:
-                ri2ki[count] = nextatom
-                ki2ri[nextatom] = count
-                nextatom = subpath_child_ko[nextatom]
-                count += 1
+        return cls(
+            ri2ki=ri2ki,
+            ki2ri=ki2ri,
+            atom_range_for_depth=atom_range_for_depth,
+            is_subpath_root=scan_paths.is_subpath_root[ri2ki],
+            non_subpath_parent=numpy.where(
+                scan_paths.is_subpath_root[ri2ki],
+                ki2ri[scan_paths.parent[ri2ki]],
+                -1,
+            ),
+        )

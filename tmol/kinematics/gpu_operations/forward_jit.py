@@ -2,6 +2,20 @@ import numba
 from numba import cuda
 
 
+@numba.jit(nopython=True)
+def finalize_refold_indices(
+        roots, depth_offset, subpath_child_ko, ri2ki, ki2ri
+):
+    count = depth_offset
+    for root in roots:
+        nextatom = root
+        while nextatom != -1:
+            ri2ki[count] = nextatom
+            ki2ri[nextatom] = count
+            nextatom = subpath_child_ko[nextatom]
+            count += 1
+
+
 @cuda.jit(device=True)
 def identity_ht():
     one = numba.float32(1.0)

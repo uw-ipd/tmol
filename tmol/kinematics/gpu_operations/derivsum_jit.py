@@ -2,6 +2,22 @@ import numba
 from numba import cuda
 
 
+@numba.jit(nopython=True)
+def finalize_derivsum_indices(
+        leaves, start_ind, parent, is_root, ki2dsi, dsi2ki
+):
+    count = start_ind
+    for leaf in leaves:
+        nextatom = leaf
+        while True:
+            dsi2ki[count] = nextatom
+            ki2dsi[nextatom] = count
+            count += 1
+            if is_root[nextatom]:
+                break
+            nextatom = parent[nextatom]
+
+
 @cuda.jit(device=True)
 def load_f1f2s(f1f2s, ind):
     v0 = f1f2s[ind, 0]
