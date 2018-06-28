@@ -1,3 +1,4 @@
+import warnings
 from enum import Enum
 import attr
 import numpy
@@ -745,6 +746,17 @@ def resolveDerivs(
     assert len(kintree) == len(dofs)
     assert len(kintree) == len(HTs)
     assert len(kintree) == len(dsc_dx)
+
+    if dsc_dx.requires_grad:
+        # Can not render higher-order derivatives for kinematic operations,
+        # as is generated with backward(create_graph=True) is called.
+        # Ignore/nan rather than erroring to support torch gradcheck.
+        warnings.warn(
+            "dsc_dx.requires_grad in resolveDerivs not supported, "
+            "will return nan gradient"
+        )
+        dsc_dx.register_hook(lambda grad: grad.new_full(numpy.nan))
+        dsc_dx = dsc_dx.detach()
 
     # 1) local f1/f2s
     Xs = HTs[:, 0:3, 3]
