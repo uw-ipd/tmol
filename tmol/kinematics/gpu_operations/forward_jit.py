@@ -122,9 +122,12 @@ def segscan_ht_intervals_one_thread_block(
         carry_is_root = False
         for ii in range(niters):
             ii_ind = ii * 256 + start + pos
-            ki = ri2ki[ii_ind]
+            ki = -1
+
             #load data into shared memory
             if ii_ind < end:
+                ki = ri2ki[ii_ind]
+
                 for jj in range(12):
                     shared_hts[jj, pos] = hts_ko[ki, jj // 4, jj % 4]
                 shared_is_root[pos] = is_root[ii_ind]
