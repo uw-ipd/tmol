@@ -49,6 +49,9 @@ steps:
           - label: Testing
             artifact_path: testing.junit.xml
             type: junit
+          - label: Testing - CPU
+            artifact_path: testing.cpu.junit.xml
+            type: junit
           - label: Linting
             artifact_path: linting.junit.xml
             type: junit
