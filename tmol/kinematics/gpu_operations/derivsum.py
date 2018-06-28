@@ -7,6 +7,8 @@ from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
+from tmol.utility.numba import as_cuda_array
+
 from .scan_paths import PathPartitioning
 
 from .derivsum_jit import (
@@ -102,6 +104,8 @@ class DerivsumOrdering(ValidateAttrs):
         natoms = len(f1f2s_kintree_ordering)
         assert natoms == len(self.dsi2ki)
 
+        f1f2s_kintree_ordering_d = as_cuda_array(f1f2s_kintree_ordering)
+
         f1f2s_dso_d = numba.cuda.device_array((natoms, 6), dtype="float64")
 
         nblocks = (natoms - 1) // 512 + 1
@@ -109,7 +113,7 @@ class DerivsumOrdering(ValidateAttrs):
         #TODO asford: isn't this just an indexing operation?
         reorder_starting_f1f2s[nblocks, 512](
             natoms,
-            f1f2s_kintree_ordering,
+            f1f2s_kintree_ordering_d,
             f1f2s_dso_d,
             self.ki2dsi,
         )
@@ -124,7 +128,7 @@ class DerivsumOrdering(ValidateAttrs):
         #TODO asford: isn't this just an indexing operation?
         reorder_final_f1f2s[nblocks, 512](
             natoms,
-            f1f2s_kintree_ordering,
+            f1f2s_kintree_ordering_d,
             f1f2s_dso_d,
             self.ki2dsi,
         )

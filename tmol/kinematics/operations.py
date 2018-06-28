@@ -771,7 +771,7 @@ def resolveDerivs(
         if f1f2s.device.type == "cuda":
             (
                 GPUKinTreeReordering.for_kintree(kintree)
-                .derivsum_ordering.segscan_f1f2s(as_cuda_array(f1f2s))
+                .derivsum_ordering.segscan_f1f2s(f1f2s)
             )
 
         else:
