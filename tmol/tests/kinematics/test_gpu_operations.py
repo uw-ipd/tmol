@@ -106,6 +106,7 @@ def test_parallel_and_iterative_refold(ubq_system, ubq_kintree, target_device):
     local_hts = DOFTransforms(kintree.doftype, bkin.dofs)
 
     ### refold from local hts should equal global hts from backward kinematics
+    ### inplace operations should produce same result as non-inplace
     # iterative case
 
     iterative_refold_hts = iterative_refold(
@@ -113,12 +114,30 @@ def test_parallel_and_iterative_refold(ubq_system, ubq_kintree, target_device):
     )
     numpy.testing.assert_array_almost_equal(bkin.hts, iterative_refold_hts)
 
+    iterative_refold_hts_inplace = local_hts.clone().cpu()
+    iterative_refold(
+        iterative_refold_hts_inplace, kintree.parent.cpu(), inplace=True
+    )
+    numpy.testing.assert_array_almost_equal(
+        iterative_refold_hts, iterative_refold_hts_inplace
+    )
+
     # parallel case
     parallel_refold_hts = (
         GPUKinTreeReordering.for_kintree(kintree)
         .refold_ordering.segscan_hts(local_hts, inplace=False)
     )
     numpy.testing.assert_array_almost_equal(bkin.hts, parallel_refold_hts)
+
+    parallel_refold_hts_inplace = local_hts.clone()
+    (
+        GPUKinTreeReordering.for_kintree(kintree).refold_ordering.segscan_hts(
+            parallel_refold_hts_inplace, inplace=True
+        )
+    )
+    numpy.testing.assert_array_almost_equal(
+        parallel_refold_hts, parallel_refold_hts_inplace
+    )
 
 
 def test_parallel_and_iterative_derivsum(
@@ -139,12 +158,33 @@ def test_parallel_and_iterative_derivsum(
     ### deriv summation sould be equivalent in both interative and parallel mode
 
     iterative_f1f2_sums = cpu_operations.iterative_f1f2_summation(
-        f1f2s.cpu(), kintree.parent
+        f1f2s.cpu(), kintree.parent, inplace=False
     )
     parallel_f1f2_sums = (
         GPUKinTreeReordering.for_kintree(kintree)
-        .derivsum_ordering.segscan_f1f2s(f1f2s)
+        .derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)
     )
     numpy.testing.assert_array_almost_equal(
         iterative_f1f2_sums, parallel_f1f2_sums
+    )
+
+    ### inplace operations should produce same result as non-inplace
+    iterative_f1f2_sums_inplace = f1f2s.clone().cpu()
+    cpu_operations.iterative_f1f2_summation(
+        iterative_f1f2_sums_inplace, kintree.parent, inplace=True
+    )
+    numpy.testing.assert_array_almost_equal(
+        iterative_f1f2_sums, iterative_f1f2_sums_inplace
+    )
+
+    parallel_f1f2_sums_inplace = f1f2s.clone()
+    (
+        GPUKinTreeReordering.for_kintree(kintree)
+        .derivsum_ordering.segscan_f1f2s(
+            parallel_f1f2_sums_inplace, inplace=True
+        )
+    )
+    numpy.testing.assert_array_almost_equal(
+        parallel_f1f2_sums,
+        parallel_f1f2_sums_inplace,
     )
