@@ -364,12 +364,14 @@ def compute_verify_derivs(
             dsc_dtors_analytic.jump[jumps],
             dsc_dtors_numeric.jump[jumps],
             atol=1e-7,
+            err_msg=f"jump dof analytic/numeric mismatch: {strategy}"
         )
 
         assert_bond_dof_allclose(
             dsc_dtors_analytic.bond[bonds],
             dsc_dtors_numeric.bond[bonds],
-            atol=1e-7
+            atol=1e-7,
+            err_msg=f"bond dof analytic/numeric mismatch: {strategy}"
         )
 
         if expected_analytic_derivs is not None:
@@ -381,7 +383,8 @@ def compute_verify_derivs(
             numpy.testing.assert_allclose(
                 dsc_dtors_analytic.raw[1:],
                 expected_analytic_derivs[1:],
-                atol=1e-4
+                atol=1e-4,
+                err_msg=f"dofs did not match expected analytic dofs: {strategy}"
             )
 
 
