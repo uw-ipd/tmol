@@ -16,8 +16,6 @@ from .datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
 from .gpu_operations import GPUKinTreeReordering
 from .cpu_operations import iterative_refold, iterative_f1f2_summation
 
-from ..utility.numba import as_cuda_array
-
 HTArray = Tensor(torch.double)[:, 4, 4]
 CoordArray = Tensor(torch.double)[:, 3]
 EPS = 1e-6

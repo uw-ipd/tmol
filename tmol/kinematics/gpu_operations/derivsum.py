@@ -122,7 +122,7 @@ class DerivsumOrdering(ValidateAttrs):
             f1f2s_dso_d,
             self.nonpath_children,
             self.is_leaf,
-            self.derivsum_atom_ranges,
+            self.atom_range_for_depth,
         )
 
         #TODO asford: isn't this just an indexing operation?
