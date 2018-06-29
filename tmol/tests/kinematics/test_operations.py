@@ -274,7 +274,8 @@ def test_perturb(kintree, coords, torch_device):
     numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
 
 
-def test_root_sibling_derivs(torch_device):
+@pytest.mark.parametrize("execution_strategy", [e for e in ExecutionStrategy])
+def test_root_sibling_derivs(torch_device, execution_strategy):
     """Verify derivatives in post-jump bonded siblings."""
     NATOMS = 6
 
@@ -301,16 +302,21 @@ def test_root_sibling_derivs(torch_device):
         [3.383, 4.339, 1.471],
     ]).to(torch.double)
 
-    compute_verify_derivs(kintree, coords)
+    compute_verify_derivs(kintree, coords, execution_strategy)
 
 
-def test_derivs(kintree, coords, torch_device, expected_analytic_derivs):
-    compute_verify_derivs(kintree, coords)
+@pytest.mark.parametrize("execution_strategy", [e for e in ExecutionStrategy])
+def test_derivs(
+        kintree, coords, torch_device, execution_strategy,
+        expected_analytic_derivs
+):
+    compute_verify_derivs(kintree, coords, execution_strategy)
 
 
 def compute_verify_derivs(
         kintree,
         coords,
+        execution_strategy,
         expected_analytic_derivs=None,
 ):
     NATOMS, _ = coords.shape
@@ -347,45 +353,41 @@ def compute_verify_derivs(
             dsc_dtors_numeric.raw[i, j] = (sc_p - sc_m) / 0.0002
 
     # Compute analytic derivs for all available strategies
-    for strategy in ExecutionStrategy:
-        dsc_dx = coords.new_zeros([NATOMS, 3], dtype=torch.double)
-        dsc_dx[1:] = dscore(coords[1:, :])
+    dsc_dx = coords.new_zeros([NATOMS, 3], dtype=torch.double)
+    dsc_dx[1:] = dscore(coords[1:, :])
 
-        dsc_dtors_analytic = resolveDerivs(
-            kintree,
-            dofs,
-            HTs,
-            dsc_dx,
-            strategy,
+    dsc_dtors_analytic = resolveDerivs(
+        kintree,
+        dofs,
+        HTs,
+        dsc_dx,
+        execution_strategy,
+    )
+
+    # Verify numeric/analytic derivatives
+    assert_jump_dof_allclose(
+        dsc_dtors_analytic.jump[jumps],
+        dsc_dtors_numeric.jump[jumps],
+        atol=1e-7,
+    )
+
+    assert_bond_dof_allclose(
+        dsc_dtors_analytic.bond[bonds],
+        dsc_dtors_numeric.bond[bonds],
+        atol=1e-7,
+    )
+
+    if expected_analytic_derivs is not None:
+        # Verify against stored derivatives for regression
+        #fd: reducing tolerance here to 1e-4
+        # * numpy double->torch double leads to differences as high as 5e-6
+        # * numeric v analytic comparison is still at 1e-7 so these changes
+        #     are likely due to changes in the "dummy score"
+        numpy.testing.assert_allclose(
+            dsc_dtors_analytic.raw[1:],
+            expected_analytic_derivs[1:],
+            atol=1e-4,
         )
-
-        # Verify numeric/analytic derivatives
-        assert_jump_dof_allclose(
-            dsc_dtors_analytic.jump[jumps],
-            dsc_dtors_numeric.jump[jumps],
-            atol=1e-7,
-            err_msg=f"jump dof analytic/numeric mismatch: {strategy}"
-        )
-
-        assert_bond_dof_allclose(
-            dsc_dtors_analytic.bond[bonds],
-            dsc_dtors_numeric.bond[bonds],
-            atol=1e-7,
-            err_msg=f"bond dof analytic/numeric mismatch: {strategy}"
-        )
-
-        if expected_analytic_derivs is not None:
-            # Verify against stored derivatives for regression
-            #fd: reducing tolerance here to 1e-4
-            # * numpy double->torch double leads to differences as high as 5e-6
-            # * numeric v analytic comparison is still at 1e-7 so these changes
-            #     are likely due to changes in the "dummy score"
-            numpy.testing.assert_allclose(
-                dsc_dtors_analytic.raw[1:],
-                expected_analytic_derivs[1:],
-                atol=1e-4,
-                err_msg=f"dofs did not match expected analytic dofs: {strategy}"
-            )
 
 
 def assert_bond_dof_allclose(actual, expected, **kwargs):
