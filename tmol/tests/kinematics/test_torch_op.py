@@ -27,7 +27,7 @@ def execution_strategy(request):
 @pytest.mark.benchmark(
     group="kinematic_forward_op",
 )
-def test_kinematic_torch_op_refold(
+def test_kinematic_torch_op_forward(
         benchmark, ubq_system, torch_device, execution_strategy
 ):
     tsys = ubq_system
@@ -49,6 +49,39 @@ def test_kinematic_torch_op_refold(
 
     assert kop.execution_strategy == execution_strategy
 
+    torch.testing.assert_allclose(refold_kincoords, kincoords)
+    assert refold_kincoords.device.type == torch_device.type
+
+
+@pytest.mark.benchmark(
+    group="kinematic_backward_op",
+)
+def test_kinematic_torch_op_backward_benchmark(
+        benchmark, ubq_system, torch_device, execution_strategy
+):
+    tsys = ubq_system
+    tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
+
+    torsion_dofs = tkin.dof_metadata[
+        (tkin.dof_metadata.dof_type == DOFTypes.bond_torsion)
+    ]
+
+    kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
+
+    kop = KinematicOp.from_coords(
+        tkin.kintree, torsion_dofs, kincoords, torch_device, execution_strategy
+    )
+
+    src_mobile_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
+
+    refold_kincoords = kop.apply(src_mobile_dofs)
+    total = refold_kincoords.sum()
+
+    @benchmark
+    def refold_grad():
+        total.backward(retain_graph=True)
+
+    assert kop.execution_strategy == execution_strategy
     torch.testing.assert_allclose(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type
 
