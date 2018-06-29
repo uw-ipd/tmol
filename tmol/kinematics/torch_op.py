@@ -64,6 +64,7 @@ class KinematicOp:
             mobile_dofs=mobile_dofs,
             src_dofs=bkin.dofs,
             src_mobile_dofs=src_mobile_dofs,
+            execution_strategy=execution_strategy,
             **kwargs
         )
 

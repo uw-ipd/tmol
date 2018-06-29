@@ -43,13 +43,14 @@ def test_kinematic_torch_op_refold(
         tkin.kintree, torsion_dofs, kincoords, torch_device, execution_strategy
     )
 
-    #refold_kincoords = kop.apply(kop.src_mobile_dofs)
-
     @benchmark
     def refold_kincoords():
         return kop.apply(kop.src_mobile_dofs)
 
+    assert kop.execution_strategy == execution_strategy
+
     torch.testing.assert_allclose(refold_kincoords, kincoords)
+    assert refold_kincoords.device.type == torch_device.type
 
 
 @pytest.fixture
