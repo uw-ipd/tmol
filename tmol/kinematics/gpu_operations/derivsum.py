@@ -11,12 +11,7 @@ from tmol.utility.numba import as_cuda_array
 
 from .scan_paths import PathPartitioning
 
-from .derivsum_jit import (
-    finalize_derivsum_indices,
-    reorder_starting_f1f2s,
-    segscan_f1f2s_up_tree,
-    reorder_final_f1f2s,
-)
+from . import derivsum_jit
 
 
 @attr.s(auto_attribs=True)
@@ -67,7 +62,7 @@ class DerivsumOrdering(ValidateAttrs):
         ki2dsi = numpy.full((natoms), -1, dtype="int32")
         for ii in range(ndepths):
             ii_leaves = subpath_leaves[subpath_depths_from_leaf == ii]
-            finalize_derivsum_indices(
+            derivsum_jit.finalize_derivsum_indices(
                 leaves=ii_leaves,
                 start_ind=depth_offsets[ii],
                 parent=scan_paths.parent,
@@ -111,14 +106,14 @@ class DerivsumOrdering(ValidateAttrs):
         nblocks = (natoms - 1) // 512 + 1
 
         #TODO asford: isn't this just an indexing operation?
-        reorder_starting_f1f2s[nblocks, 512](
+        derivsum_jit.reorder_starting_f1f2s[nblocks, 512](
             natoms,
             f1f2s_kintree_ordering_d,
             f1f2s_dso_d,
             self.ki2dsi,
         )
 
-        segscan_f1f2s_up_tree[1, 512](
+        derivsum_jit.segscan_f1f2s_up_tree[1, 512](
             f1f2s_dso_d,
             self.nonpath_children,
             self.is_leaf,
@@ -126,7 +121,7 @@ class DerivsumOrdering(ValidateAttrs):
         )
 
         #TODO asford: isn't this just an indexing operation?
-        reorder_final_f1f2s[nblocks, 512](
+        derivsum_jit.reorder_final_f1f2s[nblocks, 512](
             natoms,
             f1f2s_kintree_ordering_d,
             f1f2s_dso_d,

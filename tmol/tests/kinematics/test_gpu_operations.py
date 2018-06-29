@@ -1,3 +1,5 @@
+import pytest
+
 import numpy
 import torch
 import numba
@@ -79,11 +81,8 @@ def test_gpu_refold_data_construction(ubq_kintree):
             assert child == -1 or ii_ki == sp.parent[do.dsi2ki[child]]
 
 
-def test_parallel_and_iterative_refold(
-        ubq_system, ubq_kintree, numba_cuda_or_cudasim
-):
-    target_device = "cpu" if numba.config.ENABLE_CUDASIM else "cuda"
-
+@pytest.fixture
+def target_device(numba_cuda_or_cudasim):
     # Reload jit modules to ensure that current cuda execution environment, set
     # by fixture, is active for jit functions.
     importlib.reload(cpu_operations.jit)
@@ -91,6 +90,13 @@ def test_parallel_and_iterative_refold(
     importlib.reload(gpu_operations.forward_jit)
     importlib.reload(gpu_operations.scan_paths_jit)
 
+    if numba_cuda_or_cudasim.cudadrv == numba.cuda.simulator.cudadrv:
+        return "cpu"
+    else:
+        return "cuda"
+
+
+def test_parallel_and_iterative_refold(ubq_system, ubq_kintree, target_device):
     coords = torch.tensor(ubq_system.coords[ubq_kintree.id]
                           ).to(device=target_device)
     kintree = ubq_kintree.to(device=target_device)
@@ -113,3 +119,32 @@ def test_parallel_and_iterative_refold(
         .refold_ordering.segscan_hts(local_hts, inplace=False)
     )
     numpy.testing.assert_array_almost_equal(bkin.hts, parallel_refold_hts)
+
+
+def test_parallel_and_iterative_derivsum(
+        ubq_system, ubq_kintree, target_device
+):
+    coords = torch.tensor(ubq_system.coords[ubq_kintree.id]
+                          ).to(device=target_device)
+    kintree = ubq_kintree.to(device=target_device)
+
+    torch.manual_seed(1663)
+    dsc_dx = (torch.rand_like(coords) * 2) - 1
+
+    f1s = torch.cross(coords, coords - dsc_dx)
+    f2s = dsc_dx.clone()  # clone input buffer before aggregation
+
+    f1f2s = torch.cat((f1s, f2s), 1)
+
+    ### deriv summation sould be equivalent in both interative and parallel mode
+
+    iterative_f1f2_sums = cpu_operations.iterative_f1f2_summation(
+        f1f2s.cpu(), kintree.parent
+    )
+    parallel_f1f2_sums = (
+        GPUKinTreeReordering.for_kintree(kintree)
+        .derivsum_ordering.segscan_f1f2s(f1f2s)
+    )
+    numpy.testing.assert_array_almost_equal(
+        iterative_f1f2_sums, parallel_f1f2_sums
+    )
