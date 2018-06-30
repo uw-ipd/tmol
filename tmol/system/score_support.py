@@ -3,7 +3,7 @@ import torch
 
 from ..types.functional import validate_args
 
-from ..kinematics.torch_op import KinematicOp
+from ..kinematics.torch_op import KinematicOp, ExecutionStrategy
 from ..kinematics.metadata import DOFTypes
 
 from ..score import (
@@ -63,6 +63,8 @@ def system_torsion_graph_inputs(
         system: PackedResidueSystem,
         device: torch.device,
         requires_grad: bool = True,
+        kinop_execution_strategy: ExecutionStrategy = ExecutionStrategy.
+        default,
         **_,
 ):
     """Constructor parameters for torsion space scoring.
@@ -87,14 +89,15 @@ def system_torsion_graph_inputs(
     kincoords = sys_kin.extract_kincoords(system.coords).to(device)
 
     # Initialize op for torsion-space kinematics
-    kop = KinematicOp.from_coords(
+    kinop = KinematicOp.from_coords(
         sys_kin.kintree,
         torsion_dofs,
         kincoords,
         device,
+        execution_strategy=kinop_execution_strategy,
     )
 
     return dict(
-        dofs=kop.src_mobile_dofs.clone().requires_grad_(requires_grad),
-        kinop=kop,
+        dofs=kinop.src_mobile_dofs.clone().requires_grad_(requires_grad),
+        kinop=kinop,
     )
