@@ -1,20 +1,20 @@
-import attr
-
 import numpy
 import numba
+import numba.cuda
 
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.utility.numba import as_cuda_array
+from tmol.utility.reactive import reactive_attrs, reactive_property
 
 from .scan_paths import PathPartitioning
 
 from . import derivsum_jit
 
 
-@attr.s(auto_attribs=True)
+@reactive_attrs(auto_attribs=True, slots=True, frozen=True)
 class DerivsumOrdering(ValidateAttrs):
     # [natoms]
     ki2dsi: NDArray("i4")[:]
@@ -26,6 +26,27 @@ class DerivsumOrdering(ValidateAttrs):
 
     # [n_path_depths, 2]
     atom_range_for_depth: NDArray("i4")[:, 2]
+
+    # Cached device arrays, derived from cpu ordering arrays.
+    @reactive_property
+    def ki2dsi_d(ki2dsi):
+        return numba.cuda.to_device(ki2dsi)
+
+    @reactive_property
+    def dsi2ki_d(dsi2ki):
+        return numba.cuda.to_device(dsi2ki)
+
+    @reactive_property
+    def is_leaf_d(is_leaf):
+        return numba.cuda.to_device(is_leaf)
+
+    @reactive_property
+    def nonpath_children_d(nonpath_children):
+        return numba.cuda.to_device(nonpath_children)
+
+    @reactive_property
+    def atom_range_for_depth_d(atom_range_for_depth):
+        return numba.cuda.to_device(atom_range_for_depth)
 
     @classmethod
     def for_scan_paths(cls, scan_paths: PathPartitioning):
@@ -110,14 +131,14 @@ class DerivsumOrdering(ValidateAttrs):
             natoms,
             f1f2s_kintree_ordering_d,
             f1f2s_dso_d,
-            self.ki2dsi,
+            self.ki2dsi_d,
         )
 
         derivsum_jit.segscan_f1f2s_up_tree[1, 512](
             f1f2s_dso_d,
-            self.nonpath_children,
-            self.is_leaf,
-            self.atom_range_for_depth,
+            self.nonpath_children_d,
+            self.is_leaf_d,
+            self.atom_range_for_depth_d,
         )
 
         #TODO asford: isn't this just an indexing operation?
@@ -125,7 +146,7 @@ class DerivsumOrdering(ValidateAttrs):
             natoms,
             f1f2s_kintree_ordering_d,
             f1f2s_dso_d,
-            self.ki2dsi,
+            self.ki2dsi_d,
         )
 
         return f1f2s_kintree_ordering

@@ -1,11 +1,12 @@
-import attr
-
 import numpy
 import numba
+import numba.cuda
 
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
+
+from tmol.utility.reactive import reactive_attrs, reactive_property
 
 from tmol.utility.numba import as_cuda_array
 
@@ -14,7 +15,7 @@ from .scan_paths import PathPartitioning
 from . import forward_jit
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
+@reactive_attrs(auto_attribs=True, frozen=True, slots=True)
 class RefoldOrdering(ValidateAttrs):
 
     # [natoms]
@@ -26,6 +27,27 @@ class RefoldOrdering(ValidateAttrs):
 
     # [n_path_depths, 2]
     atom_range_for_depth: NDArray("i4")[:, 2]
+
+    # Cached device arrays, derived from cpu ordering arrays.
+    @reactive_property
+    def ri2ki_d(ri2ki):
+        return numba.cuda.to_device(ri2ki)
+
+    @reactive_property
+    def ki2ri_d(ki2ri):
+        return numba.cuda.to_device(ki2ri)
+
+    @reactive_property
+    def is_subpath_root_d(is_subpath_root):
+        return numba.cuda.to_device(is_subpath_root)
+
+    @reactive_property
+    def non_subpath_parent_d(non_subpath_parent):
+        return numba.cuda.to_device(non_subpath_parent)
+
+    @reactive_property
+    def atom_range_for_depth_d(atom_range_for_depth):
+        return numba.cuda.to_device(atom_range_for_depth)
 
     @classmethod
     def for_scan_paths(cls, scan_paths: PathPartitioning):
@@ -107,10 +129,10 @@ class RefoldOrdering(ValidateAttrs):
 
         forward_jit.segscan_ht_intervals_one_thread_block[1, 256, stream](
             as_cuda_array(hts_kintree_ordering),
-            self.ri2ki,
-            self.is_subpath_root,
-            self.non_subpath_parent,
-            self.atom_range_for_depth,
+            self.ri2ki_d,
+            self.is_subpath_root_d,
+            self.non_subpath_parent_d,
+            self.atom_range_for_depth_d,
         )
 
         return hts_kintree_ordering
