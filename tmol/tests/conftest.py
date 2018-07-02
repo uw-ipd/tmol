@@ -41,6 +41,8 @@ def pytest_collection_modifyitems(session, config, items):
 def pytest_benchmark_update_machine_info(config, machine_info):
     import torch
     import json
+    import cpuinfo
+    import psutil
 
     def device_info_dict(i):
         dp = torch.cuda.get_device_properties(i)
@@ -53,6 +55,11 @@ def pytest_benchmark_update_machine_info(config, machine_info):
         "current_device":
             torch.cuda.current_device() if torch.cuda.device_count() else None
     }
+
+    machine_info['cpuinfo'] = cpuinfo.get_cpu_info()
+
+    machine_info['cpu']["logical"] = psutil.cpu_count(logical=True)
+    machine_info['cpu']["physical"] = psutil.cpu_count(logical=False)
 
     machine_info['conda'] = {
         "list": json.loads(subprocess.getoutput("conda list --json"))
