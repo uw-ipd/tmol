@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -x
+set -e
+
+BENCHMARK_DIR=dev/benchmark/${HOSTNAME}/`git rev-parse --abbrev-ref HEAD`
+BENCHMARK_RESULT=${BENCHMARK_DIR}/`git describe --tags --dirty`
+
+mkdir -p ${BENCHMARK_DIR}
+
+{
+  pytest \
+    --benchmark-enable --benchmark-only \
+    --benchmark-name=short --benchmark-sort=fullname \
+    --benchmark-columns=ops,mean,iqr \
+    --benchmark-json=${BENCHMARK_RESULT}.json \
+    "$@"
+} | tee ${BENCHMARK_RESULT}.summary.txt
