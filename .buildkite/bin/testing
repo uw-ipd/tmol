@@ -3,6 +3,7 @@
 set -x
 
 echo "--- environment"
+set
 conda info
 conda list
 
@@ -14,4 +15,4 @@ set -e
 pytest -v -k 'not linting' $*
 
 echo "--- codecov"
-codecov -F pytest
+codecov -F `echo "${BUILDKITE_LABEL}" | sed -r 's/(\W)+/_/g'`
