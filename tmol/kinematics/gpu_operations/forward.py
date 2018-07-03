@@ -116,11 +116,14 @@ class RefoldOrdering(ValidateAttrs):
             hts_kintree_ordering: Tensor("f8")[:, 4, 4],
             inplace: bool = False
     ) -> Tensor("f8")[:, 4, 4]:
-        """Perform a series of segmented scan operations on the input homogeneous transforms
-        to compute the coordinates (and coordinate frames) of all atoms in the structure.
-        This version uses cuda.syncthreads() calls to ensure that there are no data race
-        issues. For this reason, it can be safely run on the CPU using numba's CUDA simulator
-        (activated by setting the environment variable NUMBA_ENABLE_CUDASIM=1)"""
+        """Perform a series of segmented scan operations on the input
+        homogeneous transforms to compute the coordinate frames of all atoms in
+        the kintree.
+
+        This version uses cuda.syncthreads() calls to ensure that there are no
+        data race issues. For this reason, it can be safely run on the CPU
+        using numba's CUDA simulator.
+        """
 
         stream = numba.cuda.stream()
 

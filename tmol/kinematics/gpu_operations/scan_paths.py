@@ -37,6 +37,11 @@ class PathPartitioning(ValidateAttrs):
 
     The path partitioning implies "subpath roots", the set of nodes which are
     *not* the subpath child of their parent (subpath_child[parent[i]] != i).
+
+    Each path in the tree is labeled with a depth: a path with depth
+    i may depend on the values computed for atoms with depths 0..i-1.
+    All of the paths of the same depth can be processed in a single
+    kernel execution with segmented scan.
     """
 
     # [natoms]
@@ -51,8 +56,8 @@ class PathPartitioning(ValidateAttrs):
     # [natoms, max_num_nonpath_children]
     nonpath_children: NDArray(int)[:, :]
 
-    # Per-path derived information on path structure, indexed
-    # by node id. TODO IS THIS DATA VALID FOR NON_ROOT/LEAF INDICES?
+    # Per-path derived information on path structure, denormalized across all
+    # nodes in the path.
     subpath_length: NDArray(int)[:]
     subpath_depth_from_root: NDArray(int)[:]
     subpath_depth_from_leaf: NDArray(int)[:]
@@ -60,7 +65,21 @@ class PathPartitioning(ValidateAttrs):
     @classmethod
     @validate_args
     def minimum_subpath_depth(cls, parent: NDArray(int)[:]):
-        """Generate paths minimizing the maximum path depth."""
+        """Generate paths minimizing the maximum path depth.
+
+        Devide the tree into paths minimizes the number
+        of depths in the tree. For any node in the tree, one of its children
+        will be in the same path with it, and all other children will be
+        roots of their own subtrees. The minimum-depth division of paths
+        is computed by lableling the "branching factor" of each atom. The
+        branching factor of an atom is 0 if it has no children; if it does
+        have children, it is the largest of the branching factors of what
+        the atom designates as its on-path child and one-greater than the
+        branching factor of any of its other children. Each node then may
+        select the child with the largest branching factor as its on-path
+        child to minimize its branching factor. This division produces
+        a minimum depth tree of paths.
+        """
 
         # Calculate branch factor for each node
         branching_factor = numpy.full_like(parent, -1, dtype=int)

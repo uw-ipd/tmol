@@ -10,6 +10,7 @@ def iterative_refold(
         parent: Tensor(torch.long)[:],
         inplace: bool = False
 ):
+    """Single-threaded interative HT forward propogation."""
     if not inplace:
         hts = hts.clone()
 
@@ -26,6 +27,7 @@ def iterative_f1f2_summation(
         parent: Tensor(torch.long)[:],
         inplace: bool = False
 ):
+    """Single-threaded interative derivative summation."""
     if not inplace:
         f1f2s = f1f2s.clone()
 
