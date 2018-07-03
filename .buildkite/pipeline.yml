@@ -45,7 +45,7 @@ steps:
 
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
-    command: .buildkite/bin/benchmark
+    command: .buildkite/bin/benchmark --benchmark-max-time=.1 
     artifact_paths:
       - benchmark/**/*
     plugins:
