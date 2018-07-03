@@ -3,4 +3,4 @@
 set -x
 set -e
 
-pytest -n auto -k 'linting' --junitxml=linting.junit.xml
+pytest -n auto -k 'linting' $*

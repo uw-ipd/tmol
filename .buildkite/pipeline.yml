@@ -10,19 +10,31 @@ steps:
 
 
   ### Run tests and generate coverage reports
-  - label: ':shrug: Testing'
-    command: .buildkite/bin/testing
+  - label: ':shrug: Testing - CUDA'
+    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cuda.junit.xml
+
     plugins:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
     artifact_paths:
-      - testing.junit.xml
+      - testing.cuda.junit.xml
+      - .coverage
+
+  ### Run tests and generate coverage reports
+  - label: ':shrug: Testing - CPU'
+    command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cpu.junit.xml
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        run: buildkite-cpu
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+    artifact_paths:
+      - testing.cpu.junit.xml
       - .coverage
 
   ### Run formatting/linting checks.
   - label: ':microscope: Linting'
-    command: .buildkite/bin/linting
+    command: .buildkite/bin/linting --junitxml=linting.junit.xml
     plugins:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
@@ -34,8 +46,11 @@ steps:
     plugins:
       uw-ipd/test-summary#8fa3c9a:
         inputs:
-          - label: Testing
-            artifact_path: testing.junit.xml
+          - label: Testing - CUDA
+            artifact_path: testing.cuda.junit.xml
+            type: junit
+          - label: Testing - CPU
+            artifact_path: testing.cpu.junit.xml
             type: junit
           - label: Linting
             artifact_path: linting.junit.xml
