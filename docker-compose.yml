@@ -23,6 +23,11 @@ services:
       - CUDA_DEVICE_ORDER
       - CUDA_VISIBLE_DEVICES
 
+  buildkite-cpu:
+    extends:
+      service: buildkite
+    runtime: runc
+
   local:
     extends:
       service: test

@@ -11,8 +11,7 @@ nvidia-smi
 
 echo "+++ tests"
 set -e
-pytest -v -k 'not linting' --cov=./tmol --junitxml=testing.junit.xml
-set +e
+pytest -v -k 'not linting' $*
 
 echo "--- codecov"
 codecov -F pytest
