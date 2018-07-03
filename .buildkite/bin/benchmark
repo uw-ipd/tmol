@@ -7,4 +7,4 @@ BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUI
 BENCHMARK_RESULT=${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
 
 mkdir -p $BENCHMARK_DIR
-pytest --benchmark-enable --benchmark-only --benchmark-name=short --benchmark-sort=fullname --benchmark-columns=ops,mean,iqr --benchmark-json=${BENCHMARK_RESULT} $*
+pytest --benchmark-enable --benchmark-only --benchmark-name=short --benchmark-sort=fullname --benchmark-columns=ops,mean,iqr --benchmark-json=${BENCHMARK_RESULT} "$@"

@@ -3,4 +3,4 @@
 set -x
 set -e
 
-pytest -n auto -k 'linting' $*
+pytest -n auto -k 'linting' "$@"
