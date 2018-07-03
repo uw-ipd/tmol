@@ -7,7 +7,6 @@ from math import nan
 import pytest
 
 from tmol.kinematics.operations import (
-    ExecutionStrategy,
     backwardKin,
     forwardKin,
     resolveDerivs,
@@ -211,9 +210,8 @@ def test_forward_refold(kintree, coords, torch_device):
     #fd: with single precision 1e-9 is too strict for the assert_allclose calls
     bkin = backwardKin(kintree, coords)
 
-    for es in ExecutionStrategy:
-        fkin = forwardKin(kintree, bkin.dofs, es)
-        numpy.testing.assert_allclose(coords, fkin.coords, atol=1e-6)
+    fkin = forwardKin(kintree, bkin.dofs)
+    numpy.testing.assert_allclose(coords, fkin.coords, atol=1e-6)
 
 
 def test_perturb(kintree, coords, torch_device):
@@ -274,8 +272,7 @@ def test_perturb(kintree, coords, torch_device):
     numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
 
 
-@pytest.mark.parametrize("execution_strategy", [e for e in ExecutionStrategy])
-def test_root_sibling_derivs(torch_device, execution_strategy):
+def test_root_sibling_derivs(torch_device):
     """Verify derivatives in post-jump bonded siblings."""
     NATOMS = 6
 
@@ -302,21 +299,16 @@ def test_root_sibling_derivs(torch_device, execution_strategy):
         [3.383, 4.339, 1.471],
     ]).to(torch.double)
 
-    compute_verify_derivs(kintree, coords, execution_strategy)
+    compute_verify_derivs(kintree, coords)
 
 
-@pytest.mark.parametrize("execution_strategy", [e for e in ExecutionStrategy])
-def test_derivs(
-        kintree, coords, torch_device, execution_strategy,
-        expected_analytic_derivs
-):
-    compute_verify_derivs(kintree, coords, execution_strategy)
+def test_derivs(kintree, coords, torch_device, expected_analytic_derivs):
+    compute_verify_derivs(kintree, coords)
 
 
 def compute_verify_derivs(
         kintree,
         coords,
-        execution_strategy,
         expected_analytic_derivs=None,
 ):
     NATOMS, _ = coords.shape
@@ -361,7 +353,6 @@ def compute_verify_derivs(
         dofs,
         HTs,
         dsc_dx,
-        execution_strategy,
     )
 
     # Verify numeric/analytic derivatives

@@ -7,9 +7,7 @@ from tmol.types.functional import validate_args
 from .datatypes import KinTree, KinDOF
 from .metadata import DOFMetadata
 
-from .operations import (
-    forwardKin, backwardKin, resolveDerivs, ExecutionStrategy
-)
+from .operations import (forwardKin, backwardKin, resolveDerivs)
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -38,8 +36,6 @@ class KinematicOp:
     src_dofs: KinDOF
     src_mobile_dofs: Tensor("f8")[:]
 
-    execution_strategy: ExecutionStrategy = ExecutionStrategy.default
-
     @classmethod
     @validate_args
     def from_coords(
@@ -48,7 +44,6 @@ class KinematicOp:
             mobile_dofs: DOFMetadata,
             kin_coords: Tensor("f8")[:, 3],
             device: torch.device,
-            execution_strategy: ExecutionStrategy = ExecutionStrategy.default,
             **kwargs,
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""
@@ -64,7 +59,6 @@ class KinematicOp:
             mobile_dofs=mobile_dofs,
             src_dofs=bkin.dofs,
             src_mobile_dofs=src_mobile_dofs,
-            execution_strategy=execution_strategy,
             **kwargs
         )
 
@@ -107,7 +101,6 @@ class KinematicFun(torch.autograd.Function):
         fkin = forwardKin(
             ctx.kinematic_op.kintree,
             working_dofs,
-            strat=ctx.kinematic_op.execution_strategy,
         )
 
         ctx.save_for_backward(working_dofs.raw, fkin.hts)
@@ -127,7 +120,6 @@ class KinematicFun(torch.autograd.Function):
             dofs=working_dofs,
             HTs=hts,
             dsc_dx=coord_grads,
-            execution_strategy=ctx.kinematic_op.execution_strategy
         )
 
         result_derivs = working_derivs.raw[

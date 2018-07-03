@@ -9,7 +9,6 @@ from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jaco
 
 from tmol.types.torch import Tensor
 
-from tmol.kinematics.operations import ExecutionStrategy
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.torch_op import KinematicOp
@@ -19,17 +18,10 @@ from tmol.system.restypes import Residue
 from tmol.system.kinematics import KinematicDescription
 
 
-@pytest.fixture(params=["hand_rolled", "torch_efficient", "torch_min_depth"])
-def execution_strategy(request):
-    return ExecutionStrategy(request.param)
-
-
 @pytest.mark.benchmark(
     group="kinematic_forward_op",
 )
-def test_kinematic_torch_op_forward(
-        benchmark, ubq_system, torch_device, execution_strategy
-):
+def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
@@ -40,14 +32,15 @@ def test_kinematic_torch_op_forward(
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
 
     kop = KinematicOp.from_coords(
-        tkin.kintree, torsion_dofs, kincoords, torch_device, execution_strategy
+        tkin.kintree,
+        torsion_dofs,
+        kincoords,
+        torch_device,
     )
 
     @benchmark
     def refold_kincoords():
         return kop.apply(kop.src_mobile_dofs)
-
-    assert kop.execution_strategy == execution_strategy
 
     torch.testing.assert_allclose(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type
@@ -57,7 +50,7 @@ def test_kinematic_torch_op_forward(
     group="kinematic_backward_op",
 )
 def test_kinematic_torch_op_backward_benchmark(
-        benchmark, ubq_system, torch_device, execution_strategy
+        benchmark, ubq_system, torch_device
 ):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
@@ -69,7 +62,10 @@ def test_kinematic_torch_op_backward_benchmark(
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
 
     kop = KinematicOp.from_coords(
-        tkin.kintree, torsion_dofs, kincoords, torch_device, execution_strategy
+        tkin.kintree,
+        torsion_dofs,
+        kincoords,
+        torch_device,
     )
 
     src_mobile_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
@@ -81,7 +77,6 @@ def test_kinematic_torch_op_backward_benchmark(
     def refold_grad():
         total.backward(retain_graph=True)
 
-    assert kop.execution_strategy == execution_strategy
     torch.testing.assert_allclose(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type
 

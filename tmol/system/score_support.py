@@ -3,7 +3,7 @@ import torch
 
 from ..types.functional import validate_args
 
-from ..kinematics.torch_op import KinematicOp, ExecutionStrategy
+from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
 
 from ..score import (
@@ -63,8 +63,6 @@ def system_torsion_graph_inputs(
         system: PackedResidueSystem,
         device: torch.device,
         requires_grad: bool = True,
-        kinop_execution_strategy: ExecutionStrategy = ExecutionStrategy.
-        default,
         **_,
 ):
     """Constructor parameters for torsion space scoring.
@@ -94,7 +92,6 @@ def system_torsion_graph_inputs(
         torsion_dofs,
         kincoords,
         device,
-        execution_strategy=kinop_execution_strategy,
     )
 
     return dict(
