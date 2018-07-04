@@ -3,6 +3,7 @@
 set -x
 
 echo "--- environment"
+set
 conda info
 conda list
 
@@ -11,7 +12,7 @@ nvidia-smi
 
 echo "+++ tests"
 set -e
-pytest -v -k 'not linting' $*
+pytest -v -k 'not linting' --durations=25 "$@"
 
 echo "--- codecov"
-codecov -F pytest
+codecov -F `echo "${BUILDKITE_LABEL}" | sed -r 's/(\W)+/_/g'`
