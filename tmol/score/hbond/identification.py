@@ -40,6 +40,38 @@ def df_to_struct(df, column_mapping):
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class HBondElementAnalysis(ValidateAttrs):
+    """Construct a set of indices of atoms that are
+    1) hbond donors,
+    2) sp2-hybridized hbond acceptors,
+    3) sp3-hybridized hbond acceptors, or
+    4) ring-hybridized hbond acceptors
+    from two input NDArrays -- one listing the atom types of all the atoms,
+    and a second listing the set of chemical bonds.
+
+    The set of atoms that are donors will be checked against the three sets of
+    atoms that are marked as acceptors by the HBondPairs class.
+
+    This code uses sql-like joins provided by the pandas package in order
+    to do graph matching: e.g.,
+
+    "I have atoms a, b, and c that are bonded in a pattern
+    of a-b and b-c and I know their chemical types as ta, tb, and tc; do these three
+    atoms match any of the known sets of sp2 hybridized acceptors?"
+
+    This analysis is performed on the CPU
+
+    There are a few tricky bits. First pandas data frames are constructed by
+    "unstructuring" the lists of atom-types held in the HBondDatabase
+    (read in from a yaml file, such as the one in
+    tmol/database/default/scoring/hbond.yaml). Another tricky bit is the construction
+    of the graphs of bonded atoms, e.g. i-j-k, or k-i-j, where the original list
+    of bonded atoms is converted into a dataframe of i, itype, j, jtype,
+    and then this dataframe is joined with a variant of itself, where the columns
+    have been relabeled as j, jtype, k, ktype, e.g.. Joining on j gives you
+    a new dataframe of atom-triples, i, itype, j, jtype, k, ktype. The
+    "variant" dataframe is created with the "inc_cols" sub-function.
+    """
+
     donors: NDArray(donor_dtype)[:]
     sp2_acceptors: NDArray(acceptor_dtype)[:]
     sp3_acceptors: NDArray(acceptor_dtype)[:]

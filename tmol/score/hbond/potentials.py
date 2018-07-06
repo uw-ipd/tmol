@@ -37,6 +37,19 @@ def sp2chi_energy(
         BAH: Params,
         chi: Params,
 ):
+    """Evaluate the functional form for sp2 acceptors that looks at the
+    angle "BAH" between the acceptor-base (B), the acceptor (A), and the
+    hydrogen (A), as well as the dihedral (chi) defined by the
+    acceptor-base-base (B0), B, A, and H.
+
+    This functional form was developed to prefer hydrogens lying in the
+    sp2 plane, and at a BAH angle of 120 degrees -- it also avoids numerical
+    stability issues for the chi dihedral when the BAH angle is near 180
+    degrees.
+
+    See O'Meara et al., JCTC 2015 for greater detail.
+    """
+
     H = 0.5 * (torch.cos(2 * chi) + 1)
 
     F = torch.empty_like(chi)
@@ -88,6 +101,15 @@ def hbond_donor_sp2_score(
         hb_sp2_BAH180_rise: float,
         hb_sp2_outer_width: float,
 ):
+    """Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and
+    acceptor-base-base (b0) coordinates, all of the same length, and where the
+    acceptor is sp2 hybridized, and the corresponding set of parameters, and for each
+    entry i in these tensors, evaluates the full potential.
+
+    Note that this function does not first eliminate hydrogen/acceptor pairs
+    based on their distance, but rather, computes the full potential for all pairs.
+    """
+
     acc_don_scale = glob_accwt * glob_donwt
 
     # Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
@@ -164,6 +186,15 @@ def hbond_donor_sp3_score(
         # Global score parameters
         hb_sp3_softmax_fade: float,
 ):
+    """Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and
+    acceptor-base-base (b0) coordinates, all of the same length, and where the
+    acceptor is sp3 hybridized, and the corresponding set of parameters, and for each
+    entry i in these tensors, evaluates the full potential.
+
+    Note that this function does not first eliminate hydrogen/acceptor pairs
+    based on their distance, but rather, computes the full potential for all pairs.
+    """
+
     acc_don_scale = glob_accwt * glob_donwt
 
     # Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
@@ -232,6 +263,14 @@ def hbond_donor_ring_score(
         cosAHD_ranges: PolyParams,
         cosAHD_bounds: PolyParams,
 ):
+    """Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and
+    acceptor-base-base (b0) coordinates, all of the same length, and where the
+    acceptor is ring hybridized, and the corresponding set of parameters, and for each
+    entry i in these tensors, evaluates the full potential.
+
+    Note that this function does not first eliminate hydrogen/acceptor pairs
+    based on their distance, but rather, computes the full potential for all pairs.
+    """
     acc_don_scale = glob_accwt * glob_donwt
 
     # Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
