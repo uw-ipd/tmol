@@ -2,9 +2,12 @@ from typing import Optional
 from functools import singledispatch
 
 import torch
+import numpy
 import math
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
+
+from tmol.numeric.dihedrals import coord_dihedrals
 
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
@@ -88,31 +91,36 @@ class AlphaAABackboneTorsionProvider(Factory):
 def measure_torsions(
         coords: Tensor(torch.float)[:, 3], inds: Tensor(torch.long)[:, 4]
 ) -> Tensor(torch.float):
+    print("inds.shape", inds.shape)
     bad = torch.sum(inds == -1, 1) > 0
-    tors = torch.tensor((inds.shape[0]),
-                        dtype=torch.float,
-                        device=coords.device)
-    tors[bad] = torch.nan
+    print("bad.shape", bad.shape)
+    tors = torch.full((inds.shape[0], ),
+                      numpy.nan,
+                      dtype=torch.float,
+                      device=coords.device)
+    tors[bad] = numpy.nan
     p1 = coords[inds[~bad, 0]]
     p2 = coords[inds[~bad, 1]]
     p3 = coords[inds[~bad, 2]]
     p4 = coords[inds[~bad, 3]]
 
-    v21 = p2 - p1
-    v32 = p3 - p2
-    v43 = p4 - p3
+    tors[~bad] = coord_dihedrals(p1, p2, p3, p4)
 
-    norm_123 = torch.cross(v21, v32)
-    norm_234 = torch.cross(v32, v43)
-
-    norm_123 /= torch.norm(norm_123, 2, dim=1, keepdim=True)
-    norm_234 /= torch.norm(norm_234, 2, dim=1, keepdim=True)
-
-    v32 /= torch.norm(v32, 2, dim=1, keepdim=True)
-    m1 = torch.cross(norm_123, v32)
-
-    x = torch.einsum("ij,ij->i", (norm_123, norm_234))
-    y = torch.einsum("ij,ij->i", (m1, norm_234))
-    tors[~bad] = torch.atan2(y, x)
+    # v21 = p2 - p1
+    # v32 = p3 - p2
+    # v43 = p4 - p3
+    #
+    # norm_123 = torch.cross(v21, v32)
+    # norm_234 = torch.cross(v32, v43)
+    #
+    # norm_123 /= torch.norm(norm_123, 2, dim=1, keepdim=True)
+    # norm_234 /= torch.norm(norm_234, 2, dim=1, keepdim=True)
+    #
+    # v32 /= torch.norm(v32, 2, dim=1, keepdim=True)
+    # m1 = torch.cross(v32, norm_123)
+    #
+    # x = torch.einsum("ij,ij->i", (norm_123, norm_234))
+    # y = torch.einsum("ij,ij->i", (m1, norm_234))
+    # tors[~bad] = torch.atan2(y, x)
 
     return tors

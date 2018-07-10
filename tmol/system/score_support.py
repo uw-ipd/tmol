@@ -2,6 +2,7 @@ import numpy
 import torch
 
 from ..types.functional import validate_args
+from ..types.torch import Tensor
 
 from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
@@ -122,66 +123,39 @@ def system_torsions_from_coordinates(
     tensor go with which entries in the other one.
     """
 
-    phi_inds = torch.full((len(system.residues), 4),
-                          -1,
-                          dtype=torch.long,
-                          device=device)
-    psi_inds = torch.full((len(system.residues), 4),
-                          -1,
-                          dtype=torch.long,
-                          device=device)
-    omega_inds = torch.full((len(system.residues), 4),
-                            -1,
-                            dtype=torch.long,
-                            device=device)
-
-    phi_data = system.torsion_metadata[system.torsion_metadata["name"] == "phi"
-                                       ]
-    phi_inds[:, 0] = torch.tensor(
-        phi_data["atom_index_a"], dtype=torch.long, device=device
-    )
-    phi_inds[:, 1] = torch.tensor(
-        phi_data["atom_index_b"], dtype=torch.long, device=device
-    )
-    phi_inds[:, 2] = torch.tensor(
-        phi_data["atom_index_c"], dtype=torch.long, device=device
-    )
-    phi_inds[:, 3] = torch.tensor(
-        phi_data["atom_index_d"], dtype=torch.long, device=device
-    )
-
-    psi_data = system.torsion_metadata[system.torsion_metadata["name"] == "psi"
-                                       ]
-    psi_inds[:, 0] = torch.tensor(
-        psi_data["atom_index_a"], dtype=torch.long, device=device
-    )
-    psi_inds[:, 1] = torch.tensor(
-        psi_data["atom_index_b"], dtype=torch.long, device=device
-    )
-    psi_inds[:, 2] = torch.tensor(
-        psi_data["atom_index_c"], dtype=torch.long, device=device
-    )
-    psi_inds[:, 3] = torch.tensor(
-        psi_data["atom_index_d"], dtype=torch.long, device=device
-    )
-
-    omega_data = system.torsion_metadata[system.torsion_metadata["name"] ==
-                                         "omega"]
-    omega_inds[:, 0] = torch.tensor(
-        omega_data["atom_index_a"], dtype=torch.long, device=device
-    )
-    omega_inds[:, 1] = torch.tensor(
-        omega_data["atom_index_b"], dtype=torch.long, device=device
-    )
-    omega_inds[:, 2] = torch.tensor(
-        omega_data["atom_index_c"], dtype=torch.long, device=device
-    )
-    omega_inds[:, 3] = torch.tensor(
-        omega_data["atom_index_d"], dtype=torch.long, device=device
-    )
+    phi_inds = inds_for_torsion(system, device, "phi")
+    psi_inds = inds_for_torsion(system, device, "psi")
+    omega_inds = inds_for_torsion(system, device, "omega")
 
     return dict(
         phi_inds=phi_inds,
         psi_inds=psi_inds,
         omega_inds=omega_inds,
     )
+
+
+@validate_args
+def inds_for_torsion(
+        system: PackedResidueSystem, device: torch.device, torsion_name: str
+) -> Tensor(torch.long)[:, 4]:
+    inds = torch.full((len(system.residues), 4),
+                      -1,
+                      dtype=torch.long,
+                      device=device)
+
+    tor_data = system.torsion_metadata[system.torsion_metadata["name"] ==
+                                       torsion_name]
+    tor_res = tor_data["residue_index"]
+    inds[tor_res, 0] = torch.tensor(
+        tor_data["atom_index_a"], dtype=torch.long, device=device
+    )
+    inds[tor_res, 1] = torch.tensor(
+        tor_data["atom_index_b"], dtype=torch.long, device=device
+    )
+    inds[tor_res, 2] = torch.tensor(
+        tor_data["atom_index_c"], dtype=torch.long, device=device
+    )
+    inds[tor_res, 3] = torch.tensor(
+        tor_data["atom_index_d"], dtype=torch.long, device=device
+    )
+    return inds

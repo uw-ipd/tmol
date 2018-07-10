@@ -1,10 +1,10 @@
-import numpy
+import torch
 
 from tmol.types.functional import validate_args
-from tmol.types.array import NDArray
+from tmol.types.torch import Tensor
 
-CoordArray = NDArray(float)[:, 3]
-Angles = NDArray(float)[:]
+CoordArray = Tensor(float)[:, 3]
+Angles = Tensor(float)[:]
 
 
 @validate_args
@@ -26,18 +26,18 @@ def coord_dihedrals(
     bc = c - b
     cd = d - c
 
-    ubc = bc / numpy.linalg.norm(bc, axis=-1).reshape((-1, 1))
+    ubc = bc / torch.norm(bc, 2, dim=1, keepdim=True)
 
     # v = projection of ba onto plane perpendicular to bc
     #     minus component that aligns with bc
     # w = projection of cd onto plane perpendicular to bc
     #     cd minus component that aligns with bc
-    v = ba - numpy.sum(ba * ubc, axis=-1).reshape((-1, 1)) * ubc
-    w = cd - numpy.sum(cd * ubc, axis=-1).reshape((-1, 1)) * ubc
+    v = ba - torch.sum(ba * ubc, dim=1).reshape((-1, 1)) * ubc
+    w = cd - torch.sum(cd * ubc, dim=1).reshape((-1, 1)) * ubc
 
     # angle between v and w in a plane is the torsion angle
     # v and w may not be normalized but that's fine since tan is y/x
-    x = numpy.sum(v * w, axis=-1)
-    y = numpy.sum(numpy.cross(ubc, v) * w, axis=-1)
+    x = torch.einsum("ij,ij->i", (v, w))
+    y = torch.einsum("ij,ij->i", (torch.cross(ubc, v), w))
 
-    return numpy.arctan2(y, x)
+    return torch.atan2(y, x)
