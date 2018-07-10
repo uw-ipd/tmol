@@ -38,16 +38,19 @@ pair_descr_dtype = numpy.dtype(donor_dtype.descr + acceptor_dtype.descr)
 
 @attr.s(frozen=True, auto_attribs=True, slots=True)
 class HBondPairs(ValidateAttrs):
-    '''Construct the combination of all donors against all acceptors,
-    (these lists having been constructed by the HBondElementAnalysis class)
-    where the acceptors are broken down by their functional form (sp2, sp3,
-    and ring). For each pair, then copy down the set of hbond parameters
-    that describe how to evaluate the energy for that pair.
+    """Atom indices of all donor/acceptor pairs in system.
 
-    (Making a copy of the parameters for each perspective donor/acceptor
-    pair seems like it would be pretty expensive!)
+    The combination of all donors against all acceptors, (these lists having
+    been constructed by the HBondElementAnalysis class) where the acceptors are
+    broken down by their functional form (sp2, sp3, and ring). For each pair,
+    then copy down the set of hbond parameters that describe how to evaluate
+    the energy for that pair.
 
-    This work is performed on the CPU and then copied to the device.'''
+    (Making a copy of the parameters for each perspective donor/acceptor pair
+    seems like it would be pretty expensive!)
+
+    This work is performed on the CPU and then copied to the device.
+    """
 
     donor_sp2_pairs: NDArray(pair_descr_dtype)[:]
     donor_sp2_pair_params: Optional[HBondPairParams]
@@ -124,10 +127,11 @@ class HBondScoreGraph(
         TorchDevice,
         Factory,
 ):
-    """Compute graph for the HBond term. It uses the reactive system to
-    compute the list of donors and acceptors (via the HBondElementAnalysis class)
-    and then the list of donor/acceptor pairs (via the HBondPairs class) once,
-    and then reuses these lists.
+    """Compute graph for the HBond term.
+
+    It uses the reactive system to compute the list of donors and acceptors
+    (via the HBondElementAnalysis class) and then the list of donor/acceptor
+    pairs (via the HBondPairs class) once, and then reuses these lists.
 
     The h-bond functional form differs for the three classes of acceptors:
     sp2-, sp3-, and ring-hybridized acceptors. For this reason, these three are
