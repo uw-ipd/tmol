@@ -12,6 +12,9 @@ from .support.rosetta import (
 
 # Import basic data fixtures
 from .data import (
+    min_pdb,
+    min_res,
+    min_system,
     ubq_pdb,
     ubq_res,
     ubq_system,
@@ -71,6 +74,9 @@ __all__ = (
     pyrosetta,
     rosetta_database,
     default_database,
+    min_pdb,
+    min_res,
+    min_system,
     ubq_pdb,
     ubq_res,
     ubq_system,

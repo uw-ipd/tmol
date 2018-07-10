@@ -18,12 +18,45 @@ from tmol.kinematics.gpu_operations import (
     PathPartitioning,
 )
 
+from tmol.kinematics.builder import KinematicBuilder
+
 import tmol.kinematics.cpu_operations as cpu_operations
 import tmol.kinematics.gpu_operations as gpu_operations
 
 
-def test_gpu_refold_data_construction(benchmark, ubq_kintree):
-    kintree = ubq_kintree
+@pytest.fixture
+def target_device(numba_cuda_or_cudasim):
+    # Reload jit modules to ensure that current cuda execution environment, set
+    # by fixture, is active for jit functions.
+    importlib.reload(cpu_operations.jit)
+    importlib.reload(gpu_operations.derivsum_jit)
+    importlib.reload(gpu_operations.forward_jit)
+    importlib.reload(gpu_operations.scan_paths_jit)
+
+    if numba_cuda_or_cudasim.cudadrv == numba.cuda.simulator.cudadrv:
+        return "cpu"
+    else:
+        return "cuda"
+
+
+@pytest.fixture
+def target_system(target_device, min_system, ubq_system):
+    """min system in cudasim tests to reduce test runtime"""
+    return {
+        "cpu": min_system,
+        "cuda": ubq_system,
+    }[target_device]
+
+
+@pytest.fixture
+def target_kintree(target_system):
+    return KinematicBuilder().append_connected_component(
+        *KinematicBuilder.bonds_to_connected_component(0, target_system.bonds)
+    ).kintree
+
+
+def test_gpu_refold_data_construction(benchmark, ubq_system):
+    kintree = target_kintree(ubq_system)
 
     @benchmark
     def tree_reordering() -> GPUKinTreeReordering:
@@ -82,27 +115,14 @@ def test_gpu_refold_data_construction(benchmark, ubq_kintree):
             assert child == -1 or ii_ki == sp.parent[do.dsi2ki[child]]
 
 
-@pytest.fixture
-def target_device(numba_cuda_or_cudasim):
-    # Reload jit modules to ensure that current cuda execution environment, set
-    # by fixture, is active for jit functions.
-    importlib.reload(cpu_operations.jit)
-    importlib.reload(gpu_operations.derivsum_jit)
-    importlib.reload(gpu_operations.forward_jit)
-    importlib.reload(gpu_operations.scan_paths_jit)
-
-    if numba_cuda_or_cudasim.cudadrv == numba.cuda.simulator.cudadrv:
-        return "cpu"
-    else:
-        return "cuda"
-
-
-def test_parallel_and_iterative_refold(ubq_system, ubq_kintree, target_device):
-    coords = torch.tensor(ubq_system.coords[ubq_kintree.id]
+def test_parallel_and_iterative_refold(
+        target_system, target_kintree, target_device
+):
+    coords = torch.tensor(target_system.coords[target_kintree.id]
                           ).to(device=target_device)
-    kintree = ubq_kintree.to(device=target_device)
+    kintree = target_kintree.to(device=target_device)
 
-    bkin = backwardKin(ubq_kintree, coords)
+    bkin = backwardKin(target_kintree, coords)
 
     local_hts = DOFTransforms(kintree.doftype, bkin.dofs)
 
@@ -142,11 +162,11 @@ def test_parallel_and_iterative_refold(ubq_system, ubq_kintree, target_device):
 
 
 def test_parallel_and_iterative_derivsum(
-        ubq_system, ubq_kintree, target_device
+        target_system, target_kintree, target_device
 ):
-    coords = torch.tensor(ubq_system.coords[ubq_kintree.id]
+    coords = torch.tensor(target_system.coords[target_kintree.id]
                           ).to(device=target_device)
-    kintree = ubq_kintree.to(device=target_device)
+    kintree = target_kintree.to(device=target_device)
 
     torch.manual_seed(1663)
     dsc_dx = (torch.rand_like(coords) * 2) - 1
