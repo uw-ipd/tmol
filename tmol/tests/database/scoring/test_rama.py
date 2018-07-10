@@ -15,45 +15,27 @@ def test_rama_from_json():
     group="rama_load",
     min_rounds=1,
 )
-def test_rama_load_json(benchmark):
-    path = "tmol/database/default/scoring/rama.json"
+@pytest.mark.parametrize("method", ["json", "yaml-loader", "yaml-cloader"])
+def test_rama_load_benchmark(benchmark, method):
+    path = {
+        "json": "tmol/database/default/scoring/rama.json",
+        "yaml-loader": "tmol/database/default/scoring/rama.yaml",
+        "yaml-cloader": "tmol/database/default/scoring/rama.yaml",
+    }[method]
+
+    load = {
+        "json": lambda infile: json.load(infile),
+        "yaml-loader":
+            # defaults to yaml.Loader
+            lambda infile: yaml.load(infile),
+        "yaml-cloader":
+            lambda infile: yaml.load(infile, yaml.CLoader),
+    }[method]
 
     @benchmark
     def db():
         with open(path, "r") as infile:
-            raw = json.load(infile)
-        return cattr.structure(raw, RamaDatabase)
-
-    assert len(db.tables) == 40
-
-
-@pytest.mark.benchmark(
-    group="rama_load",
-    min_rounds=1,
-)
-def test_rama_load_yaml_loader(benchmark):
-    path = "tmol/database/default/scoring/rama.yaml"
-
-    @benchmark
-    def db():
-        with open(path, "r") as infile:
-            raw = yaml.load(infile)
-        return cattr.structure(raw, RamaDatabase)
-
-    assert len(db.tables) == 40
-
-
-@pytest.mark.benchmark(
-    group="rama_load",
-    min_rounds=1,
-)
-def test_rama_load_yaml_cloader(benchmark):
-    path = "tmol/database/default/scoring/rama.yaml"
-
-    @benchmark
-    def db():
-        with open(path, "r") as infile:
-            raw = yaml.load(infile, Loader=yaml.CLoader)
+            raw = load(infile)
         return cattr.structure(raw, RamaDatabase)
 
     assert len(db.tables) == 40
