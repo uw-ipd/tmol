@@ -2,11 +2,7 @@ import tmol.utility.mixins as mixins
 
 
 class Factory:
-    """Mix-in managing cooperative score graph factory functions.
-
-    ("mix-in": a class you derive from to get a little bit of extra functionality.
-    "factory functions": the way you say to your score function "you're
-    perfect, I just need a copy of you that lives on the GPU")
+    """Mixin managing cooperative score graph factory functions.
 
     `Factory` manages cooperative evaluation of a set of component-specifc
     factory functions, defined via `factory_for` class/static methods. Each
