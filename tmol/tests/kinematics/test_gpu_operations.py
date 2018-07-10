@@ -22,13 +22,14 @@ import tmol.kinematics.cpu_operations as cpu_operations
 import tmol.kinematics.gpu_operations as gpu_operations
 
 
-def test_gpu_refold_data_construction(ubq_kintree):
+def test_gpu_refold_data_construction(benchmark, ubq_kintree):
     kintree = ubq_kintree
 
-    ### Otherwise test the derived ordering
-    o: GPUKinTreeReordering = GPUKinTreeReordering.calculate_from_kintree(
-        kintree
-    )
+    @benchmark
+    def tree_reordering() -> GPUKinTreeReordering:
+        return GPUKinTreeReordering.calculate_from_kintree(kintree)
+
+    o = tree_reordering
 
     ### Validate path definitions
     sp: PathPartitioning = o.scan_paths
