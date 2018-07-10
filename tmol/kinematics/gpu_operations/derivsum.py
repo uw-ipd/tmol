@@ -29,14 +29,6 @@ class DerivsumOrdering(ValidateAttrs):
 
     # Cached device arrays, derived from cpu ordering arrays.
     @reactive_property
-    def ki2dsi_d(ki2dsi):
-        return numba.cuda.to_device(ki2dsi)
-
-    @reactive_property
-    def dsi2ki_d(dsi2ki):
-        return numba.cuda.to_device(dsi2ki)
-
-    @reactive_property
     def is_leaf_d(is_leaf):
         return numba.cuda.to_device(is_leaf)
 
@@ -116,37 +108,18 @@ class DerivsumOrdering(ValidateAttrs):
         if not inplace:
             f1f2s_kintree_ordering = f1f2s_kintree_ordering.clone()
 
-        # TODO: handle f1 and f2 separately; segscan in-place (no reordering kernels)
         natoms = len(f1f2s_kintree_ordering)
         assert natoms == len(self.dsi2ki)
 
-        f1f2s_kintree_ordering_d = as_cuda_array(f1f2s_kintree_ordering)
-
-        f1f2s_dso_d = numba.cuda.device_array((natoms, 6), dtype="float64")
-
-        nblocks = (natoms - 1) // 512 + 1
-
-        #TODO asford: isn't this just an indexing operation?
-        derivsum_jit.reorder_starting_f1f2s[nblocks, 512](
-            natoms,
-            f1f2s_kintree_ordering_d,
-            f1f2s_dso_d,
-            self.ki2dsi_d,
-        )
+        f1f2s_derivsum_ordering = f1f2s_kintree_ordering[self.dsi2ki]
 
         derivsum_jit.segscan_f1f2s_up_tree[1, 512](
-            f1f2s_dso_d,
+            as_cuda_array(f1f2s_derivsum_ordering),
             self.nonpath_children_d,
             self.is_leaf_d,
             self.atom_range_for_depth_d,
         )
 
-        #TODO asford: isn't this just an indexing operation?
-        derivsum_jit.reorder_final_f1f2s[nblocks, 512](
-            natoms,
-            f1f2s_kintree_ordering_d,
-            f1f2s_dso_d,
-            self.ki2dsi_d,
-        )
+        f1f2s_kintree_ordering[self.dsi2ki] = f1f2s_derivsum_ordering
 
         return f1f2s_kintree_ordering

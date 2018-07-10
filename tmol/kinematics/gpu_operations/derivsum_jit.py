@@ -53,24 +53,6 @@ def zero_f1f2s():
 
 
 @cuda.jit
-def reorder_starting_f1f2s(natoms, f1f2s_ko, f1f2s_dso, ki2dsi):
-    pos = cuda.grid(1)
-    if pos < natoms:
-        dsi = ki2dsi[pos]
-        for i in range(6):
-            f1f2s_dso[dsi, i] = f1f2s_ko[pos, i]
-
-
-@cuda.jit
-def reorder_final_f1f2s(natoms, f1f2s_ko, f1f2s_dso, ki2dsi):
-    pos = cuda.grid(1)
-    if pos < natoms:
-        dsi = ki2dsi[pos]
-        for i in range(6):
-            f1f2s_ko[pos, i] = f1f2s_dso[dsi, i]
-
-
-@cuda.jit
 def segscan_f1f2s_up_tree(
         f1f2s_dso, prior_children, is_leaf, derivsum_atom_ranges
 ):
