@@ -1,0 +1,22 @@
+import pytest
+
+import torch
+
+from tmol.utility.reactive import reactive_attrs
+from tmol.tests.torch import requires_cuda
+from tmol.score import (
+    TotalScoreGraph,
+    CartesianAtomicCoordinateProvider,
+)
+from tmol.score.torsions import (AlphaAABackboneTorsionProvider)
+
+
+class TCartTorsions(CartesianAtomicCoordinateProvider,
+                    AlphaAABackboneTorsionProvider, TotalScoreGraph):
+    """Cart total."""
+    pass
+
+
+def test_create_torsion_provider(ubq_system):
+    src = TCartTorsions.build_for(ubq_system)
+    assert src
