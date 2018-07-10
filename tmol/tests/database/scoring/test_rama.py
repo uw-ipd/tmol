@@ -11,6 +11,9 @@ def test_rama_from_json():
     assert len(ramadb.tables) == 40
 
 
+@pytest.mark.skip(
+    reason="Slow benchmark in yaml case, not functionally relevant."
+)
 @pytest.mark.benchmark(
     group="rama_load",
     min_rounds=1,
