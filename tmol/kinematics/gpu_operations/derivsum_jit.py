@@ -63,19 +63,24 @@ def segscan_f1f2s_up_tree(
     for depth in range(derivsum_atom_ranges.shape[0]):
         start = derivsum_atom_ranges[depth, 0]
         end = derivsum_atom_ranges[depth, 1]
+        blocks_for_depth = (end - start - 1) // 512 + 1
 
-        niters = (end - start - 1) // 512 + 1
+        ### Iterate block across depth generation
         carry_f1f2s = zero_f1f2s()
         carry_is_leaf = False
-        for ii in range(niters):
+        for ii in range(blocks_for_depth):
             ii_ind = ii * 512 + start + pos
+
             if ii_ind < end:
+                ### Read node values from global into shared
                 for jj in range(6):
                     # TO DO: minimize bank conflicts -- align memory reads
                     shared_f1f2s[pos, jj] = f1f2s_dso[ii_ind, jj]
                 shared_is_leaf[pos] = is_leaf[ii_ind]
                 myf1f2s = load_f1f2s(shared_f1f2s, pos)
                 my_leaf = shared_is_leaf[pos]
+
+                ### Sum all incoming scan values from children into node
                 f1f2s_changed = False
                 for jj in range(prior_children.shape[1]):
                     jj_child = prior_children[ii_ind, jj]
@@ -83,18 +88,21 @@ def segscan_f1f2s_up_tree(
                         child_f1f2s = load_f1f2s(f1f2s_dso, jj_child)
                         myf1f2s = add_f1f2s(myf1f2s, child_f1f2s)
                         f1f2s_changed = True
+
+                ### Sum carry from previous block if node 0 is non-leaf.
                 if pos == 0 and not my_leaf:
                     myf1f2s = add_f1f2s(carry_f1f2s, myf1f2s)
                     my_leaf |= carry_is_leaf
                     shared_is_leaf[0] = my_leaf
                     f1f2s_changed = True
+
                 if f1f2s_changed:
                     save_f1f2s(shared_f1f2s, pos, myf1f2s)
             cuda.syncthreads()
 
-            # begin segmented scan on this section
+            ### Perform parallel segmented scan on block
             offset = 1
-            for jj in range(9):
+            for jj in range(9):  #log2(512) == 8
                 if pos >= offset and ii_ind < end:
                     prev_f1f2s = load_f1f2s(shared_f1f2s, pos - offset)
                     prev_leaf = shared_is_leaf[pos - offset]
@@ -108,11 +116,11 @@ def segscan_f1f2s_up_tree(
                 offset *= 2
                 cuda.syncthreads()
 
-            # write the f1f2s to global memory
+            ### write the block's f1f2s to global memory
             if ii_ind < end:
                 save_f1f2s(f1f2s_dso, ii_ind, myf1f2s)
 
-            # save the carry
+            ### save the carry
             if pos == 0:
                 carry_f1f2s = load_f1f2s(shared_f1f2s, 511)
                 carry_is_leaf = shared_is_leaf[511]

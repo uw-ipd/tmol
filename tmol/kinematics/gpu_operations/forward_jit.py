@@ -116,29 +116,33 @@ def segscan_ht_intervals_one_thread_block(
     for depth in range(atom_ranges.shape[0]):
         start = atom_ranges[depth, 0]
         end = atom_ranges[depth, 1]
+        blocks_for_depth = (end - start - 1) // 256 + 1
 
-        niters = (end - start - 1) // 256 + 1
+        ### Iterate block across depth generation
         carry_ht = identity_ht()
         carry_is_root = False
-        for ii in range(niters):
+        for ii in range(blocks_for_depth):
             ii_ind = ii * 256 + start + pos
             ki = -1
 
-            #load data into shared memory
             if ii_ind < end:
+                ### Read node values from global into shared
                 ki = ri2ki[ii_ind]
-
                 for jj in range(12):
                     shared_hts[jj, pos] = hts_ko[ki, jj // 4, jj % 4]
                 shared_is_root[pos] = is_root[ii_ind]
                 myht = ht_load_from_shared(shared_hts, pos)
                 parent = parent_ind[ii_ind]
+
+                ### Sum incoming transform from parent into node
                 htchanged = False
                 if parent != -1:
                     parent_ki = ri2ki[parent]
                     parent_ht = ht_load_from_nx4x4(hts_ko, parent_ki)
                     myht = ht_multiply(parent_ht, myht)
                     htchanged = True
+
+                ### Sum carry transform from previous block if node 0 is non-root
                 myroot = shared_is_root[pos]
                 if pos == 0 and not myroot:
                     myht = ht_multiply(carry_ht, myht)
@@ -149,7 +153,7 @@ def segscan_ht_intervals_one_thread_block(
                     ht_save_to_shared(shared_hts, pos, myht)
             cuda.syncthreads()
 
-            # begin segmented scan on this section
+            ### Perform parallel segmented scan on block
             offset = 1
             for jj in range(8):  #log2(256) == 8
                 if pos >= offset and ii_ind < end:
@@ -165,15 +169,13 @@ def segscan_ht_intervals_one_thread_block(
                 offset *= 2
                 cuda.syncthreads()
 
-            # write the shared hts to global memory
+            ### write the block's hts to global memory
             if ii_ind < end:
                 ht_save_to_nx4x4(hts_ko, ki, myht)
 
-            # save the carry
+            ### save the carry
             if pos == 0:
                 carry_ht = ht_load_from_shared(shared_hts, 255)
                 carry_is_root = shared_is_root[255]
 
             cuda.syncthreads()
-
-    #reorder_final_hts_256(hts_ko, hts, ki2ri)

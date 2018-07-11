@@ -12,20 +12,12 @@ from .derivsum import DerivsumOrdering
 
 @attr.s(auto_attribs=True, frozen=True)
 class GPUKinTreeReordering(ValidateAttrs):
-    """Path plans for parallel kinematic operations.
-
-    The GPUKinTreeReordering class partitions a KinTree into a set of paths so that
-    scan can be run on each path 1) from root to leaf for forward kinematics, and
-    2) from leaf to root for f1f2 derivative summation. To accomplish this, the
-    GPUKinTreeReordering class reorders the atoms from the original KinTree order ("ko")
-    where atoms are known by their kintree-index ("ki") into 1) their refold order
-    ("ro") where atoms are known by their refold index ("ri") and 2) their
-    deriv-sum order ("dso") where atoms are known by their deriv-sum index.
+    """Scan plans for parallel kinematic operations.
 
     The GPUKinTreeReordering divides the tree into a set of paths. Along
-    each path is a continuous chain of atoms that either 1) require their
+    each path is a continuous chain of atoms that either (1) require their
     coordinate frames computed as a cumulative product of homogeneous
-    transforms for the coordinate update algorithm, or 2) require the
+    transforms for the coordinate update algorithm, or (2) require the
     cumulative sum of their f1f2 vectors for the derivative calculation
     algorithm. In both cases, these paths can be processed efficiently
     on the GPU using an algorithm called "scan" and batches of these paths
@@ -37,9 +29,33 @@ class GPUKinTreeReordering(ValidateAttrs):
     The derivative summation algorithm starts at the leaves and sums
     upwards towards the roots.
 
-    In order to divide the tree into these paths, this class constructs
-    two reorderings of the atoms: a `refold_ordering` using refold
-    indices (ri) and a `derivsum_ordering` using derivsum indices (di).
+    To accomplish this, the GPUKinTreeReordering class reorders the atoms from
+    the original KinTree order ("ko") where atoms are known by their
+    kintree-index ("ki") into 1) their refold order ("ro") where atoms are
+    known by their refold index ("ri") and 2) their deriv-sum order ("dso")
+    where atoms are known by their deriv-sum index.
+
+    Each scan operation is performed as a series of depth-based "generations",
+    in which the scans at generation n are *only* dependent on the results of
+    scans in generations [0...n-1] inclusive. In the forward-scan generations
+    are ordered from the kinematic root, and scan segments begin with a value
+    derived from the result of a generation [0...n-1] scan. In the
+    backward-scan generations are ordered from kinematic leaves, and scan
+    segments pull summation results from multiple generation [0...n-1] scans.
+
+    For further details on parallel segmented scan operations see:
+
+    * Mark Harris, "Parallel Prefix Sum with CUDA."
+      GPU Gems 3, Nvidia Corporation
+      https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html
+      http://developer.download.nvidia.com/compute/cuda/2_2/sdk/website/projects/scan/doc/scan.pdf
+
+    * Sengupta, Shubhabrata, et al. "Scan primitives for GPU computing."
+      Graphics hardware. Vol. 2007. 2007.
+      http://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Sengupta07.pdf
+
+    * Sean Baxter, "moderngpu"
+      http://moderngpu.github.io/moderngpu
     """
 
     kintree_cache_key = "__GPUKinTreeReordering_cache__"
