@@ -127,12 +127,10 @@ class RefoldOrdering(ValidateAttrs):
         using numba's CUDA simulator.
         """
 
-        stream = numba.cuda.stream()
-
         if not inplace:
             hts_kintree_ordering = hts_kintree_ordering.clone()
 
-        forward_jit.segscan_by_generation[1, forward_jit.NTHREAD, stream](
+        forward_jit.scan.segscan_by_generation(
             as_cuda_array(hts_kintree_ordering),
             self.ri2ki_d,
             self.is_subpath_root_d,
