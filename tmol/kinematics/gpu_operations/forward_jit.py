@@ -17,7 +17,7 @@ def finalize_refold_indices(
 
 
 @cuda.jit(device=True)
-def identity_ht():
+def zero_ht():
     one = numba.float32(1.0)
     zero = numba.float32(0.0)
 
@@ -29,7 +29,7 @@ def identity_ht():
 
 
 @cuda.jit(device=True)
-def ht_load(hts, pos):
+def load_ht(hts, pos):
     """Load affine-compact ht from [i, 3|4, 4] buffer."""
     return (
         (hts[pos, 0, 0], hts[pos, 0, 1], hts[pos, 0, 2], hts[pos, 0, 3]),
@@ -39,7 +39,7 @@ def ht_load(hts, pos):
 
 
 @cuda.jit(device=True)
-def ht_save(hts, pos, ht):
+def save_ht(hts, pos, ht):
     """Save affine-compact ht to [i, 3|4, 4] buffer."""
     (
         (hts[pos, 0, 0], hts[pos, 0, 1], hts[pos, 0, 2], hts[pos, 0, 3]),
@@ -49,8 +49,8 @@ def ht_save(hts, pos, ht):
 
 
 @cuda.jit(device=True)
-def ht_multiply(ht1, ht2):
-    """Matrix-multiply affine-compact homogenous transforms."""
+def add_ht(ht1, ht2):
+    """matmul affine-compact homogenous transforms."""
     return ((
         ht1[0][0] * ht2[0][0] + ht1[0][1] * ht2[1][0] + ht1[0][2] * ht2[2][0],
         ht1[0][0] * ht2[0][1] + ht1[0][1] * ht2[1][1] + ht1[0][2] * ht2[2][1],
@@ -89,7 +89,7 @@ def segscan_ht_intervals_one_thread_block(
         blocks_for_depth = (end - start - 1) // 256 + 1
 
         ### Iterate block across depth generation
-        carry_ht = identity_ht()
+        carry_ht = zero_ht()
         carry_is_root = False
         for ii in range(blocks_for_depth):
             ii_ind = ii * 256 + start + pos
@@ -100,7 +100,7 @@ def segscan_ht_intervals_one_thread_block(
                 ii_ki = ri2ki[ii_ind]
 
                 ### Read node values from global into shared
-                myht = ht_load(hts_ko, ii_ki)
+                myht = load_ht(hts_ko, ii_ki)
                 shared_is_root[pos] = is_root[ii_ind]
                 my_root = shared_is_root[pos]
 
@@ -109,16 +109,16 @@ def segscan_ht_intervals_one_thread_block(
                 parent = parent_ind[ii_ind]
 
                 if parent != -1:
-                    parent_ht = ht_load(hts_ko, ri2ki[parent])
-                    myht = ht_multiply(parent_ht, myht)
+                    parent_ht = load_ht(hts_ko, ri2ki[parent])
+                    myht = add_ht(parent_ht, myht)
 
                 ### Sum carry transform from previous block if node 0 is non-root.
                 if pos == 0 and not my_root:
-                    myht = ht_multiply(carry_ht, myht)
+                    myht = add_ht(carry_ht, myht)
                     my_root |= carry_is_root
                     shared_is_root[0] = my_root
 
-                ht_save(shared_hts, pos, myht)
+                save_ht(shared_hts, pos, myht)
 
             ### Sync on prepared shared memory block
             cuda.syncthreads()
@@ -127,25 +127,25 @@ def segscan_ht_intervals_one_thread_block(
             offset = 1
             for jj in range(8):  #log2(256) == 8
                 if pos >= offset and ii_ind < end:
-                    prev_ht = ht_load(shared_hts, pos - offset)
+                    prev_ht = load_ht(shared_hts, pos - offset)
                     prev_root = shared_is_root[pos - offset]
                 cuda.syncthreads()
                 if pos >= offset and ii_ind < end:
                     if not my_root:
-                        myht = ht_multiply(prev_ht, myht)
+                        myht = add_ht(prev_ht, myht)
                         my_root |= prev_root
-                        ht_save(shared_hts, pos, myht)
+                        save_ht(shared_hts, pos, myht)
                         shared_is_root[pos] = my_root
                 offset *= 2
                 cuda.syncthreads()
 
             ### write the block's hts to global memory
             if ii_ind < end:
-                ht_save(hts_ko, ii_ki, myht)
+                save_ht(hts_ko, ii_ki, myht)
 
             ### save the carry
             if pos == 0:
-                carry_ht = ht_load(shared_hts, 255)
+                carry_ht = load_ht(shared_hts, 255)
                 carry_is_root = shared_is_root[255]
 
             cuda.syncthreads()
