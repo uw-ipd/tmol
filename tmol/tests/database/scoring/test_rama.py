@@ -3,12 +3,18 @@ import cattr
 import json
 import pytest
 
-from tmol.database.scoring.rama import RamaDatabase
+from tmol.database.scoring.rama import RamaDatabase, CompactedRamaDatabase
 
 
 def test_rama_from_json():
     ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
     assert len(ramadb.tables) == 40
+
+
+def test_compacted_rama(torch_device):
+    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
+    compacted = CompactedRamaDatabase.from_ramadb(ramadb, torch_device)
+    assert compacted.table.shape == (20, 2, 36, 36)
 
 
 @pytest.mark.skip(

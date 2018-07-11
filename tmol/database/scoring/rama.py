@@ -3,7 +3,12 @@ import cattr
 import yaml
 import json
 
-from typing import Tuple
+from typing import Tuple, Optional
+
+import torch
+from ..chemical import AAType, aatype_to_three_letter
+from tmol.types.torch import Tensor
+from tmol.types.functional import validate_args
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -32,3 +37,40 @@ class RamaDatabase:
         with open(path, "r") as infile:
             raw = json.load(infile)
         return cattr.structure(raw, cls)
+
+    @validate_args
+    def find(self, aaname: str, prepro: bool) -> Optional[RamaTable]:
+        for table in self.tables:
+            if table.aa_class == aaname and table.prepro == prepro:
+                return table
+        return None
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class CompactedRamaDatabase:
+    table: Tensor(torch.float)[20, 2, 36, 36]
+
+    coefficients: Tensor(torch.float)[20, 2, 36, 36]
+
+    @classmethod
+    def from_ramadb(cls, ramadb: RamaDatabase):
+        table = torch.full((20, 2, 36, 36), -1234, dtype=torch.float)
+        table = torch.full((20, 2, 36, 36), -1234, dtype=torch.float)
+        for aa in range(len(AAType)):
+            aa3name = aatype_to_three_letter[aa]
+            print(aa3name)
+            for prepro in range(2):
+                aatab = ramadb.find(aa3name, bool(prepro))
+                assert aatab
+                aatab = aatab.entries
+                for entry in aatab:
+                    phi_i = int(entry.phi) // 10 + 18
+                    psi_i = int(entry.psi) // 10 + 18
+                    assert phi_i < 36 and psi_i < 36
+                    assert phi_i >= 0 and psi_i >= 0
+                    table[aa, prepro, phi_i, psi_i] = entry.energy
+                coefficients[aa, prepro, :, :] = compute_coefficients(
+                    table[aa, prepro, :, :], 3
+                )
+
+        return cls(table=table)

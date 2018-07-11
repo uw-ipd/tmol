@@ -57,9 +57,13 @@ one_letter_to_aatype = frozendict({
     "Y": AAType.aa_tyr
 })
 
+aatype_to_one_letter = ["X"] * len(AAType)
+for key in one_letter_to_aatype:
+    aatype_to_one_letter[one_letter_to_aatype[key]] = key
+
 three_letter_to_aatype = frozendict({
     "ALA": AAType.aa_ala,
-    "CSY": AAType.aa_cys,
+    "CYS": AAType.aa_cys,
     "ASP": AAType.aa_asp,
     "GLU": AAType.aa_glu,
     "PHE": AAType.aa_phe,
@@ -79,6 +83,10 @@ three_letter_to_aatype = frozendict({
     "TRP": AAType.aa_trp,
     "TYR": AAType.aa_tyr
 })
+
+aatype_to_three_letter = ["XXX"] * len(AAType)
+for key in three_letter_to_aatype:
+    aatype_to_three_letter[three_letter_to_aatype[key]] = key
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
