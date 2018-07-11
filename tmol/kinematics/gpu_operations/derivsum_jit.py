@@ -77,6 +77,7 @@ def segscan_f1f2s_up_tree(
             # Current index in kinematic ordering
             ii_ko = -1
 
+            ### Load shared memory view of f1f2 block in scan order
             if ii_ind < end:
                 ii_ko = dsi2ki[ii_ind]
 
@@ -86,6 +87,7 @@ def segscan_f1f2s_up_tree(
                 my_leaf = shared_is_leaf[pos]
 
                 ### Sum all incoming scan values from children into node
+                # incoming values set for any node in scan
                 for jj in range(prior_children.shape[1]):
                     jj_child = prior_children[ii_ind, jj]
                     if jj_child != -1:
@@ -99,6 +101,8 @@ def segscan_f1f2s_up_tree(
                     shared_is_leaf[0] = my_leaf
 
                 save_f1f2s(shared_f1f2s, pos, myf1f2s)
+
+            ### Sync on prepared shared memory block
             cuda.syncthreads()
 
             ### Perform parallel segmented scan on block

@@ -123,34 +123,34 @@ def segscan_ht_intervals_one_thread_block(
         carry_is_root = False
         for ii in range(blocks_for_depth):
             ii_ind = ii * 256 + start + pos
-            ki = -1
+            ii_ki = -1
 
+            ### Load shared memory view of HT block in scan order
             if ii_ind < end:
+                ii_ki = ri2ki[ii_ind]
+
                 ### Read node values from global into shared
-                ki = ri2ki[ii_ind]
-                for jj in range(12):
-                    shared_hts[jj, pos] = hts_ko[ki, jj // 4, jj % 4]
+                myht = ht_load_from_nx4x4(hts_ko, ii_ki)
                 shared_is_root[pos] = is_root[ii_ind]
-                myht = ht_load_from_shared(shared_hts, pos)
+                my_root = shared_is_root[pos]
+
+                ### Sum incoming scan value from parent into node
+                # parent only set if node is root of scan
                 parent = parent_ind[ii_ind]
 
-                ### Sum incoming transform from parent into node
-                htchanged = False
                 if parent != -1:
-                    parent_ki = ri2ki[parent]
-                    parent_ht = ht_load_from_nx4x4(hts_ko, parent_ki)
+                    parent_ht = ht_load_from_nx4x4(hts_ko, ri2ki[parent])
                     myht = ht_multiply(parent_ht, myht)
-                    htchanged = True
 
-                ### Sum carry transform from previous block if node 0 is non-root
-                myroot = shared_is_root[pos]
-                if pos == 0 and not myroot:
+                ### Sum carry transform from previous block if node 0 is non-root.
+                if pos == 0 and not my_root:
                     myht = ht_multiply(carry_ht, myht)
-                    myroot |= carry_is_root
-                    shared_is_root[0] = myroot
-                    htchanged = True
-                if htchanged:
-                    ht_save_to_shared(shared_hts, pos, myht)
+                    my_root |= carry_is_root
+                    shared_is_root[0] = my_root
+
+                ht_save_to_shared(shared_hts, pos, myht)
+
+            ### Sync on prepared shared memory block
             cuda.syncthreads()
 
             ### Perform parallel segmented scan on block
@@ -161,17 +161,17 @@ def segscan_ht_intervals_one_thread_block(
                     prev_root = shared_is_root[pos - offset]
                 cuda.syncthreads()
                 if pos >= offset and ii_ind < end:
-                    if not myroot:
+                    if not my_root:
                         myht = ht_multiply(prev_ht, myht)
-                        myroot |= prev_root
+                        my_root |= prev_root
                         ht_save_to_shared(shared_hts, pos, myht)
-                        shared_is_root[pos] = myroot
+                        shared_is_root[pos] = my_root
                 offset *= 2
                 cuda.syncthreads()
 
             ### write the block's hts to global memory
             if ii_ind < end:
-                ht_save_to_nx4x4(hts_ko, ki, myht)
+                ht_save_to_nx4x4(hts_ko, ii_ki, myht)
 
             ### save the carry
             if pos == 0:
