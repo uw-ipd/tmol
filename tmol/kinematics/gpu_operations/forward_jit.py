@@ -109,11 +109,10 @@ def segscan_ht_intervals_one_thread_block(
 
                 ### Sum incoming scan value from parent into node
                 # parent only set if node is root of scan
-                parent = parent_ind[ii_ind]
-
-                if parent != -1:
-                    parent_ht = load_ht(hts_ko, ri2ki[parent])
-                    myht = add_ht(parent_ht, myht)
+                for jj in range(parent_ind.shape[1]):
+                    jj_parent = parent_ind[ii_ind, jj]
+                    if jj_parent != -1:
+                        myht = add_ht(load_ht(hts_ko, ri2ki[jj_parent]), myht)
 
                 ### Sum carry transform from previous block if node 0 is non-root.
                 if pos == 0 and not my_root:
@@ -128,7 +127,7 @@ def segscan_ht_intervals_one_thread_block(
 
             ### Perform parallel segmented scan on block
             offset = 1
-            for jj in range(NSCANITER):  #log2(NTHREAD) == 8
+            for jj in range(NSCANITER):
                 if pos >= offset and ii_ind < end:
                     prev_ht = load_ht(shared_hts, pos - offset)
                     prev_root = shared_is_root[pos - offset]

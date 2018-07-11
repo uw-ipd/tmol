@@ -105,8 +105,9 @@ def segscan_f1f2s_up_tree(
                 for jj in range(prior_children.shape[1]):
                     jj_child = prior_children[ii_ind, jj]
                     if jj_child != -1:
-                        child_f1f2s = load_f1f2s(f1f2s_ko, dsi2ki[jj_child])
-                        myf1f2s = add_f1f2s(myf1f2s, child_f1f2s)
+                        myf1f2s = add_f1f2s(
+                            load_f1f2s(f1f2s_ko, dsi2ki[jj_child]), myf1f2s
+                        )
 
                 ### Sum carry from previous block if node 0 is non-leaf.
                 if pos == 0 and not my_leaf:
@@ -128,7 +129,7 @@ def segscan_f1f2s_up_tree(
                 cuda.syncthreads()
                 if pos >= offset and ii_ind < end:
                     if not my_leaf:
-                        myf1f2s = add_f1f2s(myf1f2s, prev_f1f2s)
+                        myf1f2s = add_f1f2s(prev_f1f2s, myf1f2s)
                         my_leaf |= prev_leaf
                         save_f1f2s(shared_f1f2s, pos, myf1f2s)
                         shared_is_leaf[pos] = my_leaf

@@ -43,7 +43,9 @@ class RefoldOrdering(ValidateAttrs):
 
     @reactive_property
     def non_subpath_parent_d(non_subpath_parent):
-        return numba.cuda.to_device(non_subpath_parent)
+        # Expand non_subpath_parent to single lower dimension to match
+        # scan interface. to_device requires copy for unknown reason
+        return numba.cuda.to_device(non_subpath_parent[:, None].copy())
 
     @reactive_property
     def atom_range_for_depth_d(atom_range_for_depth):
