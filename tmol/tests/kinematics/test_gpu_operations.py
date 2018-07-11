@@ -55,6 +55,7 @@ def target_kintree(target_system):
     ).kintree
 
 
+@pytest.mark.benchmark(group="score_setup")
 def test_gpu_refold_data_construction(benchmark, ubq_system):
     kintree = target_kintree(ubq_system)
 
@@ -115,8 +116,9 @@ def test_gpu_refold_data_construction(benchmark, ubq_system):
             assert child == -1 or ii_ki == sp.parent[do.dsi2ki[child]]
 
 
+@pytest.mark.benchmark(group="kinematic_op_micro")
 def test_parallel_and_iterative_refold(
-        target_system, target_kintree, target_device
+        benchmark, target_system, target_kintree, target_device
 ):
     coords = torch.tensor(target_system.coords[target_kintree.id]
                           ).to(device=target_device)
@@ -144,10 +146,14 @@ def test_parallel_and_iterative_refold(
     )
 
     # parallel case
-    parallel_refold_hts = (
-        GPUKinTreeReordering.for_kintree(kintree)
-        .refold_ordering.segscan_hts(local_hts, inplace=False)
-    )
+    refold_ordering = GPUKinTreeReordering.for_kintree(kintree).refold_ordering
+
+    @benchmark
+    def parallel_refold_hts():
+        result = refold_ordering.segscan_hts(local_hts, inplace=False)
+        numba.cuda.synchronize()
+        return result
+
     numpy.testing.assert_array_almost_equal(bkin.hts, parallel_refold_hts)
 
     parallel_refold_hts_inplace = local_hts.clone()
@@ -161,8 +167,9 @@ def test_parallel_and_iterative_refold(
     )
 
 
+@pytest.mark.benchmark(group="kinematic_op_micro")
 def test_parallel_and_iterative_derivsum(
-        target_system, target_kintree, target_device
+        benchmark, target_system, target_kintree, target_device
 ):
     coords = torch.tensor(target_system.coords[target_kintree.id]
                           ).to(device=target_device)
@@ -181,10 +188,18 @@ def test_parallel_and_iterative_derivsum(
     iterative_f1f2_sums = cpu_operations.iterative_f1f2_summation(
         f1f2s.cpu(), kintree.parent, inplace=False
     )
-    parallel_f1f2_sums = (
-        GPUKinTreeReordering.for_kintree(kintree)
-        .derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)
-    )
+
+    # Load and cache ordering for benchmark
+    derivsum_ordering = GPUKinTreeReordering.for_kintree(
+        kintree
+    ).derivsum_ordering
+
+    @benchmark
+    def parallel_f1f2_sums():
+        result = derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)
+        numba.cuda.synchronize()
+        return result
+
     numpy.testing.assert_array_almost_equal(
         iterative_f1f2_sums, parallel_f1f2_sums
     )
