@@ -1,3 +1,4 @@
+import numpy
 import numba
 from numba import cuda
 
@@ -72,27 +73,29 @@ def add_ht(ht1, ht2):
     ))
 
 
+NTHREAD = 256
+NSCANITER = int(numpy.log2(NTHREAD))
+
+
 @cuda.jit
 def segscan_ht_intervals_one_thread_block(
         hts_ko, ri2ki, is_root, parent_ind, atom_ranges
 ):
-    # this should be executed as a single thread block with nthreads = 256
-
-    shared_hts = cuda.shared.array((256, 3, 4), numba.float64)
-    shared_is_root = cuda.shared.array((256), numba.int32)
+    shared_hts = cuda.shared.array((NTHREAD, 3, 4), numba.float64)
+    shared_is_root = cuda.shared.array((NTHREAD), numba.int32)
 
     pos = cuda.grid(1)
 
     for depth in range(atom_ranges.shape[0]):
         start = atom_ranges[depth, 0]
         end = atom_ranges[depth, 1]
-        blocks_for_depth = (end - start - 1) // 256 + 1
+        blocks_for_depth = (end - start - 1) // NTHREAD + 1
 
         ### Iterate block across depth generation
         carry_ht = zero_ht()
         carry_is_root = False
         for ii in range(blocks_for_depth):
-            ii_ind = ii * 256 + start + pos
+            ii_ind = ii * NTHREAD + start + pos
             ii_ki = -1
 
             ### Load shared memory view of HT block in scan order
@@ -125,7 +128,7 @@ def segscan_ht_intervals_one_thread_block(
 
             ### Perform parallel segmented scan on block
             offset = 1
-            for jj in range(8):  #log2(256) == 8
+            for jj in range(NSCANITER):  #log2(NTHREAD) == 8
                 if pos >= offset and ii_ind < end:
                     prev_ht = load_ht(shared_hts, pos - offset)
                     prev_root = shared_is_root[pos - offset]
@@ -145,7 +148,7 @@ def segscan_ht_intervals_one_thread_block(
 
             ### save the carry
             if pos == 0:
-                carry_ht = load_ht(shared_hts, 255)
-                carry_is_root = shared_is_root[255]
+                carry_ht = load_ht(shared_hts, NTHREAD - 1)
+                carry_is_root = shared_is_root[NTHREAD - 1]
 
             cuda.syncthreads()

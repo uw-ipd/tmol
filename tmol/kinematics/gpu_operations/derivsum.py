@@ -115,7 +115,7 @@ class DerivsumOrdering(ValidateAttrs):
         natoms = len(f1f2s_kintree_ordering)
         assert natoms == len(self.dsi2ki)
 
-        derivsum_jit.segscan_f1f2s_up_tree[1, 512](
+        derivsum_jit.segscan_f1f2s_up_tree[1, derivsum_jit.NTHREAD](
             as_cuda_array(f1f2s_kintree_ordering),
             self.dsi2ki_d,
             self.atom_range_for_depth_d,

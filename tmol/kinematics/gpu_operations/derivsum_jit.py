@@ -1,3 +1,5 @@
+import numpy
+
 import numba
 from numba import cuda
 
@@ -60,6 +62,10 @@ def zero_f1f2s():
     return (zero, zero, zero, zero, zero, zero)
 
 
+NTHREAD = 512
+NSCANITER = int(numpy.log2(NTHREAD))
+
+
 @cuda.jit
 def segscan_f1f2s_up_tree(
         f1f2s_ko,
@@ -68,20 +74,20 @@ def segscan_f1f2s_up_tree(
         prior_children,
         is_leaf,
 ):
-    shared_f1f2s = cuda.shared.array((512, 6), numba.float64)
-    shared_is_leaf = cuda.shared.array((512), numba.int32)
+    shared_f1f2s = cuda.shared.array((NTHREAD, 6), numba.float64)
+    shared_is_leaf = cuda.shared.array((NTHREAD), numba.int32)
     pos = cuda.grid(1)
 
     for depth in range(derivsum_atom_ranges.shape[0]):
         start = derivsum_atom_ranges[depth, 0]
         end = derivsum_atom_ranges[depth, 1]
-        blocks_for_depth = (end - start - 1) // 512 + 1
+        blocks_for_depth = (end - start - 1) // NTHREAD + 1
 
         ### Iterate block across depth generation
         carry_f1f2s = zero_f1f2s()
         carry_is_leaf = False
         for ii in range(blocks_for_depth):
-            ii_ind = ii * 512 + start + pos
+            ii_ind = ii * NTHREAD + start + pos
             # Current index in kinematic ordering
             ii_ko = -1
 
@@ -115,7 +121,7 @@ def segscan_f1f2s_up_tree(
 
             ### Perform parallel segmented scan on block
             offset = 1
-            for jj in range(9):  #log2(512) == 8
+            for jj in range(NSCANITER):
                 if pos >= offset and ii_ind < end:
                     prev_f1f2s = load_f1f2s(shared_f1f2s, pos - offset)
                     prev_leaf = shared_is_leaf[pos - offset]
@@ -135,7 +141,7 @@ def segscan_f1f2s_up_tree(
 
             ### save the carry
             if pos == 0:
-                carry_f1f2s = load_f1f2s(shared_f1f2s, 511)
-                carry_is_leaf = shared_is_leaf[511]
+                carry_f1f2s = load_f1f2s(shared_f1f2s, NTHREAD - 1)
+                carry_is_leaf = shared_is_leaf[NTHREAD - 1]
 
             cuda.syncthreads()
