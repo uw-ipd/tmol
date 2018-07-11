@@ -4,6 +4,71 @@ import numba.cuda as cuda
 
 
 class GenerationalSegmentedScan:
+    """Factory class for cuda-based generational segmented scan operations.
+
+    GenerationalSegmentedScan provides a factory class managing creation and
+    invocation of generic, generational segement scan operations.
+
+    # Scan Overview
+
+    The scan operation processes linear scan paths with an associative binary
+    operator, where the scan paths many have any number of additional off-path
+    node inputs added *before* the scan path. For example, consider the
+    operation composed on path values (P), off_path values (OP) joined by an
+    operator (+):
+
+        OP_0            OP_1
+          +               +
+          |               |
+          v               v
+        P_0+--->P_1+--->P_2+--->P_3+--->P_4
+                          ^
+                          |
+                          +
+                        OP_2
+
+    Represents the complete operation:
+
+      (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4
+
+    As this is a scan, rather than reduction, this results in result values of:
+
+        R_0-----R_1-----R_2-----R_3-----R_4
+
+        R_0 = OP_0 + P_0
+        R_1 = (OP_0 + P_0) + P_1
+        R_2 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2)
+        R_3 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3
+        R_4 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4
+
+    The off-path inputs of a scan are taken from the result values of previous
+    scan operations. Scans are processed by "generation", arranged such that
+    the off-path inputs of any segment are draw *exclusively* from earlier
+    generations. Scans within a generation are processed via a parallel
+    segmented scan.
+
+    # Implementation
+
+    Implementation of a specific scan operation involves subclassing this
+    template class and providing:
+
+        `@cuda.jit(device=True)` class-methods:
+
+            add: ((val, val) -> val)
+                The associative operator.
+            zero : (() -> val)
+                The identity value for the associative operator.
+            load: (array, i) -> val
+                Load val as a local value from an array of values.
+            save: (array, i, val) -> ()
+                Save val from a local value to an array of values.
+
+        class properties:
+            val_shape: tuple[int, ...]
+                The sub-shape of val in the arrays referenced by 'load'/'save'.
+
+    """
+
     threads_per_block: int
     _segscan_by_generation: object
 
