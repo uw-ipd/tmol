@@ -13,6 +13,7 @@ from ..score import (
     KinematicAtomicCoordinateProvider,
 )
 from ..score.torsions import AlphaAABackboneTorsionProvider
+from ..score.polymeric_bonds import PolymericBonds
 
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
@@ -162,3 +163,45 @@ def inds_for_torsion(
         tor_data["atom_index_d"], dtype=torch.long, device=device
     )
     return inds
+
+
+@PolymericBonds.factory_for.register(PackedResidueSystem)
+@validate_args
+def system_polymeric_connections(
+        system: PackedResidueSystem,
+        device: torch.device,
+        **_,
+):
+    """Constructor for identifying which polymeric residue is chemically bonded to which
+    other polymeric residue; the upper connection (usually i+1) for cyclic peptides, e.g.,
+    will for the last residue be residue 0, and in the same cyclic peptide, the lower
+    connection for residue 0 with be the last residue. An index of -1 is given to suggest
+    that a residue does not have an upper or lower connection (perhaps because it is not
+    a polymeric residue, or perhaps because it is a chain terminus)."""
+
+    upper = torch.full((len(system.residues), ),
+                       -1,
+                       dtype=torch.long,
+                       device=device)
+    lower = torch.full((len(system.residues), ),
+                       -1,
+                       dtype=torch.long,
+                       device=device)
+    ups = system.connection_metadata[
+        system.connection_metadata["from_connection_name"] == "up"
+    ]
+    upper[ups["from_residue_index"]] = torch.tensor(
+        ups["to_residue_index"], dtype=torch.long
+    )
+
+    downs = system.connection_metadata[
+        system.connection_metadata["from_connection_name"] == "down"
+    ]
+    lower[downs["from_residue_index"]] = torch.tensor(
+        downs["to_residue_index"], dtype=torch.long
+    )
+
+    return dict(
+        upper=upper,
+        lower=lower,
+    )
