@@ -28,6 +28,10 @@ class KinematicOp:
     used via either `__call__` or `apply`. Unlike an autograd function, the Op
     is reused during compute graph construction and serves as a factory for
     single use KinematicFun functions.
+
+    A KinematicOp instance is limited to a single target device, which is
+    derived from the device of the source coordinate tensor provided in
+    `from_coords`.
     """
 
     kintree: KinTree
@@ -43,7 +47,6 @@ class KinematicOp:
             kintree: KinTree,
             mobile_dofs: DOFMetadata,
             kin_coords: Tensor("f8")[:, 3],
-            device: torch.device,
             **kwargs,
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""

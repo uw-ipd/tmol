@@ -91,7 +91,6 @@ def system_torsion_graph_inputs(
         sys_kin.kintree,
         torsion_dofs,
         kincoords,
-        device,
     )
 
     return dict(
