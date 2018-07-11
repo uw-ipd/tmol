@@ -17,6 +17,8 @@ from ..score.torsions import AlphaAABackboneTorsionProvider
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
+from ..database.chemical import three_letter_to_aatype
+
 
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
@@ -110,27 +112,28 @@ def system_torsions_from_coordinates(
 ):
     """Constructor for finding the named backbone torsions of residues in the system
 
-    I don't really know what I'm doing with this code. I need phi and psi to calculate
-    Rama, and the PackedResidueSystem contains the torsion metadata.
-    I also need to be able to talk about the AA type for residue i and the AA type
-    for residue i+1 (to know whether or not it is proline), and what worries me about
-    this class is that I'm introducing a potentially brittle correspondence between
-    the entries of the phi_inds, etc. arrays with a presumbably separate class
-    that reports which AA each residue is using. (That is, if a residue type which
-    is not a canonical AA also reports a dihedral named "phi", then there will
-    be N+1 entries in the phi_inds tensor, but only N entries in the
-    (hypothetical) aa-type tensor and it won't be clear which entries in one
-    tensor go with which entries in the other one.
+    Each of the residues in the system is represented by the three atom-index arrays,
+    but some entries are going to be listed with an index of -1. Either these atoms
+    don't exist for a canonical AA at that residue or that residue is not a canonical AA.
     """
 
     phi_inds = inds_for_torsion(system, device, "phi")
     psi_inds = inds_for_torsion(system, device, "psi")
     omega_inds = inds_for_torsion(system, device, "omega")
 
+    res_aas = torch.tensor([
+        three_letter_to_aatype[res.residue_type.name3]
+        if res.residue_type.name3 in three_letter_to_aatype else -1
+        for res in system.residues
+    ],
+                           dtype=torch.long,
+                           device=device)
+
     return dict(
         phi_inds=phi_inds,
         psi_inds=psi_inds,
         omega_inds=omega_inds,
+        res_aas=res_aas,
     )
 
 

@@ -32,22 +32,31 @@ class AlphaAABackboneTorsionProvider(Factory):
             other.phi_inds,
             dtype=torch.long,
             device=device,
-        ).requires_grad_(requires_grad)
+        )
 
         psi_inds = torch.tensor(
             other.psi_inds,
             dtype=torch.long,
             device=device,
-        ).requires_grad_(requires_grad)
+        )
 
         omega_inds = torch.tensor(
             other.omega_inds,
             dtype=torch.long,
             device=device,
-        ).requires_grad_(requires_grad)
+        )
+
+        res_aas = torch.tensor(
+            other.res_aas,
+            dtype=torch.long,
+            device=device,
+        )
 
         return dict(
-            phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds
+            phi_inds=phi_inds,
+            psi_inds=psi_inds,
+            omega_inds=omega_inds,
+            res_aas=res_aas
         )
 
     # global indices used to define the torsions
@@ -56,6 +65,8 @@ class AlphaAABackboneTorsionProvider(Factory):
     phi_inds: Tensor(torch.long)[:, 4]
     psi_inds: Tensor(torch.long)[:, 4]
     omega_inds: Tensor(torch.long)[:, 4]
+
+    res_aas: Tensor(torch.long)[:]
 
     def reset_total_score(self):
         self.phi_inds = self.phi_inds
