@@ -62,9 +62,9 @@ residues:
     - { *n: down, &a atom: N }
     - { *n: up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, &c connection: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},                      b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},                     b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi,   &mc mainchain: true, a: {*a: C, &c connection: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi,   *mc: true, a: {*a: N},                      b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},                     b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:  0.000000, &p parent:  N, &gp grand_parent: CA, &ggp great_grand_parent:    C }
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:  1.458001,        *p:  N,             *gp:  CA,                    *ggp:    C }
@@ -133,14 +133,14 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
-    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: NE}}
-    - { *n: chi4,  a: {*a: CG}, b: {*a: CD}, c: {*a: NE}, d: {*a: CZ}}
+    - { *n: chi1, *mc: false, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi3, *mc: false,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: NE}}
+    - { *n: chi4, *mc: false,  a: {*a: CG}, b: {*a: CD}, c: {*a: NE}, d: {*a: CZ}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:  0.000000, *p:    N, *gp:  CA, *ggp:      C }
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:  1.458001, *p:    N, *gp:  CA, *ggp:      C }
@@ -203,12 +203,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -257,12 +257,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CA}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CA}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: OD1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -306,12 +306,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: SG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: SG}, d: {*a: HG}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: SG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: SG}, d: {*a: HG}}
     icoors:
     - { *n:     N, phi:         0.0 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:         0.0 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -367,13 +367,13 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
-    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: OE1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi3, *mc: false,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: OE1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -431,13 +431,13 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
-    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: OE1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi3, *mc: false,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: OE1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -477,9 +477,9 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -534,12 +534,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
@@ -603,12 +603,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: ND1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458003, *p:     N, *gp:    CA, *ggp:     C}
@@ -674,12 +674,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG1}, d: {*a: CD1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG1}, d: {*a: CD1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -747,12 +747,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
@@ -826,14 +826,14 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
-    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: CE}}
-    - { *n: chi4,  a: {*a: CG}, b: {*a: CD}, c: {*a: CE}, d: {*a: NZ}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi3, *mc: false,  a: {*a: CB}, b: {*a: CG}, c: {*a: CD}, d: {*a: CE}}
+    - { *n: chi4, *mc: false,  a: {*a: CG}, b: {*a: CD}, c: {*a: CE}, d: {*a: NZ}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -900,13 +900,13 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: SD}}
-    - { *n: chi3,  a: {*a: CB}, b: {*a: CG}, c: {*a: SD}, d: {*a: CE}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: SD}}
+    - { *n: chi3, *mc: false,  a: {*a: CB}, b: {*a: CG}, c: {*a: SD}, d: {*a: CE}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -975,12 +975,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -1040,12 +1040,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
@@ -1092,12 +1092,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: OG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG}, d: {*a: HG}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: OG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG}, d: {*a: HG}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458002, *p:     N, *gp:    CA, *ggp:     C}
@@ -1147,12 +1147,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB},  d: {*a: OG1}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG1}, d: {*a: HG1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB},  d: {*a: OG1}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: OG1}, d: {*a: HG1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -1227,12 +1227,12 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458001, *p:     N, *gp:    CA, *ggp:     C}
@@ -1311,13 +1311,13 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
-    - { *n: chi2,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
-    - { *n: chi3,  a: {*a: CE2}, b: {*a: CZ}, c: {*a: OH}, d: {*a: HH}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG}}
+    - { *n: chi2, *mc: false,  a: {*a: CA}, b: {*a: CB}, c: {*a: CG}, d: {*a: CD1}}
+    - { *n: chi3, *mc: false,  a: {*a: CE2}, b: {*a: CZ}, c: {*a: OH}, d: {*a: HH}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458004, *p:     N, *gp:    CA, *ggp:     C}
@@ -1382,11 +1382,11 @@ residues:
     - { *n:  down, *a: N }
     - { *n:    up, *a: C }
     torsions:
-    - { *n: phi,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
-    - { *n: psi,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
-    - { *n: omega, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
+    - { *n: phi, *mc: true,   a: {*a: C, *c: down}, b: {*a: N},  c: {*a: CA},        d: {*a: C}         }
+    - { *n: psi, *mc: true,   a: {*a: N},           b: {*a: CA}, c: {*a: C},         d: {*a: N,  *c: up}}
+    - { *n: omega, *mc: true, a: {*a: CA},          b: {*a: C},  c: {*a: N, *c: up}, d: {*a: CA, *c: up}}
 
-    - { *n: chi1,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
+    - { *n: chi1, *mc: false,  a: {*a:  N}, b: {*a: CA}, c: {*a: CB}, d: {*a: CG1}}
     icoors:
     - { *n:     N, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:    CA, phi:    0.000000 deg, theta:  180.000000 deg, d:    1.458004, *p:     N, *gp:    CA, *ggp:     C}
