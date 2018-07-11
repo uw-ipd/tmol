@@ -54,7 +54,11 @@ def zero_f1f2s():
 
 @cuda.jit
 def segscan_f1f2s_up_tree(
-        f1f2s_dso, prior_children, is_leaf, derivsum_atom_ranges
+        f1f2s_ko,
+        dsi2ki,
+        derivsum_atom_ranges,
+        prior_children,
+        is_leaf,
 ):
     shared_f1f2s = cuda.shared.array((512, 6), numba.float64)
     shared_is_leaf = cuda.shared.array((512), numba.int32)
@@ -70,34 +74,31 @@ def segscan_f1f2s_up_tree(
         carry_is_leaf = False
         for ii in range(blocks_for_depth):
             ii_ind = ii * 512 + start + pos
+            # Current index in kinematic ordering
+            ii_ko = -1
 
             if ii_ind < end:
+                ii_ko = dsi2ki[ii_ind]
+
                 ### Read node values from global into shared
-                for jj in range(6):
-                    # TO DO: minimize bank conflicts -- align memory reads
-                    shared_f1f2s[pos, jj] = f1f2s_dso[ii_ind, jj]
+                myf1f2s = load_f1f2s(f1f2s_ko, ii_ko)
                 shared_is_leaf[pos] = is_leaf[ii_ind]
-                myf1f2s = load_f1f2s(shared_f1f2s, pos)
                 my_leaf = shared_is_leaf[pos]
 
                 ### Sum all incoming scan values from children into node
-                f1f2s_changed = False
                 for jj in range(prior_children.shape[1]):
                     jj_child = prior_children[ii_ind, jj]
                     if jj_child != -1:
-                        child_f1f2s = load_f1f2s(f1f2s_dso, jj_child)
+                        child_f1f2s = load_f1f2s(f1f2s_ko, dsi2ki[jj_child])
                         myf1f2s = add_f1f2s(myf1f2s, child_f1f2s)
-                        f1f2s_changed = True
 
                 ### Sum carry from previous block if node 0 is non-leaf.
                 if pos == 0 and not my_leaf:
                     myf1f2s = add_f1f2s(carry_f1f2s, myf1f2s)
                     my_leaf |= carry_is_leaf
                     shared_is_leaf[0] = my_leaf
-                    f1f2s_changed = True
 
-                if f1f2s_changed:
-                    save_f1f2s(shared_f1f2s, pos, myf1f2s)
+                save_f1f2s(shared_f1f2s, pos, myf1f2s)
             cuda.syncthreads()
 
             ### Perform parallel segmented scan on block
@@ -118,7 +119,7 @@ def segscan_f1f2s_up_tree(
 
             ### write the block's f1f2s to global memory
             if ii_ind < end:
-                save_f1f2s(f1f2s_dso, ii_ind, myf1f2s)
+                save_f1f2s(f1f2s_ko, ii_ko, myf1f2s)
 
             ### save the carry
             if pos == 0:

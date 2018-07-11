@@ -29,6 +29,10 @@ class DerivsumOrdering(ValidateAttrs):
 
     # Cached device arrays, derived from cpu ordering arrays.
     @reactive_property
+    def dsi2ki_d(dsi2ki):
+        return numba.cuda.to_device(dsi2ki)
+
+    @reactive_property
     def is_leaf_d(is_leaf):
         return numba.cuda.to_device(is_leaf)
 
@@ -111,15 +115,12 @@ class DerivsumOrdering(ValidateAttrs):
         natoms = len(f1f2s_kintree_ordering)
         assert natoms == len(self.dsi2ki)
 
-        f1f2s_derivsum_ordering = f1f2s_kintree_ordering[self.dsi2ki]
-
         derivsum_jit.segscan_f1f2s_up_tree[1, 512](
-            as_cuda_array(f1f2s_derivsum_ordering),
+            as_cuda_array(f1f2s_kintree_ordering),
+            self.dsi2ki_d,
+            self.atom_range_for_depth_d,
             self.nonpath_children_d,
             self.is_leaf_d,
-            self.atom_range_for_depth_d,
         )
-
-        f1f2s_kintree_ordering[self.dsi2ki] = f1f2s_derivsum_ordering
 
         return f1f2s_kintree_ordering
