@@ -1,4 +1,4 @@
-import numpy
+import math
 import numba
 from numba import cuda
 
@@ -18,7 +18,7 @@ def finalize_refold_indices(
 
 
 @cuda.jit(device=True)
-def zero_ht():
+def zero():
     one = numba.float32(1.0)
     zero = numba.float32(0.0)
 
@@ -30,7 +30,7 @@ def zero_ht():
 
 
 @cuda.jit(device=True)
-def load_ht(hts, pos):
+def load(hts, pos):
     """Load affine-compact ht from [i, 3|4, 4] buffer."""
     return (
         (hts[pos, 0, 0], hts[pos, 0, 1], hts[pos, 0, 2], hts[pos, 0, 3]),
@@ -40,7 +40,7 @@ def load_ht(hts, pos):
 
 
 @cuda.jit(device=True)
-def save_ht(hts, pos, ht):
+def save(hts, pos, ht):
     """Save affine-compact ht to [i, 3|4, 4] buffer."""
     (
         (hts[pos, 0, 0], hts[pos, 0, 1], hts[pos, 0, 2], hts[pos, 0, 3]),
@@ -50,7 +50,7 @@ def save_ht(hts, pos, ht):
 
 
 @cuda.jit(device=True)
-def add_ht(ht1, ht2):
+def add(ht1, ht2):
     """matmul affine-compact homogenous transforms."""
     return ((
         ht1[0][0] * ht2[0][0] + ht1[0][1] * ht2[1][0] + ht1[0][2] * ht2[2][0],
@@ -74,53 +74,63 @@ def add_ht(ht1, ht2):
 
 
 NTHREAD = 256
-NSCANITER = int(numpy.log2(NTHREAD))
+NSCANITER = int(math.log2(NTHREAD))
+VAL_SHAPE = (3, 4)
+SHARED_SHAPE = (NTHREAD, ) + VAL_SHAPE
 
 
 @cuda.jit
-def segscan_ht_intervals_one_thread_block(
-        hts_ko, ri2ki, is_root, parent_ind, atom_ranges
+def segscan_by_generation(
+        src_vals,  # [n] + [val_shape]
+        scan_to_src_ordering,  # [n]
+        is_path_root,  #[n]
+        non_path_inputs,  #[n, max_num_inputs]
+        generation_ranges,  #[g, 2]
 ):
-    shared_hts = cuda.shared.array((NTHREAD, 3, 4), numba.float64)
+    shared_vals = cuda.shared.array(SHARED_SHAPE, numba.float64)
     shared_is_root = cuda.shared.array((NTHREAD), numba.int32)
 
     pos = cuda.grid(1)
 
-    for depth in range(atom_ranges.shape[0]):
-        start = atom_ranges[depth, 0]
-        end = atom_ranges[depth, 1]
-        blocks_for_depth = (end - start - 1) // NTHREAD + 1
+    for gen in range(generation_ranges.shape[0]):
+        start = generation_ranges[gen, 0]
+        end = generation_ranges[gen, 1]
+        blocks_for_gen = (end - start - 1) // NTHREAD + 1
 
-        ### Iterate block across depth generation
-        carry_ht = zero_ht()
+        ### Iterate block across generation
+        carry_val = zero()
         carry_is_root = False
-        for ii in range(blocks_for_depth):
-            ii_ind = ii * NTHREAD + start + pos
-            ii_ki = -1
 
-            ### Load shared memory view of HT block in scan order
+        for ii in range(blocks_for_gen):
+            ii_ind = ii * NTHREAD + start + pos
+            ii_src = -1
+
+            ### Load shared memory value block in scan order
             if ii_ind < end:
-                ii_ki = ri2ki[ii_ind]
+                ii_src = scan_to_src_ordering[ii_ind]
 
                 ### Read node values from global into shared
-                myht = load_ht(hts_ko, ii_ki)
-                shared_is_root[pos] = is_root[ii_ind]
-                my_root = shared_is_root[pos]
+                my_val = load(src_vals, ii_src)
+                shared_is_root[pos] = is_path_root[ii_ind]
 
                 ### Sum incoming scan value from parent into node
                 # parent only set if node is root of scan
-                for jj in range(parent_ind.shape[1]):
-                    jj_parent = parent_ind[ii_ind, jj]
-                    if jj_parent != -1:
-                        myht = add_ht(load_ht(hts_ko, ri2ki[jj_parent]), myht)
+                for jj in range(non_path_inputs.shape[1]):
+                    input_ind = non_path_inputs[ii_ind, jj]
+                    if input_ind != -1:
+                        my_val = add(
+                            load(src_vals, scan_to_src_ordering[input_ind]),
+                            my_val
+                        )
 
-                ### Sum carry transform from previous block if node 0 is non-root.
+                ### Sum carry value from previous block if node 0 is non-root.
+                my_root = shared_is_root[pos]
                 if pos == 0 and not my_root:
-                    myht = add_ht(carry_ht, myht)
+                    my_val = add(carry_val, my_val)
                     my_root |= carry_is_root
                     shared_is_root[0] = my_root
 
-                save_ht(shared_hts, pos, myht)
+                save(shared_vals, pos, my_val)
 
             ### Sync on prepared shared memory block
             cuda.syncthreads()
@@ -128,26 +138,28 @@ def segscan_ht_intervals_one_thread_block(
             ### Perform parallel segmented scan on block
             offset = 1
             for jj in range(NSCANITER):
+
                 if pos >= offset and ii_ind < end:
-                    prev_ht = load_ht(shared_hts, pos - offset)
+                    prev_val = load(shared_vals, pos - offset)
                     prev_root = shared_is_root[pos - offset]
                 cuda.syncthreads()
+
                 if pos >= offset and ii_ind < end:
                     if not my_root:
-                        myht = add_ht(prev_ht, myht)
+                        my_val = add(prev_val, my_val)
                         my_root |= prev_root
-                        save_ht(shared_hts, pos, myht)
+                        save(shared_vals, pos, my_val)
                         shared_is_root[pos] = my_root
                 offset *= 2
                 cuda.syncthreads()
 
-            ### write the block's hts to global memory
+            ### write the block's scan results to global
             if ii_ind < end:
-                save_ht(hts_ko, ii_ki, myht)
+                save(src_vals, ii_src, my_val)
 
             ### save the carry
             if pos == 0:
-                carry_ht = load_ht(shared_hts, NTHREAD - 1)
+                carry_val = load(shared_vals, NTHREAD - 1)
                 carry_is_root = shared_is_root[NTHREAD - 1]
 
             cuda.syncthreads()

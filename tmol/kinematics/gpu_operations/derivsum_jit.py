@@ -1,4 +1,4 @@
-import numpy
+import math
 
 import numba
 from numba import cuda
@@ -21,7 +21,7 @@ def finalize_derivsum_indices(
 
 
 @cuda.jit(device=True)
-def load_f1f2s(f1f2s, ind):
+def load(f1f2s, ind):
     return (
         f1f2s[ind, 0],
         f1f2s[ind, 1],
@@ -33,7 +33,7 @@ def load_f1f2s(f1f2s, ind):
 
 
 @cuda.jit(device=True)
-def add_f1f2s(v1, v2):
+def add(v1, v2):
     return (
         v1[0] + v2[0],
         v1[1] + v2[1],
@@ -45,7 +45,7 @@ def add_f1f2s(v1, v2):
 
 
 @cuda.jit(device=True)
-def save_f1f2s(f1f2s, ind, v):
+def save(f1f2s, ind, v):
     (
         f1f2s[ind, 0],
         f1f2s[ind, 1],
@@ -57,65 +57,69 @@ def save_f1f2s(f1f2s, ind, v):
 
 
 @cuda.jit(device=True)
-def zero_f1f2s():
+def zero():
     zero = numba.float64(0.)
     return (zero, zero, zero, zero, zero, zero)
 
 
-NTHREAD = 512
-NSCANITER = int(numpy.log2(NTHREAD))
+NTHREAD = 256
+NSCANITER = int(math.log2(NTHREAD))
+VAL_SHAPE = (6, )
+SHARED_SHAPE = (NTHREAD, ) + VAL_SHAPE
 
 
 @cuda.jit
-def segscan_f1f2s_up_tree(
-        f1f2s_ko,
-        dsi2ki,
-        derivsum_atom_ranges,
-        prior_children,
-        is_leaf,
+def segscan_by_generation(
+        src_vals,  # [n] + [val_shape]
+        scan_to_src_ordering,  # [n]
+        is_path_root,  #[n]
+        non_path_inputs,  #[n, max_num_inputs]
+        generation_ranges,  #[g, 2]
 ):
-    shared_f1f2s = cuda.shared.array((NTHREAD, 6), numba.float64)
-    shared_is_leaf = cuda.shared.array((NTHREAD), numba.int32)
+    shared_vals = cuda.shared.array(SHARED_SHAPE, numba.float64)
+    shared_is_root = cuda.shared.array((NTHREAD), numba.int32)
+
     pos = cuda.grid(1)
 
-    for depth in range(derivsum_atom_ranges.shape[0]):
-        start = derivsum_atom_ranges[depth, 0]
-        end = derivsum_atom_ranges[depth, 1]
-        blocks_for_depth = (end - start - 1) // NTHREAD + 1
+    for gen in range(generation_ranges.shape[0]):
+        start = generation_ranges[gen, 0]
+        end = generation_ranges[gen, 1]
+        blocks_for_gen = (end - start - 1) // NTHREAD + 1
 
-        ### Iterate block across depth generation
-        carry_f1f2s = zero_f1f2s()
-        carry_is_leaf = False
-        for ii in range(blocks_for_depth):
+        ### Iterate block across generation
+        carry_val = zero()
+        carry_is_root = False
+
+        for ii in range(blocks_for_gen):
             ii_ind = ii * NTHREAD + start + pos
-            # Current index in kinematic ordering
-            ii_ko = -1
+            ii_src = -1
 
-            ### Load shared memory view of f1f2 block in scan order
+            ### Load shared memory value block in scan order
             if ii_ind < end:
-                ii_ko = dsi2ki[ii_ind]
+                ii_src = scan_to_src_ordering[ii_ind]
 
                 ### Read node values from global into shared
-                myf1f2s = load_f1f2s(f1f2s_ko, ii_ko)
-                shared_is_leaf[pos] = is_leaf[ii_ind]
-                my_leaf = shared_is_leaf[pos]
+                my_val = load(src_vals, ii_src)
+                shared_is_root[pos] = is_path_root[ii_ind]
 
-                ### Sum all incoming scan values from children into node
-                # incoming values set for any node in scan
-                for jj in range(prior_children.shape[1]):
-                    jj_child = prior_children[ii_ind, jj]
-                    if jj_child != -1:
-                        myf1f2s = add_f1f2s(
-                            load_f1f2s(f1f2s_ko, dsi2ki[jj_child]), myf1f2s
+                ### Sum incoming scan value from parent into node
+                # parent only set if node is root of scan
+                for jj in range(non_path_inputs.shape[1]):
+                    input_ind = non_path_inputs[ii_ind, jj]
+                    if input_ind != -1:
+                        my_val = add(
+                            load(src_vals, scan_to_src_ordering[input_ind]),
+                            my_val
                         )
 
-                ### Sum carry from previous block if node 0 is non-leaf.
-                if pos == 0 and not my_leaf:
-                    myf1f2s = add_f1f2s(carry_f1f2s, myf1f2s)
-                    my_leaf |= carry_is_leaf
-                    shared_is_leaf[0] = my_leaf
+                ### Sum carry value from previous block if node 0 is non-root.
+                my_root = shared_is_root[pos]
+                if pos == 0 and not my_root:
+                    my_val = add(carry_val, my_val)
+                    my_root |= carry_is_root
+                    shared_is_root[0] = my_root
 
-                save_f1f2s(shared_f1f2s, pos, myf1f2s)
+                save(shared_vals, pos, my_val)
 
             ### Sync on prepared shared memory block
             cuda.syncthreads()
@@ -123,26 +127,28 @@ def segscan_f1f2s_up_tree(
             ### Perform parallel segmented scan on block
             offset = 1
             for jj in range(NSCANITER):
+
                 if pos >= offset and ii_ind < end:
-                    prev_f1f2s = load_f1f2s(shared_f1f2s, pos - offset)
-                    prev_leaf = shared_is_leaf[pos - offset]
+                    prev_val = load(shared_vals, pos - offset)
+                    prev_root = shared_is_root[pos - offset]
                 cuda.syncthreads()
+
                 if pos >= offset and ii_ind < end:
-                    if not my_leaf:
-                        myf1f2s = add_f1f2s(prev_f1f2s, myf1f2s)
-                        my_leaf |= prev_leaf
-                        save_f1f2s(shared_f1f2s, pos, myf1f2s)
-                        shared_is_leaf[pos] = my_leaf
+                    if not my_root:
+                        my_val = add(prev_val, my_val)
+                        my_root |= prev_root
+                        save(shared_vals, pos, my_val)
+                        shared_is_root[pos] = my_root
                 offset *= 2
                 cuda.syncthreads()
 
-            ### write the block's f1f2s to global memory
+            ### write the block's scan results to global
             if ii_ind < end:
-                save_f1f2s(f1f2s_ko, ii_ko, myf1f2s)
+                save(src_vals, ii_src, my_val)
 
             ### save the carry
             if pos == 0:
-                carry_f1f2s = load_f1f2s(shared_f1f2s, NTHREAD - 1)
-                carry_is_leaf = shared_is_leaf[NTHREAD - 1]
+                carry_val = load(shared_vals, NTHREAD - 1)
+                carry_is_root = shared_is_root[NTHREAD - 1]
 
             cuda.syncthreads()
