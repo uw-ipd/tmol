@@ -33,6 +33,31 @@ def test_2d_bspline(bspline_degree):
     numpy.testing.assert_allclose(zint.numpy(), zgold.numpy(), atol=1e-5)
 
 
+def test_2d_bspline_everywhere(bspline_degree):
+    # 2d
+    x = torch.arange(-5, 6).unsqueeze(1)
+    y = torch.arange(-5, 6).unsqueeze(0)
+    z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
+    z = z.type(torch.float)
+
+    zcoeff = compute_coeffs(z, bspline_degree)
+
+    phi_vals = torch.arange(11).reshape(-1, 1).repeat(1, 11).reshape(-1, 1)
+    psi_vals = torch.arange(11).repeat(1, 11).reshape(-1, 1)
+    xs = torch.cat((phi_vals, psi_vals), dim=1)
+    #print("xs.shape",xs.shape)
+    xlong = xs.type(torch.long)
+    inds = xlong[:, 0] * 11 + xlong[:, 1]
+
+    orig_vals = z.reshape(-1)[inds]
+    zint = interpolate(zcoeff, bspline_degree, xs)
+    #numpy.set_printoptions(threshold=numpy.nan)
+    #print(numpy.concatenate((xlong,zint.numpy().reshape(-1,1), orig_vals.numpy().reshape(-1,1), zint.numpy().reshape(-1,1) - orig_vals.numpy().reshape(-1,1)), axis=1))
+    numpy.testing.assert_allclose(zint.numpy(), orig_vals.numpy(), atol=1e-4)
+
+    #interpolate(zcoeff, bspline_degree, torch.Tensor([[5,0]]))
+
+
 def test_2d_bspline_x1(bspline_degree):
     # 2d
     x = torch.arange(-5, 6).unsqueeze(1)
