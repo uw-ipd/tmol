@@ -9,6 +9,7 @@ import torch
 from ..chemical import AAType, aatype_to_three_letter
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
+from tmol.numeric.bspline import BSplineDegree3, compute_coeffs
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -50,15 +51,22 @@ class RamaDatabase:
 class CompactedRamaDatabase:
     table: Tensor(torch.float)[20, 2, 36, 36]
 
+    bspdeg: BSplineDegree3
     coefficients: Tensor(torch.float)[20, 2, 36, 36]
 
     @classmethod
-    def from_ramadb(cls, ramadb: RamaDatabase):
-        table = torch.full((20, 2, 36, 36), -1234, dtype=torch.float)
-        table = torch.full((20, 2, 36, 36), -1234, dtype=torch.float)
+    def from_ramadb(cls, ramadb: RamaDatabase, device: torch.device):
+
+        table = torch.full((20, 2, 36, 36),
+                           -1234,
+                           dtype=torch.float,
+                           device=device)
+        coefficients = torch.full((20, 2, 36, 36),
+                                  -1234,
+                                  dtype=torch.float,
+                                  device=device)
         for aa in range(len(AAType)):
             aa3name = aatype_to_three_letter[aa]
-            print(aa3name)
             for prepro in range(2):
                 aatab = ramadb.find(aa3name, bool(prepro))
                 assert aatab
@@ -69,8 +77,11 @@ class CompactedRamaDatabase:
                     assert phi_i < 36 and psi_i < 36
                     assert phi_i >= 0 and psi_i >= 0
                     table[aa, prepro, phi_i, psi_i] = entry.energy
-                coefficients[aa, prepro, :, :] = compute_coefficients(
-                    table[aa, prepro, :, :], 3
+        bspline_deg = BSplineDegree3.construct()
+        for aa in range(len(AAType)):
+            for prepro in range(2):
+                coefficients[aa, prepro, :, :] = compute_coeffs(
+                    table[aa, prepro, :, :], bspline_deg
                 )
 
-        return cls(table=table)
+        return cls(table=table, bspdeg=bspline_deg, coefficients=coefficients)

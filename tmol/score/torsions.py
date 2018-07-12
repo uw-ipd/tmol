@@ -102,9 +102,7 @@ class AlphaAABackboneTorsionProvider(Factory):
 def measure_torsions(
         coords: Tensor(torch.float)[:, 3], inds: Tensor(torch.long)[:, 4]
 ) -> Tensor(torch.float):
-    print("inds.shape", inds.shape)
     bad = torch.sum(inds == -1, 1) > 0
-    print("bad.shape", bad.shape)
     tors = torch.full((inds.shape[0], ),
                       numpy.nan,
                       dtype=torch.float,
