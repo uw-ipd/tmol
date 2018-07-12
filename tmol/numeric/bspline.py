@@ -45,6 +45,18 @@ class BSplineDegree:
     degree: int
     poles: Tensor(torch.float)[:]
 
+    @validate_args
+    def empty_wts_bydim(
+            self, ndims: int, coeffs: Tensor(torch.float),
+            X: Tensor(torch.float)[:, :]
+    ) -> Tensor(torch.float)[:, :, :]:
+        """Allocate wts_bydim tensor with the dtype and device following
+        coeffs's example
+        """
+        return torch.empty((X.shape[0], self.degree + 1, ndims),
+                           dtype=coeffs.dtype,
+                           device=coeffs.device)
+
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree2(BSplineDegree):
@@ -60,9 +72,7 @@ class BSplineDegree2(BSplineDegree):
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
 
-        wts_bydim = torch.empty((X.shape[0], self.degree + 1, ndims),
-                                dtype=coeffs.dtype,
-                                device=coeffs.device)
+        wts_bydim = self.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 1, :]
         wts_bydim[:, 1, :] = 3.0 / 4.0 - w * w
@@ -85,9 +95,7 @@ class BSplineDegree3(BSplineDegree):
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
 
-        wts_bydim = torch.empty((X.shape[0], self.degree + 1, ndims),
-                                dtype=coeffs.dtype,
-                                device=coeffs.device)
+        wts_bydim = self.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 1, :]
         wts_bydim[:, 3, :] = (1.0 / 6.0) * w * w * w
@@ -117,9 +125,7 @@ class BSplineDegree4(BSplineDegree):
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
 
-        wts_bydim = torch.empty((X.shape[0], self.degree + 1, ndims),
-                                dtype=coeffs.dtype,
-                                device=coeffs.device)
+        wts_bydim = self.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 2, :]
         w2 = w * w
@@ -157,9 +163,7 @@ class BSplineDegree5(BSplineDegree):
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
 
-        wts_bydim = torch.empty((X.shape[0], self.degree + 1, ndims),
-                                dtype=coeffs.dtype,
-                                device=coeffs.device)
+        wts_bydim = self.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 2, :]
         w2 = w * w
@@ -370,8 +374,7 @@ def interpolate(
 
     # ... and do the dot product
     retval = torch.sum(
-        wts_expand.reshape(nx, -1) *
-        coeffs.view(-1)[inds].reshape(nx, -1).squeeze(), 1
+        wts_expand.reshape(nx, -1) * coeffs.view(-1)[inds].reshape(nx, -1), 1
     )
 
     return retval
