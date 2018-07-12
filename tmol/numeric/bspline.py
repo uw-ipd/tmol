@@ -328,7 +328,6 @@ def interpolate(
 
     # calculate interpolation indices
     baseline = torch.floor(X - (bspdeg.degree - 1) / 2.0)
-    offset = X - baseline
     indx_bydim = torch.arange(bspdeg.degree + 1).reshape(
         1, -1, 1
     ) + baseline.reshape(-1, 1, ndims)
@@ -361,7 +360,7 @@ def interpolate(
         wts_expand = wts_expand.reshape(
             nx, -1, 1
         ) * wts_bydim[:, :, dim].reshape(nx, 1, -1)
-        newdims = (bspdeg.degree + 1) * torch.ones(dim + 1)
+
     if Y is not None:
         non_interp_dims_offset = interp_dims_offset
         # create a tuple of -1 followed by 1s of the right length for broadcasting
