@@ -52,10 +52,6 @@ class BSplineDegree2(BSplineDegree):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree3(BSplineDegree):
-
-    degree: int
-    poles: Tensor(torch.float)[:]
-
     @classmethod
     def construct(cls):
         poles = torch.tensor([math.sqrt(3.0) - 2.0])
@@ -85,10 +81,6 @@ class BSplineDegree3(BSplineDegree):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree4(BSplineDegree):
-
-    degree: int
-    poles: Tensor(torch.float)[:]
-
     @classmethod
     def construct(cls):
         poles = torch.tensor([
@@ -127,10 +119,6 @@ class BSplineDegree4(BSplineDegree):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree5(BSplineDegree):
-
-    degree: int
-    poles: Tensor(torch.float)[:]
-
     @classmethod
     def construct(cls):
         poles = torch.tensor([
