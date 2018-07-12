@@ -1,5 +1,6 @@
 import torch
 import math
+import attr
 
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
@@ -16,6 +17,160 @@ from typing import Optional
 # reason, the memory footprint for B-splines is substantially lower than
 # that for bicuplic spline interpolation. (Catmull-Rom splines are similarly
 # low-memory overhead, but not as good).
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class BSplineDegree:
+    degree: int
+    poles: Tensor(torch.float)[:]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class BSplineDegree2(BSplineDegree):
+    @classmethod
+    def construct(cls):
+        poles = torch.tensor([math.sqrt(8.0) - 3.0])
+        return cls(2, poles)
+
+    @validate_args
+    def compute_wts_bydim(
+            self, ndims: int, coeffs: Tensor(torch.float),
+            X: Tensor(torch.float)[:, :],
+            indx_bydim: Tensor(torch.float)[:, :, :]
+    ) -> Tensor(torch.float)[:, :, :]:
+
+        wts_bydim = torch.empty((X.shape[0], self.degree + 1, ndims),
+                                dtype=coeffs.dtype,
+                                device=coeffs.device)
+
+        w = X - indx_bydim[:, 1, :]
+        wts_bydim[:, 1, :] = 3.0 / 4.0 - w * w
+        wts_bydim[:, 2, :] = (1.0 / 2.0) * (w - wts_bydim[:, 1, :] + 1.0)
+        wts_bydim[:, 0, :] = 1.0 - wts_bydim[:, 1, :] - wts_bydim[:, 2, :]
+        return wts_bydim
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class BSplineDegree3(BSplineDegree):
+
+    degree: int
+    poles: Tensor(torch.float)[:]
+
+    @classmethod
+    def construct(cls):
+        poles = torch.tensor([math.sqrt(3.0) - 2.0])
+        return cls(degree=3, poles=poles)
+
+    @validate_args
+    def compute_wts_bydim(
+            self, ndims: int, coeffs: Tensor(torch.float),
+            X: Tensor(torch.float)[:, :],
+            indx_bydim: Tensor(torch.float)[:, :, :]
+    ) -> Tensor(torch.float)[:, :, :]:
+
+        wts_bydim = torch.empty((X.shape[0], self.degree + 1, ndims),
+                                dtype=coeffs.dtype,
+                                device=coeffs.device)
+
+        w = X - indx_bydim[:, 1, :]
+        wts_bydim[:, 3, :] = (1.0 / 6.0) * w * w * w
+        wts_bydim[:, 0, :] = ((1.0 / 6.0) +
+            (1.0 / 2.0) * w * (w - 1.0) - wts_bydim[:, 3, :]) # yapf: disable
+        wts_bydim[:, 2, :] = w + wts_bydim[:, 0, :] - 2.0 * wts_bydim[:, 3, :]
+        wts_bydim[:, 1, :] = ( 1.0 - wts_bydim[:, 0, :] -
+            wts_bydim[:, 2, :] - wts_bydim[:, 3, :] ) # yapf: disable
+
+        return wts_bydim
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class BSplineDegree4(BSplineDegree):
+
+    degree: int
+    poles: Tensor(torch.float)[:]
+
+    @classmethod
+    def construct(cls):
+        poles = torch.tensor([
+            math.sqrt(664.0 - math.sqrt(438976.0)) + math.sqrt(304.0) - 19.0,
+            math.sqrt(664.0 + math.sqrt(438976.0)) - math.sqrt(304.0) - 19.0
+        ])
+        return cls(degree=4, poles=poles)
+
+    @validate_args
+    def compute_wts_bydim(
+            self, ndims: int, coeffs: Tensor(torch.float),
+            X: Tensor(torch.float)[:, :],
+            indx_bydim: Tensor(torch.float)[:, :, :]
+    ) -> Tensor(torch.float)[:, :, :]:
+
+        wts_bydim = torch.empty((X.shape[0], self.degree + 1, ndims),
+                                dtype=coeffs.dtype,
+                                device=coeffs.device)
+
+        w = X - indx_bydim[:, 2, :]
+        w2 = w * w
+        t = (1.0 / 6.0) * w2
+        wts_bydim[:, 0, :] = 1.0 / 2.0 - w
+        wts_bydim[:, 0, :] *= wts_bydim[:, 0, :]
+        wts_bydim[:, 0, :] *= (1.0 / 24.0) * wts_bydim[:, 0, :]
+        t0 = w * (t - 11.0 / 24.0)
+        t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t)
+        wts_bydim[:, 1, :] = t1 + t0
+        wts_bydim[:, 3, :] = t1 - t0
+        wts_bydim[:, 4, :] = wts_bydim[:, 0, :] + t0 + (1.0 / 2.0) * w
+        wts_bydim[:, 2, :] = (1.0 - wts_bydim[:, 0, :] -
+            wts_bydim[:, 1, :] - wts_bydim[:, 3, :] - wts_bydim[:, 4, :])# yapf: disable
+
+        return wts_bydim
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class BSplineDegree5(BSplineDegree):
+
+    degree: int
+    poles: Tensor(torch.float)[:]
+
+    @classmethod
+    def construct(cls):
+        poles = torch.tensor([
+            math.sqrt(135.0 / 2.0 - math.sqrt(17745.0 / 4.0)) +
+            math.sqrt(105.0 / 4.0) - 13.0 / 2.0,
+            math.sqrt(135.0 / 2.0 + math.sqrt(17745.0 / 4.0)) -
+            math.sqrt(105.0 / 4.0) - 13.0 / 2.0
+        ])
+        return cls(degree=5, poles=poles)
+
+    @validate_args
+    def compute_wts_bydim(
+            self, ndims: int, coeffs: Tensor(torch.float),
+            X: Tensor(torch.float)[:, :],
+            indx_bydim: Tensor(torch.float)[:, :, :]
+    ) -> Tensor(torch.float)[:, :, :]:
+
+        wts_bydim = torch.empty((X.shape[0], self.degree + 1, ndims),
+                                dtype=coeffs.dtype,
+                                device=coeffs.device)
+
+        w = X - indx_bydim[:, 2, :]
+        w2 = w * w
+        wts_bydim[:, 5, :] = (1.0 / 120.0) * w * w2 * w2
+        w2 -= w
+        w4 = w2 * w2
+        w -= 1.0 / 2.0
+        t = w2 * (w2 - 3.0)
+        wts_bydim[:, 0, :] = ((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) -
+            wts_bydim[:, 5, :]) # yapf: disable
+        t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0)
+        t1 = (-1.0 / 12.0) * w * (t + 4.0)
+        wts_bydim[:, 2, :] = t0 + t1
+        wts_bydim[:, 3, :] = t0 - t1
+        t0 = (1.0 / 16.0) * (9.0 / 5.0 - t)
+        t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0)
+        wts_bydim[:, 1, :] = t0 + t1
+        wts_bydim[:, 4, :] = t0 - t1
+
+        return wts_bydim
 
 
 @validate_args
@@ -103,29 +258,10 @@ def convert_interp_coeffs(
 
 @validate_args
 def compute_coeffs(coords: Tensor(torch.float),
-                   degree: int) -> Tensor(torch.float):
+                   bspdeg: BSplineDegree) -> Tensor(torch.float):
     """Full N-D interpolation coefficients"""
 
     coeffs = coords.clone()
-
-    if degree == 2:
-        poles = torch.tensor([math.sqrt(8.0) - 3.0])
-    elif degree == 3:
-        poles = torch.tensor([math.sqrt(3.0) - 2.0])
-    elif degree == 4:
-        poles = torch.tensor([
-            math.sqrt(664.0 - math.sqrt(438976.0)) + math.sqrt(304.0) - 19.0,
-            math.sqrt(664.0 + math.sqrt(438976.0)) - math.sqrt(304.0) - 19.0
-        ])
-    elif degree == 5:
-        poles = torch.tensor([
-            math.sqrt(135.0 / 2.0 - math.sqrt(17745.0 / 4.0)) +
-            math.sqrt(105.0 / 4.0) - 13.0 / 2.0,
-            math.sqrt(135.0 / 2.0 + math.sqrt(17745.0 / 4.0)) -
-            math.sqrt(105.0 / 4.0) - 13.0 / 2.0
-        ])
-    else:
-        die('Invalid spline degree')
 
     ndims = len(coords.shape)
     for dim in range(ndims):
@@ -134,7 +270,7 @@ def compute_coeffs(coords: Tensor(torch.float),
         coeffs = coeffs.reshape(-1, coords.shape[dim])
 
         # compute the interp coeffs along last dimension
-        coeffs = convert_interp_coeffs(coeffs, poles)
+        coeffs = convert_interp_coeffs(coeffs, bspdeg.poles)
 
         # back to the original shape
         coeffs = coeffs.reshape(coords.shape).transpose(dim, ndims - 1)
@@ -145,7 +281,7 @@ def compute_coeffs(coords: Tensor(torch.float),
 @validate_args
 def interpolate(
         coeffs: Tensor(torch.float),
-        degree: int,
+        bspdeg: BSplineDegree,
         X: Tensor(torch.float)[:, :],
         Y: Optional[Tensor(torch.long)[:, :]] = None
 ) -> Tensor(torch.float)[:]:
@@ -167,68 +303,19 @@ def interpolate(
         ndims -= n_non_interp_dims
     nx = X.shape[0]
 
-    # we need to compute over a ((degree+1)^N) box
-    #  - we first calculate indices seperately in a (degree+1) x N array
-    #  - then we expand to the full ((degree+1)^N) box and dot-prod
+    # we need to compute over a ((bspdeg.degree+1)^N) box
+    #  - we first calculate indices seperately in a (bspdeg.degree+1) x N array
+    #  - then we expand to the full ((bspdeg.degree+1)^N) box and dot-prod
 
     # calculate interpolation indices
-    baseline = torch.floor(X - (degree - 1) / 2.0)
+    baseline = torch.floor(X - (bspdeg.degree - 1) / 2.0)
     offset = X - baseline
-    indx_bydim = torch.arange(degree + 1).reshape(1, -1, 1) + baseline.reshape(
-        -1, 1, ndims
-    )
+    indx_bydim = torch.arange(bspdeg.degree + 1).reshape(
+        1, -1, 1
+    ) + baseline.reshape(-1, 1, ndims)
 
     # construct weight matrix
-    wts_bydim = torch.empty((nx, degree + 1, ndims),
-                            dtype=coeffs.dtype,
-                            device=coeffs.device)
-    if degree == 2:
-        w = X - indx_bydim[:, 1, :]
-        wts_bydim[:, 1, :] = 3.0 / 4.0 - w * w
-        wts_bydim[:, 2, :] = (1.0 / 2.0) * (w - wts_bydim[:, 1, :] + 1.0)
-        wts_bydim[:, 0, :] = 1.0 - wts_bydim[:, 1, :] - wts_bydim[:, 2, :]
-    elif degree == 3:
-        w = X - indx_bydim[:, 1, :]
-        wts_bydim[:, 3, :] = (1.0 / 6.0) * w * w * w
-        wts_bydim[:, 0, :] = ((1.0 / 6.0) +
-            (1.0 / 2.0) * w * (w - 1.0) - wts_bydim[:, 3, :]) # yapf: disable
-        wts_bydim[:, 2, :] = w + wts_bydim[:, 0, :] - 2.0 * wts_bydim[:, 3, :]
-        wts_bydim[:, 1, :] = ( 1.0 - wts_bydim[:, 0, :] -
-            wts_bydim[:, 2, :] - wts_bydim[:, 3, :] ) # yapf: disable
-    elif degree == 4:
-        w = X - indx_bydim[:, 2, :]
-        w2 = w * w
-        t = (1.0 / 6.0) * w2
-        wts_bydim[:, 0, :] = 1.0 / 2.0 - w
-        wts_bydim[:, 0, :] *= wts_bydim[:, 0, :]
-        wts_bydim[:, 0, :] *= (1.0 / 24.0) * wts_bydim[:, 0, :]
-        t0 = w * (t - 11.0 / 24.0)
-        t1 = 19.0 / 96.0 + w2 * (1.0 / 4.0 - t)
-        wts_bydim[:, 1, :] = t1 + t0
-        wts_bydim[:, 3, :] = t1 - t0
-        wts_bydim[:, 4, :] = wts_bydim[:, 0, :] + t0 + (1.0 / 2.0) * w
-        wts_bydim[:, 2, :] = (1.0 - wts_bydim[:, 0, :] -
-            wts_bydim[:, 1, :] - wts_bydim[:, 3, :] - wts_bydim[:, 4, :])# yapf: disable
-    elif degree == 5:
-        w = X - indx_bydim[:, 2, :]
-        w2 = w * w
-        wts_bydim[:, 5, :] = (1.0 / 120.0) * w * w2 * w2
-        w2 -= w
-        w4 = w2 * w2
-        w -= 1.0 / 2.0
-        t = w2 * (w2 - 3.0)
-        wts_bydim[:, 0, :] = ((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) -
-            wts_bydim[:, 5, :]) # yapf: disable
-        t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0)
-        t1 = (-1.0 / 12.0) * w * (t + 4.0)
-        wts_bydim[:, 2, :] = t0 + t1
-        wts_bydim[:, 3, :] = t0 - t1
-        t0 = (1.0 / 16.0) * (9.0 / 5.0 - t)
-        t1 = (1.0 / 24.0) * w * (w4 - w2 - 5.0)
-        wts_bydim[:, 1, :] = t0 + t1
-        wts_bydim[:, 4, :] = t0 - t1
-    else:
-        die('Invalid spline degree')
+    wts_bydim = bspdeg.compute_wts_bydim(ndims, coeffs, X, indx_bydim)
 
     # apply periodicity
     # this is only valid for periodic boundaries
@@ -255,7 +342,7 @@ def interpolate(
         wts_expand = wts_expand.reshape(
             nx, -1, 1
         ) * wts_bydim[:, :, dim].reshape(nx, 1, -1)
-        newdims = (degree + 1) * torch.ones(dim + 1)
+        newdims = (bspdeg.degree + 1) * torch.ones(dim + 1)
     if Y is not None:
         non_interp_dims_offset = interp_dims_offset
         # create a tuple of -1 followed by 1s of the right length for broadcasting

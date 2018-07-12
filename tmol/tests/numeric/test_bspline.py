@@ -1,12 +1,22 @@
 import torch
 import numpy
 import pytest
-from tmol.numeric.bspline import compute_coeffs, interpolate
+from tmol.numeric.bspline import (
+    compute_coeffs, interpolate, BSplineDegree2, BSplineDegree3,
+    BSplineDegree4, BSplineDegree5
+)
 
 
 @pytest.fixture(params=[2, 3, 4, 5])
 def bspline_degree(request):
-    return request.param
+    if request.param == 2:
+        return BSplineDegree2.construct()
+    elif request.param == 3:
+        return BSplineDegree3.construct()
+    elif request.param == 4:
+        return BSplineDegree4.construct()
+    else:  # request.param == 5
+        return BSplineDegree5.construct()
 
 
 def test_2d_bspline(bspline_degree):
