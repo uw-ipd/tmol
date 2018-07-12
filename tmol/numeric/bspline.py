@@ -94,8 +94,8 @@ class BSplineDegree3(BSplineDegree):
         wts_bydim[:, 0, :] = ((1.0 / 6.0) +
             (1.0 / 2.0) * w * (w - 1.0) - wts_bydim[:, 3, :]) # yapf: disable
         wts_bydim[:, 2, :] = w + wts_bydim[:, 0, :] - 2.0 * wts_bydim[:, 3, :]
-        wts_bydim[:, 1, :] = ( 1.0 - wts_bydim[:, 0, :] -
-            wts_bydim[:, 2, :] - wts_bydim[:, 3, :] ) # yapf: disable
+        wts_bydim[:, 1, :] = (1.0 - wts_bydim[:, 0, :] -
+            wts_bydim[:, 2, :] - wts_bydim[:, 3, :]) # yapf: disable
 
         return wts_bydim
 
