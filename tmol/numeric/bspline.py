@@ -28,7 +28,9 @@ with a BSplineDegree3 object.
 Interpolation is performed where the input X values must be in the range of (0, |X_i|]
 for dimension i -- if, e.g., you are interpolating dihedrals in degrees with a 10 degree
 step size in the range (-180, 180], then add 180 to the dihedral shifting to the range
-[0, 360) and divide by 10 to produce an interpolation value in the range (0, 36].
+[0, 360) and then divide by 10 to produce an interpolation value in the range (0, 36].
+Another way to say this is that the code assumes unit distance between interpolation
+points.
 """
 
 import torch
@@ -332,7 +334,8 @@ def interpolate(
         1, -1, 1
     ) + baseline.reshape(-1, 1, ndims)
 
-    # construct weight matrix
+    # construct weight matrix -- this varies depending on the degree of the
+    # bspline, and therefore is delegated to the BSplineDegree class
     wts_bydim = bspdeg.compute_wts_bydim(ndims, coeffs, X, indx_bydim)
 
     # apply periodicity
