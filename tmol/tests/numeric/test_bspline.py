@@ -69,6 +69,30 @@ def test_5x2d_bspline(bspline_degree):
     numpy.testing.assert_allclose(zint.numpy(), zgold.numpy(), atol=1e-5)
 
 
+def test_5x3x2d_bspline(bspline_degree):
+    # 2d
+    zs = torch.full((5, 3, 11, 11), 0, dtype=torch.float)
+    zscoeff = torch.full((5, 3, 11, 11), 0, dtype=torch.float)
+    for i in range(5):
+        for j in range(3):
+            x = torch.arange(-5, 6).unsqueeze(1)
+            y = torch.arange(-5, 6).unsqueeze(0)
+            z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y)
+                                                ) + 0.1 * i * 3 + 0.1 * j
+            z = z.type(torch.float)
+            zcoeff = compute_coeffs(z, bspline_degree)
+            zs[i, j, :, :] = z
+            zscoeff[i, j, :, :] = zcoeff
+
+    zint = interpolate(
+        zscoeff, bspline_degree, torch.Tensor([[2, 5], [3, 4]]),
+        torch.LongTensor([[3, 1], [0, 2]])
+    )
+
+    zgold = torch.Tensor([zs[3, 1, 2, 5], zs[0, 2, 3, 4]])
+    numpy.testing.assert_allclose(zint.numpy(), zgold.numpy(), atol=1e-5)
+
+
 def test_3d_bspline(bspline_degree):
     # 3d
     x = torch.arange(-5, 6).reshape(11, 1, 1)

@@ -370,7 +370,7 @@ def interpolate(
         for ii in range(Y.shape[1] - 1, -1, -1):
             # now increment the indices
             inds += (non_interp_dims_offset * Y[:, ii]).reshape(newshape)
-            non_interp_dims_offset *= Y.shape[ii]
+            non_interp_dims_offset *= coeffs.shape[ii]
 
     # ... and do the dot product
     retval = torch.sum(
