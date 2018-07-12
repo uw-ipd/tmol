@@ -20,7 +20,7 @@ def test_2d_bspline(bspline_degree):
     zint = interpolate(zcoeff, bspline_degree, torch.Tensor([[2, 5], [3, 4]]))
 
     zgold = torch.Tensor([z[2, 5], z[3, 4]])
-    numpy.testing.assert_allclose(zgold.numpy(), zint.numpy(), rtol=1e-6)
+    numpy.testing.assert_allclose(zint.numpy(), zgold.numpy(), atol=1e-5)
 
 
 def test_5x2d_bspline(bspline_degree):
@@ -37,12 +37,12 @@ def test_5x2d_bspline(bspline_degree):
         zscoeff[i, :, :] = zcoeff
 
     zint = interpolate(
-        zscoeff, 3, torch.Tensor([[2, 5], [3, 4]]),
+        zscoeff, bspline_degree, torch.Tensor([[2, 5], [3, 4]]),
         torch.LongTensor((3, 0)).reshape(-1, 1)
     )
 
     zgold = torch.Tensor([zs[3, 2, 5], zs[0, 3, 4]])
-    numpy.testing.assert_allclose(zgold.numpy(), zint.numpy(), rtol=1e-6)
+    numpy.testing.assert_allclose(zint.numpy(), zgold.numpy(), atol=1e-5)
 
 
 def test_3d_bspline(bspline_degree):
@@ -58,7 +58,7 @@ def test_3d_bspline(bspline_degree):
         wcoeff, bspline_degree, torch.Tensor([[2, 3, 5], [3, 4, 1]])
     )
     wgold = torch.Tensor([w[2, 3, 5], w[3, 4, 1]])
-    numpy.testing.assert_allclose(wgold.numpy(), wint.numpy(), rtol=1e-6)
+    numpy.testing.assert_allclose(wint.numpy(), wgold.numpy(), atol=1e-5)
 
 
 def test_4d_bspline(bspline_degree):
@@ -77,4 +77,4 @@ def test_4d_bspline(bspline_degree):
     )
 
     ugold = torch.Tensor((u[2, 3, 5, 7], u[3, 4, 1, 7]))
-    numpy.testing.assert_allclose(ugold.numpy(), uint.numpy(), rtol=1e-6)
+    numpy.testing.assert_allclose(uint.numpy(), ugold.numpy(), atol=1e-5)

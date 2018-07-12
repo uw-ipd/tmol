@@ -174,18 +174,14 @@ def interpolate(
     # calculate interpolation indices
     baseline = torch.floor(X - (degree - 1) / 2.0)
     offset = X - baseline
-    #print(torch.arange(degree+1).reshape(1,-1,1).shape)
-    #print(baseline.reshape(-1,1,ndims).shape)
     indx_bydim = torch.arange(degree + 1).reshape(1, -1, 1) + baseline.reshape(
         -1, 1, ndims
     )
-    #print("indx_bydim.shape",indx_bydim.shape)
 
     # construct weight matrix
     wts_bydim = torch.empty((nx, degree + 1, ndims),
                             dtype=coeffs.dtype,
                             device=coeffs.device)
-    #print("wts_bydim.shape",wts_bydim.shape)
     if degree == 2:
         w = X - indx_bydim[:, 1, :]
         wts_bydim[:, 1, :] = 3.0 / 4.0 - w * w
@@ -194,14 +190,11 @@ def interpolate(
     elif degree == 3:
         w = X - indx_bydim[:, 1, :]
         wts_bydim[:, 3, :] = (1.0 / 6.0) * w * w * w
-        wts_bydim[:, 0, :
-                  ] = (1.0 /
-                       6.0) + (1.0 / 2.0) * w * (w - 1.0) - wts_bydim[:, 3, :]
+        wts_bydim[:, 0, :] = ((1.0 / 6.0) +
+            (1.0 / 2.0) * w * (w - 1.0) - wts_bydim[:, 3, :]) # yapf: disable
         wts_bydim[:, 2, :] = w + wts_bydim[:, 0, :] - 2.0 * wts_bydim[:, 3, :]
-        wts_bydim[:, 1, :
-                  ] = 1.0 - wts_bydim[:, 0, :] - wts_bydim[:, 2, :
-                                                           ] - wts_bydim[:,
-                                                                         3, :]
+        wts_bydim[:, 1, :] = ( 1.0 - wts_bydim[:, 0, :] -
+            wts_bydim[:, 2, :] - wts_bydim[:, 3, :] ) # yapf: disable
     elif degree == 4:
         w = X - indx_bydim[:, 2, :]
         w2 = w * w
@@ -214,13 +207,8 @@ def interpolate(
         wts_bydim[:, 1, :] = t1 + t0
         wts_bydim[:, 3, :] = t1 - t0
         wts_bydim[:, 4, :] = wts_bydim[:, 0, :] + t0 + (1.0 / 2.0) * w
-        wts_bydim[:, 2, :
-                  ] = 1.0 - wts_bydim[:, 0, :
-                                      ] - wts_bydim[:, 1, :
-                                                    ] - wts_bydim[:, 3, :
-                                                                  ] - wts_bydim[:,
-                                                                                4, :
-                                                                                ]
+        wts_bydim[:, 2, :] = (1.0 - wts_bydim[:, 0, :] -
+            wts_bydim[:, 1, :] - wts_bydim[:, 3, :] - wts_bydim[:, 4, :])# yapf: disable
     elif degree == 5:
         w = X - indx_bydim[:, 2, :]
         w2 = w * w
@@ -229,8 +217,8 @@ def interpolate(
         w4 = w2 * w2
         w -= 1.0 / 2.0
         t = w2 * (w2 - 3.0)
-        wts_bydim[:, 0, :
-                  ] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - wts_bydim[:, 5, :]
+        wts_bydim[:, 0, :] = ((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) -
+            wts_bydim[:, 5, :]) # yapf: disable
         t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0)
         t1 = (-1.0 / 12.0) * w * (t + 4.0)
         wts_bydim[:, 2, :] = t0 + t1
@@ -270,25 +258,15 @@ def interpolate(
         newdims = (degree + 1) * torch.ones(dim + 1)
     if Y is not None:
         non_interp_dims_offset = interp_dims_offset
+        # create a tuple of -1 followed by 1s of the right length for broadcasting
+        # against the inds tensor
+        newshape = (-1, ) + (1, ) * (len(inds.shape) - 1)
         for ii in range(Y.shape[1] - 1, -1, -1):
-            # create a tuple of -1 followed by 1s of the right lenght
-            newshape = (-1, ) + (1, ) * (len(inds.shape) - 1)
             # now increment the indices
             inds += (non_interp_dims_offset * Y[:, ii]).reshape(newshape)
             non_interp_dims_offset *= Y.shape[ii]
-        print("inds2", inds)
-
-    #print(indx_expand)
-    #print(inds)
-    #print(coeffs.view(-1)[inds])
 
     # ... and do the dot product
-    #retval = torch.dot(
-    #    wts_expand.reshape(1,-1).squeeze(), indx_expand.reshape(1,-1).squeeze() )
-
-    #print("coeffs.view(-1)[inds]",coeffs.view(-1)[inds])
-    #print("wts_expand.reshape(nx,-1)", wts_expand.reshape(nx,-1))
-
     retval = torch.sum(
         wts_expand.reshape(nx, -1) *
         coeffs.view(-1)[inds].reshape(nx, -1).squeeze(), 1
