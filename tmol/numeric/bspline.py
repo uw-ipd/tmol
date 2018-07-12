@@ -1,3 +1,36 @@
+"""N-dimensional b-spline interpolation with periodic boundary conditions.
+
+Reference:
+    Thévenaz, Philippe, Thierry Blu, and Michael Unser.
+    "Interpolation revisited [medical images application]."
+    IEEE Transactions on medical imaging 19.7 (2000): 739-758.
+
+    http://bigwww.epfl.ch/publications/thevenaz0002.pdf
+
+B-splines can be used for interpolation, using only as much space
+as the original data, after the original data is processed to produce
+coefficients for the polynomials. When interpolating, b-splines read from
+as much memory as bicublic-spline interpolation does (e.g. 16 values
+in 2D, 64 values in 3D), but they read from a wider number of grid cells
+to do so, instead of making each grid cell contain more entries. For this
+reason, the memory footprint for B-splines is substantially lower than
+that for bicuplic spline interpolation. (Catmull-Rom splines are similarly
+low-memory overhead, but not as good).
+
+To use these bsplines, construct a BSplineDegreeX object (w/ X in [2..5])
+indicating the degree of the spline (3 for the equivalent of bicubic spline
+interpolation), and then convert the original data points to spline coefficients
+using the `compute_coeffs` function. Then use that *same* BSplineDegreeX object
+when invoking the `interpolate` function. It would be inappropriate to
+compute coefficients with a BSplineDegree2 object and then try to interpolate
+with a BSplineDegree3 object.
+
+Interpolation is performed where the input X values must be in the range of [0..|X_i|)
+for dimension i -- if, e.g., you are interpolating dihedrals in degrees with a 10 degree
+step size in the range [-180..180), then add 180 to the dihedral shifting to the range
+[0..360] and divide by 10 to produce an interpolation value in the range [0..36).
+"""
+
 import torch
 import math
 import attr
@@ -5,18 +38,6 @@ import attr
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from typing import Optional
-
-# This file contains code for N-dimensional b-spline interpolation
-#
-# B-splines can be used for interpolation, using only as much space
-# as the original data, after the original data is processed to produce
-# coefficients for the polynomials. When interpolating, b-splines read from
-# as much memory as bicublic-spline interpolation does (e.g. 16 values
-# in 2D, 64 values in 3D), but they read from a wider number of grid cells
-# to do so, instead of making each grid cell contain more entries. For this
-# reason, the memory footprint for B-splines is substantially lower than
-# that for bicuplic spline interpolation. (Catmull-Rom splines are similarly
-# low-memory overhead, but not as good).
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -247,7 +268,11 @@ def convert_interp_coeffs(
 @validate_args
 def compute_coeffs(coords: Tensor(torch.float),
                    bspdeg: BSplineDegree) -> Tensor(torch.float):
-    """Full N-D interpolation coefficients"""
+    """Convert the input coordinates (the data to be interpolated) into
+    b-spline coefficients.
+
+    This code handles arbitrary degree splines.
+    """
 
     coeffs = coords.clone()
 
