@@ -32,32 +32,17 @@ def test_compacted_rama(torch_device):
         for j in range(2):
             y[:, 1] = j
             xlong = x.type(torch.long)
-            inds = y[:, 0
-                     ] * 2 * 36 * 36 + y[:, 1
-                                         ] * 36 * 36 + xlong[:, 0
-                                                             ] * 36 + xlong[:,
-                                                                            1]
+            inds = (y[:, 0] * 2 * 36 * 36 + y[:, 1] * 36 * 36 +
+                    xlong[:, 0] * 36 + xlong[:, 1]) # yapf: disable
             original_vals = compacted.table.reshape(-1)[inds]
             interp_vals = interpolate(
                 compacted.coefficients, compacted.bspdeg, x, y
-            )
-            print("x", x)
-            print("y", y)
-            numpy.set_printoptions(threshold=numpy.nan)
-            print(
-                torch.cat(
-                    (interp_vals.reshape(-1, 1), original_vals.reshape(-1, 1)),
-                    dim=1
-                ).detach().numpy()
-            )
-            print(
-                interp_vals.detach().numpy() - original_vals.detach().numpy()
             )
             numpy.testing.assert_allclose(
                 interp_vals.detach().numpy(),
                 original_vals.detach().numpy(),
                 atol=1e-5,
-                rtol=1e-3
+                rtol=1e-7
             )
 
 
