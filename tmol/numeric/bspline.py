@@ -340,7 +340,8 @@ def interpolate(
 
     # apply periodicity
     # this is only valid for periodic boundaries
-    indx_bydim = torch.fmod(
+    # remainder and not fmod so that all results are non-negative
+    indx_bydim = torch.remainder(
         indx_bydim.long(),
         torch.tensor(coeffs.shape[n_non_interp_dims:], dtype=torch.long)
     )
