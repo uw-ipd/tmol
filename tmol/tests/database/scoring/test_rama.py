@@ -7,6 +7,7 @@ import torch
 
 from tmol.database.scoring.rama import RamaDatabase, CompactedRamaDatabase
 from tmol.numeric.bspline import interpolate
+from tmol.database import ParameterDatabase
 
 
 def test_rama_from_json():
@@ -44,6 +45,13 @@ def test_compacted_rama(torch_device):
                 atol=1e-5,
                 rtol=1e-7
             )
+
+
+def test_load_compacted_rama_once(torch_device):
+    db = ParameterDatabase.get_default()
+    crama1 = db.scoring.get_compacted_rama_db(torch_device)
+    crama2 = db.scoring.get_compacted_rama_db(torch_device)
+    assert crama1 is crama2
 
 
 @pytest.mark.skip(

@@ -29,14 +29,24 @@ class RamaTable:
     entries: Tuple[RamaEntry, ...]
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
+@attr.s(auto_attribs=True, frozen=True, slots=True, hash=False, repr=False)
 class RamaDatabase:
+    sourcefilepath: str
     tables: Tuple[RamaTable, ...]
+
+    def __hash__(self):
+        print("hashing rama db!", self.sourcefilepath)
+        print(hash(self.sourcefilepath))
+        return hash(self.sourcefilepath)
+
+    def __repr__(self):
+        return "RamaDatabase(%s)" % self.sourcefilepath
 
     @classmethod
     def from_file(cls, path):
         with open(path, "r") as infile:
             raw = json.load(infile)
+        raw["sourcefilepath"] = path
         return cattr.structure(raw, cls)
 
     @validate_args
