@@ -35,8 +35,6 @@ class RamaDatabase:
     tables: Tuple[RamaTable, ...]
 
     def __hash__(self):
-        print("hashing rama db!", self.sourcefilepath)
-        print(hash(self.sourcefilepath))
         return hash(self.sourcefilepath)
 
     def __repr__(self):

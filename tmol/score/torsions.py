@@ -77,7 +77,7 @@ class AlphaAABackboneTorsionProvider(Factory):
     def phi_tor(
             coords: Tensor(torch.float)[:, 3],
             phi_inds: Tensor(torch.long)[:, 4]
-    ):
+    ) -> Tensor(torch.float)[:]:
         phi_tor = measure_torsions(coords, phi_inds)
         return phi_tor
 
@@ -85,7 +85,7 @@ class AlphaAABackboneTorsionProvider(Factory):
     def psi_tor(
             coords: Tensor(torch.float)[:, 3],
             psi_inds: Tensor(torch.long)[:, 4]
-    ):
+    ) -> Tensor(torch.float)[:]:
         psi_tor = measure_torsions(coords, psi_inds)
         return psi_tor
 

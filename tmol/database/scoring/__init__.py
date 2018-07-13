@@ -12,11 +12,18 @@ from tmol.types.functional import validate_args
 
 @attr.s(auto_attribs=True, frozen=True, slots=True, hash=False)
 class hashed_device:
+    """Small class to wrap a torch.device so that we can memoize
+    function return values based on the device; basically adds a
+    hash function to the class.
+
+    I would rather have derived a class from torch.device, but
+    that didn't work.
+
+    This class definitely belongs in a different file.
+    """
     device: torch.device
 
     def __hash__(self):
-        print("hashing hashed_device", self.device)
-        print(hash(self.device.type))
         return hash(self.device.type)
 
 
