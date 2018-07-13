@@ -130,7 +130,8 @@ class RefoldOrdering(ValidateAttrs):
         if not inplace:
             hts_kintree_ordering = hts_kintree_ordering.clone()
 
-        forward_jit.scan.segscan_by_generation(
+        forward_jit.HTScan.segscan_by_generation(
+            256,
             as_cuda_array(hts_kintree_ordering),
             self.ri2ki_d,
             self.is_subpath_root_d,

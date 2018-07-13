@@ -60,6 +60,3 @@ class F1F2Scan(GenerationalSegmentedScan):
     def zero():
         zero = numba.float64(0.)
         return (zero, zero, zero, zero, zero, zero)
-
-
-scan = F1F2Scan()

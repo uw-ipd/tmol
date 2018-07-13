@@ -14,7 +14,7 @@ class GenerationalSegmentedScan:
     The scan operation processes linear scan paths with an associative binary
     operator, where the scan paths many have any number of additional off-path
     node inputs added *before* the scan path. For example, consider the
-    operation composed on path values (P), off_path values (OP) joined by an
+    operation composed of path values (P), off path values (OP) joined by an
     operator (+):
 
         OP_0            OP_1
@@ -31,7 +31,7 @@ class GenerationalSegmentedScan:
 
       (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4
 
-    As this is a scan, rather than reduction, this results in result values of:
+    As this is a scan, rather than reduction, this results in:
 
         R_0-----R_1-----R_2-----R_3-----R_4
 
@@ -67,20 +67,23 @@ class GenerationalSegmentedScan:
             val_shape: tuple[int, ...]
                 The sub-shape of val in the arrays referenced by 'load'/'save'.
 
+    The subclass may then be used as singleton provider for scan invocations
+    via the class method `segscan_by_generation`. Kernel functions are
+    specialized for specific thread_per_block values, with kernels requiring a
+    float64 shared memory allocation of shape (threads_per_block,) + val_shape.
     """
 
-    threads_per_block: int
-    _segscan_by_generation: object
-
+    @classmethod
     def segscan_by_generation(
-            self,
+            cls,
+            threads_per_block,  # int
             src_vals,  # [n] + [val_shape]
             scan_to_src_ordering,  # [n]
             is_path_root,  #[n]
             non_path_inputs,  #[n, max_num_inputs]
             generation_ranges,  #[g, 2]
     ):
-        self._segscan_by_generation[1, self.threads_per_block](
+        cls.get_kernel(threads_per_block)[1, threads_per_block](
             src_vals,
             scan_to_src_ordering,
             is_path_root,
@@ -88,21 +91,45 @@ class GenerationalSegmentedScan:
             generation_ranges,
         )
 
-    def __init__(self, threads_per_block=256):
+    @classmethod
+    def get_kernel(cls, threads_per_block):
+
+        # Use __dict__ (not hasattr) to only search cls (not superclass).
+        if "_kernel_cache" not in cls.__dict__:
+            setattr(cls, "_kernel_cache", dict())
+
+        _kernel_cache = getattr(cls, "_kernel_cache")
+
+        if threads_per_block not in _kernel_cache:
+            _kernel_cache[threads_per_block
+                          ] = cls._generate_kernel(threads_per_block)
+
+        return _kernel_cache[threads_per_block]
+
+    @classmethod
+    def _generate_kernel(cls, threads_per_block):
         if not math.log2(threads_per_block).is_integer():
             raise ValueError(
                 f"thread_per_block must be power of 2: {threads_per_block}"
             )
 
-        add = self.add
-        zero = self.zero
-        load = self.load
-        save = self.save
+        ### Initialize numba kernel via lexical closure.
 
-        shared_shape = (threads_per_block, ) + self.val_shape
+        # The subclass interface must be available as variables in the
+        # jit-function closure defined below, rather than accessed via self.*,
+        # so that numba.jit can properly bind the device functions as jit-time.
+        add = cls.add
+        zero = cls.zero
+        load = cls.load
+        save = cls.save
+
+        shared_shape = (threads_per_block, ) + cls.val_shape
 
         n_scan_iter = int(math.log2(threads_per_block))
 
+        # cuda.jit a dynamically defined function so that the variables defined
+        # here, in the lexical scope of the function definition, are bound and
+        # made available to numba.
         @cuda.jit
         def _segscan_by_generation(
                 src_vals,  # [n] + [val_shape]
@@ -191,5 +218,4 @@ class GenerationalSegmentedScan:
 
                     cuda.syncthreads()
 
-        self.threads_per_block = threads_per_block
-        self._segscan_by_generation = _segscan_by_generation
+        return _segscan_by_generation

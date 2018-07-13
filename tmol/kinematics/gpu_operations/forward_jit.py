@@ -72,6 +72,3 @@ class HTScan(GenerationalSegmentedScan):
             ht1[2][0] * ht2[0][3] + ht1[2][1] * ht2[1][3] + ht1[2][2] * ht2[2][3] +
             ht1[2][3],
         )) # yapf: disable
-
-
-scan = HTScan()
