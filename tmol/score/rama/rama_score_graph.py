@@ -12,6 +12,7 @@ from ..torsions import AlphaAABackboneTorsionProvider
 from ..polymeric_bonds import PolymericBonds
 
 from tmol.database import ParameterDatabase
+from tmol.database.chemical import AAType
 from tmol.database.scoring.rama import CompactedRamaDatabase
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -20,6 +21,8 @@ from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
+
+from tmol.numeric.bspline import interpolate
 
 
 @reactive_attrs(auto_attribs=True)
@@ -60,9 +63,11 @@ class RamaScoreGraph(
     @reactive_property
     @validate_args
     def rama_scores(
-            phi_tor: Tensor(torch.float)[:], psi_tor: Tensor(torch.float)[:]
+            rama_db: CompactedRamaDatabase, upper: Tensor(torch.long)[:],
+            res_aas: Tensor(torch.long)[:], phi_tor: Tensor(torch.float)[:],
+            psi_tor: Tensor(torch.float)[:]
     ) -> Tensor(torch.float):
-        has_rama = ~torch.isnan(phi_tor) and ~torch.isnan(psi_tor)
+        has_rama = ~torch.isnan(phi_tor) & ~torch.isnan(psi_tor)
         phi_psi = torch.cat((
             phi_tor[has_rama].reshape(-1, 1), psi_tor[has_rama].reshape(-1, 1)
         ),
@@ -71,14 +76,12 @@ class RamaScoreGraph(
         phi_psi *= 180 / (10 * numpy.pi)
         phi_psi += 18
 
-        has_upper = self.upper != -1
-        upper_is_pro = self.res_aa[self.upper[has_upper
-                                              and has_rama]] == AAType.aa_pro
-        rama_inds = torch.cat(
-            ((self.res_aa[has_upper and has_rama]).reshape(-1, 1),
-             upper_is_pro.reshape(-1, 1)),
-            dim=1
-        )
+        has_upper = upper != -1
+        upper_is_pro = (res_aas[upper[has_upper & has_rama]
+                                ] == AAType.aa_pro).type(torch.long)
+        rama_inds = torch.cat(((res_aas[has_upper & has_rama]).reshape(-1, 1),
+                               upper_is_pro.reshape(-1, 1)),
+                              dim=1)
         return interpolate(
             rama_db.coefficients, rama_db.bspdeg, phi_psi, rama_inds
         )
