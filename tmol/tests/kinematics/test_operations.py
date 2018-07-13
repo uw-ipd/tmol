@@ -303,7 +303,7 @@ def test_root_sibling_derivs(torch_device):
 
 
 def test_derivs(kintree, coords, torch_device, expected_analytic_derivs):
-    compute_verify_derivs(kintree, coords)
+    compute_verify_derivs(kintree, coords, expected_analytic_derivs)
 
 
 def compute_verify_derivs(
