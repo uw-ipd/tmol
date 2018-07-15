@@ -76,31 +76,7 @@ class LJLKScore(
     pass
 
 
-@pytest.mark.parametrize(
-    "graph_class",
-    [TotalScore, DofSpaceTotal, HBondScore, LJLKScore, DofSpaceDummy],
-    ids=["total_cart", "total_torsion", "hbond", "ljlk", "kinematics"],
-)
-@pytest.mark.parametrize(
-    "benchmark_pass",
-    ["full", "forward", "backward"],
-)
-@pytest.mark.benchmark(
-    group="score_components",
-)
-def test_graph(
-        benchmark,
-        benchmark_pass,
-        graph_class,
-        ubq_system,
-        torch_device,
-):
-    score_graph = graph_class.build_for(
-        ubq_system,
-        requires_grad=True,
-        device=torch_device,
-    )
-
+def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     # Score once to prep graph
     score_graph.total_score
 
@@ -131,5 +107,35 @@ def test_graph(
             return total
     else:
         raise NotImplementedError
+
+    return run
+
+
+@pytest.mark.parametrize(
+    "graph_class",
+    [TotalScore, DofSpaceTotal, HBondScore, LJLKScore, DofSpaceDummy],
+    ids=["total_cart", "total_torsion", "hbond", "ljlk", "kinematics"],
+)
+@pytest.mark.parametrize(
+    "benchmark_pass",
+    ["full", "forward", "backward"],
+)
+@pytest.mark.benchmark(
+    group="score_components",
+)
+def test_end_to_end_score_graph(
+        benchmark,
+        benchmark_pass,
+        graph_class,
+        ubq_system,
+        torch_device,
+):
+    score_graph = graph_class.build_for(
+        ubq_system,
+        requires_grad=True,
+        device=torch_device,
+    )
+
+    run = benchmark_score_pass(benchmark, score_graph, benchmark_pass)
 
     assert run.device == torch_device

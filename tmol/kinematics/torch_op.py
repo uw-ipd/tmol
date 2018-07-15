@@ -7,7 +7,7 @@ from tmol.types.functional import validate_args
 from .datatypes import KinTree, KinDOF
 from .metadata import DOFMetadata
 
-from .operations import forwardKin, backwardKin, resolveDerivs, SegScanStrategy
+from .operations import (forwardKin, backwardKin, resolveDerivs)
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -28,6 +28,10 @@ class KinematicOp:
     used via either `__call__` or `apply`. Unlike an autograd function, the Op
     is reused during compute graph construction and serves as a factory for
     single use KinematicFun functions.
+
+    A KinematicOp instance is limited to a single target device, which is
+    derived from the device of the source coordinate tensor provided in
+    `from_coords`.
     """
 
     kintree: KinTree
@@ -35,8 +39,6 @@ class KinematicOp:
 
     src_dofs: KinDOF
     src_mobile_dofs: Tensor("f8")[:]
-
-    scan_strategy: SegScanStrategy = SegScanStrategy.default
 
     @classmethod
     @validate_args
@@ -48,6 +50,9 @@ class KinematicOp:
             **kwargs,
     ):
         """Construct KinematicOp for given mobile dofs via backward kinematics."""
+        kintree = kintree.to(device=kin_coords.device)
+        mobile_dofs = mobile_dofs.to(device=kin_coords.device)
+
         bkin = backwardKin(kintree, kin_coords)
         src_mobile_dofs = bkin.dofs.raw[mobile_dofs.node_idx,
                                         mobile_dofs.dof_idx]
@@ -99,7 +104,6 @@ class KinematicFun(torch.autograd.Function):
         fkin = forwardKin(
             ctx.kinematic_op.kintree,
             working_dofs,
-            scan_strategy=ctx.kinematic_op.scan_strategy,
         )
 
         ctx.save_for_backward(working_dofs.raw, fkin.hts)
@@ -115,11 +119,10 @@ class KinematicFun(torch.autograd.Function):
         working_dofs = KinDOF(raw=working_dofs_raw)
 
         working_derivs = resolveDerivs(
-            ctx.kinematic_op.kintree,
-            working_dofs,
-            hts,
-            coord_grads,
-            scan_strategy=ctx.kinematic_op.scan_strategy,
+            kintree=ctx.kinematic_op.kintree,
+            dofs=working_dofs,
+            HTs=hts,
+            dsc_dx=coord_grads,
         )
 
         result_derivs = working_derivs.raw[

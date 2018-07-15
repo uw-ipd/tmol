@@ -1,16 +1,17 @@
-from enum import Enum
+import warnings
 import attr
 import numpy
-
-import scipy.sparse.csgraph
 
 import torch
 from typing import Optional
 
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
+from tmol.types.attrs import ValidateAttrs
 
 from .datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
+from .gpu_operations import GPUKinTreeReordering
+from .cpu_operations import iterative_refold, iterative_f1f2_summation
 
 HTArray = Tensor(torch.double)[:, 4, 4]
 CoordArray = Tensor(torch.double)[:, 3]
@@ -34,151 +35,6 @@ def HTinv(HTs: HTArray) -> HTArray:
     )
     HTinvs[:, 3, :3] = 0
     return HTinvs
-
-
-class SegScanStrategy(Enum):
-    efficient = "efficient"
-    min_depth = "min_depth"
-    default = efficient
-
-
-@validate_args
-def SegScanMinDepth(
-        data: Tensor(torch.double),
-        parents: Tensor(torch.long)[:],
-        operator,
-):
-    """
-    Segmented scan code for passing:
-        - HT's down the atom tree
-        - derivs up the atom tree
-    This version implements "Algorithm 1" from
-        https://en.wikipedia.org/wiki/Prefix_sum
-    This version optimizes depth at the expense of efficiency.
-    It will be faster if there are many compute units.
-    """
-    nelts = data.shape[0]
-    N = numpy.ceil(numpy.log2(nelts)
-                   )  # this might result in several no-op rounds...
-
-    backPointers = parents
-    prevBackPointers = torch.arange(nelts, dtype=torch.long)
-    toCalc = (prevBackPointers != backPointers)
-
-    for i in range(int(N)):
-        prevBackPointers = backPointers
-        operator(data, backPointers, toCalc)
-        backPointers = prevBackPointers[prevBackPointers]
-        toCalc = (prevBackPointers != backPointers)
-
-
-@validate_args
-def SegScanEfficient(
-        data: Tensor(torch.double),
-        parents: Tensor(torch.long)[:],
-        operator,
-        upwards: bool,
-):
-    """
-    Segmented scan code for passing:
-        - HT's down the atom tree
-        - derivs up the atom tree
-    This version implements "Algorithm 2" from
-        https://en.wikipedia.org/wiki/Prefix_sum
-    This version optimizes efficiency while doubling depth.
-    It will be faster if there are few compute units.
-    """
-    nelts = data.shape[0]
-
-    # calculate depth of each element in tree
-    # this logic could be moved into tree construction
-    pmat = scipy.sparse.coo_matrix(
-        (
-            numpy.full(len(parents), 1), (
-                parents.numpy(),
-                numpy.arange(len(parents)),
-            )
-        ),
-        shape=[len(parents)] * 2,
-    )
-
-    treedepth = torch.from_numpy(
-        scipy.sparse.csgraph.dijkstra(pmat, indices=[0], unweighted=True)[0]
-    ).to(data.device)
-
-    maxdepth = torch.max(treedepth)
-    if (upwards):
-        treedepth = maxdepth - treedepth
-
-    N = numpy.ceil(numpy.log2(maxdepth + 1))
-
-    # calculation of backpointer array could also
-    #   be moved to a precompute step
-    backPointers = torch.empty((N + 1, nelts),
-                               dtype=torch.long,
-                               device=data.device)
-    backPointers[0, :] = parents
-
-    # forward pass
-    # we need to save backward pointers so we can unroll this function
-    for i in range(int(N)):
-        if (upwards):
-            mask = (treedepth % (2 << i)) == ((1 << i) - 1)
-        else:
-            mask = (treedepth % (2 << i)) == ((2 << i) - 1)
-        operator(data, backPointers[i, :], mask)
-        backPointers[i + 1, :] = backPointers[i, :][backPointers[i, :]]
-
-    # backward pass
-    for i in range(int(N - 1), -1, -1):
-        if (upwards):
-            mask = (treedepth % (2 << i)) == ((2 << i) - 1)
-        else:
-            mask = ((treedepth %
-                     (2 << i)) == ((1 << i) - 1)) & (treedepth >= (2 << i))
-        operator(data, backPointers[i, :], mask)
-
-
-@validate_args
-def SegScan(
-        data: Tensor(torch.double),
-        parents: Tensor(torch.long)[:],
-        operator,
-        upwards: bool,
-        scan_strategy: SegScanStrategy = SegScanStrategy.default
-):
-    if scan_strategy == SegScanStrategy.efficient:
-        SegScanEfficient(data, parents, operator, upwards)
-    elif scan_strategy == SegScanStrategy.min_depth:
-        SegScanMinDepth(data, parents, operator)
-    else:
-        raise NotImplementedError
-
-
-@validate_args
-def HTcollect(
-        HTs: HTArray,
-        ptrs: Tensor(torch.long)[:],
-        toCalc: Tensor(torch.uint8)[:],
-) -> None:
-    """segmented scan "down" operator: aggregate HTs"""
-    a = HTs[ptrs[toCalc]]
-    b = HTs[toCalc]
-    res = a @ b
-    HTs[toCalc] = res
-
-
-@validate_args
-def Fscollect(
-        fs: CoordArray,
-        ptrs: Tensor(torch.long)[:],
-        toCalc: Tensor(torch.uint8)[:],
-) -> None:
-    """segmented scan "up" operator: aggregate f1/f2s"""
-    offsets = torch.tensor([0, 1, 2], dtype=ptrs.dtype,
-                           device=ptrs.device).unsqueeze(0)
-    indices = (ptrs.unsqueeze(1) * 3 + offsets)
-    fs.put_(indices[toCalc, :], fs[toCalc, :], accumulate=True)
 
 
 @validate_args
@@ -558,6 +414,24 @@ def BondDerivatives(
     return dsc_ddofs
 
 
+def DOFTransforms(dof_types: Tensor(torch.int)[:], dofs: KinDOF) -> HTArray:
+    """Calculate HT representation of given dofs."""
+    HTs = torch.empty([len(dofs), 4, 4],
+                      dtype=HTArray.dtype,
+                      device=dofs.raw.device)
+
+    rootSelector = dof_types == NodeType.root
+    HTs[rootSelector] = torch.eye(4, dtype=HTs.dtype, device=HTs.device)
+
+    bondSelector = dof_types == NodeType.bond
+    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
+
+    jumpSelector = dof_types == NodeType.jump
+    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
+
+    return HTs
+
+
 @validate_args
 def HTs_from_frames(
         Cs: CoordArray,
@@ -592,13 +466,8 @@ def HTs_from_frames(
     return (out)
 
 
-@attr.s(frozen=True, auto_attribs=True)
-class BackKinResult:
-    @classmethod
-    @validate_args
-    def create(cls, hts: HTArray, dofs: KinDOF):
-        return cls(hts, dofs)
-
+@attr.s(frozen=True, auto_attribs=True, slots=True)
+class BackKinResult(ValidateAttrs):
     hts: HTArray
     dofs: KinDOF
 
@@ -648,16 +517,11 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     jumpSelector = kintree.doftype == NodeType.jump
     dofs.jump[jumpSelector] = InvJumpTransforms(localHTs[jumpSelector])
 
-    return BackKinResult.create(HTs, dofs)
+    return BackKinResult(HTs, dofs)
 
 
-@attr.s(frozen=True, auto_attribs=True)
+@attr.s(frozen=True, auto_attribs=True, slots=True)
 class ForwardKinResult:
-    @classmethod
-    @validate_args
-    def create(cls, hts: HTArray, coords: CoordArray):
-        return cls(hts, coords)
-
     hts: HTArray
     coords: CoordArray
 
@@ -666,35 +530,29 @@ class ForwardKinResult:
 def forwardKin(
         kintree: KinTree,
         dofs: KinDOF,
-        scan_strategy: SegScanStrategy = SegScanStrategy.default
 ) -> ForwardKinResult:
     """dofs -> HTs, xyzs
 
       - "forward" kinematics
     """
-    natoms = len(dofs)
     assert len(kintree) == len(dofs)
-
-    # 1) local HTs
-    HTs = torch.empty([natoms, 4, 4],
-                      dtype=HTArray.dtype,
-                      device=dofs.raw.device)
-
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
-    HTs[0] = torch.eye(4)
 
-    bondSelector = kintree.doftype == NodeType.bond
-    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
+    # 1) Calculate local inter-node HTs from dofs
+    HTs = DOFTransforms(kintree.doftype, dofs)
 
-    jumpSelector = kintree.doftype == NodeType.jump
-    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
-
-    # 2) global HTs (rewrite 1->N in-place)
-    SegScan(HTs, kintree.parent, HTcollect, False, scan_strategy)
+    # 2) Accumulate local HTs into global HTs (rewrite 1->N in-place)
+    if HTs.device.type == "cuda":
+        (
+            GPUKinTreeReordering.for_kintree(kintree)
+            .refold_ordering.segscan_hts(HTs, inplace=True)
+        )
+    else:
+        iterative_refold(HTs, kintree.parent, inplace=True)
 
     coords = HTs[:, :3, 3]
-    return ForwardKinResult.create(HTs, coords)
+    return ForwardKinResult(HTs, coords)
 
 
 @validate_args
@@ -703,7 +561,6 @@ def resolveDerivs(
         dofs: KinDOF,
         HTs: HTArray,
         dsc_dx: CoordArray,
-        scan_strategy: SegScanStrategy = SegScanStrategy.default
 ) -> KinDOF:
     """xyz derivs -> dof derivs
 
@@ -717,6 +574,17 @@ def resolveDerivs(
     assert len(kintree) == len(HTs)
     assert len(kintree) == len(dsc_dx)
 
+    if dsc_dx.requires_grad:
+        # Can not render higher-order derivatives for kinematic operations,
+        # as is generated with backward(create_graph=True) is called.
+        # Ignore/nan rather than erroring to support torch gradcheck.
+        warnings.warn(
+            "dsc_dx.requires_grad in resolveDerivs not supported, "
+            "will return nan gradient"
+        )
+        dsc_dx.register_hook(lambda grad: grad.new_full(numpy.nan))
+        dsc_dx = dsc_dx.detach()
+
     # 1) local f1/f2s
     Xs = HTs[:, 0:3, 3]
 
@@ -724,8 +592,19 @@ def resolveDerivs(
     f2s = dsc_dx.clone()  # clone input buffer before aggregation
 
     # 2) pass f1/f2s up tree
-    SegScan(f1s, kintree.parent, Fscollect, True, scan_strategy)
-    SegScan(f2s, kintree.parent, Fscollect, True, scan_strategy)
+    f1f2s = torch.cat((f1s, f2s), 1)
+
+    if f1f2s.device.type == "cuda":
+        (
+            GPUKinTreeReordering.for_kintree(kintree)
+            .derivsum_ordering.segscan_f1f2s(f1f2s, inplace=True)
+        )
+
+    else:
+        iterative_f1f2_summation(f1f2s, kintree.parent, inplace=True)
+
+    f1s[:] = f1f2s[:, 0:3]
+    f2s[:] = f1f2s[:, 3:6]
 
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()

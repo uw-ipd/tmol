@@ -7,7 +7,9 @@ from math import nan
 import pytest
 
 from tmol.kinematics.operations import (
-    SegScanStrategy, backwardKin, forwardKin, resolveDerivs
+    backwardKin,
+    forwardKin,
+    resolveDerivs,
 )
 
 from tmol.kinematics.datatypes import (KinDOF, NodeType, KinTree)
@@ -18,8 +20,13 @@ def score(coords):
     #assert coords.shape == (20, 3)
     dists = (coords.unsqueeze(1) - coords.unsqueeze(0)).norm(dim=-1)
     igraph = (
-        torch.triu(~torch.eye(dists.shape[0], dtype=torch.uint8)) &
-        (dists < 3.4)
+        torch.triu(
+            ~torch.eye(
+                dists.shape[0],
+                dtype=torch.uint8,
+                device=coords.device,
+            )
+        ) & (dists < 3.4)
     )
     score = (3.4 - dists[igraph]) * (3.4 - dists[igraph])
     return torch.sum(score)
@@ -32,18 +39,22 @@ def dscore(coords):
     dxs = coords.unsqueeze(1) - coords.unsqueeze(0)
     dists = dxs.norm(dim=-1)
     igraph = (
-        torch.triu(~torch.eye(dists.shape[0], dtype=torch.uint8)) &
-        (dists < 3.4)
+        torch.triu(
+            ~torch.
+            eye(dists.shape[0], dtype=torch.uint8, device=coords.device)
+        ) & (dists < 3.4)
     ).nonzero()
 
-    dEdxs = torch.zeros([natoms, natoms, 3], dtype=torch.double)
+    dEdxs = torch.zeros([natoms, natoms, 3],
+                        dtype=torch.double,
+                        device=coords.device)
     dEdxs[igraph[:, 0], igraph[:, 1], :
           ] = -2 * (3.4 - dists[igraph[:, 0], igraph[:, 1]].reshape(-1, 1)) * (
               dxs[igraph[:, 0], igraph[:, 1], :] /
               dists[igraph[:, 0], igraph[:, 1]].reshape(-1, 1)
           )
 
-    dEdx = torch.zeros([natoms, 3])
+    dEdx = torch.zeros([natoms, 3], device=coords.device)
     dEdx = dEdxs.sum(dim=1) - dEdxs.sum(dim=0)
 
     return dEdx
@@ -120,7 +131,7 @@ def expected_analytic_derivs():
 
 
 @pytest.fixture
-def kintree():
+def kintree(torch_device):
     ROOT = NodeType.root
     JUMP = NodeType.jump
     BOND = NodeType.bond
@@ -154,11 +165,11 @@ def kintree():
     kintree[19] = KinTree.node(4, BOND, 17, 19, 17, 16)
     kintree[20] = KinTree.node(4, BOND, 19, 20, 19, 17)
 
-    return kintree
+    return kintree.to(device=torch_device)
 
 
 @pytest.fixture
-def coords():
+def coords(torch_device):
     NATOMS = 21
     coords = torch.empty([NATOMS, 3], dtype=torch.double)
 
@@ -188,28 +199,22 @@ def coords():
     coords[19, :] = torch.Tensor([1.559, 2.657, 4.776])
     coords[20, :] = torch.Tensor([1.561, 1.900, 3.805])
 
-    return coords
+    return coords.to(device=torch_device)
 
 
 def test_score_smoketest(coords):
     score(coords[1:, :])
 
 
-def test_interconversion(kintree, coords):
+def test_forward_refold(kintree, coords, torch_device):
+    #fd: with single precision 1e-9 is too strict for the assert_allclose calls
     bkin = backwardKin(kintree, coords)
-    refold_eff = forwardKin(kintree, bkin.dofs, SegScanStrategy.efficient)
 
-    #fd: with single precision 1e-9 is too strict
-    numpy.testing.assert_allclose(coords, refold_eff.coords, atol=1e-6)
-
-    bkin = backwardKin(kintree, coords)
-    refold_mindepth = forwardKin(kintree, bkin.dofs, SegScanStrategy.min_depth)
-
-    #fd: with single precision 1e-9 is too strict
-    numpy.testing.assert_allclose(coords, refold_mindepth.coords, atol=1e-6)
+    fkin = forwardKin(kintree, bkin.dofs)
+    numpy.testing.assert_allclose(coords, fkin.coords, atol=1e-6)
 
 
-def test_perturb(kintree, coords):
+def test_perturb(kintree, coords, torch_device):
     dofs = backwardKin(kintree, coords).dofs
 
     pcoords = forwardKin(kintree, dofs).coords
@@ -267,7 +272,7 @@ def test_perturb(kintree, coords):
     numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
 
 
-def test_root_sibling_derivs():
+def test_root_sibling_derivs(torch_device):
     """Verify derivatives in post-jump bonded siblings."""
     NATOMS = 6
 
@@ -297,55 +302,20 @@ def test_root_sibling_derivs():
     compute_verify_derivs(kintree, coords)
 
 
-def test_derivs(kintree, coords, expected_analytic_derivs):
-    dsc_dtors_numeric, dsc_dtors_analytic = compute_verify_derivs(
-        kintree, coords
-    )
-
-    # Verify against stored derivatives for regression
-    #fd: reducing tolerance here to 1e-4
-    # * numpy double->torch double leads to differences as high as 5e-6
-    # * numeric v analytic comparison is still at 1e-7 so these changes
-    #     are likely due to changes in the "dummy score"
-    numpy.testing.assert_allclose(
-        dsc_dtors_analytic.raw[1:], expected_analytic_derivs[1:], atol=1e-4
-    )
+def test_derivs(kintree, coords, torch_device, expected_analytic_derivs):
+    compute_verify_derivs(kintree, coords, expected_analytic_derivs)
 
 
-def test_f1f2_resolution_strategies_match(kintree, coords):
+def compute_verify_derivs(
+        kintree,
+        coords,
+        expected_analytic_derivs=None,
+):
     NATOMS, _ = coords.shape
     bkin = backwardKin(kintree, coords)
     HTs, dofs = bkin.hts, bkin.dofs
-
-    # Compute analytic derivs
-    dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
-    dsc_dx[1:] = dscore(coords[1:, :])
-    dsc_dtors_analytic_eff = resolveDerivs(
-        kintree, dofs, HTs, dsc_dx, SegScanStrategy.efficient
-    )
-    dsc_dtors_analytic_min_depth = resolveDerivs(
-        kintree, dofs, HTs, dsc_dx, SegScanStrategy.min_depth
-    )
-
-    numpy.testing.assert_allclose(
-        dsc_dtors_analytic_eff.raw[1:],
-        dsc_dtors_analytic_min_depth.raw[1:],
-        atol=1e-7
-    )
-
-
-def compute_verify_derivs(kintree, coords):
-    NATOMS, _ = coords.shape
-    bkin = backwardKin(kintree, coords)
-    HTs, dofs = bkin.hts, bkin.dofs
-
-    # Compute analytic derivs
-    dsc_dx = torch.zeros([NATOMS, 3], dtype=torch.double)
-    dsc_dx[1:] = dscore(coords[1:, :])
-    dsc_dtors_analytic = resolveDerivs(kintree, dofs, HTs, dsc_dx)
 
     # Compute numeric derivs and store node indicies
-
     bonds = []
     jumps = []
 
@@ -374,6 +344,17 @@ def compute_verify_derivs(kintree, coords):
 
             dsc_dtors_numeric.raw[i, j] = (sc_p - sc_m) / 0.0002
 
+    # Compute analytic derivs for all available strategies
+    dsc_dx = coords.new_zeros([NATOMS, 3], dtype=torch.double)
+    dsc_dx[1:] = dscore(coords[1:, :])
+
+    dsc_dtors_analytic = resolveDerivs(
+        kintree,
+        dofs,
+        HTs,
+        dsc_dx,
+    )
+
     # Verify numeric/analytic derivatives
     assert_jump_dof_allclose(
         dsc_dtors_analytic.jump[jumps],
@@ -384,10 +365,20 @@ def compute_verify_derivs(kintree, coords):
     assert_bond_dof_allclose(
         dsc_dtors_analytic.bond[bonds],
         dsc_dtors_numeric.bond[bonds],
-        atol=1e-7
+        atol=1e-7,
     )
 
-    return dsc_dtors_numeric, dsc_dtors_analytic
+    if expected_analytic_derivs is not None:
+        # Verify against stored derivatives for regression
+        #fd: reducing tolerance here to 1e-4
+        # * numpy double->torch double leads to differences as high as 5e-6
+        # * numeric v analytic comparison is still at 1e-7 so these changes
+        #     are likely due to changes in the "dummy score"
+        numpy.testing.assert_allclose(
+            dsc_dtors_analytic.raw[1:],
+            expected_analytic_derivs[1:],
+            atol=1e-4,
+        )
 
 
 def assert_bond_dof_allclose(actual, expected, **kwargs):

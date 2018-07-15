@@ -5,11 +5,11 @@ from tmol.kinematics import (
     backwardKin,
     forwardKin,
 )
-
+#from tmol.tests.torch import torch_device
 from tmol.kinematics.builder import KinematicBuilder
 
 
-def test_builder_refold(ubq_system):
+def test_builder_refold(ubq_system, torch_device):
     tsys = ubq_system
 
     kintree = KinematicBuilder().append_connected_component(

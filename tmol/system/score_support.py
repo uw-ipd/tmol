@@ -87,13 +87,13 @@ def system_torsion_graph_inputs(
     kincoords = sys_kin.extract_kincoords(system.coords).to(device)
 
     # Initialize op for torsion-space kinematics
-    kop = KinematicOp.from_coords(
+    kinop = KinematicOp.from_coords(
         sys_kin.kintree,
         torsion_dofs,
         kincoords,
     )
 
     return dict(
-        dofs=kop.src_mobile_dofs.clone().requires_grad_(requires_grad),
-        kinop=kop,
+        dofs=kinop.src_mobile_dofs.clone().requires_grad_(requires_grad),
+        kinop=kinop,
     )
