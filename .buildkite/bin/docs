@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -x
+set -e
+
+pushd docs
+make html
+popd

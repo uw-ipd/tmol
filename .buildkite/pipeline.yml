@@ -58,6 +58,16 @@ steps:
         formatter:
           type: details
 
+  ### Generate project documentation
+  - label: ':open_book: Docs'
+    command: .buildkite/bin/docs
+    artifact_paths:
+      - docs/build/html/**/*
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        run: buildkite
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
     command: .buildkite/bin/benchmark --benchmark-max-time=.1 
