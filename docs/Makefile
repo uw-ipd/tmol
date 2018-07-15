@@ -3,12 +3,9 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINX_APIDOC_OPTS = -M -e 
 SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = TMol
-MODULEDIR     = ../tmol
-SOURCEDIR     = source
-BUILDDIR      = build
+SOURCEDIR     = ./
+BUILDDIR      = ./
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -24,17 +21,11 @@ clean-apidoc:
 
 clean: clean-apidoc clean-build
 
-apidoc: clean-apidoc
-	sphinx-apidoc $(SPHINX_APIDOC_OPTS) -o "$(SOURCEDIR)"/apidoc "$(MODULEDIR)" "$(MODULEDIR)/tests"
-
-html: apidoc 
+html: clean-apidoc 
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-singlehtml: apidoc 
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+livehtml: clean-apidoc 
+	sphinx-autobuild -b html -i apidoc -i html "$(SOURCEDIR)" $(SPHINXOPTS) $(BUILDDIR)/html
 
-text: apidoc 
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
-coverage: apidoc 
+coverage: clean-apidoc 
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

@@ -10,22 +10,24 @@ TMol Documentation
 
 TMol is a tensor-based molecular modeling library for use on GPUs and CPUs.
 
-.. currentmodule:: tmol
-.. autosummary::
-   :toctree: apidoc
-
-   system
-   score
-   database
-   kinematics
-   types
-
 .. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Notes
+  :glob:
+  :caption: Notes
 
-   notes/*
+  placeholder
+
+
+Packages
+--------
+
+.. autosummary::
+  :toctree: apidoc
+
+  tmol.system
+  tmol.score
+  tmol.database
+  tmol.kinematics
+  tmol.types
 
 Indicies
 ==================

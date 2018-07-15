@@ -39,6 +39,7 @@ release = ''
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "sphinxcontrib.apidoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
@@ -73,6 +74,13 @@ exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
+
+# apidoc run settings
+
+apidoc_module_dir = '../../tmol'
+apidoc_output_dir = 'apidoc'
+apidoc_excluded_paths = ['../../tests']
+apidoc_separate_modules = True
 
 # autodoc settings
 
