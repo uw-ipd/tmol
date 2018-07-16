@@ -58,6 +58,16 @@ steps:
         formatter:
           type: details
 
+  ### Run benchmark tests
+  - label: ':racehorse: Benchmark'
+    command: .buildkite/bin/benchmark --benchmark-max-time=.1 
+    artifact_paths:
+      - benchmark/**/*
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        run: buildkite
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+
   ### Generate project documentation
   - label: ':open_book: Docs'
     command: .buildkite/bin/docs
@@ -68,12 +78,10 @@ steps:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
-  ### Run benchmark tests
-  - label: ':racehorse: Benchmark'
-    command: .buildkite/bin/benchmark --benchmark-max-time=.1 
-    artifact_paths:
-      - benchmark/**/*
+  ### Deploy documentation to gh-pages iff running a master build
+  - label: ':rocket: Deploy Doc '
+    command: .buildkite/bin/update-gh-pages push
+    branches: "master"
     plugins:
-      uw-ipd/docker-compose#run_workdir:
-        run: buildkite
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+      artifacts#v1.2.0:
+        download: "docs/build/**/*"
