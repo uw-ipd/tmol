@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -x
+set -e
+
+shopt -s extglob
+
+
+# -ff clean to remove untracked subrepositories
+git clean -xdff -- docs gh-pages
+
+# Perform a clean build of html docs
+.buildkite/bin/docs
+
+# Checkout gh-pages
+git clone --reference . --single-branch -b gh-pages `git config remote.origin.url` gh-pages
+
+# Rewrite the gh-pages working directory to the current docs build
+# Just "transplant" the .git directory in order to avoid any trickery with hidden files
+mv gh-pages/.git docs/build/html
+rm -rf gh-pages
+mv docs/build/html gh-pages
+
+export HEAD_REF=`git rev-parse --abbrev-ref HEAD`
+export HEAD_REF=`git rev-parse --verify HEAD`
+export HEAD_DESCR=`git describe --tags --dirty`
+
+pushd gh-pages
+git add .
+git commit -m ".buildkite/bin/update-gh-pages at ${HEAD_DESCR} (${HEAD_REF}) ${HEAD_SHA}"
+popd

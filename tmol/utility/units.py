@@ -1,3 +1,5 @@
+"""`pint`-based unit support functions."""
+
 from typing import Union, Tuple
 
 import pint

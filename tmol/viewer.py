@@ -1,3 +1,5 @@
+"""Generic py3mol-based visualization."""
+
 from IPython.display import display
 
 import tmol.extern.py3dmol as py3dmol
@@ -5,6 +7,12 @@ from tmol.io.generic import to_pdb, to_cdjson
 
 
 class SystemViewer:
+    """Generic py3dmol-based jupyter display widget.
+
+    A py3dmol-based jupyter viewing component, utilizing `tmol.io.generic` dispatch functions
+    to render arbitrary model components.
+    """
+
     transforms = {"cdjson": to_cdjson, "pdb": to_pdb}
 
     def __init__(self, system, style={"sphere": {}}, mode="cdjson"):

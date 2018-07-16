@@ -1,3 +1,5 @@
+"""Mixin components for attrs-based classes."""
+
 import attr
 
 from collections.abc import Mapping, MutableMapping

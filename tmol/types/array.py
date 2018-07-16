@@ -1,3 +1,5 @@
+"""Tensor type attributes for numpy arrays."""
+
 import enum
 import attr
 

@@ -1,3 +1,5 @@
+"""Runtime type validation and conversion."""
+
 import inspect
 from decorator import decorate
 import typing

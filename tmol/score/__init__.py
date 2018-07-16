@@ -1,72 +1,49 @@
-import numpy
+"""Composable, scoring components for molecular systems."""
 
-import tmol.io.generic
-import tmol.io.pdb_parsing as pdb_parsing
 from tmol.utility.reactive import reactive_attrs
 
-from .device import TorchDevice
-from .bonded_atom import BondedAtomScoreGraph
-from .interatomic_distance import BlockedInteratomicDistanceGraph
-from .ljlk import LJLKScoreGraph
-from .hbond import HBondScoreGraph
-from .total_score import TotalScoreComponentsGraph
-from .coordinates import CartesianAtomicCoordinateProvider, KinematicAtomicCoordinateProvider
+from . import ( # noqa: F401
+    device,
+    bonded_atom,
+    interatomic_distance,
+    ljlk,
+    hbond,
+    total_score,
+    coordinates,
+    viewer, # import viewer to register io overloads
+)
 
 
 @reactive_attrs
 class TotalScoreGraph(
-        HBondScoreGraph,
-        LJLKScoreGraph,
-        BlockedInteratomicDistanceGraph,
-        BondedAtomScoreGraph,
-        TotalScoreComponentsGraph,
-        TorchDevice,
+        hbond.HBondScoreGraph,
+        ljlk.LJLKScoreGraph,
+        interatomic_distance.BlockedInteratomicDistanceGraph,
+        bonded_atom.BondedAtomScoreGraph,
+        total_score.TotalScoreComponentsGraph,
+        device.TorchDevice,
 ):
     pass
 
 
-@tmol.io.generic.to_pdb.register(BondedAtomScoreGraph)
-def score_graph_to_pdb(score_graph):
-    atom_coords = score_graph.coords.detach().numpy()
-    atom_types = score_graph.atom_types
-
-    render_atoms = numpy.flatnonzero(
-        numpy.all(~numpy.isnan(atom_coords), axis=-1)
-    )
-
-    atom_records = numpy.zeros_like(
-        render_atoms, dtype=pdb_parsing.atom_record_dtype
-    )
-
-    atom_records['record_name'] = "ATOM"
-    atom_records["chain"] = "X"
-    atom_records["resn"] = "UNK"
-    atom_records["atomi"] = render_atoms
-    atom_records["atomn"] = (
-        score_graph.chemical_db.atom_properties.table.reindex(
-            atom_types[render_atoms]
-        )["elem"].values
-    )
-
-    atom_records["x"] = atom_coords[render_atoms][:, 0]
-    atom_records["y"] = atom_coords[render_atoms][:, 1]
-    atom_records["z"] = atom_coords[render_atoms][:, 2]
-
-    atom_records["b"] = 0
-
-    return pdb_parsing.to_pdb(atom_records)
+@reactive_attrs
+class KinematicTotalScoreGraph(
+        coordinates.KinematicAtomicCoordinateProvider,
+        TotalScoreGraph,
+):
+    pass
 
 
-@tmol.io.generic.to_cdjson.register(BondedAtomScoreGraph)
-def score_graph_to_cdjson(score_graph):
-    coords = score_graph.coords.detach().numpy()
-    elems = map(lambda t: t[0] if t else "x", score_graph.atom_types)
-    bonds = list(map(tuple, score_graph.bonds))
-
-    return tmol.io.generic.pack_cdjson(coords, elems, bonds)
+@reactive_attrs
+class CartesianTotalScoreGraph(
+        coordinates.CartesianAtomicCoordinateProvider,
+        TotalScoreGraph,
+):
+    pass
 
 
 __all__ = (
-    TotalScoreGraph, CartesianAtomicCoordinateProvider,
-    KinematicAtomicCoordinateProvider
+    "TotalScoreGraph",
+    "KinematicTotalScoreGraph",
+    "CartesianTotalScoreGraph",
 )

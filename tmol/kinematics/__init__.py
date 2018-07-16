@@ -1,3 +1,5 @@
+"""Kinematic operations over bonded atomic systems."""
+
 from .datatypes import (NodeType, KinTree, KinDOF)
 
 from .operations import (
@@ -6,4 +8,7 @@ from .operations import (
     resolveDerivs,
 )
 
-__all__ = [NodeType, KinTree, KinDOF, backwardKin, forwardKin, resolveDerivs]
+__all__ = [
+    "NodeType", "KinTree", "KinDOF", "backwardKin", "forwardKin",
+    "resolveDerivs"
+]
