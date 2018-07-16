@@ -84,7 +84,15 @@ class CompactedRamaDatabase:
                     psi_i = int(entry.psi) // 10 + 18
                     assert phi_i < 36 and psi_i < 36
                     assert phi_i >= 0 and psi_i >= 0
-                    table[aa, prepro, phi_i, psi_i] = entry.energy
+                    table[aa, prepro, phi_i, psi_i] = entry.prob
+
+        # exp of the -energies should get back to the original probabilities
+        # so we can calculate the table entropies
+        entropy = ((table * torch.log(table)).sum(dim=3)).sum(dim=2).reshape(
+            20, 2, 1, 1
+        )
+        table = -1 * torch.log(table) + entropy
+
         bspline_deg = BSplineDegree3.construct()
         for aa in range(len(AAType)):
             for prepro in range(2):
