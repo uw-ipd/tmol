@@ -1,3 +1,5 @@
+"""Tensor type attributes for torch arrays."""
+
 import attr
 
 import typing
