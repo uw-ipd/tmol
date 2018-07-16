@@ -1,11 +1,13 @@
 # Minimal makefile for Sphinx documentation
-#
-
-# You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 SOURCEDIR     = ./
-BUILDDIR      = ./
+BUILDDIR      = build/
+MODULEDIR     = ../tmol
+
+# apidoc configuration from
+# 
+SPHINX_APIDOC_OPTS = -M -e 
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -13,19 +15,25 @@ help:
 
 .PHONY: help Makefile
 
-clean-build:
-	rm -rf build
-
-clean-apidoc:
-	rm -rf source/apidoc
-
 clean: clean-apidoc clean-build
 
-html: clean-apidoc 
+clean-build:
+	rm -rf "$(SOURCEDIR)"/build
+
+clean-apidoc:
+	rm -rf "$(SOURCEDIR)"/apidoc
+
+apidoc:
+	better-apidoc -t _templates $(SPHINX_APIDOC_OPTS) -o "$(SOURCEDIR)"/apidoc "$(MODULEDIR)" "$(MODULEDIR)/tests"
+
+html: apidoc 
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-livehtml: clean-apidoc 
-	sphinx-autobuild -b html -i apidoc -i html "$(SOURCEDIR)" $(SPHINXOPTS) $(BUILDDIR)/html
+singlehtml: apidoc 
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-coverage: clean-apidoc 
+text: apidoc 
+	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+coverage: apidoc 
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

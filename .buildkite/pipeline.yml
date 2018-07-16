@@ -62,7 +62,7 @@ steps:
   - label: ':open_book: Docs'
     command: .buildkite/bin/docs
     artifact_paths:
-      - docs/build/html/**/*
+      - docs/build/**/*
     plugins:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite

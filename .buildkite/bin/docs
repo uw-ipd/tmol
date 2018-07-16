@@ -4,5 +4,5 @@ set -x
 set -e
 
 pushd docs
-make html
+make clean apidoc html
 popd
