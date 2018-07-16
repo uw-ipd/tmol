@@ -3,6 +3,13 @@
 set -x
 set -e
 
-pushd docs
-make clean apidoc html
-popd
+# Clean docs/(build|apidoc)
+git clean -xdf -- docs
+
+# Add cwd to pythonpath to support apidoc/autodoc of tmol module
+# will need to `pip install` if any built components are added
+# in the future.
+export PYTHONPATH=.
+
+better-apidoc -M -e -t docs/_templates -o docs/apidoc tmol tmol/tests
+sphinx-build -M html docs docs/build
