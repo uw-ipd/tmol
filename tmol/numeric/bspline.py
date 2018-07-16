@@ -44,37 +44,34 @@ from typing import Optional
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree:
-    degree: int
-    poles: Tensor(torch.float)[:]
-
+    @classmethod
     @validate_args
     def empty_wts_bydim(
-            self, ndims: int, coeffs: Tensor(torch.float),
+            cls, ndims: int, coeffs: Tensor(torch.float),
             X: Tensor(torch.float)[:, :]
     ) -> Tensor(torch.float)[:, :, :]:
         """Allocate wts_bydim tensor with the dtype and device following
         coeffs's example
         """
-        return torch.empty((X.shape[0], self.degree + 1, ndims),
+        return torch.empty((X.shape[0], cls.degree + 1, ndims),
                            dtype=coeffs.dtype,
                            device=coeffs.device)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree2(BSplineDegree):
-    @classmethod
-    def construct(cls):
-        poles = torch.tensor([math.sqrt(8.0) - 3.0])
-        return cls(2, poles)
+    degree = 2
+    poles = torch.tensor([math.sqrt(8.0) - 3.0])
 
+    @classmethod
     @validate_args
     def compute_wts_bydim(
-            self, ndims: int, coeffs: Tensor(torch.float),
+            cls, ndims: int, coeffs: Tensor(torch.float),
             X: Tensor(torch.float)[:, :],
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
 
-        wts_bydim = self.empty_wts_bydim(ndims, coeffs, X)
+        wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 1, :]
         wts_bydim[:, 1, :] = 3.0 / 4.0 - w * w
@@ -85,19 +82,18 @@ class BSplineDegree2(BSplineDegree):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree3(BSplineDegree):
-    @classmethod
-    def construct(cls):
-        poles = torch.tensor([math.sqrt(3.0) - 2.0])
-        return cls(degree=3, poles=poles)
+    degree = 3
+    poles = torch.tensor([math.sqrt(3.0) - 2.0])
 
+    @classmethod
     @validate_args
     def compute_wts_bydim(
-            self, ndims: int, coeffs: Tensor(torch.float),
+            cls, ndims: int, coeffs: Tensor(torch.float),
             X: Tensor(torch.float)[:, :],
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
 
-        wts_bydim = self.empty_wts_bydim(ndims, coeffs, X)
+        wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 1, :]
         wts_bydim[:, 3, :] = (1.0 / 6.0) * w * w * w
@@ -112,22 +108,21 @@ class BSplineDegree3(BSplineDegree):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree4(BSplineDegree):
-    @classmethod
-    def construct(cls):
-        poles = torch.tensor([
-            math.sqrt(664.0 - math.sqrt(438976.0)) + math.sqrt(304.0) - 19.0,
-            math.sqrt(664.0 + math.sqrt(438976.0)) - math.sqrt(304.0) - 19.0
-        ])
-        return cls(degree=4, poles=poles)
+    degree = 4
+    poles = torch.tensor([
+        math.sqrt(664.0 - math.sqrt(438976.0)) + math.sqrt(304.0) - 19.0,
+        math.sqrt(664.0 + math.sqrt(438976.0)) - math.sqrt(304.0) - 19.0
+    ])
 
+    @classmethod
     @validate_args
     def compute_wts_bydim(
-            self, ndims: int, coeffs: Tensor(torch.float),
+            cls, ndims: int, coeffs: Tensor(torch.float),
             X: Tensor(torch.float)[:, :],
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
 
-        wts_bydim = self.empty_wts_bydim(ndims, coeffs, X)
+        wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 2, :]
         w2 = w * w
@@ -148,24 +143,23 @@ class BSplineDegree4(BSplineDegree):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree5(BSplineDegree):
-    @classmethod
-    def construct(cls):
-        poles = torch.tensor([
-            math.sqrt(135.0 / 2.0 - math.sqrt(17745.0 / 4.0)) +
-            math.sqrt(105.0 / 4.0) - 13.0 / 2.0,
-            math.sqrt(135.0 / 2.0 + math.sqrt(17745.0 / 4.0)) -
-            math.sqrt(105.0 / 4.0) - 13.0 / 2.0
-        ])
-        return cls(degree=5, poles=poles)
+    degree = 5
+    poles = torch.tensor([
+        math.sqrt(135.0 / 2.0 - math.sqrt(17745.0 / 4.0)) +
+        math.sqrt(105.0 / 4.0) - 13.0 / 2.0,
+        math.sqrt(135.0 / 2.0 + math.sqrt(17745.0 / 4.0)) -
+        math.sqrt(105.0 / 4.0) - 13.0 / 2.0
+    ])
 
+    @classmethod
     @validate_args
     def compute_wts_bydim(
-            self, ndims: int, coeffs: Tensor(torch.float),
+            cls, ndims: int, coeffs: Tensor(torch.float),
             X: Tensor(torch.float)[:, :],
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
 
-        wts_bydim = self.empty_wts_bydim(ndims, coeffs, X)
+        wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 2, :]
         w2 = w * w
@@ -193,10 +187,10 @@ class BSplineDegree5(BSplineDegree):
 bsplines_by_degree = {
     b.degree: b
     for b in [
-        BSplineDegree2.construct(),
-        BSplineDegree3.construct(),
-        BSplineDegree4.construct(),
-        BSplineDegree5.construct(),
+        BSplineDegree2,
+        BSplineDegree3,
+        BSplineDegree4,
+        BSplineDegree5,
     ]
 }
 
