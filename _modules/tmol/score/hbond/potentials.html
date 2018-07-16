@@ -1,0 +1,487 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.score.hbond.potentials &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../score.html">tmol.score</a> &raquo;</li>
+        
+      <li>tmol.score.hbond.potentials</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.score.hbond.potentials</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="k">import</span> <span class="n">pi</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">convert_args</span><span class="p">,</span> <span class="n">validate_args</span>
+
+<span class="n">Coords</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">Params</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+<span class="n">PolyParams</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="polyval"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.potentials.html#tmol.score.hbond.potentials.polyval">[docs]</a><span class="nd">@convert_args</span>
+<span class="k">def</span> <span class="nf">polyval</span><span class="p">(</span>
+        <span class="n">A</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:],</span>
+        <span class="n">Arange</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">Abound</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:]:</span>
+    <span class="sd">&quot;&quot;&quot;evaluate polynomial function (Horner&#39;s rule)&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">A</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">A</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>
+
+    <span class="n">selector_low</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">Arange</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="n">p</span><span class="p">[</span><span class="n">selector_low</span><span class="p">]</span> <span class="o">=</span> <span class="n">Abound</span><span class="p">[</span><span class="n">selector_low</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">selector_high</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">Arange</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">p</span><span class="p">[</span><span class="n">selector_high</span><span class="p">]</span> <span class="o">=</span> <span class="n">Abound</span><span class="p">[</span><span class="n">selector_high</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="sp2chi_energy"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.potentials.html#tmol.score.hbond.potentials.sp2chi_energy">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">sp2chi_energy</span><span class="p">(</span>
+        <span class="n">d</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">m</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">l</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">BAH</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+        <span class="n">chi</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">chi</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">F</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
+    <span class="n">F</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
+    <span class="n">G</span><span class="o">.</span><span class="n">fill_</span><span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span>
+
+    <span class="n">selector_upper</span> <span class="o">=</span> <span class="p">(</span><span class="n">BAH</span> <span class="o">&gt;=</span> <span class="n">pi</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)</span>
+    <span class="n">selector_mid</span> <span class="o">=</span> <span class="o">~</span><span class="n">selector_upper</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">BAH</span> <span class="o">&gt;=</span> <span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="mf">3.0</span> <span class="o">-</span> <span class="n">l</span><span class="p">))</span>
+
+    <span class="n">F</span><span class="p">[</span><span class="n">selector_upper</span>
+      <span class="p">]</span> <span class="o">=</span> <span class="n">d</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">pi</span> <span class="o">-</span> <span class="n">BAH</span><span class="p">[</span><span class="n">selector_upper</span><span class="p">]))</span> <span class="o">+</span> <span class="n">d</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mf">0.5</span>
+    <span class="n">G</span><span class="p">[</span><span class="n">selector_upper</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span> <span class="o">-</span> <span class="mf">0.5</span>
+
+    <span class="n">outer_rise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">pi</span> <span class="o">-</span> <span class="p">(</span><span class="n">pi</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="mi">3</span> <span class="o">-</span> <span class="n">BAH</span><span class="p">[</span><span class="n">selector_mid</span><span class="p">])</span> <span class="o">/</span> <span class="n">l</span><span class="p">)</span>
+    <span class="n">F</span><span class="p">[</span><span class="n">selector_mid</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">outer_rise</span> <span class="o">+</span> <span class="n">m</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mf">0.5</span>
+    <span class="n">G</span><span class="p">[</span><span class="n">selector_mid</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="n">d</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">outer_rise</span> <span class="o">+</span> <span class="p">(</span><span class="n">m</span> <span class="o">-</span> <span class="n">d</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">d</span> <span class="o">-</span> <span class="mf">0.5</span>
+
+    <span class="n">E</span> <span class="o">=</span> <span class="n">H</span> <span class="o">*</span> <span class="n">F</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">H</span><span class="p">)</span> <span class="o">*</span> <span class="n">G</span>
+
+    <span class="k">return</span> <span class="n">E</span></div>
+
+
+<span class="c1"># energy evaluation to an sp2 acceptor</span>
+<div class="viewcode-block" id="hbond_donor_sp2_score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.potentials.html#tmol.score.hbond.potentials.hbond_donor_sp2_score">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">hbond_donor_sp2_score</span><span class="p">(</span>
+        <span class="c1"># Input coordinates</span>
+        <span class="n">d</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">h</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">a</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">b</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">b0</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+
+        <span class="c1"># type pair parameters</span>
+        <span class="n">glob_accwt</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+        <span class="n">glob_donwt</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+        <span class="n">AHdist_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">AHdist_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">AHdist_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+
+        <span class="c1"># Global score parameters</span>
+        <span class="n">hb_sp2_range_span</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">hb_sp2_BAH180_rise</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">hb_sp2_outer_width</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">acc_don_scale</span> <span class="o">=</span> <span class="n">glob_accwt</span> <span class="o">*</span> <span class="n">glob_donwt</span>
+
+    <span class="c1"># Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">AHvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span>
+    <span class="n">AHvecn</span> <span class="o">=</span> <span class="n">AHvecn</span> <span class="o">/</span> <span class="n">AHvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">HDvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span>
+    <span class="n">HDvecn</span> <span class="o">=</span> <span class="n">HDvecn</span> <span class="o">/</span> <span class="n">HDvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xD</span> <span class="o">=</span> <span class="p">(</span><span class="n">AHvecn</span> <span class="o">*</span> <span class="n">HDvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">AHD</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">xD</span><span class="p">)</span>
+    <span class="c1"># in non-cos space</span>
+
+    <span class="n">BAvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">BAvecn</span> <span class="o">=</span> <span class="n">BAvecn</span> <span class="o">/</span> <span class="n">BAvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xH</span> <span class="o">=</span> <span class="p">(</span><span class="n">AHvecn</span> <span class="o">*</span> <span class="n">BAvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">BAH</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">xH</span><span class="p">)</span>
+
+    <span class="n">BB0vecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">b0</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">BB0vecn</span> <span class="o">=</span> <span class="n">BB0vecn</span> <span class="o">/</span> <span class="n">BB0vecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xchi</span> <span class="o">=</span> <span class="p">(</span><span class="n">BB0vecn</span> <span class="o">*</span> <span class="n">AHvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> \
+           <span class="p">((</span><span class="n">BB0vecn</span> <span class="o">*</span> <span class="n">BAvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">BAvecn</span> <span class="o">*</span> <span class="n">AHvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">ychi</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">BAvecn</span><span class="p">,</span> <span class="n">AHvecn</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">BB0vecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">chi</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">ychi</span><span class="p">,</span> <span class="n">xchi</span><span class="p">)</span>
+
+    <span class="n">Pd</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">AHdist_coeffs</span><span class="p">,</span> <span class="n">AHdist_ranges</span><span class="p">,</span> <span class="n">AHdist_bounds</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+    <span class="n">PxH</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">cosBAH_coeffs</span><span class="p">,</span> <span class="n">cosBAH_ranges</span><span class="p">,</span> <span class="n">cosBAH_bounds</span><span class="p">,</span> <span class="n">xH</span><span class="p">)</span>
+    <span class="n">PxD</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">cosAHD_coeffs</span><span class="p">,</span> <span class="n">cosAHD_ranges</span><span class="p">,</span> <span class="n">cosAHD_bounds</span><span class="p">,</span> <span class="n">AHD</span><span class="p">)</span>
+
+    <span class="c1"># sp2 chi part</span>
+    <span class="n">Pchi</span> <span class="o">=</span> <span class="n">sp2chi_energy</span><span class="p">(</span>
+        <span class="n">hb_sp2_BAH180_rise</span><span class="p">,</span> <span class="n">hb_sp2_range_span</span><span class="p">,</span> <span class="n">hb_sp2_outer_width</span><span class="p">,</span> <span class="n">BAH</span><span class="p">,</span> <span class="n">chi</span>
+    <span class="p">)</span>
+
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">acc_don_scale</span> <span class="o">*</span> <span class="p">(</span><span class="n">Pd</span> <span class="o">+</span> <span class="n">PxD</span> <span class="o">+</span> <span class="n">PxH</span> <span class="o">+</span> <span class="n">Pchi</span><span class="p">)</span>
+
+    <span class="c1"># fade (squish [-0.1,0.1] to [-0.1,0.0])</span>
+    <span class="n">high_energy_selector</span> <span class="o">=</span> <span class="p">(</span><span class="n">energy</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">med_energy_selector</span> <span class="o">=</span> <span class="o">~</span><span class="n">high_energy_selector</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">energy</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="n">energy</span><span class="p">[</span><span class="n">high_energy_selector</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="o">-</span><span class="mf">0.025</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">-</span>
+        <span class="mf">2.5</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">energy</span></div>
+
+
+<span class="c1"># energy evaluation to an sp3 acceptor</span>
+<div class="viewcode-block" id="hbond_donor_sp3_score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.potentials.html#tmol.score.hbond.potentials.hbond_donor_sp3_score">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">hbond_donor_sp3_score</span><span class="p">(</span>
+        <span class="c1"># Input coordinates</span>
+        <span class="n">d</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">h</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">a</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">b</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">b0</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+
+        <span class="c1"># type pair parameters</span>
+        <span class="n">glob_accwt</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+        <span class="n">glob_donwt</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+        <span class="n">AHdist_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">AHdist_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">AHdist_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+
+        <span class="c1"># Global score parameters</span>
+        <span class="n">hb_sp3_softmax_fade</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">acc_don_scale</span> <span class="o">=</span> <span class="n">glob_accwt</span> <span class="o">*</span> <span class="n">glob_donwt</span>
+
+    <span class="c1"># Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">AHvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span>
+    <span class="n">AHvecn</span> <span class="o">=</span> <span class="n">AHvecn</span> <span class="o">/</span> <span class="n">AHvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">HDvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span>
+    <span class="n">HDvecn</span> <span class="o">=</span> <span class="n">HDvecn</span> <span class="o">/</span> <span class="n">HDvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xD</span> <span class="o">=</span> <span class="p">(</span><span class="n">AHvecn</span> <span class="o">*</span> <span class="n">HDvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">AHD</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">xD</span><span class="p">)</span>
+    <span class="c1"># in non-cos space</span>
+
+    <span class="n">BAvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span><span class="p">)</span>
+    <span class="n">BAvecn</span> <span class="o">=</span> <span class="n">BAvecn</span> <span class="o">/</span> <span class="n">BAvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xH1</span> <span class="o">=</span> <span class="p">(</span><span class="n">AHvecn</span> <span class="o">*</span> <span class="n">BAvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">B0Avecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">b0</span><span class="p">)</span>
+    <span class="n">B0Avecn</span> <span class="o">=</span> <span class="n">B0Avecn</span> <span class="o">/</span> <span class="n">B0Avecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xH2</span> <span class="o">=</span> <span class="p">(</span><span class="n">AHvecn</span> <span class="o">*</span> <span class="n">B0Avecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">Pd</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">AHdist_coeffs</span><span class="p">,</span> <span class="n">AHdist_ranges</span><span class="p">,</span> <span class="n">AHdist_bounds</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+    <span class="n">PxD</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">cosAHD_coeffs</span><span class="p">,</span> <span class="n">cosAHD_ranges</span><span class="p">,</span> <span class="n">cosAHD_bounds</span><span class="p">,</span> <span class="n">AHD</span><span class="p">)</span>
+    <span class="n">PxH1</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">cosBAH_coeffs</span><span class="p">,</span> <span class="n">cosBAH_ranges</span><span class="p">,</span> <span class="n">cosBAH_bounds</span><span class="p">,</span> <span class="n">xH1</span><span class="p">)</span>
+    <span class="n">PxH2</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">cosBAH_coeffs</span><span class="p">,</span> <span class="n">cosBAH_ranges</span><span class="p">,</span> <span class="n">cosBAH_bounds</span><span class="p">,</span> <span class="n">xH2</span><span class="p">)</span>
+    <span class="n">PxH</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">hb_sp3_softmax_fade</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">PxH1</span> <span class="o">*</span> <span class="n">hb_sp3_softmax_fade</span><span class="p">)</span> <span class="o">+</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">PxH2</span> <span class="o">*</span> <span class="n">hb_sp3_softmax_fade</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">acc_don_scale</span> <span class="o">*</span> <span class="p">(</span><span class="n">Pd</span> <span class="o">+</span> <span class="n">PxD</span> <span class="o">+</span> <span class="n">PxH</span><span class="p">)</span>
+
+    <span class="c1"># fade (squish [-0.1,0.1] to [-0.1,0.0])</span>
+    <span class="n">high_energy_selector</span> <span class="o">=</span> <span class="p">(</span><span class="n">energy</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">med_energy_selector</span> <span class="o">=</span> <span class="o">~</span><span class="n">high_energy_selector</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">energy</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="n">energy</span><span class="p">[</span><span class="n">high_energy_selector</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="o">-</span><span class="mf">0.025</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">-</span>
+        <span class="mf">2.5</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">energy</span></div>
+
+
+<span class="c1"># energy evaluation to a ring acceptor</span>
+<div class="viewcode-block" id="hbond_donor_ring_score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.potentials.html#tmol.score.hbond.potentials.hbond_donor_ring_score">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">hbond_donor_ring_score</span><span class="p">(</span>
+        <span class="c1"># Input coordinates</span>
+        <span class="n">d</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">h</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">a</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">b</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+        <span class="n">b0</span><span class="p">:</span> <span class="n">Coords</span><span class="p">,</span>
+
+        <span class="c1"># type pair parameters</span>
+        <span class="n">glob_accwt</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+        <span class="n">glob_donwt</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
+        <span class="n">AHdist_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">AHdist_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">AHdist_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosBAH_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_coeffs</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+        <span class="n">cosAHD_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">acc_don_scale</span> <span class="o">=</span> <span class="n">glob_accwt</span> <span class="o">*</span> <span class="n">glob_donwt</span>
+
+    <span class="c1"># Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">AHvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span>
+    <span class="n">AHvecn</span> <span class="o">=</span> <span class="n">AHvecn</span> <span class="o">/</span> <span class="n">AHvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">HDvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span>
+    <span class="n">HDvecn</span> <span class="o">=</span> <span class="n">HDvecn</span> <span class="o">/</span> <span class="n">HDvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xD</span> <span class="o">=</span> <span class="p">(</span><span class="n">AHvecn</span> <span class="o">*</span> <span class="n">HDvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">AHD</span> <span class="o">=</span> <span class="n">pi</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">xD</span><span class="p">)</span>
+    <span class="c1"># in non-cos space</span>
+
+    <span class="n">BAvecn</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="n">b0</span><span class="p">))</span>
+    <span class="n">BAvecn</span> <span class="o">=</span> <span class="n">BAvecn</span> <span class="o">/</span> <span class="n">BAvecn</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">xH</span> <span class="o">=</span> <span class="p">(</span><span class="n">AHvecn</span> <span class="o">*</span> <span class="n">BAvecn</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">Pd</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">AHdist_coeffs</span><span class="p">,</span> <span class="n">AHdist_ranges</span><span class="p">,</span> <span class="n">AHdist_bounds</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+    <span class="n">PxD</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">cosAHD_coeffs</span><span class="p">,</span> <span class="n">cosAHD_ranges</span><span class="p">,</span> <span class="n">cosAHD_bounds</span><span class="p">,</span> <span class="n">AHD</span><span class="p">)</span>
+    <span class="n">PxH</span> <span class="o">=</span> <span class="n">polyval</span><span class="p">(</span><span class="n">cosBAH_coeffs</span><span class="p">,</span> <span class="n">cosBAH_ranges</span><span class="p">,</span> <span class="n">cosBAH_bounds</span><span class="p">,</span> <span class="n">xH</span><span class="p">)</span>
+
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">acc_don_scale</span> <span class="o">*</span> <span class="p">(</span><span class="n">Pd</span> <span class="o">+</span> <span class="n">PxD</span> <span class="o">+</span> <span class="n">PxH</span><span class="p">)</span>
+
+    <span class="c1"># fade (squish [-0.1,0.1] to [-0.1,0.0])</span>
+    <span class="n">high_energy_selector</span> <span class="o">=</span> <span class="p">(</span><span class="n">energy</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">med_energy_selector</span> <span class="o">=</span> <span class="o">~</span><span class="n">high_energy_selector</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">energy</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="n">energy</span><span class="p">[</span><span class="n">high_energy_selector</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="o">-</span><span class="mf">0.025</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">-</span>
+        <span class="mf">2.5</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span> <span class="o">*</span> <span class="n">energy</span><span class="p">[</span><span class="n">med_energy_selector</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">energy</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

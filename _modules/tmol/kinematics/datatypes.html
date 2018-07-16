@@ -1,0 +1,417 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.datatypes &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.kinematics.datatypes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.kinematics.datatypes</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">attr</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">TensorGroup</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.attrs</span> <span class="k">import</span> <span class="n">ConvertAttrs</span>
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">convert_args</span>
+
+
+<div class="viewcode-block" id="NodeType"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.NodeType">[docs]</a><span class="k">class</span> <span class="nc">NodeType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;KinTree node types.&quot;&quot;&quot;</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">bond</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="KinTree"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.KinTree">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">KinTree</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Atom-level kinematic description.</span>
+
+<span class="sd">    A kinematic description of collection of atom locations, each atom location</span>
+<span class="sd">    corresponding to a node within a tree. The tree is *rooted* at a single</span>
+<span class="sd">    &quot;root&quot; node, representing the global reference frame. Every other node</span>
+<span class="sd">    corresponds to a derived orientation, which an atomic coordinate at the</span>
+<span class="sd">    center of the frame.</span>
+
+<span class="sd">    Each node is the tree is connected by one of two &quot;node types&quot;:</span>
+
+<span class="sd">    1) Jump nodes, representing an arbitrary rigid body transform between two</span>
+<span class="sd">    reference frames via six degrees of freedom, 3 translational and</span>
+<span class="sd">    3 rotational.</span>
+
+<span class="sd">    2) Bond nodes, representing the relationships between two atom reference</span>
+<span class="sd">    frames via *three bond degrees of freedom, bond axis translation, bond axis</span>
+<span class="sd">    rotation and change of bond axis with respect to the upstream bond.</span>
+
+<span class="sd">    The `KinTree` data structure itself is frozen and can not be modified post</span>
+<span class="sd">    construction. The `KinematicBuilder` factory class is responsible for</span>
+<span class="sd">    construction of a `KinTree` with valid internal structure for atomic</span>
+<span class="sd">    system.</span>
+
+<span class="sd">    Indices:</span>
+<span class="sd">        id = index for kin-atom in the target coordinate system</span>
+<span class="sd">        parent = kin-atom index of parent for each kin-atom</span>
+<span class="sd">        frame_x = kin-atom index of self</span>
+<span class="sd">        frame_y = kin-atom index of parent</span>
+<span class="sd">        frame_z = kin-atom index of grandparent</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nb">id</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>  <span class="c1"># used as an index so long</span>
+    <span class="n">doftype</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">parent</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>  <span class="c1"># used as an index so long</span>
+    <span class="n">frame_x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">frame_y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">frame_z</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+
+<div class="viewcode-block" id="KinTree.node"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.KinTree.node">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@convert_args</span>
+    <span class="k">def</span> <span class="nf">node</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">doftype</span><span class="p">:</span> <span class="n">NodeType</span><span class="p">,</span>
+            <span class="n">parent</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">frame_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">frame_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">frame_z</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Construct a single node from element values.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="nb">id</span><span class="p">]),</span>
+            <span class="n">doftype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">doftype</span><span class="p">]),</span>
+            <span class="n">parent</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">parent</span><span class="p">]),</span>
+            <span class="n">frame_x</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">frame_x</span><span class="p">]),</span>
+            <span class="n">frame_y</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">frame_y</span><span class="p">]),</span>
+            <span class="n">frame_z</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">frame_z</span><span class="p">]),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="KinTree.root_node"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.KinTree.root_node">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">root_node</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The global/root kinematic node at KinTree[0].&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">doftype</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">root</span><span class="p">,</span>
+            <span class="n">parent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">frame_x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">frame_y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">frame_z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="KinDOF"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.KinDOF">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">KinDOF</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Internal coordinate data.</span>
+
+<span class="sd">    The KinDOF data structure holds two logical views: the &quot;raw&quot; view a</span>
+<span class="sd">    sparsely populated [n,9] tensor of DOF values and a set of named property</span>
+<span class="sd">    accessors providing access to specific entries within this array. This is</span>
+<span class="sd">    logically equivalent a C union datatype, the interpretation of an entry in</span>
+<span class="sd">    the DOF buffer depends on the type of the corresponding KinTree entry.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">raw</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bond</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">BondDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">4</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">jump</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">JumpDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">9</span><span class="p">])</span>
+
+<div class="viewcode-block" id="KinDOF.clone"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.KinDOF.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">KinDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span></div></div>
+
+
+<div class="viewcode-block" id="BondDOFTypes"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.BondDOFTypes">[docs]</a><span class="k">class</span> <span class="nc">BondDOFTypes</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Indices of bond dof types within KinDOF.raw.&quot;&quot;&quot;</span>
+    <span class="n">phi_p</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">phi_c</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="JumpDOFTypes"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.JumpDOFTypes">[docs]</a><span class="k">class</span> <span class="nc">JumpDOFTypes</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Indices of jump dof types within KinDOF.raw.&quot;&quot;&quot;</span>
+    <span class="n">RBx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">RBy</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">RBz</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">RBdel_alpha</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">RBdel_beta</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">RBdel_gamma</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">RBalpha</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">RBbeta</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
+    <span class="n">RBgamma</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="BondDOF"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.BondDOF">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BondDOF</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A bond dof view of KinDOF.&quot;&quot;&quot;</span>
+    <span class="n">raw</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">phi_p</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">BondDOFTypes</span><span class="o">.</span><span class="n">phi_p</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">theta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">BondDOFTypes</span><span class="o">.</span><span class="n">theta</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">d</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">BondDOFTypes</span><span class="o">.</span><span class="n">d</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">phi_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">BondDOFTypes</span><span class="o">.</span><span class="n">phi_c</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="JumpDOF"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.JumpDOF">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">JumpDOF</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A jump dof view of KinDOF.&quot;&quot;&quot;</span>
+    <span class="n">raw</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBx</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBy</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBz</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBz</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBdel_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBdel_alpha</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBdel_beta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBdel_gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBalpha</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBalpha</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBbeta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBbeta</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">RBgamma</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">JumpDOFTypes</span><span class="o">.</span><span class="n">RBgamma</span><span class="p">]</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

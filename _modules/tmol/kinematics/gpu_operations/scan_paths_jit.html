@@ -1,0 +1,334 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.gpu_operations.scan_paths_jit &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../gpu_operations.html">tmol.kinematics.gpu_operations</a> &raquo;</li>
+        
+      <li>tmol.kinematics.gpu_operations.scan_paths_jit</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.kinematics.gpu_operations.scan_paths_jit</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numba</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+
+<div class="viewcode-block" id="mark_path_children_and_count_nonpath_children"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths_jit.html#tmol.kinematics.gpu_operations.scan_paths_jit.mark_path_children_and_count_nonpath_children">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">mark_path_children_and_count_nonpath_children</span><span class="p">(</span>
+        <span class="n">natoms</span><span class="p">,</span>
+        <span class="n">parent_ko</span><span class="p">,</span>
+        <span class="n">subpath_child_ko</span><span class="p">,</span>
+        <span class="n">out_n_nonpath_children_ko</span><span class="p">,</span>
+        <span class="n">out_is_subpath_root_ko</span><span class="p">,</span>
+        <span class="n">out_is_subpath_leaf_ko</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">ii_parent</span> <span class="o">=</span> <span class="n">parent_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="n">ii_parent</span><span class="p">:</span>
+            <span class="n">out_is_subpath_root_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">subpath_child_ko</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span> <span class="o">!=</span> <span class="n">ii</span><span class="p">:</span>
+            <span class="n">out_n_nonpath_children_ko</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">out_is_subpath_root_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">out_is_subpath_leaf_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">subpath_child_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="list_nonpath_children"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths_jit.html#tmol.kinematics.gpu_operations.scan_paths_jit.list_nonpath_children">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">list_nonpath_children</span><span class="p">(</span>
+        <span class="n">natoms</span><span class="p">,</span> <span class="n">is_subpath_root_ko</span><span class="p">,</span> <span class="n">parent_ko</span><span class="p">,</span> <span class="n">out_non_path_children_ko</span>
+<span class="p">):</span>
+    <span class="n">count_n_nonfirst_children</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">natoms</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">is_subpath_root_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span>
+            <span class="n">ii_parent</span> <span class="o">=</span> <span class="n">parent_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">ii_parent</span> <span class="o">==</span> <span class="n">ii</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">ii_child_ind</span> <span class="o">=</span> <span class="n">count_n_nonfirst_children</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span>
+            <span class="n">out_non_path_children_ko</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">,</span> <span class="n">ii_child_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+            <span class="n">count_n_nonfirst_children</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="find_derivsum_path_depths"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths_jit.html#tmol.kinematics.gpu_operations.scan_paths_jit.find_derivsum_path_depths">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">find_derivsum_path_depths</span><span class="p">(</span>
+        <span class="n">natoms</span><span class="p">,</span>
+        <span class="n">subpath_child_ko</span><span class="p">,</span>
+        <span class="n">non_path_children_ko</span><span class="p">,</span>
+        <span class="n">is_subpath_root_ko</span><span class="p">,</span>
+        <span class="n">out_derivsum_path_depth_ko</span><span class="p">,</span>
+        <span class="n">out_subpath_length_ko</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># my depth is the larger of my first child&#39;s depth, or</span>
+        <span class="c1"># my other children&#39;s laregest depth + 1</span>
+        <span class="n">ii_depth</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ii_child</span> <span class="o">=</span> <span class="n">subpath_child_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ii_child</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">ii_depth</span> <span class="o">=</span> <span class="n">out_derivsum_path_depth_ko</span><span class="p">[</span><span class="n">ii_child</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">other_child</span> <span class="ow">in</span> <span class="n">non_path_children_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="p">:]:</span>
+            <span class="k">if</span> <span class="n">other_child</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">other_child_depth</span> <span class="o">=</span> <span class="n">out_derivsum_path_depth_ko</span><span class="p">[</span><span class="n">other_child</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">ii_depth</span> <span class="o">&lt;</span> <span class="n">other_child_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">ii_depth</span> <span class="o">=</span> <span class="n">other_child_depth</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">out_derivsum_path_depth_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii_depth</span>
+
+        <span class="c1"># if this is the root of a derivsum path (remember, paths are summed</span>
+        <span class="c1"># leaf to root), then visit all of the nodes on the path and mark them</span>
+        <span class="c1"># with my depth. I&#39;m not sure this is necessary</span>
+        <span class="k">if</span> <span class="n">is_subpath_root_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span>
+            <span class="n">next_node</span> <span class="o">=</span> <span class="n">subpath_child_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+            <span class="n">path_length</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">leaf_node</span> <span class="o">=</span> <span class="n">ii</span>
+            <span class="k">while</span> <span class="n">next_node</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">leaf_node</span> <span class="o">=</span> <span class="n">next_node</span>
+                <span class="n">out_derivsum_path_depth_ko</span><span class="p">[</span><span class="n">next_node</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii_depth</span>
+                <span class="n">next_node</span> <span class="o">=</span> <span class="n">subpath_child_ko</span><span class="p">[</span><span class="n">next_node</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">next_node</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">leaf_node</span> <span class="o">=</span> <span class="n">next_node</span>
+                <span class="n">path_length</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">out_subpath_length_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">path_length</span>
+            <span class="n">out_subpath_length_ko</span><span class="p">[</span><span class="n">leaf_node</span><span class="p">]</span> <span class="o">=</span> <span class="n">path_length</span></div>
+
+
+<div class="viewcode-block" id="compute_branching_factor"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths_jit.html#tmol.kinematics.gpu_operations.scan_paths_jit.compute_branching_factor">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compute_branching_factor</span><span class="p">(</span>
+        <span class="n">natoms</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">out_branching_factor</span><span class="p">,</span> <span class="n">out_branchiest_child</span>
+<span class="p">):</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">ii_bf</span> <span class="o">=</span> <span class="n">out_branching_factor</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ii_bf</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">ii_bf</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">out_branching_factor</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii_bf</span>
+        <span class="n">ii_parent</span> <span class="o">=</span> <span class="n">parent</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="n">ii_parent</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">parent_bf</span> <span class="o">=</span> <span class="n">out_branching_factor</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">parent_bf</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">out_branching_factor</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii_bf</span>
+            <span class="n">out_branchiest_child</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="k">elif</span> <span class="n">ii_bf</span> <span class="o">&gt;=</span> <span class="n">parent_bf</span><span class="p">:</span>
+            <span class="n">out_branching_factor</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ii_bf</span><span class="p">,</span> <span class="n">parent_bf</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">out_branchiest_child</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span></div>
+
+
+<div class="viewcode-block" id="find_refold_path_depths"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths_jit.html#tmol.kinematics.gpu_operations.scan_paths_jit.find_refold_path_depths">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">find_refold_path_depths</span><span class="p">(</span>
+        <span class="n">natoms</span><span class="p">,</span>
+        <span class="n">parent_ko</span><span class="p">,</span>
+        <span class="n">is_subpath_root_ko</span><span class="p">,</span>
+        <span class="n">out_refold_atom_depth_ko</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span><span class="p">):</span>
+        <span class="n">ii_parent</span> <span class="o">=</span> <span class="n">parent_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="n">ii_depth</span> <span class="o">=</span> <span class="n">out_refold_atom_depth_ko</span><span class="p">[</span><span class="n">ii_parent</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">is_subpath_root_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="ow">and</span> <span class="n">ii_parent</span> <span class="o">!=</span> <span class="n">ii</span><span class="p">:</span>
+            <span class="n">ii_depth</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">out_refold_atom_depth_ko</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii_depth</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

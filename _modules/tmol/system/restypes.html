@@ -1,0 +1,310 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.system.restypes &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.system.restypes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.system.restypes</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">frozendict</span> <span class="k">import</span> <span class="n">frozendict</span>
+<span class="kn">from</span> <span class="nn">toolz.curried</span> <span class="k">import</span> <span class="n">concat</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="n">compose</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">NewType</span>
+<span class="kn">import</span> <span class="nn">attr</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">import</span> <span class="nn">tmol.database.chemical</span>
+
+<span class="n">AtomIndex</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;AtomIndex&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+<span class="n">ConnectionIndex</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;ConnectionIndex&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ResidueType"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.ResidueType">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ResidueType</span><span class="p">(</span><span class="n">tmol</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">chemical</span><span class="o">.</span><span class="n">Residue</span><span class="p">):</span>
+    <span class="n">atom_to_idx</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ResidueType._setup_atom_to_idx"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.ResidueType._setup_atom_to_idx">[docs]</a>    <span class="nd">@atom_to_idx</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_setup_atom_to_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">frozendict</span><span class="p">((</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">))</span></div>
+
+    <span class="n">coord_dtype</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ResidueType._setup_coord_dtype"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.ResidueType._setup_coord_dtype">[docs]</a>    <span class="nd">@coord_dtype</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_setup_coord_dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">])</span></div>
+
+    <span class="n">bond_indicies</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ResidueType._setup_bond_indicies"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.ResidueType._setup_bond_indicies">[docs]</a>    <span class="nd">@bond_indicies</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_setup_bond_indicies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bondi</span> <span class="o">=</span> <span class="n">compose</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="n">concat</span><span class="p">)(</span>
+            <span class="p">[(</span><span class="n">ai</span><span class="p">,</span> <span class="n">bi</span><span class="p">),</span> <span class="p">(</span><span class="n">bi</span><span class="p">,</span> <span class="n">ai</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">ai</span><span class="p">,</span> <span class="n">bi</span>
+            <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="o">.</span><span class="n">get</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">bonds</span><span class="p">)</span>
+        <span class="p">)</span>  <span class="c1"># yapf: disable</span>
+
+        <span class="n">bond_array</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bondi</span><span class="p">)</span>
+        <span class="n">bond_array</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">bond_array</span></div>
+
+    <span class="n">connection_to_idx</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ResidueType._setup_connection_to_idx"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.ResidueType._setup_connection_to_idx">[docs]</a>    <span class="nd">@connection_to_idx</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_setup_connection_to_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">frozendict</span><span class="p">((</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_to_idx</span><span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">atom</span><span class="p">])</span>
+                          <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">connections</span><span class="p">)</span></div>
+
+    <span class="n">connection_to_cidx</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">ConnectionIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ResidueType._setup_connection_to_cidx"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.ResidueType._setup_connection_to_cidx">[docs]</a>    <span class="nd">@connection_to_cidx</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_setup_connection_to_cidx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">centries</span> <span class="o">=</span> <span class="p">[(</span><span class="kc">None</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[(</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                                   <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">connections</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">frozendict</span><span class="p">(</span><span class="n">centries</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ResidueType._repr_pretty_"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.ResidueType._repr_pretty_">[docs]</a>    <span class="k">def</span> <span class="nf">_repr_pretty_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">cycle</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;ResidueType(name=</span><span class="si">{self.name}</span><span class="s1">,...)&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="Residue"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.Residue">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">Residue</span><span class="p">:</span>
+    <span class="n">residue_type</span><span class="p">:</span> <span class="n">ResidueType</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="Residue._coord_buffer"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.Residue._coord_buffer">[docs]</a>    <span class="nd">@coords</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_coord_buffer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">atoms</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atom_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residue_type</span><span class="o">.</span><span class="n">coord_dtype</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Residue.attach_to"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.Residue.attach_to">[docs]</a>    <span class="k">def</span> <span class="nf">attach_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord_buffer</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">coord_buffer</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">coord_buffer</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="n">coord_buffer</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span>
+
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coord_buffer</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Residue._repr_pretty_"><a class="viewcode-back" href="../../../apidoc/tmol.system.restypes.html#tmol.system.restypes.Residue._repr_pretty_">[docs]</a>    <span class="k">def</span> <span class="nf">_repr_pretty_</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">cycle</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;Residue&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;(&quot;</span><span class="p">,</span> <span class="s2">&quot;)&quot;</span><span class="p">):</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;residue_type=&quot;</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">pretty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">residue_type</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;, coords=&quot;</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">break_</span><span class="p">()</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">pretty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

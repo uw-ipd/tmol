@@ -1,0 +1,847 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.operations &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.kinematics.operations</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.kinematics.operations</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">tmol.types.attrs</span> <span class="k">import</span> <span class="n">ValidateAttrs</span>
+
+<span class="kn">from</span> <span class="nn">.datatypes</span> <span class="k">import</span> <span class="n">NodeType</span><span class="p">,</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">KinDOF</span><span class="p">,</span> <span class="n">BondDOF</span><span class="p">,</span> <span class="n">JumpDOF</span>
+<span class="kn">from</span> <span class="nn">.gpu_operations</span> <span class="k">import</span> <span class="n">GPUKinTreeReordering</span>
+<span class="kn">from</span> <span class="nn">.cpu_operations</span> <span class="k">import</span> <span class="n">iterative_refold</span><span class="p">,</span> <span class="n">iterative_f1f2_summation</span>
+
+<span class="n">HTArray</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+<span class="n">CoordArray</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">EPS</span> <span class="o">=</span> <span class="mf">1e-6</span>
+
+
+<div class="viewcode-block" id="HTinv"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.HTinv">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">HTinv</span><span class="p">(</span><span class="n">HTs</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HTArray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;helper to quickly invert a HT stack&quot;&quot;&quot;</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">HTs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">HTinvs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1">#fd: not sure why but the line below does not work...</span>
+    <span class="c1">#HTinvs[:, :3, :3] = torch.transpose(HTs[:, :3, :3], 2, 1)</span>
+
+    <span class="c1"># einsum is matrix/vector mult</span>
+    <span class="n">HTinvs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">HTs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">HTinvs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+        <span class="s1">&#39;aij,aj-&gt;ai&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">HTinvs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">HTs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span>
+    <span class="p">)</span>
+    <span class="n">HTinvs</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">HTinvs</span></div>
+
+
+<div class="viewcode-block" id="JumpTransforms"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.JumpTransforms">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">JumpTransforms</span><span class="p">(</span><span class="n">dofs</span><span class="p">:</span> <span class="n">JumpDOF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HTArray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;JUMP dofs -&gt; HTs</span>
+
+<span class="sd">    jump dofs are _9_ parameters:</span>
+<span class="sd">     - 3 translational</span>
+<span class="sd">     - 3 rotational deltas</span>
+<span class="sd">     - 3 rotational</span>
+<span class="sd">    Only the rotational deltas should be exposed to minimization</span>
+
+<span class="sd">    Translations are represented as an offset in X,Y,Z</span>
+<span class="sd">    Rotations and rotational deltas are ZYX Euler angles,</span>
+<span class="sd">        that is, a rotation about Z, then Y, then X</span>
+<span class="sd">    The HT returned by this function is given by:</span>
+<span class="sd">        M = trans( RBx, RBy, RBz)</span>
+<span class="sd">            @ roteuler( RBdel_alpha, RBdel_alpha, RBdel_alpha)</span>
+<span class="sd">            @ roteuler( RBalpha, RBalpha, RBalpha)</span>
+<span class="sd">    RBdel_* is meant to be reset to zero at the beginning of a minimization</span>
+<span class="sd">        trajectory, as when parameters are near 0, the rotational space</span>
+<span class="sd">        is well-behaved.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">natoms</span><span class="p">,</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">si</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_alpha</span><span class="p">)</span>
+    <span class="n">sj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">)</span>
+    <span class="n">sk</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">)</span>
+    <span class="n">ci</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_alpha</span><span class="p">)</span>
+    <span class="n">cj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">)</span>
+    <span class="n">ck</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">)</span>
+    <span class="n">cc</span> <span class="o">=</span> <span class="n">ci</span> <span class="o">*</span> <span class="n">ck</span>
+    <span class="n">cs</span> <span class="o">=</span> <span class="n">ci</span> <span class="o">*</span> <span class="n">sk</span>
+    <span class="n">sc</span> <span class="o">=</span> <span class="n">si</span> <span class="o">*</span> <span class="n">ck</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">si</span> <span class="o">*</span> <span class="n">sk</span>
+    <span class="n">Rdelta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+                         <span class="n">dtype</span><span class="o">=</span><span class="n">HTArray</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                         <span class="n">device</span><span class="o">=</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cj</span> <span class="o">*</span> <span class="n">ck</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sj</span> <span class="o">*</span> <span class="n">sc</span> <span class="o">-</span> <span class="n">cs</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">sj</span> <span class="o">*</span> <span class="n">cc</span> <span class="o">+</span> <span class="n">ss</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cj</span> <span class="o">*</span> <span class="n">sk</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sj</span> <span class="o">*</span> <span class="n">ss</span> <span class="o">+</span> <span class="n">cc</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">sj</span> <span class="o">*</span> <span class="n">cs</span> <span class="o">-</span> <span class="n">sc</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">sj</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cj</span> <span class="o">*</span> <span class="n">si</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">cj</span> <span class="o">*</span> <span class="n">ci</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># translational dofs</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">RBx</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">RBy</span>
+    <span class="n">Rdelta</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">RBz</span>
+
+    <span class="n">si</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBalpha</span><span class="p">)</span>
+    <span class="n">sj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBbeta</span><span class="p">)</span>
+    <span class="n">sk</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBgamma</span><span class="p">)</span>
+    <span class="n">ci</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBalpha</span><span class="p">)</span>
+    <span class="n">cj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBbeta</span><span class="p">)</span>
+    <span class="n">ck</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBgamma</span><span class="p">)</span>
+    <span class="n">cc</span> <span class="o">=</span> <span class="n">ci</span> <span class="o">*</span> <span class="n">ck</span>
+    <span class="n">cs</span> <span class="o">=</span> <span class="n">ci</span> <span class="o">*</span> <span class="n">sk</span>
+    <span class="n">sc</span> <span class="o">=</span> <span class="n">si</span> <span class="o">*</span> <span class="n">ck</span>
+    <span class="n">ss</span> <span class="o">=</span> <span class="n">si</span> <span class="o">*</span> <span class="n">sk</span>
+    <span class="n">Rglobal</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+                          <span class="n">dtype</span><span class="o">=</span><span class="n">HTArray</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                          <span class="n">device</span><span class="o">=</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cj</span> <span class="o">*</span> <span class="n">ck</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sj</span> <span class="o">*</span> <span class="n">sc</span> <span class="o">-</span> <span class="n">cs</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">sj</span> <span class="o">*</span> <span class="n">cc</span> <span class="o">+</span> <span class="n">ss</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cj</span> <span class="o">*</span> <span class="n">sk</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">sj</span> <span class="o">*</span> <span class="n">ss</span> <span class="o">+</span> <span class="n">cc</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">sj</span> <span class="o">*</span> <span class="n">cs</span> <span class="o">-</span> <span class="n">sc</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">sj</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cj</span> <span class="o">*</span> <span class="n">si</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">cj</span> <span class="o">*</span> <span class="n">ci</span>
+    <span class="n">Rglobal</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">Ms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Rdelta</span><span class="p">,</span> <span class="n">Rglobal</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Ms</span></div>
+
+
+<div class="viewcode-block" id="InvJumpTransforms"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.InvJumpTransforms">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">InvJumpTransforms</span><span class="p">(</span><span class="n">Ms</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JumpDOF</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;HTs -&gt; JUMP dofs</span>
+
+<span class="sd">    Given the matrix definition in JumpTransforms, we calculate the dofs</span>
+<span class="sd">    that give rise to this HT.</span>
+
+<span class="sd">    A special case handles the problematic region where cos(beta)=0.</span>
+<span class="sd">        In this case, the alpha and gamma rotation are coincident so</span>
+<span class="sd">        we assign all rotation to alpha.</span>
+
+<span class="sd">    Since RB and RBdel are redundant, this function always returns its</span>
+<span class="sd">        non-zero components into RB, and RBdel is always 0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">njumpatoms</span> <span class="o">=</span> <span class="n">Ms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">dofs</span> <span class="o">=</span> <span class="n">JumpDOF</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">njumpatoms</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">Ms</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBx</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBy</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBz</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_alpha</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">cys</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">problemSelector</span> <span class="o">=</span> <span class="p">(</span><span class="n">cys</span> <span class="o">&lt;=</span> <span class="n">EPS</span><span class="p">)</span>
+
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBalpha</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBbeta</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="o">-</span><span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">cys</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBgamma</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">problemSelector</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBalpha</span><span class="p">[</span><span class="n">problemSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="o">-</span><span class="n">Ms</span><span class="p">[</span><span class="n">problemSelector</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">Ms</span><span class="p">[</span><span class="n">problemSelector</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBbeta</span><span class="p">[</span><span class="n">problemSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="o">-</span><span class="n">Ms</span><span class="p">[</span><span class="n">problemSelector</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">cys</span><span class="p">[</span><span class="n">problemSelector</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">RBgamma</span><span class="p">[</span><span class="n">problemSelector</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">return</span> <span class="n">dofs</span></div>
+
+
+<div class="viewcode-block" id="JumpDerivatives"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.JumpDerivatives">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">JumpDerivatives</span><span class="p">(</span>
+        <span class="n">dofs</span><span class="p">:</span> <span class="n">JumpDOF</span><span class="p">,</span>
+        <span class="n">Ms</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">,</span>
+        <span class="n">Mparents</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">,</span>
+        <span class="n">f1s</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+        <span class="n">f2s</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">JumpDOF</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute JUMP derivatives from f1/f2</span>
+
+<span class="sd">    Translational derivatives are straightforward dot products of f2s</span>
+<span class="sd">        (the downstream derivative sum)</span>
+
+<span class="sd">    Rotational derivatives use the Abe and Go &quot;trick&quot; that allows us to</span>
+<span class="sd">        easily compute derivatives with respect to rotation about an axis.</span>
+<span class="sd">    In this case, there are three axes to compute derivatives of:</span>
+<span class="sd">        1) the Z axis (alpha rotation)</span>
+<span class="sd">        2) the Y axis after applying the alpha rotation (beta rotation)</span>
+<span class="sd">        3) the X axis after applying the alpha &amp; beta rot (gamma rotation)</span>
+<span class="sd">    Derivatives are ONLY assigned to the RBdel DOFs</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># trans dofs</span>
+    <span class="n">njumpatoms</span><span class="p">,</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">dsc_ddofs</span> <span class="o">=</span> <span class="n">JumpDOF</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">njumpatoms</span><span class="p">,</span> <span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">x_axes</span> <span class="o">=</span> <span class="n">Mparents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">y_axes</span> <span class="o">=</span> <span class="n">Mparents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">z_axes</span> <span class="o">=</span> <span class="n">Mparents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+    <span class="c1"># einsums here are taking dot products of the vector stacks</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">RBx</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">x_axes</span><span class="p">,</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">RBy</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">y_axes</span><span class="p">,</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">RBz</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">z_axes</span><span class="p">,</span> <span class="n">f2s</span><span class="p">))</span>
+
+    <span class="n">end_pos</span> <span class="o">=</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">rotdof3_axes</span> <span class="o">=</span> <span class="o">-</span><span class="n">Mparents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">zrots</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">njumpatoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">,</span>
+                        <span class="n">device</span><span class="o">=</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">zrots</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">)</span>
+    <span class="n">zrots</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">)</span>
+    <span class="n">zrots</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">)</span>
+    <span class="n">zrots</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">)</span>
+    <span class="n">zrots</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">rotdof2_axes</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Mparents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">zrots</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">yrots</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">njumpatoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">,</span>
+                        <span class="n">device</span><span class="o">=</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">yrots</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="o">-</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">)</span>
+    <span class="n">yrots</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="o">-</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">)</span>
+    <span class="n">yrots</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">yrots</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="o">-</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">)</span>
+    <span class="n">yrots</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="o">-</span><span class="n">dofs</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">)</span>
+    <span class="n">rotdof1_axes</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Mparents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">zrots</span><span class="p">),</span> <span class="n">yrots</span>
+    <span class="p">)[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># einsums here are taking dot products of the vector stacks</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">RBdel_alpha</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">rotdof1_axes</span><span class="p">,</span> <span class="n">f1s</span><span class="p">))</span> <span class="o">+</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">rotdof1_axes</span><span class="p">,</span> <span class="n">end_pos</span><span class="p">),</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">RBdel_beta</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">rotdof2_axes</span><span class="p">,</span> <span class="n">f1s</span><span class="p">))</span> <span class="o">+</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">rotdof2_axes</span><span class="p">,</span> <span class="n">end_pos</span><span class="p">),</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">RBdel_gamma</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">rotdof3_axes</span><span class="p">,</span> <span class="n">f1s</span><span class="p">))</span> <span class="o">+</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">rotdof3_axes</span><span class="p">,</span> <span class="n">end_pos</span><span class="p">),</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dsc_ddofs</span></div>
+
+
+<div class="viewcode-block" id="BondTransforms"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.BondTransforms">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">BondTransforms</span><span class="p">(</span><span class="n">dofs</span><span class="p">:</span> <span class="n">BondDOF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HTArray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    BOND dofs -&gt; HTs</span>
+
+<span class="sd">    each bond has four dofs: [phi_p, theta, d, phi_c]</span>
+<span class="sd">    in the local frame:</span>
+<span class="sd">        - phi_p and phi_c are a rotation about x</span>
+<span class="sd">        - theta is a rotation about z</span>
+<span class="sd">        - d is a translation along x</span>
+<span class="sd">    the matrix below is a composition:</span>
+<span class="sd">        M &lt;- rot(phi_p, [1,0,0]) @ rot(theta, [0,0,1]</span>
+<span class="sd">           @ trans(d, [1,0,0]) @ rot(phi_c, [1,0,0])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">natoms</span><span class="p">,</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">cpp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">phi_p</span><span class="p">)</span>
+    <span class="n">spp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">phi_p</span><span class="p">)</span>
+    <span class="n">cpc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">)</span>
+    <span class="n">spc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">)</span>
+    <span class="n">cth</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">sth</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">d</span>
+
+    <span class="c1"># rot(ph_p, +x) * rot(th, +z) * trans(d, +x) * rot(ph_c, +x)</span>
+    <span class="n">Ms</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+                     <span class="n">dtype</span><span class="o">=</span><span class="n">HTArray</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                     <span class="n">device</span><span class="o">=</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cth</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">cpc</span> <span class="o">*</span> <span class="n">sth</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">spc</span> <span class="o">*</span> <span class="n">sth</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">cth</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpp</span> <span class="o">*</span> <span class="n">sth</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpc</span> <span class="o">*</span> <span class="n">cpp</span> <span class="o">*</span> <span class="n">cth</span> <span class="o">-</span> <span class="n">spc</span> <span class="o">*</span> <span class="n">spp</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">cpp</span> <span class="o">*</span> <span class="n">cth</span> <span class="o">*</span> <span class="n">spc</span> <span class="o">-</span> <span class="n">cpc</span> <span class="o">*</span> <span class="n">spp</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">cpp</span> <span class="o">*</span> <span class="n">sth</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">spp</span> <span class="o">*</span> <span class="n">sth</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpp</span> <span class="o">*</span> <span class="n">spc</span> <span class="o">+</span> <span class="n">cpc</span> <span class="o">*</span> <span class="n">cth</span> <span class="o">*</span> <span class="n">spp</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpc</span> <span class="o">*</span> <span class="n">cpp</span> <span class="o">-</span> <span class="n">cth</span> <span class="o">*</span> <span class="n">spc</span> <span class="o">*</span> <span class="n">spp</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">spp</span> <span class="o">*</span> <span class="n">sth</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">Ms</span></div>
+
+
+<div class="viewcode-block" id="InvBondTransforms"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.InvBondTransforms">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">InvBondTransforms</span><span class="p">(</span><span class="n">Ms</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BondDOF</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    HTs -&gt; BOND dofs</span>
+
+<span class="sd">    Given the matrix definition in BondTransforms, we calculate the dofs</span>
+<span class="sd">    that give rise to this HT.</span>
+
+<span class="sd">    A special case below handles a &quot;singularity,&quot; that is, a configuration</span>
+<span class="sd">    where there are multiple parameterizations that give the same HT</span>
+
+<span class="sd">    Specifically, when theta==0, the rx rotation can be put into</span>
+<span class="sd">    phi_c or phi_p (we use phi_c)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nbondatoms</span> <span class="o">=</span> <span class="n">Ms</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">dofs</span> <span class="o">=</span> <span class="n">BondDOF</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">nbondatoms</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">Ms</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># d is always the same logic</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">d</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># when theta == 0, phip and phic are about same axis</span>
+    <span class="c1"># we (arbitrarily) put all the movement into phic</span>
+    <span class="n">theta0_selector</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">EPS</span><span class="p">)</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">phi_p</span><span class="p">[</span><span class="n">theta0_selector</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">[</span><span class="n">theta0_selector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="n">Ms</span><span class="p">[</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">Ms</span><span class="p">[</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="n">theta0_selector</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># otherwise, use the general case</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">phi_p</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="o">-</span><span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">dofs</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+            <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span>
+            <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="p">),</span> <span class="n">Ms</span><span class="p">[</span><span class="o">~</span><span class="n">theta0_selector</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dofs</span></div>
+
+
+<div class="viewcode-block" id="BondDerivatives"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.BondDerivatives">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">BondDerivatives</span><span class="p">(</span>
+        <span class="n">dofs</span><span class="p">:</span> <span class="n">BondDOF</span><span class="p">,</span>
+        <span class="n">Ms</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">,</span>
+        <span class="n">Mparents</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">,</span>
+        <span class="n">f1s</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+        <span class="n">f2s</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BondDOF</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    compute JUMP derivatives from f1/f2</span>
+
+<span class="sd">    The d derivatives are straightforward dot products of f2s</span>
+<span class="sd">        (the downstream derivative sum)</span>
+
+<span class="sd">    Other DOF derivatives use the Abe and Go &quot;trick&quot; that allows us to</span>
+<span class="sd">        easily compute derivatives with respect to rotation about an axis.</span>
+<span class="sd">    The phi_p and phi_c derivs are simply rotation about the X axis of the</span>
+<span class="sd">        parent and child coordinate frame, respectively</span>
+<span class="sd">    The theta derivs are more complex. Similar to jump derivs, we need to</span>
+<span class="sd">        UNDO the phi_c rotation, and then take the Z axis of the child HT</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nbondatoms</span><span class="p">,</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">end_p_pos</span> <span class="o">=</span> <span class="n">Mparents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">phi_p_axes</span> <span class="o">=</span> <span class="n">Mparents</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">end_c_pos</span> <span class="o">=</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">phi_c_axes</span> <span class="o">=</span> <span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># to get the theta axis, we need to undo the phi_c rotation (about x)</span>
+    <span class="n">phicrots</span> <span class="o">=</span> <span class="n">Ms</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">([</span><span class="n">nbondatoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">phicrots</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">phicrots</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="o">-</span><span class="n">dofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">)</span>
+    <span class="n">phicrots</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="o">-</span><span class="n">dofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">)</span>
+    <span class="n">phicrots</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="o">-</span><span class="n">dofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">)</span>
+    <span class="n">phicrots</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="o">-</span><span class="n">dofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">)</span>
+    <span class="n">theta_axes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">Ms</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="n">phicrots</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">dsc_ddofs</span> <span class="o">=</span> <span class="n">BondDOF</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nbondatoms</span><span class="p">,</span> <span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">Ms</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># the einsums are doing dot products on stacks of ints</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">d</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">phi_c_axes</span><span class="p">,</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">theta</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">theta_axes</span><span class="p">,</span> <span class="n">f1s</span><span class="p">))</span> <span class="o">+</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">theta_axes</span><span class="p">,</span> <span class="n">end_p_pos</span><span class="p">),</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">phi_p</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">phi_p_axes</span><span class="p">,</span> <span class="n">f1s</span><span class="p">))</span> <span class="o">+</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">phi_p_axes</span><span class="p">,</span> <span class="n">end_p_pos</span><span class="p">),</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">phi_c</span><span class="p">[:]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">phi_c_axes</span><span class="p">,</span> <span class="n">f1s</span><span class="p">))</span> <span class="o">+</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,ij-&gt;i&#39;</span><span class="p">,</span>
+                     <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">phi_c_axes</span><span class="p">,</span> <span class="n">end_c_pos</span><span class="p">),</span> <span class="n">f2s</span><span class="p">))</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dsc_ddofs</span></div>
+
+
+<div class="viewcode-block" id="DOFTransforms"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.DOFTransforms">[docs]</a><span class="k">def</span> <span class="nf">DOFTransforms</span><span class="p">(</span><span class="n">dof_types</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[:],</span> <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HTArray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Calculate HT representation of given dofs.&quot;&quot;&quot;</span>
+    <span class="n">HTs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">dofs</span><span class="p">),</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">HTArray</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">device</span><span class="o">=</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">rootSelector</span> <span class="o">=</span> <span class="n">dof_types</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">root</span>
+    <span class="n">HTs</span><span class="p">[</span><span class="n">rootSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">HTs</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">HTs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">bondSelector</span> <span class="o">=</span> <span class="n">dof_types</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">bond</span>
+    <span class="n">HTs</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">BondTransforms</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">bond</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">])</span>
+
+    <span class="n">jumpSelector</span> <span class="o">=</span> <span class="n">dof_types</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span>
+    <span class="n">HTs</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">JumpTransforms</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">jump</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">HTs</span></div>
+
+
+<div class="viewcode-block" id="HTs_from_frames"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.HTs_from_frames">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">HTs_from_frames</span><span class="p">(</span>
+        <span class="n">Cs</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+        <span class="n">Xs</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+        <span class="n">Ys</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+        <span class="n">Zs</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+        <span class="n">out</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">HTArray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HTArray</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;xyzs -&gt; HTs&quot;&quot;&quot;</span>
+    <span class="n">natoms</span> <span class="o">=</span> <span class="n">Cs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">unit_norm</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">v</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">Cs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">natoms</span>
+
+    <span class="n">xaxis</span> <span class="o">=</span> <span class="n">out</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">yaxis</span> <span class="o">=</span> <span class="n">out</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">zaxis</span> <span class="o">=</span> <span class="n">out</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">center</span> <span class="o">=</span> <span class="n">out</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+
+    <span class="n">xaxis</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">unit_norm</span><span class="p">(</span><span class="n">Xs</span> <span class="o">-</span> <span class="n">Ys</span><span class="p">)</span>
+    <span class="n">zaxis</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">unit_norm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">xaxis</span><span class="p">,</span> <span class="n">Zs</span> <span class="o">-</span> <span class="n">Xs</span><span class="p">))</span>
+    <span class="n">yaxis</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">unit_norm</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">zaxis</span><span class="p">,</span> <span class="n">xaxis</span><span class="p">))</span>
+    <span class="n">center</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">Cs</span>
+
+    <span class="n">out</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">out</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">out</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BackKinResult"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.BackKinResult">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BackKinResult</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+    <span class="n">hts</span><span class="p">:</span> <span class="n">HTArray</span>
+    <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span></div>
+
+
+<div class="viewcode-block" id="backwardKin"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.backwardKin">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">backwardKin</span><span class="p">(</span><span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BackKinResult</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;xyzs -&gt; HTs, dofs</span>
+
+<span class="sd">      - &quot;backward&quot; kinematics</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">natoms</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># 1) global HTs</span>
+    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">root</span>
+    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="c1"># fd: not sure of a torch isnan check?</span>
+    <span class="c1">#assert (torch.norm(coords[0, :], dim=-1) == 0)</span>
+
+    <span class="n">HTs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">HTArray</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                      <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">HTs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">HTs_from_frames</span><span class="p">(</span>
+        <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">kintree</span><span class="o">.</span><span class="n">frame_x</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="p">:],</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">kintree</span><span class="o">.</span><span class="n">frame_y</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="p">:],</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">kintree</span><span class="o">.</span><span class="n">frame_z</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="p">:],</span>
+        <span class="n">out</span><span class="o">=</span><span class="n">HTs</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># 2) local HTs</span>
+    <span class="n">localHTs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+                           <span class="n">dtype</span><span class="o">=</span><span class="n">HTArray</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                           <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">localHTs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">localHTs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+        <span class="n">HTinv</span><span class="p">(</span><span class="n">HTs</span><span class="p">[</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="p">:,</span> <span class="p">:]),</span> <span class="n">HTs</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># 3) dofs</span>
+    <span class="n">dofs</span> <span class="o">=</span> <span class="n">KinDOF</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">bondSelector</span> <span class="o">=</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">bond</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">bond</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">InvBondTransforms</span><span class="p">(</span><span class="n">localHTs</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">])</span>
+
+    <span class="n">jumpSelector</span> <span class="o">=</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span>
+    <span class="n">dofs</span><span class="o">.</span><span class="n">jump</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">InvJumpTransforms</span><span class="p">(</span><span class="n">localHTs</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">BackKinResult</span><span class="p">(</span><span class="n">HTs</span><span class="p">,</span> <span class="n">dofs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ForwardKinResult"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.ForwardKinResult">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ForwardKinResult</span><span class="p">:</span>
+    <span class="n">hts</span><span class="p">:</span> <span class="n">HTArray</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">CoordArray</span></div>
+
+
+<div class="viewcode-block" id="forwardKin"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.forwardKin">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">forwardKin</span><span class="p">(</span>
+        <span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span>
+        <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ForwardKinResult</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;dofs -&gt; HTs, xyzs</span>
+
+<span class="sd">      - &quot;forward&quot; kinematics</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dofs</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">root</span>
+    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="c1"># 1) Calculate local inter-node HTs from dofs</span>
+    <span class="n">HTs</span> <span class="o">=</span> <span class="n">DOFTransforms</span><span class="p">(</span><span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span> <span class="n">dofs</span><span class="p">)</span>
+
+    <span class="c1"># 2) Accumulate local HTs into global HTs (rewrite 1-&gt;N in-place)</span>
+    <span class="k">if</span> <span class="n">HTs</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+        <span class="p">(</span>
+            <span class="n">GPUKinTreeReordering</span><span class="o">.</span><span class="n">for_kintree</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">refold_ordering</span><span class="o">.</span><span class="n">segscan_hts</span><span class="p">(</span><span class="n">HTs</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">iterative_refold</span><span class="p">(</span><span class="n">HTs</span><span class="p">,</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">HTs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">ForwardKinResult</span><span class="p">(</span><span class="n">HTs</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="resolveDerivs"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.resolveDerivs">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">resolveDerivs</span><span class="p">(</span>
+        <span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span>
+        <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span><span class="p">,</span>
+        <span class="n">HTs</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">,</span>
+        <span class="n">dsc_dx</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KinDOF</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;xyz derivs -&gt; dof derivs</span>
+
+<span class="sd">    - derivative mapping using Abe and Go approach</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">root</span>
+    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dofs</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">HTs</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dsc_dx</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dsc_dx</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+        <span class="c1"># Can not render higher-order derivatives for kinematic operations,</span>
+        <span class="c1"># as is generated with backward(create_graph=True) is called.</span>
+        <span class="c1"># Ignore/nan rather than erroring to support torch gradcheck.</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s2">&quot;dsc_dx.requires_grad in resolveDerivs not supported, &quot;</span>
+            <span class="s2">&quot;will return nan gradient&quot;</span>
+        <span class="p">)</span>
+        <span class="n">dsc_dx</span><span class="o">.</span><span class="n">register_hook</span><span class="p">(</span><span class="k">lambda</span> <span class="n">grad</span><span class="p">:</span> <span class="n">grad</span><span class="o">.</span><span class="n">new_full</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
+        <span class="n">dsc_dx</span> <span class="o">=</span> <span class="n">dsc_dx</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+    <span class="c1"># 1) local f1/f2s</span>
+    <span class="n">Xs</span> <span class="o">=</span> <span class="n">HTs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+
+    <span class="n">f1s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Xs</span> <span class="o">-</span> <span class="n">dsc_dx</span><span class="p">)</span>
+    <span class="n">f2s</span> <span class="o">=</span> <span class="n">dsc_dx</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>  <span class="c1"># clone input buffer before aggregation</span>
+
+    <span class="c1"># 2) pass f1/f2s up tree</span>
+    <span class="n">f1f2s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">f1s</span><span class="p">,</span> <span class="n">f2s</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">f1f2s</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
+        <span class="p">(</span>
+            <span class="n">GPUKinTreeReordering</span><span class="o">.</span><span class="n">for_kintree</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">derivsum_ordering</span><span class="o">.</span><span class="n">segscan_f1f2s</span><span class="p">(</span><span class="n">f1f2s</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">iterative_f1f2_summation</span><span class="p">(</span><span class="n">f1f2s</span><span class="p">,</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">f1s</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">f1f2s</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">f2s</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">f1f2s</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+
+    <span class="c1"># 3) convert to dscore/dtors</span>
+    <span class="n">dsc_ddofs</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+    <span class="n">bondSelector</span> <span class="o">=</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">bond</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">bond</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">BondDerivatives</span><span class="p">(</span>
+        <span class="n">dofs</span><span class="o">.</span><span class="n">bond</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">],</span>
+        <span class="n">HTs</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">],</span>
+        <span class="n">HTs</span><span class="p">[</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">]],</span>
+        <span class="n">f1s</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">],</span>
+        <span class="n">f2s</span><span class="p">[</span><span class="n">bondSelector</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="n">jumpSelector</span> <span class="o">=</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span>
+    <span class="n">dsc_ddofs</span><span class="o">.</span><span class="n">jump</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">]</span> <span class="o">=</span> <span class="n">JumpDerivatives</span><span class="p">(</span>
+        <span class="n">dofs</span><span class="o">.</span><span class="n">jump</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">],</span>
+        <span class="n">HTs</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">],</span>
+        <span class="n">HTs</span><span class="p">[</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">]],</span>
+        <span class="n">f1s</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">],</span>
+        <span class="n">f2s</span><span class="p">[</span><span class="n">jumpSelector</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dsc_ddofs</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

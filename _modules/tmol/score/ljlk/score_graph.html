@@ -1,0 +1,426 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.score.ljlk.score_graph &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../score.html">tmol.score</a> &raquo;</li>
+        
+      <li>tmol.score.ljlk.score_graph</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.score.ljlk.score_graph</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">attr</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">tmol.types.array</span> <span class="k">import</span> <span class="n">NDArray</span>
+
+<span class="kn">from</span> <span class="nn">tmol.database</span> <span class="k">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">LJLKDatabase</span>
+
+<span class="kn">from</span> <span class="nn">..database</span> <span class="k">import</span> <span class="n">ParamDB</span>
+<span class="kn">from</span> <span class="nn">..device</span> <span class="k">import</span> <span class="n">TorchDevice</span>
+<span class="kn">from</span> <span class="nn">..total_score</span> <span class="k">import</span> <span class="n">ScoreComponentAttributes</span><span class="p">,</span> <span class="n">TotalScoreComponentsGraph</span>
+<span class="kn">from</span> <span class="nn">..interatomic_distance</span> <span class="k">import</span> <span class="n">InteratomicDistanceGraphBase</span>
+<span class="kn">from</span> <span class="nn">..bonded_atom</span> <span class="k">import</span> <span class="n">BondedAtomScoreGraph</span>
+<span class="kn">from</span> <span class="nn">..factory</span> <span class="k">import</span> <span class="n">Factory</span>
+
+<span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">lj_score</span><span class="p">,</span> <span class="n">lk_score</span>
+<span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">LJLKParamResolver</span><span class="p">,</span> <span class="n">LJLKTypePairParams</span>
+
+
+<div class="viewcode-block" id="LJLKScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">LJLKScoreGraph</span><span class="p">(</span>
+        <span class="n">InteratomicDistanceGraphBase</span><span class="p">,</span>
+        <span class="n">BondedAtomScoreGraph</span><span class="p">,</span>
+        <span class="n">TotalScoreComponentsGraph</span><span class="p">,</span>
+        <span class="n">ParamDB</span><span class="p">,</span>
+        <span class="n">TorchDevice</span><span class="p">,</span>
+        <span class="n">Factory</span><span class="p">,</span>
+<span class="p">):</span>
+<div class="viewcode-block" id="LJLKScoreGraph.factory_for"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span>
+            <span class="n">val</span><span class="p">,</span>
+            <span class="n">parameter_database</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
+            <span class="n">ljlk_database</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LJLKDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">_</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Overridable clone-constructor.</span>
+
+<span class="sd">        Initialize from `val.ljlk_database` if possible, otherwise from</span>
+<span class="sd">        `parameter_database.scoring.ljlk`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ljlk_database</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s2">&quot;ljlk_database&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">ljlk_database</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">ljlk_database</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ljlk_database</span> <span class="o">=</span> <span class="n">parameter_database</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">ljlk</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ljlk_database</span><span class="o">=</span><span class="n">ljlk_database</span><span class="p">,</span> <span class="p">)</span></div>
+
+    <span class="n">ljlk_database</span><span class="p">:</span> <span class="n">LJLKDatabase</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="LJLKScoreGraph._default_ljlk_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph._default_ljlk_database">[docs]</a>    <span class="nd">@ljlk_database</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_default_ljlk_database</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_database</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">ljlk</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">component_total_score_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Expose lj/lk as total_score terms.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">ScoreComponentAttributes</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;lk&quot;</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="s2">&quot;total_lk&quot;</span><span class="p">),</span>
+            <span class="n">ScoreComponentAttributes</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;lj&quot;</span><span class="p">,</span> <span class="n">total</span><span class="o">=</span><span class="s2">&quot;total_lj&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">component_atom_pair_dist_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Expose lj threshold distance for interatomic distance dispatch.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ljlk_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="o">.</span><span class="n">max_dis</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">param_resolver</span><span class="p">(</span>
+            <span class="n">ljlk_database</span><span class="p">:</span> <span class="n">LJLKDatabase</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LJLKParamResolver</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Parameter tensor groups and atom-type to parameter resolver.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">LJLKParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">ljlk_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">ljlk_interaction_weight</span><span class="p">(</span>
+            <span class="n">bonded_path_length</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:],</span>
+            <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:],</span>
+            <span class="n">real_atoms</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">bool</span><span class="p">)[:],</span>
+            <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:]:</span>
+        <span class="sd">&quot;&quot;&quot;lj&amp;lk interaction weight, bonded cutoff&quot;&quot;&quot;</span>
+
+        <span class="n">bonded_path_length</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">bonded_path_length</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">bonded_path_length</span><span class="o">.</span><span class="n">new_ones</span><span class="p">(</span>
+            <span class="n">bonded_path_length</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span>
+        <span class="p">)</span>
+
+        <span class="n">result</span><span class="p">[</span><span class="n">bonded_path_length</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">bonded_path_length</span> <span class="o">==</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="o">.</span><span class="mi">2</span>
+        <span class="n">result</span><span class="p">[</span><span class="o">~</span><span class="n">real_atoms</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">result</span><span class="p">[:,</span> <span class="o">~</span><span class="n">real_atoms</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">ljlk_atom_pair_params</span><span class="p">(</span>
+            <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:],</span>
+            <span class="n">param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LJLKTypePairParams</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Pair parameter tensors for all atoms within system.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">param_resolver</span><span class="p">[</span><span class="n">atom_types</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+                              <span class="n">atom_types</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))]</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">lj</span><span class="p">(</span>
+            <span class="n">atom_pair_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">atom_pair_dist</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:],</span>
+            <span class="n">ljlk_interaction_weight</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span>
+            <span class="n">ljlk_atom_pair_params</span><span class="p">:</span> <span class="n">LJLKTypePairParams</span><span class="p">,</span>
+            <span class="n">param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">gparams</span> <span class="o">=</span> <span class="n">param_resolver</span><span class="o">.</span><span class="n">global_params</span>
+        <span class="n">pparams</span> <span class="o">=</span> <span class="n">ljlk_atom_pair_params</span>
+        <span class="n">pidx</span> <span class="o">=</span> <span class="p">(</span><span class="n">atom_pair_inds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">atom_pair_inds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">lj_score</span><span class="p">(</span>
+            <span class="c1"># Distance</span>
+            <span class="n">dist</span><span class="o">=</span><span class="n">atom_pair_dist</span><span class="p">,</span>
+
+            <span class="c1"># Bonded params</span>
+            <span class="n">interaction_weight</span><span class="o">=</span><span class="n">ljlk_interaction_weight</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+
+            <span class="c1"># Pair params</span>
+            <span class="n">lj_sigma</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_sigma</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lj_switch_slope</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_switch_slope</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lj_switch_intercept</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_switch_intercept</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lj_coeff_sigma12</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_coeff_sigma12</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lj_coeff_sigma6</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_coeff_sigma6</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lj_spline_y0</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_spline_y0</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lj_spline_dy0</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_spline_dy0</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+
+            <span class="c1"># Global params</span>
+            <span class="n">lj_switch_dis2sigma</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">lj_switch_dis2sigma</span><span class="p">,</span>
+            <span class="n">spline_start</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">spline_start</span><span class="p">,</span>
+            <span class="n">max_dis</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">max_dis</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># split into atr &amp; rep</span>
+        <span class="c1"># atrE = np.copy(ljE);</span>
+        <span class="c1"># selector3 = (dists &lt; lj_lk_pair_params[&quot;lj_sigma&quot;])</span>
+        <span class="c1"># atrE[ selector3  ] = -lj_lk_pair_params[&quot;lj_wdepth&quot;][ selector3 ]</span>
+        <span class="c1"># repE = ljE - atrE</span>
+
+        <span class="c1"># atrE *= lj_lk_pair_params[&quot;weights&quot;]</span>
+        <span class="c1"># repE *= lj_lk_pair_params[&quot;weights&quot;]</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">lk</span><span class="p">(</span>
+            <span class="n">atom_pair_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="mi">2</span><span class="p">,</span> <span class="p">:],</span>
+            <span class="n">atom_pair_dist</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:],</span>
+            <span class="n">ljlk_interaction_weight</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span>
+            <span class="n">ljlk_atom_pair_params</span><span class="p">:</span> <span class="n">LJLKTypePairParams</span><span class="p">,</span>
+            <span class="n">param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">gparams</span> <span class="o">=</span> <span class="n">param_resolver</span><span class="o">.</span><span class="n">global_params</span>
+        <span class="n">pparams</span> <span class="o">=</span> <span class="n">ljlk_atom_pair_params</span>
+        <span class="n">pidx</span> <span class="o">=</span> <span class="p">(</span><span class="n">atom_pair_inds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">atom_pair_inds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">lk_score</span><span class="p">(</span>
+            <span class="c1"># Distance</span>
+            <span class="n">dist</span><span class="o">=</span><span class="n">atom_pair_dist</span><span class="p">,</span>
+
+            <span class="c1"># Bonded params</span>
+            <span class="n">interaction_weight</span><span class="o">=</span><span class="n">ljlk_interaction_weight</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+
+            <span class="c1"># Pair params</span>
+            <span class="n">lj_rad1</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_rad1</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lj_rad2</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lj_rad2</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_coeff1</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_coeff1</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_coeff2</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_coeff2</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_inv_lambda2_1</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_inv_lambda2_1</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_inv_lambda2_2</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_inv_lambda2_2</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_spline_close_dy1</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_spline_close_dy1</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_spline_close_x0</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_spline_close_x0</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_spline_close_x1</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_spline_close_x1</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_spline_close_y0</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_spline_close_y0</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_spline_close_y1</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_spline_close_y1</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_spline_far_dy0</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_spline_far_dy0</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+            <span class="n">lk_spline_far_y0</span><span class="o">=</span><span class="n">pparams</span><span class="o">.</span><span class="n">lk_spline_far_y0</span><span class="p">[</span><span class="n">pidx</span><span class="p">],</span>
+
+            <span class="c1"># Global params</span>
+            <span class="n">spline_start</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">spline_start</span><span class="p">,</span>
+            <span class="n">max_dis</span><span class="o">=</span><span class="n">gparams</span><span class="o">.</span><span class="n">max_dis</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">total_lj</span><span class="p">(</span><span class="n">lj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;total inter-atomic lj&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">lj</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">total_lk</span><span class="p">(</span><span class="n">lk</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;total inter-atomic lk&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">lk</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

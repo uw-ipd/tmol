@@ -1,0 +1,408 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.builder &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.kinematics.builder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.kinematics.builder</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">from</span> <span class="nn">toolz</span> <span class="k">import</span> <span class="n">first</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+<span class="kn">import</span> <span class="nn">scipy.sparse</span> <span class="k">as</span> <span class="nn">sparse</span>
+<span class="kn">import</span> <span class="nn">scipy.sparse.csgraph</span> <span class="k">as</span> <span class="nn">csgraph</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.array</span> <span class="k">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">convert_args</span><span class="p">,</span> <span class="n">validate_args</span>
+<span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">cat</span>
+
+<span class="kn">from</span> <span class="nn">.datatypes</span> <span class="k">import</span> <span class="p">(</span><span class="n">NodeType</span><span class="p">,</span> <span class="n">KinTree</span><span class="p">)</span>
+
+<span class="n">ChildParentTuple</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:],</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:]]</span>
+
+
+<div class="viewcode-block" id="KinematicBuilder"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">KinematicBuilder</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Supports assembly of sets of bonded atoms into a valid KinTree.</span>
+
+<span class="sd">    Provides utility methods to perform incremental assembly of sets of bonded</span>
+<span class="sd">    atoms (&quot;connected components&quot;) into a valid KinTree. This involves</span>
+<span class="sd">    determination of a spanning DAG for the component beginning from a</span>
+<span class="sd">    specified root atom, initialization of reference frames for each atom, and</span>
+<span class="sd">    concatenation of this component onto the KinTree via a jump.</span>
+
+<span class="sd">    The builder supports &quot;prioritized bonds&quot; within a connected component,</span>
+<span class="sd">    which must be present as parent-child relationships within the resulting</span>
+<span class="sd">    tree. This ensures that specific dofs are explicitly represented in cases</span>
+<span class="sd">    where a cycle in bonded connectivity results in multiple valid spanning</span>
+<span class="sd">    trees. (Eg. The proline backbone ring.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">Factory</span><span class="p">(</span><span class="n">KinTree</span><span class="o">.</span><span class="n">root_node</span><span class="p">)</span>
+
+<div class="viewcode-block" id="KinematicBuilder.component_for_prioritized_bonds"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.component_for_prioritized_bonds">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@convert_args</span>
+    <span class="k">def</span> <span class="nf">component_for_prioritized_bonds</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">root</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">mandatory_bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+            <span class="n">all_bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChildParentTuple</span><span class="p">:</span>
+        <span class="n">system_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">mandatory_bonds</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">all_bonds</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">weighted_bonds</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="c1"># All entries must be non-zero or sparse graph tools will entries.</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span><span class="n">all_bonds</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">system_size</span><span class="p">)</span> <span class="o">+</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span><span class="n">mandatory_bonds</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">1e-5</span><span class="p">],</span> <span class="n">system_size</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">ids</span><span class="p">,</span> <span class="n">parents</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_connected_component</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">weighted_bonds</span><span class="p">)</span>
+
+        <span class="c1"># Verify construction</span>
+        <span class="n">component_bond_graph</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">ids</span><span class="p">[</span><span class="mi">1</span><span class="p">:]],</span> <span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]])</span><span class="o">.</span><span class="n">T</span>
+        <span class="p">)</span>
+        <span class="n">bond_present</span> <span class="o">=</span> <span class="n">component_bond_graph</span><span class="p">[</span><span class="n">mandatory_bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                                            <span class="n">mandatory_bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">bond_present</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s2">&quot;Unable to generate component containing all mandatory bonds.&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">parents</span></div>
+
+<div class="viewcode-block" id="KinematicBuilder.bonds_to_csgraph"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.bonds_to_csgraph">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@convert_args</span>
+    <span class="k">def</span> <span class="nf">bonds_to_csgraph</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+            <span class="n">weights</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">system_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">system_size</span><span class="p">:</span>
+            <span class="n">system_size</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])),</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">system_size</span><span class="p">,</span> <span class="n">system_size</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="KinematicBuilder.bonds_to_connected_component"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.bonds_to_connected_component">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">bonds_to_connected_component</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">root</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">bonds</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">sparse</span><span class="o">.</span><span class="n">spmatrix</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChildParentTuple</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="c1"># Bonds are a non-prioritized set of edges, assume arbitrary</span>
+            <span class="c1"># connectivity from the root is allowed.</span>
+            <span class="n">bond_graph</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Sparse graph with per-bond weights, generate the minimum</span>
+            <span class="c1"># spanning tree of the connections before traversing from</span>
+            <span class="c1"># the root.</span>
+            <span class="n">bond_graph</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">minimum_spanning_tree</span><span class="p">(</span><span class="n">bonds</span><span class="o">.</span><span class="n">tocsr</span><span class="p">())</span>
+
+        <span class="c1"># Perform breadth first traversal from the root of the component</span>
+        <span class="c1"># to generate the kinematic tree.</span>
+        <span class="n">ids</span><span class="p">,</span> <span class="n">preds</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">breadth_first_order</span><span class="p">(</span>
+            <span class="n">bond_graph</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">return_predecessors</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        <span class="n">parents</span> <span class="o">=</span> <span class="n">preds</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">parents</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span>
+        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ids</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span> <span class="n">parents</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KinematicBuilder.append_connected_component"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.append_connected_component">[docs]</a>    <span class="nd">@convert_args</span>
+    <span class="k">def</span> <span class="nf">append_connected_component</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ids</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:],</span>
+            <span class="n">parent_ids</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:],</span>
+            <span class="n">component_parent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">ids</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">parent_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s2">&quot;elements and parents must be of same length&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;Bonded ktree must have at least three entries&quot;</span>
+        <span class="k">assert</span> <span class="n">component_parent</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kintree</span><span class="p">)</span> <span class="ow">and</span> <span class="n">component_parent</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># Assert that there is single connected component?</span>
+
+        <span class="c1"># Root node is self-parented for the purpose of verifying the</span>
+        <span class="c1"># connected component tree structure, will be rewritten with jump to</span>
+        <span class="c1"># the component root frame.</span>
+        <span class="n">parent_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Create an index of all component ids in the graph and get component</span>
+        <span class="c1"># parent and parent-parent indices</span>
+        <span class="n">id_index</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+        <span class="n">parent_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">id_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">parent_ids</span><span class="p">))</span>
+        <span class="n">grandparent_indices</span> <span class="o">=</span> <span class="n">parent_indices</span><span class="p">[</span><span class="n">parent_indices</span><span class="p">]</span>
+
+        <span class="c1"># Verify that ids are unique and that all parent references are valid,</span>
+        <span class="c1"># get_indexer returns -1 if a target value is not present in index.</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">id_index</span><span class="o">.</span><span class="n">has_duplicates</span><span class="p">,</span> <span class="s2">&quot;Duplicated id in component&quot;</span>
+        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">parent_indices</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+                         <span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Parent id not present in component.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Allocate entries for the new subtree and store the provided ids in</span>
+        <span class="c1"># the kintree id column. All internal kintree references,</span>
+        <span class="c1"># (parent/frame) will be wrt kinetree indices, not ids.</span>
+        <span class="n">kin_stree</span> <span class="o">=</span> <span class="n">KinTree</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">id</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">ids</span>
+
+        <span class="c1"># Calculate the start index of the kinematic tree block this new</span>
+        <span class="c1"># subtree will occupy, construct all parent &amp; frame references wrt this</span>
+        <span class="c1"># start index.</span>
+        <span class="n">kin_start</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kintree</span><span class="p">)</span>
+
+        <span class="c1"># Start by writing the the standard, non-root entries of the graph.</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">doftype</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">bond</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">parent</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">parent_indices</span> <span class="o">+</span> <span class="n">kin_start</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_x</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span> <span class="o">+</span> <span class="n">kin_start</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_y</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">parent_indices</span> <span class="o">+</span> <span class="n">kin_start</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_z</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">grandparent_indices</span> <span class="o">+</span> <span class="n">kin_start</span>
+
+        <span class="c1"># Go back and rewrite the entries for the root and its children</span>
+        <span class="c1"># Define the jump DOF of the root, connecting back into existing kintree</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">doftype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">jump</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">component_parent</span>
+
+        <span class="c1"># Fixup the orientation frame frame of the root and its children.</span>
+        <span class="c1"># The rootis self-parented at zero, so drop the first match.</span>
+        <span class="n">root</span><span class="p">,</span> <span class="o">*</span><span class="n">root_children</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">parent_indices</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span>
+            <span class="n">root_children</span>
+        <span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;root of bonded tree must have two children&quot;</span>
+        <span class="k">assert</span> <span class="n">root</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;root must be self parented, was set above&quot;</span>
+        <span class="n">root_c1</span><span class="p">,</span> <span class="o">*</span><span class="n">root_sibs</span> <span class="o">=</span> <span class="n">root_children</span>
+        <span class="n">root_sibs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">root_sibs</span><span class="p">)</span>
+
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_x</span><span class="p">[[</span><span class="n">root</span><span class="p">,</span> <span class="n">root_c1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">root_c1</span> <span class="o">+</span> <span class="n">kin_start</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_y</span><span class="p">[[</span><span class="n">root</span><span class="p">,</span> <span class="n">root_c1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">root</span> <span class="o">+</span> <span class="n">kin_start</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_z</span><span class="p">[[</span><span class="n">root</span><span class="p">,</span> <span class="n">root_c1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">first</span><span class="p">(</span><span class="n">root_sibs</span><span class="p">)</span> <span class="o">+</span> <span class="n">kin_start</span>
+
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_x</span><span class="p">[</span><span class="n">root_sibs</span><span class="p">]</span> <span class="o">=</span> <span class="n">root_sibs</span> <span class="o">+</span> <span class="n">kin_start</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_y</span><span class="p">[</span><span class="n">root_sibs</span><span class="p">]</span> <span class="o">=</span> <span class="n">root</span> <span class="o">+</span> <span class="n">kin_start</span>
+        <span class="n">kin_stree</span><span class="o">.</span><span class="n">frame_z</span><span class="p">[</span><span class="n">root_sibs</span><span class="p">]</span> <span class="o">=</span> <span class="n">root_c1</span> <span class="o">+</span> <span class="n">kin_start</span>
+
+        <span class="c1"># Append the subtree onto the kintree.</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kintree</span><span class="o">=</span><span class="n">cat</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">kintree</span><span class="p">,</span> <span class="n">kin_stree</span><span class="p">)))</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

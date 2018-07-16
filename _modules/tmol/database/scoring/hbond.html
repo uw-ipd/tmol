@@ -1,0 +1,311 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.database.scoring.hbond &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../database.html">tmol.database</a> &raquo;</li>
+        
+          <li><a href="../scoring.html">tmol.database.scoring</a> &raquo;</li>
+        
+      <li>tmol.database.scoring.hbond</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.database.scoring.hbond</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">import</span> <span class="nn">cattr</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span>
+
+
+<div class="viewcode-block" id="GlobalParams"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.GlobalParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">GlobalParams</span><span class="p">:</span>
+    <span class="n">hb_sp2_range_span</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">hb_sp2_BAH180_rise</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">hb_sp2_outer_width</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">hb_sp3_softmax_fade</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">threshold_distance</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="DonorAtoms"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.DonorAtoms">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DonorAtoms</span><span class="p">:</span>
+    <span class="n">d</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">h</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">donor_type</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+<div class="viewcode-block" id="AcceptorAtoms"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.AcceptorAtoms">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">AcceptorAtoms</span><span class="p">:</span>
+    <span class="n">a</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">b</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">b0</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">acceptor_type</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+<div class="viewcode-block" id="AtomGroups"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.AtomGroups">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">AtomGroups</span><span class="p">:</span>
+    <span class="n">donors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DonorAtoms</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">sp2_acceptors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorAtoms</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">sp3_acceptors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorAtoms</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">ring_acceptors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorAtoms</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="HbondWeights"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HbondWeights">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">HbondWeights</span><span class="p">:</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="PolynomialParameters"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.PolynomialParameters">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PolynomialParameters</span><span class="p">:</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">dimension</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">xmin</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">xmax</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">min_val</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">max_val</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">degree</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">c_a</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_b</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_c</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_d</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_e</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_f</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_g</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_h</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_i</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_j</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">c_k</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="PairParameters"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.PairParameters">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PairParameters</span><span class="p">:</span>
+    <span class="n">don_chem_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">acc_chem_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">AHdist</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">cosBAH</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">cosAHD</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+<div class="viewcode-block" id="HBondDatabase"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">HBondDatabase</span><span class="p">:</span>
+    <span class="n">global_parameters</span><span class="p">:</span> <span class="n">GlobalParams</span>
+    <span class="n">atom_groups</span><span class="p">:</span> <span class="n">AtomGroups</span>
+    <span class="n">don_weights</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">HbondWeights</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">acc_weights</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">HbondWeights</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">polynomial_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PolynomialParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">pair_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PairParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+<div class="viewcode-block" id="HBondDatabase.from_file"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

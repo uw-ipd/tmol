@@ -1,0 +1,554 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.datatypes &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.kinematics.metadata" href="tmol.kinematics.metadata.html" />
+    <link rel="prev" title="tmol.kinematics.builder" href="tmol.kinematics.builder.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.kinematics.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.kinematics.datatypes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.kinematics.html">tmol.kinematics</a> &raquo;</li>
+        
+      <li>tmol.kinematics.datatypes</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.kinematics.datatypes.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.kinematics.datatypes">
+<span id="tmol-kinematics-datatypes"></span><h1>tmol.kinematics.datatypes<a class="headerlink" href="#module-tmol.kinematics.datatypes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.datatypes.BondDOF" title="tmol.kinematics.datatypes.BondDOF"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BondDOF</span></code></a></td>
+<td>A bond dof view of KinDOF.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.datatypes.BondDOFTypes" title="tmol.kinematics.datatypes.BondDOFTypes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BondDOFTypes</span></code></a></td>
+<td>Indices of bond dof types within KinDOF.raw.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.datatypes.JumpDOF" title="tmol.kinematics.datatypes.JumpDOF"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JumpDOF</span></code></a></td>
+<td>A jump dof view of KinDOF.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.datatypes.JumpDOFTypes" title="tmol.kinematics.datatypes.JumpDOFTypes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JumpDOFTypes</span></code></a></td>
+<td>Indices of jump dof types within KinDOF.raw.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.datatypes.KinDOF" title="tmol.kinematics.datatypes.KinDOF"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KinDOF</span></code></a></td>
+<td>Internal coordinate data.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.datatypes.KinTree" title="tmol.kinematics.datatypes.KinTree"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KinTree</span></code></a></td>
+<td>Atom-level kinematic description.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.datatypes.NodeType" title="tmol.kinematics.datatypes.NodeType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NodeType</span></code></a></td>
+<td>KinTree node types.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tmol.kinematics.datatypes.NodeType">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.datatypes.</code><code class="descname">NodeType</code><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#NodeType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.NodeType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
+<p>KinTree node types.</p>
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.NodeType.root">
+<code class="descname">root</code><em class="property"> = 0</em><a class="headerlink" href="#tmol.kinematics.datatypes.NodeType.root" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.NodeType.jump">
+<code class="descname">jump</code><em class="property"> = 1</em><a class="headerlink" href="#tmol.kinematics.datatypes.NodeType.jump" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.NodeType.bond">
+<code class="descname">bond</code><em class="property"> = 2</em><a class="headerlink" href="#tmol.kinematics.datatypes.NodeType.bond" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.datatypes.KinTree">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.datatypes.</code><code class="descname">KinTree</code><span class="sig-paren">(</span><em>id: Tensor(torch.int64)[...], doftype: Tensor(torch.int32)[...], parent: Tensor(torch.int64)[...], frame_x: Tensor(torch.int64)[...], frame_y: Tensor(torch.int64)[...], frame_z: Tensor(torch.int64)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinTree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.KinTree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ConvertAttrs" title="tmol.types.attrs.ConvertAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ConvertAttrs</span></code></a></p>
+<p>Atom-level kinematic description.</p>
+<p>A kinematic description of collection of atom locations, each atom location
+corresponding to a node within a tree. The tree is <em>rooted</em> at a single
+“root” node, representing the global reference frame. Every other node
+corresponds to a derived orientation, which an atomic coordinate at the
+center of the frame.</p>
+<p>Each node is the tree is connected by one of two “node types”:</p>
+<p>1) Jump nodes, representing an arbitrary rigid body transform between two
+reference frames via six degrees of freedom, 3 translational and
+3 rotational.</p>
+<p>2) Bond nodes, representing the relationships between two atom reference
+frames via <a href="#id1"><span class="problematic" id="id2">*</span></a>three bond degrees of freedom, bond axis translation, bond axis
+rotation and change of bond axis with respect to the upstream bond.</p>
+<p>The <a class="reference internal" href="#tmol.kinematics.datatypes.KinTree" title="tmol.kinematics.datatypes.KinTree"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinTree</span></code></a> data structure itself is frozen and can not be modified post
+construction. The <a class="reference internal" href="tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder" title="tmol.kinematics.builder.KinematicBuilder"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinematicBuilder</span></code></a> factory class is responsible for
+construction of a <a class="reference internal" href="#tmol.kinematics.datatypes.KinTree" title="tmol.kinematics.datatypes.KinTree"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinTree</span></code></a> with valid internal structure for atomic
+system.</p>
+<dl class="docutils">
+<dt>Indices:</dt>
+<dd>id = index for kin-atom in the target coordinate system
+parent = kin-atom index of parent for each kin-atom
+frame_x = kin-atom index of self
+frame_y = kin-atom index of parent
+frame_z = kin-atom index of grandparent</dd>
+</dl>
+<dl class="classmethod">
+<dt id="tmol.kinematics.datatypes.KinTree.node">
+<em class="property">classmethod </em><code class="descname">node</code><span class="sig-paren">(</span><em>id: int</em>, <em>doftype: tmol.kinematics.datatypes.NodeType</em>, <em>parent: int</em>, <em>frame_x: int</em>, <em>frame_y: int</em>, <em>frame_z: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinTree.node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.KinTree.node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a single node from element values.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.kinematics.datatypes.KinTree.root_node">
+<em class="property">classmethod </em><code class="descname">root_node</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinTree.root_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.KinTree.root_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>The global/root kinematic node at KinTree[0].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.datatypes.KinDOF">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.datatypes.</code><code class="descname">KinDOF</code><span class="sig-paren">(</span><em>raw: Tensor(torch.float64)[...,9]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinDOF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.KinDOF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ConvertAttrs" title="tmol.types.attrs.ConvertAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ConvertAttrs</span></code></a></p>
+<p>Internal coordinate data.</p>
+<p>The KinDOF data structure holds two logical views: the “raw” view a
+sparsely populated [n,9] tensor of DOF values and a set of named property
+accessors providing access to specific entries within this array. This is
+logically equivalent a C union datatype, the interpretation of an entry in
+the DOF buffer depends on the type of the corresponding KinTree entry.</p>
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.KinDOF.raw">
+<code class="descname">raw</code><a class="headerlink" href="#tmol.kinematics.datatypes.KinDOF.raw" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.KinDOF.bond">
+<code class="descname">bond</code><a class="headerlink" href="#tmol.kinematics.datatypes.KinDOF.bond" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.KinDOF.jump">
+<code class="descname">jump</code><a class="headerlink" href="#tmol.kinematics.datatypes.KinDOF.jump" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tmol.kinematics.datatypes.KinDOF.clone">
+<code class="descname">clone</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinDOF.clone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.KinDOF.clone" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.datatypes.BondDOFTypes">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.datatypes.</code><code class="descname">BondDOFTypes</code><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#BondDOFTypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOFTypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
+<p>Indices of bond dof types within KinDOF.raw.</p>
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOFTypes.phi_p">
+<code class="descname">phi_p</code><em class="property"> = 0</em><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOFTypes.phi_p" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOFTypes.theta">
+<code class="descname">theta</code><em class="property"> = 1</em><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOFTypes.theta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOFTypes.d">
+<code class="descname">d</code><em class="property"> = 2</em><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOFTypes.d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOFTypes.phi_c">
+<code class="descname">phi_c</code><em class="property"> = 3</em><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOFTypes.phi_c" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.datatypes.</code><code class="descname">JumpDOFTypes</code><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#JumpDOFTypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
+<p>Indices of jump dof types within KinDOF.raw.</p>
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBx">
+<code class="descname">RBx</code><em class="property"> = 0</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBy">
+<code class="descname">RBy</code><em class="property"> = 1</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBz">
+<code class="descname">RBz</code><em class="property"> = 2</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBz" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBdel_alpha">
+<code class="descname">RBdel_alpha</code><em class="property"> = 3</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBdel_alpha" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBdel_beta">
+<code class="descname">RBdel_beta</code><em class="property"> = 4</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBdel_beta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBdel_gamma">
+<code class="descname">RBdel_gamma</code><em class="property"> = 5</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBdel_gamma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBalpha">
+<code class="descname">RBalpha</code><em class="property"> = 6</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBalpha" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBbeta">
+<code class="descname">RBbeta</code><em class="property"> = 7</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBbeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOFTypes.RBgamma">
+<code class="descname">RBgamma</code><em class="property"> = 8</em><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOFTypes.RBgamma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.datatypes.BondDOF">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.datatypes.</code><code class="descname">BondDOF</code><span class="sig-paren">(</span><em>raw: Tensor(torch.float64)[...,4]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#BondDOF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ConvertAttrs" title="tmol.types.attrs.ConvertAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ConvertAttrs</span></code></a></p>
+<p>A bond dof view of KinDOF.</p>
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOF.raw">
+<code class="descname">raw</code><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOF.raw" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOF.phi_p">
+<code class="descname">phi_p</code><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOF.phi_p" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOF.theta">
+<code class="descname">theta</code><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOF.theta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOF.d">
+<code class="descname">d</code><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOF.d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.BondDOF.phi_c">
+<code class="descname">phi_c</code><a class="headerlink" href="#tmol.kinematics.datatypes.BondDOF.phi_c" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.datatypes.JumpDOF">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.datatypes.</code><code class="descname">JumpDOF</code><span class="sig-paren">(</span><em>raw: Tensor(torch.float64)[...,9]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#JumpDOF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ConvertAttrs" title="tmol.types.attrs.ConvertAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ConvertAttrs</span></code></a></p>
+<p>A jump dof view of KinDOF.</p>
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.raw">
+<code class="descname">raw</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.raw" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBx">
+<code class="descname">RBx</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBy">
+<code class="descname">RBy</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBz">
+<code class="descname">RBz</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBz" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBdel_alpha">
+<code class="descname">RBdel_alpha</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBdel_alpha" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBdel_beta">
+<code class="descname">RBdel_beta</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBdel_beta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBdel_gamma">
+<code class="descname">RBdel_gamma</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBdel_gamma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBalpha">
+<code class="descname">RBalpha</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBalpha" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBbeta">
+<code class="descname">RBbeta</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBbeta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.datatypes.JumpDOF.RBgamma">
+<code class="descname">RBgamma</code><a class="headerlink" href="#tmol.kinematics.datatypes.JumpDOF.RBgamma" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.kinematics.metadata.html" class="btn btn-neutral float-right" title="tmol.kinematics.metadata" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.kinematics.builder.html" class="btn btn-neutral" title="tmol.kinematics.builder" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

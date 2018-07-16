@@ -1,0 +1,431 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.io.pdb_parsing &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.io.pdb_parsing</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.io.pdb_parsing</h1><div class="highlight"><pre>
+<span></span><span class="c1"># flake8: noqa: E2</span>
+<span class="sd">&quot;&quot;&quot;Utility functions for converting pdb files to/from atom records.</span>
+
+<span class="sd">Atom records are DataFrames with the records:</span>
+
+<span class="sd">    &quot;model&quot;       : Integer model number</span>
+<span class="sd">    &quot;model_name&quot;  : String model name</span>
+<span class="sd">    &quot;record_name&quot; : PDB record name, assumed to be &#39;ATOM&#39;</span>
+<span class="sd">    &quot;atomi&quot;       : (Below) As per PDB spec, whitespace trimmed strings and parsed numeric values</span>
+<span class="sd">    &quot;atomn&quot;</span>
+<span class="sd">    &quot;location&quot;</span>
+<span class="sd">    &quot;resn&quot;</span>
+<span class="sd">    &quot;chain&quot;</span>
+<span class="sd">    &quot;resi&quot;</span>
+<span class="sd">    &quot;insert&quot;</span>
+<span class="sd">    &quot;x&quot;</span>
+<span class="sd">    &quot;y&quot;</span>
+<span class="sd">    &quot;z&quot;</span>
+<span class="sd">    &quot;occupancy&quot;</span>
+<span class="sd">    &quot;b&quot;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">from</span> <span class="nn">os</span> <span class="k">import</span> <span class="n">path</span>
+
+<span class="n">atom_record_dtype</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+    <span class="p">(</span><span class="s2">&quot;record_name&quot;</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;modeli&quot;</span><span class="p">,</span>      <span class="n">numpy</span><span class="o">.</span><span class="n">int</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;chaini&quot;</span><span class="p">,</span>      <span class="n">numpy</span><span class="o">.</span><span class="n">int</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;resi&quot;</span><span class="p">,</span>        <span class="n">numpy</span><span class="o">.</span><span class="n">int</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;atomi&quot;</span><span class="p">,</span>       <span class="n">numpy</span><span class="o">.</span><span class="n">int</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span>       <span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;chain&quot;</span><span class="p">,</span>       <span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;resn&quot;</span><span class="p">,</span>        <span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;atomn&quot;</span><span class="p">,</span>       <span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span>           <span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span>           <span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">,</span>           <span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;location&quot;</span><span class="p">,</span>    <span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;insert&quot;</span><span class="p">,</span>      <span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;occupancy&quot;</span><span class="p">,</span>   <span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;b&quot;</span><span class="p">,</span>           <span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+<span class="p">])</span>  <span class="c1"># yapf: disable</span>
+
+
+<div class="viewcode-block" id="parse_pdb"><a class="viewcode-back" href="../../../apidoc/tmol.io.pdb_parsing.html#tmol.io.pdb_parsing.parse_pdb">[docs]</a><span class="k">def</span> <span class="nf">parse_pdb</span><span class="p">(</span><span class="n">pdb_lines</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parses pdb file into atom records.</span>
+
+<span class="sd">    pdb_lines : Iterable lines, a string filename, or a string of lines in PDB format.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pdb_lines</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pdb_lines</span><span class="p">):</span>
+            <span class="c1"># Open files by default</span>
+            <span class="n">pdb_lines</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">pdb_lines</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Split single strings by line</span>
+            <span class="n">pdb_lines</span> <span class="o">=</span> <span class="n">pdb_lines</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">model_name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">atom_lines</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">chain_breaks</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">model_breaks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">model_names</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Accumulate atom lines, flagging model/chain breaks on the</span>
+    <span class="c1"># last atom of the model/chain</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">pdb_lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;MODEL&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">model_breaks</span><span class="p">:</span>
+                <span class="n">model_breaks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">chain_breaks</span><span class="p">:</span>
+                <span class="n">chain_breaks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">model_name</span> <span class="o">=</span> <span class="n">l</span><span class="p">[</span><span class="mi">6</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">l</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;TER&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">chain_breaks</span><span class="p">:</span>
+                <span class="n">chain_breaks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">l</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ATOM  &quot;</span><span class="p">):</span>
+            <span class="n">atom_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+
+            <span class="n">chain_breaks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+            <span class="n">model_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
+            <span class="n">model_breaks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">entries</span> <span class="o">=</span> <span class="n">parse_atom_lines</span><span class="p">(</span><span class="n">atom_lines</span><span class="p">)</span>
+
+    <span class="c1"># Mark additional breaks if the chain code changes.</span>
+    <span class="n">chain_breaks</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">chain_breaks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">chain_breaks</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">entries</span><span class="p">[</span><span class="s2">&quot;chain&quot;</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">entries</span><span class="p">[</span><span class="s2">&quot;chain&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">model_breaks</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">model_breaks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">end_flags_to_segment_idx</span><span class="p">(</span><span class="n">end_flags</span><span class="p">):</span>
+        <span class="n">starts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">end_flags</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">starts</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">end_flags</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">starts</span><span class="p">)</span>
+
+    <span class="n">entries</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_names</span>
+    <span class="n">entries</span><span class="p">[</span><span class="s2">&quot;modeli&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_flags_to_segment_idx</span><span class="p">(</span><span class="n">model_breaks</span><span class="p">)</span>
+    <span class="n">entries</span><span class="p">[</span><span class="s2">&quot;chaini&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_flags_to_segment_idx</span><span class="p">(</span><span class="n">chain_breaks</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_atom_lines"><a class="viewcode-back" href="../../../apidoc/tmol.io.pdb_parsing.html#tmol.io.pdb_parsing.parse_atom_lines">[docs]</a><span class="k">def</span> <span class="nf">parse_atom_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Parses an array of pdb ATOM records into a dict of field arrays.</span>
+
+<span class="sd">    1 -  6         Record name     &quot;ATOM  &quot;</span>
+<span class="sd">    7 - 11         Integer         Atom serial number.</span>
+<span class="sd">    13 - 16        Atom            Atom name.</span>
+<span class="sd">    17             Character       Alternate location indicator.</span>
+<span class="sd">    18 - 20        Residue name    Residue name.</span>
+<span class="sd">    22             Character       Chain identifier.</span>
+<span class="sd">    23 - 26        Integer         Residue sequence number.</span>
+<span class="sd">    27             AChar           Code for insertion of residues.</span>
+<span class="sd">    31 - 38        Real(8.3)       Orthogonal coordinates for X in Angstroms.</span>
+<span class="sd">    39 - 46        Real(8.3)       Orthogonal coordinates for Y in Angstroms.</span>
+<span class="sd">    47 - 54        Real(8.3)       Orthogonal coordinates for Z in Angstroms.</span>
+<span class="sd">    55 - 60        Real(6.2)       Occupancy.</span>
+<span class="sd">    61 - 66        Real(6.2)       Temperature factor (Default = 0.0).</span>
+<span class="sd">    73 - 76        LString(4)      Segment identifier, left-justified.</span>
+<span class="sd">    77 - 78        LString(2)      Element symbol, right-justified.</span>
+<span class="sd">    79 - 80        LString(2)      Charge on the atom.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">atom_record_dtype</span><span class="p">)</span>
+    <span class="c1">#  yapf: disable</span>
+
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;record_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">6</span><span class="p">])</span>           <span class="p">,</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;atomi&quot;</span><span class="p">]</span>       <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">11</span><span class="p">])</span>       <span class="p">,</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="c1"># atomn are directly compared in modeling software, specifically rosetta, without</span>
+    <span class="c1"># stripping whitespace, however most users use whitespace-insensitive comparisons</span>
+    <span class="c1">#</span>
+    <span class="c1"># atomn will be reformatted to pdb standard during output</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;atomn&quot;</span><span class="p">]</span>       <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">12</span><span class="p">:</span><span class="mi">16</span><span class="p">]),</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">]</span>    <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">16</span><span class="p">:</span><span class="mi">17</span><span class="p">]),</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;resn&quot;</span><span class="p">]</span>        <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">17</span><span class="p">:</span><span class="mi">20</span><span class="p">]),</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;chain&quot;</span><span class="p">]</span>       <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">21</span><span class="p">:</span><span class="mi">22</span><span class="p">]),</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;resi&quot;</span><span class="p">]</span>        <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">22</span><span class="p">:</span><span class="mi">26</span><span class="p">])</span>      <span class="p">,</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;insert&quot;</span><span class="p">]</span>      <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">26</span><span class="p">:</span><span class="mi">27</span><span class="p">]),</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">str</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span>           <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">30</span><span class="p">:</span><span class="mi">38</span><span class="p">])</span>    <span class="p">,</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span>           <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">38</span><span class="p">:</span><span class="mi">46</span><span class="p">])</span>    <span class="p">,</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span>           <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">46</span><span class="p">:</span><span class="mi">54</span><span class="p">])</span>    <span class="p">,</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;occupancy&quot;</span><span class="p">]</span>   <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">54</span><span class="p">:</span><span class="mi">60</span><span class="p">])</span>    <span class="p">,</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span>           <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">60</span><span class="p">:</span><span class="mi">66</span><span class="p">])</span>    <span class="p">,</span> <span class="n">otypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">])(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="c1"># results[&quot;segi&quot;]       = numpy.vectorize(lambda s: str.strip(s[72:76]), otypes = [numpy.str])(lines)</span>
+    <span class="c1"># results[&quot;element&quot;]    = numpy.vectorize(lambda s: str.strip(s[76:78]), otypes = [numpy.str])(lines)</span>
+    <span class="c1"># results[&quot;charge&quot;]     = numpy.vectorize(lambda s: float(s[78:80]), otypes     = [numpy.float])(lines)</span>
+    <span class="c1">#  yapf: enable</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+<div class="viewcode-block" id="to_pdb"><a class="viewcode-back" href="../../../apidoc/tmol.io.pdb_parsing.html#tmol.io.pdb_parsing.to_pdb">[docs]</a><span class="k">def</span> <span class="nf">to_pdb</span><span class="p">(</span><span class="n">atom_records</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Atom record DataFrame as pdb text.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">to_pdb_lines</span><span class="p">(</span><span class="n">atom_records</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="format_atomn"><a class="viewcode-back" href="../../../apidoc/tmol.io.pdb_parsing.html#tmol.io.pdb_parsing.format_atomn">[docs]</a><span class="k">def</span> <span class="nf">format_atomn</span><span class="p">(</span><span class="n">atomn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Formats atomn via pdb standard.</span>
+
+<span class="sd">    If atomn is a single-letter element (N, C, O, S, H), then printed atomn record of the the format &#39; {atomn:&lt;3}&#39;, else of the format &#39;{atomn:&lt;4}&#39;&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">atomn</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="s2">&quot;C&quot;</span><span class="p">,</span> <span class="s2">&quot;N&quot;</span><span class="p">,</span> <span class="s2">&quot;O&quot;</span><span class="p">,</span> <span class="s2">&quot;S&quot;</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">atomn</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot; </span><span class="si">{0:&lt;3}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">atomn</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{0:&lt;4}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">atomn</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="to_pdb_lines"><a class="viewcode-back" href="../../../apidoc/tmol.io.pdb_parsing.html#tmol.io.pdb_parsing.to_pdb_lines">[docs]</a><span class="k">def</span> <span class="nf">to_pdb_lines</span><span class="p">(</span><span class="n">atom_records</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Yields atom record DataFrame as pdb lines.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atom_records</span><span class="p">,</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+        <span class="n">atom_records</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">atom_records</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">records</span> <span class="ow">in</span> <span class="n">atom_records</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="s2">&quot;MODEL </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">to_atom_lines</span><span class="p">(</span><span class="n">r</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">records</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()):</span>
+            <span class="k">yield</span> <span class="n">l</span>
+
+        <span class="k">yield</span> <span class="s2">&quot;TER</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">yield</span> <span class="s2">&quot;ENDMDL</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="to_atom_lines"><a class="viewcode-back" href="../../../apidoc/tmol.io.pdb_parsing.html#tmol.io.pdb_parsing.to_atom_lines">[docs]</a><span class="k">def</span> <span class="nf">to_atom_lines</span><span class="p">(</span><span class="n">atom_records</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert atom records into ATOM lines.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">atom_records</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">_atom_record_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">atomi</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;atomi&quot;</span><span class="p">],</span>
+            <span class="n">atomn</span><span class="o">=</span><span class="n">format_atomn</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;atomn&quot;</span><span class="p">]),</span>
+            <span class="n">location</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;location&quot;</span><span class="p">],</span>
+            <span class="n">resn</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;resn&quot;</span><span class="p">],</span>
+            <span class="n">chain</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;chain&quot;</span><span class="p">],</span>
+            <span class="n">resi</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;resi&quot;</span><span class="p">],</span>
+            <span class="n">insert</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;insert&quot;</span><span class="p">],</span>
+            <span class="n">x</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span>
+            <span class="n">y</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">],</span>
+            <span class="n">z</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">],</span>
+            <span class="n">occupancy</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;occupancy&quot;</span><span class="p">],</span>
+            <span class="n">b</span><span class="o">=</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+
+<span class="n">_atom_record_format</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;ATOM  </span><span class="si">{atomi:5d}</span><span class="s2"> </span><span class="si">{atomn:^4}{location:^1}{resn:3s}</span><span class="s2"> </span><span class="si">{chain:1}{resi:4d}{insert:1s}</span><span class="s2">   &quot;</span>
+    <span class="s2">&quot;</span><span class="si">{x:8.3f}{y:8.3f}{z:8.3f}{occupancy:6.2f}{b:6.2f}</span><span class="se">\n</span><span class="s2">&quot;</span>
+<span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,413 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.utility.reactive &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../utility.html">tmol.utility</a> &raquo;</li>
+        
+      <li>tmol.utility.reactive</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.utility.reactive</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">A prototype implementation of attrs-based &quot;reactive&quot; properties.</span>
+
+<span class="sd">A containing class stores state divided into two types: &quot;standard&quot; attributes,</span>
+<span class="sd">which represent source data, and &quot;reactive&quot; properties, which are derived from</span>
+<span class="sd">other attributes and other properties.</span>
+
+<span class="sd">Reactive props are calculated dynamically via a &quot;pull&quot; model, accessing a</span>
+<span class="sd">property invokes its definition function to calculate the property value. The</span>
+<span class="sd">value is cached within the containing object and is returned, if available, on</span>
+<span class="sd">the next property access.</span>
+
+<span class="sd">The definition function may depend on a set a attrs/props in the object, bound</span>
+<span class="sd">as the input parameters of the value function. This values are bound from the</span>
+<span class="sd">object *before* value function execution. As depdencies *may* be themselves</span>
+<span class="sd">reactive, resulting in a backward traversal through reactive properties to</span>
+<span class="sd">calculate the required value. DAG-ness is not mandated, but infinite recursion</span>
+<span class="sd">will occur in the case of mutually interdependent property values. Caveat usor.</span>
+
+<span class="sd">Reative props are invalidated via a &quot;push&quot; model. Deleting or changing a</span>
+<span class="sd">property value will invalidate the store value for all declared dependent</span>
+<span class="sd">properties. These dependents may themselves have dependents, resulting in a</span>
+<span class="sd">forward traversal through reactive properties to invalidate all derived</span>
+<span class="sd">property values. This allows recalcuation when the property is next requested.</span>
+
+<span class="sd">Property invalidation may be controlled via an optional &quot;should_invalidate&quot;</span>
+<span class="sd">function, which consumes (a) the current reactive property value, (b) the name</span>
+<span class="sd">of the changed input value and (c) the updated input parameter value. This</span>
+<span class="sd">function returns True if the reactive property should be invalidated in</span>
+<span class="sd">response to the change and False if the reactive value should be preserved.</span>
+
+<span class="sd">Subclassing semantics akin to &quot;attr&quot; can be used. A superclass *may* specifiy</span>
+<span class="sd">property dependencies that are provided by a subclass. The standard MRO is used</span>
+<span class="sd">to resolve the value function for any duplicate properties.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span> <span class="nn">attr</span>
+
+
+<div class="viewcode-block" id="reactive_attrs"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive.reactive_attrs">[docs]</a><span class="k">def</span> <span class="nf">reactive_attrs</span><span class="p">(</span><span class="n">maybe_cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs_kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">wrap</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">attrs</span><span class="p">(</span><span class="n">_setup_reactive</span><span class="p">(</span><span class="bp">cls</span><span class="p">),</span> <span class="o">**</span><span class="n">attrs_kwargs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">maybe_cls</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">wrap</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">wrap</span><span class="p">(</span><span class="n">maybe_cls</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="reactive_property"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive.reactive_property">[docs]</a><span class="k">def</span> <span class="nf">reactive_property</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">should_invalidate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">prop</span> <span class="o">=</span> <span class="n">ReactiveProperty</span><span class="o">.</span><span class="n">from_function</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">prop</span><span class="o">.</span><span class="n">should_invalidate</span><span class="p">(</span><span class="n">should_invalidate</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">prop</span></div>
+
+
+<div class="viewcode-block" id="ReactiveProperty"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive.ReactiveProperty">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ReactiveProperty</span><span class="p">:</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+    <span class="n">f_value</span><span class="p">:</span> <span class="n">Callable</span>
+
+    <span class="n">_should_invalidate_check</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ReactiveProperty.should_invalidate"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive.ReactiveProperty.should_invalidate">[docs]</a>    <span class="k">def</span> <span class="nf">should_invalidate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_should_invalidate_check</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">return</span> <span class="n">f</span></div>
+
+<div class="viewcode-block" id="ReactiveProperty.from_function"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive.ReactiveProperty.from_function">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_function</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">fun</span><span class="p">):</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">fun</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;self&quot;</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Reactive property value function do not bind &#39;self&#39; parameter.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">fun</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+            <span class="n">f_value</span><span class="o">=</span><span class="n">fun</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="_setup_reactive"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive._setup_reactive">[docs]</a><span class="k">def</span> <span class="nf">_setup_reactive</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">cd</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span>
+
+    <span class="n">reactive_props</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">n</span><span class="p">:</span> <span class="n">v</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cd</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">ReactiveProperty</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">reactive_props</span><span class="p">:</span>
+        <span class="nb">delattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">super_cls</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__mro__</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>  <span class="c1"># Traverse the MRO and collect</span>
+        <span class="n">sub_props</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">super_cls</span><span class="p">,</span> <span class="s2">&quot;__reactive_props__&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sub_props</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">sub_props</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">p</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reactive_props</span><span class="p">:</span>
+                    <span class="n">reactive_props</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="n">sub_props</span><span class="p">[</span><span class="n">p</span><span class="p">]</span>
+
+    <span class="n">reactive_deps</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">reactive_props</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span>
+            <span class="n">reactive_deps</span><span class="p">[</span><span class="n">param</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="n">ReactiveValues</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">make_class</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;ReactiveValues&quot;</span><span class="p">,</span>
+        <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">reactive_props</span><span class="p">},</span>
+        <span class="n">slots</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Setup reactive property &quot;result&quot; attrs</span>
+    <span class="k">if</span> <span class="s2">&quot;__annotations__&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;__annotations__&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+    <span class="nb">setattr</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;_reactive_values&quot;</span><span class="p">,</span>
+        <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">Factory</span><span class="p">(</span><span class="n">ReactiveValues</span><span class="p">),</span>
+            <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="nb">cmp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">[</span><span class="s2">&quot;_reactive_values&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ReactiveValues</span>
+
+    <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;__reactive_props__&quot;</span><span class="p">,</span> <span class="n">reactive_props</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;__reactive_deps__&quot;</span><span class="p">,</span>
+        <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+         <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">reactive_deps</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="p">)</span>
+
+    <span class="bp">cls</span><span class="o">.</span><span class="fm">__getattr__</span> <span class="o">=</span> <span class="n">__reactive_getattr__</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="fm">__setattr__</span> <span class="o">=</span> <span class="n">__reactive_setattr__</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="fm">__delattr__</span> <span class="o">=</span> <span class="n">__reactive_delattr__</span>
+
+    <span class="c1">#for p in reactive_props:</span>
+    <span class="c1">#    prop_attr = attr.ib(init=False, repr=False, cmp=False, hash=False)</span>
+
+    <span class="c1">#    prop_attr_name = &quot;_&quot; + p.name</span>
+    <span class="c1">#    setattr(cls, prop_attr_name, prop_attr)</span>
+    <span class="c1">#    cls.__annotations__[prop_attr_name] = p.f_type</span>
+
+    <span class="k">return</span> <span class="bp">cls</span></div>
+
+
+<div class="viewcode-block" id="invalidate_reactive_deps"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive.invalidate_reactive_deps">[docs]</a><span class="k">def</span> <span class="nf">invalidate_reactive_deps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">n_value</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">NOTHING</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;_reactive_values&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">__reactive_deps__</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">for</span> <span class="n">dname</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">__reactive_deps__</span><span class="p">[</span><span class="n">n</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">_reactive_values</span><span class="p">,</span> <span class="n">dname</span><span class="p">):</span>
+            <span class="n">prop</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">__reactive_props__</span><span class="p">[</span><span class="n">dname</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">prop</span><span class="o">.</span><span class="n">_should_invalidate_check</span><span class="p">:</span>
+                <span class="n">current_prop</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">_reactive_values</span><span class="p">,</span> <span class="n">dname</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">prop</span><span class="o">.</span><span class="n">_should_invalidate_check</span><span class="p">(</span><span class="n">current_prop</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">n_value</span><span class="p">):</span>
+                    <span class="k">continue</span>
+
+            <span class="nb">delattr</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">_reactive_values</span><span class="p">,</span> <span class="n">dname</span><span class="p">)</span>
+            <span class="n">invalidate_reactive_deps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">dname</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">__reactive_getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="n">prop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__reactive_props__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="s2">&quot;_reactive_values&quot;</span> <span class="ow">or</span> <span class="n">prop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reactive_values</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reactive_values</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+    <span class="n">val</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">f_value</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prop</span><span class="o">.</span><span class="n">parameters</span><span class="p">))</span>
+
+    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reactive_values</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">val</span>
+
+
+<span class="k">def</span> <span class="nf">__reactive_setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+    <span class="n">invalidate_reactive_deps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">__reactive_delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="nb">object</span><span class="o">.</span><span class="fm">__delattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">invalidate_reactive_deps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

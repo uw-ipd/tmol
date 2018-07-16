@@ -1,0 +1,310 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.utility.mixins &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.utility.numba" href="tmol.utility.numba.html" />
+    <link rel="prev" title="tmol.utility.log" href="tmol.utility.log.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.utility.html">tmol.utility</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.utility.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tmol.utility.attr.html">tmol.utility.attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.utility.categorical.html">tmol.utility.categorical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.utility.log.html">tmol.utility.log</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.utility.mixins</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.utility.numba.html">tmol.utility.numba</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.utility.reactive.html">tmol.utility.reactive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.utility.units.html">tmol.utility.units</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.utility.html">tmol.utility</a> &raquo;</li>
+        
+      <li>tmol.utility.mixins</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.utility.mixins.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.utility.mixins">
+<span id="tmol-utility-mixins"></span><h1>tmol.utility.mixins<a class="headerlink" href="#module-tmol.utility.mixins" title="Permalink to this headline">¶</a></h1>
+<p>Utility functions to support mixin classes.</p>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.mixins.cooperative_superclass_factory" title="tmol.utility.mixins.cooperative_superclass_factory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cooperative_superclass_factory</span></code></a></td>
+<td>Gather class factory components from subclasses and create object.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.utility.mixins.gather_superclass_properies" title="tmol.utility.mixins.gather_superclass_properies"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gather_superclass_properies</span></code></a></td>
+<td>Gather property values from all base classes of an object.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.mixins.qualified_name" title="tmol.utility.mixins.qualified_name"><code class="xref py py-obj docutils literal notranslate"><span class="pre">qualified_name</span></code></a></td>
+<td>The fully qualified &lt;module&gt;.&lt;name&gt; for a class/function.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tmol.utility.mixins.qualified_name">
+<code class="descclassname">tmol.utility.mixins.</code><code class="descname">qualified_name</code><span class="sig-paren">(</span><em>obj: Union[typing.Type, typing.Callable]</em><span class="sig-paren">)</span> &#x2192; &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9cf46598&gt;<a class="reference internal" href="../_modules/tmol/utility/mixins.html#qualified_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.mixins.qualified_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The fully qualified &lt;module&gt;.&lt;name&gt; for a class/function.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.mixins.gather_superclass_properies">
+<code class="descclassname">tmol.utility.mixins.</code><code class="descname">gather_superclass_properies</code><span class="sig-paren">(</span><em>obj: Any</em>, <em>property_name: str</em><span class="sig-paren">)</span> &#x2192; Dict[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9cf46598&gt;, Any]<a class="reference internal" href="../_modules/tmol/utility/mixins.html#gather_superclass_properies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.mixins.gather_superclass_properies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather property values from all base classes of an object.</p>
+<p>Traverses the object’s __mro__ searching for the given property name. The
+property fget is invoked for <em>every</em> property definition and the property
+values are returned as a mapping from class name to property value.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.mixins.cooperative_superclass_factory">
+<code class="descclassname">tmol.utility.mixins.</code><code class="descname">cooperative_superclass_factory</code><span class="sig-paren">(</span><em>cls</em>, <em>factory_func_name</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/mixins.html#cooperative_superclass_factory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.mixins.cooperative_superclass_factory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather class factory components from subclasses and create object.</p>
+<p>Traverses a class __mro__ in <em>reverse</em> order accumulating __init__
+parameters via calls to class-level factory functions. Each factory
+function generates __init__ parameters by inspecting the factory function
+args, kwargs &amp; current parameters and returning a parameter dict. Params
+are accumulated from factories via <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict.update" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">dict.update</span></code></a>, making the partial
+results of param generation availabe to up-MRO factory functions.</p>
+<p>Note that the factory functions receive all current params as kwargs. In
+cases when the total class MRO is unknown a factory function should accept,
+and likely ignore, unknown kwargs. (Eg. <code class="xref any docutils literal notranslate"><span class="pre">def</span> <span class="pre">factory(cls,</span> <span class="pre">known,</span> <span class="pre">**_)</span></code>)</p>
+<p>Returns a dict of kwarg params accumulated from factory functions.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.utility.numba.html" class="btn btn-neutral float-right" title="tmol.utility.numba" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.utility.log.html" class="btn btn-neutral" title="tmol.utility.log" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

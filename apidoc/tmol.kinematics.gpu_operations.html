@@ -1,0 +1,353 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.gpu_operations &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.kinematics.gpu_operations.derivsum" href="tmol.kinematics.gpu_operations.derivsum.html" />
+    <link rel="prev" title="tmol.kinematics.cpu_operations.jit" href="tmol.kinematics.cpu_operations.jit.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.kinematics.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.kinematics.gpu_operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.kinematics.html">tmol.kinematics</a> &raquo;</li>
+        
+      <li>tmol.kinematics.gpu_operations</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.kinematics.gpu_operations.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.kinematics.gpu_operations">
+<span id="tmol-kinematics-gpu-operations"></span><h1>tmol.kinematics.gpu_operations<a class="headerlink" href="#module-tmol.kinematics.gpu_operations" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.derivsum.html">tmol.kinematics.gpu_operations.derivsum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.derivsum_jit.html">tmol.kinematics.gpu_operations.derivsum_jit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.forward.html">tmol.kinematics.gpu_operations.forward</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.forward_jit.html">tmol.kinematics.gpu_operations.forward_jit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_jit.html">tmol.kinematics.gpu_operations.scan_jit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths.html">tmol.kinematics.gpu_operations.scan_paths</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths_jit.html">tmol.kinematics.gpu_operations.scan_paths_jit</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.gpu_operations.GPUKinTreeReordering" title="tmol.kinematics.gpu_operations.GPUKinTreeReordering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GPUKinTreeReordering</span></code></a></td>
+<td>Scan plans for parallel kinematic operations.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tmol.kinematics.gpu_operations.GPUKinTreeReordering">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.gpu_operations.</code><code class="descname">GPUKinTreeReordering</code><span class="sig-paren">(</span><em>natoms: int</em>, <em>scan_paths: tmol.kinematics.gpu_operations.scan_paths.PathPartitioning</em>, <em>refold_ordering: tmol.kinematics.gpu_operations.forward.RefoldOrdering</em>, <em>derivsum_ordering: tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations.html#GPUKinTreeReordering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.GPUKinTreeReordering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
+<p>Scan plans for parallel kinematic operations.</p>
+<p>The GPUKinTreeReordering divides the tree into a set of paths. Along
+each path is a continuous chain of atoms that either (1) require their
+coordinate frames computed as a cumulative product of homogeneous
+transforms for the coordinate update algorithm, or (2) require the
+cumulative sum of their f1f2 vectors for the derivative calculation
+algorithm. In both cases, these paths can be processed efficiently
+on the GPU using an algorithm called “scan” and batches of these paths
+can be processed at once in a variant called “segmented scan.”</p>
+<p>The same set of paths is used for both the refold algorithm and
+the derivative summation; the refold algorithm starts at path
+roots and multiplies homogeneous transforms towards the leaves.
+The derivative summation algorithm starts at the leaves and sums
+upwards towards the roots.</p>
+<p>To accomplish this, the GPUKinTreeReordering class reorders the atoms from
+the original KinTree order (“ko”) where atoms are known by their
+kintree-index (“ki”) into 1) their refold order (“ro”) where atoms are
+known by their refold index (“ri”) and 2) their deriv-sum order (“dso”)
+where atoms are known by their deriv-sum index.</p>
+<p>Each scan operation is performed as a series of depth-based “generations”,
+in which the scans at generation n are <em>only</em> dependent on the results of
+scans in generations [0…n-1] inclusive. In the forward-scan generations
+are ordered from the kinematic root, and scan segments begin with a value
+derived from the result of a generation [0…n-1] scan. In the
+backward-scan generations are ordered from kinematic leaves, and scan
+segments pull summation results from multiple generation [0…n-1] scans.</p>
+<p>For further details on parallel segmented scan operations see:</p>
+<ul class="simple">
+<li>Mark Harris, “Parallel Prefix Sum with CUDA.”
+GPU Gems 3, Nvidia Corporation
+<a class="reference external" href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html">https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html</a>
+<a class="reference external" href="http://developer.download.nvidia.com/compute/cuda/2_2/sdk/website/projects/scan/doc/scan.pdf">http://developer.download.nvidia.com/compute/cuda/2_2/sdk/website/projects/scan/doc/scan.pdf</a></li>
+<li>Sengupta, Shubhabrata, et al. “Scan primitives for GPU computing.”
+Graphics hardware. Vol. 2007. 2007.
+<a class="reference external" href="http://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Sengupta07.pdf">http://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Sengupta07.pdf</a></li>
+<li>Sean Baxter, “moderngpu”
+<a class="reference external" href="http://moderngpu.github.io/moderngpu">http://moderngpu.github.io/moderngpu</a></li>
+</ul>
+<dl class="classmethod">
+<dt id="tmol.kinematics.gpu_operations.GPUKinTreeReordering.calculate_from_kintree">
+<em class="property">classmethod </em><code class="descname">calculate_from_kintree</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations.html#GPUKinTreeReordering.calculate_from_kintree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.GPUKinTreeReordering.calculate_from_kintree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup for operations over KinTree.</p>
+<p><a class="reference internal" href="tmol.score.device.html#module-tmol.score.device" title="tmol.score.device"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">device</span></code></a> for gpu array is inferred from kintree tensor device.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.kinematics.gpu_operations.GPUKinTreeReordering.for_kintree">
+<em class="property">classmethod </em><code class="descname">for_kintree</code><span class="sig-paren">(</span><em>kintree</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations.html#GPUKinTreeReordering.for_kintree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.GPUKinTreeReordering.for_kintree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate and cache refold ordering over kintree</p>
+<p>KinTree data structure is frozen; so it is safe to cache the gpu scan
+ordering for a single object. Store as a private property of the input
+kintree, lifetime of the cache will then be managed via the target
+object.
+.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.GPUKinTreeReordering.kintree_cache_key">
+<code class="descname">kintree_cache_key</code><em class="property"> = '__GPUKinTreeReordering_cache__'</em><a class="headerlink" href="#tmol.kinematics.gpu_operations.GPUKinTreeReordering.kintree_cache_key" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.kinematics.gpu_operations.derivsum.html" class="btn btn-neutral float-right" title="tmol.kinematics.gpu_operations.derivsum" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.kinematics.cpu_operations.jit.html" class="btn btn-neutral" title="tmol.kinematics.cpu_operations.jit" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

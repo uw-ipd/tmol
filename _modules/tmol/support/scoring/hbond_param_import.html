@@ -1,0 +1,558 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.support.scoring.hbond_param_import &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.support.scoring.hbond_param_import</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.support.scoring.hbond_param_import</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot; Parse and import rosetta hydrogen bond parameters.</span>
+
+<span class="sd">Manages parsing and import a subset of rosetta hydrogen bond parameters into a hydrogen bond</span>
+<span class="sd">parameter database file. Selects a minimal subset of polynomial parameters and type pair parameters</span>
+<span class="sd">to cover a specificed set of donor/acceptor types.</span>
+
+<span class="sd">Example:</span>
+
+<span class="sd">with open(&quot;sp2_elec_hbond_params.yaml&quot;, &quot;w&quot;) as outfile:</span>
+<span class="sd">    params = RosettaHBParams(</span>
+<span class="sd">        &quot;~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/&quot;)</span>
+<span class="sd">    params.to_yaml(outfile)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">import</span> <span class="nn">toolz</span>
+<span class="kn">from</span> <span class="nn">toolz.curried</span> <span class="k">import</span> <span class="n">reduce</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">IPython.lib.pretty</span>
+
+<span class="n">table_schema</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    HBondWeightType:</span>
+<span class="sd">      - id</span>
+<span class="sd">      - name</span>
+<span class="sd">      - comment</span>
+
+<span class="sd">    HBAccChemType:</span>
+<span class="sd">      - id</span>
+<span class="sd">      - name</span>
+<span class="sd">      - name_long</span>
+<span class="sd">      - comment</span>
+
+<span class="sd">    HBDonChemType:</span>
+<span class="sd">      - id</span>
+<span class="sd">      - name</span>
+<span class="sd">      - name_lon</span>
+<span class="sd">      - comment</span>
+
+<span class="sd">    HBAccHybridization:</span>
+<span class="sd">      - acc_chem_type</span>
+<span class="sd">      - hybridization</span>
+<span class="sd">      - comment</span>
+
+<span class="sd">    HBSeqSep:</span>
+<span class="sd">      - id</span>
+<span class="sd">      - name</span>
+<span class="sd">      - comment</span>
+
+<span class="sd">    HybridizationType:</span>
+<span class="sd">      - id</span>
+<span class="sd">      - name</span>
+<span class="sd">      - comment</span>
+
+<span class="sd">    HBPoly1D:</span>
+<span class="sd">      - id</span>
+<span class="sd">      - name</span>
+<span class="sd">      - classic_name</span>
+<span class="sd">      - dimension</span>
+<span class="sd">      - xmin</span>
+<span class="sd">      - xmax</span>
+<span class="sd">      - min_val</span>
+<span class="sd">      - max_val</span>
+<span class="sd">      - root1</span>
+<span class="sd">      - root2</span>
+<span class="sd">      - degree</span>
+<span class="sd">      - c_a</span>
+<span class="sd">      - c_b</span>
+<span class="sd">      - c_c</span>
+<span class="sd">      - c_d</span>
+<span class="sd">      - c_e</span>
+<span class="sd">      - c_f</span>
+<span class="sd">      - c_g</span>
+<span class="sd">      - c_h</span>
+<span class="sd">      - c_i</span>
+<span class="sd">      - c_j</span>
+<span class="sd">      - c_k</span>
+
+<span class="sd">    HBEval:</span>
+<span class="sd">      - don_chem_type</span>
+<span class="sd">      - acc_chem_type</span>
+<span class="sd">      - separation</span>
+<span class="sd">      - AHdist_short_fade</span>
+<span class="sd">      - AHdist_long_fade</span>
+<span class="sd">      - cosBAH_fade</span>
+<span class="sd">      - cosBAH2_fade</span>
+<span class="sd">      - cosAHD_fade</span>
+<span class="sd">      - chi_fade</span>
+<span class="sd">      - AHdist</span>
+<span class="sd">      - cosBAH_short</span>
+<span class="sd">      - cosBAH_long</span>
+<span class="sd">      - cosBAH2_long</span>
+<span class="sd">      - cosAHD_short</span>
+<span class="sd">      - cosAHD_long</span>
+<span class="sd">      - weight_type</span>
+<span class="sd">      - comment</span>
+
+<span class="sd">    HBFadeIntervals:</span>
+<span class="sd">      - id</span>
+<span class="sd">      - name</span>
+<span class="sd">      - junction_type</span>
+<span class="sd">      - min0</span>
+<span class="sd">      - fmin</span>
+<span class="sd">      - fmax</span>
+<span class="sd">      - max0</span>
+<span class="sd">      - comment</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="p">)</span>
+
+<span class="n">RawParams</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">make_class</span><span class="p">(</span><span class="s2">&quot;RawParams&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">table_schema</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+
+<div class="viewcode-block" id="RosettaHBParams"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
+<span class="k">class</span> <span class="nc">RosettaHBParams</span><span class="p">:</span>
+    <span class="n">target_donors</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">&#39;hbdon_PBA&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_CXA&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_IMD&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_IME&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_IND&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_AMO&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_GDE&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_GDH&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_AHX&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_HXL&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbdon_H2O&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">target_acceptors</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">&#39;hbacc_PBA&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbacc_CXA&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbacc_CXL&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbacc_IMD&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbacc_IME&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbacc_AHX&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbacc_HXL&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;hbacc_H2O&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span>
+        <span class="n">converter</span><span class="o">=</span><span class="n">toolz</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">,</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">,</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">tables</span><span class="p">:</span> <span class="n">RawParams</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="RosettaHBParams._load_tables"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_tables">[docs]</a>    <span class="nd">@tables</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">RawParams</span><span class="p">(</span><span class="o">**</span><span class="p">{</span>
+            <span class="n">t</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;</span><span class="si">{self.path}</span><span class="s2">/</span><span class="si">{t}</span><span class="s2">.csv&quot;</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">table_schema</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">table_schema</span>
+        <span class="p">})</span>  <span class="c1"># yapf:disable</span></div>
+
+    <span class="n">donor_types</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="RosettaHBParams._load_donor_types"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_donor_types">[docs]</a>    <span class="nd">@donor_types</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_donor_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">donor_table</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">pandas</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">HBDonChemType</span><span class="p">,</span>
+                <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                    <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_donors</span>
+                <span class="p">})</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;columns&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">donor_table</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_donors</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">donor_table</span></div>
+
+    <span class="n">acceptor_types</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="RosettaHBParams._load_acceptor_types"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_acceptor_types">[docs]</a>    <span class="nd">@acceptor_types</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_acceptor_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">acceptor_table</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">merge</span><span class="p">)((</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">HBAccChemType</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;id&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;columns&quot;</span><span class="p">),</span>
+            <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_acceptors</span><span class="p">}),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">HBAccHybridization</span><span class="p">[[</span><span class="s2">&quot;acc_chem_type&quot;</span><span class="p">,</span> <span class="s2">&quot;hybridization&quot;</span><span class="p">]]</span>
+                <span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;acc_chem_type&quot;</span><span class="p">:</span> <span class="s2">&quot;name&quot;</span><span class="p">}),</span>
+        <span class="p">))</span>  <span class="c1"># yapf: disable</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">acceptor_table</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_acceptors</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">acceptor_table</span></div>
+
+    <span class="n">pair_params</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="RosettaHBParams._load_pair_params"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_pair_params">[docs]</a>    <span class="nd">@pair_params</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_pair_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Cart product trick...</span>
+        <span class="c1"># target_pairs = pandas.merge(</span>
+        <span class="c1">#     self.donor_types[&quot;name&quot;].to_frame(&quot;don_chem_type&quot;).assign(idx=0),</span>
+        <span class="c1">#     self.acceptor_types[&quot;name&quot;].to_frame(&quot;acc_chem_type&quot;).assign(idx=0)</span>
+        <span class="c1"># ).drop(&quot;idx&quot;, axis=&quot;columns&quot;)</span>
+
+        <span class="n">pair_params</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">pandas</span><span class="o">.</span><span class="n">merge</span><span class="p">)((</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">HBEval</span>
+                <span class="o">.</span><span class="n">drop</span><span class="p">(</span>
+                    <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;fade&quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">HBEval</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span>
+                    <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;columns&quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;weight_type&quot;</span><span class="p">,</span> <span class="s2">&quot;separation&quot;</span><span class="p">,</span> <span class="s2">&quot;comment&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;columns&quot;</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">donor_types</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;don_chem_type&quot;</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">acceptor_types</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;acc_chem_type&quot;</span><span class="p">),</span>
+        <span class="p">))</span>  <span class="c1"># yapf: disable</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">pair_params</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s2">&quot;don_chem_type&quot;</span><span class="p">,</span> <span class="s2">&quot;acc_chem_type&quot;</span><span class="p">]))</span> <span class="o">==</span> \
+               <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_acceptors</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_donors</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pair_params</span></div>
+
+    <span class="n">polynomial_parameters</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="RosettaHBParams._load_polynomial_params"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_polynomial_params">[docs]</a>    <span class="nd">@polynomial_parameters</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_polynomial_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">term_names</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;AHdist&quot;</span><span class="p">,</span> <span class="s2">&quot;cosBAH_short&quot;</span><span class="p">,</span> <span class="s2">&quot;cosBAH_long&quot;</span><span class="p">,</span> <span class="s2">&quot;cosBAH2_long&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;cosAHD_short&quot;</span><span class="p">,</span> <span class="s2">&quot;cosAHD_long&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">poly_names</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">)(</span>
+            <span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pair_params</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">term_names</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">poly_param_table</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="o">.</span><span class="n">HBPoly1D</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;classic_name&quot;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;columns&quot;</span><span class="p">),</span>
+            <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">poly_names</span><span class="p">)</span>
+            <span class="p">})</span>
+        <span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">term_names</span><span class="p">:</span>
+            <span class="n">merged</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pair_params</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">),</span> <span class="n">poly_param_table</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">merged</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pair_params</span><span class="p">[</span><span class="n">c</span><span class="p">]),</span> \
+                <span class="n">f</span><span class="s2">&quot;Missing poly parameter set: </span><span class="si">{c}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="n">poly_param_table</span></div>
+
+<div class="viewcode-block" id="RosettaHBParams.to_yaml"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams.to_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">to_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outfile</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">outfile</span><span class="p">:</span>
+            <span class="n">obuf</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+
+            <span class="n">p</span> <span class="o">=</span> <span class="n">IPython</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">pretty</span><span class="o">.</span><span class="n">PrettyPrinter</span><span class="p">(</span>
+                <span class="n">output</span><span class="o">=</span><span class="n">obuf</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e6</span><span class="p">),</span> <span class="n">max_seq_length</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e6</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">IPython</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">pretty</span><span class="o">.</span><span class="n">PrettyPrinter</span><span class="p">(</span>
+                <span class="n">output</span><span class="o">=</span><span class="n">outfile</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e6</span><span class="p">),</span> <span class="n">max_seq_length</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e6</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">break_</span><span class="p">()</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;chemical_types:&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="p">):</span>
+            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;donors:&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">donor_types</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                    <span class="n">_</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;- </span><span class="si">{d[&#39;name&#39;]}</span><span class="s2"> #</span><span class="si">{d[&#39;comment&#39;]}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;sp2_acceptors:&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptor_types</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                        <span class="s2">&quot;hybridization == &#39;SP2_HYBRID&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                    <span class="n">_</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;- </span><span class="si">{a[&#39;name&#39;]}</span><span class="s2"> #</span><span class="si">{a[&#39;comment&#39;]}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;sp3_acceptors:&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptor_types</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                        <span class="s2">&quot;hybridization == &#39;SP3_HYBRID&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                    <span class="n">_</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;- </span><span class="si">{a[&#39;name&#39;]}</span><span class="s2"> #</span><span class="si">{a[&#39;comment&#39;]}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="n">_</span><span class="p">(</span><span class="s2">&quot;ring_acceptors:&quot;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">acceptor_types</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+                        <span class="s2">&quot;hybridization == &#39;RING_HYBRID&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+                    <span class="n">_</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;- </span><span class="si">{a[&#39;name&#39;]}</span><span class="s2"> #</span><span class="si">{a[&#39;comment&#39;]}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;polynomial_parameters:&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">polynomial_parameters</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s2">&quot;records&quot;</span><span class="p">):</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">break_</span><span class="p">()</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;- {&quot;</span><span class="p">)</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+                    <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">f</span><span class="s2">&quot;</span><span class="si">{c}</span><span class="s2">: </span><span class="si">{r[c]}</span><span class="s2">&quot;</span>
+                        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">polynomial_parameters</span><span class="o">.</span><span class="n">columns</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">)</span>
+
+        <span class="n">_</span><span class="p">(</span><span class="s2">&quot;pair_parameters:&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pair_params</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s2">&quot;records&quot;</span><span class="p">):</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">break_</span><span class="p">()</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;- {&quot;</span><span class="p">)</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span>
+                    <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">f</span><span class="s2">&quot;</span><span class="si">{c}</span><span class="s2">: </span><span class="si">{r[c]}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pair_params</span><span class="o">.</span><span class="n">columns</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s2">&quot;}&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">outfile</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">obuf</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<span class="n">basetype_for_dtype</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;O&quot;</span><span class="p">):</span> <span class="s2">&quot;str&quot;</span><span class="p">,</span>
+    <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;int64&quot;</span><span class="p">):</span> <span class="s2">&quot;int&quot;</span><span class="p">,</span>
+    <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s2">&quot;float64&quot;</span><span class="p">):</span> <span class="s2">&quot;float&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="attrs_for_dtypes"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.attrs_for_dtypes">[docs]</a><span class="k">def</span> <span class="nf">attrs_for_dtypes</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">):</span>
+    <span class="n">obuf</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">IPython</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">pretty</span><span class="o">.</span><span class="n">PrettyPrinter</span><span class="p">(</span>
+        <span class="n">output</span><span class="o">=</span><span class="n">obuf</span><span class="p">,</span> <span class="n">max_width</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e6</span><span class="p">),</span> <span class="n">max_seq_length</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="mf">1e6</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="s1">&#39;@attr.s(auto_attribs=True, slots=True, frozen=True)&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">break_</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;class </span><span class="si">{name}</span><span class="s2">:&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">break_</span><span class="p">()</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;</span><span class="si">{n}</span><span class="s2">: </span><span class="si">{basetype_for_dtype[v]}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">obuf</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

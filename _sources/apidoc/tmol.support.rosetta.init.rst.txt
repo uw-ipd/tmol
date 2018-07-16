@@ -1,0 +1,7 @@
+tmol.support.rosetta.init module
+================================
+
+.. automodule:: tmol.support.rosetta.init
+    :members:
+    :undoc-members:
+    :show-inheritance:

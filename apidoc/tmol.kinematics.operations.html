@@ -1,0 +1,516 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.operations &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.kinematics.torch_op" href="tmol.kinematics.torch_op.html" />
+    <link rel="prev" title="tmol.kinematics.metadata" href="tmol.kinematics.metadata.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.kinematics.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.kinematics.operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.kinematics.html">tmol.kinematics</a> &raquo;</li>
+        
+      <li>tmol.kinematics.operations</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.kinematics.operations.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.kinematics.operations">
+<span id="tmol-kinematics-operations"></span><h1>tmol.kinematics.operations<a class="headerlink" href="#module-tmol.kinematics.operations" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.operations.BackKinResult" title="tmol.kinematics.operations.BackKinResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BackKinResult</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.operations.ForwardKinResult" title="tmol.kinematics.operations.ForwardKinResult"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ForwardKinResult</span></code></a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.operations.BondDerivatives" title="tmol.kinematics.operations.BondDerivatives"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BondDerivatives</span></code></a></td>
+<td>compute JUMP derivatives from f1/f2</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.operations.BondTransforms" title="tmol.kinematics.operations.BondTransforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BondTransforms</span></code></a></td>
+<td>BOND dofs -&gt; HTs</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.operations.DOFTransforms" title="tmol.kinematics.operations.DOFTransforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DOFTransforms</span></code></a></td>
+<td>Calculate HT representation of given dofs.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.operations.HTinv" title="tmol.kinematics.operations.HTinv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HTinv</span></code></a></td>
+<td>helper to quickly invert a HT stack</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.operations.HTs_from_frames" title="tmol.kinematics.operations.HTs_from_frames"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HTs_from_frames</span></code></a></td>
+<td>xyzs -&gt; HTs</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.operations.InvBondTransforms" title="tmol.kinematics.operations.InvBondTransforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InvBondTransforms</span></code></a></td>
+<td>HTs -&gt; BOND dofs</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.operations.InvJumpTransforms" title="tmol.kinematics.operations.InvJumpTransforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InvJumpTransforms</span></code></a></td>
+<td>HTs -&gt; JUMP dofs</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.operations.JumpDerivatives" title="tmol.kinematics.operations.JumpDerivatives"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JumpDerivatives</span></code></a></td>
+<td>compute JUMP derivatives from f1/f2</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.operations.JumpTransforms" title="tmol.kinematics.operations.JumpTransforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">JumpTransforms</span></code></a></td>
+<td>JUMP dofs -&gt; HTs</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.operations.backwardKin" title="tmol.kinematics.operations.backwardKin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">backwardKin</span></code></a></td>
+<td>xyzs -&gt; HTs, dofs</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.operations.forwardKin" title="tmol.kinematics.operations.forwardKin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">forwardKin</span></code></a></td>
+<td>dofs -&gt; HTs, xyzs</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.operations.resolveDerivs" title="tmol.kinematics.operations.resolveDerivs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resolveDerivs</span></code></a></td>
+<td>xyz derivs -&gt; dof derivs</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tmol.kinematics.operations.HTinv">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">HTinv</code><span class="sig-paren">(</span><em>HTs: Tensor(torch.float64)[:,4,4]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,4,4]<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#HTinv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.HTinv" title="Permalink to this definition">¶</a></dt>
+<dd><p>helper to quickly invert a HT stack</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.JumpTransforms">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">JumpTransforms</code><span class="sig-paren">(</span><em>dofs: tmol.kinematics.datatypes.JumpDOF</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,4,4]<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#JumpTransforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.JumpTransforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>JUMP dofs -&gt; HTs</p>
+<dl class="docutils">
+<dt>jump dofs are _9_ parameters:</dt>
+<dd><ul class="first last simple">
+<li>3 translational</li>
+<li>3 rotational deltas</li>
+<li>3 rotational</li>
+</ul>
+</dd>
+</dl>
+<p>Only the rotational deltas should be exposed to minimization</p>
+<p>Translations are represented as an offset in X,Y,Z
+Rotations and rotational deltas are ZYX Euler angles,</p>
+<blockquote>
+<div>that is, a rotation about Z, then Y, then X</div></blockquote>
+<dl class="docutils">
+<dt>The HT returned by this function is given by:</dt>
+<dd><dl class="first last docutils">
+<dt>M = trans( RBx, RBy, RBz)</dt>
+<dd>&#64; roteuler( RBdel_alpha, RBdel_alpha, RBdel_alpha)
+&#64; roteuler( RBalpha, RBalpha, RBalpha)</dd>
+</dl>
+</dd>
+<dt>RBdel_* is meant to be reset to zero at the beginning of a minimization</dt>
+<dd>trajectory, as when parameters are near 0, the rotational space
+is well-behaved.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.InvJumpTransforms">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">InvJumpTransforms</code><span class="sig-paren">(</span><em>Ms: Tensor(torch.float64)[:,4,4]</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.datatypes.JumpDOF<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#InvJumpTransforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.InvJumpTransforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>HTs -&gt; JUMP dofs</p>
+<p>Given the matrix definition in JumpTransforms, we calculate the dofs
+that give rise to this HT.</p>
+<dl class="docutils">
+<dt>A special case handles the problematic region where cos(beta)=0.</dt>
+<dd>In this case, the alpha and gamma rotation are coincident so
+we assign all rotation to alpha.</dd>
+<dt>Since RB and RBdel are redundant, this function always returns its</dt>
+<dd>non-zero components into RB, and RBdel is always 0</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.JumpDerivatives">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">JumpDerivatives</code><span class="sig-paren">(</span><em>dofs: tmol.kinematics.datatypes.JumpDOF, Ms: Tensor(torch.float64)[:,4,4], Mparents: Tensor(torch.float64)[:,4,4], f1s: Tensor(torch.float64)[:,3], f2s: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.datatypes.JumpDOF<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#JumpDerivatives"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.JumpDerivatives" title="Permalink to this definition">¶</a></dt>
+<dd><p>compute JUMP derivatives from f1/f2</p>
+<dl class="docutils">
+<dt>Translational derivatives are straightforward dot products of f2s</dt>
+<dd>(the downstream derivative sum)</dd>
+<dt>Rotational derivatives use the Abe and Go “trick” that allows us to</dt>
+<dd>easily compute derivatives with respect to rotation about an axis.</dd>
+<dt>In this case, there are three axes to compute derivatives of:</dt>
+<dd><ol class="first last arabic simple">
+<li>the Z axis (alpha rotation)</li>
+<li>the Y axis after applying the alpha rotation (beta rotation)</li>
+<li>the X axis after applying the alpha &amp; beta rot (gamma rotation)</li>
+</ol>
+</dd>
+</dl>
+<p>Derivatives are ONLY assigned to the RBdel DOFs</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.BondTransforms">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">BondTransforms</code><span class="sig-paren">(</span><em>dofs: tmol.kinematics.datatypes.BondDOF</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,4,4]<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#BondTransforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.BondTransforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>BOND dofs -&gt; HTs</p>
+<p>each bond has four dofs: [phi_p, theta, d, phi_c]
+in the local frame:</p>
+<blockquote>
+<div><ul class="simple">
+<li>phi_p and phi_c are a rotation about x</li>
+<li>theta is a rotation about z</li>
+<li>d is a translation along x</li>
+</ul>
+</div></blockquote>
+<dl class="docutils">
+<dt>the matrix below is a composition:</dt>
+<dd><dl class="first last docutils">
+<dt>M &lt;- rot(phi_p, [1,0,0]) &#64; rot(theta, [0,0,1]</dt>
+<dd>&#64; trans(d, [1,0,0]) &#64; rot(phi_c, [1,0,0])</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.InvBondTransforms">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">InvBondTransforms</code><span class="sig-paren">(</span><em>Ms: Tensor(torch.float64)[:,4,4]</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.datatypes.BondDOF<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#InvBondTransforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.InvBondTransforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>HTs -&gt; BOND dofs</p>
+<p>Given the matrix definition in BondTransforms, we calculate the dofs
+that give rise to this HT.</p>
+<p>A special case below handles a “singularity,” that is, a configuration
+where there are multiple parameterizations that give the same HT</p>
+<p>Specifically, when theta==0, the rx rotation can be put into
+phi_c or phi_p (we use phi_c)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.BondDerivatives">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">BondDerivatives</code><span class="sig-paren">(</span><em>dofs: tmol.kinematics.datatypes.BondDOF, Ms: Tensor(torch.float64)[:,4,4], Mparents: Tensor(torch.float64)[:,4,4], f1s: Tensor(torch.float64)[:,3], f2s: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.datatypes.BondDOF<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#BondDerivatives"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.BondDerivatives" title="Permalink to this definition">¶</a></dt>
+<dd><p>compute JUMP derivatives from f1/f2</p>
+<dl class="docutils">
+<dt>The d derivatives are straightforward dot products of f2s</dt>
+<dd>(the downstream derivative sum)</dd>
+<dt>Other DOF derivatives use the Abe and Go “trick” that allows us to</dt>
+<dd>easily compute derivatives with respect to rotation about an axis.</dd>
+<dt>The phi_p and phi_c derivs are simply rotation about the X axis of the</dt>
+<dd>parent and child coordinate frame, respectively</dd>
+<dt>The theta derivs are more complex. Similar to jump derivs, we need to</dt>
+<dd>UNDO the phi_c rotation, and then take the Z axis of the child HT</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.DOFTransforms">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">DOFTransforms</code><span class="sig-paren">(</span><em>dof_types: Tensor(torch.int32)[:], dofs: tmol.kinematics.datatypes.KinDOF</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,4,4]<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#DOFTransforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.DOFTransforms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate HT representation of given dofs.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.HTs_from_frames">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">HTs_from_frames</code><span class="sig-paren">(</span><em>Cs: Tensor(torch.float64)[:,3], Xs: Tensor(torch.float64)[:,3], Ys: Tensor(torch.float64)[:,3], Zs: Tensor(torch.float64)[:,3], out: Union[Tensor(torch.float64)[:,4,4], NoneType] = None</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,4,4]<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#HTs_from_frames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.HTs_from_frames" title="Permalink to this definition">¶</a></dt>
+<dd><p>xyzs -&gt; HTs</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.operations.BackKinResult">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.operations.</code><code class="descname">BackKinResult</code><span class="sig-paren">(</span><em>hts: Tensor(torch.float64)[:,4,4], dofs: tmol.kinematics.datatypes.KinDOF</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/operations.html#BackKinResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.BackKinResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.kinematics.operations.BackKinResult.hts">
+<code class="descname">hts</code><a class="headerlink" href="#tmol.kinematics.operations.BackKinResult.hts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.operations.BackKinResult.dofs">
+<code class="descname">dofs</code><a class="headerlink" href="#tmol.kinematics.operations.BackKinResult.dofs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.backwardKin">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">backwardKin</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree, coords: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.operations.BackKinResult<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#backwardKin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.backwardKin" title="Permalink to this definition">¶</a></dt>
+<dd><p>xyzs -&gt; HTs, dofs</p>
+<ul class="simple">
+<li>“backward” kinematics</li>
+</ul>
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.operations.ForwardKinResult">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.operations.</code><code class="descname">ForwardKinResult</code><span class="sig-paren">(</span><em>hts: Tensor(torch.float64)[:,4,4], coords: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/operations.html#ForwardKinResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.ForwardKinResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.kinematics.operations.ForwardKinResult.hts">
+<code class="descname">hts</code><a class="headerlink" href="#tmol.kinematics.operations.ForwardKinResult.hts" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.operations.ForwardKinResult.coords">
+<code class="descname">coords</code><a class="headerlink" href="#tmol.kinematics.operations.ForwardKinResult.coords" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.forwardKin">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">forwardKin</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree</em>, <em>dofs: tmol.kinematics.datatypes.KinDOF</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.operations.ForwardKinResult<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#forwardKin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.forwardKin" title="Permalink to this definition">¶</a></dt>
+<dd><p>dofs -&gt; HTs, xyzs</p>
+<ul class="simple">
+<li>“forward” kinematics</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.kinematics.operations.resolveDerivs">
+<code class="descclassname">tmol.kinematics.operations.</code><code class="descname">resolveDerivs</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree, dofs: tmol.kinematics.datatypes.KinDOF, HTs: Tensor(torch.float64)[:,4,4], dsc_dx: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.datatypes.KinDOF<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#resolveDerivs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.resolveDerivs" title="Permalink to this definition">¶</a></dt>
+<dd><p>xyz derivs -&gt; dof derivs</p>
+<ul class="simple">
+<li>derivative mapping using Abe and Go approach</li>
+</ul>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.kinematics.torch_op.html" class="btn btn-neutral float-right" title="tmol.kinematics.torch_op" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.kinematics.metadata.html" class="btn btn-neutral" title="tmol.kinematics.metadata" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

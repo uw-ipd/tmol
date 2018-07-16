@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.gpu_operations.scan_jit &mdash; TMol  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../gpu_operations.html">tmol.kinematics.gpu_operations</a> &raquo;</li>
+        
+      <li>tmol.kinematics.gpu_operations.scan_jit</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.kinematics.gpu_operations.scan_jit</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">numba</span>
+<span class="kn">import</span> <span class="nn">numba.cuda</span> <span class="k">as</span> <span class="nn">cuda</span>
+
+
+<div class="viewcode-block" id="GenerationalSegmentedScan"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_jit.html#tmol.kinematics.gpu_operations.scan_jit.GenerationalSegmentedScan">[docs]</a><span class="k">class</span> <span class="nc">GenerationalSegmentedScan</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Factory class for cuda-based generational segmented scan operations.</span>
+
+<span class="sd">    GenerationalSegmentedScan provides a factory class managing creation and</span>
+<span class="sd">    invocation of generic, generational segement scan operations.</span>
+
+<span class="sd">    # Scan Overview</span>
+
+<span class="sd">    The scan operation processes linear scan paths with an associative binary</span>
+<span class="sd">    operator, where the scan paths many have any number of additional off-path</span>
+<span class="sd">    node inputs added *before* the scan path. For example, consider the</span>
+<span class="sd">    operation composed of path values (P), off path values (OP) joined by an</span>
+<span class="sd">    operator (+):</span>
+
+<span class="sd">        OP_0            OP_1</span>
+<span class="sd">          +               +</span>
+<span class="sd">          |               |</span>
+<span class="sd">          v               v</span>
+<span class="sd">        P_0+---&gt;P_1+---&gt;P_2+---&gt;P_3+---&gt;P_4</span>
+<span class="sd">                          ^</span>
+<span class="sd">                          |</span>
+<span class="sd">                          +</span>
+<span class="sd">                        OP_2</span>
+
+<span class="sd">    Represents the complete operation:</span>
+
+<span class="sd">      (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4</span>
+
+<span class="sd">    As this is a scan, rather than reduction, this results in:</span>
+
+<span class="sd">        R_0-----R_1-----R_2-----R_3-----R_4</span>
+
+<span class="sd">        R_0 = OP_0 + P_0</span>
+<span class="sd">        R_1 = (OP_0 + P_0) + P_1</span>
+<span class="sd">        R_2 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2)</span>
+<span class="sd">        R_3 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3</span>
+<span class="sd">        R_4 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4</span>
+
+<span class="sd">    The off-path inputs of a scan are taken from the result values of previous</span>
+<span class="sd">    scan operations. Scans are processed by &quot;generation&quot;, arranged such that</span>
+<span class="sd">    the off-path inputs of any segment are draw *exclusively* from earlier</span>
+<span class="sd">    generations. Scans within a generation are processed via a parallel</span>
+<span class="sd">    segmented scan.</span>
+
+<span class="sd">    # Implementation</span>
+
+<span class="sd">    Implementation of a specific scan operation involves subclassing this</span>
+<span class="sd">    template class and providing:</span>
+
+<span class="sd">        `@cuda.jit(device=True)` class-methods:</span>
+
+<span class="sd">            add: ((val, val) -&gt; val)</span>
+<span class="sd">                The associative operator.</span>
+<span class="sd">            zero : (() -&gt; val)</span>
+<span class="sd">                The identity value for the associative operator.</span>
+<span class="sd">            load: (array, i) -&gt; val</span>
+<span class="sd">                Load val as a local value from an array of values.</span>
+<span class="sd">            save: (array, i, val) -&gt; ()</span>
+<span class="sd">                Save val from a local value to an array of values.</span>
+
+<span class="sd">        class properties:</span>
+<span class="sd">            val_shape: tuple[int, ...]</span>
+<span class="sd">                The sub-shape of val in the arrays referenced by &#39;load&#39;/&#39;save&#39;.</span>
+
+<span class="sd">    The subclass may then be used as singleton provider for scan invocations</span>
+<span class="sd">    via the class method `segscan_by_generation`. Kernel functions are</span>
+<span class="sd">    specialized for specific thread_per_block values, with kernels requiring a</span>
+<span class="sd">    float64 shared memory allocation of shape (threads_per_block,) + val_shape.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GenerationalSegmentedScan.segscan_by_generation"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_jit.html#tmol.kinematics.gpu_operations.scan_jit.GenerationalSegmentedScan.segscan_by_generation">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">segscan_by_generation</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">threads_per_block</span><span class="p">,</span>  <span class="c1"># int</span>
+            <span class="n">src_vals</span><span class="p">,</span>  <span class="c1"># [n] + [val_shape]</span>
+            <span class="n">scan_to_src_ordering</span><span class="p">,</span>  <span class="c1"># [n]</span>
+            <span class="n">is_path_root</span><span class="p">,</span>  <span class="c1">#[n]</span>
+            <span class="n">non_path_inputs</span><span class="p">,</span>  <span class="c1">#[n, max_num_inputs]</span>
+            <span class="n">generation_ranges</span><span class="p">,</span>  <span class="c1">#[g, 2]</span>
+    <span class="p">):</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">get_kernel</span><span class="p">(</span><span class="n">threads_per_block</span><span class="p">)[</span><span class="mi">1</span><span class="p">,</span> <span class="n">threads_per_block</span><span class="p">](</span>
+            <span class="n">src_vals</span><span class="p">,</span>
+            <span class="n">scan_to_src_ordering</span><span class="p">,</span>
+            <span class="n">is_path_root</span><span class="p">,</span>
+            <span class="n">non_path_inputs</span><span class="p">,</span>
+            <span class="n">generation_ranges</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="GenerationalSegmentedScan.get_kernel"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_jit.html#tmol.kinematics.gpu_operations.scan_jit.GenerationalSegmentedScan.get_kernel">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">get_kernel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">threads_per_block</span><span class="p">):</span>
+
+        <span class="c1"># Use __dict__ (not hasattr) to only search cls (not superclass).</span>
+        <span class="k">if</span> <span class="s2">&quot;_kernel_cache&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;_kernel_cache&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
+
+        <span class="n">_kernel_cache</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;_kernel_cache&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">threads_per_block</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_kernel_cache</span><span class="p">:</span>
+            <span class="n">_kernel_cache</span><span class="p">[</span><span class="n">threads_per_block</span>
+                          <span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_generate_kernel</span><span class="p">(</span><span class="n">threads_per_block</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_kernel_cache</span><span class="p">[</span><span class="n">threads_per_block</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="GenerationalSegmentedScan._generate_kernel"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_jit.html#tmol.kinematics.gpu_operations.scan_jit.GenerationalSegmentedScan._generate_kernel">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_generate_kernel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">threads_per_block</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">math</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">threads_per_block</span><span class="p">)</span><span class="o">.</span><span class="n">is_integer</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;thread_per_block must be power of 2: </span><span class="si">{threads_per_block}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1">### Initialize numba kernel via lexical closure.</span>
+
+        <span class="c1"># The subclass interface must be available as variables in the</span>
+        <span class="c1"># jit-function closure defined below, rather than accessed via self.*,</span>
+        <span class="c1"># so that numba.jit can properly bind the device functions as jit-time.</span>
+        <span class="n">add</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">add</span>
+        <span class="n">zero</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">zero</span>
+        <span class="n">load</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">load</span>
+        <span class="n">save</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">save</span>
+
+        <span class="n">shared_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">threads_per_block</span><span class="p">,</span> <span class="p">)</span> <span class="o">+</span> <span class="bp">cls</span><span class="o">.</span><span class="n">val_shape</span>
+
+        <span class="n">n_scan_iter</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">threads_per_block</span><span class="p">))</span>
+
+        <span class="c1"># cuda.jit a dynamically defined function so that the variables defined</span>
+        <span class="c1"># here, in the lexical scope of the function definition, are bound and</span>
+        <span class="c1"># made available to numba.</span>
+        <span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span>
+        <span class="k">def</span> <span class="nf">_segscan_by_generation</span><span class="p">(</span>
+                <span class="n">src_vals</span><span class="p">,</span>  <span class="c1"># [n] + [val_shape]</span>
+                <span class="n">scan_to_src_ordering</span><span class="p">,</span>  <span class="c1"># [n]</span>
+                <span class="n">is_path_root</span><span class="p">,</span>  <span class="c1">#[n]</span>
+                <span class="n">non_path_inputs</span><span class="p">,</span>  <span class="c1">#[n, max_num_inputs]</span>
+                <span class="n">generation_ranges</span><span class="p">,</span>  <span class="c1">#[g, 2]</span>
+        <span class="p">):</span>
+            <span class="n">shared_vals</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shared_shape</span><span class="p">,</span> <span class="n">numba</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+            <span class="n">shared_is_root</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">shared</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="n">threads_per_block</span><span class="p">),</span>
+                                               <span class="n">numba</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">gen</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">generation_ranges</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">generation_ranges</span><span class="p">[</span><span class="n">gen</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">generation_ranges</span><span class="p">[</span><span class="n">gen</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">blocks_for_gen</span> <span class="o">=</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">threads_per_block</span> <span class="o">+</span> <span class="mi">1</span>
+
+                <span class="c1">### Iterate block across generation</span>
+                <span class="n">carry_val</span> <span class="o">=</span> <span class="n">zero</span><span class="p">()</span>
+                <span class="n">carry_is_root</span> <span class="o">=</span> <span class="kc">False</span>
+
+                <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">blocks_for_gen</span><span class="p">):</span>
+                    <span class="n">ii_ind</span> <span class="o">=</span> <span class="n">ii</span> <span class="o">*</span> <span class="n">threads_per_block</span> <span class="o">+</span> <span class="n">start</span> <span class="o">+</span> <span class="n">pos</span>
+                    <span class="n">ii_src</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+                    <span class="c1">### Load shared memory value block in scan order</span>
+                    <span class="k">if</span> <span class="n">ii_ind</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
+                        <span class="n">ii_src</span> <span class="o">=</span> <span class="n">scan_to_src_ordering</span><span class="p">[</span><span class="n">ii_ind</span><span class="p">]</span>
+
+                        <span class="c1">### Read node values from global into shared</span>
+                        <span class="n">my_val</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">src_vals</span><span class="p">,</span> <span class="n">ii_src</span><span class="p">)</span>
+                        <span class="n">shared_is_root</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">is_path_root</span><span class="p">[</span><span class="n">ii_ind</span><span class="p">]</span>
+
+                        <span class="c1">### Sum incoming scan value from parent into node</span>
+                        <span class="c1"># parent only set if node is root of scan</span>
+                        <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">non_path_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                            <span class="n">input_ind</span> <span class="o">=</span> <span class="n">non_path_inputs</span><span class="p">[</span><span class="n">ii_ind</span><span class="p">,</span> <span class="n">jj</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">input_ind</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                                <span class="n">my_val</span> <span class="o">=</span> <span class="n">add</span><span class="p">(</span>
+                                    <span class="n">load</span><span class="p">(</span>
+                                        <span class="n">src_vals</span><span class="p">,</span>
+                                        <span class="n">scan_to_src_ordering</span><span class="p">[</span><span class="n">input_ind</span><span class="p">]</span>
+                                    <span class="p">),</span> <span class="n">my_val</span>
+                                <span class="p">)</span>
+
+                        <span class="c1">### Sum carry value from previous block if node 0 is non-root.</span>
+                        <span class="n">my_root</span> <span class="o">=</span> <span class="n">shared_is_root</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">pos</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">my_root</span><span class="p">:</span>
+                            <span class="n">my_val</span> <span class="o">=</span> <span class="n">add</span><span class="p">(</span><span class="n">carry_val</span><span class="p">,</span> <span class="n">my_val</span><span class="p">)</span>
+                            <span class="n">my_root</span> <span class="o">|=</span> <span class="n">carry_is_root</span>
+                            <span class="n">shared_is_root</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">my_root</span>
+
+                        <span class="n">save</span><span class="p">(</span><span class="n">shared_vals</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">my_val</span><span class="p">)</span>
+
+                    <span class="c1">### Sync on prepared shared memory block</span>
+                    <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+                    <span class="c1">### Perform parallel segmented scan on block</span>
+                    <span class="n">offset</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_scan_iter</span><span class="p">):</span>
+
+                        <span class="k">if</span> <span class="n">pos</span> <span class="o">&gt;=</span> <span class="n">offset</span> <span class="ow">and</span> <span class="n">ii_ind</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
+                            <span class="n">prev_val</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">shared_vals</span><span class="p">,</span> <span class="n">pos</span> <span class="o">-</span> <span class="n">offset</span><span class="p">)</span>
+                            <span class="n">prev_root</span> <span class="o">=</span> <span class="n">shared_is_root</span><span class="p">[</span><span class="n">pos</span> <span class="o">-</span> <span class="n">offset</span><span class="p">]</span>
+                        <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+                        <span class="k">if</span> <span class="n">pos</span> <span class="o">&gt;=</span> <span class="n">offset</span> <span class="ow">and</span> <span class="n">ii_ind</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">my_root</span><span class="p">:</span>
+                                <span class="n">my_val</span> <span class="o">=</span> <span class="n">add</span><span class="p">(</span><span class="n">prev_val</span><span class="p">,</span> <span class="n">my_val</span><span class="p">)</span>
+                                <span class="n">my_root</span> <span class="o">|=</span> <span class="n">prev_root</span>
+                                <span class="n">save</span><span class="p">(</span><span class="n">shared_vals</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">my_val</span><span class="p">)</span>
+                                <span class="n">shared_is_root</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">my_root</span>
+                        <span class="n">offset</span> <span class="o">*=</span> <span class="mi">2</span>
+                        <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+                    <span class="c1">### write the block&#39;s scan results to global</span>
+                    <span class="k">if</span> <span class="n">ii_ind</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
+                        <span class="n">save</span><span class="p">(</span><span class="n">src_vals</span><span class="p">,</span> <span class="n">ii_src</span><span class="p">,</span> <span class="n">my_val</span><span class="p">)</span>
+
+                    <span class="c1">### save the carry</span>
+                    <span class="k">if</span> <span class="n">pos</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">carry_val</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">shared_vals</span><span class="p">,</span> <span class="n">threads_per_block</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">carry_is_root</span> <span class="o">=</span> <span class="n">shared_is_root</span><span class="p">[</span><span class="n">threads_per_block</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+                    <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">_segscan_by_generation</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
