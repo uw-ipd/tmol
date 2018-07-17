@@ -197,6 +197,21 @@ bsplines_by_degree = {
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineInterpolation:
+    """Class for performing bspline interpolation with periodic boundary conditions.
+
+    Construct an instance of this class using the `compute_coeffs` function, handing
+    it a (possibly stacked) table of coordinates that should be interpolated by the
+    splines, the degree of the spline that should be constructed, and (optionally)
+    the number of dimensions in the coordinates tensor that are "indexing dimensions"
+    and not interpolation dimensions. The indexing dimensions should appear as the
+    most significant dimensions and the interpolating dimensions should appear as the
+    least significant dimensions.
+
+    Once constructed, the `interpolate` method can be given a tensor of coordinates
+    `X` (and if the original coordinate tensor had indexing dimensions, a tensor of
+    indices `Y`) to produce a tensor of interpolated values.
+    """
+
     degree: int
     coeffs: Tensor(torch.float)
     n_interp_dims: int
@@ -251,7 +266,7 @@ class BSplineInterpolation:
                 icoeffs = icoeffs.reshape(-1, interp_shape[dim])
 
                 # compute the interp coeffs along last dimension
-                icoeffs = cls.convert_interp_coeffs(icoeffs, bspdeg.poles)
+                icoeffs = cls._convert_interp_coeffs(icoeffs, bspdeg.poles)
 
                 # restore to the translated shape and then transpose
                 # the last dimension to where it belongs
@@ -360,10 +375,12 @@ class BSplineInterpolation:
 
     @staticmethod
     @validate_args
-    def init_causal_coeff(
+    def _init_causal_coeff(
             coeffs: Tensor(torch.float)[:, :], pole: Tensor(torch.float)
     ):
-        """inplace calculation of [:,0] coefficients.
+        """Helper function for b-spline coefficient calculation
+
+        inplace calculation of [:,0] coefficients.
         currently, initialization corresponds to periodic boundaries
         (if one were to add alternate boundary conditions, this would be the place)
         assumes inputs are an M x N tensor, and splines are computed in the 2nd dim"""
@@ -385,7 +402,7 @@ class BSplineInterpolation:
 
     @staticmethod
     @validate_args
-    def init_anticausal_coeff(
+    def _init_anticausal_coeff(
             coeffs: Tensor(torch.float)[:, :], pole: Tensor(torch.float)
     ):
         """inplace calculation of [:,N] coefficients.
@@ -411,7 +428,7 @@ class BSplineInterpolation:
 
     @classmethod
     @validate_args
-    def convert_interp_coeffs(
+    def _convert_interp_coeffs(
             cls, coeffs: Tensor(torch.float)[:, :],
             poles: Tensor(torch.float)[:]
     ):
@@ -429,13 +446,13 @@ class BSplineInterpolation:
 
         for pole in poles:
             # init ( [:,0] ) coeffs, in-place
-            cls.init_causal_coeff(retval, pole)
+            cls._init_causal_coeff(retval, pole)
             # forward sweep
             for i in range(1, N):
                 retval[:, i] += pole * retval[:, i - 1]
 
             # final ( [:,N-1] ) coeffs, in-place
-            cls.init_anticausal_coeff(retval, pole)
+            cls._init_anticausal_coeff(retval, pole)
             # backward sweep
             for i in range(N - 2, -1, -1):
                 retval[:, i] = pole * (retval[:, i + 1] - retval[:, i])
