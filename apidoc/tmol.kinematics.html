@@ -80,7 +80,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
@@ -88,16 +89,13 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">tmol.kinematics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a></li>
 </ul>
 </li>
@@ -175,8 +173,6 @@
   <div class="section" id="module-tmol.kinematics">
 <span id="tmol-kinematics"></span><h1>tmol.kinematics<a class="headerlink" href="#module-tmol.kinematics" title="Permalink to this headline">¶</a></h1>
 <p>Kinematic operations over bonded atomic systems.</p>
-<div class="section" id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
@@ -187,7 +183,6 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
 </ul>
-</div>
 </div>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
@@ -214,14 +209,17 @@ center of the frame.</p>
 reference frames via six degrees of freedom, 3 translational and
 3 rotational.</p>
 <p>2) Bond nodes, representing the relationships between two atom reference
-frames via <a href="#id1"><span class="problematic" id="id2">*</span></a>three bond degrees of freedom, bond axis translation, bond axis
-rotation and change of bond axis with respect to the upstream bond.</p>
+frames via three bond degrees of freedom, bond axis translation, bond axis
+rotation about the parent-grandparent bond and change of bond axis with
+respect to the bond. Bond nodes include an additional, redundent,
+degree of free representing concerted rotation of all downstream bonds
+about the parent-self bond.</p>
 <p>The <a class="reference internal" href="#tmol.kinematics.KinTree" title="tmol.kinematics.KinTree"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinTree</span></code></a> data structure itself is frozen and can not be modified post
 construction. The <a class="reference internal" href="tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder" title="tmol.kinematics.builder.KinematicBuilder"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinematicBuilder</span></code></a> factory class is responsible for
 construction of a <a class="reference internal" href="#tmol.kinematics.KinTree" title="tmol.kinematics.KinTree"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinTree</span></code></a> with valid internal structure for atomic
 system.</p>
 <dl class="docutils">
-<dt>Indices:</dt>
+<dt>Indices::</dt>
 <dd>id = index for kin-atom in the target coordinate system
 parent = kin-atom index of parent for each kin-atom
 frame_x = kin-atom index of self

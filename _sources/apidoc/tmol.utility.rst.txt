@@ -10,9 +10,6 @@ tmol.utility
     :show-inheritance:
 
 
-    Submodules
-    -----------
-
     .. toctree::
        :maxdepth: 1
   

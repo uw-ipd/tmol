@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -176,7 +177,7 @@
 <span class="p">)</span>
 
 
-<div class="viewcode-block" id="PathPartitioning"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths.html#tmol.kinematics.gpu_operations.scan_paths.PathPartitioning">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="PathPartitioning"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths.html#tmol.kinematics.gpu_operations.PathPartitioning">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">PathPartitioning</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Partitioning of a tree into linear subpaths.</span>
 
@@ -222,7 +223,7 @@
     <span class="n">subpath_depth_from_root</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:]</span>
     <span class="n">subpath_depth_from_leaf</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:]</span>
 
-<div class="viewcode-block" id="PathPartitioning.minimum_subpath_depth"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths.html#tmol.kinematics.gpu_operations.scan_paths.PathPartitioning.minimum_subpath_depth">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="PathPartitioning.minimum_subpath_depth"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths.html#tmol.kinematics.gpu_operations.PathPartitioning.minimum_subpath_depth">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">minimum_subpath_depth</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:]):</span>
         <span class="sd">&quot;&quot;&quot;Generate paths minimizing the maximum path depth.</span>
@@ -254,7 +255,7 @@
 
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_subpath_children</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">subpath_child</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="PathPartitioning.from_subpath_children"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths.html#tmol.kinematics.gpu_operations.scan_paths.PathPartitioning.from_subpath_children">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="PathPartitioning.from_subpath_children"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.scan_paths.html#tmol.kinematics.gpu_operations.PathPartitioning.from_subpath_children">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">from_subpath_children</span><span class="p">(</span>
             <span class="bp">cls</span><span class="p">,</span>

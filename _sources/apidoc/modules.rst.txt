@@ -1,7 +1,0 @@
-tmol
-====
-
-.. toctree::
-   :maxdepth: 4
-
-   tmol

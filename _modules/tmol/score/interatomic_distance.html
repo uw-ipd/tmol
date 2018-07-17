@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -190,12 +191,12 @@
 <span class="sd">    graph for a given atomic pair; the rendered distances are equivalent to the upper triangle of</span>
 <span class="sd">    the full interatomic distance matrix.</span>
 
-<span class="sd">    Distances are rendered as two tensor properties, `atom_pair_inds` and `atom_pair_dist`,</span>
-<span class="sd">    containing the pair of atomic indicies in `coords` and the calculated distance respectively.</span>
+<span class="sd">    Distances are rendered as two tensor properties, ``atom_pair_inds`` and ``atom_pair_dist``,</span>
+<span class="sd">    containing the pair of atomic indicies in ``coords`` and the calculated distance respectively.</span>
 
 <span class="sd">    Components requiring access to interatomic distance components *must* make</span>
 <span class="sd">    the component&#39;s interatomic threshold distance available by implementing</span>
-<span class="sd">    the `component_atom_pair_dist_threshold` property. The generated</span>
+<span class="sd">    the ``component_atom_pair_dist_threshold`` property. The generated</span>
 <span class="sd">    interatomic distance graph will respecte the *maximum* required interatomic</span>
 <span class="sd">    distance of all score graph components.</span>
 <span class="sd">    &quot;&quot;&quot;</span>

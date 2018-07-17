@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -157,50 +158,51 @@
             
   <h1>Source code for tmol.types.shape</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd"># Shape Specifications</span>
+<span class="sd">Shape Specifications</span>
+<span class="sd">--------------------</span>
 
 <span class="sd">Shape specifications are intended to allow a reasonable description of common array shapes, with an emphasis on functionally relevant shape cases. This includes dimensionality, shape of specific dimensions, implied broadcastable dimensions, contiguous ordering (ie. C vs F ordering), and density.</span>
 
-
-<span class="sd">## Examples</span>
-
-<span class="sd">### `ndim` and `shape`</span>
+<span class="sd">``ndim`` and ``shape``</span>
+<span class="sd">~~~~~~~~~~~~~~~~~~~~~~</span>
 
 <span class="sd">Basic dimensionality and shape requirements are specified via slices. Dimensions may be unconstrained or constrainted to a fixed shape.</span>
 
-<span class="sd">- `[:]` - ndim 1, any shape</span>
-<span class="sd">- `[3]` or `[:3]` - ndim 1, shape (3,)</span>
-<span class="sd">- `[:,3]` - ndim 2, shape (n,3)</span>
-<span class="sd">- `[3,3]` - ndim 2, shape (3,3)</span>
+<span class="sd">- ``[:]`` - ndim 1, any shape</span>
+<span class="sd">- ``[3]`` or ``[:3]`` - ndim 1, shape (3,)</span>
+<span class="sd">- ``[:,3]`` - ndim 2, shape (n,3)</span>
+<span class="sd">- ``[3,3]`` - ndim 2, shape (3,3)</span>
 
-<span class="sd">### Broadcastable Dimensions</span>
+<span class="sd">Broadcastable Dimensions</span>
+<span class="sd">~~~~~~~~~~~~~~~~~~~~~~~~</span>
 
 <span class="sd">Optional dimensions are represented by an elipsis. This should generally be limited to *only* [implicitly broadcastable](https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html) upper dimensions.</span>
 
-<span class="sd">- `[...,:3]` - ndim 1+, shape ([any]*, 3)</span>
-<span class="sd">- `[...,:,:3]` - ndim 2+, shape ([any]+, 3, 3)</span>
-<span class="sd">- `[...,:3,:3]` - ndim 2+, shape ([any]+, 3, 3)</span>
+<span class="sd">- ``[...,:3]`` - ndim 1+, shape ([any]*, 3)</span>
+<span class="sd">- ``[...,:,:3]`` - ndim 2+, shape ([any]+, 3, 3)</span>
+<span class="sd">- ``[...,:3,:3]`` - ndim 2+, shape ([any]+, 3, 3)</span>
 
-<span class="sd">### Stride and Contiguous Dimensions</span>
+<span class="sd">Stride and Contiguous Dimensions</span>
+<span class="sd">~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
 
 <span class="sd">Memory layout constraints can be used to specify contiguous dimensions and their ordering. Dense dimensions are specified in the standard \[inner|c|numpy|row-major\] order or or in \[outer|fortran|col-major\] order. Any number of dimensions, starting from either ordering, can be specified as dense. Elements of dense dimensions are contiguous support a raveled view.</span>
 
 <span class="sd">The exact syntax for this dimension specification is unclear. The &quot;inline&quot;, utilizing the slide step component:</span>
 
 
-<span class="sd">- `[::1]` - ndim 1, any shape, contiguous</span>
-<span class="sd">- `[:,::1]` - ndim 2, any shape, c-contiguous</span>
-<span class="sd">- `[::1,:3]` - ndim 2, shape (any, 3), f-contiguous</span>
-<span class="sd">- `[:4:1j,:4:1]` - ndim 2, shape (4,4), fully dense, c-contiguous</span>
-<span class="sd">- `[:,:4:1j,:4:1]` - ndim 3, shape (n, 4,4), 2-dense, c-contiguous</span>
+<span class="sd">- ``[::1]`` - ndim 1, any shape, contiguous</span>
+<span class="sd">- ``[:,::1]`` - ndim 2, any shape, c-contiguous</span>
+<span class="sd">- ``[::1,:3]`` - ndim 2, shape (any, 3), f-contiguous</span>
+<span class="sd">- ``[:4:1j,:4:1]`` - ndim 2, shape (4,4), fully dense, c-contiguous</span>
+<span class="sd">- ``[:,:4:1j,:4:1]`` - ndim 3, shape (n, 4,4), 2-dense, c-contiguous</span>
 
 <span class="sd">Or a standard, ordering/density:</span>
 
-<span class="sd">- `t[:].dense()` - ndim 1, any shape, contiguous</span>
-<span class="sd">- `t[:,:].order(&#39;c&#39;)` - ndim 2, any shape, c-contiguous</span>
-<span class="sd">- `t[:,:].dense().order(&#39;c&#39;)` - ndim 2, any shape, fully dense, c-contiguous</span>
-<span class="sd">- `t[:,3].dense(1).order(&#39;f&#39;)` - ndim 2, shape (any, 3), f-contiguous</span>
-<span class="sd">- `[:,4,4].dense(2).order(&#39;c&#39;)` - ndim 3, shape (n, 4,4), 2-dense, c-contiguous</span>
+<span class="sd">- ``t[:].dense()`` - ndim 1, any shape, contiguous</span>
+<span class="sd">- ``t[:,:].order(&#39;c&#39;)`` - ndim 2, any shape, c-contiguous</span>
+<span class="sd">- ``t[:,:].dense().order(&#39;c&#39;)`` - ndim 2, any shape, fully dense, c-contiguous</span>
+<span class="sd">- ``t[:,3].dense(1).order(&#39;f&#39;)`` - ndim 2, shape (any, 3), f-contiguous</span>
+<span class="sd">- ``[:,4,4].dense(2).order(&#39;c&#39;)`` - ndim 3, shape (n, 4,4), 2-dense, c-contiguous</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">attr</span>

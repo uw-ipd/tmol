@@ -80,29 +80,30 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.score.html">tmol.score</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tmol.score.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.bonded_atom.html">tmol.score.bonded_atom</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.coordinates.html">tmol.score.coordinates</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.database.html">tmol.score.database</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.factory</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.bonded_atom.html">tmol.score.bonded_atom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.coordinates.html">tmol.score.coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.database.html">tmol.score.database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.score.factory</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.total_score.html">tmol.score.total_score</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.total_score.html">tmol.score.total_score</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.html#summary">Summary</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.html#reference">Reference</a></li>
 </ul>
@@ -209,15 +210,15 @@
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Mixin managing cooperative score graph factory functions.</p>
 <p><a class="reference internal" href="#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref any py py-class docutils literal notranslate"><span class="pre">Factory</span></code></a> manages cooperative evaluation of a set of component-specifc
-factory functions, defined via <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph.factory_for" title="tmol.score.bonded_atom.BondedAtomScoreGraph.factory_for"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">factory_for</span></code></a> class/static methods. Each
+factory functions, defined via <code class="docutils literal notranslate"><span class="pre">factory_for</span></code> class/static methods. Each
 factory function should extract a set of graph __init__ kwargs from an
-input <code class="xref any docutils literal notranslate"><span class="pre">val</span></code>, defaulting to implementing a partial clone from <code class="xref any docutils literal notranslate"><span class="pre">val</span></code>
+input <code class="docutils literal notranslate"><span class="pre">val</span></code>, defaulting to implementing a partial clone from <code class="docutils literal notranslate"><span class="pre">val</span></code>
 attributes.</p>
 <p>Components factory functions <em>should</em>, if appropriate, allow for
-<code class="xref any docutils literal notranslate"><span class="pre">singledispatch</span></code> based overload on the type of <code class="xref any docutils literal notranslate"><span class="pre">val</span></code>, allowing for
-customization of score graph initialization for new input types. See
-<a class="reference internal" href="tmol.system.score_support.html"><span class="doc">tmol.system.score_support</span></a> for factory functions providing score graph
-initialization from residue systems.</p>
+<a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.singledispatch" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">singledispatch</span></code></a> based overload on the type of
+<code class="docutils literal notranslate"><span class="pre">val</span></code>, allowing for customization of score graph initialization for new
+input types. See <a class="reference internal" href="tmol.system.score_support.html#module-tmol.system.score_support" title="tmol.system.score_support"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.system.score_support</span></code></a> for factory functions
+providing score graph initialization from residue systems.</p>
 <p>See <a class="reference internal" href="tmol.utility.mixins.html#tmol.utility.mixins.cooperative_superclass_factory" title="tmol.utility.mixins.cooperative_superclass_factory"><code class="xref any py py-func docutils literal notranslate"><span class="pre">tmol.utility.mixins.cooperative_superclass_factory</span></code></a> for details of
 kwarg-to-parameter resolution.</p>
 <dl class="classmethod">

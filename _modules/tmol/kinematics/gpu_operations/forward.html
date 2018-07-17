@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -175,7 +176,7 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">forward_jit</span>
 
 
-<div class="viewcode-block" id="RefoldOrdering"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.forward.html#tmol.kinematics.gpu_operations.forward.RefoldOrdering">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="RefoldOrdering"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.forward.html#tmol.kinematics.gpu_operations.RefoldOrdering">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">RefoldOrdering</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
 
     <span class="c1"># [natoms]</span>
@@ -211,7 +212,7 @@
     <span class="k">def</span> <span class="nf">atom_range_for_depth_d</span><span class="p">(</span><span class="n">atom_range_for_depth</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">to_device</span><span class="p">(</span><span class="n">atom_range_for_depth</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RefoldOrdering.for_scan_paths"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.forward.html#tmol.kinematics.gpu_operations.forward.RefoldOrdering.for_scan_paths">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="RefoldOrdering.for_scan_paths"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.forward.html#tmol.kinematics.gpu_operations.RefoldOrdering.for_scan_paths">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">for_scan_paths</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">scan_paths</span><span class="p">:</span> <span class="n">PathPartitioning</span><span class="p">):</span>
         <span class="n">natoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
         <span class="n">ndepths</span> <span class="o">=</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_depth_from_root</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
@@ -273,7 +274,7 @@
             <span class="p">),</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="RefoldOrdering.segscan_hts"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.forward.html#tmol.kinematics.gpu_operations.forward.RefoldOrdering.segscan_hts">[docs]</a>    <span class="k">def</span> <span class="nf">segscan_hts</span><span class="p">(</span>
+<div class="viewcode-block" id="RefoldOrdering.segscan_hts"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.forward.html#tmol.kinematics.gpu_operations.RefoldOrdering.segscan_hts">[docs]</a>    <span class="k">def</span> <span class="nf">segscan_hts</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">hts_kintree_ordering</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f8&quot;</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
             <span class="n">inplace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>

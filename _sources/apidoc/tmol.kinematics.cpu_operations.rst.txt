@@ -10,9 +10,6 @@ tmol.kinematics.cpu_operations
     :show-inheritance:
 
 
-    Submodules
-    -----------
-
     .. toctree::
        :maxdepth: 1
   

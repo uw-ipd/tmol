@@ -80,24 +80,26 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.system.html">tmol.system</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tmol.system.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.datatypes.html">tmol.system.datatypes</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.system.io</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.datatypes.html">tmol.system.datatypes</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.system.io</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.kinematics.html">tmol.system.kinematics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.packed.html">tmol.system.packed</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.restypes.html">tmol.system.restypes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.score_support.html">tmol.system.score_support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.kinematics.html">tmol.system.kinematics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.packed.html">tmol.system.packed</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.restypes.html">tmol.system.restypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.score_support.html">tmol.system.score_support</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
@@ -219,7 +221,7 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tmol.system.io.ResidueReader">
-<em class="property">class </em><code class="descclassname">tmol.system.io.</code><code class="descname">ResidueReader</code><span class="sig-paren">(</span><em>chemical_db: tmol.database.chemical.ChemicalDatabase, residue_types: Mapping[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9d07cf28&gt;, tmol.system.restypes.ResidueType]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/io.html#ResidueReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.io.ResidueReader" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.system.io.</code><code class="descname">ResidueReader</code><span class="sig-paren">(</span><em>chemical_db: tmol.database.chemical.ChemicalDatabase, residue_types: Mapping[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9c7fa730&gt;, tmol.system.restypes.ResidueType]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/io.html#ResidueReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.io.ResidueReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="classmethod">
 <dt id="tmol.system.io.ResidueReader.get_default">
@@ -249,7 +251,7 @@
 
 <dl class="method">
 <dt id="tmol.system.io.ResidueReader.resolve_type">
-<code class="descname">resolve_type</code><span class="sig-paren">(</span><em>resn: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9d07cf28&gt;, atomns: Collection[str]</em><span class="sig-paren">)</span> &#x2192; tmol.system.restypes.ResidueType<a class="reference internal" href="../_modules/tmol/system/io.html#ResidueReader.resolve_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.io.ResidueReader.resolve_type" title="Permalink to this definition">¶</a></dt>
+<code class="descname">resolve_type</code><span class="sig-paren">(</span><em>resn: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9c7fa730&gt;, atomns: Collection[str]</em><span class="sig-paren">)</span> &#x2192; tmol.system.restypes.ResidueType<a class="reference internal" href="../_modules/tmol/system/io.html#ResidueReader.resolve_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.io.ResidueReader.resolve_type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the best-match residue type for a collection of atom records.</p>
 </dd></dl>
 

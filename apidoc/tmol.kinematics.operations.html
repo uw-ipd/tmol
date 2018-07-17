@@ -80,7 +80,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
@@ -88,20 +89,21 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tmol.kinematics.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.kinematics.operations</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.kinematics.operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
 </ul>
 </li>
@@ -211,7 +213,7 @@
 <td>compute JUMP derivatives from f1/f2</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.operations.BondTransforms" title="tmol.kinematics.operations.BondTransforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BondTransforms</span></code></a></td>
-<td>BOND dofs -&gt; HTs</td>
+<td>Bond HTs from bond dofs.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.operations.DOFTransforms" title="tmol.kinematics.operations.DOFTransforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DOFTransforms</span></code></a></td>
 <td>Calculate HT representation of given dofs.</td>
@@ -259,28 +261,23 @@
 <dt id="tmol.kinematics.operations.JumpTransforms">
 <code class="descclassname">tmol.kinematics.operations.</code><code class="descname">JumpTransforms</code><span class="sig-paren">(</span><em>dofs: tmol.kinematics.datatypes.JumpDOF</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,4,4]<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#JumpTransforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.JumpTransforms" title="Permalink to this definition">¶</a></dt>
 <dd><p>JUMP dofs -&gt; HTs</p>
-<dl class="docutils">
-<dt>jump dofs are _9_ parameters:</dt>
-<dd><ul class="first last simple">
-<li>3 translational</li>
-<li>3 rotational deltas</li>
-<li>3 rotational</li>
-</ul>
-</dd>
-</dl>
+<p>jump dofs are _9_ parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="mi">3</span> <span class="n">translational</span>
+<span class="o">-</span> <span class="mi">3</span> <span class="n">rotational</span> <span class="n">deltas</span>
+<span class="o">-</span> <span class="mi">3</span> <span class="n">rotational</span>
+</pre></div>
+</div>
 <p>Only the rotational deltas should be exposed to minimization</p>
-<p>Translations are represented as an offset in X,Y,Z
-Rotations and rotational deltas are ZYX Euler angles,</p>
-<blockquote>
-<div>that is, a rotation about Z, then Y, then X</div></blockquote>
+<p>Translations are represented as an offset in X,Y,Z</p>
+<p>Rotations and rotational deltas are ZYX Euler angles. That is, a rotation
+about Z, then Y, then X.</p>
+<p>The HT returned by this function is given by:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">M</span> <span class="o">=</span> <span class="n">trans</span><span class="p">(</span> <span class="n">RBx</span><span class="p">,</span> <span class="n">RBy</span><span class="p">,</span> <span class="n">RBz</span><span class="p">)</span>
+    <span class="o">@</span> <span class="n">roteuler</span><span class="p">(</span> <span class="n">RBdel_alpha</span><span class="p">,</span> <span class="n">RBdel_alpha</span><span class="p">,</span> <span class="n">RBdel_alpha</span><span class="p">)</span>
+    <span class="o">@</span> <span class="n">roteuler</span><span class="p">(</span> <span class="n">RBalpha</span><span class="p">,</span> <span class="n">RBalpha</span><span class="p">,</span> <span class="n">RBalpha</span><span class="p">)</span>
+</pre></div>
+</div>
 <dl class="docutils">
-<dt>The HT returned by this function is given by:</dt>
-<dd><dl class="first last docutils">
-<dt>M = trans( RBx, RBy, RBz)</dt>
-<dd>&#64; roteuler( RBdel_alpha, RBdel_alpha, RBdel_alpha)
-&#64; roteuler( RBalpha, RBalpha, RBalpha)</dd>
-</dl>
-</dd>
 <dt>RBdel_* is meant to be reset to zero at the beginning of a minimization</dt>
 <dd>trajectory, as when parameters are near 0, the rotational space
 is well-behaved.</dd>
@@ -309,9 +306,11 @@ we assign all rotation to alpha.</dd>
 <dl class="docutils">
 <dt>Translational derivatives are straightforward dot products of f2s</dt>
 <dd>(the downstream derivative sum)</dd>
-<dt>Rotational derivatives use the Abe and Go “trick” that allows us to</dt>
-<dd>easily compute derivatives with respect to rotation about an axis.</dd>
-<dt>In this case, there are three axes to compute derivatives of:</dt>
+</dl>
+<p>Rotational derivatives use the Abe and Go “trick” that allows us to easily
+compute derivatives with respect to rotation about an axis.</p>
+<dl class="docutils">
+<dt>In this case, there are three axes to compute derivatives of::</dt>
 <dd><ol class="first last arabic simple">
 <li>the Z axis (alpha rotation)</li>
 <li>the Y axis after applying the alpha rotation (beta rotation)</li>
@@ -325,24 +324,26 @@ we assign all rotation to alpha.</dd>
 <dl class="function">
 <dt id="tmol.kinematics.operations.BondTransforms">
 <code class="descclassname">tmol.kinematics.operations.</code><code class="descname">BondTransforms</code><span class="sig-paren">(</span><em>dofs: tmol.kinematics.datatypes.BondDOF</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,4,4]<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#BondTransforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.operations.BondTransforms" title="Permalink to this definition">¶</a></dt>
-<dd><p>BOND dofs -&gt; HTs</p>
-<p>each bond has four dofs: [phi_p, theta, d, phi_c]
-in the local frame:</p>
-<blockquote>
-<div><ul class="simple">
+<dd><p>Bond HTs from bond dofs.</p>
+<p>each bond has four dofs: [phi_p, theta, d, phi_c]</p>
+<dl class="docutils">
+<dt>in the local frame:</dt>
+<dd><ul class="first last simple">
 <li>phi_p and phi_c are a rotation about x</li>
 <li>theta is a rotation about z</li>
 <li>d is a translation along x</li>
 </ul>
-</div></blockquote>
-<dl class="docutils">
-<dt>the matrix below is a composition:</dt>
-<dd><dl class="first last docutils">
-<dt>M &lt;- rot(phi_p, [1,0,0]) &#64; rot(theta, [0,0,1]</dt>
-<dd>&#64; trans(d, [1,0,0]) &#64; rot(phi_c, [1,0,0])</dd>
-</dl>
 </dd>
 </dl>
+<p>the matrix below is a composition:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">M</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">rot</span><span class="p">(</span><span class="n">phi_p</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+    <span class="o">@</span> <span class="n">rot</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
+    <span class="o">@</span> <span class="n">trans</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+    <span class="o">@</span> <span class="n">rot</span><span class="p">(</span><span class="n">phi_c</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+<span class="p">)</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="function">

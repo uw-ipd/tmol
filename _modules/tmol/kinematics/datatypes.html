@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -191,15 +192,18 @@
 <span class="sd">    3 rotational.</span>
 
 <span class="sd">    2) Bond nodes, representing the relationships between two atom reference</span>
-<span class="sd">    frames via *three bond degrees of freedom, bond axis translation, bond axis</span>
-<span class="sd">    rotation and change of bond axis with respect to the upstream bond.</span>
+<span class="sd">    frames via three bond degrees of freedom, bond axis translation, bond axis</span>
+<span class="sd">    rotation about the parent-grandparent bond and change of bond axis with</span>
+<span class="sd">    respect to the bond. Bond nodes include an additional, redundent,</span>
+<span class="sd">    degree of free representing concerted rotation of all downstream bonds</span>
+<span class="sd">    about the parent-self bond.</span>
 
 <span class="sd">    The `KinTree` data structure itself is frozen and can not be modified post</span>
 <span class="sd">    construction. The `KinematicBuilder` factory class is responsible for</span>
 <span class="sd">    construction of a `KinTree` with valid internal structure for atomic</span>
 <span class="sd">    system.</span>
 
-<span class="sd">    Indices:</span>
+<span class="sd">    Indices::</span>
 <span class="sd">        id = index for kin-atom in the target coordinate system</span>
 <span class="sd">        parent = kin-atom index of parent for each kin-atom</span>
 <span class="sd">        frame_x = kin-atom index of self</span>

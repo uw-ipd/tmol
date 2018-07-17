@@ -8,9 +8,6 @@ tmol.extern
     
 
 
-    Submodules
-    -----------
-
     .. toctree::
        :maxdepth: 1
   

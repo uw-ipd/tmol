@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -199,19 +200,25 @@
 <span class="k">def</span> <span class="nf">JumpTransforms</span><span class="p">(</span><span class="n">dofs</span><span class="p">:</span> <span class="n">JumpDOF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HTArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;JUMP dofs -&gt; HTs</span>
 
-<span class="sd">    jump dofs are _9_ parameters:</span>
+<span class="sd">    jump dofs are _9_ parameters::</span>
+
 <span class="sd">     - 3 translational</span>
 <span class="sd">     - 3 rotational deltas</span>
 <span class="sd">     - 3 rotational</span>
+
 <span class="sd">    Only the rotational deltas should be exposed to minimization</span>
 
 <span class="sd">    Translations are represented as an offset in X,Y,Z</span>
-<span class="sd">    Rotations and rotational deltas are ZYX Euler angles,</span>
-<span class="sd">        that is, a rotation about Z, then Y, then X</span>
-<span class="sd">    The HT returned by this function is given by:</span>
+
+<span class="sd">    Rotations and rotational deltas are ZYX Euler angles. That is, a rotation</span>
+<span class="sd">    about Z, then Y, then X.</span>
+
+<span class="sd">    The HT returned by this function is given by::</span>
+
 <span class="sd">        M = trans( RBx, RBy, RBz)</span>
 <span class="sd">            @ roteuler( RBdel_alpha, RBdel_alpha, RBdel_alpha)</span>
 <span class="sd">            @ roteuler( RBalpha, RBalpha, RBalpha)</span>
+
 <span class="sd">    RBdel_* is meant to be reset to zero at the beginning of a minimization</span>
 <span class="sd">        trajectory, as when parameters are near 0, the rotational space</span>
 <span class="sd">        is well-behaved.</span>
@@ -342,14 +349,15 @@
 <span class="sd">    Translational derivatives are straightforward dot products of f2s</span>
 <span class="sd">        (the downstream derivative sum)</span>
 
-<span class="sd">    Rotational derivatives use the Abe and Go &quot;trick&quot; that allows us to</span>
-<span class="sd">        easily compute derivatives with respect to rotation about an axis.</span>
-<span class="sd">    In this case, there are three axes to compute derivatives of:</span>
+<span class="sd">    Rotational derivatives use the Abe and Go &quot;trick&quot; that allows us to easily</span>
+<span class="sd">    compute derivatives with respect to rotation about an axis.</span>
+
+<span class="sd">    In this case, there are three axes to compute derivatives of::</span>
 <span class="sd">        1) the Z axis (alpha rotation)</span>
 <span class="sd">        2) the Y axis after applying the alpha rotation (beta rotation)</span>
 <span class="sd">        3) the X axis after applying the alpha &amp; beta rot (gamma rotation)</span>
-<span class="sd">    Derivatives are ONLY assigned to the RBdel DOFs</span>
 
+<span class="sd">    Derivatives are ONLY assigned to the RBdel DOFs</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># trans dofs</span>
     <span class="n">njumpatoms</span><span class="p">,</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">shape</span>
@@ -414,17 +422,23 @@
 
 <div class="viewcode-block" id="BondTransforms"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.BondTransforms">[docs]</a><span class="nd">@validate_args</span>
 <span class="k">def</span> <span class="nf">BondTransforms</span><span class="p">(</span><span class="n">dofs</span><span class="p">:</span> <span class="n">BondDOF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HTArray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    BOND dofs -&gt; HTs</span>
+    <span class="sd">&quot;&quot;&quot;Bond HTs from bond dofs.</span>
 
 <span class="sd">    each bond has four dofs: [phi_p, theta, d, phi_c]</span>
+
 <span class="sd">    in the local frame:</span>
 <span class="sd">        - phi_p and phi_c are a rotation about x</span>
 <span class="sd">        - theta is a rotation about z</span>
 <span class="sd">        - d is a translation along x</span>
-<span class="sd">    the matrix below is a composition:</span>
-<span class="sd">        M &lt;- rot(phi_p, [1,0,0]) @ rot(theta, [0,0,1]</span>
-<span class="sd">           @ trans(d, [1,0,0]) @ rot(phi_c, [1,0,0])</span>
+
+<span class="sd">    the matrix below is a composition::</span>
+
+<span class="sd">        M = (</span>
+<span class="sd">            rot(phi_p, [1,0,0])</span>
+<span class="sd">            @ rot(theta, [0,0,1]</span>
+<span class="sd">            @ trans(d, [1,0,0])</span>
+<span class="sd">            @ rot(phi_c, [1,0,0])</span>
+<span class="sd">        )</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">natoms</span><span class="p">,</span> <span class="o">=</span> <span class="n">dofs</span><span class="o">.</span><span class="n">shape</span>
 

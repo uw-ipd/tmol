@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -174,7 +175,7 @@
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">derivsum_jit</span>
 
 
-<div class="viewcode-block" id="DerivsumOrdering"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="DerivsumOrdering"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.DerivsumOrdering">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">DerivsumOrdering</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
     <span class="c1"># [natoms]</span>
     <span class="n">ki2dsi</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[:]</span>
@@ -204,7 +205,7 @@
     <span class="k">def</span> <span class="nf">atom_range_for_depth_d</span><span class="p">(</span><span class="n">atom_range_for_depth</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">to_device</span><span class="p">(</span><span class="n">atom_range_for_depth</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DerivsumOrdering.for_scan_paths"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering.for_scan_paths">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="DerivsumOrdering.for_scan_paths"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.DerivsumOrdering.for_scan_paths">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">for_scan_paths</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">scan_paths</span><span class="p">:</span> <span class="n">PathPartitioning</span><span class="p">):</span>
         <span class="n">natoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
         <span class="n">ndepths</span> <span class="o">=</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_depth_from_leaf</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
@@ -264,7 +265,7 @@
             <span class="n">atom_range_for_depth</span><span class="o">=</span><span class="n">atom_range_for_depth</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DerivsumOrdering.segscan_f1f2s"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering.segscan_f1f2s">[docs]</a>    <span class="k">def</span> <span class="nf">segscan_f1f2s</span><span class="p">(</span>
+<div class="viewcode-block" id="DerivsumOrdering.segscan_f1f2s"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.DerivsumOrdering.segscan_f1f2s">[docs]</a>    <span class="k">def</span> <span class="nf">segscan_f1f2s</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
             <span class="n">f1f2s_kintree_ordering</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f8&quot;</span><span class="p">)[:,</span> <span class="mi">6</span><span class="p">],</span>
             <span class="n">inplace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>

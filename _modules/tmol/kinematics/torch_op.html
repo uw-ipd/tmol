@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -183,9 +184,9 @@
 <span class="sd">    function.</span>
 
 <span class="sd">    KinematicOp provides an interface mirroring an autograd function and can be</span>
-<span class="sd">    used via either `__call__` or `apply`. Unlike an autograd function, the Op</span>
-<span class="sd">    is reused during compute graph construction and serves as a factory for</span>
-<span class="sd">    single use KinematicFun functions.</span>
+<span class="sd">    used via either ``KinematicOp.__call__`` or `KinematicOp.apply`. Unlike an</span>
+<span class="sd">    autograd function, the Op is reused during compute graph construction and</span>
+<span class="sd">    serves as a factory for single use KinematicFun functions.</span>
 
 <span class="sd">    A KinematicOp instance is limited to a single target device, which is</span>
 <span class="sd">    derived from the device of the source coordinate tensor provided in</span>

@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -162,12 +163,12 @@
 <span class="sd">parameter database file. Selects a minimal subset of polynomial parameters and type pair parameters</span>
 <span class="sd">to cover a specificed set of donor/acceptor types.</span>
 
-<span class="sd">Example:</span>
+<span class="sd">Example::</span>
 
-<span class="sd">with open(&quot;sp2_elec_hbond_params.yaml&quot;, &quot;w&quot;) as outfile:</span>
-<span class="sd">    params = RosettaHBParams(</span>
-<span class="sd">        &quot;~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/&quot;)</span>
-<span class="sd">    params.to_yaml(outfile)</span>
+<span class="sd">    with open(&quot;sp2_elec_hbond_params.yaml&quot;, &quot;w&quot;) as outfile:</span>
+<span class="sd">        params = RosettaHBParams(</span>
+<span class="sd">            &quot;~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/&quot;)</span>
+<span class="sd">        params.to_yaml(outfile)</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span>

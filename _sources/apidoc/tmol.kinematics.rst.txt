@@ -8,9 +8,6 @@ tmol.kinematics
     
 
 
-    Submodules
-    -----------
-
     .. toctree::
        :maxdepth: 1
   

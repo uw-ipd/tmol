@@ -80,7 +80,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
@@ -91,20 +92,20 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.utility.html">tmol.utility</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tmol.utility.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.utility.attr</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.utility.attr</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.utility.categorical.html">tmol.utility.categorical</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.utility.log.html">tmol.utility.log</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.utility.mixins.html">tmol.utility.mixins</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.utility.numba.html">tmol.utility.numba</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.utility.reactive.html">tmol.utility.reactive</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.utility.units.html">tmol.utility.units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.categorical.html">tmol.utility.categorical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.log.html">tmol.utility.log</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.mixins.html">tmol.utility.mixins</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.numba.html">tmol.utility.numba</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.reactive.html">tmol.utility.reactive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.units.html">tmol.utility.units</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#summary">Summary</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#reference">Reference</a></li>
 </ul>
@@ -237,8 +238,8 @@
 <dd><p>Bases: <a class="reference internal" href="#tmol.utility.attr.AttrMapping" title="tmol.utility.attr.AttrMapping"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.utility.attr.AttrMapping</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.MutableMapping" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.MutableMapping</span></code></a></p>
 <p>Mixin adding a subset of the mutable mapping interface to attr classes.</p>
 <p>As the keys of an attrs-based class are based on defined properties, this mixin
-does <em>not</em> support <code class="xref any docutils literal notranslate"><span class="pre">__delitem__</span></code>-based components of the MutableMapping interface,
-(eg. <code class="xref any docutils literal notranslate"><span class="pre">m.pop(key)</span></code>, <code class="xref any docutils literal notranslate"><span class="pre">del</span> <span class="pre">m[key]</span></code>, …)</p>
+does <em>not</em> support <code class="docutils literal notranslate"><span class="pre">__delitem__</span></code>-based components of the MutableMapping interface,
+(eg. <code class="docutils literal notranslate"><span class="pre">m.pop(key)</span></code>, <code class="docutils literal notranslate"><span class="pre">del</span> <span class="pre">m[key]</span></code>, …)</p>
 <dl class="attribute">
 <dt id="tmol.utility.attr.AttrMutableMapping._abc_cache">
 <code class="descname">_abc_cache</code><em class="property"> = &lt;_weakrefset.WeakSet object&gt;</em><a class="headerlink" href="#tmol.utility.attr.AttrMutableMapping._abc_cache" title="Permalink to this definition">¶</a></dt>

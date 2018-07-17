@@ -80,24 +80,25 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.system.html">tmol.system</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tmol.system.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.datatypes.html">tmol.system.datatypes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.io.html">tmol.system.io</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.kinematics.html">tmol.system.kinematics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.packed.html">tmol.system.packed</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.system.restypes</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.datatypes.html">tmol.system.datatypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.io.html">tmol.system.io</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.kinematics.html">tmol.system.kinematics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.packed.html">tmol.system.packed</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.system.restypes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.system.score_support.html">tmol.system.score_support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.system.score_support.html">tmol.system.score_support</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
@@ -202,7 +203,7 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tmol.system.restypes.ResidueType">
-<em class="property">class </em><code class="descclassname">tmol.system.restypes.</code><code class="descname">ResidueType</code><span class="sig-paren">(</span><em>name: str, name3: str, atoms: Tuple[tmol.database.chemical.Atom, ...], bonds: Tuple[Tuple[str, str], ...], connections: Tuple[tmol.database.chemical.Connection, ...], torsions: Tuple[tmol.database.chemical.Torsion, ...], icoors: Tuple[tmol.database.chemical.Icoor, ...], atom_to_idx: Mapping[str, &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9cd1e9d8&gt;] = NOTHING, coord_dtype: numpy.dtype = NOTHING, bond_indicies: numpy.ndarray = NOTHING, connection_to_idx: Mapping[str, &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9cd1e9d8&gt;] = NOTHING, connection_to_cidx: Mapping[Union[str, NoneType], &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9cd1e620&gt;] = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/restypes.html#ResidueType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.restypes.ResidueType" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.system.restypes.</code><code class="descname">ResidueType</code><span class="sig-paren">(</span><em>name: str, name3: str, atoms: Tuple[tmol.database.chemical.Atom, ...], bonds: Tuple[Tuple[str, str], ...], connections: Tuple[tmol.database.chemical.Connection, ...], torsions: Tuple[tmol.database.chemical.Torsion, ...], icoors: Tuple[tmol.database.chemical.Icoor, ...], atom_to_idx: Mapping[str, &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9c7fab70&gt;] = NOTHING, coord_dtype: numpy.dtype = NOTHING, bond_indicies: numpy.ndarray = NOTHING, connection_to_idx: Mapping[str, &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9c7fab70&gt;] = NOTHING, connection_to_cidx: Mapping[Union[str, NoneType], &lt;function NewType.&lt;locals&gt;.new_type at 0x7fff9c7fad08&gt;] = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/restypes.html#ResidueType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.restypes.ResidueType" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.database.chemical.html#tmol.database.chemical.Residue" title="tmol.database.chemical.Residue"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.database.chemical.Residue</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.system.restypes.ResidueType.atom_to_idx">

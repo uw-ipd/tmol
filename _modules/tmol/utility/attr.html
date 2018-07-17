@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -191,8 +192,8 @@
     <span class="sd">&quot;&quot;&quot;Mixin adding a subset of the mutable mapping interface to attr classes.</span>
 
 <span class="sd">    As the keys of an attrs-based class are based on defined properties, this mixin</span>
-<span class="sd">    does *not* support `__delitem__`-based components of the MutableMapping interface,</span>
-<span class="sd">    (eg. `m.pop(key)`, `del m[key]`, ...)</span>
+<span class="sd">    does *not* support ``__delitem__``-based components of the MutableMapping interface,</span>
+<span class="sd">    (eg. ``m.pop(key)``, ``del m[key]``, ...)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>

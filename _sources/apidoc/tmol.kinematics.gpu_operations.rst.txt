@@ -10,9 +10,6 @@ tmol.kinematics.gpu_operations
     :show-inheritance:
 
 
-    Submodules
-    -----------
-
     .. toctree::
        :maxdepth: 1
   
@@ -43,6 +40,7 @@ tmol.kinematics.gpu_operations
 
   
   
+    ``__all__``: :class:`DerivsumOrdering <tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering>`, :class:`GPUKinTreeReordering <tmol.kinematics.gpu_operations.GPUKinTreeReordering>`, :class:`PathPartitioning <tmol.kinematics.gpu_operations.scan_paths.PathPartitioning>`, :class:`RefoldOrdering <tmol.kinematics.gpu_operations.forward.RefoldOrdering>`
 
 
 

@@ -80,7 +80,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
@@ -88,19 +89,25 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tmol.kinematics.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.kinematics.gpu_operations</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.kinematics.gpu_operations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.derivsum.html">tmol.kinematics.gpu_operations.derivsum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.derivsum_jit.html">tmol.kinematics.gpu_operations.derivsum_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.forward.html">tmol.kinematics.gpu_operations.forward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.forward_jit.html">tmol.kinematics.gpu_operations.forward_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_jit.html">tmol.kinematics.gpu_operations.scan_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths.html">tmol.kinematics.gpu_operations.scan_paths</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths_jit.html">tmol.kinematics.gpu_operations.scan_paths_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
@@ -181,8 +188,6 @@
             
   <div class="section" id="module-tmol.kinematics.gpu_operations">
 <span id="tmol-kinematics-gpu-operations"></span><h1>tmol.kinematics.gpu_operations<a class="headerlink" href="#module-tmol.kinematics.gpu_operations" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.derivsum.html">tmol.kinematics.gpu_operations.derivsum</a></li>
@@ -193,7 +198,6 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths.html">tmol.kinematics.gpu_operations.scan_paths</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths_jit.html">tmol.kinematics.gpu_operations.scan_paths_jit</a></li>
 </ul>
-</div>
 </div>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
@@ -210,6 +214,7 @@
 </tr>
 </tbody>
 </table>
+<p><code class="docutils literal notranslate"><span class="pre">__all__</span></code>: <a class="reference internal" href="tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering" title="tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering"><code class="xref py py-class docutils literal notranslate"><span class="pre">DerivsumOrdering</span></code></a>, <a class="reference internal" href="#tmol.kinematics.gpu_operations.GPUKinTreeReordering" title="tmol.kinematics.gpu_operations.GPUKinTreeReordering"><code class="xref py py-class docutils literal notranslate"><span class="pre">GPUKinTreeReordering</span></code></a>, <a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths.html#tmol.kinematics.gpu_operations.scan_paths.PathPartitioning" title="tmol.kinematics.gpu_operations.scan_paths.PathPartitioning"><code class="xref py py-class docutils literal notranslate"><span class="pre">PathPartitioning</span></code></a>, <a class="reference internal" href="tmol.kinematics.gpu_operations.forward.html#tmol.kinematics.gpu_operations.forward.RefoldOrdering" title="tmol.kinematics.gpu_operations.forward.RefoldOrdering"><code class="xref py py-class docutils literal notranslate"><span class="pre">RefoldOrdering</span></code></a></p>
 </div>
 </div>
 <div class="section" id="reference">
@@ -277,6 +282,197 @@ object.
 <dl class="attribute">
 <dt id="tmol.kinematics.gpu_operations.GPUKinTreeReordering.kintree_cache_key">
 <code class="descname">kintree_cache_key</code><em class="property"> = '__GPUKinTreeReordering_cache__'</em><a class="headerlink" href="#tmol.kinematics.gpu_operations.GPUKinTreeReordering.kintree_cache_key" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.gpu_operations.</code><code class="descname">PathPartitioning</code><span class="sig-paren">(</span><em>parent: NDArray(dtype('int64'))[:], subpath_child: NDArray(dtype('int64'))[:], n_nonpath_children: NDArray(dtype('int64'))[:], is_subpath_root: NDArray(dtype('bool'))[:], is_subpath_leaf: NDArray(dtype('bool'))[:], nonpath_children: NDArray(dtype('int64'))[:,:], subpath_length: NDArray(dtype('int64'))[:], subpath_depth_from_root: NDArray(dtype('int64'))[:], subpath_depth_from_leaf: NDArray(dtype('int64'))[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/scan_paths.html#PathPartitioning"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
+<p>Partitioning of a tree into linear subpaths.</p>
+<p>Source tree contains a single root node, at index 0, and any number nodes
+at index (i) &gt; 0, each with a single parent with index (p_i) “higher” in the
+tree (p_i &lt; i). The tree structure is fully defined by parent pointers, an
+index array (parent) of len(tree_size) where parent[0] == [0] and parent[i]
+== p_i.</p>
+<p>The source tree implies a per-node child list of length &gt;= 0, defined by
+all nodes for which the given node is a parent. Nodes with no children are
+leaves.</p>
+<p>Scan paths cuts the tree into linear paths, where each non-leaf node (i)
+has a <em>single</em> child (c_i) “lower” in the tree (i &lt; c_i). The path
+structure is fully defined by child pointers, an index array (subpath_child)
+of subpath_child[i] == c_i (non-leaves) or subpath_child[i] = -1 (leaves).</p>
+<p>The path partitioning implies “subpath roots”, the set of nodes which are
+<em>not</em> the subpath child of their parent (subpath_child[parent[i]] != i).</p>
+<p>Each path in the tree is labeled with a depth: a path with depth
+i may depend on the values computed for atoms with depths 0..i-1.
+All of the paths of the same depth can be processed in a single
+kernel execution with segmented scan.</p>
+<dl class="classmethod">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.from_subpath_children">
+<em class="property">classmethod </em><code class="descname">from_subpath_children</code><span class="sig-paren">(</span><em>parent: NDArray(dtype('int64'))[:], subpath_child: NDArray(dtype('int64'))[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/scan_paths.html#PathPartitioning.from_subpath_children"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.from_subpath_children" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.is_subpath_leaf">
+<code class="descname">is_subpath_leaf</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.is_subpath_leaf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.is_subpath_root">
+<code class="descname">is_subpath_root</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.is_subpath_root" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.minimum_subpath_depth">
+<em class="property">classmethod </em><code class="descname">minimum_subpath_depth</code><span class="sig-paren">(</span><em>parent: NDArray(dtype('int64'))[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/scan_paths.html#PathPartitioning.minimum_subpath_depth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.minimum_subpath_depth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate paths minimizing the maximum path depth.</p>
+<p>Devide the tree into paths minimizes the number
+of depths in the tree. For any node in the tree, one of its children
+will be in the same path with it, and all other children will be
+roots of their own subtrees. The minimum-depth division of paths
+is computed by lableling the “branching factor” of each atom. The
+branching factor of an atom is 0 if it has no children; if it does
+have children, it is the largest of the branching factors of what
+the atom designates as its on-path child and one-greater than the
+branching factor of any of its other children. Each node then may
+select the child with the largest branching factor as its on-path
+child to minimize its branching factor. This division produces
+a minimum depth tree of paths.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.n_nonpath_children">
+<code class="descname">n_nonpath_children</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.n_nonpath_children" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.nonpath_children">
+<code class="descname">nonpath_children</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.nonpath_children" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.parent">
+<code class="descname">parent</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.parent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.subpath_child">
+<code class="descname">subpath_child</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.subpath_child" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.subpath_depth_from_leaf">
+<code class="descname">subpath_depth_from_leaf</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.subpath_depth_from_leaf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.subpath_depth_from_root">
+<code class="descname">subpath_depth_from_root</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.subpath_depth_from_root" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.PathPartitioning.subpath_length">
+<code class="descname">subpath_length</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.PathPartitioning.subpath_length" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.gpu_operations.</code><code class="descname">RefoldOrdering</code><span class="sig-paren">(</span><em>ri2ki: NDArray(dtype('int32'))[:], ki2ri: NDArray(dtype('int32'))[:], is_subpath_root: NDArray(dtype('bool'))[:], non_subpath_parent: NDArray(dtype('int32'))[:], atom_range_for_depth: NDArray(dtype('int32'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/forward.html#RefoldOrdering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering._reactive_values">
+<code class="descname">_reactive_values</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering._reactive_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.atom_range_for_depth">
+<code class="descname">atom_range_for_depth</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.atom_range_for_depth" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.for_scan_paths">
+<em class="property">classmethod </em><code class="descname">for_scan_paths</code><span class="sig-paren">(</span><em>scan_paths: tmol.kinematics.gpu_operations.scan_paths.PathPartitioning</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/forward.html#RefoldOrdering.for_scan_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.for_scan_paths" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.is_subpath_root">
+<code class="descname">is_subpath_root</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.is_subpath_root" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.ki2ri">
+<code class="descname">ki2ri</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.ki2ri" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.non_subpath_parent">
+<code class="descname">non_subpath_parent</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.non_subpath_parent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.ri2ki">
+<code class="descname">ri2ki</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.ri2ki" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.segscan_hts">
+<code class="descname">segscan_hts</code><span class="sig-paren">(</span><em>hts_kintree_ordering: Tensor(torch.float64)[:,4,4], inplace: bool = False</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,4,4]<a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/forward.html#RefoldOrdering.segscan_hts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.segscan_hts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform a series of segmented scan operations on the input
+homogeneous transforms to compute the coordinate frames of all atoms in
+the kintree.</p>
+<p>This version uses cuda.syncthreads() calls to ensure that there are no
+data race issues. For this reason, it can be safely run on the CPU
+using numba’s CUDA simulator.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.gpu_operations.</code><code class="descname">DerivsumOrdering</code><span class="sig-paren">(</span><em>ki2dsi: NDArray(dtype('int32'))[:], dsi2ki: NDArray(dtype('int32'))[:], is_leaf: NDArray(dtype('bool'))[:], nonpath_children: NDArray(dtype('int32'))[:,:], atom_range_for_depth: NDArray(dtype('int32'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/derivsum.html#DerivsumOrdering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering._reactive_values">
+<code class="descname">_reactive_values</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering._reactive_values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.atom_range_for_depth">
+<code class="descname">atom_range_for_depth</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.atom_range_for_depth" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.dsi2ki">
+<code class="descname">dsi2ki</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.dsi2ki" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.for_scan_paths">
+<em class="property">classmethod </em><code class="descname">for_scan_paths</code><span class="sig-paren">(</span><em>scan_paths: tmol.kinematics.gpu_operations.scan_paths.PathPartitioning</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/derivsum.html#DerivsumOrdering.for_scan_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.for_scan_paths" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.is_leaf">
+<code class="descname">is_leaf</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.is_leaf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.ki2dsi">
+<code class="descname">ki2dsi</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.ki2dsi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.nonpath_children">
+<code class="descname">nonpath_children</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.nonpath_children" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.segscan_f1f2s">
+<code class="descname">segscan_f1f2s</code><span class="sig-paren">(</span><em>f1f2s_kintree_ordering: Tensor(torch.float64)[:,6], inplace: bool = False</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:,6]<a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/derivsum.html#DerivsumOrdering.segscan_f1f2s"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.segscan_f1f2s" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

@@ -78,7 +78,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul>
@@ -165,16 +166,16 @@
     <span class="sd">&quot;&quot;&quot;Mixin managing cooperative score graph factory functions.</span>
 
 <span class="sd">    `Factory` manages cooperative evaluation of a set of component-specifc</span>
-<span class="sd">    factory functions, defined via `factory_for` class/static methods. Each</span>
+<span class="sd">    factory functions, defined via ``factory_for`` class/static methods. Each</span>
 <span class="sd">    factory function should extract a set of graph __init__ kwargs from an</span>
-<span class="sd">    input `val`, defaulting to implementing a partial clone from `val`</span>
+<span class="sd">    input ``val``, defaulting to implementing a partial clone from ``val``</span>
 <span class="sd">    attributes.</span>
 
 <span class="sd">    Components factory functions *should*, if appropriate, allow for</span>
-<span class="sd">    `singledispatch` based overload on the type of `val`, allowing for</span>
-<span class="sd">    customization of score graph initialization for new input types. See</span>
-<span class="sd">    `tmol.system.score_support` for factory functions providing score graph</span>
-<span class="sd">    initialization from residue systems.</span>
+<span class="sd">    `singledispatch &lt;functools.singledispatch&gt;` based overload on the type of</span>
+<span class="sd">    ``val``, allowing for customization of score graph initialization for new</span>
+<span class="sd">    input types. See :py:mod:`tmol.system.score_support` for factory functions</span>
+<span class="sd">    providing score graph initialization from residue systems.</span>
 
 <span class="sd">    See `tmol.utility.mixins.cooperative_superclass_factory` for details of</span>
 <span class="sd">    kwarg-to-parameter resolution.</span>

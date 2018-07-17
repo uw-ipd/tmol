@@ -80,7 +80,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
@@ -94,12 +95,14 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.support.html">tmol.support</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tmol.support.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tmol.support.rosetta.html">tmol.support.rosetta</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="tmol.support.scoring.html">tmol.support.scoring</a><ul class="current">
-<li class="toctree-l4 current"><a class="reference internal" href="tmol.support.scoring.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.support.rosetta.html">tmol.support.rosetta</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.support.scoring.html">tmol.support.scoring</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.support.scoring.hbond_param_import</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.support.scoring.rosetta.html">tmol.support.scoring.rosetta</a></li>
 </ul>
 </li>
 </ul>
@@ -180,15 +183,12 @@
 parameter database file. Selects a minimal subset of polynomial parameters and type pair parameters
 to cover a specificed set of donor/acceptor types.</p>
 <p>Example:</p>
-<dl class="docutils">
-<dt>with open(“sp2_elec_hbond_params.yaml”, “w”) as outfile:</dt>
-<dd><dl class="first docutils">
-<dt>params = RosettaHBParams(</dt>
-<dd>“~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/”)</dd>
-</dl>
-<p class="last">params.to_yaml(outfile)</p>
-</dd>
-</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;sp2_elec_hbond_params.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">RosettaHBParams</span><span class="p">(</span>
+        <span class="s2">&quot;~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/&quot;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">to_yaml</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span>
+</pre></div>
+</div>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="classes">

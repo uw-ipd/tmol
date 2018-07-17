@@ -80,7 +80,8 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../placeholder.html">Placeholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
@@ -88,19 +89,26 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="tmol.kinematics.html#submodules">Submodules</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
-<li class="toctree-l3 current"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a><ul class="current">
-<li class="toctree-l4 current"><a class="reference internal" href="tmol.kinematics.gpu_operations.html#submodules">Submodules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="tmol.kinematics.gpu_operations.html#summary">Summary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="tmol.kinematics.gpu_operations.html#reference">Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.derivsum.html">tmol.kinematics.gpu_operations.derivsum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.derivsum_jit.html">tmol.kinematics.gpu_operations.derivsum_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.forward.html">tmol.kinematics.gpu_operations.forward</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.forward_jit.html">tmol.kinematics.gpu_operations.forward_jit</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.kinematics.gpu_operations.scan_jit</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths.html">tmol.kinematics.gpu_operations.scan_paths</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.scan_paths_jit.html">tmol.kinematics.gpu_operations.scan_paths_jit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.html#summary">Summary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.gpu_operations.html#reference">Reference</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
@@ -215,42 +223,31 @@ operator, where the scan paths many have any number of additional off-path
 node inputs added <em>before</em> the scan path. For example, consider the
 operation composed of path values (P), off path values (OP) joined by an
 operator (+):</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>OP_0            OP_1</dt>
-<dd><ul class="first simple">
-<li><ul class="first">
-<li></li>
-</ul>
-</li>
-</ul>
-<div class="line-block">
-<div class="line"><a href="#id1"><span class="problematic" id="id2">|</span></a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">OP_0</span>            <span class="n">OP_1</span>
+  <span class="o">+</span>               <span class="o">+</span>
+  <span class="o">|</span>               <span class="o">|</span>
+  <span class="n">v</span>               <span class="n">v</span>
+<span class="n">P_0</span><span class="o">+---&gt;</span><span class="n">P_1</span><span class="o">+---&gt;</span><span class="n">P_2</span><span class="o">+---&gt;</span><span class="n">P_3</span><span class="o">+---&gt;</span><span class="n">P_4</span>
+                  <span class="o">^</span>
+                  <span class="o">|</span>
+                  <span class="o">+</span>
+                <span class="n">OP_2</span>
+</pre></div>
 </div>
-<p class="last">v               v</p>
-</dd>
-<dt>P_0+—&gt;P_1+—&gt;P_2+—&gt;P_3+—&gt;P_4</dt>
-<dd><blockquote class="first">
-<div><ul class="simple">
-<li></li>
-</ul>
-</div></blockquote>
-<p class="last">OP_2</p>
-</dd>
-</dl>
-</div></blockquote>
 <p>Represents the complete operation:</p>
-<blockquote>
-<div>(OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">OP_0</span> <span class="o">+</span> <span class="n">P_0</span><span class="p">)</span> <span class="o">+</span> <span class="n">P_1</span> <span class="o">+</span> <span class="p">(</span><span class="n">OP_1</span> <span class="o">+</span> <span class="n">OP_2</span> <span class="o">+</span> <span class="n">P_2</span><span class="p">)</span> <span class="o">+</span> <span class="n">P_3</span> <span class="o">+</span> <span class="n">P_4</span>
+</pre></div>
+</div>
 <p>As this is a scan, rather than reduction, this results in:</p>
-<blockquote>
-<div><p>R_0—–R_1—–R_2—–R_3—–R_4</p>
-<p>R_0 = OP_0 + P_0
-R_1 = (OP_0 + P_0) + P_1
-R_2 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2)
-R_3 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3
-R_4 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4</p>
-</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">R_0</span><span class="o">-----</span><span class="n">R_1</span><span class="o">-----</span><span class="n">R_2</span><span class="o">-----</span><span class="n">R_3</span><span class="o">-----</span><span class="n">R_4</span>
+
+<span class="n">R_0</span> <span class="o">=</span> <span class="n">OP_0</span> <span class="o">+</span> <span class="n">P_0</span>
+<span class="n">R_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">OP_0</span> <span class="o">+</span> <span class="n">P_0</span><span class="p">)</span> <span class="o">+</span> <span class="n">P_1</span>
+<span class="n">R_2</span> <span class="o">=</span> <span class="p">(</span><span class="n">OP_0</span> <span class="o">+</span> <span class="n">P_0</span><span class="p">)</span> <span class="o">+</span> <span class="n">P_1</span> <span class="o">+</span> <span class="p">(</span><span class="n">OP_1</span> <span class="o">+</span> <span class="n">OP_2</span> <span class="o">+</span> <span class="n">P_2</span><span class="p">)</span>
+<span class="n">R_3</span> <span class="o">=</span> <span class="p">(</span><span class="n">OP_0</span> <span class="o">+</span> <span class="n">P_0</span><span class="p">)</span> <span class="o">+</span> <span class="n">P_1</span> <span class="o">+</span> <span class="p">(</span><span class="n">OP_1</span> <span class="o">+</span> <span class="n">OP_2</span> <span class="o">+</span> <span class="n">P_2</span><span class="p">)</span> <span class="o">+</span> <span class="n">P_3</span>
+<span class="n">R_4</span> <span class="o">=</span> <span class="p">(</span><span class="n">OP_0</span> <span class="o">+</span> <span class="n">P_0</span><span class="p">)</span> <span class="o">+</span> <span class="n">P_1</span> <span class="o">+</span> <span class="p">(</span><span class="n">OP_1</span> <span class="o">+</span> <span class="n">OP_2</span> <span class="o">+</span> <span class="n">P_2</span><span class="p">)</span> <span class="o">+</span> <span class="n">P_3</span> <span class="o">+</span> <span class="n">P_4</span>
+</pre></div>
+</div>
 <p>The off-path inputs of a scan are taken from the result values of previous
 scan operations. Scans are processed by “generation”, arranged such that
 the off-path inputs of any segment are draw <em>exclusively</em> from earlier
@@ -260,7 +257,7 @@ segmented scan.</p>
 <p>Implementation of a specific scan operation involves subclassing this
 template class and providing:</p>
 <blockquote>
-<div><p><code class="xref any docutils literal notranslate"><span class="pre">&#64;cuda.jit(device=True)</span></code> class-methods:</p>
+<div><p><code class="docutils literal notranslate"><span class="pre">&#64;cuda.jit(device=True)</span></code> class-methods:</p>
 <blockquote>
 <div><dl class="docutils">
 <dt>add: ((val, val) -&gt; val)</dt>

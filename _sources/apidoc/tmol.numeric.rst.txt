@@ -8,9 +8,6 @@ tmol.numeric
     
 
 
-    Submodules
-    -----------
-
     .. toctree::
        :maxdepth: 1
   
