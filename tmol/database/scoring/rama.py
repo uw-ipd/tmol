@@ -9,7 +9,7 @@ import torch
 from ..chemical import AAType, aatype_to_three_letter
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from tmol.numeric.bspline import BSplineDegree3, compute_coeffs
+from tmol.numeric.bspline import BSplineInterpolation
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -59,8 +59,7 @@ class RamaDatabase:
 class CompactedRamaDatabase:
     table: Tensor(torch.float)[20, 2, 36, 36]
 
-    bspdeg: BSplineDegree3
-    coefficients: Tensor(torch.float)[20, 2, 36, 36]
+    bspline: BSplineInterpolation
 
     @classmethod
     def from_ramadb(cls, ramadb: RamaDatabase, device: torch.device):
