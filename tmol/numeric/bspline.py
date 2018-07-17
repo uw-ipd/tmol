@@ -308,8 +308,8 @@ class BSplineInterpolation:
         assert X.shape[1] == self.n_interp_dims
         assert Y is None or len(Y.shape) == 2
         assert Y is None or X.shape[0] == Y.shape[0]
-        assert ((Y is None and self.n_index_dims == 0)
-                or (Y is not None and Y.shape[1] == self.n_index_dims))
+        assert ((Y is None and self.n_index_dims == 0) or
+                (Y is not None and Y.shape[1] == self.n_index_dims)) # yapf: disable
 
         bspdeg = bsplines_by_degree[self.degree]
         nx = X.shape[0]
