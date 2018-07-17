@@ -15,7 +15,7 @@ echo --- Copy html docs to gh-pages
 # subshell to contain dotglob
 (
   shopt -s dotglob
-  cp -r docs/build/html/* gh-pages/
+  cp -r docs/_build/html/* gh-pages/
 )
 
 echo --- Commit pages changes

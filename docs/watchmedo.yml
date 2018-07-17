@@ -1,0 +1,19 @@
+python-path: [.]
+tricks:
+- watchdog.tricks.LoggerTrick:
+    patterns:
+    - "*.py"
+    - "*.rst"
+    ignore_patterns:
+    - "./docs/apidoc/**"
+    - "./docs/_build/**"
+- watchdog.tricks.ShellCommandTrick:
+    shell_command: "docs/make"
+    patterns:
+    - "*.py"
+    - "*.rst"
+    ignore_patterns:
+    - "docs/apidoc/**"
+    - "docs/_build/**"
+    ignore_directories: false
+    drop_during_process: true

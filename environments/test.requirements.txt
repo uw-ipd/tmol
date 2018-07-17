@@ -6,3 +6,4 @@ pytest-faulthandler
 git+https://github.com/uw-ipd/pytest-benchmark@a14db84
 
 better-apidoc==0.2.0
+aafigure>=0.6

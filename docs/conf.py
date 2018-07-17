@@ -46,6 +46,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
+    "aafigure.sphinxext",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -92,6 +93,10 @@ napoleon_use_ivar = True
 
 # Default role for `backtick` annotated text, try to find any possible link.
 default_role = "any"
+
+# aafigure configuration
+aafig_format = dict(latex='pdf', html='svg', text=None)
+aafig_default_options = dict(textual=True)
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -178,11 +183,19 @@ texinfo_documents = [
 
 # -- Options for intersphinx extension ---------------------------------------
 
+# Dump intersphinx mappings via `python -m sphinx.ext.intersphinx`, reference via explict project targets.
+#
+# Eg:
+#    python -m sphinx.ext.intersphinx 'http://www.attrs.org/en/stable/objects.inv'
+#
+#   `attrs <attrs:overview>`
+
 intersphinx_mapping = {
     'python': ('https://docs.python.org/', None),
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'torch': ('http://pytorch.org/docs/stable/', None),
     'numba': ('http://numba.pydata.org/numba-doc/latest/', None),
+    'attrs': ('http://www.attrs.org/en/stable/', None),
 }
 
 # -- Options for todo extension ----------------------------------------------

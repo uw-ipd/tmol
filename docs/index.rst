@@ -23,7 +23,8 @@ TMol is a tensor-based molecular modeling library for use on GPUs and CPUs.
   :glob:
   :caption: Notes
 
-  placeholder
+  architecture
+  datatypes
   apidoc
 
 Packages

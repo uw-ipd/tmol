@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -x
+set -e
+
+# change to project root
+pushd "$( dirname "${BASH_SOURCE[0]}" )"/..
+
+echo --- Clean apidoc
+# Clean docs/(build|apidoc)
+rm -rf docs/apidoc
+
+echo --- Build html docs
+# Add cwd to pythonpath to support apidoc/autodoc of tmol module
+# will need to `pip install` if any built components are added
+# in the future.
+(
+  export PYTHONPATH=.
+  better-apidoc -M -e -t docs/_templates -o docs/apidoc tmol tmol/tests
+  sphinx-build -M html docs docs/_build
+)
+
+popd

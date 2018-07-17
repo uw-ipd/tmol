@@ -70,7 +70,7 @@ steps:
 
   ### Generate project documentation
   - label: ':open_book: Docs'
-    command: .buildkite/bin/docs
+    command: docs/make
     artifact_paths:
       - docs/build/**/*
     plugins:
