@@ -18,14 +18,18 @@
 
 # -- Project information -----------------------------------------------------
 
+import subprocess
+
 project = 'TMol'
 copyright = '2018, TMol Contributers'
 author = 'TMol Contributers'
 
 # The short X.Y version
-version = ''
+version = subprocess.check_output(
+    "git describe --tags", shell=True
+).strip().decode()
 # The full version, including alpha/beta/rc tags
-release = ''
+release = version
 
 # -- General configuration ---------------------------------------------------
 
@@ -109,7 +113,10 @@ html_theme = "sphinx_rtd_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = dict(
+    canonical_url="http://tmol.uw.ipd.edu/",
+    display_version=True,
+)
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
