@@ -2,7 +2,7 @@ from functools import singledispatch
 
 import torch
 
-from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.reactive import reactive_attrs
 
 from tmol.types.torch import Tensor
 

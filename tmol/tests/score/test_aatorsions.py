@@ -1,16 +1,12 @@
-import pytest
-
 import torch
 import numpy
 
 from tmol.utility.reactive import reactive_attrs
-from tmol.tests.torch import requires_cuda
 from tmol.score import (
     TotalScoreGraph,
     CartesianAtomicCoordinateProvider,
 )
 from tmol.score.torsions import (AlphaAABackboneTorsionProvider)
-from tmol.database.chemical import three_letter_to_aatype
 
 
 @reactive_attrs(auto_attribs=True)
@@ -37,7 +33,7 @@ def test_create_torsion_provider(ubq_system):
         -104.5098,  -61.2180,  -63.8914,  -55.5523,  -91.0216,   57.9396,
          -88.6669, -103.4373,  -54.7883,   66.8974,  -71.1469, -119.1522,
         -103.1357, -105.5834, -106.9736, -108.1151,  -96.0197, -117.6195,
-         -83.7244,  -97.6604,  120.4148,  174.1601]) # yapf: disable
+        -83.7244,  -97.6604,  120.4148,  174.1601]) # yapf: disable
     numpy.testing.assert_allclose(
         (src.phi_tor * 180 / numpy.pi).detach().numpy(), gold_phi, atol=1e-4
     )

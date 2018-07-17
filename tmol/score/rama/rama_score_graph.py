@@ -1,25 +1,21 @@
 import attr
-from typing import Optional
 
 import torch
 import numpy
 
 from ..database import ParamDB
 from ..device import TorchDevice
-from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
+from ..total_score import ScoreComponentAttributes
 from ..factory import Factory
 from ..torsions import AlphaAABackboneTorsionProvider
 from ..polymeric_bonds import PolymericBonds
 
-from tmol.database import ParameterDatabase
 from tmol.database.chemical import AAType
 from tmol.database.scoring.rama import CompactedRamaDatabase
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
-from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
-from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 

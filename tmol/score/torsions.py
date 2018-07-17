@@ -1,9 +1,7 @@
-from typing import Optional
 from functools import singledispatch
 
 import torch
 import numpy
-import math
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
@@ -25,8 +23,8 @@ class AlphaAABackboneTorsionProvider(Factory):
             **_,
     ):
         """`clone`-factory, extract coords from other."""
-        if requires_grad is None:
-            requires_grad = other.coords.requires_grad
+        #if requires_grad is None:
+        #    requires_grad = other.coords.requires_grad
 
         phi_inds = torch.tensor(
             other.phi_inds,
@@ -94,7 +92,7 @@ class AlphaAABackboneTorsionProvider(Factory):
             coords: Tensor(torch.float)[:, 3],
             omega_inds: Tensor(torch.long)[:, 4]
     ):
-        omega_tor = measure_torsions(coords, psi_inds)
+        omega_tor = measure_torsions(coords, omega_inds)
         return omega_tor
 
 

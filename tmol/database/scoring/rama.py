@@ -1,6 +1,5 @@
 import attr
 import cattr
-import yaml
 import json
 
 from typing import Tuple, Optional

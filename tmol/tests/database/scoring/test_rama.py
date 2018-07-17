@@ -6,7 +6,6 @@ import numpy
 import torch
 
 from tmol.database.scoring.rama import RamaDatabase, CompactedRamaDatabase
-from tmol.numeric.bspline import interpolate
 from tmol.database import ParameterDatabase
 
 
@@ -19,7 +18,6 @@ def test_compacted_rama(torch_device):
     ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
     compacted = CompactedRamaDatabase.from_ramadb(ramadb, torch_device)
     assert compacted.table.shape == (20, 2, 36, 36)
-    assert compacted.coefficients.shape == (20, 2, 36, 36)
     phi_vals = torch.arange(
         36, device=torch_device
     ).reshape(-1, 1).repeat(1, 36).reshape(-1, 1)
@@ -36,9 +34,7 @@ def test_compacted_rama(torch_device):
             inds = (y[:, 0] * 2 * 36 * 36 + y[:, 1] * 36 * 36 +
                     xlong[:, 0] * 36 + xlong[:, 1]) # yapf: disable
             original_vals = compacted.table.reshape(-1)[inds]
-            interp_vals = interpolate(
-                compacted.coefficients, compacted.bspdeg, x, y
-            )
+            interp_vals = compacted.bspline.interpolate(x, y)
             numpy.testing.assert_allclose(
                 interp_vals.detach().numpy(),
                 original_vals.detach().numpy(),

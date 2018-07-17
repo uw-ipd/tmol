@@ -1,16 +1,11 @@
-import pytest
-
-import torch
 import numpy
 
 from tmol.utility.reactive import reactive_attrs
-from tmol.tests.torch import requires_cuda
 from tmol.score import (
     TotalScoreGraph,
     CartesianAtomicCoordinateProvider,
 )
 from tmol.score.polymeric_bonds import PolymericBonds
-from tmol.database.chemical import three_letter_to_aatype
 
 
 @reactive_attrs(auto_attribs=True)
