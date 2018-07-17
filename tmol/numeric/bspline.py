@@ -244,15 +244,18 @@ class BSplineInterpolation:
             icoeffs = coeffs.narrow(0, i, 1).squeeze(dim=0)
             icoeffs_out = icoeffs
             for dim in range(n_interp_dims):
-                # permutation to make 'dim' the last dimension and flatten all other dimensions
+                # permutation to make 'dim' the last dimension
                 icoeffs = icoeffs.transpose(dim, n_interp_dims - 1)
+                trans_shape = icoeffs.shape
+                # now flatten all other dimensions
                 icoeffs = icoeffs.reshape(-1, interp_shape[dim])
 
                 # compute the interp coeffs along last dimension
                 icoeffs = cls.convert_interp_coeffs(icoeffs, bspdeg.poles)
 
-                # back to the original shape
-                icoeffs = icoeffs.reshape(interp_shape).transpose(
+                # restore to the translated shape and then transpose
+                # the last dimension to where it belongs
+                icoeffs = icoeffs.reshape(trans_shape).transpose(
                     dim, n_interp_dims - 1
                 )
                 icoeffs_out[:] = icoeffs
