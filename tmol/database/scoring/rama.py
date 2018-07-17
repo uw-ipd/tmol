@@ -57,12 +57,14 @@ class RamaDatabase:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CompactedRamaDatabase:
-    table: Tensor(torch.float)[20, 2, 36, 36]
+    _from_rama_db_cache = {}
 
+    table: Tensor(torch.float)[20, 2, 36, 36]
     bspline: BSplineInterpolation
 
     @classmethod
     @toolz.functoolz.memoize(
+        cache=_from_rama_db_cache,
         key=lambda args, kwargs: (args[1], args[2].type, args[2].index)
     )
     def from_ramadb(cls, ramadb: RamaDatabase, device: torch.device):

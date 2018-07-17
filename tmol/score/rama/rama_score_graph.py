@@ -35,7 +35,9 @@ class RamaScoreGraph(
         parameter database. We only want a single copy of the parameter
         database to live on the CPU or on the device.
         """
-        rama_db = parameter_database.scoring.get_compacted_rama_db(device)
+        rama_db = CompactedRamaDatabase.from_ramadb(
+            parameter_database.scoring.rama, device
+        )
         return dict(rama_db=rama_db, )
 
     rama_db: CompactedRamaDatabase = attr.ib()
