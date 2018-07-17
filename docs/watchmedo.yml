@@ -8,7 +8,7 @@ tricks:
     - "./docs/apidoc/**"
     - "./docs/_build/**"
 - watchdog.tricks.ShellCommandTrick:
-    shell_command: "docs/make"
+    shell_command: "docs/make && cat docs/_build/warnings"
     patterns:
     - "*.py"
     - "*.rst"

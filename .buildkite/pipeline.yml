@@ -70,9 +70,9 @@ steps:
 
   ### Generate project documentation
   - label: ':open_book: Docs'
-    command: docs/make
+    command: .buildkite/bin/docs
     artifact_paths:
-      - docs/build/**/*
+      - docs/_build/**/*
     plugins:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite

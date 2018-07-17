@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -x
+set -e
+
+docs/make
+
+if [ -s docs/_build/warnings ]; then
+{
+  echo '## `docs/_build/warnings`'
+  echo '```'
+  cat docs/_build/warnings
+  echo '```'
+} | /buildkite/bin/buildkite-agent annotate --style="warning" --context="docs/make"
+fi

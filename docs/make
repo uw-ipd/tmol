@@ -11,13 +11,27 @@ echo --- Clean apidoc
 rm -rf docs/apidoc
 
 echo --- Build html docs
+filter_warnings() {
+  grep -v -f docs/.expected_warnings
+}
+
+strip_color() {
+  sed 's/\x1b\[[0-9;]*m//g'
+}
+
 # Add cwd to pythonpath to support apidoc/autodoc of tmol module
 # will need to `pip install` if any built components are added
 # in the future.
 (
+  trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM
+
+  mkdir -p docs/_build
   export PYTHONPATH=.
-  better-apidoc -M -e -t docs/_templates -o docs/apidoc tmol tmol/tests
-  sphinx-build -M html docs docs/_build
+  better-apidoc -T -M -e -t docs/_templates -o docs/apidoc tmol tmol/tests
+  sphinx-build -M html docs docs/_build -w docs/_build/warnings.raw | filter_warnings
+
+  # Strip expected warnings and colorized output
+  cat docs/_build/warnings.raw | filter_warnings | strip_color > docs/_build/warnings
 )
 
 popd

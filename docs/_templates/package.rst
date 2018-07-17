@@ -12,9 +12,6 @@
     {%- endif %}
 
 {% if submodules or subpackages %}
-    Submodules
-    -----------
-
     .. toctree::
        :maxdepth: 1
   {% for item in submodules %}
