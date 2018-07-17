@@ -1,0 +1,15 @@
+#!/bin/bash
+#http://redsymbol.net/articles/unofficial-bash-strict-mode/
+
+set -x
+set -euo pipefail
+IFS=$'\n\t'
+
+docs/update-gh-pages
+
+if [ "${BUILDKITE_BRANCH:-}" == "master" ]
+then
+  echo "--- git push gh-pages"
+  pushd docs/_build/gh-pages
+  git push origin
+fi

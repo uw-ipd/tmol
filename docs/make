@@ -1,7 +1,10 @@
 #!/bin/bash
+#http://redsymbol.net/articles/unofficial-bash-strict-mode/
 
 set -x
-set -e
+set -euo pipefail
+IFS=$'\n\t'
+
 
 # change to project root
 pushd "$( dirname "${BASH_SOURCE[0]}" )"/..
@@ -12,11 +15,13 @@ rm -rf docs/apidoc
 
 echo --- Build html docs
 filter_warnings() {
-  grep -v -f docs/.expected_warnings
+  # exit 1 on non-match, override with return 0
+  grep -v -f docs/.expected_warnings || true
 }
 
 strip_color() {
-  sed 's/\x1b\[[0-9;]*m//g'
+  # exit 1 on non-match, override with return 0
+  sed 's/\x1b\[[0-9;]*m//g' || true
 }
 
 # Add cwd to pythonpath to support apidoc/autodoc of tmol module
@@ -31,7 +36,7 @@ strip_color() {
   sphinx-build -M html docs docs/_build -w docs/_build/warnings.raw | filter_warnings
 
   # Strip expected warnings and colorized output
-  cat docs/_build/warnings.raw | filter_warnings | strip_color > docs/_build/warnings
+  cat docs/_build/warnings.raw | filter_warnings | strip_color | tee > docs/_build/warnings
 )
 
 popd
