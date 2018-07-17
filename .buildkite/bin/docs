@@ -12,4 +12,6 @@ if [ -s docs/_build/warnings ]; then
   cat docs/_build/warnings
   echo '```'
 } | /buildkite/bin/buildkite-agent annotate --style="warning" --context="docs/make"
+
+exit 1
 fi
