@@ -1,6 +1,8 @@
 # ToyMol
 
-[![Build status](https://badge.buildkite.com/0608cfe87394e48f6ffd7008b0634cb5be1b807e4b25f0d3e1.svg)
+
+[![docs status](https://img.shields.io/website-up-down-green-red/http/shields.io.svg?label=docs)](http://tmol.ipd.uw.edu)
+[![build status](https://badge.buildkite.com/0608cfe87394e48f6ffd7008b0634cb5be1b807e4b25f0d3e1.svg?branch=master)
 ](https://buildkite.com/uw-ipd/tmol)
 [![codecov](https://codecov.io/gh/uw-ipd/tmol/branch/master/graph/badge.svg?token=OoO0dtKDBK)
 ](https://codecov.io/gh/uw-ipd/tmol)
@@ -15,3 +17,5 @@ provide a modern, easy-to-use, and cuda-compatible for molecular modeling.
 
 See our [wiki](./wiki) for details on our development environment, system
 architecture, and development workflow.
+
+See our [docs](http://tmol.ipd.uw.edu) for package documentation.
