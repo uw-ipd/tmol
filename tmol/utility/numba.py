@@ -65,7 +65,7 @@ def as_cuda_array(obj):
     cuda-array-interface.
 
     A view of the underlying GPU buffer is created.  No copying of the data is
-    done.  The resulting DeviceNDArray will acquire a reference from `obj`.
+    done.  The resulting DeviceNDArray will acquire a reference from ``obj``.
 
     Shim interface supports creation of *fake* cuda arrays iff the cuda
     simulator is active as the current context.
@@ -91,7 +91,7 @@ def as_cuda_array(obj):
 
 @singledispatch
 def is_cuda_array(obj):
-    """Test if the object has defined the `__cuda_array_interface__`.
+    """Test if the object has defined the ``__cuda_array_interface__``.
     Does not verify the validity of the interface.
     """
     return hasattr(obj, '__cuda_array_interface__')

@@ -1,4 +1,4 @@
-"""`pint`-based unit support functions."""
+"""`pint <pint:index>`-based unit support functions."""
 
 from typing import Union, Tuple
 

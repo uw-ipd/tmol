@@ -196,6 +196,8 @@ intersphinx_mapping = {
     'torch': ('http://pytorch.org/docs/stable/', None),
     'numba': ('http://numba.pydata.org/numba-doc/latest/', None),
     'attrs': ('http://www.attrs.org/en/stable/', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    'pint': ('http://pint.readthedocs.io/en/latest/', None),
 }
 
 # -- Options for todo extension ----------------------------------------------

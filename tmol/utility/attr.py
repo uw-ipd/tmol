@@ -31,8 +31,8 @@ class AttrMutableMapping(AttrMapping, MutableMapping):
     """Mixin adding a subset of the mutable mapping interface to attr classes.
 
     As the keys of an attrs-based class are based on defined properties, this mixin
-    does *not* support `__delitem__`-based components of the MutableMapping interface,
-    (eg. `m.pop(key)`, `del m[key]`, ...)
+    does *not* support ``__delitem__``-based components of the MutableMapping interface,
+    (eg. ``m.pop(key)``, ``del m[key]``, ...)
     """
 
     def __setitem__(self, key, value):

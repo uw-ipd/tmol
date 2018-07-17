@@ -8,7 +8,7 @@ TMol is roughly divided into two core modules: a high-level description of
 polymeric molecules in `tmol.system` and a low-level, term-specific description
 used `tmol.score`. 
 
-`tmol.system` and `tmol.scoring` are coupled via
+`tmol.system` and `tmol.score` are coupled via
 :py:func:`~functools.singledispatch` hooks registered in
 `tmol.system.score_support`.
 

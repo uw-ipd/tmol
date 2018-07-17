@@ -9,7 +9,7 @@ from tmol.io.generic import to_pdb, to_cdjson
 class SystemViewer:
     """Generic py3dmol-based jupyter display widget.
 
-    A py3dmol-based jupyter viewing component, utilizing `tmol.io.generic` dispatch functions
+    A py3dmol-based jupyter viewing component, utilizing :py:mod:`tmol.io.generic` dispatch functions
     to render arbitrary model components.
     """
 

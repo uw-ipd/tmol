@@ -30,12 +30,12 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
     graph for a given atomic pair; the rendered distances are equivalent to the upper triangle of
     the full interatomic distance matrix.
 
-    Distances are rendered as two tensor properties, `atom_pair_inds` and `atom_pair_dist`,
-    containing the pair of atomic indicies in `coords` and the calculated distance respectively.
+    Distances are rendered as two tensor properties, ``atom_pair_inds`` and ``atom_pair_dist``,
+    containing the pair of atomic indicies in ``coords`` and the calculated distance respectively.
 
     Components requiring access to interatomic distance components *must* make
     the component's interatomic threshold distance available by implementing
-    the `component_atom_pair_dist_threshold` property. The generated
+    the ``component_atom_pair_dist_threshold`` property. The generated
     interatomic distance graph will respecte the *maximum* required interatomic
     distance of all score graph components.
     """

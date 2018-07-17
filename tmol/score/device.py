@@ -12,7 +12,7 @@ class TorchDevice(Factory):
     def factory_for(val, device: Optional[torch.device] = None, **_):
         """Overridable clone-constructor.
 
-        Initialize from `val.device` if possible, otherwise defaulting to cpu.
+        Initialize from ``val.device`` if possible, otherwise defaulting to cpu.
         """
         if device is None:
             if getattr(val, "device", None):

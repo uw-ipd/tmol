@@ -41,19 +41,25 @@ def HTinv(HTs: HTArray) -> HTArray:
 def JumpTransforms(dofs: JumpDOF) -> HTArray:
     """JUMP dofs -> HTs
 
-    jump dofs are _9_ parameters:
+    jump dofs are _9_ parameters::
+
      - 3 translational
      - 3 rotational deltas
      - 3 rotational
+
     Only the rotational deltas should be exposed to minimization
 
     Translations are represented as an offset in X,Y,Z
-    Rotations and rotational deltas are ZYX Euler angles,
-        that is, a rotation about Z, then Y, then X
-    The HT returned by this function is given by:
+
+    Rotations and rotational deltas are ZYX Euler angles. That is, a rotation
+    about Z, then Y, then X.
+
+    The HT returned by this function is given by::
+
         M = trans( RBx, RBy, RBz)
             @ roteuler( RBdel_alpha, RBdel_alpha, RBdel_alpha)
             @ roteuler( RBalpha, RBalpha, RBalpha)
+
     RBdel_* is meant to be reset to zero at the beginning of a minimization
         trajectory, as when parameters are near 0, the rotational space
         is well-behaved.
@@ -184,14 +190,15 @@ def JumpDerivatives(
     Translational derivatives are straightforward dot products of f2s
         (the downstream derivative sum)
 
-    Rotational derivatives use the Abe and Go "trick" that allows us to
-        easily compute derivatives with respect to rotation about an axis.
-    In this case, there are three axes to compute derivatives of:
+    Rotational derivatives use the Abe and Go "trick" that allows us to easily
+    compute derivatives with respect to rotation about an axis.
+
+    In this case, there are three axes to compute derivatives of::
         1) the Z axis (alpha rotation)
         2) the Y axis after applying the alpha rotation (beta rotation)
         3) the X axis after applying the alpha & beta rot (gamma rotation)
-    Derivatives are ONLY assigned to the RBdel DOFs
 
+    Derivatives are ONLY assigned to the RBdel DOFs
     """
     # trans dofs
     njumpatoms, = dofs.shape
@@ -256,17 +263,23 @@ def JumpDerivatives(
 
 @validate_args
 def BondTransforms(dofs: BondDOF) -> HTArray:
-    """
-    BOND dofs -> HTs
+    """Bond HTs from bond dofs.
 
     each bond has four dofs: [phi_p, theta, d, phi_c]
+
     in the local frame:
         - phi_p and phi_c are a rotation about x
         - theta is a rotation about z
         - d is a translation along x
-    the matrix below is a composition:
-        M <- rot(phi_p, [1,0,0]) @ rot(theta, [0,0,1]
-           @ trans(d, [1,0,0]) @ rot(phi_c, [1,0,0])
+
+    the matrix below is a composition::
+
+        M = (
+            rot(phi_p, [1,0,0])
+            @ rot(theta, [0,0,1]
+            @ trans(d, [1,0,0])
+            @ rot(phi_c, [1,0,0])
+        )
     """
     natoms, = dofs.shape
 
