@@ -17,7 +17,7 @@ def test_2d_bspline(bspline_degree):
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
-    zspline = BSplineInterpolation.compute_coeffs(z, bspline_degree)
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
     zint = zspline.interpolate(torch.Tensor([[2, 5], [3, 4]]))
 
     zgold = torch.Tensor([z[2, 5], z[3, 4]])
@@ -31,7 +31,7 @@ def test_2d_bspline_not_square(bspline_degree):
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
-    zspline = BSplineInterpolation.compute_coeffs(z, bspline_degree)
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
     zint = zspline.interpolate(torch.Tensor([[2, 5], [3, 4]]))
 
     zgold = torch.Tensor([z[2, 5], z[3, 4]])
@@ -45,7 +45,7 @@ def test_barely_3d_bspline(bspline_degree):
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float).reshape(1, 11, 11)
 
-    zspline = BSplineInterpolation.compute_coeffs(z, bspline_degree)
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
     zint = zspline.interpolate(torch.Tensor([[0, 2, 5], [0, 3, 4]]))
 
     zgold = torch.Tensor([z[0, 2, 5], z[0, 3, 4]])
@@ -59,7 +59,7 @@ def test_2d_bspline_everywhere(bspline_degree):
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
-    zspline = BSplineInterpolation.compute_coeffs(z, bspline_degree)
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
 
     phi_vals = torch.arange(11).reshape(-1, 1).repeat(1, 11).reshape(-1, 1)
     psi_vals = torch.arange(11).repeat(1, 11).reshape(-1, 1)
@@ -80,7 +80,7 @@ def test_2d_bspline_x1(bspline_degree):
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
-    zspline = BSplineInterpolation.compute_coeffs(z, bspline_degree)
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
     zint = zspline.interpolate(torch.Tensor([[2, 5]]))
 
     zgold = torch.Tensor([z[2, 5]])
@@ -96,7 +96,7 @@ def test_5x2d_bspline(bspline_degree):
         z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y)) + i
         z = z.type(torch.float)
         zs[i, :, :] = z
-    zspline = BSplineInterpolation.compute_coeffs(zs, bspline_degree, 1)
+    zspline = BSplineInterpolation.from_coordinates(zs, bspline_degree, 1)
     zint = zspline.interpolate(
         torch.Tensor([[2, 5], [3, 4]]), torch.LongTensor([[3], [0]])
     )
@@ -116,7 +116,7 @@ def test_5x3x2d_bspline(bspline_degree):
                                                 ) + 0.1 * i * 3 + 0.1 * j
             z = z.type(torch.float)
             zs[i, j, :, :] = z
-    zspline = BSplineInterpolation.compute_coeffs(zs, bspline_degree, 2)
+    zspline = BSplineInterpolation.from_coordinates(zs, bspline_degree, 2)
 
     zint = zspline.interpolate(
         torch.Tensor([[2, 5], [3, 4]]), torch.LongTensor([[3, 1], [0, 2]])
@@ -134,7 +134,7 @@ def test_3d_bspline(bspline_degree):
     w = (1 - x * x - y * y - z * z) * torch.exp(-0.5 * (x * x + y * y + z * z))
     w = w.type(torch.float)
 
-    wspline = BSplineInterpolation.compute_coeffs(w, bspline_degree)
+    wspline = BSplineInterpolation.from_coordinates(w, bspline_degree)
     wint = wspline.interpolate(torch.Tensor([[2, 3, 5], [3, 4, 1]]))
     wgold = torch.Tensor([w[2, 3, 5], w[3, 4, 1]])
     numpy.testing.assert_allclose(wint.numpy(), wgold.numpy(), atol=1e-5)
@@ -148,7 +148,7 @@ def test_3d_bspline_not_square(bspline_degree):
     w = (1 - x * x - y * y - z * z) * torch.exp(-0.5 * (x * x + y * y + z * z))
     w = w.type(torch.float)
 
-    wspline = BSplineInterpolation.compute_coeffs(w, bspline_degree)
+    wspline = BSplineInterpolation.from_coordinates(w, bspline_degree)
     wint = wspline.interpolate(torch.Tensor([[2, 3, 5], [3, 4, 1]]))
     wgold = torch.Tensor([w[2, 3, 5], w[3, 4, 1]])
     numpy.testing.assert_allclose(wint.numpy(), wgold.numpy(), atol=1e-5)
@@ -164,7 +164,7 @@ def test_4d_bspline(bspline_degree):
          ) * torch.exp(-0.5 * (x * x + y * y + z * z + w * w))
     u = u.type(torch.float)
 
-    uspline = BSplineInterpolation.compute_coeffs(u, bspline_degree)
+    uspline = BSplineInterpolation.from_coordinates(u, bspline_degree)
     uint = uspline.interpolate(torch.Tensor([[2, 3, 5, 7], [3, 4, 1, 7]]))
 
     ugold = torch.Tensor((u[2, 3, 5, 7], u[3, 4, 1, 7]))
