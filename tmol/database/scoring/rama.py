@@ -1,6 +1,7 @@
 import attr
 import cattr
 import json
+import toolz.functoolz
 
 from typing import Tuple, Optional
 
@@ -61,7 +62,18 @@ class CompactedRamaDatabase:
     bspline: BSplineInterpolation
 
     @classmethod
+    @toolz.functoolz.memoize(
+        key=lambda args, kwargs: (args[1], args[2].type, args[2].index)
+    )
     def from_ramadb(cls, ramadb: RamaDatabase, device: torch.device):
+        """
+        Construct a CompactedRamaDatabase from a RamaDatabase.
+
+        Ensure only one compacted copy of the database is created for either
+        the CPU or the GPU by using a memoization of the device and the RamaDatabase;
+        The RamaDatabase is hashed based on the name of the file that was used
+        to create it.
+        """
 
         table = torch.full((20, 2, 36, 36),
                            -1234,

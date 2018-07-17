@@ -45,8 +45,8 @@ def test_compacted_rama(torch_device):
 
 def test_load_compacted_rama_once(torch_device):
     db = ParameterDatabase.get_default()
-    crama1 = db.scoring.get_compacted_rama_db(torch_device)
-    crama2 = db.scoring.get_compacted_rama_db(torch_device)
+    crama1 = CompactedRamaDatabase.from_ramadb(db.scoring.rama, torch_device)
+    crama2 = CompactedRamaDatabase.from_ramadb(db.scoring.rama, torch_device)
     assert crama1 is crama2
 
 
