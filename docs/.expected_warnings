@@ -1,1 +1,3 @@
 toctree contains reference to nonexisting document 'apidoc'
+failed to import module 'tmol.support.rosetta.init'
+No module named 'pyrosetta'
