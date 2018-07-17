@@ -227,7 +227,7 @@ class BSplineInterpolation:
     ):
         """Construct a BSplineInterpolation instance from  the input coordinates
         (i.e. the data to be interpolated)
-    
+
         This code handles splines of arbitrary dimension.
 
         The input coordinate tensor holds the values that should be interpolated.
@@ -292,15 +292,15 @@ class BSplineInterpolation:
             Y: Optional[Tensor(torch.long)[:, :]] = None
     ) -> Tensor(torch.float)[:]:
         """B-spline interpolation function
-    
+
         Takes precalculated coefficients as input, and returns value at given grid index.
         Input X values must be in the range [0..|X_i|) for each dimension i.
-    
+
         If Y is provided, it is treated as providing indexes for (leading) non-interpolating dimensions;
         e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state which of the
         20 amino acids were being read from and then the X tensor would provided the (shifted+scaled)
         phi and psi values.
-    
+
         Y must have the same number of rows as X (their first dimensions must be the same size)
         """
 
