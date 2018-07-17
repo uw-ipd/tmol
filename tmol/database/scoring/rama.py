@@ -68,10 +68,6 @@ class CompactedRamaDatabase:
                            -1234,
                            dtype=torch.float,
                            device=device)
-        coefficients = torch.full((20, 2, 36, 36),
-                                  -1234,
-                                  dtype=torch.float,
-                                  device=device)
         for aa in range(len(AAType)):
             aa3name = aatype_to_three_letter[aa]
             for prepro in range(2):
@@ -92,11 +88,8 @@ class CompactedRamaDatabase:
         )
         table = -1 * torch.log(table) + entropy
 
-        bspline_deg = BSplineDegree3.construct()
-        for aa in range(len(AAType)):
-            for prepro in range(2):
-                coefficients[aa, prepro, :, :] = compute_coeffs(
-                    table[aa, prepro, :, :], bspline_deg
-                )
+        bspline = BSplineInterpolation.from_coordinates(
+            table, degree=3, n_index_dims=2
+        )
 
-        return cls(table=table, bspdeg=bspline_deg, coefficients=coefficients)
+        return cls(table=table, bspline=bspline)

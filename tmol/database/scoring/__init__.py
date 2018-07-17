@@ -24,7 +24,7 @@ class hashed_device:
     device: torch.device
 
     def __hash__(self):
-        return hash(self.device.type)
+        return hash((self.device.type, self.device.index))
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -51,8 +51,6 @@ class ScoringDatabase:
         The RamaDatabase is hashed based on the name of the file that was used
         to create it.
         """
-        print(torch.device)
-
         hashdev = hashed_device(device=device)
         return compacted_rama_db(self.rama, hashdev)
 

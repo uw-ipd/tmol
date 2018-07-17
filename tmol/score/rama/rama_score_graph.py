@@ -22,8 +22,6 @@ from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
-from tmol.numeric.bspline import interpolate
-
 
 @reactive_attrs(auto_attribs=True)
 class RamaScoreGraph(
@@ -81,9 +79,7 @@ class RamaScoreGraph(
         rama_inds = torch.cat(((res_aas[has_upper & has_rama]).reshape(-1, 1),
                                upper_is_pro.reshape(-1, 1)),
                               dim=1)
-        return interpolate(
-            rama_db.coefficients, rama_db.bspdeg, phi_psi, rama_inds
-        )
+        return rama_db.bspline.interpolate(phi_psi, rama_inds)
 
     @reactive_property
     @validate_args
