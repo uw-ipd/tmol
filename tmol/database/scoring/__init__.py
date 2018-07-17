@@ -10,23 +10,6 @@ from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True, hash=False)
-class hashed_device:
-    """Small class to wrap a torch.device so that we can memoize
-    function return values based on the device; basically adds a
-    hash function to the class.
-
-    I would rather have derived a class from torch.device, but
-    that didn't work.
-
-    This class definitely belongs in a different file.
-    """
-    device: torch.device
-
-    def __hash__(self):
-        return hash((self.device.type, self.device.index))
-
-
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class ScoringDatabase:
 
@@ -51,13 +34,14 @@ class ScoringDatabase:
         The RamaDatabase is hashed based on the name of the file that was used
         to create it.
         """
-        hashdev = hashed_device(device=device)
-        return compacted_rama_db(self.rama, hashdev)
+        return compacted_rama_db(self.rama, device)
 
 
 @validate_args
-@toolz.functoolz.memoize
+@toolz.functoolz.memoize(
+    key=lambda args, kwargs: (args[0], args[1].type, args[1].index)
+)
 def compacted_rama_db(
-        ramadb: RamaDatabase, device: hashed_device
+        ramadb: RamaDatabase, device: torch.device
 ) -> CompactedRamaDatabase:
-    return CompactedRamaDatabase.from_ramadb(ramadb, device.device)
+    return CompactedRamaDatabase.from_ramadb(ramadb, device)
