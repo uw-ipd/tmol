@@ -15,15 +15,17 @@ in 2D, 64 values in 3D), but they read from a wider number of grid cells
 to do so, instead of making each grid cell contain more entries. For this
 reason, the memory footprint for B-splines is substantially lower than
 that for bicuplic spline interpolation. (Catmull-Rom splines are similarly
-low-memory overhead, but not as good).
+low-memory overhead, but do not fit the data as cleanly).
 
-To use these B-splines, construct a BSplineDegreeX object (w/ X in [2..5])
-indicating the degree of the spline (3 for the equivalent of bicubic spline
-interpolation), and then convert the original data points to spline coefficients
-using the `compute_coeffs` function. Then use that *same* BSplineDegreeX object
-when invoking the `interpolate` function. It would be inappropriate to
-compute coefficients with a BSplineDegree2 object and then try to interpolate
-with a BSplineDegree3 object.
+To use these B-splines, construct a BSplineInterpolation object using the
+`from_coordinates` function, passing in the tensor of coordinates that
+should be interpolated, indicating the degree of the spline (3 for
+the equivalent of bicubic spline interpolation), and indicating the
+number of dimensions in the coordinate tensor that are indexing rather
+than interpolating. (Indexing dimensions must appear first). Indexing
+dimensions allow stacks of coordinate tensors to be interpolated
+simultaneously as might be useful, e.g., if one had 20 different 36x36
+tables as one does when computing the Ramachandran potential.
 
 Interpolation is performed where the input X values must be in the range of (0, |X_i|]
 for dimension i -- if, e.g., you are interpolating dihedrals in degrees with a 10 degree
@@ -199,7 +201,7 @@ bsplines_by_degree = {
 class BSplineInterpolation:
     """Class for performing bspline interpolation with periodic boundary conditions.
 
-    Construct an instance of this class using the `compute_coeffs` function, handing
+    Construct an instance of this class using the `from_coordinates` function, handing
     it a (possibly stacked) table of coordinates that should be interpolated by the
     splines, the degree of the spline that should be constructed, and (optionally)
     the number of dimensions in the coordinates tensor that are "indexing dimensions"
@@ -219,13 +221,13 @@ class BSplineInterpolation:
 
     @classmethod
     @validate_args
-    def compute_coeffs(
+    def from_coordinates(
             cls, coords: Tensor(torch.float), degree: int,
             n_index_dims: int = 0
     ):
         """Construct a BSplineInterpolation instance from  the input coordinates
         (i.e. the data to be interpolated)
-    
+
         This code handles splines of arbitrary dimension.
 
         The input coordinate tensor holds the values that should be interpolated.
@@ -290,15 +292,15 @@ class BSplineInterpolation:
             Y: Optional[Tensor(torch.long)[:, :]] = None
     ) -> Tensor(torch.float)[:]:
         """B-spline interpolation function
-    
+
         Takes precalculated coefficients as input, and returns value at given grid index.
         Input X values must be in the range [0..|X_i|) for each dimension i.
-    
+
         If Y is provided, it is treated as providing indexes for (leading) non-interpolating dimensions;
         e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state which of the
         20 amino acids were being read from and then the X tensor would provided the (shifted+scaled)
         phi and psi values.
-    
+
         Y must have the same number of rows as X (their first dimensions must be the same size)
         """
 
@@ -306,8 +308,8 @@ class BSplineInterpolation:
         assert X.shape[1] == self.n_interp_dims
         assert Y is None or len(Y.shape) == 2
         assert Y is None or X.shape[0] == Y.shape[0]
-        assert ((Y is None and self.n_index_dims == 0)
-                or (Y is not None and Y.shape[1] == self.n_index_dims))
+        assert ((Y is None and self.n_index_dims == 0) or
+                (Y is not None and Y.shape[1] == self.n_index_dims)) # yapf: disable
 
         bspdeg = bsplines_by_degree[self.degree]
         nx = X.shape[0]
