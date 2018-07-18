@@ -5,6 +5,11 @@ set -e
 
 docs/make
 
+pushd docs/_build
+# Add zip of docs build for easy artifact access
+tar -czvf html.tgz html/
+popd
+
 if [ -s docs/_build/warnings ]; then
 {
   echo '## `docs/_build/warnings`'
