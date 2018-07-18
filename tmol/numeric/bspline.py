@@ -301,15 +301,28 @@ class BSplineInterpolation:
     ) -> Tensor(torch.float)[:]:
         """B-spline interpolation function
 
-        Takes precalculated coefficients as input, and returns value at given grid index.
+        X should be a two dimensional tensor of size [ n_points, n_interp_dims ]
+        Y should be a two dimensional tensor of size [ n_points, n_index_dims  ]
+        the result will be a one dimensional tensor of size [ n_points ].
+
+        n_points represents the number of points in the n-dimensional space that is
+        being interpolated (n-dimensional == n_interp_dims-dimensional). The
+        result returned by this is the interpolated value for each of the input points.
+
         Input X values must be in the range [0..|X_i|) for each dimension i.
 
-        If Y is provided, it is treated as providing indexes for (leading) non-interpolating dimensions;
+        If Y is provided, it is treated as providing indexes for the (leading)
+        non-interpolating dimensions;
+
         e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state which of the
-        20 amino acids were being read from and then the X tensor would provided the (shifted+scaled)
-        phi and psi values.
+        20 amino acids were being read from for each point (Y[:,0]), and whether or not the next
+        residue is proline (Y[:,1]) and then the X tensor would provided the (shifted+scaled)
+        phi (X[:,0]) and psi (X[:,1]) values.
 
         Y must have the same number of rows as X (their first dimensions must be the same size)
+
+        X and Y must both be on the same device that the BSplineInterpolation object was
+        created for; i.e. the device of the `coords` argument to `from_coords`.
         """
 
         assert len(X.shape) == 2
@@ -318,6 +331,8 @@ class BSplineInterpolation:
         assert Y is None or X.shape[0] == Y.shape[0]
         assert ((Y is None and self.n_index_dims == 0) or
                 (Y is not None and Y.shape[1] == self.n_index_dims)) # yapf: disable
+        assert X.device == self.coeffs.device
+        assert Y is None or Y.device == self.coeffs.device
 
         bspdeg = bsplines_by_degree[self.degree]
         nx = X.shape[0]
