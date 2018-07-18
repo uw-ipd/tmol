@@ -4,8 +4,8 @@ import pytest
 from tmol.numeric.bspline import BSplineInterpolation
 
 
-@pytest.fixture(params=[3])
-#@pytest.fixture(params=[2, 3, 4, 5])
+#@pytest.fixture(params=[3])
+@pytest.fixture(params=[2, 3, 4, 5])
 def bspline_degree(request):
     return request.param
 
@@ -83,7 +83,7 @@ def test_2d_bspline_everywhere(bspline_degree, torch_device):
     orig_vals = z.reshape(-1)[inds]
     zint = zspline.interpolate(xs)
     numpy.testing.assert_allclose(
-        zint.cpu().numpy(), orig_vals.numpy(), atol=1e-4
+        zint.cpu().numpy(), orig_vals.cpu().numpy(), atol=1e-4
     )
 
 
@@ -105,7 +105,7 @@ def test_2d_bspline_x1(bspline_degree, torch_device):
 
 def test_5x2d_bspline(bspline_degree, torch_device):
     # 2d
-    zs = torch.full((5, 11, 11), 0, dtype=torch.float)
+    zs = torch.full((5, 11, 11), 0, dtype=torch.float, device=torch_device)
     for i in range(5):
         x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
         y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
@@ -115,7 +115,7 @@ def test_5x2d_bspline(bspline_degree, torch_device):
     zspline = BSplineInterpolation.from_coordinates(zs, bspline_degree, 1)
     zint = zspline.interpolate(
         torch.tensor([[2, 5], [3, 4]], dtype=torch.float, device=torch_device),
-        torch.LongTensor([[3], [0]], dtype=torch.long, device=torch_device)
+        torch.tensor([[3], [0]], dtype=torch.long, device=torch_device)
     )
 
     zgold = torch.tensor([zs[3, 2, 5], zs[0, 3, 4]])
@@ -124,7 +124,7 @@ def test_5x2d_bspline(bspline_degree, torch_device):
 
 def test_5x3x2d_bspline(bspline_degree, torch_device):
     # 2d
-    zs = torch.full((5, 3, 11, 11), 0, dtype=torch.float)
+    zs = torch.full((5, 3, 11, 11), 0, dtype=torch.float, device=torch_device)
     for i in range(5):
         for j in range(3):
             x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
@@ -137,9 +137,7 @@ def test_5x3x2d_bspline(bspline_degree, torch_device):
 
     zint = zspline.interpolate(
         torch.tensor([[2, 5], [3, 4]], dtype=torch.float, device=torch_device),
-        torch.LongTensor([[3, 1], [0, 2]],
-                         dtype=torch.long,
-                         device=torch_device)
+        torch.tensor([[3, 1], [0, 2]], dtype=torch.long, device=torch_device)
     )
 
     zgold = torch.tensor([zs[3, 1, 2, 5], zs[0, 2, 3, 4]])
