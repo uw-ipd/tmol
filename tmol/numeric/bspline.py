@@ -216,6 +216,7 @@ class BSplineInterpolation:
 
     degree: int
     coeffs: Tensor(torch.float)
+    interp_shape: Tensor(torch.float)
     n_interp_dims: int
     n_index_dims: int
 
@@ -255,7 +256,7 @@ class BSplineInterpolation:
             )
 
         bspdeg = bsplines_by_degree[degree]
-
+        poles = bspdeg.poles.to(coeffs.device)
         for i in range(coeffs.shape[0]):
             # slice "row" i
             icoeffs = coeffs.narrow(0, i, 1).squeeze(dim=0)
@@ -268,7 +269,7 @@ class BSplineInterpolation:
                 icoeffs = icoeffs.reshape(-1, interp_shape[dim])
 
                 # compute the interp coeffs along last dimension
-                icoeffs = cls._convert_interp_coeffs(icoeffs, bspdeg.poles)
+                icoeffs = cls._convert_interp_coeffs(icoeffs, poles)
 
                 # restore to the translated shape and then transpose
                 # the last dimension to where it belongs
@@ -278,9 +279,16 @@ class BSplineInterpolation:
                 icoeffs_out[:] = icoeffs
 
         coeffs = coeffs.reshape(original_shape)
+        interp_shape = torch.tensor(
+            coeffs.shape[n_index_dims:],
+            dtype=torch.long,
+            device=coeffs.device
+        )
+
         return cls(
             degree=degree,
             coeffs=coeffs,
+            interp_shape=interp_shape,
             n_interp_dims=n_interp_dims,
             n_index_dims=n_index_dims
         )
@@ -333,20 +341,18 @@ class BSplineInterpolation:
         # apply periodicity.
         # this is only valid for periodic boundaries.
         # `remainder` and not `fmod` so that all results are non-negative.
-        indx_bydim = torch.remainder(
-            indx_bydim.long(),
-            torch.tensor(
-                self.coeffs.shape[self.n_index_dims:],
-                dtype=torch.long,
-                device=self.coeffs.device
-            )
-        )
+        indx_bydim = torch.remainder(indx_bydim.long(), self.interp_shape)
 
         # now expand to (n_interp_dims)-dimensional box.
         # there might be a better way to do this
-        wts_expand = torch.full((nx, 1), 1.0, dtype=torch.float)
+        wts_expand = torch.full((nx, 1),
+                                1.0,
+                                dtype=torch.float,
+                                device=self.coeffs.device)
 
-        inds = torch.zeros((nx, 1), dtype=torch.long)
+        inds = torch.zeros((nx, 1),
+                           dtype=torch.long,
+                           device=self.coeffs.device)
 
         interp_dims_offset = 1
         for dim in range(self.n_interp_dims):
