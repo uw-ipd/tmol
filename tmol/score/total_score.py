@@ -22,7 +22,7 @@ class TotalScoreComponentsGraph:
 
     Components contributing to the "total_score" scalar *must* make the
     component's score terms available by implementing the
-    `component_total_score_terms` property, returning a
+    ``component_total_score_terms`` property, returning a
     `ScoreComponentAttributes` instance or collection of
     `ScoreComponentAttributes`.
     """

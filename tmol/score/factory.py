@@ -5,16 +5,16 @@ class Factory:
     """Mixin managing cooperative score graph factory functions.
 
     `Factory` manages cooperative evaluation of a set of component-specifc
-    factory functions, defined via `factory_for` class/static methods. Each
+    factory functions, defined via ``factory_for`` class/static methods. Each
     factory function should extract a set of graph __init__ kwargs from an
-    input `val`, defaulting to implementing a partial clone from `val`
+    input ``val``, defaulting to implementing a partial clone from ``val``
     attributes.
 
     Components factory functions *should*, if appropriate, allow for
-    `singledispatch` based overload on the type of `val`, allowing for
-    customization of score graph initialization for new input types. See
-    `tmol.system.score_support` for factory functions providing score graph
-    initialization from residue systems.
+    `singledispatch <functools.singledispatch>` based overload on the type of
+    ``val``, allowing for customization of score graph initialization for new
+    input types. See :py:mod:`tmol.system.score_support` for factory functions
+    providing score graph initialization from residue systems.
 
     See `tmol.utility.mixins.cooperative_superclass_factory` for details of
     kwarg-to-parameter resolution.

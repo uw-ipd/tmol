@@ -1,19 +1,22 @@
 # ToyMol
 
-## Development Environment
 
-`tmol` depends several components, outlined in
-[environments](./environments/), most easily installed into
-a [`conda`](https://conda.io) environment via [`dev_setup`](./dev_setup).
-This script _requires_ a functional `conda` installation and, by default,
-initializes a conda environment named `tmol`. It is _recommended_ that you
-use [`direnv`](https://direnv.net) to ensure that the `tmol` environment
-is activated.
+[![docs status](https://img.shields.io/website-up-down-green-red/http/shields.io.svg?label=docs)](http://tmol.ipd.uw.edu)
+[![build status](https://badge.buildkite.com/0608cfe87394e48f6ffd7008b0634cb5be1b807e4b25f0d3e1.svg?branch=master)
+](https://buildkite.com/uw-ipd/tmol)
+[![codecov](https://codecov.io/gh/uw-ipd/tmol/branch/master/graph/badge.svg?token=OoO0dtKDBK)
+](https://codecov.io/gh/uw-ipd/tmol)
 
-Tests are managed via [`pytest`](https://pytest.org) and are roughly
-partitioned into `testing`, `linting` and `benchmark` phases. See the
-[`buildkite build phases`](./.buildkite/bin/) for details on specific
-invocations. Tests are executed within the development environment via
-`pytest`. The docker-compose service `local` can be used to reproduce the
-continuous integration environment locally via `docker-compose run
---user=${UID} [...pytest...]`.
+
+`tmol` is an ongoing development experiment in biomolecular modeling and
+design. We stand on the shoulders of giants, with the goal of implementing
+an equivalent version of the [Rosetta all atom energy
+function](https://doi.org/10.1021/acs.jctc.7b00125) via
+a [PyTorch](https://pytorch.org)/[PyData](https://pydata.org) stack to
+provide a modern, easy-to-use, cuda-compatible environment for molecular
+modeling.
+
+See our [wiki](./wiki) for details on our development environment, system
+architecture, and development workflow.
+
+See our [docs](http://tmol.ipd.uw.edu) for package documentation.

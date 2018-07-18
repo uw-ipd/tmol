@@ -1,3 +1,5 @@
+"""Generic type conversion functions."""
+
 from functools import singledispatch
 
 import typing

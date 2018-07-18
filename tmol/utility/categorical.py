@@ -1,4 +1,4 @@
-"""Support functions for `enum`/`pandas.Categorical` interconversion."""
+"""Support functions for `enum`/`pandas.Categorical <pandas:api.categorical>` interconversion."""
 import pandas
 import enum
 

@@ -25,9 +25,9 @@ class KinematicOp:
     function.
 
     KinematicOp provides an interface mirroring an autograd function and can be
-    used via either `__call__` or `apply`. Unlike an autograd function, the Op
-    is reused during compute graph construction and serves as a factory for
-    single use KinematicFun functions.
+    used via either ``KinematicOp.__call__`` or `KinematicOp.apply`. Unlike an
+    autograd function, the Op is reused during compute graph construction and
+    serves as a factory for single use KinematicFun functions.
 
     A KinematicOp instance is limited to a single target device, which is
     derived from the device of the source coordinate tensor provided in

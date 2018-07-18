@@ -49,7 +49,7 @@ def cooperative_superclass_factory(
 
     Note that the factory functions receive all current params as kwargs. In
     cases when the total class MRO is unknown a factory function should accept,
-    and likely ignore, unknown kwargs. (Eg. `def factory(cls, known, **_)`)
+    and likely ignore, unknown kwargs. (Eg. ``def factory(cls, known, **_)``)
 
     Returns a dict of kwarg params accumulated from factory functions.
     """

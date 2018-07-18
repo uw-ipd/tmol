@@ -30,7 +30,7 @@ class KinematicDescription:
         """Generate kinematics for system atoms and named torsions.
 
         Generate a kinematic tree fully spanning the atoms and named torsions
-        within the system. `KinTree.id` is set of the atom index of the
+        within the system. ``KinTree.id`` is set of the atom index of the
         coordinate. Note that this is a covering of indices within the system
         "non-atom" ids are not present in the tree.
         """

@@ -115,5 +115,6 @@ class GPUKinTreeReordering(ValidateAttrs):
 
 
 __all__ = (
-    GPUKinTreeReordering, PathPartitioning, RefoldOrdering, DerivsumOrdering
+    "GPUKinTreeReordering", "PathPartitioning", "RefoldOrdering",
+    "DerivsumOrdering"
 )

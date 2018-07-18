@@ -122,8 +122,8 @@ class HBondScoreGraph(
     ):
         """Overridable clone-constructor.
 
-        Initialize from `val.hbond_database` if possible, otherwise from
-        `parameter_database.scoring.hbond`.
+        Initialize from ``val.hbond_database`` if possible, otherwise from
+        ``parameter_database.scoring.hbond``.
         """
         if hbond_database is None:
             if getattr(val, "hbond_database", None):
