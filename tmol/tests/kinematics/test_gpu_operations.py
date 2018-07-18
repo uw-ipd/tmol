@@ -40,11 +40,11 @@ def target_device(numba_cuda_or_cudasim):
 
 
 @pytest.fixture
-def target_system(target_device, min_system, ubq_system):
+def target_system(target_device, min_system, big_system):
     """min system in cudasim tests to reduce test runtime"""
     return {
         "cpu": min_system,
-        "cuda": ubq_system,
+        "cuda": big_system,
     }[target_device]
 
 

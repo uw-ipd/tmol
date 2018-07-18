@@ -1,0 +1,52 @@
+==8053== NVPROF is profiling process 8053, command: /home/fordas/.conda/envs/tmol/bin/python /home/fordas/.conda/envs/tmol/bin/pytest -v tmol/tests/kinematics/test_gpu_operations.py -k derivsum --resultlog 90_derivsum_repro_64_thread.log.txt
+==8053== Profiling application: /home/fordas/.conda/envs/tmol/bin/python /home/fordas/.conda/envs/tmol/bin/pytest -v tmol/tests/kinematics/test_gpu_operations.py -k derivsum --resultlog 90_derivsum_repro_64_thread.log.txt
+==8053== Profiling result:
+   Start  Duration            Grid Size      Block Size     Regs*    SSMem*    DSMem*      Size  Throughput  SrcMemType  DstMemType           Device   Context    Stream  Name
+8.35824s     928ns                    -               -         -         -         -      800B  822.13MB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35825s     704ns                    -               -         -         -         -      800B  1.0583GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35825s     704ns                    -               -         -         -         -      800B  1.0583GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35826s  1.9840us                    -               -         -         -         -  12.500KB  6.0085GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35827s  1.9830us                    -               -         -         -         -  12.500KB  6.0116GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35828s  1.9520us                    -               -         -         -         -  12.500KB  6.1070GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35828s     640ns                    -               -         -         -         -        4B  5.9605MB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35853s  68.798us                    -               -         -         -         -  804.69KB  11.155GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35953s  18.688us                    -               -         -         -         -  205.50KB  10.487GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35966s  7.2000us                    -               -         -         -         -  68.500KB  9.0732GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35974s  4.2880us                    -               -         -         -         -  34.250KB  7.6174GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35977s  6.8160us                    -               -         -         -         -  68.500KB  9.5843GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35981s  6.9440us                    -               -         -         -         -  68.500KB  9.4076GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35984s  6.9760us                    -               -         -         -         -  68.500KB  9.3645GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35987s  7.0390us                    -               -         -         -         -  68.500KB  9.2807GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35998s     800ns                    -               -         -         -         -      800B  953.67MB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.35999s     704ns                    -               -         -         -         -      800B  1.0583GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.36000s     704ns                    -               -         -         -         -      800B  1.0583GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.36000s  1.9520us                    -               -         -         -         -  12.500KB  6.1070GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.36001s  1.9520us                    -               -         -         -         -  12.500KB  6.1070GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.36002s  1.9520us                    -               -         -         -         -  12.500KB  6.1070GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.36003s     640ns                    -               -         -         -         -        4B  5.9605MB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.36022s  68.990us                    -               -         -         -         -  804.69KB  11.123GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.36035s  13.695us            (103 1 1)       (256 1 1)        30        0B        0B         -           -           -           -  GeForce GTX 105         1         7  generate_uniform(curandStateMtgp32*, int, double*, double, double) [522]
+8.36045s  3.5840us             (52 1 1)       (512 1 1)        10        0B        0B         -           -           -           -  GeForce GTX 105         1         7  void kernelPointwiseApply2<TensorMulConstantOp<double>, double, double, unsigned int, int=-2, int=-2>(OffsetInfo<TensorMulConstantOp<double>, double, unsigned int>, OffsetInfo<double, double, int=-2>, double, double) [538]
+8.36050s  3.2640us             (52 1 1)       (512 1 1)        10        0B        0B         -           -           -           -  GeForce GTX 105         1         7  void kernelPointwiseApply2<TensorSubConstantOp<double>, double, double, unsigned int, int=-2, int=-2>(OffsetInfo<TensorSubConstantOp<double>, double, unsigned int>, OffsetInfo<double, double, int=-2>, double, double) [555]
+8.36056s  4.1280us             (52 1 1)       (512 1 1)        12        0B        0B         -           -           -           -  GeForce GTX 105         1         7  void kernelPointwiseApply3<TensorSubOp<double>, double, double, double, unsigned int, int=-2, int=-2, int=-2>(OffsetInfo<TensorSubOp<double>, double, unsigned int>, OffsetInfo<double, double, int=-2>, OffsetInfo<double, double, int=-2>, double, double) [573]
+8.36080s  9.1520us             (18 1 1)       (512 1 1)        32        0B        0B         -           -           -           -  GeForce GTX 105         1         7  void kernelPointwiseApply3<TensorCrossOp<double>, double, double, double, unsigned int, int=1, int=1, int=1>(OffsetInfo<TensorCrossOp<double>, double, unsigned int>, OffsetInfo<double, double, int=1>, OffsetInfo<double, double, int=1>, double, double) [595]
+8.36086s  4.1910us                    -               -         -         -         -  205.50KB  46.762GB/s      Device      Device  GeForce GTX 105         1         7  [CUDA memcpy DtoD]
+8.36157s     864ns                    -               -         -         -         -       48B  52.982MB/s      Pinned      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+8.36161s  8.9600us             (10 2 1)       (512 1 1)        17        0B        0B         -           -           -           -  GeForce GTX 105         1         7  void CatArrayBatchedCopy<double, unsigned int, int=2>(double*, CatArrInputTensor<double, unsigned int>*, OutputTensorSizeStride<unsigned int, unsigned int=4>, int, unsigned int) [632]
+8.36164s  33.088us                    -               -         -         -         -  411.00KB  11.846GB/s      Device    Pageable  GeForce GTX 105         1         7  [CUDA memcpy DtoH]
+8.36214s  6.4320us                    -               -         -         -         -  68.500KB  10.157GB/s      Device    Pageable  GeForce GTX 105         1         7  [CUDA memcpy DtoH]
+8.73098s  6.0160us                    -               -         -         -         -  68.500KB  10.859GB/s      Device    Pageable  GeForce GTX 105         1         7  [CUDA memcpy DtoH]
+9.30024s  6.8800us                    -               -         -         -         -  411.00KB  56.971GB/s      Device      Device  GeForce GTX 105         1         7  [CUDA memcpy DtoD]
+9.30143s  4.2880us                    -               -         -         -         -  34.250KB  7.6174GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+9.30171s  1.5360us                    -               -         -         -         -  8.5625KB  5.3163GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+9.30201s  8.0320us                    -               -         -         -         -  68.500KB  8.1333GB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+9.30229s     800ns                    -               -         -         -         -       32B  38.147MB/s    Pageable      Device  GeForce GTX 105         1         7  [CUDA memcpy HtoD]
+9.79656s  643.25us              (1 1 1)        (64 1 1)        96  3.2500KB        0B         -           -           -           -  GeForce GTX 105         1         7  cudapy::tmol::kinematics::gpu_operations::scan_jit::GenerationalSegmentedScan::_generate_kernel::$3clocals$3e::_segscan_by_generation$249(Array<double, int=2, A, mutable, aligned>, Array<int, int=1, A, mutable, aligned>, Array<bool, int=1, A, mutable, aligned>, Array<int, int=2, A, mutable, aligned>, Array<int, int=2, A, mutable, aligned>) [693]
+9.79739s  32.863us                    -               -         -         -         -  411.00KB  11.927GB/s      Device    Pageable  GeForce GTX 105         1         7  [CUDA memcpy DtoH]
+
+Regs: Number of registers used per CUDA thread. This number includes registers used internally by the CUDA driver and/or tools and can be more than what the compiler shows.
+SSMem: Static shared memory allocated per CUDA block.
+DSMem: Dynamic shared memory allocated per CUDA block.
+SrcMemType: The type of source memory accessed by memory operation/copy
+DstMemType: The type of destination memory accessed by memory operation/copy
+======== Error: Application returned non-zero code 1

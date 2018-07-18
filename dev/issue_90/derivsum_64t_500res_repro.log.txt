@@ -1,0 +1,52 @@
+F tmol/tests/kinematics/test_gpu_operations.py::test_parallel_and_iterative_derivsum
+ benchmark = <pytest_benchmark.fixture.BenchmarkFixture object at 0x7fff7d6550f0>
+ target_system = PackedResidueSystem(block_size=8, residues=[Residue(residue_type=ResidueType(name='ASN', name3='ASN', atoms=(Atom(name...from_residue_index', '<i8'), ('from_connection_name', 'O'), ('to_residue_index', '<i8'), ('to_connection_name', 'O')]))
+ target_kintree = KinTree(id=tensor([    -1,      0,      1,  ...,  10528,  10529,  10530]), doftype=tensor([ 0,  1,  2,  ...,  2,  2,  ...or([    0,     1,     1,  ...,  8760,  8760,  8760]), frame_z=tensor([    0,     3,     3,  ...,  8756,  8756,  8756]))
+ target_device = 'cuda'
+ 
+     @pytest.mark.benchmark(group="kinematic_op_micro")
+     def test_parallel_and_iterative_derivsum(
+             benchmark, target_system, target_kintree, target_device
+     ):
+         coords = torch.tensor(target_system.coords[target_kintree.id]
+                               ).to(device=target_device)
+         kintree = target_kintree.to(device=target_device)
+     
+         torch.manual_seed(1663)
+         dsc_dx = (torch.rand_like(coords) * 2) - 1
+     
+         f1s = torch.cross(coords, coords - dsc_dx)
+         f2s = dsc_dx.clone()  # clone input buffer before aggregation
+     
+         f1f2s = torch.cat((f1s, f2s), 1)
+     
+         ### deriv summation sould be equivalent in both interative and parallel mode
+     
+         iterative_f1f2_sums = cpu_operations.iterative_f1f2_summation(
+             f1f2s.cpu(), kintree.parent, inplace=False
+         )
+     
+         # Load and cache ordering for benchmark
+         derivsum_ordering = GPUKinTreeReordering.for_kintree(
+             kintree
+         ).derivsum_ordering
+     
+         @benchmark
+         def parallel_f1f2_sums():
+             result = derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)
+             numba.cuda.synchronize()
+             return result
+     
+         numpy.testing.assert_array_almost_equal(
+ >           iterative_f1f2_sums, parallel_f1f2_sums
+         )
+ E       AssertionError: 
+ E       Arrays are not almost equal to 6 decimals
+ E       
+ E       (mismatch 34.75905332192757%)
+ E        x: array([28.556121,  1.980465, 11.878325, ...,  0.896263, -0.327517,
+ E              -0.760321])
+ E        y: array([ 6.041486,  0.563802, -0.811099, ...,  0.896263, -0.327517,
+ E              -0.760321])
+ 
+ tmol/tests/kinematics/test_gpu_operations.py:204: AssertionError
