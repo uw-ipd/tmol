@@ -330,7 +330,7 @@ def test_refold_consistency(segscan_num_threads, big_system):
     refold_ordering = GPUKinTreeReordering.for_kintree(kintree).refold_ordering
 
     object.__setattr__(
-        refold_ordering, "segscan_num_threads", "segscan_num_threads"
+        refold_ordering, "segscan_num_threads", segscan_num_threads
     )
 
     # Generate a collection of samples via parallel sum
