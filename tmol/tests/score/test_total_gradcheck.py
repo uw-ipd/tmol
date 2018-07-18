@@ -31,6 +31,9 @@ def test_torsion_space_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
 
     torsion_space = DofSpaceScore.build_for(test_system)
+    print("phi_inds", torsion_space.phi_inds)
+    print("res_aas", torsion_space.res_aas)
+    print("upper", torsion_space.upper)
 
     start_dofs = torsion_space.dofs.clone()
 

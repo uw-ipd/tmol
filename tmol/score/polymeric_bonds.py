@@ -1,6 +1,7 @@
 from functools import singledispatch
 
 import torch
+import attr
 
 from tmol.utility.reactive import reactive_attrs
 
@@ -24,8 +25,16 @@ class PolymericBonds(Factory):
 
     # The index of the residue that residue i has as its upper-connection neighbor
     # (often i+1), with -1 signifying that no upper connection is present
-    upper: Tensor(torch.long)[:]
+    upper: Tensor(torch.long)[:] = attr.ib()
 
     # The index of the residue that residue i has as its lower-connection neighbor
     # (often i-1), with -1 signifying that no lower connection is present
-    lower: Tensor(torch.long)[:]
+    lower: Tensor(torch.long)[:] = attr.ib()
+
+    @upper.default
+    def _nonsense_upper(self):
+        return torch.full((1), -1, torch.long)
+
+    @lower.default
+    def _nonsense_lower(self):
+        return torch.full((1), -1, torch.long)

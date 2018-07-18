@@ -11,6 +11,7 @@ from .ljlk import LJLKScoreGraph
 from .hbond import HBondScoreGraph
 from .total_score import TotalScoreComponentsGraph
 from .coordinates import CartesianAtomicCoordinateProvider, KinematicAtomicCoordinateProvider
+from .rama.rama_score_graph import RamaScoreGraph
 
 
 @reactive_attrs
@@ -19,6 +20,7 @@ class TotalScoreGraph(
         LJLKScoreGraph,
         BlockedInteratomicDistanceGraph,
         BondedAtomScoreGraph,
+        RamaScoreGraph,
         TotalScoreComponentsGraph,
         TorchDevice,
 ):

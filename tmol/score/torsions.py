@@ -2,6 +2,7 @@ from functools import singledispatch
 
 import torch
 import numpy
+import attr
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
@@ -60,11 +61,27 @@ class AlphaAABackboneTorsionProvider(Factory):
     # global indices used to define the torsions
     # an entry of -1 for any atom means the torsion is undefined
     # and will produce a NaN in the corresponding _tor Tensor
-    phi_inds: Tensor(torch.long)[:, 4]
-    psi_inds: Tensor(torch.long)[:, 4]
-    omega_inds: Tensor(torch.long)[:, 4]
+    phi_inds: Tensor(torch.long)[:, 4] = attr.ib()
+    psi_inds: Tensor(torch.long)[:, 4] = attr.ib()
+    omega_inds: Tensor(torch.long)[:, 4] = attr.ib()
 
-    res_aas: Tensor(torch.long)[:]
+    res_aas: Tensor(torch.long)[:] = attr.ib()
+
+    @phi_inds.default
+    def _nonsense_phi_inds(self):
+        return torch.full((1, 4), -1, dtype=torch.long)
+
+    @psi_inds.default
+    def _nonsense_psi_inds(self):
+        return torch.full((1, 4), -1, dtype=torch.long)
+
+    @omega_inds.default
+    def _nonsense_omega_inds(self):
+        return torch.full((1, 4), -1, dtype=torch.long)
+
+    @res_aas.default
+    def _nonsense_res_aas(self):
+        return torch.full((1), -1, dtype=torch.long)
 
     def reset_total_score(self):
         self.phi_inds = self.phi_inds
