@@ -16,6 +16,7 @@ from . import derivsum_jit
 
 @reactive_attrs(auto_attribs=True, slots=True, frozen=True)
 class DerivsumOrdering(ValidateAttrs):
+
     # [natoms]
     ki2dsi: NDArray("i4")[:]
     dsi2ki: NDArray("i4")[:]
@@ -26,6 +27,9 @@ class DerivsumOrdering(ValidateAttrs):
 
     # [n_path_depths, 2]
     atom_range_for_depth: NDArray("i4")[:, 2]
+
+    # number of threads used in segscan kernel
+    segscan_num_threads: int = 256
 
     # Cached device arrays, derived from cpu ordering arrays.
     @reactive_property
@@ -116,7 +120,7 @@ class DerivsumOrdering(ValidateAttrs):
         assert natoms == len(self.dsi2ki)
 
         derivsum_jit.F1F2Scan.segscan_by_generation(
-            64,
+            self.segscan_num_threads,
             as_cuda_array(f1f2s_kintree_ordering),
             self.dsi2ki_d,
             self.is_leaf_d,

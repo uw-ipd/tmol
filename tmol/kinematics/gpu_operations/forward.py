@@ -18,6 +18,8 @@ from . import forward_jit
 @reactive_attrs(auto_attribs=True, frozen=True, slots=True)
 class RefoldOrdering(ValidateAttrs):
 
+    HTSCAN_NUM_THREADS = 256
+
     # [natoms]
     ri2ki: NDArray("i4")[:]
     ki2ri: NDArray("i4")[:]
@@ -131,7 +133,7 @@ class RefoldOrdering(ValidateAttrs):
             hts_kintree_ordering = hts_kintree_ordering.clone()
 
         forward_jit.HTScan.segscan_by_generation(
-            256,
+            self.HTSCAN_NUM_THREADS,
             as_cuda_array(hts_kintree_ordering),
             self.ri2ki_d,
             self.is_subpath_root_d,

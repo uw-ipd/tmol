@@ -23,6 +23,8 @@ from tmol.kinematics.builder import KinematicBuilder
 import tmol.kinematics.cpu_operations as cpu_operations
 import tmol.kinematics.gpu_operations as gpu_operations
 
+from tmol.tests.torch import requires_cuda
+
 
 @pytest.fixture
 def target_device(numba_cuda_or_cudasim):
@@ -48,8 +50,7 @@ def target_system(target_device, min_system, big_system):
     }[target_device]
 
 
-@pytest.fixture
-def target_kintree(target_system):
+def system_kintree(target_system):
     return KinematicBuilder().append_connected_component(
         *KinematicBuilder.bonds_to_connected_component(0, target_system.bonds)
     ).kintree
@@ -57,7 +58,7 @@ def target_kintree(target_system):
 
 @pytest.mark.benchmark(group="score_setup")
 def test_gpu_refold_data_construction(benchmark, ubq_system):
-    kintree = target_kintree(ubq_system)
+    kintree = system_kintree(ubq_system)
 
     @benchmark
     def tree_reordering() -> GPUKinTreeReordering:
@@ -118,8 +119,10 @@ def test_gpu_refold_data_construction(benchmark, ubq_system):
 
 @pytest.mark.benchmark(group="kinematic_op_micro")
 def test_parallel_and_iterative_refold(
-        benchmark, target_system, target_kintree, target_device
+        benchmark, target_system, target_device
 ):
+    target_kintree = system_kintree(target_system)
+
     coords = torch.tensor(target_system.coords[target_kintree.id]
                           ).to(device=target_device)
     kintree = target_kintree.to(device=target_device)
@@ -169,8 +172,10 @@ def test_parallel_and_iterative_refold(
 
 @pytest.mark.benchmark(group="kinematic_op_micro")
 def test_parallel_and_iterative_derivsum(
-        benchmark, target_system, target_kintree, target_device
+        benchmark, target_system, target_device
 ):
+    target_kintree = system_kintree(target_system)
+
     coords = torch.tensor(target_system.coords[target_kintree.id]
                           ).to(device=target_device)
     kintree = target_kintree.to(device=target_device)
@@ -182,6 +187,7 @@ def test_parallel_and_iterative_derivsum(
     f2s = dsc_dx.clone()  # clone input buffer before aggregation
 
     f1f2s = torch.cat((f1s, f2s), 1)
+    # f1f2s = torch.ones_like(torch.cat((f1s, f2s), 1))
 
     ### deriv summation sould be equivalent in both interative and parallel mode
 
@@ -223,4 +229,124 @@ def test_parallel_and_iterative_derivsum(
     numpy.testing.assert_array_almost_equal(
         parallel_f1f2_sums,
         parallel_f1f2_sums_inplace,
+    )
+
+
+@pytest.mark.parametrize("dsc_dx_type", ["random", "arange_mod", "ones"])
+@pytest.mark.parametrize("segscan_num_threads", [32, 64, 256])
+@requires_cuda
+def test_derivsum_consistency(dsc_dx_type, segscan_num_threads, big_system):
+    """Test issue #90 repro.
+
+    Test repeated derivsum """
+
+    target_system = big_system
+    target_device = torch.device("cuda")
+    target_kintree = system_kintree(target_system)
+
+    coords = torch.tensor(target_system.coords[target_kintree.id]
+                          ).to(device=target_device)
+    kintree = target_kintree.to(device=target_device)
+
+    # Load and cache ordering for benchmark
+    derivsum_ordering = GPUKinTreeReordering.for_kintree(
+        kintree
+    ).derivsum_ordering
+
+    object.__setattr__(
+        derivsum_ordering, "segscan_num_threads", segscan_num_threads
+    )
+
+    torch.manual_seed(1663)
+
+    dsc_dx = {
+        "random": (torch.rand_like(coords) * 2) - 1,
+        "arange_mod": ((
+            torch.arange(
+                len(coords) * 3, dtype=coords.dtype, device=coords.device
+            ) % 100
+        ).reshape(-1, 3).clone()),
+        "ones": coords.new_ones((len(coords), 3))
+    }[dsc_dx_type]
+
+    f1s = torch.cross(coords, coords - dsc_dx)
+    f2s = dsc_dx.clone()  # clone input buffer before aggregation
+
+    f1f2s = torch.cat((f1s, f2s), 1)
+
+    # Check that random data didn't introduce nans
+    assert torch.sum(torch.isnan(f1f2s[1:])) == 0
+
+    # Generate single result via iterative sum
+    iterative_f1f2_sums = cpu_operations.iterative_f1f2_summation(
+        f1f2s.cpu(), kintree.parent, inplace=False
+    )
+
+    # Generate a collection of samples via parallel sum
+    niter = 100
+
+    def parallel_f1f2_sums():
+        result = derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)
+        numba.cuda.synchronize()
+        return result
+
+    parallel_sum_results = torch.cat([
+        parallel_f1f2_sums()[1].expand(1, -1) for _ in range(niter)
+    ])
+
+    numpy.testing.assert_allclose(
+        iterative_f1f2_sums[1].expand((niter, -1)),
+        parallel_sum_results,
+    )
+
+
+@requires_cuda
+@pytest.mark.parametrize("segscan_num_threads", [32, 64, 256])
+def test_refold_consistency(segscan_num_threads, big_system):
+    """Test issue #90 repro.
+
+    Test repeated refold"""
+
+    target_system = big_system
+    target_device = torch.device("cuda")
+    target_kintree = system_kintree(target_system)
+
+    coords = torch.tensor(target_system.coords[target_kintree.id]
+                          ).to(device=target_device)
+    kintree = target_kintree.to(device=target_device)
+
+    bkin = backwardKin(target_kintree, coords)
+
+    local_hts = DOFTransforms(kintree.doftype, bkin.dofs)
+
+    ### refold from local hts should equal global hts from backward kinematics
+
+    iterative_refold_hts = iterative_refold(
+        local_hts.cpu(), kintree.parent.cpu(), inplace=False
+    )
+    numpy.testing.assert_allclose(bkin.hts, iterative_refold_hts, atol=1e-6)
+
+    # parallel case
+    refold_ordering = GPUKinTreeReordering.for_kintree(kintree).refold_ordering
+
+    object.__setattr__(
+        refold_ordering, "segscan_num_threads", "segscan_num_threads"
+    )
+
+    # Generate a collection of samples via parallel sum
+    niter = 50
+
+    def parallel_refold_hts():
+        result = refold_ordering.segscan_hts(local_hts, inplace=False)
+        numba.cuda.synchronize()
+        return result
+
+    parallel_sum_results = torch.cat([
+        parallel_refold_hts()[None, ...] for _ in range(niter)
+    ])
+
+    numpy.testing.assert_allclose(
+        iterative_refold_hts.expand(niter, -1, -1, -1),
+        parallel_sum_results,
+        atol=1e-6
     )
