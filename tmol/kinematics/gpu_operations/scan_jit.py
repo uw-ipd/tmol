@@ -151,7 +151,6 @@ class GenerationalSegmentedScan:
 
                 ### Iterate block across generation
                 carry_val = zero()
-                carry_is_root = False
 
                 for ii in range(blocks_for_gen):
                     ii_ind = ii * threads_per_block + start + pos
@@ -163,7 +162,8 @@ class GenerationalSegmentedScan:
 
                         ### Read node values from global into shared
                         my_val = load(src_vals, ii_src)
-                        shared_is_root[pos] = is_path_root[ii_ind]
+                        my_root = is_path_root[ii_ind]
+                        shared_is_root[pos] = my_root
 
                         ### Sum incoming scan value from parent into node
                         # parent only set if node is root of scan
@@ -178,11 +178,8 @@ class GenerationalSegmentedScan:
                                 )
 
                         ### Sum carry value from previous block if node 0 is non-root.
-                        my_root = shared_is_root[pos]
                         if pos == 0 and not my_root:
                             my_val = add(carry_val, my_val)
-                            my_root |= carry_is_root
-                            shared_is_root[0] = my_root
 
                         save(shared_vals, pos, my_val)
 
@@ -214,7 +211,6 @@ class GenerationalSegmentedScan:
                     ### save the carry
                     if pos == 0:
                         carry_val = load(shared_vals, threads_per_block - 1)
-                        carry_is_root = shared_is_root[threads_per_block - 1]
 
                     cuda.syncthreads()
 
