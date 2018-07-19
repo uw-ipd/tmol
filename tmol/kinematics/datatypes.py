@@ -16,9 +16,41 @@ class NodeType(enum.IntEnum):
     bond = enum.auto()
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(auto_attribs=True, frozen=True)
 class KinTree(TensorGroup, ConvertAttrs):
-    """Representation of atom-level kinematics."""
+    """Atom-level kinematic description.
+
+    A kinematic description of collection of atom locations, each atom location
+    corresponding to a node within a tree. The tree is *rooted* at a single
+    "root" node, representing the global reference frame. Every other node
+    corresponds to a derived orientation, which an atomic coordinate at the
+    center of the frame.
+
+    Each node is the tree is connected by one of two "node types":
+
+    1) Jump nodes, representing an arbitrary rigid body transform between two
+    reference frames via six degrees of freedom, 3 translational and
+    3 rotational.
+
+    2) Bond nodes, representing the relationships between two atom reference
+    frames via three bond degrees of freedom, bond axis translation, bond axis
+    rotation about the parent-grandparent bond and change of bond axis with
+    respect to the bond. Bond nodes include an additional, redundent,
+    degree of free representing concerted rotation of all downstream bonds
+    about the parent-self bond.
+
+    The `KinTree` data structure itself is frozen and can not be modified post
+    construction. The `KinematicBuilder` factory class is responsible for
+    construction of a `KinTree` with valid internal structure for atomic
+    system.
+
+    Indices::
+        id = index for kin-atom in the target coordinate system
+        parent = kin-atom index of parent for each kin-atom
+        frame_x = kin-atom index of self
+        frame_y = kin-atom index of parent
+        frame_z = kin-atom index of grandparent
+    """
 
     id: Tensor(torch.long)[...]  # used as an index so long
     doftype: Tensor(torch.int)[...]

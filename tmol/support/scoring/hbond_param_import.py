@@ -4,12 +4,12 @@ Manages parsing and import a subset of rosetta hydrogen bond parameters into a h
 parameter database file. Selects a minimal subset of polynomial parameters and type pair parameters
 to cover a specificed set of donor/acceptor types.
 
-Example:
+Example::
 
-with open("sp2_elec_hbond_params.yaml", "w") as outfile:
-    params = RosettaHBParams(
-        "~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/")
-    params.to_yaml(outfile)
+    with open("sp2_elec_hbond_params.yaml", "w") as outfile:
+        params = RosettaHBParams(
+            "~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/")
+        params.to_yaml(outfile)
 """
 
 import numpy

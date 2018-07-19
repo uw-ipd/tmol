@@ -6,8 +6,9 @@ from ..types.functional import validate_args
 from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
 
-from ..score import (
-    BondedAtomScoreGraph,
+from ..score.bonded_atom import BondedAtomScoreGraph
+
+from ..score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
@@ -87,13 +88,13 @@ def system_torsion_graph_inputs(
     kincoords = sys_kin.extract_kincoords(system.coords).to(device)
 
     # Initialize op for torsion-space kinematics
-    kop = KinematicOp.from_coords(
+    kinop = KinematicOp.from_coords(
         sys_kin.kintree,
         torsion_dofs,
         kincoords,
     )
 
     return dict(
-        dofs=kop.src_mobile_dofs.clone().requires_grad_(requires_grad),
-        kinop=kop,
+        dofs=kinop.src_mobile_dofs.clone().requires_grad_(requires_grad),
+        kinop=kinop,
     )

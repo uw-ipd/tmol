@@ -67,3 +67,20 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+
+  ### Generate project documentation
+  - label: ':open_book: Docs'
+    command: .buildkite/bin/docs
+    artifact_paths:
+      - docs/_build/**/*
+    plugins:
+      uw-ipd/docker-compose#run_workdir:
+        run: buildkite
+        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+
+  ### Deploy documentation to gh-pages iff running a master build
+  - label: ':rocket: Pages'
+    command: .buildkite/bin/gh-pages
+    plugins:
+      artifacts#v1.2.0:
+        download: "docs/_build/**/*"

@@ -1,3 +1,5 @@
+"""Mixins for attrs-class type conversion and validation."""
+
 from .converters import get_converter
 from .validators import get_validator
 

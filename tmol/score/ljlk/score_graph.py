@@ -42,8 +42,8 @@ class LJLKScoreGraph(
     ):
         """Overridable clone-constructor.
 
-        Initialize from `val.ljlk_database` if possible, otherwise from
-        `parameter_database.scoring.ljlk`.
+        Initialize from ``val.ljlk_database`` if possible, otherwise from
+        ``parameter_database.scoring.ljlk``.
         """
         if ljlk_database is None:
             if getattr(val, "ljlk_database", None):

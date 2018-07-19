@@ -1,3 +1,5 @@
+"""Generic type validator functions."""
+
 from functools import singledispatch
 
 import typing
