@@ -15,7 +15,7 @@ class GenerationalSegmentedScan:
     operator, where the scan paths many have any number of additional off-path
     node inputs added *before* the scan path. For example, consider the
     operation composed of path values (P), off path values (OP) joined by an
-    operator (+):
+    operator (+)::
 
         OP_0            OP_1
           +               +
@@ -27,11 +27,11 @@ class GenerationalSegmentedScan:
                           +
                         OP_2
 
-    Represents the complete operation:
+    Represents the complete operation::
 
       (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4
 
-    As this is a scan, rather than reduction, this results in:
+    As this is a scan, rather than reduction, this results in::
 
         R_0-----R_1-----R_2-----R_3-----R_4
 
@@ -52,7 +52,7 @@ class GenerationalSegmentedScan:
     Implementation of a specific scan operation involves subclassing this
     template class and providing:
 
-        `@cuda.jit(device=True)` class-methods:
+        ``@cuda.jit(device=True)`` class-methods:
 
             add: ((val, val) -> val)
                 The associative operator.

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -x
+set -e
+
+# Push to project root
+pushd "$( dirname "${BASH_SOURCE[0]}" )"/..
+
+docs/make
+
+python -m http.server &
+trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+
+case "$(uname -s)" in
+    Linux*)     xdg-open http://localhost:8000/docs/_build/html;;
+    Darwin*)    open http://localhost:8000/docs/_build/html;;
+    *)          echo Unknown uname;;
+esac
+
+watchmedo tricks docs/watchmedo.yml

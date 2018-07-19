@@ -4,3 +4,6 @@ pytest-cov
 flake8
 
 psutil
+
+sphinx
+sphinx_rtd_theme

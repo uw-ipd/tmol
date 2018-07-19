@@ -1,3 +1,5 @@
+"""Type annotations for multidimensional tensors."""
+
 import collections
 import functools
 import attr

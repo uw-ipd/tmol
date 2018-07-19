@@ -17,7 +17,8 @@ class ParamDB(Factory):
     ):
         """Overridable clone-constructor.
 
-        Initialize from `val.parameter_database` if possible, otherwise default ParameterDatabase.
+        Initialize from ``val.parameter_database`` if possible, otherwise
+        default ParameterDatabase.
         """
         if parameter_database is None:
             if getattr(val, "parameter_database", None):

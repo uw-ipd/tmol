@@ -1,17 +1,16 @@
 import subprocess
 
-from .database import (
+from .database import (  # noqa: F401
     default_database,
 )
 
 # Import support fixtures
-from .support.rosetta import (
-    pyrosetta,
-    rosetta_database,
+from .support.rosetta import (  # noqa: F401
+    pyrosetta, rosetta_database,
 )
 
 # Import basic data fixtures
-from .data import (
+from .data import ( # noqa: F401
     min_pdb,
     min_res,
     min_system,
@@ -26,14 +25,12 @@ from .data import (
     water_box_res,
 )
 
-from .torch import (
-    torch_device,
-    torch_backward_coverage,
+from .torch import (  # noqa: F401
+    torch_device, torch_backward_coverage,
 )
 
-from .numba import (
-    numba_cudasim,
-    numba_cuda_or_cudasim,
+from .numba import (  # noqa: F401
+    numba_cudasim, numba_cuda_or_cudasim,
 )
 
 
@@ -70,24 +67,3 @@ def pytest_benchmark_update_machine_info(config, machine_info):
     machine_info['conda'] = {
         "list": json.loads(subprocess.getoutput("conda list --json"))
     }
-
-
-__all__ = (
-    pytest_benchmark_update_machine_info,
-    pyrosetta,
-    rosetta_database,
-    default_database,
-    min_pdb,
-    min_res,
-    min_system,
-    ubq_pdb,
-    ubq_res,
-    ubq_system,
-    ubq_rosetta_baseline,
-    water_box_system,
-    water_box_res,
-    torch_device,
-    torch_backward_coverage,
-    numba_cudasim,
-    numba_cuda_or_cudasim,
-)

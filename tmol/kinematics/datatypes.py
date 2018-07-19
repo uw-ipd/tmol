@@ -33,15 +33,18 @@ class KinTree(TensorGroup, ConvertAttrs):
     3 rotational.
 
     2) Bond nodes, representing the relationships between two atom reference
-    frames via *three bond degrees of freedom, bond axis translation, bond axis
-    rotation and change of bond axis with respect to the upstream bond.
+    frames via three bond degrees of freedom, bond axis translation, bond axis
+    rotation about the parent-grandparent bond and change of bond axis with
+    respect to the bond. Bond nodes include an additional, redundent,
+    degree of free representing concerted rotation of all downstream bonds
+    about the parent-self bond.
 
     The `KinTree` data structure itself is frozen and can not be modified post
     construction. The `KinematicBuilder` factory class is responsible for
     construction of a `KinTree` with valid internal structure for atomic
     system.
 
-    Indices:
+    Indices::
         id = index for kin-atom in the target coordinate system
         parent = kin-atom index of parent for each kin-atom
         frame_x = kin-atom index of self

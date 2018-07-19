@@ -6,8 +6,9 @@ from ..types.functional import validate_args
 from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
 
-from ..score import (
-    BondedAtomScoreGraph,
+from ..score.bonded_atom import BondedAtomScoreGraph
+
+from ..score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
