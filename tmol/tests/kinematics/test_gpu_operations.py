@@ -94,7 +94,15 @@ def test_gpu_refold_data_construction(benchmark, ubq_system):
 
 @requires_cuda
 @pytest.mark.benchmark(group="kinematic_op_micro_refold")
-@pytest.mark.parametrize("segscan_num_threads", [128, 256])
+@pytest.mark.parametrize(
+    "segscan_num_threads",
+    [
+        128,
+        256,
+        # block size of 512  exceeds shared memory limit
+        pytest.param(512, marks=pytest.mark.xfail),
+    ]
+)
 def test_refold_values(benchmark, big_system, segscan_num_threads):
     target_device = torch.device("cuda")
     target_kintree = system_kintree(big_system)
