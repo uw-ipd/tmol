@@ -52,8 +52,14 @@ class BSplineDegree:
             cls, ndims: int, coeffs: Tensor(torch.float),
             X: Tensor(torch.float)[:, :]
     ) -> Tensor(torch.float)[:, :, :]:
-        """Allocate wts_bydim tensor with the dtype and device following
-        coeffs's example
+        """Allocate wts_bydim tensor with the dtype and device matching
+        coeffs's dtype and device.
+
+        X is a [n_points x ndims] tensor representing the set of n-dimensional
+        points whose values are being interpolated.
+        This function returns an empty [n_points x cls.degree+1 x ndims] tensor
+        that will be populated by the derived class
+
         """
         return torch.empty((X.shape[0], cls.degree + 1, ndims),
                            dtype=coeffs.dtype,
@@ -72,6 +78,11 @@ class BSplineDegree2(BSplineDegree):
             X: Tensor(torch.float)[:, :],
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
+        """Populate a tensor of shape [n_points x 3 x ndims ]
+        with the polynomial's evaluated for the set of n points
+        that will be multiplied by the b-spline coefficients
+        taken from neighboring grid cells.
+        """
 
         wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
@@ -94,6 +105,11 @@ class BSplineDegree3(BSplineDegree):
             X: Tensor(torch.float)[:, :],
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
+        """Populate a tensor of shape [n_points x 4 x ndims ]
+        with the polynomial's evaluated for the set of n points
+        that will be multiplied by the b-spline coefficients
+        taken from neighboring grid cells.
+        """
 
         wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
@@ -123,6 +139,11 @@ class BSplineDegree4(BSplineDegree):
             X: Tensor(torch.float)[:, :],
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
+        """Populate a tensor of shape [n_points x 5 x ndims ]
+        with the polynomial's evaluated for the set of n points
+        that will be multiplied by the b-spline coefficients
+        taken from neighboring grid cells.
+        """
 
         wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
@@ -160,6 +181,11 @@ class BSplineDegree5(BSplineDegree):
             X: Tensor(torch.float)[:, :],
             indx_bydim: Tensor(torch.float)[:, :, :]
     ) -> Tensor(torch.float)[:, :, :]:
+        """Populate a tensor of shape [n_points x 6 x ndims ]
+        with the polynomial's evaluated for the set of n points
+        that will be multiplied by the b-spline coefficients
+        taken from neighboring grid cells.
+        """
 
         wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
