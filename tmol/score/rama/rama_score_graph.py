@@ -69,7 +69,7 @@ class RamaScoreGraph(
         ),
                             dim=1)
         # shift range of [-pi,pi) to [0,36)
-        phi_psi = phi_psi * 180 / (10 * numpy.pi) + 18
+        phi_psi = (18 / numpy.pi) * phi_psi + 18
 
         has_upper = upper != -1
         upper_is_pro = (res_aas[upper[has_upper & has_rama]

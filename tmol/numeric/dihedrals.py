@@ -3,7 +3,7 @@ import torch
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 
-CoordArray = Tensor(float)[:, 3]
+CoordArray = Tensor(torch.double)[:, 3]
 Angles = Tensor(float)[:]
 
 
@@ -22,9 +22,14 @@ def coord_dihedrals(
     # Implementation derived from the "Praxeolitic" method, described at
     # https://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python
 
-    ba = a - b
-    bc = c - b
-    cd = d - c
+    aprime = a.type(torch.double)
+    bprime = b.type(torch.double)
+    cprime = c.type(torch.double)
+    dprime = d.type(torch.double)
+
+    ba = aprime - bprime
+    bc = cprime - bprime
+    cd = dprime - cprime
 
     ubc = bc / torch.norm(bc, 2, dim=1, keepdim=True)
 
@@ -40,4 +45,4 @@ def coord_dihedrals(
     x = torch.einsum("ij,ij->i", (v, w))
     y = torch.einsum("ij,ij->i", (torch.cross(ubc, v), w))
 
-    return torch.atan2(y, x)
+    return torch.atan2(y, x).type(torch.float)

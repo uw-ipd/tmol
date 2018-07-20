@@ -90,32 +90,32 @@ class AlphaAABackboneTorsionProvider(Factory):
 
     @reactive_property
     def phi_tor(
-            coords: Tensor(torch.float)[:, 3],
+            coords_d: Tensor(torch.double)[:, 3],
             phi_inds: Tensor(torch.long)[:, 4]
     ) -> Tensor(torch.float)[:]:
-        phi_tor = measure_torsions(coords, phi_inds)
+        phi_tor = measure_torsions(coords_d, phi_inds)
         return phi_tor
 
     @reactive_property
     def psi_tor(
-            coords: Tensor(torch.float)[:, 3],
+            coords_d: Tensor(torch.double)[:, 3],
             psi_inds: Tensor(torch.long)[:, 4]
     ) -> Tensor(torch.float)[:]:
-        psi_tor = measure_torsions(coords, psi_inds)
+        psi_tor = measure_torsions(coords_d, psi_inds)
         return psi_tor
 
     @reactive_property
     def omega_tor(
-            coords: Tensor(torch.float)[:, 3],
+            coords_d: Tensor(torch.double)[:, 3],
             omega_inds: Tensor(torch.long)[:, 4]
     ):
-        omega_tor = measure_torsions(coords, omega_inds)
+        omega_tor = measure_torsions(coords_d, omega_inds)
         return omega_tor
 
 
 @validate_args
 def measure_torsions(
-        coords: Tensor(torch.float)[:, 3], inds: Tensor(torch.long)[:, 4]
+        coords: Tensor(torch.double)[:, 3], inds: Tensor(torch.long)[:, 4]
 ) -> Tensor(torch.float):
     bad = torch.sum(inds == -1, 1) > 0
     tors = torch.full((inds.shape[0], ),

@@ -78,15 +78,15 @@ class KinematicAtomicCoordinateProvider(Factory):
     kinop: KinematicOp
 
     @reactive_property
-    def coords(
+    def coords_d(
             dofs: Tensor("f4")[:],
             kinop: KinematicOp,
             system_size: int,
-    ) -> Tensor("f4")[:, 3]:
+    ) -> Tensor("f8")[:, 3]:
         """System cartesian atomic coordinates."""
         kincoords = kinop(dofs)
 
-        coords = torch.full(
+        coords_d = torch.full(
             (system_size, 3),
             math.nan,
             dtype=dofs.dtype,
@@ -95,9 +95,14 @@ class KinematicAtomicCoordinateProvider(Factory):
             requires_grad=False,
         )
 
-        coords[kinop.kintree.id[1:]] = kincoords[1:] # yapf: disable
+        coords_d[kinop.kintree.id[1:]] = kincoords[1:] # yapf: disable
+        return coords_d
 
-        return coords.to(torch.float)
+    @reactive_property
+    def coords(coords_d: Tensor("f8")[:, 3]) -> Tensor("f4")[:, 3]:
+        """System cartesian atomic coordinates."""
+
+        return coords_d.to(torch.float)
 
     def reset_total_score(self):
         self.dofs = self.dofs
