@@ -345,7 +345,7 @@ class BSplineInterpolation:
         baseline = torch.floor(X - (bspdeg.degree - 1) / 2.0)
         indx_bydim = torch.arange(
             bspdeg.degree + 1, device=self.coeffs.device
-        ).reshape(1, -1, 1) + baseline.reshape(-1, 1, self.n_interp_dims)
+        ).view(1, -1, 1) + baseline.view(-1, 1, self.n_interp_dims)
 
         # construct weight matrix -- this varies depending on the degree of the
         # bspline, and therefore is delegated to the BSplineDegree class
@@ -371,14 +371,16 @@ class BSplineInterpolation:
 
         interp_dims_offset = 1
         for dim in range(self.n_interp_dims):
-            inds = self.coeffs.shape[dim + self.n_index_dims] * inds.reshape(
+            inds = self.coeffs.shape[dim + self.n_index_dims] * inds.view(
                 nx, -1, 1
-            ) + indx_bydim[:, :, dim].reshape(nx, 1, -1)
-            interp_dims_offset *= self.coeffs.shape[dim + self.n_index_dims]
+            ) + indx_bydim[:, :, dim].view(nx, 1, -1)
+            interp_dims_offset = interp_dims_offset * self.coeffs.shape[
+                dim + self.n_index_dims
+            ]
 
-            wts_expand = wts_expand.reshape(
+            wts_expand = wts_expand.view(
                 nx, -1, 1
-            ) * wts_bydim[:, :, dim].reshape(nx, 1, -1)
+            ) * wts_bydim[:, :, dim].view(nx, 1, -1)
 
         if Y is not None:
             non_interp_dims_offset = interp_dims_offset
@@ -387,13 +389,16 @@ class BSplineInterpolation:
             newshape = (-1, ) + (1, ) * (len(inds.shape) - 1)
             for ii in range(self.n_index_dims - 1, -1, -1):
                 # now increment the indices
-                inds += (non_interp_dims_offset * Y[:, ii]).reshape(newshape)
-                non_interp_dims_offset *= self.coeffs.shape[ii]
+                inds = inds + (non_interp_dims_offset *
+                               Y[:, ii]).view(newshape)
+                non_interp_dims_offset = non_interp_dims_offset * self.coeffs.shape[
+                    ii
+                ]
 
         # ... and do the dot product
         retval = torch.sum(
-            wts_expand.reshape(nx, -1) *
-            self.coeffs.view(-1)[inds].reshape(nx, -1), 1
+            wts_expand.view(nx, -1) * self.coeffs.view(-1)[inds].view(nx, -1),
+            1
         )
 
         return retval
