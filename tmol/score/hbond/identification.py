@@ -77,8 +77,8 @@ class HBondElementAnalysis(ValidateAttrs):
     ):
         """Perform element analysis over the given bonded atom types.
 
-        `atom_types` includes string atom types for atoms in the system
-        `bonds` includes atom type indices (in atom_types) for bonds in the system
+        ``atom_types`` includes string atom types for atoms in the system
+        ``bonds`` includes atom type indices (in atom_types) for bonds in the system
 
         Bond graph matching proceeds in two phases:
 
