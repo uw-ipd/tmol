@@ -3,15 +3,17 @@ import numpy
 
 from tmol.utility.reactive import reactive_attrs
 from tmol.score import (
-    TotalScoreGraph,
+    TotalScoreComponentsGraph,
     CartesianAtomicCoordinateProvider,
 )
+from tmol.score.device import TorchDevice
 from tmol.score.torsions import (AlphaAABackboneTorsionProvider)
 
 
 @reactive_attrs(auto_attribs=True)
 class TCartTorsions(CartesianAtomicCoordinateProvider,
-                    AlphaAABackboneTorsionProvider, TotalScoreGraph):
+                    AlphaAABackboneTorsionProvider, TorchDevice,
+                    TotalScoreComponentsGraph):
     """Cart total."""
     pass
 

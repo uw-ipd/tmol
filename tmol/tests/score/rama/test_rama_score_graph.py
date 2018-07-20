@@ -80,10 +80,6 @@ def test_torsion_space_rama_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
 
     torsion_space = DofSpaceRamaScore.build_for(test_system)
-    print("phi_inds", torsion_space.phi_inds)
-    print("res_aas", torsion_space.res_aas)
-    print("upper", torsion_space.upper)
-
     start_dofs = torsion_space.dofs.clone()
 
     def total_score(dofs):
@@ -93,9 +89,9 @@ def test_torsion_space_rama_gradcheck(ubq_res):
     assert torch.autograd.gradcheck(
         total_score,
         (start_dofs, ),
-        eps=1e-4,
-        rtol=5e-3,
-        atol=5e-4,
+        eps=1e-3,
+        rtol=5e-4,
+        atol=5e-5,
     )
 
 
@@ -113,10 +109,6 @@ def test_cartesian_space_rama_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
 
     real_space = CartSpaceRamaScore.build_for(test_system)
-    print("phi_inds", real_space.phi_inds)
-    print("res_aas", real_space.res_aas)
-    print("upper", real_space.upper)
-
     coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
     start_coords = real_space.coords[coord_mask]
 

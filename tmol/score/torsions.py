@@ -90,26 +90,26 @@ class AlphaAABackboneTorsionProvider(Factory):
 
     @reactive_property
     def phi_tor(
-            coords_d: Tensor(torch.double)[:, 3],
+            coords64: Tensor(torch.double)[:, 3],
             phi_inds: Tensor(torch.long)[:, 4]
     ) -> Tensor(torch.float)[:]:
-        phi_tor = measure_torsions(coords_d, phi_inds)
+        phi_tor = measure_torsions(coords64, phi_inds)
         return phi_tor
 
     @reactive_property
     def psi_tor(
-            coords_d: Tensor(torch.double)[:, 3],
+            coords64: Tensor(torch.double)[:, 3],
             psi_inds: Tensor(torch.long)[:, 4]
     ) -> Tensor(torch.float)[:]:
-        psi_tor = measure_torsions(coords_d, psi_inds)
+        psi_tor = measure_torsions(coords64, psi_inds)
         return psi_tor
 
     @reactive_property
     def omega_tor(
-            coords_d: Tensor(torch.double)[:, 3],
+            coords64: Tensor(torch.double)[:, 3],
             omega_inds: Tensor(torch.long)[:, 4]
     ):
-        omega_tor = measure_torsions(coords_d, omega_inds)
+        omega_tor = measure_torsions(coords64, omega_inds)
         return omega_tor
 
 
@@ -129,22 +129,5 @@ def measure_torsions(
     p4 = coords[inds[~bad, 3]]
 
     tors[~bad] = coord_dihedrals(p1, p2, p3, p4)
-
-    # v21 = p2 - p1
-    # v32 = p3 - p2
-    # v43 = p4 - p3
-    #
-    # norm_123 = torch.cross(v21, v32)
-    # norm_234 = torch.cross(v32, v43)
-    #
-    # norm_123 /= torch.norm(norm_123, 2, dim=1, keepdim=True)
-    # norm_234 /= torch.norm(norm_234, 2, dim=1, keepdim=True)
-    #
-    # v32 /= torch.norm(v32, 2, dim=1, keepdim=True)
-    # m1 = torch.cross(v32, norm_123)
-    #
-    # x = torch.einsum("ij,ij->i", (norm_123, norm_234))
-    # y = torch.einsum("ij,ij->i", (m1, norm_234))
-    # tors[~bad] = torch.atan2(y, x)
 
     return tors
