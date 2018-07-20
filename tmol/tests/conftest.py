@@ -10,7 +10,7 @@ from .support.rosetta import (  # noqa: F401
 )
 
 # Import basic data fixtures
-from .data import ( # noqa: F401
+from .data import (  # noqa: F401
     min_pdb,
     min_res,
     min_system,
