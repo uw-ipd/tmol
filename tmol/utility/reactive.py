@@ -1,5 +1,49 @@
-"""
-A prototype implementation of attrs-based "reactive" properties.
+"""Attrs-based "reactive" properties.
+
+Overview
+--------
+
+``reactive`` provides a framework to compose and effeciently evaluate pure
+functions. Functions are bound together in a single container class, with
+function outputs mapped to dependent inputs by name.
+
+For example, the trivial computation::
+
+    def total(x: float, y: float, z: float):
+        return x + y + z
+
+    def y(x:float):
+        x * x
+
+    def z(x:float, y:float):
+        x * y
+
+    def compute(x)
+        y_result = y(x)
+        z_result = z(x, y_result)
+        return total(x, y_result, z_result)
+
+    result = compute(val)
+
+Can be described as the reactive class::
+
+    @reactive_attrs
+    class Compute:
+        x: float
+
+        @reactive_property
+        def y(x: float):
+            return x * x
+
+        @reactive_property
+        def z(x: float, y: float):
+            return x * y
+
+        @reactive_property
+        def total(x: float, y: float, z: float):
+            return x + y + z
+
+    result = Compute(x=val).total
 
 A containing class stores state divided into two types: "standard" attributes,
 which represent source data, and "reactive" properties, which are derived from
@@ -36,7 +80,7 @@ to resolve the value function for any duplicate properties.
 
 import inspect
 from collections import defaultdict
-from typing import Callable, Any, Optional, Tuple
+from typing import Callable, Any, Optional, Tuple, Union
 
 import attr
 
@@ -51,10 +95,16 @@ def reactive_attrs(maybe_cls=None, **attrs_kwargs):
         return wrap(maybe_cls)
 
 
-def reactive_property(f, should_invalidate=None):
-    prop = ReactiveProperty.from_function(f)
-    prop.should_invalidate(should_invalidate)
-    return prop
+def reactive_property(maybe_f=None, should_invalidate=None, kwargs=None):
+    def bind(f):
+        prop = ReactiveProperty.from_function(f, kwargs=kwargs)
+        prop.should_invalidate(should_invalidate)
+        return prop
+
+    if maybe_f is not None:
+        return bind(maybe_f)
+    else:
+        return bind
 
 
 @attr.s(slots=True, auto_attribs=True)
@@ -71,16 +121,62 @@ class ReactiveProperty:
         return f
 
     @classmethod
-    def from_function(cls, fun):
-        parameters = tuple(inspect.signature(fun).parameters)
-        if "self" in parameters:
+    def from_function(
+            cls,
+            fun: Callable,
+            kwargs: Optional[Union[str, Tuple[str, ...]]] = None
+    ):
+        parameters = inspect.signature(fun).parameters.values()
+
+        param_types = set(p.kind for p in parameters)
+
+        ### Check for any positional-only arguments
+        if any(param_type not in (inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                                  inspect.Parameter.KEYWORD_ONLY,
+                                  inspect.Parameter.VAR_KEYWORD)
+               for param_type in param_types):
+            raise ValueError(
+                f"function signature contains invalid parameter type: {parameters}"
+            )
+
+        ### Get name of all keyword params
+        parameter_names = tuple(
+            p.name for p in parameters if p.kind in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY
+            )
+        )
+
+        ### Check for "self" parameter
+        if "self" in parameter_names:
             raise ValueError(
                 "Reactive property value function do not bind 'self' parameter."
             )
 
+        ### Check for **kwargs, and add request kwarg names if provided
+        if inspect.Parameter.VAR_KEYWORD in param_types:
+            if isinstance(kwargs, str):
+                kwargs = (kwargs, )
+
+            if kwargs is None:
+                raise ValueError(
+                    "Function binds **kwargs, but no kwarg names provided."
+                )
+            elif set(parameter_names).intersection(kwargs):
+                raise ValueError(
+                    "Specified kwarg is already explict parameter. parameters: {params} kwargs: {kwargs}"
+                )
+
+            parameter_names = parameter_names + tuple(kwargs)
+        else:
+            if kwargs is not None:
+                raise ValueError(
+                    "Function does not bind **kwargs, but kwarg names provided."
+                )
+
         return cls(
             name=fun.__name__,
-            parameters=parameters,
+            parameters=parameter_names,
             f_value=fun,
         )
 
@@ -177,7 +273,7 @@ def __reactive_getattr__(self, n):
     if hasattr(self._reactive_values, n):
         return getattr(self._reactive_values, n)
 
-    val = prop.f_value(*(getattr(self, p) for p in prop.parameters))
+    val = prop.f_value(**{p: getattr(self, p) for p in prop.parameters})
 
     setattr(self._reactive_values, n, val)
 
