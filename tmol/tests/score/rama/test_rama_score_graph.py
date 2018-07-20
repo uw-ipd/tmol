@@ -1,11 +1,15 @@
 import numpy
+import torch
 
 from tmol.utility.reactive import reactive_attrs
+from tmol.system.packed import PackedResidueSystem
 from tmol.score import (
     CartesianAtomicCoordinateProvider,
+    KinematicAtomicCoordinateProvider,
 )
 from tmol.score.total_score import TotalScoreComponentsGraph
 from tmol.score.rama.rama_score_graph import RamaScoreGraph
+from tmol.score.bonded_atom import BondedAtomScoreGraph
 
 
 @reactive_attrs(auto_attribs=True)
@@ -60,3 +64,66 @@ def test_create_torsion_provider(ubq_system):
     numpy.testing.assert_allclose(
         two_body_version.detach().numpy(), numpy.array(R3_scores), atol=1e-4
     )
+
+
+@reactive_attrs
+class DofSpaceRamaScore(
+        KinematicAtomicCoordinateProvider,
+        BondedAtomScoreGraph,
+        RamaScoreGraph,
+        TotalScoreComponentsGraph,
+):
+    pass
+
+
+def test_torsion_space_rama_gradcheck(ubq_res):
+    test_system = PackedResidueSystem.from_residues(ubq_res[:6])
+
+    torsion_space = DofSpaceRamaScore.build_for(test_system)
+    print("phi_inds", torsion_space.phi_inds)
+    print("res_aas", torsion_space.res_aas)
+    print("upper", torsion_space.upper)
+
+    start_dofs = torsion_space.dofs.clone()
+
+    def total_score(dofs):
+        torsion_space.dofs = dofs
+        return torsion_space.total_score
+
+    assert torch.autograd.gradcheck(
+        total_score,
+        (start_dofs, ),
+        eps=1e-4,
+        rtol=5e-3,
+        atol=5e-4,
+    )
+
+
+@reactive_attrs
+class CartSpaceRamaScore(
+        CartesianAtomicCoordinateProvider,
+        BondedAtomScoreGraph,
+        RamaScoreGraph,
+        TotalScoreComponentsGraph,
+):
+    pass
+
+
+def test_cartesian_space_rama_gradcheck(ubq_res):
+    test_system = PackedResidueSystem.from_residues(ubq_res[:6])
+
+    real_space = CartSpaceRamaScore.build_for(test_system)
+    print("phi_inds", real_space.phi_inds)
+    print("res_aas", real_space.res_aas)
+    print("upper", real_space.upper)
+
+    coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
+    start_coords = real_space.coords[coord_mask]
+
+    def total_score(coords):
+        state_coords = real_space.coords.detach().clone()
+        state_coords[coord_mask] = coords
+
+        return real_space.total_score
+
+    assert torch.autograd.gradcheck(total_score, (start_coords, ))
