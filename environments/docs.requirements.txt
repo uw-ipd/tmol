@@ -1,0 +1,2 @@
+better-apidoc==0.2.0
+aafigure>=0.6
