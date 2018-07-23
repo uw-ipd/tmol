@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.potentials &mdash; TMol 0.0.0-78-g6dfd345 documentation</title>
+  <title>tmol.score.hbond.potentials &mdash; TMol 0.0.0-77-gd4ca1cd documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-78-g6dfd345
+                0.0.0-77-gd4ca1cd
               </div>
             
           
@@ -204,19 +204,6 @@
         <span class="n">BAH</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
         <span class="n">chi</span><span class="p">:</span> <span class="n">Params</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Evaluate the functional form for sp2 acceptors that looks at the</span>
-<span class="sd">    angle &quot;BAH&quot; between the acceptor-base (B), the acceptor (A), and the</span>
-<span class="sd">    hydrogen (A), as well as the dihedral (chi) defined by the</span>
-<span class="sd">    acceptor-base-base (B0), B, A, and H.</span>
-
-<span class="sd">    This functional form was developed to prefer hydrogens lying in the</span>
-<span class="sd">    sp2 plane, and at a BAH angle of 120 degrees -- it also avoids numerical</span>
-<span class="sd">    stability issues for the chi dihedral when the BAH angle is near 180</span>
-<span class="sd">    degrees.</span>
-
-<span class="sd">    See O&#39;Meara et al., JCTC 2015 for greater detail.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="n">H</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">chi</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="n">F</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
@@ -268,15 +255,6 @@
         <span class="n">hb_sp2_BAH180_rise</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="n">hb_sp2_outer_width</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and</span>
-<span class="sd">    acceptor-base-base (b0) coordinates, all of the same length, and where the</span>
-<span class="sd">    acceptor is sp2 hybridized, and the corresponding set of parameters, and for each</span>
-<span class="sd">    entry i in these tensors, evaluates the full potential.</span>
-
-<span class="sd">    Note that this function does not first eliminate hydrogen/acceptor pairs</span>
-<span class="sd">    based on their distance, but rather, computes the full potential for all pairs.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="n">acc_don_scale</span> <span class="o">=</span> <span class="n">glob_accwt</span> <span class="o">*</span> <span class="n">glob_donwt</span>
 
     <span class="c1"># Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)</span>
@@ -353,15 +331,6 @@
         <span class="c1"># Global score parameters</span>
         <span class="n">hb_sp3_softmax_fade</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and</span>
-<span class="sd">    acceptor-base-base (b0) coordinates, all of the same length, and where the</span>
-<span class="sd">    acceptor is sp3 hybridized, and the corresponding set of parameters, and for each</span>
-<span class="sd">    entry i in these tensors, evaluates the full potential.</span>
-
-<span class="sd">    Note that this function does not first eliminate hydrogen/acceptor pairs</span>
-<span class="sd">    based on their distance, but rather, computes the full potential for all pairs.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="n">acc_don_scale</span> <span class="o">=</span> <span class="n">glob_accwt</span> <span class="o">*</span> <span class="n">glob_donwt</span>
 
     <span class="c1"># Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)</span>
@@ -430,14 +399,6 @@
         <span class="n">cosAHD_ranges</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
         <span class="n">cosAHD_bounds</span><span class="p">:</span> <span class="n">PolyParams</span><span class="p">,</span>
 <span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and</span>
-<span class="sd">    acceptor-base-base (b0) coordinates, all of the same length, and where the</span>
-<span class="sd">    acceptor is ring hybridized, and the corresponding set of parameters, and for each</span>
-<span class="sd">    entry i in these tensors, evaluates the full potential.</span>
-
-<span class="sd">    Note that this function does not first eliminate hydrogen/acceptor pairs</span>
-<span class="sd">    based on their distance, but rather, computes the full potential for all pairs.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">acc_don_scale</span> <span class="o">=</span> <span class="n">glob_accwt</span> <span class="o">*</span> <span class="n">glob_donwt</span>
 
     <span class="c1"># Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)</span>
@@ -506,7 +467,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-78-g6dfd345',
+            VERSION:'0.0.0-77-gd4ca1cd',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
