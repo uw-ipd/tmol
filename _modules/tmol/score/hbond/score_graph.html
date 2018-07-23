@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-77-gd4ca1cd documentation</title>
+  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-78-g6dfd345 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-77-gd4ca1cd
+                0.0.0-78-g6dfd345
               </div>
             
           
@@ -205,6 +205,20 @@
 
 <div class="viewcode-block" id="HBondPairs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondPairs">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">HBondPairs</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Atom indices of all donor/acceptor pairs in system.</span>
+
+<span class="sd">    The combination of all donors against all acceptors, (these lists having</span>
+<span class="sd">    been constructed by the HBondElementAnalysis class) where the acceptors are</span>
+<span class="sd">    broken down by their functional form (sp2, sp3, and ring). For each pair,</span>
+<span class="sd">    then copy down the set of hbond parameters that describe how to evaluate</span>
+<span class="sd">    the energy for that pair.</span>
+
+<span class="sd">    (Making a copy of the parameters for each perspective donor/acceptor pair</span>
+<span class="sd">    seems like it would be pretty expensive!)</span>
+
+<span class="sd">    This work is performed on the CPU and then copied to the device.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">donor_sp2_pairs</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">pair_descr_dtype</span><span class="p">)[:]</span>
     <span class="n">donor_sp2_pair_params</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">HBondPairParams</span><span class="p">]</span>
 
@@ -280,6 +294,25 @@
         <span class="n">TorchDevice</span><span class="p">,</span>
         <span class="n">Factory</span><span class="p">,</span>
 <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute graph for the HBond term.</span>
+
+<span class="sd">    It uses the reactive system to compute the list of donors and acceptors</span>
+<span class="sd">    (via the HBondElementAnalysis class) and then the list of donor/acceptor</span>
+<span class="sd">    pairs (via the HBondPairs class) once, and then reuses these lists.</span>
+
+<span class="sd">    The h-bond functional form differs for the three classes of acceptors:</span>
+<span class="sd">    sp2-, sp3-, and ring-hybridized acceptors. For this reason, these three are</span>
+<span class="sd">    handled separately. Different donor types and different acceptor types within</span>
+<span class="sd">    a group of the same hybridization will have different parameters / polynomials,</span>
+<span class="sd">    but their functional forms will be the same, and so they can be processed</span>
+<span class="sd">    together.</span>
+
+<span class="sd">    The code (hopefully only for now?) evaluates the hydrogen bond potential</span>
+<span class="sd">    between all pairs of acceptors and donors, in contrast to the Lennard-Jones</span>
+<span class="sd">    term which looks only at nearby atom pairs. Perhaps future versions of</span>
+<span class="sd">    this code will cull distant acceptor/donor pairs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="HBondScoreGraph.factory_for"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span>
             <span class="n">val</span><span class="p">,</span>
@@ -308,7 +341,14 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">component_total_score_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Expose hbond score sum as total_score term.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Expose hbond score sum as total_score term.</span>
+
+<span class="sd">        This function will be invoked by the TotalScoreComponentsGraph</span>
+<span class="sd">        and will inform that class to request the total_hbond data/property.</span>
+<span class="sd">        The reactive system will then request the other reactive properties</span>
+<span class="sd">        such as donor_sp2_hbond, which will request other reactive properties</span>
+<span class="sd">        in turn.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">ScoreComponentAttributes</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;hbond&quot;</span><span class="p">,</span>
             <span class="n">total</span><span class="o">=</span><span class="s2">&quot;total_hbond&quot;</span><span class="p">,</span>
@@ -541,7 +581,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-77-gd4ca1cd',
+            VERSION:'0.0.0-78-g6dfd345',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
