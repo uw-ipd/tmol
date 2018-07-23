@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations.derivsum &mdash; TMol 0.0.0-76-gaf723e7 documentation</title>
+  <title>tmol.kinematics.gpu_operations.derivsum &mdash; TMol 0.0.0-77-gd4ca1cd documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-76-gaf723e7
+                0.0.0-77-gd4ca1cd
               </div>
             
           
@@ -183,6 +183,7 @@
 
 <div class="viewcode-block" id="DerivsumOrdering"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.DerivsumOrdering">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">DerivsumOrdering</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+
     <span class="c1"># [natoms]</span>
     <span class="n">ki2dsi</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[:]</span>
     <span class="n">dsi2ki</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[:]</span>
@@ -193,6 +194,9 @@
 
     <span class="c1"># [n_path_depths, 2]</span>
     <span class="n">atom_range_for_depth</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
+
+    <span class="c1"># number of threads used in segscan kernel</span>
+    <span class="n">segscan_num_threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span>
 
     <span class="c1"># Cached device arrays, derived from cpu ordering arrays.</span>
     <span class="nd">@reactive_property</span>
@@ -283,7 +287,7 @@
         <span class="k">assert</span> <span class="n">natoms</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dsi2ki</span><span class="p">)</span>
 
         <span class="n">derivsum_jit</span><span class="o">.</span><span class="n">F1F2Scan</span><span class="o">.</span><span class="n">segscan_by_generation</span><span class="p">(</span>
-            <span class="mi">256</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">segscan_num_threads</span><span class="p">,</span>
             <span class="n">as_cuda_array</span><span class="p">(</span><span class="n">f1f2s_kintree_ordering</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dsi2ki_d</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">is_leaf_d</span><span class="p">,</span>
@@ -326,7 +330,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-76-gaf723e7',
+            VERSION:'0.0.0-77-gd4ca1cd',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

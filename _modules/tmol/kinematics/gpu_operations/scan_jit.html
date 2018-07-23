@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations.scan_jit &mdash; TMol 0.0.0-76-gaf723e7 documentation</title>
+  <title>tmol.kinematics.gpu_operations.scan_jit &mdash; TMol 0.0.0-77-gd4ca1cd documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-76-gaf723e7
+                0.0.0-77-gd4ca1cd
               </div>
             
           
@@ -318,7 +318,6 @@
 
                 <span class="c1">### Iterate block across generation</span>
                 <span class="n">carry_val</span> <span class="o">=</span> <span class="n">zero</span><span class="p">()</span>
-                <span class="n">carry_is_root</span> <span class="o">=</span> <span class="kc">False</span>
 
                 <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">blocks_for_gen</span><span class="p">):</span>
                     <span class="n">ii_ind</span> <span class="o">=</span> <span class="n">ii</span> <span class="o">*</span> <span class="n">threads_per_block</span> <span class="o">+</span> <span class="n">start</span> <span class="o">+</span> <span class="n">pos</span>
@@ -330,7 +329,8 @@
 
                         <span class="c1">### Read node values from global into shared</span>
                         <span class="n">my_val</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">src_vals</span><span class="p">,</span> <span class="n">ii_src</span><span class="p">)</span>
-                        <span class="n">shared_is_root</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">is_path_root</span><span class="p">[</span><span class="n">ii_ind</span><span class="p">]</span>
+                        <span class="n">my_root</span> <span class="o">=</span> <span class="n">is_path_root</span><span class="p">[</span><span class="n">ii_ind</span><span class="p">]</span>
+                        <span class="n">shared_is_root</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">my_root</span>
 
                         <span class="c1">### Sum incoming scan value from parent into node</span>
                         <span class="c1"># parent only set if node is root of scan</span>
@@ -345,11 +345,8 @@
                                 <span class="p">)</span>
 
                         <span class="c1">### Sum carry value from previous block if node 0 is non-root.</span>
-                        <span class="n">my_root</span> <span class="o">=</span> <span class="n">shared_is_root</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
                         <span class="k">if</span> <span class="n">pos</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">my_root</span><span class="p">:</span>
                             <span class="n">my_val</span> <span class="o">=</span> <span class="n">add</span><span class="p">(</span><span class="n">carry_val</span><span class="p">,</span> <span class="n">my_val</span><span class="p">)</span>
-                            <span class="n">my_root</span> <span class="o">|=</span> <span class="n">carry_is_root</span>
-                            <span class="n">shared_is_root</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">my_root</span>
 
                         <span class="n">save</span><span class="p">(</span><span class="n">shared_vals</span><span class="p">,</span> <span class="n">pos</span><span class="p">,</span> <span class="n">my_val</span><span class="p">)</span>
 
@@ -381,7 +378,6 @@
                     <span class="c1">### save the carry</span>
                     <span class="k">if</span> <span class="n">pos</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                         <span class="n">carry_val</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">shared_vals</span><span class="p">,</span> <span class="n">threads_per_block</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-                        <span class="n">carry_is_root</span> <span class="o">=</span> <span class="n">shared_is_root</span><span class="p">[</span><span class="n">threads_per_block</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
 
                     <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
 
@@ -420,7 +416,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-76-gaf723e7',
+            VERSION:'0.0.0-77-gd4ca1cd',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

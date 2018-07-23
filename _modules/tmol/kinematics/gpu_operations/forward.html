@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations.forward &mdash; TMol 0.0.0-76-gaf723e7 documentation</title>
+  <title>tmol.kinematics.gpu_operations.forward &mdash; TMol 0.0.0-77-gd4ca1cd documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-76-gaf723e7
+                0.0.0-77-gd4ca1cd
               </div>
             
           
@@ -195,6 +195,8 @@
     <span class="c1"># [n_path_depths, 2]</span>
     <span class="n">atom_range_for_depth</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
 
+    <span class="n">segscan_num_threads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span>
+
     <span class="c1"># Cached device arrays, derived from cpu ordering arrays.</span>
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">ri2ki_d</span><span class="p">(</span><span class="n">ri2ki</span><span class="p">):</span>
@@ -298,7 +300,7 @@
             <span class="n">hts_kintree_ordering</span> <span class="o">=</span> <span class="n">hts_kintree_ordering</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
         <span class="n">forward_jit</span><span class="o">.</span><span class="n">HTScan</span><span class="o">.</span><span class="n">segscan_by_generation</span><span class="p">(</span>
-            <span class="mi">256</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">segscan_num_threads</span><span class="p">,</span>
             <span class="n">as_cuda_array</span><span class="p">(</span><span class="n">hts_kintree_ordering</span><span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ri2ki_d</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">is_subpath_root_d</span><span class="p">,</span>
@@ -341,7 +343,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-76-gaf723e7',
+            VERSION:'0.0.0-77-gd4ca1cd',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

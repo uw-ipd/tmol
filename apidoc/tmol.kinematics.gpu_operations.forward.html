@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations.forward &mdash; TMol 0.0.0-76-gaf723e7 documentation</title>
+  <title>tmol.kinematics.gpu_operations.forward &mdash; TMol 0.0.0-77-gd4ca1cd documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-76-gaf723e7
+                0.0.0-77-gd4ca1cd
               </div>
             
           
@@ -218,7 +218,7 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tmol.kinematics.gpu_operations.forward.RefoldOrdering">
-<em class="property">class </em><code class="descclassname">tmol.kinematics.gpu_operations.forward.</code><code class="descname">RefoldOrdering</code><span class="sig-paren">(</span><em>ri2ki: NDArray(dtype('int32'))[:], ki2ri: NDArray(dtype('int32'))[:], is_subpath_root: NDArray(dtype('bool'))[:], non_subpath_parent: NDArray(dtype('int32'))[:], atom_range_for_depth: NDArray(dtype('int32'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/forward.html#RefoldOrdering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.forward.RefoldOrdering" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.kinematics.gpu_operations.forward.</code><code class="descname">RefoldOrdering</code><span class="sig-paren">(</span><em>ri2ki: NDArray(dtype('int32'))[:], ki2ri: NDArray(dtype('int32'))[:], is_subpath_root: NDArray(dtype('bool'))[:], non_subpath_parent: NDArray(dtype('int32'))[:], atom_range_for_depth: NDArray(dtype('int32'))[:,2], segscan_num_threads: int = 256</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/forward.html#RefoldOrdering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.forward.RefoldOrdering" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.kinematics.gpu_operations.forward.RefoldOrdering.ri2ki">
@@ -243,6 +243,11 @@
 <dl class="attribute">
 <dt id="tmol.kinematics.gpu_operations.forward.RefoldOrdering.atom_range_for_depth">
 <code class="descname">atom_range_for_depth</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.forward.RefoldOrdering.atom_range_for_depth" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.forward.RefoldOrdering.segscan_num_threads">
+<code class="descname">segscan_num_threads</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.forward.RefoldOrdering.segscan_num_threads" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
@@ -313,7 +318,7 @@ using numba’s CUDA simulator.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-76-gaf723e7',
+            VERSION:'0.0.0-77-gd4ca1cd',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
