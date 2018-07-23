@@ -103,6 +103,9 @@ default_role = "any"
 aafig_format = dict(latex='pdf', html='svg', text=None)
 aafig_default_options = dict(textual=True)
 
+# graphviz configuration
+graphviz_dot_args = ["-Gdpi=300"]
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
