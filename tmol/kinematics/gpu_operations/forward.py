@@ -28,6 +28,8 @@ class RefoldOrdering(ValidateAttrs):
     # [n_path_depths, 2]
     atom_range_for_depth: NDArray("i4")[:, 2]
 
+    segscan_num_threads: int = 256
+
     # Cached device arrays, derived from cpu ordering arrays.
     @reactive_property
     def ri2ki_d(ri2ki):
@@ -131,7 +133,7 @@ class RefoldOrdering(ValidateAttrs):
             hts_kintree_ordering = hts_kintree_ordering.clone()
 
         forward_jit.HTScan.segscan_by_generation(
-            256,
+            self.segscan_num_threads,
             as_cuda_array(hts_kintree_ordering),
             self.ri2ki_d,
             self.is_subpath_root_d,

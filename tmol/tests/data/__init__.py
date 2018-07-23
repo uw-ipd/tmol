@@ -25,6 +25,26 @@ def min_system():
 
 
 @pytest.fixture(scope="session")
+def big_pdb():
+    return pdb.data["bysize_600_res_5m4a"]
+
+
+@pytest.fixture(scope="session")
+def big_res():
+    from tmol.system.io import ResidueReader
+    return ResidueReader.get_default().parse_pdb(
+        pdb.data["bysize_600_res_5m4a"]
+    )
+
+
+@pytest.fixture(scope="session")
+def big_system():
+    from tmol.system.io import read_pdb
+
+    return read_pdb(pdb.data["bysize_600_res_5m4a"])
+
+
+@pytest.fixture(scope="session")
 def ubq_pdb():
     return pdb.data["1ubq"]
 

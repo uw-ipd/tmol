@@ -4,8 +4,6 @@ import numpy
 import torch
 import numba
 
-import importlib
-
 from tmol.kinematics.operations import (
     DOFTransforms,
     backwardKin,
@@ -21,35 +19,13 @@ from tmol.kinematics.gpu_operations import (
 from tmol.kinematics.builder import KinematicBuilder
 
 import tmol.kinematics.cpu_operations as cpu_operations
-import tmol.kinematics.gpu_operations as gpu_operations
+
+from tmol.tests.torch import requires_cuda
+
+CONSISTENCY_CHECK_NITER = 10
 
 
-@pytest.fixture
-def target_device(numba_cuda_or_cudasim):
-    # Reload jit modules to ensure that current cuda execution environment, set
-    # by fixture, is active for jit functions.
-    importlib.reload(cpu_operations.jit)
-    importlib.reload(gpu_operations.derivsum_jit)
-    importlib.reload(gpu_operations.forward_jit)
-    importlib.reload(gpu_operations.scan_paths_jit)
-
-    if numba_cuda_or_cudasim.cudadrv == numba.cuda.simulator.cudadrv:
-        return "cpu"
-    else:
-        return "cuda"
-
-
-@pytest.fixture
-def target_system(target_device, min_system, ubq_system):
-    """min system in cudasim tests to reduce test runtime"""
-    return {
-        "cpu": min_system,
-        "cuda": ubq_system,
-    }[target_device]
-
-
-@pytest.fixture
-def target_kintree(target_system):
+def system_kintree(target_system):
     return KinematicBuilder().append_connected_component(
         *KinematicBuilder.bonds_to_connected_component(0, target_system.bonds)
     ).kintree
@@ -57,7 +33,7 @@ def target_kintree(target_system):
 
 @pytest.mark.benchmark(group="score_setup")
 def test_gpu_refold_data_construction(benchmark, ubq_system):
-    kintree = target_kintree(ubq_system)
+    kintree = system_kintree(ubq_system)
 
     @benchmark
     def tree_reordering() -> GPUKinTreeReordering:
@@ -116,11 +92,22 @@ def test_gpu_refold_data_construction(benchmark, ubq_system):
             assert child == -1 or ii_ki == sp.parent[do.dsi2ki[child]]
 
 
-@pytest.mark.benchmark(group="kinematic_op_micro")
-def test_parallel_and_iterative_refold(
-        benchmark, target_system, target_kintree, target_device
-):
-    coords = torch.tensor(target_system.coords[target_kintree.id]
+@requires_cuda
+@pytest.mark.benchmark(group="kinematic_op_micro_refold")
+@pytest.mark.parametrize(
+    "segscan_num_threads",
+    [
+        128,
+        256,
+        # block size of 512  exceeds shared memory limit
+        pytest.param(512, marks=pytest.mark.xfail),
+    ]
+)
+def test_refold_values(benchmark, big_system, segscan_num_threads):
+    target_device = torch.device("cuda")
+    target_kintree = system_kintree(big_system)
+
+    coords = torch.tensor(big_system.coords[target_kintree.id]
                           ).to(device=target_device)
     kintree = target_kintree.to(device=target_device)
 
@@ -128,25 +115,40 @@ def test_parallel_and_iterative_refold(
 
     local_hts = DOFTransforms(kintree.doftype, bkin.dofs)
 
-    ### refold from local hts should equal global hts from backward kinematics
-    ### inplace operations should produce same result as non-inplace
-    # iterative case
-
+    ### Iterative Case
+    # values should match generated hts
+    # inplace operations should produce same result as non-inplace
     iterative_refold_hts = iterative_refold(
         local_hts.cpu(), kintree.parent.cpu(), inplace=False
     )
-    numpy.testing.assert_array_almost_equal(bkin.hts, iterative_refold_hts)
 
     iterative_refold_hts_inplace = local_hts.clone().cpu()
     iterative_refold(
         iterative_refold_hts_inplace, kintree.parent.cpu(), inplace=True
     )
-    numpy.testing.assert_array_almost_equal(
-        iterative_refold_hts, iterative_refold_hts_inplace
+
+    numpy.testing.assert_allclose(bkin.hts, iterative_refold_hts, atol=1e-6)
+    numpy.testing.assert_allclose(
+        iterative_refold_hts, iterative_refold_hts_inplace, atol=1e-6
     )
 
-    # parallel case
+    ### Parallel Case
+    # values should match generated hts
+    # inplace operations should produce same result as non-inplace
     refold_ordering = GPUKinTreeReordering.for_kintree(kintree).refold_ordering
+
+    # perform single run here *before* adjusting the thread block size
+    parallel_refold_hts_inplace = local_hts.clone()
+    (
+        GPUKinTreeReordering.for_kintree(kintree).refold_ordering.segscan_hts(
+            parallel_refold_hts_inplace, inplace=True
+        )
+    )
+
+    # override the segscan_num_threads on otherwise frozen object
+    object.__setattr__(
+        refold_ordering, "segscan_num_threads", segscan_num_threads
+    )
 
     @benchmark
     def parallel_refold_hts():
@@ -154,24 +156,33 @@ def test_parallel_and_iterative_refold(
         numba.cuda.synchronize()
         return result
 
-    numpy.testing.assert_array_almost_equal(bkin.hts, parallel_refold_hts)
-
-    parallel_refold_hts_inplace = local_hts.clone()
-    (
-        GPUKinTreeReordering.for_kintree(kintree).refold_ordering.segscan_hts(
-            parallel_refold_hts_inplace, inplace=True
-        )
-    )
-    numpy.testing.assert_array_almost_equal(
-        parallel_refold_hts, parallel_refold_hts_inplace
+    numpy.testing.assert_allclose(bkin.hts, parallel_refold_hts, atol=1e-6)
+    numpy.testing.assert_allclose(
+        parallel_refold_hts, parallel_refold_hts_inplace, atol=1e-6
     )
 
+    # results must be consistent over repeated invocations, tests issue 90
+    niter = CONSISTENCY_CHECK_NITER
+    repeated_parallel_results = torch.cat([
+        refold_ordering.segscan_hts(local_hts, inplace=False)[None, ...]
+        for _ in range(niter)
+    ])
 
-@pytest.mark.benchmark(group="kinematic_op_micro")
-def test_parallel_and_iterative_derivsum(
-        benchmark, target_system, target_kintree, target_device
-):
-    coords = torch.tensor(target_system.coords[target_kintree.id]
+    numpy.testing.assert_allclose(
+        repeated_parallel_results,
+        torch.cat([bkin.hts[None, ...] for _ in range(niter)]),
+        atol=1e-6
+    )
+
+
+@requires_cuda
+@pytest.mark.benchmark(group="kinematic_op_micro_derivsum")
+@pytest.mark.parametrize("segscan_num_threads", [128, 256, 512])
+def test_derivsum_values(benchmark, big_system, segscan_num_threads):
+    target_device = torch.device("cuda")
+    target_kintree = system_kintree(big_system)
+
+    coords = torch.tensor(big_system.coords[target_kintree.id]
                           ).to(device=target_device)
     kintree = target_kintree.to(device=target_device)
 
@@ -183,36 +194,30 @@ def test_parallel_and_iterative_derivsum(
 
     f1f2s = torch.cat((f1s, f2s), 1)
 
-    ### deriv summation sould be equivalent in both interative and parallel mode
+    ### iterative case
+    # inplace should match non-inplace operations
 
     iterative_f1f2_sums = cpu_operations.iterative_f1f2_summation(
         f1f2s.cpu(), kintree.parent, inplace=False
     )
+
+    iterative_f1f2_sums_inplace = f1f2s.clone().cpu()
+    cpu_operations.iterative_f1f2_summation(
+        iterative_f1f2_sums_inplace, kintree.parent, inplace=True
+    )
+
+    numpy.testing.assert_array_almost_equal(
+        iterative_f1f2_sums, iterative_f1f2_sums_inplace
+    )
+
+    ### Parallel case
 
     # Load and cache ordering for benchmark
     derivsum_ordering = GPUKinTreeReordering.for_kintree(
         kintree
     ).derivsum_ordering
 
-    @benchmark
-    def parallel_f1f2_sums():
-        result = derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)
-        numba.cuda.synchronize()
-        return result
-
-    numpy.testing.assert_array_almost_equal(
-        iterative_f1f2_sums, parallel_f1f2_sums
-    )
-
-    ### inplace operations should produce same result as non-inplace
-    iterative_f1f2_sums_inplace = f1f2s.clone().cpu()
-    cpu_operations.iterative_f1f2_summation(
-        iterative_f1f2_sums_inplace, kintree.parent, inplace=True
-    )
-    numpy.testing.assert_array_almost_equal(
-        iterative_f1f2_sums, iterative_f1f2_sums_inplace
-    )
-
+    # perform single run here *before* adjusting the thread block size
     parallel_f1f2_sums_inplace = f1f2s.clone()
     (
         GPUKinTreeReordering.for_kintree(kintree)
@@ -220,7 +225,40 @@ def test_parallel_and_iterative_derivsum(
             parallel_f1f2_sums_inplace, inplace=True
         )
     )
-    numpy.testing.assert_array_almost_equal(
+
+    # override the segscan_num_threads on otherwise frozen object
+    object.__setattr__(
+        derivsum_ordering, "segscan_num_threads", segscan_num_threads
+    )
+
+    @benchmark
+    def parallel_f1f2_sums():
+        result = derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)
+        numba.cuda.synchronize()
+        return result
+
+    # deriv summation sould be equivalent in both interative and parallel mode
+    # (can't compare to "standard" value as in refold case
+
+    numpy.testing.assert_allclose(iterative_f1f2_sums, parallel_f1f2_sums)
+
+    # inplace should match non-inplace operations
+    numpy.testing.assert_allclose(
         parallel_f1f2_sums,
         parallel_f1f2_sums_inplace,
+    )
+
+    # results must be consistent over repeated invocations, tests issue 90
+    niter = CONSISTENCY_CHECK_NITER
+    repeated_parallel_results = torch.cat([
+        derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)[None, ...]
+        for _ in range(niter)
+    ])
+    repeated_iterative_results = torch.cat([
+        iterative_f1f2_sums[None, ...] for _ in range(niter)
+    ])
+
+    numpy.testing.assert_allclose(
+        repeated_parallel_results,
+        repeated_iterative_results,
     )
