@@ -38,6 +38,20 @@ pair_descr_dtype = numpy.dtype(donor_dtype.descr + acceptor_dtype.descr)
 
 @attr.s(frozen=True, auto_attribs=True, slots=True)
 class HBondPairs(ValidateAttrs):
+    """Atom indices of all donor/acceptor pairs in system.
+
+    The combination of all donors against all acceptors, (these lists having
+    been constructed by the HBondElementAnalysis class) where the acceptors are
+    broken down by their functional form (sp2, sp3, and ring). For each pair,
+    then copy down the set of hbond parameters that describe how to evaluate
+    the energy for that pair.
+
+    (Making a copy of the parameters for each perspective donor/acceptor pair
+    seems like it would be pretty expensive!)
+
+    This work is performed on the CPU and then copied to the device.
+    """
+
     donor_sp2_pairs: NDArray(pair_descr_dtype)[:]
     donor_sp2_pair_params: Optional[HBondPairParams]
 
@@ -113,6 +127,25 @@ class HBondScoreGraph(
         TorchDevice,
         Factory,
 ):
+    """Compute graph for the HBond term.
+
+    It uses the reactive system to compute the list of donors and acceptors
+    (via the HBondElementAnalysis class) and then the list of donor/acceptor
+    pairs (via the HBondPairs class) once, and then reuses these lists.
+
+    The h-bond functional form differs for the three classes of acceptors:
+    sp2-, sp3-, and ring-hybridized acceptors. For this reason, these three are
+    handled separately. Different donor types and different acceptor types within
+    a group of the same hybridization will have different parameters / polynomials,
+    but their functional forms will be the same, and so they can be processed
+    together.
+
+    The code (hopefully only for now?) evaluates the hydrogen bond potential
+    between all pairs of acceptors and donors, in contrast to the Lennard-Jones
+    term which looks only at nearby atom pairs. Perhaps future versions of
+    this code will cull distant acceptor/donor pairs.
+    """
+
     @staticmethod
     def factory_for(
             val,
@@ -141,7 +174,14 @@ class HBondScoreGraph(
 
     @property
     def component_total_score_terms(self):
-        """Expose hbond score sum as total_score term."""
+        """Expose hbond score sum as total_score term.
+
+        This function will be invoked by the TotalScoreComponentsGraph
+        and will inform that class to request the total_hbond data/property.
+        The reactive system will then request the other reactive properties
+        such as donor_sp2_hbond, which will request other reactive properties
+        in turn.
+        """
         return ScoreComponentAttributes(
             name="hbond",
             total="total_hbond",
