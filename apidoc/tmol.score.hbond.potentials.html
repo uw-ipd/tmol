@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.potentials &mdash; TMol 0.0.0-77-gd4ca1cd documentation</title>
+  <title>tmol.score.hbond.potentials &mdash; TMol 0.0.0-78-g6dfd345 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-77-gd4ca1cd
+                0.0.0-78-g6dfd345
               </div>
             
           
@@ -207,19 +207,19 @@
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.potentials.hbond_donor_ring_score" title="tmol.score.hbond.potentials.hbond_donor_ring_score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hbond_donor_ring_score</span></code></a></td>
-<td></td>
+<td>Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and acceptor-base-base (b0) coordinates, all of the same length, and where the acceptor is ring hybridized, and the corresponding set of parameters, and for each entry i in these tensors, evaluates the full potential.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.potentials.hbond_donor_sp2_score" title="tmol.score.hbond.potentials.hbond_donor_sp2_score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hbond_donor_sp2_score</span></code></a></td>
-<td></td>
+<td>Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and acceptor-base-base (b0) coordinates, all of the same length, and where the acceptor is sp2 hybridized, and the corresponding set of parameters, and for each entry i in these tensors, evaluates the full potential.</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.potentials.hbond_donor_sp3_score" title="tmol.score.hbond.potentials.hbond_donor_sp3_score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">hbond_donor_sp3_score</span></code></a></td>
-<td></td>
+<td>Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and acceptor-base-base (b0) coordinates, all of the same length, and where the acceptor is sp3 hybridized, and the corresponding set of parameters, and for each entry i in these tensors, evaluates the full potential.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.potentials.polyval" title="tmol.score.hbond.potentials.polyval"><code class="xref py py-obj docutils literal notranslate"><span class="pre">polyval</span></code></a></td>
 <td>evaluate polynomial function (Horner’s rule)</td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.potentials.sp2chi_energy" title="tmol.score.hbond.potentials.sp2chi_energy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sp2chi_energy</span></code></a></td>
-<td></td>
+<td>Evaluate the functional form for sp2 acceptors that looks at the angle “BAH” between the acceptor-base (B), the acceptor (A), and the hydrogen (A), as well as the dihedral (chi) defined by the acceptor-base-base (B0), B, A, and H.</td>
 </tr>
 </tbody>
 </table>
@@ -236,22 +236,49 @@
 <dl class="function">
 <dt id="tmol.score.hbond.potentials.sp2chi_energy">
 <code class="descclassname">tmol.score.hbond.potentials.</code><code class="descname">sp2chi_energy</code><span class="sig-paren">(</span><em>d: float, m: float, l: float, BAH: Tensor(torch.float32)[...], chi: Tensor(torch.float32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/potentials.html#sp2chi_energy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.potentials.sp2chi_energy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Evaluate the functional form for sp2 acceptors that looks at the
+angle “BAH” between the acceptor-base (B), the acceptor (A), and the
+hydrogen (A), as well as the dihedral (chi) defined by the
+acceptor-base-base (B0), B, A, and H.</p>
+<p>This functional form was developed to prefer hydrogens lying in the
+sp2 plane, and at a BAH angle of 120 degrees – it also avoids numerical
+stability issues for the chi dihedral when the BAH angle is near 180
+degrees.</p>
+<p>See O’Meara et al., JCTC 2015 for greater detail.</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="tmol.score.hbond.potentials.hbond_donor_sp2_score">
 <code class="descclassname">tmol.score.hbond.potentials.</code><code class="descname">hbond_donor_sp2_score</code><span class="sig-paren">(</span><em>d: Tensor(torch.float32)[...,3], h: Tensor(torch.float32)[...,3], a: Tensor(torch.float32)[...,3], b: Tensor(torch.float32)[...,3], b0: Tensor(torch.float32)[...,3], glob_accwt: Tensor(torch.float32)[...], glob_donwt: Tensor(torch.float32)[...], AHdist_coeffs: Tensor(torch.float64)[...], AHdist_ranges: Tensor(torch.float64)[...], AHdist_bounds: Tensor(torch.float64)[...], cosBAH_coeffs: Tensor(torch.float64)[...], cosBAH_ranges: Tensor(torch.float64)[...], cosBAH_bounds: Tensor(torch.float64)[...], cosAHD_coeffs: Tensor(torch.float64)[...], cosAHD_ranges: Tensor(torch.float64)[...], cosAHD_bounds: Tensor(torch.float64)[...], hb_sp2_range_span: float, hb_sp2_BAH180_rise: float, hb_sp2_outer_width: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/potentials.html#hbond_donor_sp2_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.potentials.hbond_donor_sp2_score" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and
+acceptor-base-base (b0) coordinates, all of the same length, and where the
+acceptor is sp2 hybridized, and the corresponding set of parameters, and for each
+entry i in these tensors, evaluates the full potential.</p>
+<p>Note that this function does not first eliminate hydrogen/acceptor pairs
+based on their distance, but rather, computes the full potential for all pairs.</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="tmol.score.hbond.potentials.hbond_donor_sp3_score">
 <code class="descclassname">tmol.score.hbond.potentials.</code><code class="descname">hbond_donor_sp3_score</code><span class="sig-paren">(</span><em>d: Tensor(torch.float32)[...,3], h: Tensor(torch.float32)[...,3], a: Tensor(torch.float32)[...,3], b: Tensor(torch.float32)[...,3], b0: Tensor(torch.float32)[...,3], glob_accwt: Tensor(torch.float32)[...], glob_donwt: Tensor(torch.float32)[...], AHdist_coeffs: Tensor(torch.float64)[...], AHdist_ranges: Tensor(torch.float64)[...], AHdist_bounds: Tensor(torch.float64)[...], cosBAH_coeffs: Tensor(torch.float64)[...], cosBAH_ranges: Tensor(torch.float64)[...], cosBAH_bounds: Tensor(torch.float64)[...], cosAHD_coeffs: Tensor(torch.float64)[...], cosAHD_ranges: Tensor(torch.float64)[...], cosAHD_bounds: Tensor(torch.float64)[...], hb_sp3_softmax_fade: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/potentials.html#hbond_donor_sp3_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.potentials.hbond_donor_sp3_score" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and
+acceptor-base-base (b0) coordinates, all of the same length, and where the
+acceptor is sp3 hybridized, and the corresponding set of parameters, and for each
+entry i in these tensors, evaluates the full potential.</p>
+<p>Note that this function does not first eliminate hydrogen/acceptor pairs
+based on their distance, but rather, computes the full potential for all pairs.</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="tmol.score.hbond.potentials.hbond_donor_ring_score">
 <code class="descclassname">tmol.score.hbond.potentials.</code><code class="descname">hbond_donor_ring_score</code><span class="sig-paren">(</span><em>d: Tensor(torch.float32)[...,3], h: Tensor(torch.float32)[...,3], a: Tensor(torch.float32)[...,3], b: Tensor(torch.float32)[...,3], b0: Tensor(torch.float32)[...,3], glob_accwt: Tensor(torch.float32)[...], glob_donwt: Tensor(torch.float32)[...], AHdist_coeffs: Tensor(torch.float64)[...], AHdist_ranges: Tensor(torch.float64)[...], AHdist_bounds: Tensor(torch.float64)[...], cosBAH_coeffs: Tensor(torch.float64)[...], cosBAH_ranges: Tensor(torch.float64)[...], cosBAH_bounds: Tensor(torch.float64)[...], cosAHD_coeffs: Tensor(torch.float64)[...], cosAHD_ranges: Tensor(torch.float64)[...], cosAHD_bounds: Tensor(torch.float64)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/potentials.html#hbond_donor_ring_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.potentials.hbond_donor_ring_score" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Accepts a set of donor (d), hydrogen (h), acceptor (a), acceptor-base (b), and
+acceptor-base-base (b0) coordinates, all of the same length, and where the
+acceptor is ring hybridized, and the corresponding set of parameters, and for each
+entry i in these tensors, evaluates the full potential.</p>
+<p>Note that this function does not first eliminate hydrogen/acceptor pairs
+based on their distance, but rather, computes the full potential for all pairs.</p>
+</dd></dl>
 
 </div>
 </div>
@@ -298,7 +325,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-77-gd4ca1cd',
+            VERSION:'0.0.0-78-g6dfd345',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

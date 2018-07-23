@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-77-gd4ca1cd documentation</title>
+  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-78-g6dfd345 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-77-gd4ca1cd
+                0.0.0-78-g6dfd345
               </div>
             
           
@@ -207,7 +207,7 @@
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.identification.HBondElementAnalysis" title="tmol.score.hbond.identification.HBondElementAnalysis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondElementAnalysis</span></code></a></td>
-<td></td>
+<td>Atom indicies for hbond donors and acceptors within system.</td>
 </tr>
 </tbody>
 </table>
@@ -247,6 +247,21 @@
 <dt id="tmol.score.hbond.identification.HBondElementAnalysis">
 <em class="property">class </em><code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">HBondElementAnalysis</code><span class="sig-paren">(</span><em>donors: NDArray(dtype([('d', '&lt;i8'), ('h', '&lt;i8'), ('donor_type', 'O')]))[:], sp2_acceptors: NDArray(dtype([('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:], sp3_acceptors: NDArray(dtype([('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:], ring_acceptors: NDArray(dtype([('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#HBondElementAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.HBondElementAnalysis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
+<p>Atom indicies for hbond donors and acceptors within system.</p>
+<p>Atom indicies for hbond elements, form of atom sets defining:</p>
+<p>Donors:
+1) hbond donors
+2) sp2-hybridized hbond acceptors
+3) sp3-hybridized hbond acceptors
+4) ring-hybridized hbond acceptors</p>
+<p>Elements are identified by matching bonding pattern and atom type against
+the set of defined donor/acceptor element types in the source hbond score
+database.</p>
+<p>Bond graph matching uses sql-like joins provided by the pandas package in
+order to do graph matching: e.g.,</p>
+<p>“I have atoms a, b, and c that are bonded in a pattern
+of a-b and b-c and I know their chemical types as ta, tb, and tc; do these three
+atoms match any of the known sets of sp2 hybridized acceptors?”</p>
 <dl class="attribute">
 <dt id="tmol.score.hbond.identification.HBondElementAnalysis.donors">
 <code class="descname">donors</code><a class="headerlink" href="#tmol.score.hbond.identification.HBondElementAnalysis.donors" title="Permalink to this definition">¶</a></dt>
@@ -270,7 +285,21 @@
 <dl class="classmethod">
 <dt id="tmol.score.hbond.identification.HBondElementAnalysis.setup">
 <em class="property">classmethod </em><code class="descname">setup</code><span class="sig-paren">(</span><em>hbond_database: tmol.database.scoring.hbond.HBondDatabase, atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#HBondElementAnalysis.setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.HBondElementAnalysis.setup" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Perform element analysis over the given bonded atom types.</p>
+<p><code class="docutils literal notranslate"><span class="pre">atom_types</span></code> includes string atom types for atoms in the system
+<code class="docutils literal notranslate"><span class="pre">bonds</span></code> includes atom type indices (in atom_types) for bonds in the system</p>
+<p>Bond graph matching proceeds in two phases:</p>
+<p>1) The bond graph is processed to a generate frames of bonded atom
+pairs/triples, without pruning by atom type, generating a table of
+<em>every</em> pair/triple in the structure.</p>
+<p>2) The source HBondDatabase is unstructured and converted into frames
+of bonded-atom-type pairs/triples, tagged with the element type of the
+atom type pair/triple, generating a table of every known hbond element
+type and it’s corresponding atom types.</p>
+<p>3) The bonded-atom pairs/triples are inner joined against the element
+pairs/triples by atom type, generating a table of pairs/triples for
+which an hbond element type is defined.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -319,7 +348,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-77-gd4ca1cd',
+            VERSION:'0.0.0-78-g6dfd345',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
