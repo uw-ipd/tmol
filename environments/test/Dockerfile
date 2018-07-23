@@ -43,6 +43,11 @@ RUN conda install -n base --file /environments/test.dependencies.txt && conda cl
 
 COPY environments/docs.dependencies.txt /environments/
 RUN conda install -n base --file /environments/docs.dependencies.txt && conda clean -tipsy
+### Need to install libxrender1 to support graphviz png output
+RUN apt-get update --fix-missing && \
+    apt-get install -y libxrender1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY environments /environments
 RUN /environments/render linux.cuda test > /environment.yml && \
