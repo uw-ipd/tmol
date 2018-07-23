@@ -3,79 +3,381 @@
 Overview
 --------
 
-``reactive`` provides a framework to compose and effeciently evaluate pure
-functions. Functions are bound together in a single container class, with
-function outputs mapped to dependent inputs by name.
+`reactive` is a framework to describe the composition and execution of
+functions as properties and attributes of a class. By storing function results
+as object properties, rather than named variables, `reactive` allows you to
+organize ::doc:`pure functions <toolz:purity>` in a declarative syntax, then
+automatically handles dependency resolution, on-demand execution and result
+caching.
 
-For example, the trivial computation::
+As a motivating example, `reactive` lets you write::
 
-    def total(x: float, y: float, z: float):
-        return x + y + z
+    @reactive_attrs(auto_attribs=True)
+    def FactionalAnalysis:
+        source: str
 
-    def y(x:float):
-        x * x
+        montegue_faction: Sequence[str] = ["Romeo", "Benvolio", "Montegue", "Lady Montegue"]
+        capulet_faction: Sequence[str] = ["Juliet", "Tybalt", "Capulet", "Lady Capulet"]
 
-    def z(x:float, y:float):
-        x * y
+        @reactive_property
+        def lines(source);
+            '''Convert text of play to spoken lines.'''
+            ...
 
-    def compute(x)
-        y_result = y(x)
-        z_result = z(x, y_result)
-        return total(x, y_result, z_result)
+        @reactive_property
+        def soliloquies(lines):
+            '''Group spoken lines and identify soliloquies.'''
+            ...
 
-    result = compute(val)
+        @reactive_property
+        def montegue_verbosity(montegue_faction, soliloquies):
+            '''Calcuate average verbosity of the Montegue faction.'''
+            ...
 
-Can be described as the reactive class::
+        @reactive_property
+        def capulet_verbosity(capulet_faction, soliloquies):
+            '''Calcuate average verbosity of the Capulet faction.'''
+            ...
+
+then *does the right thing* when you ask for::
+
+    analysis = FactionalAnalysis(source=act_1)
+    analysis.montegue_verbosity / analysis.capulet_verbosity
+
+Argument Resolution
+~~~~~~~~~~~~~~~~~~~
+
+`reactive` organizes a computation by binding input data and function results
+as `attributes <attrs:overview>` of a "reactive object". Function *inputs* are
+resolved on-demand by keyword argument name via `getattr` from reactive object
+properties.  By eschewing `self`, `reactive` allows direct declaration of
+inter-function dependencies.
+
+For example, ``FactionalAnalysis`` results in the dependency graph:
+
+.. graphviz::
+    :align: center
+
+    digraph {
+        source [shape=box ]
+        capulet_faction [shape=box ]
+        montegue_faction [shape=box ]
+
+        source -> lines
+        lines -> soliloquies
+
+        capulet_faction -> capulet_verbosity
+        soliloquies -> capulet_verbosity
+
+        montegue_faction -> montegue_verbosity
+        soliloquies -> montegue_verbosity
+    }
+
+|
+
+Result Caching
+~~~~~~~~~~~~~~
+
+Given the assumption of ::doc:`functional purity <toolz:purity>`, `reactive`
+caches the result of `reactive_property` evaluations from the on-demand
+resolution of property arguments. This provides in a lazy pull-based execution
+model, in which requesting a `reactive_property` value results in the
+evaluation, and caching, of its antecedent dependencies.
+
+In ``FactionalAnalysis``, ``analysis.capulet_verbosity`` results in in the
+evaluations:
+
+.. graphviz::
+    :align: center
+
+    digraph {
+        source [shape=box ]
+        capulet_faction [shape=box ]
+        montegue_faction [shape=box ]
+
+        lines [style=filled]
+        soliloquies [style=filled]
+        capulet_verbosity [style=filled]
+
+        source -> lines [penwidth=5.0]
+        lines -> soliloquies [penwidth=5.0]
+
+        capulet_faction -> capulet_verbosity [penwidth=5.0]
+        soliloquies -> capulet_verbosity [penwidth=5.0]
+
+        montegue_faction -> montegue_verbosity
+        soliloquies -> montegue_verbosity
+    }
+
+|
+
+The subsequent ``analysis.montegue_verbosity`` reuses the cached
+``soliloquies``, resulting in the evaluations:
+
+.. graphviz::
+    :align: center
+
+    digraph {
+        source [shape=box ]
+        capulet_faction [shape=box ]
+        montegue_faction [shape=box ]
+
+        lines [style=filled]
+        soliloquies [style=filled]
+        capulet_verbosity [style=filled]
+        montegue_verbosity [style=filled]
+
+        source -> lines
+        lines -> soliloquies
+
+        capulet_faction -> capulet_verbosity
+        soliloquies -> capulet_verbosity
+
+        montegue_faction -> montegue_verbosity [penwidth=5.0]
+        soliloquies -> montegue_verbosity [penwidth=5.0]
+    }
+
+|
+
+Further access to any property returns the cached value.
+
+Reactive Invalidation
+~~~~~~~~~~~~~~~~~~~~~
+
+`reactive` uses the declared dependency graph to invalidate dependent values if
+an attribute value is changed, and forward-propogates the invalidation of
+reactive properties to all dependents. This provides a lazy, push-based update
+model, in which updating an attribute value results in the selective
+invalidation of its full direct and indirect dependencies.
+
+.. note:: `reactive` only tracks modification of attribute values by `setattr`,
+    and does *not* track internal modification of attribute values. Updates to
+    attributes must be propogated by property reassignment. Eg::
+
+        # Possible, modify and assign
+        analysis.capulet_faction.extend(["Sampson", "Gregory"])
+        analysis.capulet_faction = analysis.capulet_faction
+
+        # Preferred, assign updated value
+        analysis.capulet_faction = analysis.capulet_faction + ["Sampson", "Gregory"]
+
+In ``FactionalAnalysis`` an update of ``capulet_faction`` results in invalidations:
+
+.. graphviz::
+    :align: center
+
+    digraph {
+        source [shape=box ]
+        capulet_faction [shape=tripleoctagon ]
+        montegue_faction [shape=box ]
+
+        lines [style=filled]
+        soliloquies [style=filled]
+        capulet_verbosity [style=dashed]
+        montegue_verbosity [style=filled]
+
+        source -> lines
+        lines -> soliloquies
+
+        capulet_faction -> capulet_verbosity [penwidth=5.0]
+        soliloquies -> capulet_verbosity
+
+        montegue_faction -> montegue_verbosity
+        soliloquies -> montegue_verbosity
+    }
+
+|
+
+A subsequent update of ``source`` results in the forward-invalidations:
+
+.. graphviz::
+    :align: center
+
+    digraph {
+        source [shape=tripleoctagon ]
+        capulet_faction [shape=box ]
+        montegue_faction [shape=box ]
+
+        lines [style=dashed]
+        soliloquies [style=dashed]
+        capulet_verbosity
+        montegue_verbosity [style=dashed]
+
+        source -> lines [penwidth=5.0]
+        lines -> soliloquies [penwidth=5.0]
+
+        capulet_faction -> capulet_verbosity
+        soliloquies -> capulet_verbosity [penwidth=5.0]
+
+        montegue_faction -> montegue_verbosity
+        soliloquies -> montegue_verbosity [penwidth=5.0]
+    }
+
+|
+
+
+Class Composition
+~~~~~~~~~~~~~~~~~
+
+`reactive` classes can be combined via standard inheritance, with cross class
+dependencies are resolved via by the standard :term:`method resolution order
+<python:method resolution order>`. This enables a robust mixin-based
+composition model in which function inputs are passed, by name, between loosely
+coupled components.
+
+For example, consider an extension of ``FactionalAnalysis`` to incorporate an
+additional form of sentiment analysis::
+
+    @reactive_attrs(auto_attribs=True)
+    class Source:
+        source: str
+
+        montegue_faction: Sequence[str] = ["Romeo", "Benvolio", "Montegue", "Lady Montegue"]
+        capulet_faction: Sequence[str] = ["Juliet", "Tybalt", "Capulet", "Lady Capulet"]
+
+        @reactive_property
+        def lines(source);
+            '''Convert text of play to spoken lines.'''
+            ...
 
     @reactive_attrs
-    class Compute:
-        x: float
+    class Verbosity:
+        @reactive_property
+        def soliloquies(lines):
+            '''Group spoken lines and identify soliloquies.'''
+            ...
 
         @reactive_property
-        def y(x: float):
-            return x * x
+        def montegue_verbosity(montegue_faction, soliloquies):
+            '''Calcuate average verbosity of the Montegue faction.'''
+            ...
 
         @reactive_property
-        def z(x: float, y: float):
-            return x * y
+        def capulet_verbosity(capulet_faction, soliloquies):
+            '''Calcuate average verbosity of the Capulet faction.'''
+            ...
+
+    @reactive_attrs
+    class Sentiment:
+        @reactive_property
+        def modern_lines(lines):
+            '''Convert from shakespearean to modern english.'''
+            ...
 
         @reactive_property
-        def total(x: float, y: float, z: float):
-            return x + y + z
+        def line_sentiment(modern_lines):
+            '''Black-box sentiment analysis.'''
+            ...
 
-    result = Compute(x=val).total
+        @reactive_property
+        def montegue_sentiment(montegue_faction, line_sentiment):
+            '''Calcuate average sentiment of the Montegue faction.'''
+            ...
 
-A containing class stores state divided into two types: "standard" attributes,
-which represent source data, and "reactive" properties, which are derived from
-other attributes and other properties.
+        @reactive_property
+        def capulet_sentiment(capulet_faction, line_sentiment):
+            '''Calcuate average sentiment of the Capulet faction.'''
+            ...
 
-Reactive props are calculated dynamically via a "pull" model, accessing a
-property invokes its definition function to calculate the property value. The
-value is cached within the containing object and is returned, if available, on
-the next property access.
+    @reactive_attrs
+    class GrudgeAnalysis(Sourde, Verbosity, Sentiment):
+        @reactive_property
+        def grudge(
+            montegue_sentiment,
+            montegue_verbosity,
+            capulet_sentiment,
+            capulet_verbosity,
+        ):
+            '''From ancient grudge break to new mutiny?'''
+            pass
 
-The definition function may depend on a set a attrs/props in the object, bound
-as the input parameters of the value function. This values are bound from the
-object *before* value function execution. As depdencies *may* be themselves
-reactive, resulting in a backward traversal through reactive properties to
-calculate the required value. DAG-ness is not mandated, but infinite recursion
-will occur in the case of mutually interdependent property values. Caveat usor.
+Resulting in the combined reactive dependencies:
 
-Reative props are invalidated via a "push" model. Deleting or changing a
-property value will invalidate the store value for all declared dependent
-properties. These dependents may themselves have dependents, resulting in a
-forward traversal through reactive properties to invalidate all derived
-property values. This allows recalcuation when the property is next requested.
+.. graphviz::
+    :align: center
 
-Property invalidation may be controlled via an optional "should_invalidate"
-function, which consumes (a) the current reactive property value, (b) the name
-of the changed input value and (c) the updated input parameter value. This
-function returns True if the reactive property should be invalidated in
-response to the change and False if the reactive value should be preserved.
+    digraph {
+        subgraph cluster_Source {
+            label = "Source"
 
-Subclassing semantics akin to "attr" can be used. A superclass *may* specifiy
-property dependencies that are provided by a subclass. The standard MRO is used
-to resolve the value function for any duplicate properties.
+            source [shape=box ]
+            capulet_faction [shape=box ]
+            montegue_faction [shape=box ]
+
+            lines
+            source -> lines
+        }
+
+        subgraph cluster_Verbosity {
+            label = "Verbosity"
+
+            soliloquies
+            capulet_verbosity
+            montegue_verbosity
+
+            lines -> soliloquies
+
+            capulet_faction -> capulet_verbosity
+            soliloquies -> capulet_verbosity
+
+            montegue_faction -> montegue_verbosity
+            soliloquies -> montegue_verbosity
+        }
+
+        subgraph cluster_Sentiment {
+            label = "Sentiment"
+
+            modern_lines
+            line_sentiment
+
+            montegue_sentiment
+            capulet_sentiment
+
+            lines -> modern_lines
+            modern_lines -> line_sentiment
+
+            line_sentiment -> montegue_sentiment
+            montegue_faction -> montegue_sentiment
+
+            line_sentiment -> capulet_sentiment
+            capulet_faction -> capulet_sentiment
+        }
+
+        subgraph cluster_GrudgeAnalysis {
+            label = "GrudgeAnalysis";
+
+            grudge
+
+            capulet_sentiment -> grudge
+            capulet_verbosity -> grudge
+
+            montegue_sentiment -> grudge
+            montegue_verbosity -> grudge
+        }
+
+
+    }
+
+|
+
+
+Custom Invalidation
+~~~~~~~~~~~~~~~~~~~
+
+Forward-invalidation can be customized on a per-property basis via an optional
+``should_invalidate`` function. The function is provided (a) the current
+reactive property value, (b) the name of the changed input value and (c) the
+updated input parameter value, returning `True` if the reactive property should
+be invalidated in response to the change and `False` if the reactive value
+should be preserved.
+
+.. note::
+    ``should_invalidate`` *requires* the value of reevaluation of
+    parameter dependencies to provide an updated input parameter value, causing an
+    "eager" reevaluation of the subgraph preceeding the `should_invalidate`
+    property.
+
+
 """
 
 import inspect

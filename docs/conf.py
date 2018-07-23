@@ -209,6 +209,7 @@ intersphinx_mapping = {
     'attrs': ('http://www.attrs.org/en/stable/', None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
     'pint': ('http://pint.readthedocs.io/en/latest/', None),
+    'toolz': ('http://toolz.readthedocs.io/en/latest/', None),
 }
 
 # -- Options for todo extension ----------------------------------------------
