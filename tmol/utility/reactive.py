@@ -6,14 +6,14 @@ Overview
 `reactive` is a framework to describe the composition and execution of
 functions as properties and attributes of a class. By storing function results
 as object properties, rather than named variables, `reactive` allows you to
-organize ::doc:`pure functions <toolz:purity>` in a declarative syntax, then
+organize :doc:`pure functions <toolz:purity>` in a declarative syntax, then
 automatically handles dependency resolution, on-demand execution and result
 caching.
 
 As a motivating example, `reactive` lets you write::
 
     @reactive_attrs(auto_attribs=True)
-    def FactionalAnalysis:
+    class FactionalAnalysis:
         source: str
 
         montegue_faction: Sequence[str] = ["Romeo", "Benvolio", "Montegue", "Lady Montegue"]
@@ -78,7 +78,7 @@ For example, ``FactionalAnalysis`` results in the dependency graph:
 Result Caching
 ~~~~~~~~~~~~~~
 
-Given the assumption of ::doc:`functional purity <toolz:purity>`, `reactive`
+Given the assumption of :doc:`functional purity <toolz:purity>`, `reactive`
 caches the result of `reactive_property` evaluations from the on-demand
 resolution of property arguments. This provides in a lazy pull-based execution
 model, in which requesting a `reactive_property` value results in the
@@ -411,9 +411,8 @@ def reactive_property(func=None, *, should_invalidate=None, kwargs=None):
     """Decorate a function as a reactive property of a class.
 
     ..  warning::
-
-    Does *not* do anything unless the class is also decorated with
-    :func:`reactive_attrs`.
+        Does *not* do anything unless the class is also decorated with
+        :func:`reactive_attrs`.
 
     Args:
         func: The target function. The reactive property name and
