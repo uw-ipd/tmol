@@ -365,17 +365,23 @@ Custom Invalidation
 ~~~~~~~~~~~~~~~~~~~
 
 Forward-invalidation can be customized on a per-property basis via an optional
-``should_invalidate`` function. The function is provided (a) the current
+`should_invalidate` function. The function is provided (a) the current
 reactive property value, (b) the name of the changed input value and (c) the
 updated input parameter value, returning `True` if the reactive property should
 be invalidated in response to the change and `False` if the reactive value
 should be preserved.
 
 .. note::
-    ``should_invalidate`` *requires* the value of reevaluation of
+    `should_invalidate` *requires* the value of reevaluation of
     parameter dependencies to provide an updated input parameter value, causing an
     "eager" reevaluation of the subgraph preceeding the `should_invalidate`
     property.
+
+** Parameters
+~~~~~~~~~~~~~
+
+Functions with :term:`**keyword parameters <python:parameter>` *must*
+specify a set of expected argument names when added as a `reactive_property`.
 
 
 """
@@ -388,6 +394,10 @@ import attr
 
 
 def reactive_attrs(maybe_cls=None, **attrs_kwargs):
+    """A class decorator that initializes reactive properties over the target
+    type.
+    """
+
     def wrap(cls):
         return attr.attrs(_setup_reactive(cls), **attrs_kwargs)
 
@@ -397,20 +407,39 @@ def reactive_attrs(maybe_cls=None, **attrs_kwargs):
         return wrap(maybe_cls)
 
 
-def reactive_property(maybe_f=None, should_invalidate=None, kwargs=None):
+def reactive_property(func=None, *, should_invalidate=None, kwargs=None):
+    """Decorate a function as a reactive property of a class.
+
+    ..  warning::
+
+    Does *not* do anything unless the class is also decorated with
+    :func:`reactive_attrs`.
+
+    Args:
+        func: The target function. The reactive property name and
+            dependencies will be inferred from the function name and signature.
+
+        should_invalidate: A :func:`callable` controlling selective
+            invalidation of the reactive property in response to dependency
+            changes.
+
+        kwargs: Name of expected keyword parameters iff ``func`` accepts
+            :term:`**keyword parameters <python:parameter>`.
+    """
+
     def bind(f):
-        prop = ReactiveProperty.from_function(f, kwargs=kwargs)
+        prop = _ReactiveProperty.from_function(f, kwargs=kwargs)
         prop.should_invalidate(should_invalidate)
         return prop
 
-    if maybe_f is not None:
-        return bind(maybe_f)
+    if func is not None:
+        return bind(func)
     else:
         return bind
 
 
 @attr.s(slots=True, auto_attribs=True)
-class ReactiveProperty:
+class _ReactiveProperty:
     name: str
     parameters: Tuple[str, ...]
 
@@ -489,7 +518,7 @@ def _setup_reactive(cls):
     reactive_props = {
         n: v
         for n, v in cd.items()
-        if isinstance(v, ReactiveProperty)
+        if isinstance(v, _ReactiveProperty)
     }
 
     for n in reactive_props:
@@ -549,7 +578,7 @@ def _setup_reactive(cls):
     return cls
 
 
-def invalidate_reactive_deps(obj, n, n_value=attr.NOTHING):
+def _invalidate_reactive_deps(obj, n, n_value=attr.NOTHING):
     if not hasattr(obj, "_reactive_values") or n not in obj.__reactive_deps__:
         return
 
@@ -563,7 +592,7 @@ def invalidate_reactive_deps(obj, n, n_value=attr.NOTHING):
                     continue
 
             delattr(obj._reactive_values, dname)
-            invalidate_reactive_deps(obj, dname)
+            _invalidate_reactive_deps(obj, dname)
 
 
 def __reactive_getattr__(self, n):
@@ -584,9 +613,9 @@ def __reactive_getattr__(self, n):
 
 def __reactive_setattr__(self, n, v):
     object.__setattr__(self, n, v)
-    invalidate_reactive_deps(self, n, v)
+    _invalidate_reactive_deps(self, n, v)
 
 
 def __reactive_delattr__(self, n):
     object.__delattr__(self, n)
-    invalidate_reactive_deps(self, n)
+    _invalidate_reactive_deps(self, n)

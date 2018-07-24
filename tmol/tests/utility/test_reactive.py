@@ -2,7 +2,7 @@ import pytest
 
 import attr
 
-from tmol.utility.reactive import reactive_attrs, reactive_property, ReactiveProperty
+from tmol.utility.reactive import reactive_attrs, reactive_property, _ReactiveProperty
 
 
 def test_no_self():
@@ -12,7 +12,7 @@ def test_no_self():
         pass
 
     with pytest.raises(ValueError):
-        ReactiveProperty.from_function(foobar_self)
+        _ReactiveProperty.from_function(foobar_self)
 
 
 def test_params():
@@ -21,7 +21,7 @@ def test_params():
     def foobar_valid(a, b, c=1):
         pass
 
-    rp = ReactiveProperty.from_function(foobar_valid)
+    rp = _ReactiveProperty.from_function(foobar_valid)
     assert rp.name == "foobar_valid"
     assert rp.f_value == foobar_valid
     assert rp.parameters == ("a", "b", "c")
@@ -34,14 +34,14 @@ def test_kwarg_param_resolution():
         pass
 
     # binds kwarg names as parameters
-    rp = ReactiveProperty.from_function(foobar_kwargs, kwargs=("b", "c"))
+    rp = _ReactiveProperty.from_function(foobar_kwargs, kwargs=("b", "c"))
 
     assert rp.name == "foobar_kwargs"
     assert rp.f_value == foobar_kwargs
     assert rp.parameters == ("a", "b", "c")
 
     # does "the right thing" if string name is provided
-    rp = ReactiveProperty.from_function(foobar_kwargs, kwargs=("b"))
+    rp = _ReactiveProperty.from_function(foobar_kwargs, kwargs=("b"))
 
     assert rp.name == "foobar_kwargs"
     assert rp.f_value == foobar_kwargs
@@ -49,22 +49,22 @@ def test_kwarg_param_resolution():
 
     # raises an error if not explicitly specified
     with pytest.raises(ValueError):
-        ReactiveProperty.from_function(foobar_kwargs)
+        _ReactiveProperty.from_function(foobar_kwargs)
 
     # raises an error if the function parameters and kwarg names collide
     with pytest.raises(ValueError):
-        ReactiveProperty.from_function(foobar_kwargs, ("a", "b", "c"))
+        _ReactiveProperty.from_function(foobar_kwargs, ("a", "b", "c"))
 
     def foobar(a, b):
         pass
 
     # raises an error if specified w/o kwarg argument
     with pytest.raises(ValueError):
-        ReactiveProperty.from_function(foobar, kwargs=("c", "b"))
+        _ReactiveProperty.from_function(foobar, kwargs=("c", "b"))
 
     # even if they match the names of args
     with pytest.raises(ValueError):
-        ReactiveProperty.from_function(foobar_kwargs, kwargs=("a", "b"))
+        _ReactiveProperty.from_function(foobar_kwargs, kwargs=("a", "b"))
 
 
 def test_kwarg():
@@ -118,7 +118,7 @@ def test_args_invalid():
         pass
 
     with pytest.raises(ValueError):
-        ReactiveProperty.from_function(foobar_args)
+        _ReactiveProperty.from_function(foobar_args)
 
 
 def test_binding_in_subclass():
@@ -161,7 +161,7 @@ def test_binding_in_subclass():
     assert Foo.__reactive_deps__ == {"n": ("bar", "bun")}
 
     # Non-reactive properies are passed through
-    assert not isinstance(Foo.np, ReactiveProperty)
+    assert not isinstance(Foo.np, _ReactiveProperty)
 
     # Values are resolved from inputs
     assert Foo(n=2).bar == "barbar"
@@ -202,7 +202,7 @@ def test_binding_in_subclass():
     assert SubFoo.__reactive_props__["baz"].f_value() == "baz"
 
     # and non-reactive are passed through normally
-    assert not isinstance(SubFoo.np, ReactiveProperty)
+    assert not isinstance(SubFoo.np, _ReactiveProperty)
 
     # deps are resolved using overriden values
     assert SubFoo.__reactive_deps__ == {
