@@ -59,8 +59,8 @@ layers = (
     ["core", args.platform] +
     {
         "run": [],
-        "test": ["test"],
-        "dev": ["test", "dev"],
+        "test": ["test", "docs"],
+        "dev": ["test", "docs", "dev"],
     }[args.target]
 )
 

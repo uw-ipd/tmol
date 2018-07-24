@@ -17,4 +17,4 @@ case "$(uname -s)" in
     *)          echo Unknown uname;;
 esac
 
-watchmedo tricks docs/watchmedo.yml
+watchmedo tricks .docs.watchmedo.yml

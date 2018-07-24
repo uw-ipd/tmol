@@ -50,6 +50,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
+    "sphinx.ext.graphviz",
     "aafigure.sphinxext",
 ]
 
@@ -101,6 +102,9 @@ default_role = "any"
 # aafigure configuration
 aafig_format = dict(latex='pdf', html='svg', text=None)
 aafig_default_options = dict(textual=True)
+
+# graphviz configuration
+graphviz_dot_args = ["-Gdpi=300"]
 
 # -- Options for HTML output -------------------------------------------------
 
