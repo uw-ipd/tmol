@@ -12,7 +12,7 @@ class StackedSystem(Factory):
     def factory_for(val, **_):
         """Overridable clone-constructor.
 
-        Initialize from `val.device` if possible, otherwise defaulting to cpu.
+        Initialize from ``val.device`` if possible, otherwise defaulting to cpu.
         """
         return dict(stack_depth=val.stack_depth, system_size=val.system_size)
 
