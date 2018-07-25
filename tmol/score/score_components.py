@@ -44,22 +44,28 @@ class ScoreComponent:
 
        +---------------------------+
        | System                    |
-       |   intra_score_type: type  |
-       |   inter_score_type: type  |
-       +----+----------------------+
+       |                           |
+       |  'intra_score_type: type' |
+       |  'inter_score_type: type' |
+       |                           |
+       +---+-----------------------+
            |
            |  Defines via
            |  TotalScoreComponents
            |
            | +---------------------+
            | | IntraScoreContainer |
-           +->   target: System    |
+           | |                     |
+           +->  'target: System'   |
+           | |                     |
            | +---------------------+
            |
            | +---------------------+
            | | InterScoreContainer |
-           +->   target_i: System  |
-             |   target_j: System  |
+           | |                     |
+           +->  'target_i: System' |
+             |  'target_j: System' |
+             |                     |
              +---------------------+
 
     Components contributing to inter/intra scores *must* make the component's
