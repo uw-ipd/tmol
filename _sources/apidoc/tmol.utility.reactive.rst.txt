@@ -7,7 +7,7 @@ tmol.utility.reactive
 .. currentmodule:: tmol.utility.reactive
 
 .. automodule:: tmol.utility.reactive
-    :members: ReactiveProperty, invalidate_reactive_deps, reactive_attrs, reactive_property
+    :members: reactive_attrs, reactive_property
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -15,21 +15,12 @@ tmol.utility.reactive
     Summary
     -------
 
-    Classes
-    ~~~~~~~
-
-    .. autosummary::
-        :nosignatures:
-
-        ReactiveProperty
-
     Functions
     ~~~~~~~~~
     
     .. autosummary::
         :nosignatures:
 
-        invalidate_reactive_deps
         reactive_attrs
         reactive_property
 

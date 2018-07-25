@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.reactive &mdash; TMol 0.0.0-80-g3780183 documentation</title>
+  <title>tmol.utility.reactive &mdash; TMol 0.0.0-81-g74b816a documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-80-g3780183
+                0.0.0-81-g74b816a
               </div>
             
           
@@ -104,8 +104,16 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.mixins.html">tmol.utility.mixins</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.numba.html">tmol.utility.numba</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.utility.reactive</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#argument-resolution">Argument Resolution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#result-caching">Result Caching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reactive-invalidation">Reactive Invalidation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#class-composition">Class Composition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#custom-invalidation">Custom Invalidation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parameters">** Parameters</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
 </ul>
 </li>
@@ -189,49 +197,367 @@
             
   <div class="section" id="module-tmol.utility.reactive">
 <span id="tmol-utility-reactive"></span><h1>tmol.utility.reactive<a class="headerlink" href="#module-tmol.utility.reactive" title="Permalink to this headline">¶</a></h1>
-<p>A prototype implementation of attrs-based “reactive” properties.</p>
-<p>A containing class stores state divided into two types: “standard” attributes,
-which represent source data, and “reactive” properties, which are derived from
-other attributes and other properties.</p>
-<p>Reactive props are calculated dynamically via a “pull” model, accessing a
-property invokes its definition function to calculate the property value. The
-value is cached within the containing object and is returned, if available, on
-the next property access.</p>
-<p>The definition function may depend on a set a attrs/props in the object, bound
-as the input parameters of the value function. This values are bound from the
-object <em>before</em> value function execution. As depdencies <em>may</em> be themselves
-reactive, resulting in a backward traversal through reactive properties to
-calculate the required value. DAG-ness is not mandated, but infinite recursion
-will occur in the case of mutually interdependent property values. Caveat usor.</p>
-<p>Reative props are invalidated via a “push” model. Deleting or changing a
-property value will invalidate the store value for all declared dependent
-properties. These dependents may themselves have dependents, resulting in a
-forward traversal through reactive properties to invalidate all derived
-property values. This allows recalcuation when the property is next requested.</p>
-<p>Property invalidation may be controlled via an optional “should_invalidate”
-function, which consumes (a) the current reactive property value, (b) the name
-of the changed input value and (c) the updated input parameter value. This
-function returns True if the reactive property should be invalidated in
-response to the change and False if the reactive value should be preserved.</p>
-<p>Subclassing semantics akin to “attr” can be used. A superclass <em>may</em> specifiy
-property dependencies that are provided by a subclass. The standard MRO is used
-to resolve the value function for any duplicate properties.</p>
+<p>Attrs-based “reactive” properties.</p>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> is a framework to describe the composition and execution of
+functions as properties and attributes of a class. By storing function results
+as object properties, rather than named variables, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> allows you to
+organize <a class="reference external" href="http://toolz.readthedocs.io/en/latest/purity.html" title="(in Toolz v0.9.0)"><span class="xref std std-doc">pure functions</span></a> in a declarative syntax, then
+automatically handles dependency resolution, on-demand execution and result
+caching.</p>
+<p>As a motivating example, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> lets you write:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">FactionalAnalysis</span><span class="p">:</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="n">montegue_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Romeo&quot;</span><span class="p">,</span> <span class="s2">&quot;Benvolio&quot;</span><span class="p">,</span> <span class="s2">&quot;Montegue&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Montegue&quot;</span><span class="p">]</span>
+    <span class="n">capulet_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Juliet&quot;</span><span class="p">,</span> <span class="s2">&quot;Tybalt&quot;</span><span class="p">,</span> <span class="s2">&quot;Capulet&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Capulet&quot;</span><span class="p">]</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="n">source</span><span class="p">);</span>
+        <span class="sd">&#39;&#39;&#39;Convert text of play to spoken lines.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">soliloquies</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Group spoken lines and identify soliloquies.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">montegue_verbosity</span><span class="p">(</span><span class="n">montegue_faction</span><span class="p">,</span> <span class="n">soliloquies</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Calcuate average verbosity of the Montegue faction.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">capulet_verbosity</span><span class="p">(</span><span class="n">capulet_faction</span><span class="p">,</span> <span class="n">soliloquies</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Calcuate average verbosity of the Capulet faction.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+</pre></div>
+</div>
+<p>then <em>does the right thing</em> when you ask for:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">analysis</span> <span class="o">=</span> <span class="n">FactionalAnalysis</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="n">act_1</span><span class="p">)</span>
+<span class="n">analysis</span><span class="o">.</span><span class="n">montegue_verbosity</span> <span class="o">/</span> <span class="n">analysis</span><span class="o">.</span><span class="n">capulet_verbosity</span>
+</pre></div>
+</div>
+<div class="section" id="argument-resolution">
+<h3>Argument Resolution<a class="headerlink" href="#argument-resolution" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> organizes a computation by binding input data and function results
+as <a class="reference external" href="http://www.attrs.org/en/stable/overview.html" title="(in attrs v18.1)"><code class="xref any docutils literal notranslate"><span class="pre">attributes</span></code></a> of a “reactive object”. Function <em>inputs</em> are
+resolved on-demand by keyword argument name via <a class="reference external" href="https://docs.python.org/3/library/functions.html#getattr" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">getattr</span></code></a> from reactive object
+properties.  By eschewing <a class="reference external" href="https://docs.scipy.org/doc/numpy/glossary.html#term-self" title="(in NumPy v1.15)"><code class="xref any docutils literal notranslate"><span class="pre">self</span></code></a>, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> allows direct declaration of
+inter-function dependencies.</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">FactionalAnalysis</span></code> results in the dependency graph:</p>
+<div align="center" class="align-center"><img src="../_images/graphviz-af050dce8073f887a770a81a2fb6ecbd05d56f58.png" alt="digraph {
+    source [shape=box ]
+    capulet_faction [shape=box ]
+    montegue_faction [shape=box ]
+
+    source -&gt; lines
+    lines -&gt; soliloquies
+
+    capulet_faction -&gt; capulet_verbosity
+    soliloquies -&gt; capulet_verbosity
+
+    montegue_faction -&gt; montegue_verbosity
+    soliloquies -&gt; montegue_verbosity
+}" />
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="result-caching">
+<h3>Result Caching<a class="headerlink" href="#result-caching" title="Permalink to this headline">¶</a></h3>
+<p>Given the assumption of <a class="reference external" href="http://toolz.readthedocs.io/en/latest/purity.html" title="(in Toolz v0.9.0)"><span class="xref std std-doc">functional purity</span></a>, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a>
+caches the result of <a class="reference internal" href="#tmol.utility.reactive.reactive_property" title="tmol.utility.reactive.reactive_property"><code class="xref any py py-func docutils literal notranslate"><span class="pre">reactive_property</span></code></a> evaluations from the on-demand
+resolution of property arguments. This provides in a lazy pull-based execution
+model, in which requesting a <a class="reference internal" href="#tmol.utility.reactive.reactive_property" title="tmol.utility.reactive.reactive_property"><code class="xref any py py-func docutils literal notranslate"><span class="pre">reactive_property</span></code></a> value results in the
+evaluation, and caching, of its antecedent dependencies.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">FactionalAnalysis</span></code>, <code class="docutils literal notranslate"><span class="pre">analysis.capulet_verbosity</span></code> results in in the
+evaluations:</p>
+<div align="center" class="align-center"><img src="../_images/graphviz-55fe7f2b57d4bb6334e1374fcf1bc7cb57b6b981.png" alt="digraph {
+    source [shape=box ]
+    capulet_faction [shape=box ]
+    montegue_faction [shape=box ]
+
+    lines [style=filled]
+    soliloquies [style=filled]
+    capulet_verbosity [style=filled]
+
+    source -&gt; lines [penwidth=5.0]
+    lines -&gt; soliloquies [penwidth=5.0]
+
+    capulet_faction -&gt; capulet_verbosity [penwidth=5.0]
+    soliloquies -&gt; capulet_verbosity [penwidth=5.0]
+
+    montegue_faction -&gt; montegue_verbosity
+    soliloquies -&gt; montegue_verbosity
+}" />
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>The subsequent <code class="docutils literal notranslate"><span class="pre">analysis.montegue_verbosity</span></code> reuses the cached
+<code class="docutils literal notranslate"><span class="pre">soliloquies</span></code>, resulting in the evaluations:</p>
+<div align="center" class="align-center"><img src="../_images/graphviz-ca9988c0f2842e752e570668bfc690336edbbb7a.png" alt="digraph {
+    source [shape=box ]
+    capulet_faction [shape=box ]
+    montegue_faction [shape=box ]
+
+    lines [style=filled]
+    soliloquies [style=filled]
+    capulet_verbosity [style=filled]
+    montegue_verbosity [style=filled]
+
+    source -&gt; lines
+    lines -&gt; soliloquies
+
+    capulet_faction -&gt; capulet_verbosity
+    soliloquies -&gt; capulet_verbosity
+
+    montegue_faction -&gt; montegue_verbosity [penwidth=5.0]
+    soliloquies -&gt; montegue_verbosity [penwidth=5.0]
+}" />
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>Further access to any property returns the cached value.</p>
+</div>
+<div class="section" id="reactive-invalidation">
+<h3>Reactive Invalidation<a class="headerlink" href="#reactive-invalidation" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> uses the declared dependency graph to invalidate dependent values if
+an attribute value is changed, and forward-propogates the invalidation of
+reactive properties to all dependents. This provides a lazy, push-based update
+model, in which updating an attribute value results in the selective
+invalidation of its full direct and indirect dependencies.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> only tracks modification of attribute values by <a class="reference external" href="https://docs.python.org/3/library/functions.html#setattr" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">setattr</span></code></a>,
+and does <em>not</em> track internal modification of attribute values. Updates to
+attributes must be propogated by property reassignment. Eg:</p>
+<div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Possible, modify and assign</span>
+<span class="n">analysis</span><span class="o">.</span><span class="n">capulet_faction</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;Sampson&quot;</span><span class="p">,</span> <span class="s2">&quot;Gregory&quot;</span><span class="p">])</span>
+<span class="n">analysis</span><span class="o">.</span><span class="n">capulet_faction</span> <span class="o">=</span> <span class="n">analysis</span><span class="o">.</span><span class="n">capulet_faction</span>
+
+<span class="c1"># Preferred, assign updated value</span>
+<span class="n">analysis</span><span class="o">.</span><span class="n">capulet_faction</span> <span class="o">=</span> <span class="n">analysis</span><span class="o">.</span><span class="n">capulet_faction</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;Sampson&quot;</span><span class="p">,</span> <span class="s2">&quot;Gregory&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>In <code class="docutils literal notranslate"><span class="pre">FactionalAnalysis</span></code> an update of <code class="docutils literal notranslate"><span class="pre">capulet_faction</span></code> results in invalidations:</p>
+<div align="center" class="align-center"><img src="../_images/graphviz-856f1ce16cfe385ec9f63c92aebf9d0de4f245d0.png" alt="digraph {
+    source [shape=box ]
+    capulet_faction [shape=tripleoctagon ]
+    montegue_faction [shape=box ]
+
+    lines [style=filled]
+    soliloquies [style=filled]
+    capulet_verbosity [style=dashed]
+    montegue_verbosity [style=filled]
+
+    source -&gt; lines
+    lines -&gt; soliloquies
+
+    capulet_faction -&gt; capulet_verbosity [penwidth=5.0]
+    soliloquies -&gt; capulet_verbosity
+
+    montegue_faction -&gt; montegue_verbosity
+    soliloquies -&gt; montegue_verbosity
+}" />
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>A subsequent update of <code class="docutils literal notranslate"><span class="pre">source</span></code> results in the forward-invalidations:</p>
+<div align="center" class="align-center"><img src="../_images/graphviz-a0514edc899b0f733bcbbf652ed22927e7fb0a4a.png" alt="digraph {
+    source [shape=tripleoctagon ]
+    capulet_faction [shape=box ]
+    montegue_faction [shape=box ]
+
+    lines [style=dashed]
+    soliloquies [style=dashed]
+    capulet_verbosity
+    montegue_verbosity [style=dashed]
+
+    source -&gt; lines [penwidth=5.0]
+    lines -&gt; soliloquies [penwidth=5.0]
+
+    capulet_faction -&gt; capulet_verbosity
+    soliloquies -&gt; capulet_verbosity [penwidth=5.0]
+
+    montegue_faction -&gt; montegue_verbosity
+    soliloquies -&gt; montegue_verbosity [penwidth=5.0]
+}" />
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="class-composition">
+<h3>Class Composition<a class="headerlink" href="#class-composition" title="Permalink to this headline">¶</a></h3>
+<p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> classes can be combined via standard inheritance, with cross class
+dependencies are resolved via by the standard <a class="reference external" href="https://docs.python.org/3/glossary.html#term-method-resolution-order" title="(in Python v3.7)"><span class="xref std std-term">method resolution order</span></a>. This enables a robust mixin-based
+composition model in which function inputs are passed, by name, between loosely
+coupled components.</p>
+<p>For example, consider an extension of <code class="docutils literal notranslate"><span class="pre">FactionalAnalysis</span></code> to incorporate an
+additional form of sentiment analysis:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">Source</span><span class="p">:</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="n">montegue_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Romeo&quot;</span><span class="p">,</span> <span class="s2">&quot;Benvolio&quot;</span><span class="p">,</span> <span class="s2">&quot;Montegue&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Montegue&quot;</span><span class="p">]</span>
+    <span class="n">capulet_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Juliet&quot;</span><span class="p">,</span> <span class="s2">&quot;Tybalt&quot;</span><span class="p">,</span> <span class="s2">&quot;Capulet&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Capulet&quot;</span><span class="p">]</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="n">source</span><span class="p">);</span>
+        <span class="sd">&#39;&#39;&#39;Convert text of play to spoken lines.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+<span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">Verbosity</span><span class="p">:</span>
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">soliloquies</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Group spoken lines and identify soliloquies.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">montegue_verbosity</span><span class="p">(</span><span class="n">montegue_faction</span><span class="p">,</span> <span class="n">soliloquies</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Calcuate average verbosity of the Montegue faction.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">capulet_verbosity</span><span class="p">(</span><span class="n">capulet_faction</span><span class="p">,</span> <span class="n">soliloquies</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Calcuate average verbosity of the Capulet faction.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+<span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">Sentiment</span><span class="p">:</span>
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">modern_lines</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Convert from shakespearean to modern english.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">line_sentiment</span><span class="p">(</span><span class="n">modern_lines</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Black-box sentiment analysis.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">montegue_sentiment</span><span class="p">(</span><span class="n">montegue_faction</span><span class="p">,</span> <span class="n">line_sentiment</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Calcuate average sentiment of the Montegue faction.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">capulet_sentiment</span><span class="p">(</span><span class="n">capulet_faction</span><span class="p">,</span> <span class="n">line_sentiment</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Calcuate average sentiment of the Capulet faction.&#39;&#39;&#39;</span>
+        <span class="o">...</span>
+
+<span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">GrudgeAnalysis</span><span class="p">(</span><span class="n">Sourde</span><span class="p">,</span> <span class="n">Verbosity</span><span class="p">,</span> <span class="n">Sentiment</span><span class="p">):</span>
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">grudge</span><span class="p">(</span>
+        <span class="n">montegue_sentiment</span><span class="p">,</span>
+        <span class="n">montegue_verbosity</span><span class="p">,</span>
+        <span class="n">capulet_sentiment</span><span class="p">,</span>
+        <span class="n">capulet_verbosity</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;From ancient grudge break to new mutiny?&#39;&#39;&#39;</span>
+        <span class="k">pass</span>
+</pre></div>
+</div>
+<p>Resulting in the combined reactive dependencies:</p>
+<div align="center" class="align-center"><img src="../_images/graphviz-aad95c0e26d7216e0cbcce11856ea720d2b705c4.png" alt="digraph {
+    subgraph cluster_Source {
+        label = &quot;Source&quot;
+
+        source [shape=box ]
+        capulet_faction [shape=box ]
+        montegue_faction [shape=box ]
+
+        lines
+        source -&gt; lines
+    }
+
+    subgraph cluster_Verbosity {
+        label = &quot;Verbosity&quot;
+
+        soliloquies
+        capulet_verbosity
+        montegue_verbosity
+
+        lines -&gt; soliloquies
+
+        capulet_faction -&gt; capulet_verbosity
+        soliloquies -&gt; capulet_verbosity
+
+        montegue_faction -&gt; montegue_verbosity
+        soliloquies -&gt; montegue_verbosity
+    }
+
+    subgraph cluster_Sentiment {
+        label = &quot;Sentiment&quot;
+
+        modern_lines
+        line_sentiment
+
+        montegue_sentiment
+        capulet_sentiment
+
+        lines -&gt; modern_lines
+        modern_lines -&gt; line_sentiment
+
+        line_sentiment -&gt; montegue_sentiment
+        montegue_faction -&gt; montegue_sentiment
+
+        line_sentiment -&gt; capulet_sentiment
+        capulet_faction -&gt; capulet_sentiment
+    }
+
+    subgraph cluster_GrudgeAnalysis {
+        label = &quot;GrudgeAnalysis&quot;;
+
+        grudge
+
+        capulet_sentiment -&gt; grudge
+        capulet_verbosity -&gt; grudge
+
+        montegue_sentiment -&gt; grudge
+        montegue_verbosity -&gt; grudge
+    }
+
+
+}" />
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="custom-invalidation">
+<h3>Custom Invalidation<a class="headerlink" href="#custom-invalidation" title="Permalink to this headline">¶</a></h3>
+<p>Forward-invalidation can be customized on a per-property basis via an optional
+<a class="reference internal" href="#tmol.utility.reactive._ReactiveProperty.should_invalidate" title="tmol.utility.reactive._ReactiveProperty.should_invalidate"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">should_invalidate</span></code></a> function. The function is provided (a) the current
+reactive property value, (b) the name of the changed input value and (c) the
+updated input parameter value, returning <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> if the reactive property should
+be invalidated in response to the change and <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a> if the reactive value
+should be preserved.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><a class="reference internal" href="#tmol.utility.reactive._ReactiveProperty.should_invalidate" title="tmol.utility.reactive._ReactiveProperty.should_invalidate"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">should_invalidate</span></code></a> <em>requires</em> the value of reevaluation of
+parameter dependencies to provide an updated input parameter value, causing an
+“eager” reevaluation of the subgraph preceeding the <a class="reference internal" href="#tmol.utility.reactive._ReactiveProperty.should_invalidate" title="tmol.utility.reactive._ReactiveProperty.should_invalidate"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">should_invalidate</span></code></a>
+property.</p>
+</div>
+</div>
+<div class="section" id="parameters">
+<h3>** Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h3>
+<p>Functions with <a class="reference external" href="https://docs.python.org/3/glossary.html#term-parameter" title="(in Python v3.7)"><span class="xref std std-term">**keyword parameters</span></a> <em>must</em>
+specify a set of expected argument names when added as a <a class="reference internal" href="#tmol.utility.reactive.reactive_property" title="tmol.utility.reactive.reactive_property"><code class="xref any py py-func docutils literal notranslate"><span class="pre">reactive_property</span></code></a>.</p>
+</div>
+</div>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
-<table border="1" class="longtable docutils">
-<colgroup>
-<col width="10%" />
-<col width="90%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.reactive.ReactiveProperty" title="tmol.utility.reactive.ReactiveProperty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReactiveProperty</span></code></a></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-</div>
 <div class="section" id="functions">
 <h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
 <table border="1" class="longtable docutils">
@@ -240,14 +566,11 @@ to resolve the value function for any duplicate properties.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.reactive.invalidate_reactive_deps" title="tmol.utility.reactive.invalidate_reactive_deps"><code class="xref py py-obj docutils literal notranslate"><span class="pre">invalidate_reactive_deps</span></code></a></td>
-<td></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.reactive.reactive_attrs" title="tmol.utility.reactive.reactive_attrs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reactive_attrs</span></code></a></td>
+<td>A class decorator that initializes reactive properties over the target type.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.utility.reactive.reactive_attrs" title="tmol.utility.reactive.reactive_attrs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reactive_attrs</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.reactive.reactive_property" title="tmol.utility.reactive.reactive_property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reactive_property</span></code></a></td>
-<td></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.utility.reactive.reactive_property" title="tmol.utility.reactive.reactive_property"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reactive_property</span></code></a></td>
+<td>Decorate a function as a reactive property of a class.</td>
 </tr>
 </tbody>
 </table>
@@ -258,45 +581,70 @@ to resolve the value function for any duplicate properties.</p>
 <dl class="function">
 <dt id="tmol.utility.reactive.reactive_attrs">
 <code class="descclassname">tmol.utility.reactive.</code><code class="descname">reactive_attrs</code><span class="sig-paren">(</span><em>maybe_cls=None</em>, <em>**attrs_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#reactive_attrs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.reactive_attrs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>A class decorator that initializes reactive properties over the target
+type.</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="tmol.utility.reactive.reactive_property">
-<code class="descclassname">tmol.utility.reactive.</code><code class="descname">reactive_property</code><span class="sig-paren">(</span><em>f</em>, <em>should_invalidate=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#reactive_property"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.reactive_property" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">tmol.utility.reactive.</code><code class="descname">reactive_property</code><span class="sig-paren">(</span><em>func=None</em>, <em>*</em>, <em>should_invalidate=None</em>, <em>kwargs=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#reactive_property"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.reactive_property" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorate a function as a reactive property of a class.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Does <em>not</em> do anything unless the class is also decorated with
+<a class="reference internal" href="#tmol.utility.reactive.reactive_attrs" title="tmol.utility.reactive.reactive_attrs"><code class="xref py py-func docutils literal notranslate"><span class="pre">reactive_attrs()</span></code></a>.</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>func</strong> – The target function. The reactive property name and
+dependencies will be inferred from the function name and signature.</li>
+<li><strong>should_invalidate</strong> – A <a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.7)"><code class="xref py py-func docutils literal notranslate"><span class="pre">callable()</span></code></a> controlling selective
+invalidation of the reactive property in response to dependency
+changes.</li>
+<li><strong>kwargs</strong> – Name of expected keyword parameters iff <code class="docutils literal notranslate"><span class="pre">func</span></code> accepts
+<a class="reference external" href="https://docs.python.org/3/glossary.html#term-parameter" title="(in Python v3.7)"><span class="xref std std-term">**keyword parameters</span></a>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="class">
-<dt id="tmol.utility.reactive.ReactiveProperty">
-<em class="property">class </em><code class="descclassname">tmol.utility.reactive.</code><code class="descname">ReactiveProperty</code><span class="sig-paren">(</span><em>name: str, parameters: Tuple[str, ...], f_value: Callable, should_invalidate_check: Union[typing.Callable[[typing.Any, str, typing.Any], bool], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#ReactiveProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive._ReactiveProperty">
+<em class="property">class </em><code class="descclassname">tmol.utility.reactive.</code><code class="descname">_ReactiveProperty</code><span class="sig-paren">(</span><em>name: str, parameters: Tuple[str, ...], f_value: Callable, should_invalidate_check: Union[typing.Callable[[typing.Any, str, typing.Any], bool], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_ReactiveProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.utility.reactive.ReactiveProperty.name">
-<code class="descname">name</code><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.name" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive._ReactiveProperty.name">
+<code class="descname">name</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.name" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.utility.reactive.ReactiveProperty.parameters">
-<code class="descname">parameters</code><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.parameters" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive._ReactiveProperty.parameters">
+<code class="descname">parameters</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.parameters" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.utility.reactive.ReactiveProperty.f_value">
-<code class="descname">f_value</code><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.f_value" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive._ReactiveProperty.f_value">
+<code class="descname">f_value</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.f_value" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.utility.reactive.ReactiveProperty._should_invalidate_check">
-<code class="descname">_should_invalidate_check</code><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty._should_invalidate_check" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive._ReactiveProperty._should_invalidate_check">
+<code class="descname">_should_invalidate_check</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty._should_invalidate_check" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.utility.reactive.ReactiveProperty.should_invalidate">
-<code class="descname">should_invalidate</code><span class="sig-paren">(</span><em>f=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#ReactiveProperty.should_invalidate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.should_invalidate" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive._ReactiveProperty.should_invalidate">
+<code class="descname">should_invalidate</code><span class="sig-paren">(</span><em>f=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_ReactiveProperty.should_invalidate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.should_invalidate" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.utility.reactive.ReactiveProperty.from_function">
-<em class="property">classmethod </em><code class="descname">from_function</code><span class="sig-paren">(</span><em>fun</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#ReactiveProperty.from_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.from_function" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive._ReactiveProperty.from_function">
+<em class="property">classmethod </em><code class="descname">from_function</code><span class="sig-paren">(</span><em>fun: Callable, kwargs: Union[str, typing.Tuple[str, ...], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_ReactiveProperty.from_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.from_function" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -307,8 +655,8 @@ to resolve the value function for any duplicate properties.</p>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tmol.utility.reactive.invalidate_reactive_deps">
-<code class="descclassname">tmol.utility.reactive.</code><code class="descname">invalidate_reactive_deps</code><span class="sig-paren">(</span><em>obj</em>, <em>n</em>, <em>n_value=NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#invalidate_reactive_deps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.invalidate_reactive_deps" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive._invalidate_reactive_deps">
+<code class="descclassname">tmol.utility.reactive.</code><code class="descname">_invalidate_reactive_deps</code><span class="sig-paren">(</span><em>obj</em>, <em>n</em>, <em>n_value=NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_invalidate_reactive_deps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._invalidate_reactive_deps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -356,7 +704,7 @@ to resolve the value function for any duplicate properties.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-80-g3780183',
+            VERSION:'0.0.0-81-g74b816a',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
