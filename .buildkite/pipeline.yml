@@ -14,6 +14,10 @@ steps:
     command: .buildkite/bin/setup
     << : *test_container
 
+  ### Wait on setup to allow image build to complete before further, potentially parallel steps
+  - wait: ~
+    continue_on_failure: true
+
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CUDA'
@@ -53,7 +57,9 @@ steps:
       - docs/_build/**/*
     << : *test_container
 
-  - wait
+  ### Wait for all tests to finish and upload artifacts
+  - wait: ~
+    continue_on_failure: true
 
   - label: ':clipboard: Report'
     plugins:
