@@ -22,6 +22,13 @@ steps:
   - wait: ~
     continue_on_failure: true
 
+  ### Run formatting/linting checks.
+  - label: ':microscope: Linting'
+    command: .buildkite/bin/linting --junitxml=linting.junit.xml
+    artifact_paths:
+      - linting.junit.xml
+    << : *test_agent
+    << : *test_container
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CUDA'
@@ -41,11 +48,11 @@ steps:
     << : *test_agent
     << : *test_container
 
-  ### Run formatting/linting checks.
-  - label: ':microscope: Linting'
-    command: .buildkite/bin/linting --junitxml=linting.junit.xml
+  ### Generate project documentation
+  - label: ':open_book: Docs'
+    command: .buildkite/bin/docs
     artifact_paths:
-      - linting.junit.xml
+      - docs/_build/**/*
     << : *test_agent
     << : *test_container
 
@@ -54,15 +61,6 @@ steps:
     command: .buildkite/bin/benchmark --benchmark-max-time=.1 
     artifact_paths:
       - benchmark/**/*
-    skip: "Benchmark currently disabled."
-    << : *test_agent
-    << : *test_container
-
-  ### Generate project documentation
-  - label: ':open_book: Docs'
-    command: .buildkite/bin/docs
-    artifact_paths:
-      - docs/_build/**/*
     << : *test_agent
     << : *test_container
 
