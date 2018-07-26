@@ -7,12 +7,13 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+    agent:
+      queue: cuda
 
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CUDA'
     command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cuda.junit.xml
-
     plugins:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
@@ -20,6 +21,8 @@ steps:
     artifact_paths:
       - testing.cuda.junit.xml
       - .coverage
+    agent:
+      queue: cuda
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CPU'
@@ -31,6 +34,8 @@ steps:
     artifact_paths:
       - testing.cpu.junit.xml
       - .coverage
+    agent:
+      queue: cuda
 
   ### Run formatting/linting checks.
   - label: ':microscope: Linting'
@@ -41,6 +46,8 @@ steps:
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
     artifact_paths:
       - linting.junit.xml
+    agent:
+      queue: cuda
 
   - label: ':clipboard: Report'
     plugins:
@@ -57,6 +64,8 @@ steps:
             type: junit
         formatter:
           type: details
+    agent:
+      queue: cuda
 
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
@@ -67,6 +76,9 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+    agent:
+      queue: cuda
+    skip: "Benchmark currently disabled."
 
   ### Generate project documentation
   - label: ':open_book: Docs'
@@ -77,6 +89,10 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+    agent:
+      queue: cuda
+
+  - wait
 
   ### Deploy documentation to gh-pages iff running a master build
   - label: ':rocket: Pages'
