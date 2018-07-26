@@ -7,7 +7,7 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
-    agent:
+    agents:
       queue: cuda
 
 
@@ -21,7 +21,7 @@ steps:
     artifact_paths:
       - testing.cuda.junit.xml
       - .coverage
-    agent:
+    agents:
       queue: cuda
 
   ### Run tests and generate coverage reports
@@ -34,7 +34,7 @@ steps:
     artifact_paths:
       - testing.cpu.junit.xml
       - .coverage
-    agent:
+    agents:
       queue: cuda
 
   ### Run formatting/linting checks.
@@ -46,7 +46,7 @@ steps:
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
     artifact_paths:
       - linting.junit.xml
-    agent:
+    agents:
       queue: cuda
 
   - label: ':clipboard: Report'
@@ -64,7 +64,7 @@ steps:
             type: junit
         formatter:
           type: details
-    agent:
+    agents:
       queue: cuda
 
   ### Run benchmark tests
@@ -76,7 +76,7 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
-    agent:
+    agents:
       queue: cuda
     skip: "Benchmark currently disabled."
 
@@ -89,7 +89,7 @@ steps:
       uw-ipd/docker-compose#run_workdir:
         run: buildkite
         workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
-    agent:
+    agents:
       queue: cuda
 
   - wait
@@ -100,3 +100,5 @@ steps:
     plugins:
       artifacts#v1.2.0:
         download: "docs/_build/**/*"
+    agents:
+      queue: cuda
