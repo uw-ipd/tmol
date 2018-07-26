@@ -2,12 +2,15 @@ test_agent: &test_agent
   agents:
     queue: cuda
 
-test_container: &test_container 
+cuda_container: &cuda_container 
   plugins:
     docker-compose#v2.5.1:
         run: buildkite
 
-
+cpu_container: &cpu_container 
+  plugins:
+    docker-compose#v2.5.1:
+        run: buildkite-cpu
 
 steps:
   ### Test installation from source
@@ -15,7 +18,7 @@ steps:
   - label: ':electric_plug: Setup'
     command: .buildkite/bin/setup
     << : *test_agent
-    << : *test_container
+    << : *cuda_container
 
   ### Wait on setup to allow image build to complete before further, potentially parallel steps
   - wait: ~
@@ -27,7 +30,7 @@ steps:
     artifact_paths:
       - linting.junit.xml
     << : *test_agent
-    << : *test_container
+    << : *cuda_container
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CUDA'
@@ -36,7 +39,7 @@ steps:
       - testing.cuda.junit.xml
       - .coverage
     << : *test_agent
-    << : *test_container
+    << : *cuda_container
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CPU'
@@ -45,7 +48,7 @@ steps:
       - testing.cpu.junit.xml
       - .coverage
     << : *test_agent
-    << : *test_container
+    << : *cpu_container
 
   ### Generate project documentation
   - label: ':open_book: Docs'
@@ -53,7 +56,7 @@ steps:
     artifact_paths:
       - docs/_build/**/*
     << : *test_agent
-    << : *test_container
+    << : *cuda_container
 
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
@@ -61,7 +64,7 @@ steps:
     artifact_paths:
       - benchmark/**/*
     << : *test_agent
-    << : *test_container
+    << : *cuda_container
 
   ### Wait for all tests to finish and upload artifacts
   - wait: ~
