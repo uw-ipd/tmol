@@ -6,7 +6,6 @@ test_container: &test_container
   plugins:
     docker-compose#v2.5.1:
         run: buildkite
-        workdir: "$${BUILDKITE_BUILD_CHECKOUT_PATH}"
 
 
 
