@@ -49,24 +49,6 @@ steps:
     agents:
       queue: cuda
 
-  - label: ':clipboard: Report'
-    plugins:
-      uw-ipd/test-summary#8fa3c9a:
-        inputs:
-          - label: Testing - CUDA
-            artifact_path: testing.cuda.junit.xml
-            type: junit
-          - label: Testing - CPU
-            artifact_path: testing.cpu.junit.xml
-            type: junit
-          - label: Linting
-            artifact_path: linting.junit.xml
-            type: junit
-        formatter:
-          type: details
-    agents:
-      queue: cuda
-
   ### Run benchmark tests
   - label: ':racehorse: Benchmark'
     command: .buildkite/bin/benchmark --benchmark-max-time=.1 
@@ -93,6 +75,24 @@ steps:
       queue: cuda
 
   - wait
+
+  - label: ':clipboard: Report'
+    plugins:
+      uw-ipd/test-summary#8fa3c9a:
+        inputs:
+          - label: Testing - CUDA
+            artifact_path: testing.cuda.junit.xml
+            type: junit
+          - label: Testing - CPU
+            artifact_path: testing.cpu.junit.xml
+            type: junit
+          - label: Linting
+            artifact_path: linting.junit.xml
+            type: junit
+        formatter:
+          type: details
+    agents:
+      queue: cuda
 
   ### Deploy documentation to gh-pages iff running a master build
   - label: ':rocket: Pages'
