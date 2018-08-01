@@ -8,7 +8,7 @@ external libraries for test and development.
 
 All environments are managed via `conda`, however not all external
 packages may be available as conda packages. Requirements lists are split
-into "dependencies.txt" and "requirements.txt", specifying `conda`-managed
+into `dependencies.txt` and `requirements.txt`, specifying `conda`-managed
 conda dependencies and `pip`-managed pypi requirements respectively.
 Non-default conda channels are managed via (preferably) specification of
 the package channel via the {channel}::{package} syntax within
@@ -41,8 +41,8 @@ Follow these ~~simple~~ steps to add a new dependency:
    a "standard" conda channel (not `conda-forge`) then include as
    a `.dependencies` reference. Elif available on PyPI include include as
    a `.requirements` reference. Iff the package is only available via
-   a custom https channel, (eg. https://conda.ipd.uw.edu) then include
-   this channel via a ".channels" reference
+   a custom https channel, (eg. http://conda.ipd.uw.edu) then include
+   this channel via a `.channels` reference
 
 3. Verify that the dependency isn't specified on multiple levels. (Eg.
    Moved from `dev` to `core`.) `grep` is your friend.
@@ -52,4 +52,5 @@ Follow these ~~simple~~ steps to add a new dependency:
 ## Test Environment
 
 The "standard" tmol test environment is specified via a docker image under
-`test/Dockerfile`. 
+`test/Dockerfile`. This environment is used for *all* CI test steps, and
+includes the `test` and `docs` environment layers.
