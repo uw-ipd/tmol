@@ -3,5 +3,3 @@ numba
 seaborn
 biopython
 line_profiler
-
-asford::pyrosetta=2017.48.post.dev+119.fordas.devbase.cce4ea9c848
