@@ -1,17 +1,20 @@
+import attr
 import torch
+import numpy
 
 from tmol.types.functional import validate_args
 
 from tmol.types.torch import Tensor
 
-#from .params import (LKBallGlobalParams, LKBallTypePairParams)
+from .params import (WaterBuildingParams)
 
 Params = Tensor(torch.float)[...]
 CoordArray = Tensor(torch.double)[:, 3]
+WatersArray = Tensor(torch.double)[..., 3]
+BoolArray = Tensor(torch.uint8)[:]
 
 
-# get lk energy, 1-sided
-# quite similar to LK code...
+# get lk energy, 1-sided (replicates LK code)
 @validate_args
 def get_lk_1way(
         # dist d->desolv
@@ -81,20 +84,20 @@ def get_lk_1way(
 
 
 # build an acceptor water on base atoms with given d/angle/theta
-# (donor waters are trivial and built in-line)
 @validate_args
 def build_acc_waters(
-        a: CoordArray, b: CoordArray, b0: CoordArray, d: Params, angle: Params,
-        theta: Params
-) -> HTArray:
-    natoms, = a.shape
+        a: CoordArray, b: CoordArray, b0: CoordArray, dist: Params,
+        angle: Params, theta: Params
+) -> CoordArray:
+    natoms = a.shape[0]
 
     def unit_norm(v):
         return v / torch.norm(v, dim=-1, keepdim=True)
 
     # a-b-b0 triple to coordinate frame
-    Ms = torch.empty([natoms, 3], dtype=a.double, device=a.device)
-
+    Ms = torch.eye(
+        4, dtype=a.dtype, device=a.device
+    ).unsqueeze(0).repeat(natoms, 1, 1)
     xaxis = Ms[:, :3, 0]
     yaxis = Ms[:, :3, 1]
     zaxis = Ms[:, :3, 2]
@@ -111,226 +114,110 @@ def build_acc_waters(
     cth = torch.cos(angle)
     sth = torch.sin(angle)
 
-    Xforms = torch.empty([natoms, 4, 4], dtype=a.double, device=a.device)
+    Xforms = torch.empty([natoms, 4, 4], dtype=a.dtype, device=a.device)
     Xforms[:, 0, 0] = cth
     Xforms[:, 0, 1] = -sth
     Xforms[:, 0, 2] = 0
-    Xforms[:, 0, 3] = d * cth
+    Xforms[:, 0, 3] = dist * cth
     Xforms[:, 1, 0] = cph * sth
     Xforms[:, 1, 1] = cph * cth
     Xforms[:, 1, 2] = -sph
-    Xforms[:, 1, 3] = d * cph * sth
+    Xforms[:, 1, 3] = dist * cph * sth
     Xforms[:, 2, 0] = sph * sth
     Xforms[:, 2, 1] = sph * cth
     Xforms[:, 2, 2] = cph
-    Xforms[:, 2, 3] = d * sph * sth
+    Xforms[:, 2, 3] = dist * sph * sth
     Xforms[:, 3, 0] = 0
     Xforms[:, 3, 1] = 0
     Xforms[:, 3, 2] = 0
     Xforms[:, 3, 3] = 1
 
     waters = torch.matmul(Ms, Xforms)[:, :3, 3]
+    return waters
+
+
+# build a donor water on base atoms with given d/angle/theta
+@validate_args
+def build_don_waters(d: CoordArray, h: CoordArray, dist: Params) -> CoordArray:
+    dhn = (d - h)
+    dhn = dhn / dhn.norm(dim=-1).unsqueeze(dim=-1)
+    waters = d + dist.double() * dhn
 
     return waters
 
 
+# given a collection of polar atoms, calculate an N x 6 x 3 array of water molecules
+# needs to properly:
+# a) handle cases where a heavyatom is both a donor and acceptor:
+#    in these cases, donor and acceptor waters both need to be generated and assigned
+#    to the corresponding heavyatom
+# b) handle cases where a heavyatom may be donating through > 1 H
+#
 @validate_args
-def lkball_score_donor_1way(
-        # Input coordinates
-        d: CoordArray,
-        h: CoordArray,
-        desolv: CoordArray,
+def render_waters(
+        heavyatoms: CoordArray, acc_base: CoordArray, acc_base0: CoordArray,
+        don_H: WatersArray, is_sp2_acceptor: BoolArray,
+        is_sp3_acceptor: BoolArray, is_ring_acceptor: BoolArray,
+        waterparams: WaterBuildingParams
+) -> WatersArray:
+    npolar = heavyatoms.shape[0]
+    nacc = waterparams.max_acc_wat
+    ndon = 4
 
-        # dist d->desolv
-        dist: Params,
+    # expand donors
+    # we simply expand each donor atom along up to 4 D-H vectors
+    heavyatoms_exp = heavyatoms.unsqueeze(1).repeat([1, ndon, 1])
+    don_wats = build_don_waters(
+        heavyatoms_exp.view(-1, 3), don_H.view(-1, 3), waterparams.dist_donor
+    ).view(-1, ndon, 3)
 
-        # Pair score parameters (one sided)
-        lj_rad: Params,
-        lk_coeff: Params,
-        lk_inv_lambda2: Params,
-        lk_spline_close_dy1: Params,
-        lk_spline_close_x0: Params,
-        lk_spline_close_x1: Params,
-        lk_spline_close_y0: Params,
-        lk_spline_close_y1: Params,
-        lk_spline_far_dy0: Params,
-        lk_spline_far_y0: Params,
+    # expand acceptors
+    #  we build stacks of (dist,angle,tors) sets based on the donor type
+    #  each acceptor may have >1 (dist,angle,torsion) set
+    acc_wats = torch.full([npolar, nacc, 3],
+                          float('nan'),
+                          dtype=heavyatoms.dtype,
+                          device=heavyatoms.device)
+    acc_dists = torch.full([npolar, nacc],
+                           float('nan'),
+                           dtype=torch.float,
+                           device=heavyatoms.device)
+    acc_angles = acc_dists.clone()
+    acc_tors = acc_dists.clone()
 
-        # Global score parameters
-        lkb_ramp_width_A2: Params,
-        lkb_dist: Params,
-        spline_start: Params,
-        max_dis: Params,
-):
-    # 1 fa_sol energy (=lk_ball_iso)
-    lkraw = get_lk_1way(
-        dist, lj_rad, lk_coeff, lk_inv_lambda2, lk_spline_close_dy1,
-        lk_spline_close_x0, lk_spline_close_x1, lk_spline_close_y0,
-        lk_spline_close_y1, lk_spline_far_dy0, lk_spline_far_y0, spline_start,
-        max_dis
-    )
+    if (torch.sum(is_sp2_acceptor)):
+        nsp2acc_wats = len(waterparams.dists_sp2)
+        acc_dists[is_sp2_acceptor, :nsp2acc_wats] = waterparams.dists_sp2
+        acc_angles[is_sp2_acceptor, :nsp2acc_wats] = waterparams.angles_sp2
+        acc_tors[is_sp2_acceptor, :nsp2acc_wats] = waterparams.tors_sp2
 
-    # 2 virtual waters
-    dhn = (d - h)
-    dhn = dhn / dhn.norm(dim=-1).unsqueeze(dim=-1)
-    virtW = d + lkb_dist * dhn
+    if (torch.sum(is_sp3_acceptor)):
+        nsp3acc_wats = len(waterparams.dists_sp3)
+        acc_dists[is_sp2_acceptor, :nsp3acc_wats] = waterparams.dists_sp3
+        acc_angles[is_sp2_acceptor, :nsp3acc_wats] = waterparams.angles_sp3
+        acc_tors[is_sp2_acceptor, :nsp3acc_wats] = waterparams.tors_sp3
 
-    # 3 lk_ball
-    d2low = (lj_rad - lkb_ramp_width_A2) * (lj_rad - lkb_ramp_width_A2)
-    distW = (desolv - virtW)
-    d2_delta = (distW * distW).sum(dim=-1) - d2low
-    lk_frac = torch.zeros_like(d2_delta)
-    lk_frac[d2_delta > lkb_ramp_width_A2] = 1.0
-    fade_selector = (d2_delta > 0) & (d2_delta > lkb_ramp_width_A2)
-    lk_frac[fade_selector] = d2_delta[fade_selector] / lkb_ramp_width_A2
-    lk_frac[fade_selector
-            ] = (1 - lk_frac[fade_selector] * lk_frac[fade_selector])
-    lk_frac[fade_selector] = lk_frac[fade_selector] * lk_frac[fade_selector]
+    if (torch.sum(is_ring_acceptor)):
+        nringacc_wats = len(waterparams.dists_ring)
+        acc_dists[is_ring_acceptor, :nringacc_wats] = waterparams.dists_ring
+        acc_angles[is_ring_acceptor, :nringacc_wats] = waterparams.angles_ring
+        acc_tors[is_ring_acceptor, :nringacc_wats] = waterparams.tors_ring
 
-    lkball_iso = lkraw
-    lkball = lkraw * lk_frac
+    is_acc = is_sp2_acceptor | is_sp3_acceptor | is_ring_acceptor
+    if (torch.sum(is_acc)):
+        heavyatoms_exp = heavyatoms[is_acc, :].unsqueeze(1).repeat([
+            1, nacc, 1
+        ]).view(-1, 3)
+        acc_base_exp = acc_base[is_acc, :].unsqueeze(1).repeat([1, nacc, 1]
+                                                               ).view(-1, 3)
+        acc_base0_exp = acc_base0[is_acc, :].unsqueeze(1).repeat([1, nacc, 1]
+                                                                 ).view(-1, 3)
+        acc_wats[is_acc, :, :] = build_acc_waters(
+            heavyatoms_exp, acc_base_exp, acc_base0_exp, acc_dists.view(-1),
+            acc_angles.view(-1), acc_tors.view(-1)
+        ).view(-1, nacc, 3)
 
+    # merge arrays
+    waters_out = torch.cat((don_wats, acc_wats), dim=1)
 
-@validate_args
-def lkball_score_sp2_acc_1way(
-        # Input coordinates
-        a: CoordArray,
-        b: CoordArray,
-        b0: CoordArray,
-
-        # dist d->desolv
-        dist: Params,
-
-        # Pair score parameters (one sided)
-        lj_rad: Params,
-        lk_coeff: Params,
-        lk_inv_lambda2: Params,
-        lk_spline_close_dy1: Params,
-        lk_spline_close_x0: Params,
-        lk_spline_close_x1: Params,
-        lk_spline_close_y0: Params,
-        lk_spline_close_y1: Params,
-        lk_spline_far_dy0: Params,
-        lk_spline_far_y0: Params,
-
-        # Global score parameters
-        lkb_ramp_width_A2: Params,
-        lkb_dist: Params,
-        lkb_angle: Params,
-        lkb_tors1: Params,
-        lkb_tors2: Params,
-        multi_water_fade: Params,
-        spline_start: Params,
-        max_dis: Params,
-):
-    # 1 fa_sol energy (=lk_ball_iso)
-    lkraw = get_lk_1way(
-        dist, lj_rad, lk_coeff, lk_inv_lambda2, lk_spline_close_dy1,
-        lk_spline_close_x0, lk_spline_close_x1, lk_spline_close_y0,
-        lk_spline_close_y1, lk_spline_far_dy0, lk_spline_far_y0, spline_start,
-        max_dis
-    )
-
-    # 2 virtual waters
-    virtW1 = build_acc_waters(a, b0, b, lkb_dist, lkb_angle, lkb_tors1)
-    virtW2 = build_acc_waters(a, b0, b, lkb_dist, lkb_angle, lkb_tors2)
-
-    # 3 lk_ball
-    d2low = (lj_rad - lkb_ramp_width_A2) * (lj_rad - lkb_ramp_width_A2)
-    distW1 = (desolv - virtW1)
-    distW2 = (desolv - virtW2)
-    d2_delta = -multi_water_fade * torch.log(
-        torch.exp(-(distW1 * distW1).sum(dim=-1) / multi_water_fade) +
-        torch.exp(-(distW2 * distW2).sum(dim=-1) / multi_water_fade)
-    )
-    lk_frac = torch.zeros_like(d2_delta)
-    lk_frac[d2_delta > lkb_ramp_width_A2] = 1.0
-    fade_selector = (d2_delta > 0) & (d2_delta > lkb_ramp_width_A2)
-    lk_frac[fade_selector] = d2_delta[fade_selector] / lkb_ramp_width_A2
-    lk_frac[fade_selector
-            ] = (1 - lk_frac[fade_selector] * lk_frac[fade_selector])
-    lk_frac[fade_selector] = lk_frac[fade_selector] * lk_frac[fade_selector]
-
-    lkball_iso = lkraw
-    lkball = lkraw * lk_frac
-
-
-@validate_args
-def lkball_score_sp3_acc_1way(
-        # Input coordinates
-        a: CoordArray,
-        b: CoordArray,
-        b0: CoordArray,
-
-        # dist d->desolv
-        dist: Params,
-
-        # Pair score parameters (one sided)
-        lj_rad: Params,
-        lk_coeff: Params,
-        lk_inv_lambda2: Params,
-        lk_spline_close_dy1: Params,
-        lk_spline_close_x0: Params,
-        lk_spline_close_x1: Params,
-        lk_spline_close_y0: Params,
-        lk_spline_close_y1: Params,
-        lk_spline_far_dy0: Params,
-        lk_spline_far_y0: Params,
-
-        # Global score parameters
-        lkb_ramp_width_A2: Params,
-        lkb_dist: Params,
-        lkb_angle: Params,
-        lkb_tors1: Params,
-        lkb_tors2: Params,
-        multi_water_fade: Params,
-        spline_start: Params,
-        max_dis: Params,
-):
-    # identical to sp3 acceptor with different torsion params
-    lkball_score_sp2_acc_1way(
-        a, b, b0, dist, lj_rad, lk_coeff, lk_inv_lambda2, lk_spline_close_dy1,
-        lk_spline_close_x0, lk_spline_close_x1, lk_spline_close_y0,
-        lk_spline_close_y1, lk_spline_far_dy0, lk_spline_far_y0,
-        lkb_ramp_width_A2, lkb_dist, lkb_angle, lkb_tors1, lkb_tors2,
-        multi_water_fade, spline_start, max_dis
-    )
-
-
-@validate_args
-def lkball_score_ring_acc_1way(
-        # Input coordinates
-        a: CoordArray,
-        b: CoordArray,
-        b0: CoordArray,
-
-        # dist d->desolv
-        dist: Params,
-
-        # Pair score parameters (one sided)
-        lj_rad: Params,
-        lk_coeff: Params,
-        lk_inv_lambda2: Params,
-        lk_spline_close_dy1: Params,
-        lk_spline_close_x0: Params,
-        lk_spline_close_x1: Params,
-        lk_spline_close_y0: Params,
-        lk_spline_close_y1: Params,
-        lk_spline_far_dy0: Params,
-        lk_spline_far_y0: Params,
-
-        # Global score parameters
-        lkb_ramp_width_A2: Params,
-        lkb_dist: Params,
-        spline_start: Params,
-        max_dis: Params,
-):
-    # single water, treat it like donor case
-    virt_h = 2 * a - 0.5 * (b + b0)
-
-    lkball_score_donor_1way(
-        d, virt_h, dist, lj_rad, lk_coeff, lk_inv_lambda2, lk_spline_close_dy1,
-        lk_spline_close_x0, lk_spline_close_x1, lk_spline_close_y0,
-        lk_spline_close_y1, lk_spline_far_dy0, lk_spline_far_y0,
-        lkb_ramp_width_A2, lkb_dist, spline_start, max_dis
-    )
+    return waters_out
