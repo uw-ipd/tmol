@@ -133,7 +133,6 @@ class BlockedDistanceAnalysis:
         bs = block_size
         nb = num_blocks
 
-        # yapf: disable
         c_isnan = torch.isnan(coords)
         coords = coords.where(~c_isnan, coords.new_zeros(1))
 
@@ -177,7 +176,6 @@ class BlockedDistanceAnalysis:
 
         block_triu_min_dist = block_triu_dist - block_radii[block_triu_ind].sum(dim=0)
 
-        # yapf: enable
 
         return cls(
             coords=coords,
@@ -232,7 +230,7 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
                ba.block_triu_min_dist < interatomic_threshold_distance
            )
            .nonzero().squeeze(dim=-1)
-        ]  # yapf: disable
+        ]
 
         interblock_atom_pair_ind = ((
             (interblock_triu_matches.reshape((2, -1, 1, 1)) * bs) +

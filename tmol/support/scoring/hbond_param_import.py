@@ -158,7 +158,7 @@ class RosettaHBParams:
                 f"{self.path}/{t}.csv", header=None, names=table_schema[t]
             )
             for t in table_schema
-        })  # yapf:disable
+        })
 
     donor_types: pandas.DataFrame = attr.ib()
 
@@ -185,7 +185,7 @@ class RosettaHBParams:
             pandas.DataFrame({"name": self.target_acceptors}),
             self.tables.HBAccHybridization[["acc_chem_type", "hybridization"]]
                 .rename(columns={"acc_chem_type": "name"}),
-        ))  # yapf: disable
+        ))
 
         assert len(acceptor_table) == len(self.target_acceptors)
         return acceptor_table
@@ -209,7 +209,7 @@ class RosettaHBParams:
                 .drop_duplicates(),
             self.donor_types["name"].to_frame("don_chem_type"),
             self.acceptor_types["name"].to_frame("acc_chem_type"),
-        ))  # yapf: disable
+        ))
 
         assert len(pair_params.groupby(["don_chem_type", "acc_chem_type"])) == \
                len(self.target_acceptors) * len(self.target_donors)

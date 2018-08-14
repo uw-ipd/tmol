@@ -41,4 +41,4 @@ def test_residue_defs(default_database: tmol.database.ParameterDatabase):
                 assert (
                     catom.connection is None or
                     catom.connection in connection_names
-                ) # yapf: disable
+                )

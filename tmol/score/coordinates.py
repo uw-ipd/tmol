@@ -95,7 +95,7 @@ class KinematicAtomicCoordinateProvider(Factory):
             requires_grad=False,
         )
 
-        coords[kinop.kintree.id[1:]] = kincoords[1:] # yapf: disable
+        coords[kinop.kintree.id[1:]] = kincoords[1:]
 
         return coords.to(torch.float)
 

@@ -156,7 +156,7 @@ class HBondElementAnalysis(ValidateAttrs):
             )
             .query("j_a != k_a")
             .drop_duplicates(("i_a", "j_t", "k_t"))
-        ) # yapf: disable
+        )
 
         # Index of all arrangments of the form:
         #
@@ -172,7 +172,7 @@ class HBondElementAnalysis(ValidateAttrs):
             )
             .query("i_a != k_a")
             .drop_duplicates(("i_a", "k_t"))
-        ) # yapf: disable
+        )
 
         if hbond_database.atom_groups.donors:
             # Identify donors by donor-hydrogen bonds:

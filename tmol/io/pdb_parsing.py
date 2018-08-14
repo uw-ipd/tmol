@@ -41,7 +41,7 @@ atom_record_dtype = numpy.dtype([
     ("insert",      numpy.str, 1),
     ("occupancy",   numpy.float),
     ("b",           numpy.float)
-])  # yapf: disable
+])
 
 
 def parse_pdb(pdb_lines):
@@ -130,7 +130,6 @@ def parse_atom_lines(lines):
     79 - 80        LString(2)      Charge on the atom.
     """
     results = numpy.empty(len(lines), dtype=atom_record_dtype)
-    #  yapf: disable
 
     results["record_name"] = numpy.vectorize(lambda s: (s[0:6])           , otypes = [numpy.str])(lines)
     results["atomi"]       = numpy.vectorize(lambda s: int(s[6:11])       , otypes = [numpy.int])(lines)
@@ -152,7 +151,6 @@ def parse_atom_lines(lines):
     # results["segi"]       = numpy.vectorize(lambda s: str.strip(s[72:76]), otypes = [numpy.str])(lines)
     # results["element"]    = numpy.vectorize(lambda s: str.strip(s[76:78]), otypes = [numpy.str])(lines)
     # results["charge"]     = numpy.vectorize(lambda s: float(s[78:80]), otypes     = [numpy.float])(lines)
-    #  yapf: enable
 
     return results
 

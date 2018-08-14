@@ -103,7 +103,7 @@ class PackedResidueSystem:
             valid_connection = (
                 "up" in res[i].residue_type.connection_to_idx and
                 "down" in res[j].residue_type.connection_to_idx
-            ) # yapf: disable
+            )
 
             if valid_connection:
                 residue_connections.extend([
@@ -155,7 +155,7 @@ class PackedResidueSystem:
                 for cname, c_aidx in r.residue_type.connection_to_idx.items()
             ],
             columns=["resi", "cname", "internal_aidx", "aidx"]
-        ) # yapf: disable
+        )
 
         # Merge against the connection table to generate a connection entry
         # with the residue index, the connection name, the local atom index,
@@ -243,6 +243,7 @@ class PackedResidueSystem:
 
             # This yields a global torsion table every torsion, the torsion name,
             # and the associated global atom indices.
+            # fmt: off
             torsion_index = toolz.reduce(toolz.curry(pandas.merge)(how="left", copy=False), (
                 pandas.io.json.json_normalize(
                     torsion_entries
@@ -275,7 +276,8 @@ class PackedResidueSystem:
                     columns={"cname": "d.connection", "to_residue": "d.residue"}),
                 atom_lookup.rename(
                     columns={"residue_index": "d.residue", "atom_name": "d.atom", "atom_index": "d.atom_index"}),
-            )).sort_index("columns") # yapf: disable
+            )).sort_index("columns")
+            # fmt: on
         else:
             torsion_index = pandas.DataFrame({
                 "residue_index": numpy.empty(0, float),

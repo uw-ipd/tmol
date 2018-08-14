@@ -127,7 +127,7 @@ def expected_analytic_derivs():
           +1.77635684e-15,             nan,             nan,
                       nan,             nan,             nan]],
         dtype=torch.double
-    ) # yapf: disable
+    )
 
 
 @pytest.fixture

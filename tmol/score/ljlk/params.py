@@ -100,7 +100,7 @@ class LJLKParamResolver(ValidateAttrs):
             self.atom_type_index
             .get_indexer(atom_types.ravel())
             .reshape(atom_types.shape)
-        ) # yapf: disable
+        )
 
     def __getitem__(
             self,

@@ -128,6 +128,6 @@ class KinematicFun(torch.autograd.Function):
         result_derivs = working_derivs.raw[
             ctx.kinematic_op.mobile_dofs.node_idx,
             ctx.kinematic_op.mobile_dofs.dof_idx
-        ] # yapf:disable
+        ]
 
         return result_derivs

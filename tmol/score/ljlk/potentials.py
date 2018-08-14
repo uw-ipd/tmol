@@ -39,21 +39,21 @@ def render_pair_parameters(
     don_acc_pair_mask = (
         (params_a.is_donor & ~params_a.is_hydroxyl & params_b.is_acceptor) |
         (params_b.is_donor & ~params_b.is_hydroxyl & params_a.is_acceptor)
-    )  # yapf:disable
+    )
     sigma[don_acc_pair_mask] = global_params.lj_hbond_dis  # lj_hbond_dis
 
     # exception 2: acc :: OH donor radii
     don_acc_pair_mask = (
         (params_a.is_donor & params_a.is_hydroxyl & params_b.is_acceptor) |
         (params_b.is_donor & params_b.is_hydroxyl & params_a.is_acceptor)
-    )  # yapf: disable
+    )
     sigma[don_acc_pair_mask] = global_params.lj_hbond_OH_donor_dis
 
     # exception 3: acc :: donor H radii
     don_acc_pair_mask = (
         (params_a.is_polarh & params_b.is_acceptor) |
         (params_b.is_polarh & params_a.is_acceptor)
-    )  # yapf: disable
+    )
     sigma[don_acc_pair_mask] = global_params.lj_hbond_hdis  # lj_hbond_hdis
 
     # lj
@@ -218,7 +218,7 @@ def lj_score(
     u1 = (3.0 / (x1 - x0)) * (y0 / (x1 - x0))
     spline_fade_component = (
         (x - x1) * ((x - x0) * (u1 * (x0 - x) + u0 * (x - x1)) + 3 * y0)
-    ) / (3 * (x0 - x1))  # yapf: disable
+    ) / (3 * (x0 - x1))
 
     raw_lj = (
         shortrange_component * shortrange_selector.to(real) +
@@ -279,7 +279,7 @@ def lk_score(
     u1 = (3.0 / (x1 - x0)) * (dy1 - (y1 - y0) / (x1 - x0))
     near_spline_component = (
         (x - x1) * ((x - x0) * (u1 * (x0 - x) + u0 * (x - x1)) + 3 * y0)
-    ) / (3 * (x0 - x1))  # yapf: disable
+    ) / (3 * (x0 - x1))
 
     # analytic LK part
     analytic_selector = ((dist >= lk_spline_close_x1) & (dist < spline_start))
@@ -304,7 +304,7 @@ def lk_score(
     u1 = (3.0 / (x1 - x0)) * (y0 / (x1 - x0))
     far_spline_component = (
         (x - x1) * ((x - x0) * (u1 * (x0 - x) + u0 * (x - x1)) + 3 * y0)
-    ) / (3 * (x0 - x1))  # yapf: disable
+    ) / (3 * (x0 - x1))
 
     raw_lk = (
         flat_component * flat_selector.to(real) +

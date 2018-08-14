@@ -35,7 +35,7 @@ def test_ambig_identification(
         })
         .sort_values(by=["d", "h"])
         .reset_index(drop=True)
-    ) # yapf: disable
+    )
 
     assert len(expected_donors) == len(water_box_system.residues) * 2
 
@@ -46,7 +46,7 @@ def test_ambig_identification(
         })
         .sort_values(by="a")
         .reset_index(drop=True)
-    ) # yapf: disable
+    )
     assert len(expected_acceptors) == len(water_box_system.residues)
 
     element_analysis: HBondElementAnalysis = HBondElementAnalysis.setup(

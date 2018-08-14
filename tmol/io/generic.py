@@ -38,4 +38,4 @@ def pack_cdjson(coords, elems, bonds):
             for b, e in bonds
             if not numpy.any(numpy.isnan(coords[b]) | numpy.isnan(coords[e]))
         ]
-    }]}  # yapf: disable
+    }]}

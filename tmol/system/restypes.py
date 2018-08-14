@@ -33,7 +33,7 @@ class ResidueType(tmol.database.chemical.Residue):
             [(ai, bi), (bi, ai)]
             for ai, bi
             in map(map(self.atom_to_idx.get), self.bonds)
-        )  # yapf: disable
+        )
 
         bond_array = numpy.array(bondi)
         bond_array.flags.writeable = False

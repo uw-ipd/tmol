@@ -6,6 +6,8 @@
 ](https://buildkite.com/uw-ipd/tmol)
 [![codecov](https://codecov.io/gh/uw-ipd/tmol/branch/master/graph/badge.svg?token=OoO0dtKDBK)
 ](https://codecov.io/gh/uw-ipd/tmol)
+[![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+
 
 
 `tmol` is an ongoing development experiment in biomolecular modeling and

@@ -99,7 +99,7 @@ def test_pyrosetta_hbond_comparison(ubq_rosetta_baseline):
         .reset_index()
         .drop(columns=["a", "h", "b0", "b", "d"])
         .sort_index(axis="columns")
-    ) # yapf: disable
+    )
 
     inter_hbonds = score_comparison.query("res_h != res_a")
     numpy.testing.assert_allclose(

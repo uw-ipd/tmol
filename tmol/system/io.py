@@ -124,7 +124,7 @@ class ResidueReader:
             self.parse_atom_block(atoms)
             for (m, c, resi), atoms
             in atom_records.groupby(["modeli", "chaini", "resi"])
-        ]  # yapf: disable
+        ]
 
 
 def read_pdb(

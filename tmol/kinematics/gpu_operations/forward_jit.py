@@ -5,9 +5,8 @@ from .scan_jit import GenerationalSegmentedScan
 
 
 @numba.jit(nopython=True)
-def finalize_refold_indices(
-        roots, depth_offset, subpath_child_ko, ri2ki, ki2ri
-):
+def finalize_refold_indices(roots, depth_offset, subpath_child_ko, ri2ki,
+                            ki2ri):
     count = depth_offset
     for root in roots:
         nextatom = root
@@ -53,22 +52,21 @@ class HTScan(GenerationalSegmentedScan):
     @cuda.jit(device=True)
     def add(ht1, ht2):
         """matmul affine-compact homogenous transforms."""
+        # fmt: off
         return ((
             ht1[0][0] * ht2[0][0] + ht1[0][1] * ht2[1][0] + ht1[0][2] * ht2[2][0],
             ht1[0][0] * ht2[0][1] + ht1[0][1] * ht2[1][1] + ht1[0][2] * ht2[2][1],
             ht1[0][0] * ht2[0][2] + ht1[0][1] * ht2[1][2] + ht1[0][2] * ht2[2][2],
-            ht1[0][0] * ht2[0][3] + ht1[0][1] * ht2[1][3] + ht1[0][2] * ht2[2][3] +
-            ht1[0][3],
+            ht1[0][0] * ht2[0][3] + ht1[0][1] * ht2[1][3] + ht1[0][2] * ht2[2][3] + ht1[0][3],
         ), (
             ht1[1][0] * ht2[0][0] + ht1[1][1] * ht2[1][0] + ht1[1][2] * ht2[2][0],
             ht1[1][0] * ht2[0][1] + ht1[1][1] * ht2[1][1] + ht1[1][2] * ht2[2][1],
             ht1[1][0] * ht2[0][2] + ht1[1][1] * ht2[1][2] + ht1[1][2] * ht2[2][2],
-            ht1[1][0] * ht2[0][3] + ht1[1][1] * ht2[1][3] + ht1[1][2] * ht2[2][3] +
-            ht1[1][3],
+            ht1[1][0] * ht2[0][3] + ht1[1][1] * ht2[1][3] + ht1[1][2] * ht2[2][3] + ht1[1][3],
         ), (
             ht1[2][0] * ht2[0][0] + ht1[2][1] * ht2[1][0] + ht1[2][2] * ht2[2][0],
             ht1[2][0] * ht2[0][1] + ht1[2][1] * ht2[1][1] + ht1[2][2] * ht2[2][1],
             ht1[2][0] * ht2[0][2] + ht1[2][1] * ht2[1][2] + ht1[2][2] * ht2[2][2],
-            ht1[2][0] * ht2[0][3] + ht1[2][1] * ht2[1][3] + ht1[2][2] * ht2[2][3] +
-            ht1[2][3],
-        )) # yapf: disable
+            ht1[2][0] * ht2[0][3] + ht1[2][1] * ht2[1][3] + ht1[2][2] * ht2[2][3] + ht1[2][3],
+        ))
+        # fmt: on

@@ -26,9 +26,7 @@ steps:
 
   ### Run formatting/linting checks.
   - label: ':microscope: Linting'
-    command: .buildkite/bin/linting --junitxml=linting.junit.xml
-    artifact_paths:
-      - linting.junit.xml
+    command: .buildkite/bin/linting
     << : *test_agent
     << : *cuda_container
 
@@ -79,9 +77,6 @@ steps:
             type: junit
           - label: Testing - CPU
             artifact_path: testing.cpu.junit.xml
-            type: junit
-          - label: Linting
-            artifact_path: linting.junit.xml
             type: junit
         formatter:
           type: details
