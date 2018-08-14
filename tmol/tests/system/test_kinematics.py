@@ -14,7 +14,10 @@ def report_tree_coverage(
     torsion_metadata = pandas.DataFrame.from_records(sys.torsion_metadata)
     torsion_coverage = pandas.merge(
         left=torsion_metadata.query(
-            "atom_index_a >= 0 and atom_index_b >= 0 and atom_index_c >= 0 and atom_index_d >= 0"
+            "atom_index_a >= 0 "
+            "and atom_index_b >= 0 "
+            "and atom_index_c >= 0 "
+            "and atom_index_d >= 0 "
         ),
         left_on=["atom_index_b", "atom_index_c"],
         right=kinematic_metadata.query("dof_type == 'bond_torsion'"),

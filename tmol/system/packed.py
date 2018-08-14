@@ -243,12 +243,11 @@ class PackedResidueSystem:
 
             # This yields a global torsion table every torsion, the torsion name,
             # and the associated global atom indices.
-            # fmt: off
             torsion_index = toolz.reduce(toolz.curry(pandas.merge)(how="left", copy=False), (
                 pandas.io.json.json_normalize(
                     torsion_entries
                 )[[
-                    # Select the torsion descriptor components required for merge.
+                    # Select torsion descriptor components required for merge.
                     "residue_index",
                     "name",
                     "a.atom",
@@ -277,7 +276,6 @@ class PackedResidueSystem:
                 atom_lookup.rename(
                     columns={"residue_index": "d.residue", "atom_name": "d.atom", "atom_index": "d.atom_index"}),
             )).sort_index("columns")
-            # fmt: on
         else:
             torsion_index = pandas.DataFrame({
                 "residue_index": numpy.empty(0, float),

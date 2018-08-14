@@ -73,7 +73,7 @@ class KinematicBuilder:
     def bonds_to_csgraph(
             cls,
             bonds: NDArray(int)[:, 2],
-            weights: NDArray(float)[:] = numpy.ones(1),
+            weights: NDArray(float)[:] = numpy.ones(1), # noqa
             system_size: Optional[int] = None,
     ) -> sparse.csr_matrix:
         if not system_size:

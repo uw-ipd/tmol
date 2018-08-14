@@ -16,8 +16,12 @@ As a motivating example, `reactive` lets you write::
     class FactionalAnalysis:
         source: str
 
-        montegue_faction: Sequence[str] = ["Romeo", "Benvolio", "Montegue", "Lady Montegue"]
-        capulet_faction: Sequence[str] = ["Juliet", "Tybalt", "Capulet", "Lady Capulet"]
+        montegue_faction: Sequence[str] = [
+            "Romeo", "Benvolio", "Montegue", "Lady Montegue"
+        ]
+        capulet_faction: Sequence[str] = [
+            "Juliet", "Tybalt", "Capulet", "Lady Capulet"
+        ]
 
         @reactive_property
         def lines(source);
@@ -232,8 +236,12 @@ additional form of sentiment analysis::
     class Source:
         source: str
 
-        montegue_faction: Sequence[str] = ["Romeo", "Benvolio", "Montegue", "Lady Montegue"]
-        capulet_faction: Sequence[str] = ["Juliet", "Tybalt", "Capulet", "Lady Capulet"]
+        montegue_faction: Sequence[str] = [
+            "Romeo", "Benvolio", "Montegue", "Lady Montegue"
+        ]
+        capulet_faction: Sequence[str] = [
+            "Juliet", "Tybalt", "Capulet", "Lady Capulet"
+        ]
 
         @reactive_property
         def lines(source);
@@ -494,7 +502,8 @@ class _ReactiveProperty:
                 )
             elif set(parameter_names).intersection(kwargs):
                 raise ValueError(
-                    "Specified kwarg is already explict parameter. parameters: {params} kwargs: {kwargs}"
+                    f"Specified kwarg is already explict parameter. "
+                    f"parameters: {parameter_names} kwargs: {kwargs}"
                 )
 
             parameter_names = parameter_names + tuple(kwargs)
@@ -567,7 +576,7 @@ def _setup_reactive(cls):
     cls.__setattr__ = __reactive_setattr__
     cls.__delattr__ = __reactive_delattr__
 
-    #for p in reactive_props:
+    # for p in reactive_props:
     #    prop_attr = attr.ib(init=False, repr=False, cmp=False, hash=False)
 
     #    prop_attr_name = "_" + p.name

@@ -64,7 +64,8 @@ class ResidueReader:
 
         candidate_types = self.residue_types.get(resn, [])
         self.logger.debug(
-            f"resolved candidate_types resn: {resn} types:{[t.name for t in candidate_types]}"
+            f"resolved candidate_types resn: {resn} "
+            f"types:{[t.name for t in candidate_types]}"
         )
 
         if not candidate_types:

@@ -20,7 +20,7 @@ def coord_dihedrals(
     """
 
     # Implementation derived from the "Praxeolitic" method, described at
-    # https://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python
+    # https://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python # noqa
 
     ba = a - b
     bc = c - b

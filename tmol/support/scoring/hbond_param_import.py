@@ -1,14 +1,17 @@
 """ Parse and import rosetta hydrogen bond parameters.
 
-Manages parsing and import a subset of rosetta hydrogen bond parameters into a hydrogen bond
-parameter database file. Selects a minimal subset of polynomial parameters and type pair parameters
-to cover a specificed set of donor/acceptor types.
+Manages parsing and import a subset of rosetta hydrogen bond parameters into a
+hydrogen bond parameter database file. Selects a minimal subset of polynomial
+parameters and type pair parameters to cover a specificed set of donor/acceptor
+types.
 
 Example::
 
     with open("sp2_elec_hbond_params.yaml", "w") as outfile:
         params = RosettaHBParams(
-            "~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/")
+            "~/workspace/rosetta/main/"
+            "database/scoring/score_functions/hbonds/sp2_elec_params/"
+        )
         params.to_yaml(outfile)
 """
 
@@ -265,24 +268,24 @@ class RosettaHBParams:
         with p.group(2, ):
             _("donors:")
             with p.group(2):
-                for i, d in self.donor_types.iterrows():
+                for _i, d in self.donor_types.iterrows():
                     _(f"- {d['name']} #{d['comment']}")
 
             _("sp2_acceptors:")
             with p.group(2):
-                for i, a in self.acceptor_types.query(
+                for _i, a in self.acceptor_types.query(
                         "hybridization == 'SP2_HYBRID'").iterrows():
                     _(f"- {a['name']} #{a['comment']}")
 
             _("sp3_acceptors:")
             with p.group(2):
-                for i, a in self.acceptor_types.query(
+                for _i, a in self.acceptor_types.query(
                         "hybridization == 'SP3_HYBRID'").iterrows():
                     _(f"- {a['name']} #{a['comment']}")
 
             _("ring_acceptors:")
             with p.group(2):
-                for i, a in self.acceptor_types.query(
+                for _i, a in self.acceptor_types.query(
                         "hybridization == 'RING_HYBRID'").iterrows():
                     _(f"- {a['name']} #{a['comment']}")
 

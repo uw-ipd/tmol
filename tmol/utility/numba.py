@@ -28,7 +28,7 @@ current_context = devices.get_context
 
 
 def _get_devptr_for_active_ctx(ptr):
-    """Hack implemenation of internal numba 0.39 api, always assume pointer is on device."""
+    """Hack of internal numba 0.39 api, always assume pointer is on device."""
     return c_ulong(ptr)
 
 

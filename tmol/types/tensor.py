@@ -207,15 +207,17 @@ class TensorGroup:
         return shape
 
     def to(self, *args, **kwargs):
-        """Perform dtype and/or device conversion for all subtensors via torch.Tensor.to.
+        """Perform dtype/device conversion for all subtensors.
 
         Note that this may be an invalid operations if the TensorGroup contains
         heterogenous tensor dtypes.
 
-        Performs Tensor dtype and/or device conversion. A :class:`torch.dtype` and :class:`torch.device` are
-        inferred from the arguments of ``self.to(*args, **kwargs)``.
+        Performs Tensor dtype and/or device conversion. A :class:`torch.dtype`
+        and :class:`torch.device` are inferred from the arguments of
+        ``self.to(*args, **kwargs)``.
 
-        If all subtensors already have the correct dtype and device then ``self`` is returned.
+        If all subtensors already have the correct dtype and device then
+        ``self`` is returned.
         """
 
         self._check_pure_tensor()

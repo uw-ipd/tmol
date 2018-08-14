@@ -194,7 +194,8 @@ texinfo_documents = [
 
 # -- Options for intersphinx extension ---------------------------------------
 
-# Dump intersphinx mappings via `python -m sphinx.ext.intersphinx`, reference via explict project targets.
+# Dump intersphinx mappings via `python -m sphinx.ext.intersphinx`, reference
+# via explict project targets.
 #
 # Eg:
 #    python -m sphinx.ext.intersphinx 'http://www.attrs.org/en/stable/objects.inv'

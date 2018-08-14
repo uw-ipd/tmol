@@ -26,12 +26,14 @@ def _nan_to_num(var):
 class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
     """Base graph for interatomic distances.
 
-    Graph component calculating interatomic distances. Distances are present *once* in the source
-    graph for a given atomic pair; the rendered distances are equivalent to the upper triangle of
-    the full interatomic distance matrix.
+    Graph component calculating interatomic distances. Distances are present
+    *once* in the source graph for a given atomic pair; the rendered distances
+    are equivalent to the upper triangle of the full interatomic distance
+    matrix.
 
-    Distances are rendered as two tensor properties, ``atom_pair_inds`` and ``atom_pair_dist``,
-    containing the pair of atomic indicies in ``coords`` and the calculated distance respectively.
+    Distances are rendered as two tensor properties, ``atom_pair_inds`` and
+    ``atom_pair_dist``, containing the pair of atomic indicies in ``coords``
+    and the calculated distance respectively.
 
     Components requiring access to interatomic distance components *must* make
     the component's interatomic threshold distance available by implementing
@@ -48,7 +50,8 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
         if hasattr(super(), "__attrs_post_init__"):
             super().__attrs_post_init__()
 
-    #interaction threshold distances that *may* be used to optimize distance pair selection
+    # interaction threshold distances that *may* be used to optimize distance
+    # pair selection
     atom_pair_dist_thresholds: Dict[str, float] = attr.ib(
         repr=False, init=False
     )
@@ -95,7 +98,7 @@ class NaiveInteratomicDistanceGraph(InteratomicDistanceGraphBase):
 
 @attr.s(slots=True, auto_attribs=True, frozen=True)
 class BlockedDistanceAnalysis:
-    #atom block size for block-neighbor optimization
+    # atom block size for block-neighbor optimization
     block_size: int = attr.ib()
 
     @block_size.validator
@@ -221,7 +224,7 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
             interblock_analysis: BlockedDistanceAnalysis,
             interatomic_threshold_distance: float,
     ) -> Tensor(torch.long)[:, 2]:
-        """Indices for all atom pairs potentially within interaction threshold distance."""
+        """Indices for atom pairs potentially within interaction threshold distance."""
         ba: BlockedDistanceAnalysis = interblock_analysis
         bs: int = interblock_analysis.block_size
         nb: int = system_size / interblock_analysis.block_size

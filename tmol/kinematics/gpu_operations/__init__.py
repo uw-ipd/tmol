@@ -48,7 +48,8 @@ class GPUKinTreeReordering(ValidateAttrs):
     * Mark Harris, "Parallel Prefix Sum with CUDA."
       GPU Gems 3, Nvidia Corporation
       https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html
-      http://developer.download.nvidia.com/compute/cuda/2_2/sdk/website/projects/scan/doc/scan.pdf
+      http://developer.download.nvidia.com/
+      compute/cuda/2_2/sdk/website/projects/scan/doc/scan.pdf
 
     * Sengupta, Shubhabrata, et al. "Scan primitives for GPU computing."
       Graphics hardware. Vol. 2007. 2007.
