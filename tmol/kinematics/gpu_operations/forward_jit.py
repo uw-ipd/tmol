@@ -5,8 +5,7 @@ from .scan_jit import GenerationalSegmentedScan
 
 
 @numba.jit(nopython=True)
-def finalize_refold_indices(roots, depth_offset, subpath_child_ko, ri2ki,
-                            ki2ri):
+def finalize_refold_indices(roots, depth_offset, subpath_child_ko, ri2ki, ki2ri):
     count = depth_offset
     for root in roots:
         nextatom = root

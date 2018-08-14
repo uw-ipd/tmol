@@ -21,9 +21,7 @@ def rosetta_database(pyrosetta):
 
     if "ROSETTA_DATABASE" in os.environ:
         normpath = toolz.compose(
-            os.path.abspath,
-            os.path.expanduser,
-            os.path.expandvars,
+            os.path.abspath, os.path.expanduser, os.path.expandvars
         )
         return normpath(os.environ.get("ROSETTA_DATABASE"))
     elif pyrosetta:
@@ -42,5 +40,5 @@ rosetta_database_available = pyrosetta_available or "ROSETTA_DATABASE" in os.env
 
 requires_rosetta_database = pytest.mark.skipif(
     not rosetta_database_available,
-    reason="Requires rosetta database via pyrosetta or ROSETTA_DATABASE env."
+    reason="Requires rosetta database via pyrosetta or ROSETTA_DATABASE env.",
 )

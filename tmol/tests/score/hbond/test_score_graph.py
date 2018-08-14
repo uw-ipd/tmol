@@ -13,20 +13,14 @@ from tmol.utility.reactive import reactive_attrs
 
 
 @reactive_attrs
-class HBGraph(
-        CartesianAtomicCoordinateProvider,
-        HBondScoreGraph,
-        TorchDevice,
-):
+class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice):
     pass
 
 
 def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     """`bb_only` covers cases missing specific classes of acceptors."""
     hbond_graph = HBGraph.build_for(
-        ubq_system,
-        device=torch_device,
-        hbond_database=test_hbond_database,
+        ubq_system, device=torch_device, hbond_database=test_hbond_database
     )
 
     nan_scores = torch.nonzero(torch.isnan(hbond_graph.hbond_scores))
@@ -39,14 +33,10 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     assert len(nan_grads) == 0
 
 
-@pytest.mark.benchmark(
-    group="score_setup",
-)
+@pytest.mark.benchmark(group="score_setup")
 def test_hbond_score_setup(benchmark, ubq_system, torch_device):
     graph_params = HBGraph.init_parameters_for(
-        ubq_system,
-        requires_grad=True,
-        device=torch_device,
+        ubq_system, requires_grad=True, device=torch_device
     )
 
     @benchmark

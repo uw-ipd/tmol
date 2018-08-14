@@ -12,21 +12,13 @@ from tmol.system.packed import PackedResidueSystem
 
 
 def hbond_score_comparison(rosetta_baseline):
-    test_system = (
-        PackedResidueSystem.from_residues(rosetta_baseline.tmol_residues)
-    )
+    test_system = PackedResidueSystem.from_residues(rosetta_baseline.tmol_residues)
 
     @reactive_attrs
-    class HBGraph(
-            CartesianAtomicCoordinateProvider,
-            HBondScoreGraph,
-    ):
+    class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph):
         pass
 
-    hbond_graph = HBGraph.build_for(
-        test_system,
-        requires_grad=False,
-    )
+    hbond_graph = HBGraph.build_for(test_system, requires_grad=False)
 
     # Extract list of hbonds from packed system into summary table
     # via atom metadata
@@ -53,21 +45,24 @@ def hbond_score_comparison(rosetta_baseline):
 
     # Merge with named atom index to get atom indicies in packed system
     # hbonds columns: ["a_atom", "a_res", "h_atom", "h_res", "energy"]
-    named_atom_index = (
-        pandas.DataFrame(test_system.atom_metadata)
-        .set_index(["residue_index", "atom_name"])["atom_index"]
-    )
-    rosetta_hbonds = toolz.curried.reduce(pandas.merge)((
-        rosetta_baseline.hbonds,
+    named_atom_index = pandas.DataFrame(test_system.atom_metadata).set_index(
+        ["residue_index", "atom_name"]
+    )["atom_index"]
+    rosetta_hbonds = toolz.curried.reduce(pandas.merge)(
         (
-            named_atom_index.rename_axis(["a_res", "a_atom"])
-            .to_frame("a").reset_index()
-        ),
-        (
-            named_atom_index.rename_axis(["h_res", "h_atom"])
-            .to_frame("h").reset_index()
-        ),
-    )).set_index(["a", "h"])
+            rosetta_baseline.hbonds,
+            (
+                named_atom_index.rename_axis(["a_res", "a_atom"])
+                .to_frame("a")
+                .reset_index()
+            ),
+            (
+                named_atom_index.rename_axis(["h_res", "h_atom"])
+                .to_frame("h")
+                .reset_index()
+            ),
+        )
+    ).set_index(["a", "h"])
 
     return pandas.merge(
         rosetta_hbonds["energy"].to_frame("score_rosetta"),
@@ -88,14 +83,15 @@ def test_pyrosetta_hbond_comparison(ubq_rosetta_baseline):
         "abs((score_tmol - score_rosetta) / ((score_tmol + score_rosetta) / 2))"
     )
     score_comparison = (
-        score_comparison
-        .sort_values(by="score_rel_delta")
-        .rename(columns={
-            "h_res": "res_h",
-            "h_atom": "atom_h",
-            "a_res": "res_a",
-            "a_atom": "atom_a",
-        })
+        score_comparison.sort_values(by="score_rel_delta")
+        .rename(
+            columns={
+                "h_res": "res_h",
+                "h_atom": "atom_h",
+                "a_res": "res_a",
+                "a_atom": "atom_a",
+            }
+        )
         .reset_index()
         .drop(columns=["a", "h", "b0", "b", "d"])
         .sort_index(axis="columns")

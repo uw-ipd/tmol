@@ -12,8 +12,7 @@ def qualified_name(obj: Union[Type, Callable]) -> QualifiedName:
 
 
 def gather_superclass_properies(
-        obj: Any,
-        property_name: str,
+    obj: Any, property_name: str
 ) -> Dict[QualifiedName, Any]:
     """Gather property values from all base classes of an object.
 
@@ -32,12 +31,7 @@ def gather_superclass_properies(
     return vals
 
 
-def cooperative_superclass_factory(
-        cls,
-        factory_func_name,
-        *args,
-        **kwargs,
-):
+def cooperative_superclass_factory(cls, factory_func_name, *args, **kwargs):
     """Gather class factory components from subclasses and create object.
 
     Traverses a class __mro__ in *reverse* order accumulating __init__

@@ -20,9 +20,7 @@ from tmol.system.kinematics import KinematicDescription
 from tmol.tests.torch import requires_cuda
 
 
-@pytest.mark.benchmark(
-    group="kinematic_forward_op",
-)
+@pytest.mark.benchmark(group="kinematic_forward_op")
 def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
@@ -34,9 +32,7 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
 
     kop = KinematicOp.from_coords(
-        tkin.kintree,
-        torsion_dofs,
-        kincoords.to(torch_device),
+        tkin.kintree, torsion_dofs, kincoords.to(torch_device)
     )
 
     @benchmark
@@ -47,12 +43,8 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     assert refold_kincoords.device.type == torch_device.type
 
 
-@pytest.mark.benchmark(
-    group="kinematic_backward_op",
-)
-def test_kinematic_torch_op_backward_benchmark(
-        benchmark, ubq_system, torch_device
-):
+@pytest.mark.benchmark(group="kinematic_backward_op")
+def test_kinematic_torch_op_backward_benchmark(benchmark, ubq_system, torch_device):
     tsys = ubq_system
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
@@ -62,11 +54,7 @@ def test_kinematic_torch_op_backward_benchmark(
 
     kincoords = tkin.extract_kincoords(tsys.coords).to(torch_device)
 
-    kop = KinematicOp.from_coords(
-        tkin.kintree,
-        torsion_dofs,
-        kincoords,
-    )
+    kop = KinematicOp.from_coords(tkin.kintree, torsion_dofs, kincoords)
 
     src_mobile_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
 
@@ -83,26 +71,17 @@ def test_kinematic_torch_op_backward_benchmark(
 
 @pytest.fixture
 def gradcheck_test_system(
-        ubq_res: typing.Sequence[Residue],
-) -> typing.Tuple[KinTree,
-                  DOFMetadata,
-                  Tensor("f8")[:, 3],
-                  ]:
+    ubq_res: typing.Sequence[Residue],
+) -> typing.Tuple[KinTree, DOFMetadata, Tensor("f8")[:, 3]]:
     tsys = PackedResidueSystem.from_residues(ubq_res[:4])
     tkin = KinematicDescription.for_system(tsys.bonds, tsys.torsion_metadata)
 
-    return (
-        tkin.kintree,
-        tkin.dof_metadata,
-        tkin.extract_kincoords(tsys.coords),
-    )
+    return (tkin.kintree, tkin.dof_metadata, tkin.extract_kincoords(tsys.coords))
 
 
-def kop_gradcheck_report(
-        kop, dofs, start_dofs, eps=1e-6, atol=1e-5, rtol=1e-3
-):
+def kop_gradcheck_report(kop, dofs, start_dofs, eps=1e-6, atol=1e-5, rtol=1e-3):
     initial_gradcheck = torch.autograd.gradcheck(
-        kop, (start_dofs, ), raise_exception=False
+        kop, (start_dofs,), raise_exception=False
     )
 
     if initial_gradcheck:
@@ -114,29 +93,31 @@ def kop_gradcheck_report(
     result = kop(start_dofs)
 
     # Extract results from torch/autograd/gradcheck.py
-    (analytical, ), reentrant, correct_grad_sizes = get_analytical_jacobian(
-        (start_dofs, ), result
+    (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
+        (start_dofs,), result
     )
     numerical = get_numerical_jacobian(kop, start_dofs, start_dofs, eps)
 
     a = analytical
     n = numerical
 
-    grad_match = ((a - n).abs() <= (atol + rtol * n.abs()))
+    grad_match = (a - n).abs() <= (atol + rtol * n.abs())
     if grad_match.all():
         return
 
     failures = torch.nonzero(~grad_match)
     nfailures = len(failures)
-    failures = pandas.DataFrame({
-        "dof_input": failures[:, 0],
-        "node_idx": failures[:, 1] / 3,
-        "node_coord": numpy.array(list("xyz"))[failures[:, 1] % 3],
-        "analytical": a[~grad_match],
-        "numerical": n[~grad_match],
-    }).drop_duplicates()[[
-        "dof_input", "node_idx", "node_coord", "analytical", "numerical"
-    ]]
+    failures = pandas.DataFrame(
+        {
+            "dof_input": failures[:, 0],
+            "node_idx": failures[:, 1] / 3,
+            "node_coord": numpy.array(list("xyz"))[failures[:, 1] % 3],
+            "analytical": a[~grad_match],
+            "numerical": n[~grad_match],
+        }
+    ).drop_duplicates()[
+        ["dof_input", "node_idx", "node_coord", "analytical", "numerical"]
+    ]
 
     dof_summary = dofs.to_frame()
     failing_dofs = failures["dof_input"].drop_duplicates().values
@@ -147,26 +128,22 @@ def kop_gradcheck_report(
     )
 
     # Rerun gradcheck to w/ exception to return full error.
-    torch.autograd.gradcheck(kop, (start_dofs, ), raise_exception=True)
+    torch.autograd.gradcheck(kop, (start_dofs,), raise_exception=True)
 
 
-def test_kinematic_torch_op_gradcheck_perturbed(
-        gradcheck_test_system, torch_device
-):
+def test_kinematic_torch_op_gradcheck_perturbed(gradcheck_test_system, torch_device):
     kintree, dofs, kincoords = gradcheck_test_system
 
     # Temporary workaround for #45, disable theta for post-jump siblings
-    post_root_siblings = ((dofs.parent_id == 0) &
-                          (dofs.dof_type == DOFTypes.bond_angle))
+    post_root_siblings = (dofs.parent_id == 0) & (dofs.dof_type == DOFTypes.bond_angle)
     dofs = dofs[~post_root_siblings]
 
     kop = KinematicOp.from_coords(kintree, dofs, kincoords.to(torch_device))
 
     torch.random.manual_seed(1663)
     start_dofs = torch.tensor(
-        kop.src_mobile_dofs +
-        ((torch.rand_like(kop.src_mobile_dofs) - .5) * .01),
-        requires_grad=True
+        kop.src_mobile_dofs + ((torch.rand_like(kop.src_mobile_dofs) - .5) * .01),
+        requires_grad=True,
     )
 
     kop_gradcheck_report(kop, dofs, start_dofs)
@@ -176,13 +153,10 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system, torch_device):
     kintree, dofs, kincoords = gradcheck_test_system
 
     # Temporary workaround for #45, disable theta for post-jump siblings
-    post_root_siblings = ((dofs.parent_id == 0) &
-                          (dofs.dof_type == DOFTypes.bond_angle))
+    post_root_siblings = (dofs.parent_id == 0) & (dofs.dof_type == DOFTypes.bond_angle)
     dofs = dofs[~post_root_siblings]
 
-    kop = KinematicOp.from_coords(
-        kintree, dofs, kincoords.to(device=torch_device)
-    )
+    kop = KinematicOp.from_coords(kintree, dofs, kincoords.to(device=torch_device))
 
     start_dofs = torch.tensor(kop.src_mobile_dofs, requires_grad=True)
 
@@ -190,7 +164,7 @@ def test_kinematic_torch_op_gradcheck(gradcheck_test_system, torch_device):
 
 
 def test_kinematic_torch_op_smoke(
-        gradcheck_test_system, torch_backward_coverage, torch_device
+    gradcheck_test_system, torch_backward_coverage, torch_device
 ):
     """Smoke test of kinematic operation with backward-pass code coverage."""
     kintree, dofs, kincoords = gradcheck_test_system

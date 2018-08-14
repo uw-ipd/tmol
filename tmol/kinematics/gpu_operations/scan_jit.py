@@ -75,13 +75,13 @@ class GenerationalSegmentedScan:
 
     @classmethod
     def segscan_by_generation(
-            cls,
-            threads_per_block,  # int
-            src_vals,  # [n] + [val_shape]
-            scan_to_src_ordering,  # [n]
-            is_path_root,  #[n]
-            non_path_inputs,  #[n, max_num_inputs]
-            generation_ranges,  #[g, 2]
+        cls,
+        threads_per_block,  # int
+        src_vals,  # [n] + [val_shape]
+        scan_to_src_ordering,  # [n]
+        is_path_root,  # [n]
+        non_path_inputs,  # [n, max_num_inputs]
+        generation_ranges,  # [g, 2]
     ):
         cls.get_kernel(threads_per_block)[1, threads_per_block](
             src_vals,
@@ -101,8 +101,7 @@ class GenerationalSegmentedScan:
         _kernel_cache = getattr(cls, "_kernel_cache")
 
         if threads_per_block not in _kernel_cache:
-            _kernel_cache[threads_per_block
-                          ] = cls._generate_kernel(threads_per_block)
+            _kernel_cache[threads_per_block] = cls._generate_kernel(threads_per_block)
 
         return _kernel_cache[threads_per_block]
 
@@ -123,7 +122,7 @@ class GenerationalSegmentedScan:
         load = cls.load
         save = cls.save
 
-        shared_shape = (threads_per_block, ) + cls.val_shape
+        shared_shape = (threads_per_block,) + cls.val_shape
 
         n_scan_iter = int(math.log2(threads_per_block))
 
@@ -132,15 +131,14 @@ class GenerationalSegmentedScan:
         # made available to numba.
         @cuda.jit
         def _segscan_by_generation(
-                src_vals,  # [n] + [val_shape]
-                scan_to_src_ordering,  # [n]
-                is_path_root,  #[n]
-                non_path_inputs,  #[n, max_num_inputs]
-                generation_ranges,  #[g, 2]
+            src_vals,  # [n] + [val_shape]
+            scan_to_src_ordering,  # [n]
+            is_path_root,  # [n]
+            non_path_inputs,  # [n, max_num_inputs]
+            generation_ranges,  # [g, 2]
         ):
             shared_vals = cuda.shared.array(shared_shape, numba.float64)
-            shared_is_root = cuda.shared.array((threads_per_block),
-                                               numba.int32)
+            shared_is_root = cuda.shared.array((threads_per_block), numba.int32)
 
             pos = cuda.grid(1)
 
@@ -171,10 +169,8 @@ class GenerationalSegmentedScan:
                             input_ind = non_path_inputs[ii_ind, jj]
                             if input_ind != -1:
                                 my_val = add(
-                                    load(
-                                        src_vals,
-                                        scan_to_src_ordering[input_ind]
-                                    ), my_val
+                                    load(src_vals, scan_to_src_ordering[input_ind]),
+                                    my_val,
                                 )
 
                         ### Sum carry value from previous block if node 0 is non-root.

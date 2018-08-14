@@ -31,9 +31,7 @@ class ResidueReader:
     def get_default(cls) -> "ResidueReader":
         """Load and return reader over default parameter database."""
         if cls.__default is None:
-            cls.__default = cls.from_database(
-                ParameterDatabase.get_default().chemical
-            )
+            cls.__default = cls.from_database(ParameterDatabase.get_default().chemical)
         return cls.__default
 
     @classmethod
@@ -43,21 +41,17 @@ class ResidueReader:
             (
                 cattr.structure(cattr.unstructure(r), ResidueType)
                 for r in chemical_db.residues
-            )
+            ),
         )
 
-        return cls(
-            chemical_db=chemical_db,
-            residue_types=residue_types,
-        )
+        return cls(chemical_db=chemical_db, residue_types=residue_types)
 
     chemical_db: ChemicalDatabase
     residue_types: Mapping[ResName3, ResidueType]
 
     logger: logging.Logger = ClassLogger
 
-    def resolve_type(self, resn: ResName3,
-                     atomns: Collection[str]) -> ResidueType:
+    def resolve_type(self, resn: ResName3, atomns: Collection[str]) -> ResidueType:
         """Return the best-match residue type for a collection of atom records."""
 
         atomns = set(atomns)
@@ -72,9 +66,7 @@ class ResidueReader:
             raise ValueError(f"Unknown residue name: {resn}")
 
         missing_atoms = [
-            set(a.name
-                for a in t.atoms).difference(atomns)
-            for t in candidate_types
+            set(a.name for a in t.atoms).difference(atomns) for t in candidate_types
         ]
 
         if len(candidate_types) == 1:
@@ -86,22 +78,17 @@ class ResidueReader:
             )
 
             best_idx = min(
-                range(len(candidate_types)),
-                key=lambda i: len(missing_atoms[i])
+                range(len(candidate_types)), key=lambda i: len(missing_atoms[i])
             )
 
         if missing_atoms[best_idx]:
-            self.logger.info(
-                f"missing atoms in input: {missing_atoms[best_idx]}"
-            )
+            self.logger.info(f"missing atoms in input: {missing_atoms[best_idx]}")
 
         return candidate_types[best_idx]
 
     def parse_atom_block(self, atoms):
         residue_name = unique_val(atoms.resn)
-        atom_coords = atoms.set_index(
-            "atomn", verify_integrity=True
-        )[["x", "y", "z"]]
+        atom_coords = atoms.set_index("atomn", verify_integrity=True)[["x", "y", "z"]]
         residue_type = self.resolve_type(residue_name, atom_coords.index)
 
         res = Residue(residue_type=residue_type)
@@ -123,14 +110,14 @@ class ResidueReader:
 
         return [
             self.parse_atom_block(atoms)
-            for (m, c, resi), atoms
-            in atom_records.groupby(["modeli", "chaini", "resi"])
+            for (m, c, resi), atoms in atom_records.groupby(
+                ["modeli", "chaini", "resi"]
+            )
         ]
 
 
 def read_pdb(
-        pdb_string: str,
-        residue_reader: Optional[ResidueReader] = None,
+    pdb_string: str, residue_reader: Optional[ResidueReader] = None
 ) -> PackedResidueSystem:
     if not residue_reader:
         residue_reader = ResidueReader.get_default()

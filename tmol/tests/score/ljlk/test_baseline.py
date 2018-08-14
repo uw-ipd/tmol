@@ -10,31 +10,23 @@ from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 
 @reactive_attrs
 class LJLKGraph(
-        CartesianAtomicCoordinateProvider,
-        BlockedInteratomicDistanceGraph,
-        LJLKScoreGraph,
+    CartesianAtomicCoordinateProvider, BlockedInteratomicDistanceGraph, LJLKScoreGraph
 ):
     pass
 
 
 @pytest.mark.xfail
 def test_ljlk_numpyros_comparison(ubq_system):
-    expected_scores = {
-        'lj_atr': -425.3,
-        'lj_rep': 248.8,
-        'lk': 255.8,
-    }
+    expected_scores = {"lj_atr": -425.3, "lj_rep": 248.8, "lk": 255.8}
 
     test_graph = LJLKGraph.build_for(
-        ubq_system,
-        drop_missing_atoms=False,
-        requires_grad=False,
+        ubq_system, drop_missing_atoms=False, requires_grad=False
     )
 
     numpy.testing.assert_allclose(
         test_graph.total_lj.detach(),
         expected_scores["lj_atr"] + expected_scores["lj_rep"],
-        rtol=5e-3
+        rtol=5e-3,
     )
 
     numpy.testing.assert_allclose(
@@ -44,16 +36,10 @@ def test_ljlk_numpyros_comparison(ubq_system):
 
 def test_baseline_comparison(ubq_system, torch_device):
     test_graph = LJLKGraph.build_for(
-        ubq_system,
-        drop_missing_atoms=False,
-        requires_grad=False,
-        device=torch_device,
+        ubq_system, drop_missing_atoms=False, requires_grad=False, device=torch_device
     )
 
-    expected_scores = {
-        'total_lj': -176.5,
-        'total_lk': 249.3,
-    }
+    expected_scores = {"total_lj": -176.5, "total_lk": 249.3}
 
     for term, val in expected_scores.items():
         numpy.testing.assert_allclose(

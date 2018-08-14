@@ -460,29 +460,32 @@ class _ReactiveProperty:
 
     @classmethod
     def from_function(
-            cls,
-            fun: Callable,
-            kwargs: Optional[Union[str, Tuple[str, ...]]] = None
+        cls, fun: Callable, kwargs: Optional[Union[str, Tuple[str, ...]]] = None
     ):
         parameters = inspect.signature(fun).parameters.values()
 
         param_types = set(p.kind for p in parameters)
 
         ### Check for any positional-only arguments
-        if any(param_type not in (inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                                  inspect.Parameter.KEYWORD_ONLY,
-                                  inspect.Parameter.VAR_KEYWORD)
-               for param_type in param_types):
+        if any(
+            param_type
+            not in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+                inspect.Parameter.VAR_KEYWORD,
+            )
+            for param_type in param_types
+        ):
             raise ValueError(
                 f"function signature contains invalid parameter type: {parameters}"
             )
 
         ### Get name of all keyword params
         parameter_names = tuple(
-            p.name for p in parameters if p.kind in (
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                inspect.Parameter.KEYWORD_ONLY
-            )
+            p.name
+            for p in parameters
+            if p.kind
+            in (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
         )
 
         ### Check for "self" parameter
@@ -494,7 +497,7 @@ class _ReactiveProperty:
         ### Check for **kwargs, and add request kwarg names if provided
         if inspect.Parameter.VAR_KEYWORD in param_types:
             if isinstance(kwargs, str):
-                kwargs = (kwargs, )
+                kwargs = (kwargs,)
 
             if kwargs is None:
                 raise ValueError(
@@ -513,21 +516,13 @@ class _ReactiveProperty:
                     "Function does not bind **kwargs, but kwarg names provided."
                 )
 
-        return cls(
-            name=fun.__name__,
-            parameters=parameter_names,
-            f_value=fun,
-        )
+        return cls(name=fun.__name__, parameters=parameter_names, f_value=fun)
 
 
 def _setup_reactive(cls):
     cd = cls.__dict__
 
-    reactive_props = {
-        n: v
-        for n, v in cd.items()
-        if isinstance(v, _ReactiveProperty)
-    }
+    reactive_props = {n: v for n, v in cd.items() if isinstance(v, _ReactiveProperty)}
 
     for n in reactive_props:
         delattr(cls, n)
@@ -546,31 +541,24 @@ def _setup_reactive(cls):
 
     ReactiveValues = attr.make_class(
         cls.__name__ + "ReactiveValues",
-        {p: attr.ib(init=False)
-         for p in reactive_props},
-        slots=True
+        {p: attr.ib(init=False) for p in reactive_props},
+        slots=True,
     )
 
     # Setup reactive property "result" attrs
     if "__annotations__" not in cls.__dict__:
         setattr(cls, "__annotations__", dict())
     setattr(
-        cls, "_reactive_values",
+        cls,
+        "_reactive_values",
         attr.ib(
-            default=attr.Factory(ReactiveValues),
-            init=False,
-            cmp=False,
-            repr=False
-        )
+            default=attr.Factory(ReactiveValues), init=False, cmp=False, repr=False
+        ),
     )
     cls.__annotations__["_reactive_values"] = ReactiveValues
 
     setattr(cls, "__reactive_props__", reactive_props)
-    setattr(
-        cls, "__reactive_deps__",
-        {n: tuple(v)
-         for n, v in reactive_deps.items()}
-    )
+    setattr(cls, "__reactive_deps__", {n: tuple(v) for n, v in reactive_deps.items()})
 
     cls.__getattr__ = __reactive_getattr__
     cls.__setattr__ = __reactive_setattr__

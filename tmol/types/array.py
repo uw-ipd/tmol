@@ -14,6 +14,7 @@ from .tensor import TensorType, _cat_internal
 
 class Casting(enum.Enum):
     """Casting specifications for array types, see ndarray.astype."""
+
     no = "no"
     equiv = "equiv"
     safe = "safe"

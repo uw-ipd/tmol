@@ -86,7 +86,7 @@ class Dim:
             return
         else:
             if not isinstance(size, int) or size < 1:
-                raise ValueError('size must be None, Ellipsis, or >1', size)
+                raise ValueError("size must be None, Ellipsis, or >1", size)
 
     def __str__(self):
         if self.size is Ellipsis:
@@ -103,7 +103,7 @@ class Shape:
         @staticmethod
         def __getitem__(args):
             if not isinstance(args, tuple):
-                args = (args, )
+                args = (args,)
 
             return Shape(list(args))
 
@@ -171,9 +171,7 @@ class Shape:
             self.validate(value.shape)
             return value
         except ValueError as vex:
-            raise ValueError(
-                f"Invalid shape: {value.shape} expected: {self}"
-            ) from vex
+            raise ValueError(f"Invalid shape: {value.shape} expected: {self}") from vex
 
     def __str__(self):
         return "[{}]".format(",".join(map(str, self.dims)))

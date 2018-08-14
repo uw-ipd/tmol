@@ -31,8 +31,7 @@ class ResidueType(tmol.database.chemical.Residue):
     def _setup_bond_indicies(self):
         bondi = compose(list, sorted, set, concat)(
             [(ai, bi), (bi, ai)]
-            for ai, bi
-            in map(map(self.atom_to_idx.get), self.bonds)
+            for ai, bi in map(map(self.atom_to_idx.get), self.bonds)
         )
 
         bond_array = numpy.array(bondi)
@@ -43,19 +42,17 @@ class ResidueType(tmol.database.chemical.Residue):
 
     @connection_to_idx.default
     def _setup_connection_to_idx(self):
-        return frozendict((c.name, self.atom_to_idx[c.atom])
-                          for c in self.connections)
+        return frozendict((c.name, self.atom_to_idx[c.atom]) for c in self.connections)
 
     connection_to_cidx: Mapping[Optional[str], ConnectionIndex] = attr.ib()
 
     @connection_to_cidx.default
     def _setup_connection_to_cidx(self):
-        centries = [(None, -1)] + [(c.name, i)
-                                   for i, c in enumerate(self.connections)]
+        centries = [(None, -1)] + [(c.name, i) for i, c in enumerate(self.connections)]
         return frozendict(centries)
 
     def _repr_pretty_(self, p, cycle):
-        p.text(f'ResidueType(name={self.name},...)')
+        p.text(f"ResidueType(name={self.name},...)")
 
 
 @attr.s(slots=True, frozen=True)
@@ -65,11 +62,7 @@ class Residue:
 
     @coords.default
     def _coord_buffer(self):
-        return numpy.full(
-            (len(self.residue_type.atoms), 3),
-            numpy.nan,
-            dtype=float,
-        )
+        return numpy.full((len(self.residue_type.atoms), 3), numpy.nan, dtype=float)
 
     @property
     def atom_coords(self) -> numpy.ndarray:

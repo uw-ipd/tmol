@@ -11,18 +11,11 @@ import pandas
 
 from tmol.database.scoring import HBondDatabase
 
-acceptor_dtype = numpy.dtype([
-    ("a", int),
-    ("b", int),
-    ("b0", int),
-    ("acceptor_type", object),
-])
+acceptor_dtype = numpy.dtype(
+    [("a", int), ("b", int), ("b0", int), ("acceptor_type", object)]
+)
 
-donor_dtype = numpy.dtype([
-    ("d", int),
-    ("h", int),
-    ("donor_type", object),
-])
+donor_dtype = numpy.dtype([("d", int), ("h", int), ("donor_type", object)])
 
 
 def merge_tables(*tables, **kwargs):
@@ -70,10 +63,10 @@ class HBondElementAnalysis(ValidateAttrs):
     @classmethod
     @convert_args
     def setup(
-            cls,
-            hbond_database: HBondDatabase,
-            atom_types: NDArray(object)[:],
-            bonds: NDArray(int)[:, 2],
+        cls,
+        hbond_database: HBondDatabase,
+        atom_types: NDArray(object)[:],
+        bonds: NDArray(int)[:, 2],
     ):
         """Perform element analysis over the given bonded atom types.
 
@@ -120,20 +113,28 @@ class HBondElementAnalysis(ValidateAttrs):
                 res.append((n + "_nbond", nn + "_nbond"))
             return table.rename(columns=dict(res))
 
-        bond_table = pandas.DataFrame.from_dict({
-            "i_a": bonds[:, 0],
-            "i_t": atom_types[bonds[:, 0]],
-            "j_a": bonds[:, 1],
-            "j_t": atom_types[bonds[:, 1]],
-        })
+        bond_table = pandas.DataFrame.from_dict(
+            {
+                "i_a": bonds[:, 0],
+                "i_t": atom_types[bonds[:, 0]],
+                "j_a": bonds[:, 1],
+                "j_t": atom_types[bonds[:, 1]],
+            }
+        )
 
         # Calculate bond counts for each atom then merge by the atom index
         bond_table = merge_tables(
             bond_table,
-            bond_table["i_a"].value_counts().to_frame("i_nbond")
-            .rename_axis("i_a").reset_index(),
-            bond_table["j_a"].value_counts().to_frame("j_nbond")
-            .rename_axis("j_a").reset_index(),
+            bond_table["i_a"]
+            .value_counts()
+            .to_frame("i_nbond")
+            .rename_axis("i_a")
+            .reset_index(),
+            bond_table["j_a"]
+            .value_counts()
+            .to_frame("j_nbond")
+            .rename_axis("j_a")
+            .reset_index(),
         )
 
         # Index of bond arragments of the form:
@@ -150,10 +151,7 @@ class HBondElementAnalysis(ValidateAttrs):
         #
         # pruned by unique atom types on j & k
         bond_sibling_table = (
-            merge_tables(
-                bond_table.query("i_nbond == 2"),
-                inc_cols(bond_table, "j"),
-            )
+            merge_tables(bond_table.query("i_nbond == 2"), inc_cols(bond_table, "j"))
             .query("j_a != k_a")
             .drop_duplicates(("i_a", "j_t", "k_t"))
         )
@@ -167,8 +165,7 @@ class HBondElementAnalysis(ValidateAttrs):
         # pruned by unique atom types on k
         bond_parent_table = (
             merge_tables(
-                bond_table.query("i_nbond == 1"),
-                inc_cols(bond_table, "i", "j"),
+                bond_table.query("i_nbond == 1"), inc_cols(bond_table, "i", "j")
             )
             .query("i_a != k_a")
             .drop_duplicates(("i_a", "k_t"))
@@ -189,14 +186,10 @@ class HBondElementAnalysis(ValidateAttrs):
                 bond_pair_table,
                 how="inner",
                 left_on=["d", "h"],
-                right_on=["i_t", "j_t"]
+                right_on=["i_t", "j_t"],
             )
             donors = df_to_struct(
-                donor_table, {
-                    "i_a": "d",
-                    "j_a": "h",
-                    "donor_type": "donor_type"
-                }
+                donor_table, {"i_a": "d", "j_a": "h", "donor_type": "donor_type"}
             )
         else:
             donors = numpy.empty(0, donor_dtype)
@@ -217,15 +210,11 @@ class HBondElementAnalysis(ValidateAttrs):
                 bond_parent_table,
                 how="inner",
                 left_on=["a", "b", "b0"],
-                right_on=["i_t", "j_t", "k_t"]
+                right_on=["i_t", "j_t", "k_t"],
             )
             sp2_acceptors = df_to_struct(
-                sp2_acceptor_table, {
-                    "i_a": "a",
-                    "j_a": "b",
-                    "k_a": "b0",
-                    "acceptor_type": "acceptor_type"
-                }
+                sp2_acceptor_table,
+                {"i_a": "a", "j_a": "b", "k_a": "b0", "acceptor_type": "acceptor_type"},
             )
         else:
             sp2_acceptors = numpy.empty(0, acceptor_dtype)
@@ -246,15 +235,11 @@ class HBondElementAnalysis(ValidateAttrs):
                 bond_sibling_table,
                 how="inner",
                 left_on=["a", "b", "b0"],
-                right_on=["i_t", "j_t", "k_t"]
+                right_on=["i_t", "j_t", "k_t"],
             )
             sp3_acceptors = df_to_struct(
-                sp3_acceptor_table, {
-                    "i_a": "a",
-                    "j_a": "b",
-                    "k_a": "b0",
-                    "acceptor_type": "acceptor_type"
-                }
+                sp3_acceptor_table,
+                {"i_a": "a", "j_a": "b", "k_a": "b0", "acceptor_type": "acceptor_type"},
             )
         else:
             sp3_acceptors = numpy.empty(0, acceptor_dtype)
@@ -275,15 +260,11 @@ class HBondElementAnalysis(ValidateAttrs):
                 bond_sibling_table,
                 how="inner",
                 left_on=["a", "b", "b0"],
-                right_on=["i_t", "j_t", "k_t"]
+                right_on=["i_t", "j_t", "k_t"],
             )
             ring_acceptors = df_to_struct(
-                ring_acceptor_table, {
-                    "i_a": "a",
-                    "j_a": "b",
-                    "k_a": "b0",
-                    "acceptor_type": "acceptor_type"
-                }
+                ring_acceptor_table,
+                {"i_a": "a", "j_a": "b", "k_a": "b0", "acceptor_type": "acceptor_type"},
             )
         else:
             ring_acceptors = numpy.empty(0, acceptor_dtype)

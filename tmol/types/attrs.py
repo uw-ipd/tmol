@@ -9,9 +9,7 @@ class ConvertAttrs:
         for a in self.__attrs_attrs__:
             if not a.converter:
                 object.__setattr__(
-                    self,
-                    a.name,
-                    get_converter(a.type)(getattr(self, a.name)),
+                    self, a.name, get_converter(a.type)(getattr(self, a.name))
                 )
 
 

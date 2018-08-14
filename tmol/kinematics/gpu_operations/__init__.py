@@ -85,9 +85,7 @@ class GPUKinTreeReordering(ValidateAttrs):
 
         if not hasattr(kintree, cls.kintree_cache_key):
             object.__setattr__(
-                kintree,
-                cls.kintree_cache_key,
-                cls.calculate_from_kintree(kintree),
+                kintree, cls.kintree_cache_key, cls.calculate_from_kintree(kintree)
             )
 
         return getattr(kintree, cls.kintree_cache_key)
@@ -116,6 +114,8 @@ class GPUKinTreeReordering(ValidateAttrs):
 
 
 __all__ = (
-    "GPUKinTreeReordering", "PathPartitioning", "RefoldOrdering",
-    "DerivsumOrdering"
+    "GPUKinTreeReordering",
+    "PathPartitioning",
+    "RefoldOrdering",
+    "DerivsumOrdering",
 )

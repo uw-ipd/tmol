@@ -9,7 +9,7 @@ Angles = NDArray(float)[:]
 
 @validate_args
 def coord_dihedrals(
-        a: CoordArray, b: CoordArray, c: CoordArray, d: CoordArray
+    a: CoordArray, b: CoordArray, c: CoordArray, d: CoordArray
 ) -> Angles:
     """Dihedral angle in [-pi, pi] over the planes defined by {a, b, c} & {b, c, d}.
 

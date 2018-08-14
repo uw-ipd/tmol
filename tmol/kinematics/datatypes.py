@@ -11,6 +11,7 @@ from tmol.types.functional import convert_args
 
 class NodeType(enum.IntEnum):
     """KinTree node types."""
+
     root = 0
     jump = enum.auto()
     bond = enum.auto()
@@ -62,13 +63,13 @@ class KinTree(TensorGroup, ConvertAttrs):
     @classmethod
     @convert_args
     def node(
-            cls,
-            id: int,
-            doftype: NodeType,
-            parent: int,
-            frame_x: int,
-            frame_y: int,
-            frame_z: int,
+        cls,
+        id: int,
+        doftype: NodeType,
+        parent: int,
+        frame_x: int,
+        frame_y: int,
+        frame_z: int,
     ):
         """Construct a single node from element values."""
         return cls(
@@ -84,12 +85,7 @@ class KinTree(TensorGroup, ConvertAttrs):
     def root_node(cls):
         """The global/root kinematic node at KinTree[0]."""
         return cls.node(
-            id=-1,
-            doftype=NodeType.root,
-            parent=0,
-            frame_x=0,
-            frame_y=0,
-            frame_z=0,
+            id=-1, doftype=NodeType.root, parent=0, frame_x=0, frame_y=0, frame_z=0
         )
 
 
@@ -120,6 +116,7 @@ class KinDOF(TensorGroup, ConvertAttrs):
 
 class BondDOFTypes(enum.IntEnum):
     """Indices of bond dof types within KinDOF.raw."""
+
     phi_p = 0
     theta = enum.auto()
     d = enum.auto()
@@ -128,6 +125,7 @@ class BondDOFTypes(enum.IntEnum):
 
 class JumpDOFTypes(enum.IntEnum):
     """Indices of jump dof types within KinDOF.raw."""
+
     RBx = 0
     RBy = enum.auto()
     RBz = enum.auto()
@@ -142,6 +140,7 @@ class JumpDOFTypes(enum.IntEnum):
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class BondDOF(TensorGroup, ConvertAttrs):
     """A bond dof view of KinDOF."""
+
     raw: Tensor(torch.double)[..., 4]
 
     @property
@@ -164,6 +163,7 @@ class BondDOF(TensorGroup, ConvertAttrs):
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class JumpDOF(TensorGroup, ConvertAttrs):
     """A jump dof view of KinDOF."""
+
     raw: Tensor(torch.double)[..., 9]
 
     @property

@@ -96,37 +96,30 @@ class LJLKParamResolver(ValidateAttrs):
         higher-dimensional arrays, as may be produced via broadcasting, into
         lower-dimensional views to resolver parameter indices.
         """
-        return (
-            self.atom_type_index
-            .get_indexer(atom_types.ravel())
-            .reshape(atom_types.shape)
+        return self.atom_type_index.get_indexer(atom_types.ravel()).reshape(
+            atom_types.shape
         )
 
     def __getitem__(
-            self,
-            key: Tuple[Sequence[str], Sequence[str]],
+        self, key: Tuple[Sequence[str], Sequence[str]]
     ) -> LJLKTypePairParams:
         """Resolve to/from atom types into broadcast pair params."""
         from_type, to_type = key
 
         i = self.type_idx(from_type)
-        assert not numpy.any((i == -1) | (i == len(self.atom_type_index))), (
-            "type not present in index"
-        )
+        assert not numpy.any(
+            (i == -1) | (i == len(self.atom_type_index))
+        ), "type not present in index"
         j = self.type_idx(to_type)
-        assert not numpy.any((j == -1) | (j == len(self.atom_type_index))), (
-            "type not present in index"
-        )
+        assert not numpy.any(
+            (j == -1) | (j == len(self.atom_type_index))
+        ), "type not present in index"
 
         return self.pair_params[i, j]
 
     @classmethod
     @validate_args
-    def from_database(
-            cls,
-            ljlk_database: LJLKDatabase,
-            device: torch.device,
-    ):
+    def from_database(cls, ljlk_database: LJLKDatabase, device: torch.device):
         """Initialize param resolver for all atom types in database."""
 
         # Generate a full atom type index, appending a "None" value at index -1
@@ -139,32 +132,34 @@ class LJLKParamResolver(ValidateAttrs):
         global_params = LJLKGlobalParams(
             **{
                 n: torch.tensor(v, device=device)
-                for n, v in cattr.unstructure(ljlk_database.global_parameters)
-                .items()
+                for n, v in cattr.unstructure(ljlk_database.global_parameters).items()
             }
         )
 
         # Pack the tuple of type parameters into a dataframe and reindex via
         # the param resolver type index. This appends a "nan" row at the end of
         # the frame for the invalid/None entry added above.
-        param_records = pandas.DataFrame.from_records(
-            cattr.unstructure(ljlk_database.atom_type_parameters)
-        ).set_index("name").reindex(index=atom_type_index)
+        param_records = (
+            pandas.DataFrame.from_records(
+                cattr.unstructure(ljlk_database.atom_type_parameters)
+            )
+            .set_index("name")
+            .reindex(index=atom_type_index)
+        )
 
         # Convert boolean types to uint8 for torch, setting the invalid/None
         # entry to 0/false
         for field in attr.fields(LJLKTypeParams):
             if field.type.dtype == torch.uint8:
-                (param_records[field.name]
-                 ) = (param_records[field.name].fillna(value=0).astype("u1"))
+                (param_records[field.name]) = (
+                    param_records[field.name].fillna(value=0).astype("u1")
+                )
 
         # Convert the param record dataframe into typed TensorGroup
         type_params = LJLKTypeParams(
             **{
                 f.name: torch.tensor(
-                    param_records[f.name].values,
-                    dtype=f.type.dtype,
-                    device=device,
+                    param_records[f.name].values, dtype=f.type.dtype, device=device
                 )
                 for f in attr.fields(LJLKTypeParams)
             }
@@ -173,9 +168,7 @@ class LJLKParamResolver(ValidateAttrs):
         # Broadcast N atom type parameters against itself, resolving an [N,N]
         # type pair parameter tensor group.
         pair_params = potentials.render_pair_parameters(
-            global_params,
-            type_params.reshape((-1, 1)),
-            type_params.reshape((1, -1)),
+            global_params, type_params.reshape((-1, 1)), type_params.reshape((1, -1))
         )
 
         return cls(

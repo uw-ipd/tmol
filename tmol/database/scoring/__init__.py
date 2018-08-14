@@ -12,7 +12,7 @@ class ScoringDatabase:
     hbond: HBondDatabase
 
     @classmethod
-    def from_file(cls, path=os.path.dirname(__file__)): # noqa
+    def from_file(cls, path=os.path.dirname(__file__)):  # noqa
         return cls(
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),

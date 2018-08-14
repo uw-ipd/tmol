@@ -27,8 +27,9 @@ class TotalScoreComponentsGraph:
     `ScoreComponentAttributes`.
     """
 
-    total_score_terms: (Dict[str, Tuple[ScoreComponentAttributes, ...]]
-                        ) = (attr.ib(init=False, repr=False))
+    total_score_terms: (Dict[str, Tuple[ScoreComponentAttributes, ...]]) = (
+        attr.ib(init=False, repr=False)
+    )
 
     def __attrs_post_init__(self):
         total_score_terms = gather_superclass_properies(
@@ -37,7 +38,7 @@ class TotalScoreComponentsGraph:
 
         def norm_component(val):
             if isinstance(val, ScoreComponentAttributes):
-                return (val, )
+                return (val,)
             else:
                 return tuple(val)
 
@@ -45,8 +46,9 @@ class TotalScoreComponentsGraph:
 
         components = list(toolz.concat(total_score_terms.values()))
 
-        assert len({c.name for c in components}) == len(components), \
-            "Duplicate component names."
+        assert len({c.name for c in components}) == len(
+            components
+        ), "Duplicate component names."
 
         self.total_score_terms = total_score_terms
 
@@ -60,7 +62,7 @@ class TotalScoreComponentsGraph:
 
     @property
     def total_score(self):
-        #TODO asford cache/reactive invalidate? Setup in static pass?
+        # TODO asford cache/reactive invalidate? Setup in static pass?
         assert len(self.total_score_components) > 0
         return sum(
             getattr(self, component_name)

@@ -97,16 +97,13 @@ def test_dynamic_property():
 
         setattr(cls, "total", reactive_property(cls.total, kwargs=components))
 
-        return reactive_attrs(
-            cls,
-            **attrs_kwargs,
-        )
+        return reactive_attrs(cls, **attrs_kwargs)
 
     DFoo = dynamic_total(Foo, auto_attribs=True)
     assert set(attr.fields_dict(DFoo)) == set(("a", "b", "_reactive_values"))
     assert DFoo.__reactive_props__["total"].name == "total"
     assert DFoo.__reactive_props__["total"].parameters == ("a", "b")
-    assert Foo.__reactive_deps__ == {"a": ("total", ), "b": ("total", )}
+    assert Foo.__reactive_deps__ == {"a": ("total",), "b": ("total",)}
 
     assert DFoo(1, 2).total == 3
 
@@ -146,11 +143,11 @@ def test_binding_in_subclass():
 
     # The functions are exposed and have proper parameters
     assert Foo.__reactive_props__["bar"].name == "bar"
-    assert Foo.__reactive_props__["bar"].parameters == ("n", )
+    assert Foo.__reactive_props__["bar"].parameters == ("n",)
     assert Foo.__reactive_props__["bar"].f_value(2) == "barbar"
 
     assert Foo.__reactive_props__["bun"].name == "bun"
-    assert Foo.__reactive_props__["bun"].parameters == ("n", )
+    assert Foo.__reactive_props__["bun"].parameters == ("n",)
     assert Foo.__reactive_props__["bun"].f_value(2) == "bunbun"
 
     assert Foo.__reactive_props__["bat"].name == "bat"
@@ -193,7 +190,7 @@ def test_binding_in_subclass():
     assert SubFoo.__reactive_props__["bat"].f_value() == "bat"
 
     assert Foo.__reactive_props__["bun"].name == "bun"
-    assert Foo.__reactive_props__["bun"].parameters == ("n", )
+    assert Foo.__reactive_props__["bun"].parameters == ("n",)
     assert Foo.__reactive_props__["bun"].f_value(2) == "bunbun"
 
     # new properites are picked up
@@ -205,10 +202,7 @@ def test_binding_in_subclass():
     assert not isinstance(SubFoo.np, _ReactiveProperty)
 
     # deps are resolved using overriden values
-    assert SubFoo.__reactive_deps__ == {
-        "n": ("bar", "bun"),
-        "minus_n": ("bar", )
-    }
+    assert SubFoo.__reactive_deps__ == {"n": ("bar", "bun"), "minus_n": ("bar",)}
 
     v = SubFoo(n=3, minus_n=1)
     assert v.bar == "subbarsubbar"

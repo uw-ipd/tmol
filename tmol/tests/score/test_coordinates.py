@@ -3,10 +3,7 @@ import pytest
 import torch
 
 from tmol.tests.torch import requires_cuda
-from tmol.score import (
-    CartesianTotalScoreGraph,
-    KinematicTotalScoreGraph,
-)
+from tmol.score import CartesianTotalScoreGraph, KinematicTotalScoreGraph
 
 
 @requires_cuda

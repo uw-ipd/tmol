@@ -15,17 +15,17 @@ def test_hbond_defs(default_database: tmol.database.ParameterDatabase):
         assert pair.cosAHD in poly_params
         assert pair.cosBAH in poly_params
 
-    pair_params = set((p.don_chem_type, p.acc_chem_type)
-                      for p in db.pair_parameters)
+    pair_params = set((p.don_chem_type, p.acc_chem_type) for p in db.pair_parameters)
     assert len(pair_params) == len(db.pair_parameters)
 
     donor_types = set(g.donor_type for g in db.atom_groups.donors)
     acceptor_types = toolz.reduce(
-        set.union, (
+        set.union,
+        (
             set(g.acceptor_type for g in db.atom_groups.sp2_acceptors),
             set(g.acceptor_type for g in db.atom_groups.sp3_acceptors),
             set(g.acceptor_type for g in db.atom_groups.ring_acceptors),
-        )
+        ),
     )
 
     donor_weights = set(p.name for p in db.don_weights)

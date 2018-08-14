@@ -5,9 +5,7 @@ from .scan_jit import GenerationalSegmentedScan
 
 
 @numba.jit(nopython=True)
-def finalize_derivsum_indices(
-        leaves, start_ind, parent, is_root, ki2dsi, dsi2ki
-):
+def finalize_derivsum_indices(leaves, start_ind, parent, is_root, ki2dsi, dsi2ki):
     count = start_ind
     for leaf in leaves:
         nextatom = leaf
@@ -21,7 +19,7 @@ def finalize_derivsum_indices(
 
 
 class F1F2Scan(GenerationalSegmentedScan):
-    val_shape = (6, )
+    val_shape = (6,)
 
     @cuda.jit(device=True)
     def load(f1f2s, ind):

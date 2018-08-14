@@ -16,8 +16,7 @@ def git_version():
     )
 
     describe_match = re.match(
-        r"(?P<version>[0-9.]+)(-(?P<post_revision>\d+)-g(?P<commit>\w+))?",
-        git_describe,
+        r"(?P<version>[0-9.]+)(-(?P<post_revision>\d+)-g(?P<commit>\w+))?", git_describe
     )
     if not describe_match:
         raise ValueError("Invalid version.", git_describe)
@@ -41,9 +40,7 @@ setup(
     version=git_version(),
     packages=["tmol"],
     setup_requires=pytest_runner,
-    tests_require=[
-        l.strip() for l in open("requirements.tests.txt").readlines()
-    ],
+    tests_require=[l.strip() for l in open("requirements.tests.txt").readlines()],
     install_requires=[l.strip() for l in open("requirements.txt").readlines()],
     zip_safe=False,
 )

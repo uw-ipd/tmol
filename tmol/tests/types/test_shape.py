@@ -4,6 +4,7 @@ import unittest
 class testShape(unittest.TestCase):
     def test(self):
         from tmol.types.shape import Shape
+
         s = Shape.spec
 
         class AssertInvalidSpec:
@@ -35,38 +36,34 @@ class testShape(unittest.TestCase):
             # ndim and shape
             {
                 "spec": s[:],
-                "valid": [(1, ), (10, )],
+                "valid": [(1,), (10,)],
                 "invalid": [(), (2, 2), (10, 10, 10)],
             },
             {
                 "spec": s[:, :],
                 "valid": [(10, 3), (2, 2), (1, 10)],
-                "invalid": [(1, ), (3, ), (10, 10, 3)],
+                "invalid": [(1,), (3,), (10, 10, 3)],
             },
-            {
-                "spec": s[3],
-                "valid": [(3, )],
-                "invalid": [(1, ), (1, 3), (3, 3)]
-            },
+            {"spec": s[3], "valid": [(3,)], "invalid": [(1,), (1, 3), (3, 3)]},
             {
                 "spec": s[:, 3],
                 "valid": [(1, 3), (3, 3), (10, 3)],
-                "invalid": [(1, ), (3, ), (3, 1), (1, 1, 1)]
+                "invalid": [(1,), (3,), (3, 1), (1, 1, 1)],
             },
             {
                 "spec": s[1, 3],
                 "valid": [(1, 3)],
-                "invalid": [(3, ), (3, 3), (3, 1), (1, 3, 3)]
+                "invalid": [(3,), (3, 3), (3, 1), (1, 3, 3)],
             },
             {
                 "spec": s[..., 3],
-                "valid": [(3, ), (100, 1, 3), (1, 3)],
-                "invalid": [(3, 1), (1, )]
+                "valid": [(3,), (100, 1, 3), (1, 3)],
+                "invalid": [(3, 1), (1,)],
             },
             {
                 "spec": s[..., :, 3],
                 "valid": [(100, 1, 3), (1, 3)],
-                "invalid": [(3, 1), (1, ), (3, )]
+                "invalid": [(3, 1), (1,), (3,)],
             },
         ]
 
@@ -85,7 +82,4 @@ class testShape(unittest.TestCase):
     def assertInvalid(self, spec, array, msg=None):
         with self.assertRaises(ValueError):
             spec.validate(array)
-            self.fail(
-                "spec: %r matched invalid array shape: %s" %
-                (spec, array.shape)
-            )
+            self.fail("spec: %r matched invalid array shape: %s" % (spec, array.shape))

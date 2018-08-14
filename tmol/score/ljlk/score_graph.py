@@ -26,19 +26,19 @@ from .params import LJLKParamResolver, LJLKTypePairParams
 
 @reactive_attrs(auto_attribs=True)
 class LJLKScoreGraph(
-        InteratomicDistanceGraphBase,
-        BondedAtomScoreGraph,
-        TotalScoreComponentsGraph,
-        ParamDB,
-        TorchDevice,
-        Factory,
+    InteratomicDistanceGraphBase,
+    BondedAtomScoreGraph,
+    TotalScoreComponentsGraph,
+    ParamDB,
+    TorchDevice,
+    Factory,
 ):
     @staticmethod
     def factory_for(
-            val,
-            parameter_database: ParameterDatabase,
-            ljlk_database: Optional[LJLKDatabase] = None,
-            **_
+        val,
+        parameter_database: ParameterDatabase,
+        ljlk_database: Optional[LJLKDatabase] = None,
+        **_,
     ):
         """Overridable clone-constructor.
 
@@ -51,7 +51,7 @@ class LJLKScoreGraph(
             else:
                 ljlk_database = parameter_database.scoring.ljlk
 
-        return dict(ljlk_database=ljlk_database, )
+        return dict(ljlk_database=ljlk_database)
 
     ljlk_database: LJLKDatabase = attr.ib()
 
@@ -75,8 +75,7 @@ class LJLKScoreGraph(
     @reactive_property
     @validate_args
     def param_resolver(
-            ljlk_database: LJLKDatabase,
-            device: torch.device,
+        ljlk_database: LJLKDatabase, device: torch.device
     ) -> LJLKParamResolver:
         """Parameter tensor groups and atom-type to parameter resolver."""
         return LJLKParamResolver.from_database(ljlk_database, device)
@@ -84,10 +83,10 @@ class LJLKScoreGraph(
     @reactive_property
     @validate_args
     def ljlk_interaction_weight(
-            bonded_path_length: NDArray("f4")[:, :],
-            atom_types: NDArray(object)[:],
-            real_atoms: Tensor(bool)[:],
-            device: torch.device,
+        bonded_path_length: NDArray("f4")[:, :],
+        atom_types: NDArray(object)[:],
+        real_atoms: Tensor(bool)[:],
+        device: torch.device,
     ) -> Tensor(torch.float)[:, :]:
         """lj&lk interaction weight, bonded cutoff"""
 
@@ -107,21 +106,19 @@ class LJLKScoreGraph(
     @reactive_property
     @validate_args
     def ljlk_atom_pair_params(
-            atom_types: NDArray(object)[:],
-            param_resolver: LJLKParamResolver,
+        atom_types: NDArray(object)[:], param_resolver: LJLKParamResolver
     ) -> LJLKTypePairParams:
         """Pair parameter tensors for all atoms within system."""
-        return param_resolver[atom_types.reshape((-1, 1)),
-                              atom_types.reshape((1, -1))]
+        return param_resolver[atom_types.reshape((-1, 1)), atom_types.reshape((1, -1))]
 
     @reactive_property
     @validate_args
     def lj(
-            atom_pair_inds: Tensor(torch.long)[2, :],
-            atom_pair_dist: Tensor(torch.float)[:],
-            ljlk_interaction_weight: Tensor(torch.float)[:, :],
-            ljlk_atom_pair_params: LJLKTypePairParams,
-            param_resolver: LJLKParamResolver,
+        atom_pair_inds: Tensor(torch.long)[2, :],
+        atom_pair_dist: Tensor(torch.float)[:],
+        ljlk_interaction_weight: Tensor(torch.float)[:, :],
+        ljlk_atom_pair_params: LJLKTypePairParams,
+        param_resolver: LJLKParamResolver,
     ):
         gparams = param_resolver.global_params
         pparams = ljlk_atom_pair_params
@@ -129,10 +126,8 @@ class LJLKScoreGraph(
         return lj_score(
             # Distance
             dist=atom_pair_dist,
-
             # Bonded params
             interaction_weight=ljlk_interaction_weight[pidx],
-
             # Pair params
             lj_sigma=pparams.lj_sigma[pidx],
             lj_switch_slope=pparams.lj_switch_slope[pidx],
@@ -141,7 +136,6 @@ class LJLKScoreGraph(
             lj_coeff_sigma6=pparams.lj_coeff_sigma6[pidx],
             lj_spline_y0=pparams.lj_spline_y0[pidx],
             lj_spline_dy0=pparams.lj_spline_dy0[pidx],
-
             # Global params
             lj_switch_dis2sigma=gparams.lj_switch_dis2sigma,
             spline_start=gparams.spline_start,
@@ -160,11 +154,11 @@ class LJLKScoreGraph(
     @reactive_property
     @validate_args
     def lk(
-            atom_pair_inds: Tensor(torch.long)[2, :],
-            atom_pair_dist: Tensor(torch.float)[:],
-            ljlk_interaction_weight: Tensor(torch.float)[:, :],
-            ljlk_atom_pair_params: LJLKTypePairParams,
-            param_resolver: LJLKParamResolver,
+        atom_pair_inds: Tensor(torch.long)[2, :],
+        atom_pair_dist: Tensor(torch.float)[:],
+        ljlk_interaction_weight: Tensor(torch.float)[:, :],
+        ljlk_atom_pair_params: LJLKTypePairParams,
+        param_resolver: LJLKParamResolver,
     ):
         gparams = param_resolver.global_params
         pparams = ljlk_atom_pair_params
@@ -172,10 +166,8 @@ class LJLKScoreGraph(
         return lk_score(
             # Distance
             dist=atom_pair_dist,
-
             # Bonded params
             interaction_weight=ljlk_interaction_weight[pidx],
-
             # Pair params
             lj_rad1=pparams.lj_rad1[pidx],
             lj_rad2=pparams.lj_rad2[pidx],
@@ -190,7 +182,6 @@ class LJLKScoreGraph(
             lk_spline_close_y1=pparams.lk_spline_close_y1[pidx],
             lk_spline_far_dy0=pparams.lk_spline_far_dy0[pidx],
             lk_spline_far_y0=pparams.lk_spline_far_y0[pidx],
-
             # Global params
             spline_start=gparams.spline_start,
             max_dis=gparams.max_dis,
