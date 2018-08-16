@@ -24,15 +24,12 @@ def HTinv(HTs: HTArray) -> HTArray:
     N = HTs.shape[0]
     HTinvs = torch.eye(4).expand(N, -1, -1)
 
-    #fd: not sure why but the line below does not work...
-    #HTinvs[:, :3, :3] = torch.transpose(HTs[:, :3, :3], 2, 1)
+    # fd: not sure why but the line below does not work...
+    # HTinvs[:, :3, :3] = torch.transpose(HTs[:, :3, :3], 2, 1)
 
     # einsum is matrix/vector mult
     HTinvs = torch.transpose(HTs, 2, 1)
-    HTinvs[:, :3, 3] = -torch.einsum(
-        'aij,aj->ai',
-        (HTinvs[:, :3, :3], HTs[:, :3, 3]),
-    )
+    HTinvs[:, :3, 3] = -torch.einsum("aij,aj->ai", (HTinvs[:, :3, :3], HTs[:, :3, 3]))
     HTinvs[:, 3, :3] = 0
     return HTinvs
 
@@ -76,9 +73,7 @@ def JumpTransforms(dofs: JumpDOF) -> HTArray:
     cs = ci * sk
     sc = si * ck
     ss = si * sk
-    Rdelta = torch.zeros((natoms, 4, 4),
-                         dtype=HTArray.dtype,
-                         device=dofs.raw.device)
+    Rdelta = torch.zeros((natoms, 4, 4), dtype=HTArray.dtype, device=dofs.raw.device)
     Rdelta[:, 0, 0] = cj * ck
     Rdelta[:, 0, 1] = sj * sc - cs
     Rdelta[:, 0, 2] = sj * cc + ss
@@ -105,9 +100,7 @@ def JumpTransforms(dofs: JumpDOF) -> HTArray:
     cs = ci * sk
     sc = si * ck
     ss = si * sk
-    Rglobal = torch.zeros((natoms, 4, 4),
-                          dtype=HTArray.dtype,
-                          device=dofs.raw.device)
+    Rglobal = torch.zeros((natoms, 4, 4), dtype=HTArray.dtype, device=dofs.raw.device)
     Rglobal[:, 0, 0] = cj * ck
     Rglobal[:, 0, 1] = sj * sc - cs
     Rglobal[:, 0, 2] = sj * cc + ss
@@ -153,7 +146,7 @@ def InvJumpTransforms(Ms: HTArray) -> JumpDOF:
 
     cys = torch.sqrt(Ms[:, 0, 0] * Ms[:, 0, 0] + Ms[:, 1, 0] * Ms[:, 1, 0])
 
-    problemSelector = (cys <= EPS)
+    problemSelector = cys <= EPS
 
     dofs.RBalpha[~problemSelector] = torch.atan2(
         Ms[~problemSelector, 2, 1], Ms[~problemSelector, 2, 2]
@@ -178,11 +171,7 @@ def InvJumpTransforms(Ms: HTArray) -> JumpDOF:
 
 @validate_args
 def JumpDerivatives(
-        dofs: JumpDOF,
-        Ms: HTArray,
-        Mparents: HTArray,
-        f1s: CoordArray,
-        f2s: CoordArray,
+    dofs: JumpDOF, Ms: HTArray, Mparents: HTArray, f1s: CoordArray, f2s: CoordArray
 ) -> JumpDOF:
     """
     compute JUMP derivatives from f1/f2
@@ -202,23 +191,21 @@ def JumpDerivatives(
     """
     # trans dofs
     njumpatoms, = dofs.shape
-    dsc_ddofs = JumpDOF.zeros((njumpatoms, ), device=dofs.raw.device)
+    dsc_ddofs = JumpDOF.zeros((njumpatoms,), device=dofs.raw.device)
 
     x_axes = Mparents[:, 0:3, 0]
     y_axes = Mparents[:, 0:3, 1]
     z_axes = Mparents[:, 0:3, 2]
 
     # einsums here are taking dot products of the vector stacks
-    dsc_ddofs.RBx[:] = torch.einsum('ij,ij->i', (x_axes, f2s))
-    dsc_ddofs.RBy[:] = torch.einsum('ij,ij->i', (y_axes, f2s))
-    dsc_ddofs.RBz[:] = torch.einsum('ij,ij->i', (z_axes, f2s))
+    dsc_ddofs.RBx[:] = torch.einsum("ij,ij->i", (x_axes, f2s))
+    dsc_ddofs.RBy[:] = torch.einsum("ij,ij->i", (y_axes, f2s))
+    dsc_ddofs.RBz[:] = torch.einsum("ij,ij->i", (z_axes, f2s))
 
     end_pos = Ms[:, 0:3, 3]
     rotdof3_axes = -Mparents[:, 0:3, 2]
 
-    zrots = torch.zeros([njumpatoms, 3, 3],
-                        dtype=torch.double,
-                        device=dofs.raw.device)
+    zrots = torch.zeros([njumpatoms, 3, 3], dtype=torch.double, device=dofs.raw.device)
     zrots[:, 0, 0] = torch.cos(dofs.RBdel_gamma)
     zrots[:, 0, 1] = -torch.sin(dofs.RBdel_gamma)
     zrots[:, 1, 0] = torch.sin(dofs.RBdel_gamma)
@@ -226,37 +213,26 @@ def JumpDerivatives(
     zrots[:, 2, 2] = 1
     rotdof2_axes = -torch.matmul(Mparents[:, 0:3, 0:3], zrots)[:, 0:3, 1]
 
-    yrots = torch.zeros([njumpatoms, 3, 3],
-                        dtype=torch.double,
-                        device=dofs.raw.device)
+    yrots = torch.zeros([njumpatoms, 3, 3], dtype=torch.double, device=dofs.raw.device)
     yrots[:, 0, 0] = torch.cos(-dofs.RBdel_beta)
     yrots[:, 0, 2] = -torch.sin(-dofs.RBdel_beta)
     yrots[:, 1, 1] = 1
     yrots[:, 2, 0] = torch.sin(-dofs.RBdel_beta)
     yrots[:, 2, 2] = torch.cos(-dofs.RBdel_beta)
-    rotdof1_axes = -torch.matmul(
-        torch.matmul(Mparents[:, 0:3, 0:3], zrots), yrots
-    )[:, 0:3, 0]
+    rotdof1_axes = -torch.matmul(torch.matmul(Mparents[:, 0:3, 0:3], zrots), yrots)[
+        :, 0:3, 0
+    ]
 
     # einsums here are taking dot products of the vector stacks
-    dsc_ddofs.RBdel_alpha[:] = (
-        torch.einsum('ij,ij->i',
-                     (rotdof1_axes, f1s)) +
-        torch.einsum('ij,ij->i',
-                     (torch.cross(rotdof1_axes, end_pos), f2s))
-    )
-    dsc_ddofs.RBdel_beta[:] = (
-        torch.einsum('ij,ij->i',
-                     (rotdof2_axes, f1s)) +
-        torch.einsum('ij,ij->i',
-                     (torch.cross(rotdof2_axes, end_pos), f2s))
-    )
-    dsc_ddofs.RBdel_gamma[:] = (
-        torch.einsum('ij,ij->i',
-                     (rotdof3_axes, f1s)) +
-        torch.einsum('ij,ij->i',
-                     (torch.cross(rotdof3_axes, end_pos), f2s))
-    )
+    dsc_ddofs.RBdel_alpha[:] = torch.einsum(
+        "ij,ij->i", (rotdof1_axes, f1s)
+    ) + torch.einsum("ij,ij->i", (torch.cross(rotdof1_axes, end_pos), f2s))
+    dsc_ddofs.RBdel_beta[:] = torch.einsum(
+        "ij,ij->i", (rotdof2_axes, f1s)
+    ) + torch.einsum("ij,ij->i", (torch.cross(rotdof2_axes, end_pos), f2s))
+    dsc_ddofs.RBdel_gamma[:] = torch.einsum(
+        "ij,ij->i", (rotdof3_axes, f1s)
+    ) + torch.einsum("ij,ij->i", (torch.cross(rotdof3_axes, end_pos), f2s))
 
     return dsc_ddofs
 
@@ -292,9 +268,7 @@ def BondTransforms(dofs: BondDOF) -> HTArray:
     d = dofs.d
 
     # rot(ph_p, +x) * rot(th, +z) * trans(d, +x) * rot(ph_c, +x)
-    Ms = torch.empty([natoms, 4, 4],
-                     dtype=HTArray.dtype,
-                     device=dofs.raw.device)
+    Ms = torch.empty([natoms, 4, 4], dtype=HTArray.dtype, device=dofs.raw.device)
     Ms[:, 0, 0] = cth
     Ms[:, 0, 1] = -cpc * sth
     Ms[:, 0, 2] = spc * sth
@@ -338,7 +312,7 @@ def InvBondTransforms(Ms: HTArray) -> BondDOF:
 
     # when theta == 0, phip and phic are about same axis
     # we (arbitrarily) put all the movement into phic
-    theta0_selector = (torch.abs(Ms[:, 0, 0] - 1) <= EPS)
+    theta0_selector = torch.abs(Ms[:, 0, 0] - 1) <= EPS
     dofs.phi_p[theta0_selector] = 0.0
     dofs.phi_c[theta0_selector] = torch.atan2(
         Ms[theta0_selector, 2, 1], Ms[theta0_selector, 1, 1]
@@ -355,9 +329,10 @@ def InvBondTransforms(Ms: HTArray) -> BondDOF:
 
     dofs.theta[~theta0_selector] = torch.atan2(
         torch.sqrt(
-            Ms[~theta0_selector, 0, 1] * Ms[~theta0_selector, 0, 1] +
-            Ms[~theta0_selector, 0, 2] * Ms[~theta0_selector, 0, 2]
-        ), Ms[~theta0_selector, 0, 0]
+            Ms[~theta0_selector, 0, 1] * Ms[~theta0_selector, 0, 1]
+            + Ms[~theta0_selector, 0, 2] * Ms[~theta0_selector, 0, 2]
+        ),
+        Ms[~theta0_selector, 0, 0],
     )
 
     return dofs
@@ -365,11 +340,7 @@ def InvBondTransforms(Ms: HTArray) -> BondDOF:
 
 @validate_args
 def BondDerivatives(
-        dofs: BondDOF,
-        Ms: HTArray,
-        Mparents: HTArray,
-        f1s: CoordArray,
-        f2s: CoordArray,
+    dofs: BondDOF, Ms: HTArray, Mparents: HTArray, f1s: CoordArray, f2s: CoordArray
 ) -> BondDOF:
     """
     compute JUMP derivatives from f1/f2
@@ -401,27 +372,21 @@ def BondDerivatives(
     phicrots[:, 2, 2] = torch.cos(-dofs.phi_c)
     theta_axes = torch.matmul(Ms[:, 0:3, 0:3], phicrots)[:, 0:3, 2]
 
-    dsc_ddofs = BondDOF.zeros((nbondatoms, ), device=Ms.device)
+    dsc_ddofs = BondDOF.zeros((nbondatoms,), device=Ms.device)
 
     # the einsums are doing dot products on stacks of ints
-    dsc_ddofs.d[:] = torch.einsum('ij,ij->i', (phi_c_axes, f2s))
+    dsc_ddofs.d[:] = torch.einsum("ij,ij->i", (phi_c_axes, f2s))
     dsc_ddofs.theta[:] = -1 * (
-        torch.einsum('ij,ij->i',
-                     (theta_axes, f1s)) +
-        torch.einsum('ij,ij->i',
-                     (torch.cross(theta_axes, end_p_pos), f2s))
+        torch.einsum("ij,ij->i", (theta_axes, f1s))
+        + torch.einsum("ij,ij->i", (torch.cross(theta_axes, end_p_pos), f2s))
     )
     dsc_ddofs.phi_p[:] = -1 * (
-        torch.einsum('ij,ij->i',
-                     (phi_p_axes, f1s)) +
-        torch.einsum('ij,ij->i',
-                     (torch.cross(phi_p_axes, end_p_pos), f2s))
+        torch.einsum("ij,ij->i", (phi_p_axes, f1s))
+        + torch.einsum("ij,ij->i", (torch.cross(phi_p_axes, end_p_pos), f2s))
     )
     dsc_ddofs.phi_c[:] = -1 * (
-        torch.einsum('ij,ij->i',
-                     (phi_c_axes, f1s)) +
-        torch.einsum('ij,ij->i',
-                     (torch.cross(phi_c_axes, end_c_pos), f2s))
+        torch.einsum("ij,ij->i", (phi_c_axes, f1s))
+        + torch.einsum("ij,ij->i", (torch.cross(phi_c_axes, end_c_pos), f2s))
     )
 
     return dsc_ddofs
@@ -429,9 +394,7 @@ def BondDerivatives(
 
 def DOFTransforms(dof_types: Tensor(torch.int)[:], dofs: KinDOF) -> HTArray:
     """Calculate HT representation of given dofs."""
-    HTs = torch.empty([len(dofs), 4, 4],
-                      dtype=HTArray.dtype,
-                      device=dofs.raw.device)
+    HTs = torch.empty([len(dofs), 4, 4], dtype=HTArray.dtype, device=dofs.raw.device)
 
     rootSelector = dof_types == NodeType.root
     HTs[rootSelector] = torch.eye(4, dtype=HTs.dtype, device=HTs.device)
@@ -447,11 +410,11 @@ def DOFTransforms(dof_types: Tensor(torch.int)[:], dofs: KinDOF) -> HTArray:
 
 @validate_args
 def HTs_from_frames(
-        Cs: CoordArray,
-        Xs: CoordArray,
-        Ys: CoordArray,
-        Zs: CoordArray,
-        out: Optional[HTArray] = None,
+    Cs: CoordArray,
+    Xs: CoordArray,
+    Ys: CoordArray,
+    Zs: CoordArray,
+    out: Optional[HTArray] = None,
 ) -> HTArray:
     """xyzs -> HTs"""
     natoms = Cs.shape[0]
@@ -476,7 +439,7 @@ def HTs_from_frames(
 
     out[:, 3] = torch.tensor([0, 0, 0, 1], device=out.device)
 
-    return (out)
+    return out
 
 
 @attr.s(frozen=True, auto_attribs=True, slots=True)
@@ -498,11 +461,9 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     assert kintree.parent[0] == 0
 
     # fd: not sure of a torch isnan check?
-    #assert (torch.norm(coords[0, :], dim=-1) == 0)
+    # assert (torch.norm(coords[0, :], dim=-1) == 0)
 
-    HTs = torch.empty((natoms, 4, 4),
-                      dtype=HTArray.dtype,
-                      device=coords.device)
+    HTs = torch.empty((natoms, 4, 4), dtype=HTArray.dtype, device=coords.device)
     HTs[0] = torch.eye(4)
     HTs_from_frames(
         coords[1:],
@@ -513,9 +474,7 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     )
 
     # 2) local HTs
-    localHTs = torch.empty((natoms, 4, 4),
-                           dtype=HTArray.dtype,
-                           device=coords.device)
+    localHTs = torch.empty((natoms, 4, 4), dtype=HTArray.dtype, device=coords.device)
     localHTs[0] = torch.eye(4)
     localHTs[1:] = torch.matmul(
         HTinv(HTs[kintree.parent[1:].squeeze(), :, :]), HTs[1:, :, :]
@@ -540,10 +499,7 @@ class ForwardKinResult:
 
 
 @validate_args
-def forwardKin(
-        kintree: KinTree,
-        dofs: KinDOF,
-) -> ForwardKinResult:
+def forwardKin(kintree: KinTree, dofs: KinDOF) -> ForwardKinResult:
     """dofs -> HTs, xyzs
 
       - "forward" kinematics
@@ -558,8 +514,9 @@ def forwardKin(
     # 2) Accumulate local HTs into global HTs (rewrite 1->N in-place)
     if HTs.device.type == "cuda":
         (
-            GPUKinTreeReordering.for_kintree(kintree)
-            .refold_ordering.segscan_hts(HTs, inplace=True)
+            GPUKinTreeReordering.for_kintree(kintree).refold_ordering.segscan_hts(
+                HTs, inplace=True
+            )
         )
     else:
         iterative_refold(HTs, kintree.parent, inplace=True)
@@ -570,10 +527,7 @@ def forwardKin(
 
 @validate_args
 def resolveDerivs(
-        kintree: KinTree,
-        dofs: KinDOF,
-        HTs: HTArray,
-        dsc_dx: CoordArray,
+    kintree: KinTree, dofs: KinDOF, HTs: HTArray, dsc_dx: CoordArray
 ) -> KinDOF:
     """xyz derivs -> dof derivs
 
@@ -609,8 +563,9 @@ def resolveDerivs(
 
     if f1f2s.device.type == "cuda":
         (
-            GPUKinTreeReordering.for_kintree(kintree)
-            .derivsum_ordering.segscan_f1f2s(f1f2s, inplace=True)
+            GPUKinTreeReordering.for_kintree(kintree).derivsum_ordering.segscan_f1f2s(
+                f1f2s, inplace=True
+            )
         )
 
     else:

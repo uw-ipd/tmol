@@ -19,10 +19,7 @@ class BondedAtomScoreGraph(Factory):
     @singledispatch
     def factory_for(other, **_):
         """`clone`-factory, extract atom types and bonds from other."""
-        return dict(
-            atom_types=other.atom_types,
-            bonds=other.bonds,
-        )
+        return dict(atom_types=other.atom_types, bonds=other.bonds)
 
     # String atom types
     atom_types: NDArray(object)[:]
@@ -36,25 +33,22 @@ class BondedAtomScoreGraph(Factory):
         return len(atom_types)
 
     @reactive_property
-    def real_atoms(atom_types: NDArray(object)[:], ) -> Tensor(bool)[:]:
+    def real_atoms(atom_types: NDArray(object)[:],) -> Tensor(bool)[:]:
         """Mask of 'real' atomic indices in the system."""
-        return (torch.ByteTensor((atom_types != None).astype(numpy.ubyte))
-                )  # noqa: E711 - None != is a vectorized check for None.
+        return torch.ByteTensor(
+            (atom_types != None).astype(numpy.ubyte)
+        )  # noqa: E711 - None != is a vectorized check for None.
 
     @reactive_property
     def bonded_path_length(
-            bonds: NDArray(int)[:, 2],
-            system_size: int,
+        bonds: NDArray(int)[:, 2], system_size: int
     ) -> NDArray("f4")[:, :]:
         """Dense inter-atomic bonded path length distance matrix."""
         return scipy.sparse.csgraph.shortest_path(
             scipy.sparse.coo_matrix(
-                (
-                    numpy.ones(bonds.shape[0], dtype=bool),
-                    (bonds[:, 0], bonds[:, 1])
-                ),
+                (numpy.ones(bonds.shape[0], dtype=bool), (bonds[:, 0], bonds[:, 1])),
                 shape=(system_size, system_size),
             ),
             directed=False,
-            unweighted=True
+            unweighted=True,
         ).astype("f4")

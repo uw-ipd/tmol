@@ -12,9 +12,7 @@ from .factory import Factory
 @reactive_attrs(auto_attribs=True)
 class ParamDB(Factory):
     @staticmethod
-    def factory_for(
-            val, parameter_database: Optional[ParameterDatabase] = None, **_
-    ):
+    def factory_for(val, parameter_database: Optional[ParameterDatabase] = None, **_):
         """Overridable clone-constructor.
 
         Initialize from ``val.parameter_database`` if possible, otherwise

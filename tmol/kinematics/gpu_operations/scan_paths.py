@@ -1,6 +1,7 @@
 import attr
 
 import numpy
+
 # from numba.cuda import to_device as to_cuda_device
 
 from tmol.types.attrs import ValidateAttrs
@@ -97,9 +98,7 @@ class PathPartitioning(ValidateAttrs):
     @classmethod
     @validate_args
     def from_subpath_children(
-            cls,
-            parent: NDArray(int)[:],
-            subpath_child: NDArray(int)[:],
+        cls, parent: NDArray(int)[:], subpath_child: NDArray(int)[:]
     ):
         assert parent.shape == subpath_child.shape
 
@@ -119,9 +118,7 @@ class PathPartitioning(ValidateAttrs):
 
         # Get list of non_path children for subpath root
         nonpath_children = numpy.full(
-            (len(parent), n_nonpath_children.max()),
-            -1,
-            dtype=int,
+            (len(parent), n_nonpath_children.max()), -1, dtype=int
         )
 
         list_nonpath_children(

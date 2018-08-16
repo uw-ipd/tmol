@@ -61,25 +61,15 @@ class RefoldOrdering(ValidateAttrs):
         # Determine the number of atoms present in paths at each path depth,
         # and the index ranges needed for each depth in the scan buffer.
         subpath_roots = numpy.flatnonzero(scan_paths.is_subpath_root)
-        subpath_depths_from_root = scan_paths.subpath_depth_from_root[
-            subpath_roots
-        ]
+        subpath_depths_from_root = scan_paths.subpath_depth_from_root[subpath_roots]
         subpath_lengths = scan_paths.subpath_length[subpath_roots]
 
         depth_offsets = numpy.zeros((ndepths), dtype="int32")
-        numpy.add.at(
-            depth_offsets,
-            subpath_depths_from_root,
-            subpath_lengths,
-        )
+        numpy.add.at(depth_offsets, subpath_depths_from_root, subpath_lengths)
         depth_offsets[1:] = numpy.cumsum(depth_offsets)[:-1]
         depth_offsets[0] = 0
 
-        atom_range_for_depth = numpy.full(
-            (ndepths, 2),
-            -1,
-            dtype="int32",
-        )
+        atom_range_for_depth = numpy.full((ndepths, 2), -1, dtype="int32")
         for i in range(ndepths - 1):
             atom_range_for_depth[i, 0] = depth_offsets[i]
             atom_range_for_depth[i, 1] = depth_offsets[i + 1]
@@ -93,11 +83,7 @@ class RefoldOrdering(ValidateAttrs):
         for ii in range(ndepths):
             ii_roots = subpath_roots[subpath_depths_from_root == ii]
             forward_jit.finalize_refold_indices(
-                ii_roots,
-                depth_offsets[ii],
-                scan_paths.subpath_child,
-                ri2ki,
-                ki2ri,
+                ii_roots, depth_offsets[ii], scan_paths.subpath_child, ri2ki, ki2ri
             )
 
         assert numpy.all(ri2ki != -1)
@@ -109,16 +95,12 @@ class RefoldOrdering(ValidateAttrs):
             atom_range_for_depth=atom_range_for_depth,
             is_subpath_root=scan_paths.is_subpath_root[ri2ki],
             non_subpath_parent=numpy.where(
-                scan_paths.is_subpath_root[ri2ki],
-                ki2ri[scan_paths.parent[ri2ki]],
-                -1,
+                scan_paths.is_subpath_root[ri2ki], ki2ri[scan_paths.parent[ri2ki]], -1
             ),
         )
 
     def segscan_hts(
-            self,
-            hts_kintree_ordering: Tensor("f8")[:, 4, 4],
-            inplace: bool = False
+        self, hts_kintree_ordering: Tensor("f8")[:, 4, 4], inplace: bool = False
     ) -> Tensor("f8")[:, 4, 4]:
         """Perform a series of segmented scan operations on the input
         homogeneous transforms to compute the coordinate frames of all atoms in

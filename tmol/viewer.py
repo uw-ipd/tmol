@@ -9,13 +9,14 @@ from tmol.io.generic import to_pdb, to_cdjson
 class SystemViewer:
     """Generic py3dmol-based jupyter display widget.
 
-    A py3dmol-based jupyter viewing component, utilizing :py:mod:`tmol.io.generic` dispatch functions
-    to render arbitrary model components.
+    A py3dmol-based jupyter viewing component, utilizing :py:mod:`tmol.io.generic`
+    dispatch functions to render arbitrary model components.
     """
 
     transforms = {"cdjson": to_cdjson, "pdb": to_pdb}
+    DEFAULT_STYLE = {"sphere": {}}
 
-    def __init__(self, system, style={"sphere": {}}, mode="cdjson"):
+    def __init__(self, system, style=DEFAULT_STYLE, mode="cdjson"):
         self.system = system
         if isinstance(style, str):
             style = {style: {}}

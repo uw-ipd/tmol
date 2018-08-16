@@ -1,6 +1,18 @@
 #!/bin/bash
+#http://redsymbol.net/articles/unofficial-bash-strict-mode/
 
+set -euo pipefail
+IFS=$'\n\t'
 set -x
-set -e
 
-pytest -n auto -k 'linting' "$@"
+set +e
+
+error=0
+
+black --check .
+(( error |= $? ))
+
+flake8 
+(( error |= $? ))
+
+exit $error

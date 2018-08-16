@@ -1,5 +1,8 @@
 codecov
-yapf==0.21
+black==18.6b4
+
+flake8-bugbear
+
 
 pytest-xdist
 pytest-faulthandler

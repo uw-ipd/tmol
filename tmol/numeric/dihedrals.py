@@ -9,7 +9,7 @@ Angles = NDArray(float)[:]
 
 @validate_args
 def coord_dihedrals(
-        a: CoordArray, b: CoordArray, c: CoordArray, d: CoordArray
+    a: CoordArray, b: CoordArray, c: CoordArray, d: CoordArray
 ) -> Angles:
     """Dihedral angle in [-pi, pi] over the planes defined by {a, b, c} & {b, c, d}.
 
@@ -20,7 +20,7 @@ def coord_dihedrals(
     """
 
     # Implementation derived from the "Praxeolitic" method, described at
-    # https://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python
+    # https://stackoverflow.com/questions/20305272/dihedral-torsion-angle-from-four-points-in-cartesian-coordinates-in-python # noqa
 
     ba = a - b
     bc = c - b

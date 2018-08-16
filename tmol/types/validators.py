@@ -23,9 +23,7 @@ def validate_tuple(tup, value):
             vval(v)
     elif tup.__args__:
         if len(tup.__args__) != len(value):
-            raise ValueError(
-                f"expected {tup}, received invalid length: {len(value)}"
-            )
+            raise ValueError(f"expected {tup}, received invalid length: {len(value)}")
 
         for tt, v in zip(tup.__args__, value):
             get_validator(tt)(v)
@@ -53,6 +51,4 @@ def validate_union(union, value):
 @toolz.curry
 def validate_isinstance(type_annotation, value):
     if not isinstance(value, type_annotation):
-        raise TypeError(
-            f"expected {type_annotation}, received {type(value)!r}"
-        )
+        raise TypeError(f"expected {type_annotation}, received {type(value)!r}")

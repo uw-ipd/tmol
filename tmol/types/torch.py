@@ -41,9 +41,7 @@ def torch_dtype(dt):
 
     torch_type = _torch_dtype_mapping.get(numeric_type, None)
     if not torch_type:
-        raise ValueError(
-            f"Unsupported dtype: {dt} numeric type: {numeric_type}"
-        )
+        raise ValueError(f"Unsupported dtype: {dt} numeric type: {numeric_type}")
 
     return torch_type
 
@@ -55,11 +53,7 @@ def _torch_dtype(dt):
 
 def like_kwargs(t: torch.Tensor):
     """Extract kwargs args needed to initialize an identical tensor."""
-    return dict(
-        dtype=t.dtype,
-        layout=t.layout,
-        device=t.device,
-    )
+    return dict(dtype=t.dtype, layout=t.layout, device=t.device)
 
 
 @attr.s(frozen=True, auto_attribs=True, repr=False)

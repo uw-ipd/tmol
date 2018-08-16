@@ -17,15 +17,16 @@ from .datatypes import torsion_metadata_dtype
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class KinematicDescription:
     """A kinematic tree paired and mobile dofs for the tree."""
+
     kintree: KinTree
     dof_metadata: DOFMetadata
 
     @classmethod
     @validate_args
     def for_system(
-            cls,
-            bonds: NDArray(int)[:, 2],
-            torsion_metadata: NDArray(torsion_metadata_dtype)[:],
+        cls,
+        bonds: NDArray(int)[:, 2],
+        torsion_metadata: NDArray(torsion_metadata_dtype)[:],
     ):
         """Generate kinematics for system atoms and named torsions.
 
@@ -34,30 +35,25 @@ class KinematicDescription:
         coordinate. Note that this is a covering of indices within the system
         "non-atom" ids are not present in the tree.
         """
-        torsion_pairs = numpy.block([
-            [torsion_metadata["atom_index_b"]],
-            [torsion_metadata["atom_index_c"]],
-        ]).T
+        torsion_pairs = numpy.block(
+            [[torsion_metadata["atom_index_b"]], [torsion_metadata["atom_index_c"]]]
+        ).T
         torsion_bonds = torsion_pairs[numpy.all(torsion_pairs > 0, axis=-1)]
 
         builder = KinematicBuilder().append_connected_component(
             *KinematicBuilder.component_for_prioritized_bonds(
-                root=0,
-                mandatory_bonds=torsion_bonds,
-                all_bonds=bonds,
+                root=0, mandatory_bonds=torsion_bonds, all_bonds=bonds
             )
         )
 
         kintree = builder.kintree
 
         return cls(
-            kintree=builder.kintree,
-            dof_metadata=DOFMetadata.for_kintree(kintree),
+            kintree=builder.kintree, dof_metadata=DOFMetadata.for_kintree(kintree)
         )
 
     def extract_kincoords(
-            self,
-            coords: NDArray(float)[:, 3],
+        self, coords: NDArray(float)[:, 3]
     ) -> Tensor(torch.double)[:, 3]:
         """Extract the kinematic-derived coordinates from system coords.
 

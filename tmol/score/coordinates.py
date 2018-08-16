@@ -18,19 +18,14 @@ class CartesianAtomicCoordinateProvider(Factory):
     @staticmethod
     @singledispatch
     def factory_for(
-            other,
-            device: torch.device,
-            requires_grad: Optional[bool] = None,
-            **_,
+        other, device: torch.device, requires_grad: Optional[bool] = None, **_
     ):
         """`clone`-factory, extract coords from other."""
         if requires_grad is None:
             requires_grad = other.coords.requires_grad
 
         coords = torch.tensor(
-            other.coords,
-            dtype=torch.float,
-            device=device,
+            other.coords, dtype=torch.float, device=device
         ).requires_grad_(requires_grad)
 
         return dict(coords=coords)
@@ -47,10 +42,7 @@ class KinematicAtomicCoordinateProvider(Factory):
     @staticmethod
     @singledispatch
     def factory_for(
-            other,
-            device: torch.device,
-            requires_grad: Optional[bool] = None,
-            **_,
+        other, device: torch.device, requires_grad: Optional[bool] = None, **_
     ):
         """`clone`-factory, extract kinop and dofs from other."""
 
@@ -62,14 +54,9 @@ class KinematicAtomicCoordinateProvider(Factory):
         if other.dofs.device != device:
             raise ValueError("Unable to change device for kinematic ops.")
 
-        dofs = torch.tensor(
-            other.dofs, device=device
-        ).requires_grad_(requires_grad)
+        dofs = torch.tensor(other.dofs, device=device).requires_grad_(requires_grad)
 
-        return dict(
-            kinop=kinop,
-            dofs=dofs,
-        )
+        return dict(kinop=kinop, dofs=dofs)
 
     # Source mobile dofs
     dofs: Tensor("f4")[:]
@@ -79,9 +66,7 @@ class KinematicAtomicCoordinateProvider(Factory):
 
     @reactive_property
     def coords(
-            dofs: Tensor("f4")[:],
-            kinop: KinematicOp,
-            system_size: int,
+        dofs: Tensor("f4")[:], kinop: KinematicOp, system_size: int
     ) -> Tensor("f4")[:, 3]:
         """System cartesian atomic coordinates."""
         kincoords = kinop(dofs)
@@ -95,7 +80,7 @@ class KinematicAtomicCoordinateProvider(Factory):
             requires_grad=False,
         )
 
-        coords[kinop.kintree.id[1:]] = kincoords[1:] # yapf: disable
+        coords[kinop.kintree.id[1:]] = kincoords[1:]
 
         return coords.to(torch.float)
 

@@ -28,9 +28,4 @@ class Factory:
     @classmethod
     def init_parameters_for(cls, val, **kwargs):
         """Get score graph params for val, defaults to cloning."""
-        return mixins.cooperative_superclass_factory(
-            cls,
-            "factory_for",
-            val,
-            **kwargs,
-        )
+        return mixins.cooperative_superclass_factory(cls, "factory_for", val, **kwargs)

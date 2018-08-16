@@ -4,12 +4,12 @@ import numpy
 
 @numba.jit(nopython=True)
 def mark_path_children_and_count_nonpath_children(
-        natoms,
-        parent_ko,
-        subpath_child_ko,
-        out_n_nonpath_children_ko,
-        out_is_subpath_root_ko,
-        out_is_subpath_leaf_ko,
+    natoms,
+    parent_ko,
+    subpath_child_ko,
+    out_n_nonpath_children_ko,
+    out_is_subpath_root_ko,
+    out_is_subpath_leaf_ko,
 ):
     for ii in range(natoms - 1, -1, -1):
         ii_parent = parent_ko[ii]
@@ -23,7 +23,7 @@ def mark_path_children_and_count_nonpath_children(
 
 @numba.jit(nopython=True)
 def list_nonpath_children(
-        natoms, is_subpath_root_ko, parent_ko, out_non_path_children_ko
+    natoms, is_subpath_root_ko, parent_ko, out_non_path_children_ko
 ):
     count_n_nonfirst_children = numpy.zeros((natoms), dtype=numpy.int32)
     for ii in range(natoms):
@@ -38,12 +38,12 @@ def list_nonpath_children(
 
 @numba.jit(nopython=True)
 def find_derivsum_path_depths(
-        natoms,
-        subpath_child_ko,
-        non_path_children_ko,
-        is_subpath_root_ko,
-        out_derivsum_path_depth_ko,
-        out_subpath_length_ko,
+    natoms,
+    subpath_child_ko,
+    non_path_children_ko,
+    is_subpath_root_ko,
+    out_derivsum_path_depth_ko,
+    out_subpath_length_ko,
 ):
     for ii in range(natoms - 1, -1, -1):
         # my depth is the larger of my first child's depth, or
@@ -81,7 +81,7 @@ def find_derivsum_path_depths(
 
 @numba.jit(nopython=True)
 def compute_branching_factor(
-        natoms, parent, out_branching_factor, out_branchiest_child
+    natoms, parent, out_branching_factor, out_branchiest_child
 ):
     for ii in range(natoms - 1, -1, -1):
         ii_bf = out_branching_factor[ii]
@@ -102,10 +102,7 @@ def compute_branching_factor(
 
 @numba.jit(nopython=True)
 def find_refold_path_depths(
-        natoms,
-        parent_ko,
-        is_subpath_root_ko,
-        out_refold_atom_depth_ko,
+    natoms, parent_ko, is_subpath_root_ko, out_refold_atom_depth_ko
 ):
     for ii in range(natoms):
         ii_parent = parent_ko[ii]

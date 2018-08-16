@@ -4,11 +4,7 @@ import numpy
 import torch
 import numba
 
-from tmol.kinematics.operations import (
-    DOFTransforms,
-    backwardKin,
-    iterative_refold,
-)
+from tmol.kinematics.operations import DOFTransforms, backwardKin, iterative_refold
 from tmol.kinematics.gpu_operations import (
     GPUKinTreeReordering,
     RefoldOrdering,
@@ -26,9 +22,13 @@ CONSISTENCY_CHECK_NITER = 10
 
 
 def system_kintree(target_system):
-    return KinematicBuilder().append_connected_component(
-        *KinematicBuilder.bonds_to_connected_component(0, target_system.bonds)
-    ).kintree
+    return (
+        KinematicBuilder()
+        .append_connected_component(
+            *KinematicBuilder.bonds_to_connected_component(0, target_system.bonds)
+        )
+        .kintree
+    )
 
 
 @pytest.mark.benchmark(group="score_setup")
@@ -68,17 +68,17 @@ def test_gpu_refold_data_construction(benchmark, ubq_system):
         #   be the kinematic parent (as the node is on a subpath?)
         ii_ri = ro.ki2ri[ii_ki]
         parent_ri = ro.ki2ri[parent_ki]
-        assert parent_ki == ii_ki or \
-            ro.non_subpath_parent[ii_ri] == -1 or \
-            ro.non_subpath_parent[ii_ri] == parent_ri
+        assert (
+            parent_ki == ii_ki
+            or ro.non_subpath_parent[ii_ri] == -1
+            or ro.non_subpath_parent[ii_ri] == parent_ri
+        )
 
         # The node's child must:
         #    be non-existant (as the node is a leaf?)
         #    not have a non-subpath parent (as it's parent is this node?)
         child_ki = sp.subpath_child[ii_ki]
-        assert (
-            child_ki == -1 or ro.non_subpath_parent[ro.ki2ri[child_ki]] == -1
-        )
+        assert child_ki == -1 or ro.non_subpath_parent[ro.ki2ri[child_ki]] == -1
 
     ### Validate derivsum ordering
     do: DerivsumOrdering = o.derivsum_ordering
@@ -101,14 +101,13 @@ def test_gpu_refold_data_construction(benchmark, ubq_system):
         256,
         # block size of 512  exceeds shared memory limit
         pytest.param(512, marks=pytest.mark.xfail),
-    ]
+    ],
 )
 def test_refold_values(benchmark, big_system, segscan_num_threads):
     target_device = torch.device("cuda")
     target_kintree = system_kintree(big_system)
 
-    coords = torch.tensor(big_system.coords[target_kintree.id]
-                          ).to(device=target_device)
+    coords = torch.tensor(big_system.coords[target_kintree.id]).to(device=target_device)
     kintree = target_kintree.to(device=target_device)
 
     bkin = backwardKin(target_kintree, coords)
@@ -123,9 +122,7 @@ def test_refold_values(benchmark, big_system, segscan_num_threads):
     )
 
     iterative_refold_hts_inplace = local_hts.clone().cpu()
-    iterative_refold(
-        iterative_refold_hts_inplace, kintree.parent.cpu(), inplace=True
-    )
+    iterative_refold(iterative_refold_hts_inplace, kintree.parent.cpu(), inplace=True)
 
     numpy.testing.assert_allclose(bkin.hts, iterative_refold_hts, atol=1e-6)
     numpy.testing.assert_allclose(
@@ -146,9 +143,7 @@ def test_refold_values(benchmark, big_system, segscan_num_threads):
     )
 
     # override the segscan_num_threads on otherwise frozen object
-    object.__setattr__(
-        refold_ordering, "segscan_num_threads", segscan_num_threads
-    )
+    object.__setattr__(refold_ordering, "segscan_num_threads", segscan_num_threads)
 
     @benchmark
     def parallel_refold_hts():
@@ -163,15 +158,17 @@ def test_refold_values(benchmark, big_system, segscan_num_threads):
 
     # results must be consistent over repeated invocations, tests issue 90
     niter = CONSISTENCY_CHECK_NITER
-    repeated_parallel_results = torch.cat([
-        refold_ordering.segscan_hts(local_hts, inplace=False)[None, ...]
-        for _ in range(niter)
-    ])
+    repeated_parallel_results = torch.cat(
+        [
+            refold_ordering.segscan_hts(local_hts, inplace=False)[None, ...]
+            for _ in range(niter)
+        ]
+    )
 
     numpy.testing.assert_allclose(
         repeated_parallel_results,
         torch.cat([bkin.hts[None, ...] for _ in range(niter)]),
-        atol=1e-6
+        atol=1e-6,
     )
 
 
@@ -182,8 +179,7 @@ def test_derivsum_values(benchmark, big_system, segscan_num_threads):
     target_device = torch.device("cuda")
     target_kintree = system_kintree(big_system)
 
-    coords = torch.tensor(big_system.coords[target_kintree.id]
-                          ).to(device=target_device)
+    coords = torch.tensor(big_system.coords[target_kintree.id]).to(device=target_device)
     kintree = target_kintree.to(device=target_device)
 
     torch.manual_seed(1663)
@@ -213,23 +209,18 @@ def test_derivsum_values(benchmark, big_system, segscan_num_threads):
     ### Parallel case
 
     # Load and cache ordering for benchmark
-    derivsum_ordering = GPUKinTreeReordering.for_kintree(
-        kintree
-    ).derivsum_ordering
+    derivsum_ordering = GPUKinTreeReordering.for_kintree(kintree).derivsum_ordering
 
     # perform single run here *before* adjusting the thread block size
     parallel_f1f2_sums_inplace = f1f2s.clone()
     (
-        GPUKinTreeReordering.for_kintree(kintree)
-        .derivsum_ordering.segscan_f1f2s(
+        GPUKinTreeReordering.for_kintree(kintree).derivsum_ordering.segscan_f1f2s(
             parallel_f1f2_sums_inplace, inplace=True
         )
     )
 
     # override the segscan_num_threads on otherwise frozen object
-    object.__setattr__(
-        derivsum_ordering, "segscan_num_threads", segscan_num_threads
-    )
+    object.__setattr__(derivsum_ordering, "segscan_num_threads", segscan_num_threads)
 
     @benchmark
     def parallel_f1f2_sums():
@@ -243,22 +234,18 @@ def test_derivsum_values(benchmark, big_system, segscan_num_threads):
     numpy.testing.assert_allclose(iterative_f1f2_sums, parallel_f1f2_sums)
 
     # inplace should match non-inplace operations
-    numpy.testing.assert_allclose(
-        parallel_f1f2_sums,
-        parallel_f1f2_sums_inplace,
-    )
+    numpy.testing.assert_allclose(parallel_f1f2_sums, parallel_f1f2_sums_inplace)
 
     # results must be consistent over repeated invocations, tests issue 90
     niter = CONSISTENCY_CHECK_NITER
-    repeated_parallel_results = torch.cat([
-        derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)[None, ...]
-        for _ in range(niter)
-    ])
-    repeated_iterative_results = torch.cat([
-        iterative_f1f2_sums[None, ...] for _ in range(niter)
-    ])
-
-    numpy.testing.assert_allclose(
-        repeated_parallel_results,
-        repeated_iterative_results,
+    repeated_parallel_results = torch.cat(
+        [
+            derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)[None, ...]
+            for _ in range(niter)
+        ]
     )
+    repeated_iterative_results = torch.cat(
+        [iterative_f1f2_sums[None, ...] for _ in range(niter)]
+    )
+
+    numpy.testing.assert_allclose(repeated_parallel_results, repeated_iterative_results)

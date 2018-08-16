@@ -9,9 +9,7 @@ from tmol.utility.attr import AttrMapping
 class Setup:
     @classmethod
     def setup(cls, val, **kwargs):
-        return cls(
-            **cooperative_superclass_factory(cls, "factory", val, **kwargs)
-        )
+        return cls(**cooperative_superclass_factory(cls, "factory", val, **kwargs))
 
 
 def test_cooperative_factory_function_update():

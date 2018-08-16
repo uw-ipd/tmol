@@ -11,8 +11,7 @@ u = ureg.parse_expression
 
 
 def parse_angle(
-        angle: Union[float, str],
-        lim: Tuple[float, float] = (-2 * math.pi, 2 * math.pi),
+    angle: Union[float, str], lim: Tuple[float, float] = (-2 * math.pi, 2 * math.pi)
 ) -> float:
     """Parse an angle via :doc:`pint <pint:index>` and convert to radians.
 
@@ -38,12 +37,8 @@ def parse_angle(
     if lim:
         minv, maxv = lim
         if minv is not None and val < minv:
-            raise ValueError(
-                f"angle: {angle!r} outside of allowed range: {lim}"
-            )
+            raise ValueError(f"angle: {angle!r} outside of allowed range: {lim}")
         if maxv is not None and val > maxv:
-            raise ValueError(
-                f"angle: {angle!r} outside of allowed range: {lim}"
-            )
+            raise ValueError(f"angle: {angle!r} outside of allowed range: {lim}")
 
     return float(val)

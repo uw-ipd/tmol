@@ -2,12 +2,16 @@
 Shape Specifications
 --------------------
 
-Shape specifications are intended to allow a reasonable description of common array shapes, with an emphasis on functionally relevant shape cases. This includes dimensionality, shape of specific dimensions, implied broadcastable dimensions, contiguous ordering (ie. C vs F ordering), and density.
+Shape specifications are intended to allow a reasonable description of common
+array shapes, with an emphasis on functionally relevant shape cases. This
+includes dimensionality, shape of specific dimensions, implied broadcastable
+dimensions, contiguous ordering (ie. C vs F ordering), and density.
 
 ``ndim`` and ``shape``
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Basic dimensionality and shape requirements are specified via slices. Dimensions may be unconstrained or constrainted to a fixed shape.
+Basic dimensionality and shape requirements are specified via slices.
+Dimensions may be unconstrained or constrainted to a fixed shape.
 
 - ``[:]`` - ndim 1, any shape
 - ``[3]`` or ``[:3]`` - ndim 1, shape (3,)
@@ -17,7 +21,10 @@ Basic dimensionality and shape requirements are specified via slices. Dimensions
 Broadcastable Dimensions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Optional dimensions are represented by an elipsis. This should generally be limited to *only* [implicitly broadcastable](https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html) upper dimensions.
+Optional dimensions are represented by an elipsis. This should generally be
+limited to *only* [implicitly
+broadcastable](https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html)
+upper dimensions.
 
 - ``[...,:3]`` - ndim 1+, shape ([any]*, 3)
 - ``[...,:,:3]`` - ndim 2+, shape ([any]+, 3, 3)
@@ -26,9 +33,14 @@ Optional dimensions are represented by an elipsis. This should generally be limi
 Stride and Contiguous Dimensions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Memory layout constraints can be used to specify contiguous dimensions and their ordering. Dense dimensions are specified in the standard \[inner|c|numpy|row-major\] order or or in \[outer|fortran|col-major\] order. Any number of dimensions, starting from either ordering, can be specified as dense. Elements of dense dimensions are contiguous support a raveled view.
+Memory layout constraints can be used to specify contiguous dimensions and
+their ordering. Dense dimensions are specified in the standard
+\[inner|c|numpy|row-major\] order or or in \[outer|fortran|col-major\] order.
+Any number of dimensions, starting from either ordering, can be specified as
+dense. Elements of dense dimensions are contiguous support a raveled view.
 
-The exact syntax for this dimension specification is unclear. The "inline", utilizing the slide step component:
+The exact syntax for this dimension specification is unclear. The "inline",
+utilizing the slide step component:
 
 
 - ``[::1]`` - ndim 1, any shape, contiguous
@@ -74,7 +86,7 @@ class Dim:
             return
         else:
             if not isinstance(size, int) or size < 1:
-                raise ValueError('size must be None, Ellipsis, or >1', size)
+                raise ValueError("size must be None, Ellipsis, or >1", size)
 
     def __str__(self):
         if self.size is Ellipsis:
@@ -91,7 +103,7 @@ class Shape:
         @staticmethod
         def __getitem__(args):
             if not isinstance(args, tuple):
-                args = (args, )
+                args = (args,)
 
             return Shape(list(args))
 
@@ -124,18 +136,21 @@ class Shape:
         if len(dims) < len(adims):
             if dims[0].size is not Ellipsis:
                 raise ValueError(
-                    f"No implied broadcast to shape. expected: {self!s} received: {adims}"
+                    f"No implied broadcast to shape. "
+                    f"expected: {self!s} received: {adims}"
                 )
 
             dims = [Dim(Ellipsis)] * (len(adims) - len(dims)) + dims
         elif len(dims) > len(adims):
             if not len(dims) - len(adims) == 1:
                 raise ValueError(
-                    f"Fewer than expected dims in shape. expected: {self!s} received: {adims}"
+                    f"Fewer than expected dims in shape. "
+                    f"expected: {self!s} received: {adims}"
                 )
             elif not dims[0].size is Ellipsis:
                 raise ValueError(
-                    f"No implied broadcast to shape. expected: {self!s} received: {adims}"
+                    f"No implied broadcast to shape. "
+                    f"expected: {self!s} received: {adims}"
                 )
             dims = dims[1:]
 
@@ -144,7 +159,8 @@ class Shape:
         for d, a in zip(dims, adims):
             if d.size and d.size is not Ellipsis and d.size is not a:
                 raise ValueError(
-                    f"Invalid dimension size. expected: {self!s} received: {adims} dim: {d} size: {a}"
+                    f"Invalid dimension size. "
+                    f"expected: {self!s} received: {adims} dim: {d} size: {a}"
                 )
 
         return True
@@ -155,9 +171,7 @@ class Shape:
             self.validate(value.shape)
             return value
         except ValueError as vex:
-            raise ValueError(
-                f"Invalid shape: {value.shape} expected: {self}"
-            ) from vex
+            raise ValueError(f"Invalid shape: {value.shape} expected: {self}") from vex
 
     def __str__(self):
         return "[{}]".format(",".join(map(str, self.dims)))

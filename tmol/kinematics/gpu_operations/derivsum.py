@@ -56,9 +56,7 @@ class DerivsumOrdering(ValidateAttrs):
         # Determine the number of atoms present in paths at each path depth,
         # and the index ranges needed for each depth in the scan buffer.
         subpath_leaves = numpy.flatnonzero(scan_paths.is_subpath_leaf)
-        subpath_depths_from_leaf = scan_paths.subpath_depth_from_leaf[
-            subpath_leaves
-        ]
+        subpath_depths_from_leaf = scan_paths.subpath_depth_from_leaf[subpath_leaves]
         subpath_lengths = scan_paths.subpath_length[subpath_leaves]
 
         depth_offsets = numpy.zeros((ndepths), dtype="int32")
@@ -66,11 +64,7 @@ class DerivsumOrdering(ValidateAttrs):
         depth_offsets[1:] = numpy.cumsum(depth_offsets)[:-1]
         depth_offsets[0] = 0
 
-        atom_range_for_depth = numpy.full(
-            (ndepths, 2),
-            -1,
-            dtype="int32",
-        )
+        atom_range_for_depth = numpy.full((ndepths, 2), -1, dtype="int32")
 
         for ii in range(ndepths - 1):
             atom_range_for_depth[ii, 0] = depth_offsets[ii]
@@ -103,15 +97,14 @@ class DerivsumOrdering(ValidateAttrs):
             # the nonpath children array into dsi ordering
             nonpath_children=numpy.where(
                 scan_paths.nonpath_children != -1,
-                ki2dsi[scan_paths.nonpath_children], -1
+                ki2dsi[scan_paths.nonpath_children],
+                -1,
             )[dsi2ki],
-            atom_range_for_depth=atom_range_for_depth
+            atom_range_for_depth=atom_range_for_depth,
         )
 
     def segscan_f1f2s(
-            self,
-            f1f2s_kintree_ordering: Tensor("f8")[:, 6],
-            inplace: bool = False
+        self, f1f2s_kintree_ordering: Tensor("f8")[:, 6], inplace: bool = False
     ) -> Tensor("f8")[:, 6]:
         if not inplace:
             f1f2s_kintree_ordering = f1f2s_kintree_ordering.clone()

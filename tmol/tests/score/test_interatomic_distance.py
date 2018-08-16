@@ -6,13 +6,8 @@ from scipy.spatial.distance import pdist, squareform
 
 from tmol.score.device import TorchDevice
 
-from tmol.score.coordinates import (
-    CartesianAtomicCoordinateProvider,
-)
-from tmol.score.total_score import (
-    ScoreComponentAttributes,
-    TotalScoreComponentsGraph,
-)
+from tmol.score.coordinates import CartesianAtomicCoordinateProvider
+from tmol.score.total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase,
     NaiveInteratomicDistanceGraph,
@@ -23,17 +18,13 @@ from tmol.utility.reactive import reactive_attrs, reactive_property
 
 
 @reactive_attrs(auto_attribs=True)
-class ThresholdDistanceCount(
-        InteratomicDistanceGraphBase,
-        TotalScoreComponentsGraph,
-):
+class ThresholdDistanceCount(InteratomicDistanceGraphBase, TotalScoreComponentsGraph):
     threshold_distance: float = 6.0
 
     @property
     def component_total_score_terms(self):
         return ScoreComponentAttributes(
-            name="threshold_count",
-            total="total_threshold_count",
+            name="threshold_count", total="total_threshold_count"
         )
 
     @property
@@ -43,37 +34,29 @@ class ThresholdDistanceCount(
     @reactive_property
     def total_threshold_count(atom_pair_dist, threshold_distance):
         "number of bonds under threshold distance"
-        return ((atom_pair_dist < threshold_distance)
-                .type(torch.LongTensor).sum())
+        return (atom_pair_dist < threshold_distance).type(torch.LongTensor).sum()
 
 
-@pytest.mark.benchmark(
-    group="interatomic_distance_calculation",
-)
+@pytest.mark.benchmark(group="interatomic_distance_calculation")
 @pytest.mark.parametrize(
     "interatomic_distance_component",
     [NaiveInteratomicDistanceGraph, BlockedInteratomicDistanceGraph],
     ids=["naive", "blocked"],
 )
 def test_interatomic_distance(
-        benchmark,
-        ubq_system,
-        interatomic_distance_component,
-        torch_device,
+    benchmark, ubq_system, interatomic_distance_component, torch_device
 ):
     @reactive_attrs
     class TestGraph(
-            CartesianAtomicCoordinateProvider,
-            interatomic_distance_component,
-            ThresholdDistanceCount,
-            TorchDevice,
+        CartesianAtomicCoordinateProvider,
+        interatomic_distance_component,
+        ThresholdDistanceCount,
+        TorchDevice,
     ):
         pass
 
     dgraph = TestGraph.build_for(
-        ubq_system,
-        drop_missing_atoms=True,
-        device=torch_device,
+        ubq_system, drop_missing_atoms=True, device=torch_device
     )
 
     scipy_distance = pdist(ubq_system.coords)
@@ -82,11 +65,9 @@ def test_interatomic_distance(
     )
 
     numpy.testing.assert_allclose(
-        numpy.nan_to_num(
-            squareform(scipy_distance)[tuple(dgraph.atom_pair_inds)]
-        ),
+        numpy.nan_to_num(squareform(scipy_distance)[tuple(dgraph.atom_pair_inds)]),
         numpy.nan_to_num(dgraph.atom_pair_dist.detach()),
-        rtol=1e-4
+        rtol=1e-4,
     )
 
     @benchmark

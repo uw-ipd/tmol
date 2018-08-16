@@ -1,9 +1,18 @@
 [flake8]
-ignore = E501,E12,E24,E25,E26
-# See http://pep8.readthedocs.io/en/latest/intro.html#error-codes
-# Handle a number of formatting issues with YAPF
-# E501 - line length
-# E12 - continuation indent
-# E24 - inline spaces
-# E25 - op spaces
-# E26 - Comment spacing format
+exclude=tmol/extern
+
+# Black-compatible config from
+# https://github.com/ambv/black/blob/master/.flake8
+# http://pep8.readthedocs.io/en/latest/intro.html#error-codes
+# E203 - operator whitespace, error in pycodestyle
+#        https://github.com/PyCQA/pycodestyle/issues/373
+# E266 - Comment leading '###'
+# E501 - line length, handled by B950
+# E503 - Break before binary operator
+# B902 - Invalid "self" first argument
+
+ignore = E203, E266, E501, W503, B902
+
+max-line-length = 80
+max-complexity = 18
+select = B,C,E,F,W,T4,B9
