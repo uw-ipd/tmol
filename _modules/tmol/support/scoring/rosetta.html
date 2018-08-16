@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.support.scoring.rosetta &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.support.scoring.rosetta &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -174,9 +174,11 @@
 
 <div class="viewcode-block" id="strip_variants"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.strip_variants">[docs]</a><span class="k">def</span> <span class="nf">strip_variants</span><span class="p">(</span><span class="n">pose</span><span class="p">):</span>
     <span class="kn">import</span> <span class="nn">pyrosetta.distributed.packed_pose</span> <span class="k">as</span> <span class="nn">packed_pose</span>
+
     <span class="n">pose</span> <span class="o">=</span> <span class="n">packed_pose</span><span class="o">.</span><span class="n">to_pose</span><span class="p">(</span><span class="n">pose</span><span class="p">)</span>
 
     <span class="kn">import</span> <span class="nn">pyrosetta.rosetta.core</span> <span class="k">as</span> <span class="nn">core</span>
+
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">residues</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">type</span><span class="p">()</span><span class="o">.</span><span class="n">variant_type_enums</span><span class="p">():</span>
             <span class="n">core</span><span class="o">.</span><span class="n">pose</span><span class="o">.</span><span class="n">remove_variant_type_from_pose_residue</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
@@ -197,44 +199,51 @@
 <div class="viewcode-block" id="PoseScoreWrapper.from_pose"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.PoseScoreWrapper.from_pose">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_pose</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pose</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">tmol.support.rosetta.init</span> <span class="k">import</span> <span class="n">pyrosetta</span>
+
         <span class="n">pyrosetta</span><span class="o">.</span><span class="n">get_score_function</span><span class="p">()(</span><span class="n">pose</span><span class="p">)</span>
 
-        <span class="n">atoms</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">([</span>
-            <span class="nb">dict</span><span class="p">(</span>
-                <span class="n">chaini</span><span class="o">=</span><span class="n">pose</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="n">ri</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
-                <span class="n">resi</span><span class="o">=</span><span class="n">ri</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="n">atomi</span><span class="o">=</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="n">resn</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name3</span><span class="p">(),</span>
-                <span class="n">atomn</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">atom_name</span><span class="p">(</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
-                <span class="n">x</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">xyz</span><span class="p">(</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-                <span class="n">y</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">xyz</span><span class="p">(</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">z</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">xyz</span><span class="p">(</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">2</span><span class="p">],</span>
-            <span class="p">)</span>
-            <span class="k">for</span> <span class="n">ri</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">ai</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">natoms</span><span class="p">())</span>
-        <span class="p">])</span>
+        <span class="n">atoms</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">chaini</span><span class="o">=</span><span class="n">pose</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="n">ri</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">resi</span><span class="o">=</span><span class="n">ri</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">atomi</span><span class="o">=</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="n">resn</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">name3</span><span class="p">(),</span>
+                    <span class="n">atomn</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">atom_name</span><span class="p">(</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                    <span class="n">x</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">xyz</span><span class="p">(</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="n">y</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">xyz</span><span class="p">(</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+                    <span class="n">z</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">xyz</span><span class="p">(</span><span class="n">ai</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">ri</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pose</span><span class="o">.</span><span class="n">residues</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">ai</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">natoms</span><span class="p">())</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
 
         <span class="n">residue_scores</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">energies</span><span class="p">()</span><span class="o">.</span><span class="n">residue_total_energies_array</span><span class="p">()</span>
         <span class="n">total_scores</span> <span class="o">=</span> <span class="n">pose</span><span class="o">.</span><span class="n">energies</span><span class="p">()</span><span class="o">.</span><span class="n">total_energies_array</span><span class="p">()</span>
 
         <span class="n">hbset</span> <span class="o">=</span> <span class="n">pyrosetta</span><span class="o">.</span><span class="n">rosetta</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">hbonds</span><span class="o">.</span><span class="n">HBondSet</span><span class="p">()</span>
-        <span class="n">pyrosetta</span><span class="o">.</span><span class="n">rosetta</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">hbonds</span><span class="o">.</span><span class="n">fill_hbond_set</span><span class="p">(</span>
-            <span class="n">pose</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">hbset</span>
+        <span class="n">pyrosetta</span><span class="o">.</span><span class="n">rosetta</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">hbonds</span><span class="o">.</span><span class="n">fill_hbond_set</span><span class="p">(</span><span class="n">pose</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">hbset</span><span class="p">)</span>
+
+        <span class="n">hbonds</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;a_res&quot;</span><span class="p">:</span> <span class="n">hbond</span><span class="o">.</span><span class="n">acc_res</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s2">&quot;a_atom&quot;</span><span class="p">:</span> <span class="n">pose</span><span class="o">.</span><span class="n">residue</span><span class="p">(</span><span class="n">hbond</span><span class="o">.</span><span class="n">acc_res</span><span class="p">())</span>
+                    <span class="o">.</span><span class="n">atom_name</span><span class="p">(</span><span class="n">hbond</span><span class="o">.</span><span class="n">acc_atm</span><span class="p">())</span>
+                    <span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                    <span class="s2">&quot;h_res&quot;</span><span class="p">:</span> <span class="n">hbond</span><span class="o">.</span><span class="n">don_res</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s2">&quot;h_atom&quot;</span><span class="p">:</span> <span class="n">pose</span><span class="o">.</span><span class="n">residue</span><span class="p">(</span><span class="n">hbond</span><span class="o">.</span><span class="n">don_res</span><span class="p">())</span>
+                    <span class="o">.</span><span class="n">atom_name</span><span class="p">(</span><span class="n">hbond</span><span class="o">.</span><span class="n">don_hatm</span><span class="p">())</span>
+                    <span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                    <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="n">hbond</span><span class="o">.</span><span class="n">energy</span><span class="p">(),</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">hbond</span> <span class="ow">in</span> <span class="p">(</span><span class="n">hbset</span><span class="o">.</span><span class="n">hbond</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">hbset</span><span class="o">.</span><span class="n">nhbonds</span><span class="p">()))</span>
+            <span class="p">]</span>
         <span class="p">)</span>
 
-        <span class="n">hbonds</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">([{</span>
-            <span class="s2">&quot;a_res&quot;</span><span class="p">:</span> <span class="n">hbond</span><span class="o">.</span><span class="n">acc_res</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="s2">&quot;a_atom&quot;</span><span class="p">:</span>
-                <span class="n">pose</span><span class="o">.</span><span class="n">residue</span><span class="p">(</span><span class="n">hbond</span><span class="o">.</span><span class="n">acc_res</span><span class="p">())</span><span class="o">.</span><span class="n">atom_name</span><span class="p">(</span><span class="n">hbond</span><span class="o">.</span><span class="n">acc_atm</span><span class="p">())</span>
-                <span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
-            <span class="s2">&quot;h_res&quot;</span><span class="p">:</span> <span class="n">hbond</span><span class="o">.</span><span class="n">don_res</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="s2">&quot;h_atom&quot;</span><span class="p">:</span>
-                <span class="n">pose</span><span class="o">.</span><span class="n">residue</span><span class="p">(</span><span class="n">hbond</span><span class="o">.</span><span class="n">don_res</span><span class="p">())</span><span class="o">.</span><span class="n">atom_name</span><span class="p">(</span><span class="n">hbond</span><span class="o">.</span><span class="n">don_hatm</span><span class="p">())</span>
-                <span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
-            <span class="s2">&quot;energy&quot;</span><span class="p">:</span> <span class="n">hbond</span><span class="o">.</span><span class="n">energy</span><span class="p">(),</span>
-        <span class="p">}</span> <span class="k">for</span> <span class="n">hbond</span> <span class="ow">in</span> <span class="p">(</span><span class="n">hbset</span><span class="o">.</span><span class="n">hbond</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">hbset</span><span class="o">.</span><span class="n">nhbonds</span><span class="p">()))])</span>
-
         <span class="kn">import</span> <span class="nn">pyrosetta</span>
+
         <span class="n">pyrosetta</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">packed_pose</span><span class="o">.</span><span class="n">PackedPose</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
@@ -249,6 +258,7 @@
 <div class="viewcode-block" id="PoseScoreWrapper.from_pdbstring"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.PoseScoreWrapper.from_pdbstring">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_pdbstring</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pdbstring</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">pyrosetta.distributed.io</span> <span class="k">import</span> <span class="n">pose_from_pdbstring</span>
+
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_pose</span><span class="p">(</span>
             <span class="n">toolz</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">strip_variants</span><span class="p">,</span> <span class="n">pose_from_pdbstring</span><span class="p">)(</span><span class="n">pdbstring</span><span class="p">)</span>
         <span class="p">)</span></div>
@@ -301,7 +311,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

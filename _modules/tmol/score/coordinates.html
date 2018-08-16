@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.coordinates &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.score.coordinates &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -185,19 +185,14 @@
 <div class="viewcode-block" id="CartesianAtomicCoordinateProvider.factory_for"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="nd">@singledispatch</span>
     <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span>
-            <span class="n">other</span><span class="p">,</span>
-            <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="n">requires_grad</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">_</span><span class="p">,</span>
+        <span class="n">other</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">requires_grad</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;`clone`-factory, extract coords from other.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">requires_grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">requires_grad</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span>
 
         <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-            <span class="n">other</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
-            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">other</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
         <span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="n">requires_grad</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span></div>
@@ -214,10 +209,7 @@
 <div class="viewcode-block" id="KinematicAtomicCoordinateProvider.factory_for"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="nd">@singledispatch</span>
     <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span>
-            <span class="n">other</span><span class="p">,</span>
-            <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-            <span class="n">requires_grad</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">_</span><span class="p">,</span>
+        <span class="n">other</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">requires_grad</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;`clone`-factory, extract kinop and dofs from other.&quot;&quot;&quot;</span>
 
@@ -229,14 +221,9 @@
         <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">dofs</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">device</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unable to change device for kinematic ops.&quot;</span><span class="p">)</span>
 
-        <span class="n">dofs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-            <span class="n">other</span><span class="o">.</span><span class="n">dofs</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="n">requires_grad</span><span class="p">)</span>
+        <span class="n">dofs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">dofs</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="n">requires_grad</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">kinop</span><span class="o">=</span><span class="n">kinop</span><span class="p">,</span>
-            <span class="n">dofs</span><span class="o">=</span><span class="n">dofs</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kinop</span><span class="o">=</span><span class="n">kinop</span><span class="p">,</span> <span class="n">dofs</span><span class="o">=</span><span class="n">dofs</span><span class="p">)</span></div>
 
     <span class="c1"># Source mobile dofs</span>
     <span class="n">dofs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:]</span>
@@ -246,9 +233,7 @@
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">coords</span><span class="p">(</span>
-            <span class="n">dofs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:],</span>
-            <span class="n">kinop</span><span class="p">:</span> <span class="n">KinematicOp</span><span class="p">,</span>
-            <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">dofs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:],</span> <span class="n">kinop</span><span class="p">:</span> <span class="n">KinematicOp</span><span class="p">,</span> <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;System cartesian atomic coordinates.&quot;&quot;&quot;</span>
         <span class="n">kincoords</span> <span class="o">=</span> <span class="n">kinop</span><span class="p">(</span><span class="n">dofs</span><span class="p">)</span>
@@ -262,7 +247,7 @@
             <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">coords</span><span class="p">[</span><span class="n">kinop</span><span class="o">.</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="c1"># yapf: disable</span>
+        <span class="n">coords</span><span class="p">[</span><span class="n">kinop</span><span class="o">.</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
 
         <span class="k">return</span> <span class="n">coords</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
 
@@ -302,7 +287,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.reactive &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.utility.reactive &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -203,7 +203,7 @@
 <p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> is a framework to describe the composition and execution of
 functions as properties and attributes of a class. By storing function results
 as object properties, rather than named variables, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> allows you to
-organize <a class="reference external" href="http://toolz.readthedocs.io/en/latest/purity.html" title="(in Toolz v0.9.0)"><span class="xref std std-doc">pure functions</span></a> in a declarative syntax, then
+organize <a class="reference external" href="https://toolz.readthedocs.io/en/latest/purity.html" title="(in Toolz v0.9.0)"><span class="xref std std-doc">pure functions</span></a> in a declarative syntax, then
 automatically handles dependency resolution, on-demand execution and result
 caching.</p>
 <p>As a motivating example, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> lets you write:</p>
@@ -211,8 +211,12 @@ caching.</p>
 <span class="k">class</span> <span class="nc">FactionalAnalysis</span><span class="p">:</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>
 
-    <span class="n">montegue_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Romeo&quot;</span><span class="p">,</span> <span class="s2">&quot;Benvolio&quot;</span><span class="p">,</span> <span class="s2">&quot;Montegue&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Montegue&quot;</span><span class="p">]</span>
-    <span class="n">capulet_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Juliet&quot;</span><span class="p">,</span> <span class="s2">&quot;Tybalt&quot;</span><span class="p">,</span> <span class="s2">&quot;Capulet&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Capulet&quot;</span><span class="p">]</span>
+    <span class="n">montegue_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Romeo&quot;</span><span class="p">,</span> <span class="s2">&quot;Benvolio&quot;</span><span class="p">,</span> <span class="s2">&quot;Montegue&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Montegue&quot;</span>
+    <span class="p">]</span>
+    <span class="n">capulet_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Juliet&quot;</span><span class="p">,</span> <span class="s2">&quot;Tybalt&quot;</span><span class="p">,</span> <span class="s2">&quot;Capulet&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Capulet&quot;</span>
+    <span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="n">source</span><span class="p">);</span>
@@ -269,7 +273,7 @@ inter-function dependencies.</p>
 </div>
 <div class="section" id="result-caching">
 <h3>Result Caching<a class="headerlink" href="#result-caching" title="Permalink to this headline">¶</a></h3>
-<p>Given the assumption of <a class="reference external" href="http://toolz.readthedocs.io/en/latest/purity.html" title="(in Toolz v0.9.0)"><span class="xref std std-doc">functional purity</span></a>, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a>
+<p>Given the assumption of <a class="reference external" href="https://toolz.readthedocs.io/en/latest/purity.html" title="(in Toolz v0.9.0)"><span class="xref std std-doc">functional purity</span></a>, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a>
 caches the result of <a class="reference internal" href="#tmol.utility.reactive.reactive_property" title="tmol.utility.reactive.reactive_property"><code class="xref any py py-func docutils literal notranslate"><span class="pre">reactive_property</span></code></a> evaluations from the on-demand
 resolution of property arguments. This provides in a lazy pull-based execution
 model, in which requesting a <a class="reference internal" href="#tmol.utility.reactive.reactive_property" title="tmol.utility.reactive.reactive_property"><code class="xref any py py-func docutils literal notranslate"><span class="pre">reactive_property</span></code></a> value results in the
@@ -407,8 +411,12 @@ additional form of sentiment analysis:</p>
 <span class="k">class</span> <span class="nc">Source</span><span class="p">:</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span>
 
-    <span class="n">montegue_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Romeo&quot;</span><span class="p">,</span> <span class="s2">&quot;Benvolio&quot;</span><span class="p">,</span> <span class="s2">&quot;Montegue&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Montegue&quot;</span><span class="p">]</span>
-    <span class="n">capulet_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Juliet&quot;</span><span class="p">,</span> <span class="s2">&quot;Tybalt&quot;</span><span class="p">,</span> <span class="s2">&quot;Capulet&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Capulet&quot;</span><span class="p">]</span>
+    <span class="n">montegue_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Romeo&quot;</span><span class="p">,</span> <span class="s2">&quot;Benvolio&quot;</span><span class="p">,</span> <span class="s2">&quot;Montegue&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Montegue&quot;</span>
+    <span class="p">]</span>
+    <span class="n">capulet_faction</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Juliet&quot;</span><span class="p">,</span> <span class="s2">&quot;Tybalt&quot;</span><span class="p">,</span> <span class="s2">&quot;Capulet&quot;</span><span class="p">,</span> <span class="s2">&quot;Lady Capulet&quot;</span>
+    <span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">lines</span><span class="p">(</span><span class="n">source</span><span class="p">);</span>
@@ -704,7 +712,7 @@ changes.</li>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.builder &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.kinematics.builder &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -179,7 +179,7 @@
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">convert_args</span><span class="p">,</span> <span class="n">validate_args</span>
 <span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">cat</span>
 
-<span class="kn">from</span> <span class="nn">.datatypes</span> <span class="k">import</span> <span class="p">(</span><span class="n">NodeType</span><span class="p">,</span> <span class="n">KinTree</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.datatypes</span> <span class="k">import</span> <span class="n">NodeType</span><span class="p">,</span> <span class="n">KinTree</span>
 
 <span class="n">ChildParentTuple</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:],</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:]]</span>
 
@@ -206,17 +206,17 @@
 <div class="viewcode-block" id="KinematicBuilder.component_for_prioritized_bonds"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.component_for_prioritized_bonds">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@convert_args</span>
     <span class="k">def</span> <span class="nf">component_for_prioritized_bonds</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span>
-            <span class="n">root</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">mandatory_bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
-            <span class="n">all_bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">root</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">mandatory_bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">all_bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChildParentTuple</span><span class="p">:</span>
         <span class="n">system_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">mandatory_bonds</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">all_bonds</span><span class="o">.</span><span class="n">max</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="n">weighted_bonds</span> <span class="o">=</span> <span class="p">(</span>
             <span class="c1"># All entries must be non-zero or sparse graph tools will entries.</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span><span class="n">all_bonds</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">system_size</span><span class="p">)</span> <span class="o">+</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span><span class="n">mandatory_bonds</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">1e-5</span><span class="p">],</span> <span class="n">system_size</span><span class="p">)</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span><span class="n">all_bonds</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">system_size</span><span class="p">)</span>
+            <span class="o">+</span> <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span><span class="n">mandatory_bonds</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">1e-5</span><span class="p">],</span> <span class="n">system_size</span><span class="p">)</span>
         <span class="p">)</span>
 
         <span class="n">ids</span><span class="p">,</span> <span class="n">parents</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_connected_component</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">weighted_bonds</span><span class="p">)</span>
@@ -225,21 +225,22 @@
         <span class="n">component_bond_graph</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">bonds_to_csgraph</span><span class="p">(</span>
             <span class="n">numpy</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">ids</span><span class="p">[</span><span class="mi">1</span><span class="p">:]],</span> <span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]])</span><span class="o">.</span><span class="n">T</span>
         <span class="p">)</span>
-        <span class="n">bond_present</span> <span class="o">=</span> <span class="n">component_bond_graph</span><span class="p">[</span><span class="n">mandatory_bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
-                                            <span class="n">mandatory_bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span>
-        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">bond_present</span><span class="p">),</span> <span class="p">(</span>
-            <span class="s2">&quot;Unable to generate component containing all mandatory bonds.&quot;</span>
-        <span class="p">)</span>
+        <span class="n">bond_present</span> <span class="o">=</span> <span class="n">component_bond_graph</span><span class="p">[</span>
+            <span class="n">mandatory_bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">mandatory_bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="p">]</span>
+        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+            <span class="n">bond_present</span>
+        <span class="p">),</span> <span class="s2">&quot;Unable to generate component containing all mandatory bonds.&quot;</span>
 
         <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">parents</span></div>
 
 <div class="viewcode-block" id="KinematicBuilder.bonds_to_csgraph"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.bonds_to_csgraph">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@convert_args</span>
     <span class="k">def</span> <span class="nf">bonds_to_csgraph</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span>
-            <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
-            <span class="n">weights</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-            <span class="n">system_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>  <span class="c1"># noqa</span>
+        <span class="n">system_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">system_size</span><span class="p">:</span>
             <span class="n">system_size</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
@@ -247,16 +248,13 @@
         <span class="n">weights</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">sparse</span><span class="o">.</span><span class="n">csr_matrix</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])),</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">system_size</span><span class="p">,</span> <span class="n">system_size</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">system_size</span><span class="p">,</span> <span class="n">system_size</span><span class="p">)</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="KinematicBuilder.bonds_to_connected_component"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.bonds_to_connected_component">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">bonds_to_connected_component</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span>
-            <span class="n">root</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">bonds</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">sparse</span><span class="o">.</span><span class="n">spmatrix</span><span class="p">],</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">bonds</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">sparse</span><span class="o">.</span><span class="n">spmatrix</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChildParentTuple</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
             <span class="c1"># Bonds are a non-prioritized set of edges, assume arbitrary</span>
@@ -281,12 +279,11 @@
 
 <div class="viewcode-block" id="KinematicBuilder.append_connected_component"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.append_connected_component">[docs]</a>    <span class="nd">@convert_args</span>
     <span class="k">def</span> <span class="nf">append_connected_component</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">ids</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:],</span>
-            <span class="n">parent_ids</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:],</span>
-            <span class="n">component_parent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:],</span> <span class="n">parent_ids</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:],</span> <span class="n">component_parent</span><span class="o">=</span><span class="mi">0</span>
     <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">ids</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">parent_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s2">&quot;elements and parents must be of same length&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">ids</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">parent_ids</span><span class="o">.</span><span class="n">shape</span>
+        <span class="p">),</span> <span class="s2">&quot;elements and parents must be of same length&quot;</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;Bonded ktree must have at least three entries&quot;</span>
         <span class="k">assert</span> <span class="n">component_parent</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kintree</span><span class="p">)</span> <span class="ow">and</span> <span class="n">component_parent</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mi">1</span>
 
@@ -306,8 +303,7 @@
         <span class="c1"># Verify that ids are unique and that all parent references are valid,</span>
         <span class="c1"># get_indexer returns -1 if a target value is not present in index.</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="n">id_index</span><span class="o">.</span><span class="n">has_duplicates</span><span class="p">,</span> <span class="s2">&quot;Duplicated id in component&quot;</span>
-        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">parent_indices</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-                         <span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Parent id not present in component.&quot;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">parent_indices</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;Parent id not present in component.&quot;</span>
 
         <span class="c1"># Allocate entries for the new subtree and store the provided ids in</span>
         <span class="c1"># the kintree id column. All internal kintree references,</span>
@@ -334,12 +330,8 @@
 
         <span class="c1"># Fixup the orientation frame frame of the root and its children.</span>
         <span class="c1"># The rootis self-parented at zero, so drop the first match.</span>
-        <span class="n">root</span><span class="p">,</span> <span class="o">*</span><span class="n">root_children</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">parent_indices</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="p">]</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span>
-            <span class="n">root_children</span>
-        <span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;root of bonded tree must have two children&quot;</span>
+        <span class="n">root</span><span class="p">,</span> <span class="o">*</span><span class="n">root_children</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">parent_indices</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">root_children</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;root of bonded tree must have two children&quot;</span>
         <span class="k">assert</span> <span class="n">root</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;root must be self parented, was set above&quot;</span>
         <span class="n">root_c1</span><span class="p">,</span> <span class="o">*</span><span class="n">root_sibs</span> <span class="o">=</span> <span class="n">root_children</span>
         <span class="n">root_sibs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">root_sibs</span><span class="p">)</span>
@@ -388,7 +380,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

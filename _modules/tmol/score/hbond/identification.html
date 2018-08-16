@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -178,18 +178,11 @@
 
 <span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">HBondDatabase</span>
 
-<span class="n">acceptor_dtype</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
-    <span class="p">(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
-    <span class="p">(</span><span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
-    <span class="p">(</span><span class="s2">&quot;b0&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
-    <span class="p">(</span><span class="s2">&quot;acceptor_type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
-<span class="p">])</span>
+<span class="n">acceptor_dtype</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span>
+    <span class="p">[(</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;b0&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;acceptor_type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">)]</span>
+<span class="p">)</span>
 
-<span class="n">donor_dtype</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
-    <span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
-    <span class="p">(</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span>
-    <span class="p">(</span><span class="s2">&quot;donor_type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">),</span>
-<span class="p">])</span>
+<span class="n">donor_dtype</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;donor_type&quot;</span><span class="p">,</span> <span class="nb">object</span><span class="p">)])</span>
 
 
 <div class="viewcode-block" id="merge_tables"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.identification.html#tmol.score.hbond.identification.merge_tables">[docs]</a><span class="k">def</span> <span class="nf">merge_tables</span><span class="p">(</span><span class="o">*</span><span class="n">tables</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -237,10 +230,10 @@
 <div class="viewcode-block" id="HBondElementAnalysis.setup"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.identification.html#tmol.score.hbond.identification.HBondElementAnalysis.setup">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@convert_args</span>
     <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span>
-            <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
-            <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:],</span>
-            <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
+        <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:],</span>
+        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Perform element analysis over the given bonded atom types.</span>
 
@@ -287,20 +280,28 @@
                 <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">n</span> <span class="o">+</span> <span class="s2">&quot;_nbond&quot;</span><span class="p">,</span> <span class="n">nn</span> <span class="o">+</span> <span class="s2">&quot;_nbond&quot;</span><span class="p">))</span>
             <span class="k">return</span> <span class="n">table</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
 
-        <span class="n">bond_table</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span>
-            <span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
-            <span class="s2">&quot;i_t&quot;</span><span class="p">:</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
-            <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="s2">&quot;j_t&quot;</span><span class="p">:</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
-        <span class="p">})</span>
+        <span class="n">bond_table</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+                <span class="s2">&quot;i_t&quot;</span><span class="p">:</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
+                <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+                <span class="s2">&quot;j_t&quot;</span><span class="p">:</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
 
         <span class="c1"># Calculate bond counts for each atom then merge by the atom index</span>
         <span class="n">bond_table</span> <span class="o">=</span> <span class="n">merge_tables</span><span class="p">(</span>
             <span class="n">bond_table</span><span class="p">,</span>
-            <span class="n">bond_table</span><span class="p">[</span><span class="s2">&quot;i_a&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;i_nbond&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">rename_axis</span><span class="p">(</span><span class="s2">&quot;i_a&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(),</span>
-            <span class="n">bond_table</span><span class="p">[</span><span class="s2">&quot;j_a&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;j_nbond&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">rename_axis</span><span class="p">(</span><span class="s2">&quot;j_a&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(),</span>
+            <span class="n">bond_table</span><span class="p">[</span><span class="s2">&quot;i_a&quot;</span><span class="p">]</span>
+            <span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;i_nbond&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">rename_axis</span><span class="p">(</span><span class="s2">&quot;i_a&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">reset_index</span><span class="p">(),</span>
+            <span class="n">bond_table</span><span class="p">[</span><span class="s2">&quot;j_a&quot;</span><span class="p">]</span>
+            <span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">to_frame</span><span class="p">(</span><span class="s2">&quot;j_nbond&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">rename_axis</span><span class="p">(</span><span class="s2">&quot;j_a&quot;</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">reset_index</span><span class="p">(),</span>
         <span class="p">)</span>
 
         <span class="c1"># Index of bond arragments of the form:</span>
@@ -317,13 +318,10 @@
         <span class="c1">#</span>
         <span class="c1"># pruned by unique atom types on j &amp; k</span>
         <span class="n">bond_sibling_table</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">merge_tables</span><span class="p">(</span>
-                <span class="n">bond_table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;i_nbond == 2&quot;</span><span class="p">),</span>
-                <span class="n">inc_cols</span><span class="p">(</span><span class="n">bond_table</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">),</span>
-            <span class="p">)</span>
+            <span class="n">merge_tables</span><span class="p">(</span><span class="n">bond_table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;i_nbond == 2&quot;</span><span class="p">),</span> <span class="n">inc_cols</span><span class="p">(</span><span class="n">bond_table</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">))</span>
             <span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;j_a != k_a&quot;</span><span class="p">)</span>
             <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">((</span><span class="s2">&quot;i_a&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">,</span> <span class="s2">&quot;k_t&quot;</span><span class="p">))</span>
-        <span class="p">)</span> <span class="c1"># yapf: disable</span>
+        <span class="p">)</span>
 
         <span class="c1"># Index of all arrangments of the form:</span>
         <span class="c1">#</span>
@@ -334,12 +332,11 @@
         <span class="c1"># pruned by unique atom types on k</span>
         <span class="n">bond_parent_table</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">merge_tables</span><span class="p">(</span>
-                <span class="n">bond_table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;i_nbond == 1&quot;</span><span class="p">),</span>
-                <span class="n">inc_cols</span><span class="p">(</span><span class="n">bond_table</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">),</span>
+                <span class="n">bond_table</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;i_nbond == 1&quot;</span><span class="p">),</span> <span class="n">inc_cols</span><span class="p">(</span><span class="n">bond_table</span><span class="p">,</span> <span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;j&quot;</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;i_a != k_a&quot;</span><span class="p">)</span>
             <span class="o">.</span><span class="n">drop_duplicates</span><span class="p">((</span><span class="s2">&quot;i_a&quot;</span><span class="p">,</span> <span class="s2">&quot;k_t&quot;</span><span class="p">))</span>
-        <span class="p">)</span> <span class="c1"># yapf: disable</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">hbond_database</span><span class="o">.</span><span class="n">atom_groups</span><span class="o">.</span><span class="n">donors</span><span class="p">:</span>
             <span class="c1"># Identify donors by donor-hydrogen bonds:</span>
@@ -356,14 +353,10 @@
                 <span class="n">bond_pair_table</span><span class="p">,</span>
                 <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
                 <span class="n">left_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">],</span>
-                <span class="n">right_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i_t&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">]</span>
+                <span class="n">right_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i_t&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">],</span>
             <span class="p">)</span>
             <span class="n">donors</span> <span class="o">=</span> <span class="n">df_to_struct</span><span class="p">(</span>
-                <span class="n">donor_table</span><span class="p">,</span> <span class="p">{</span>
-                    <span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="s2">&quot;h&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;donor_type&quot;</span><span class="p">:</span> <span class="s2">&quot;donor_type&quot;</span>
-                <span class="p">}</span>
+                <span class="n">donor_table</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="s2">&quot;h&quot;</span><span class="p">,</span> <span class="s2">&quot;donor_type&quot;</span><span class="p">:</span> <span class="s2">&quot;donor_type&quot;</span><span class="p">}</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">donors</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">donor_dtype</span><span class="p">)</span>
@@ -384,15 +377,11 @@
                 <span class="n">bond_parent_table</span><span class="p">,</span>
                 <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
                 <span class="n">left_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;b0&quot;</span><span class="p">],</span>
-                <span class="n">right_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i_t&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">,</span> <span class="s2">&quot;k_t&quot;</span><span class="p">]</span>
+                <span class="n">right_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i_t&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">,</span> <span class="s2">&quot;k_t&quot;</span><span class="p">],</span>
             <span class="p">)</span>
             <span class="n">sp2_acceptors</span> <span class="o">=</span> <span class="n">df_to_struct</span><span class="p">(</span>
-                <span class="n">sp2_acceptor_table</span><span class="p">,</span> <span class="p">{</span>
-                    <span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;k_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b0&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;acceptor_type&quot;</span><span class="p">:</span> <span class="s2">&quot;acceptor_type&quot;</span>
-                <span class="p">}</span>
+                <span class="n">sp2_acceptor_table</span><span class="p">,</span>
+                <span class="p">{</span><span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;k_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b0&quot;</span><span class="p">,</span> <span class="s2">&quot;acceptor_type&quot;</span><span class="p">:</span> <span class="s2">&quot;acceptor_type&quot;</span><span class="p">},</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">sp2_acceptors</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">acceptor_dtype</span><span class="p">)</span>
@@ -413,15 +402,11 @@
                 <span class="n">bond_sibling_table</span><span class="p">,</span>
                 <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
                 <span class="n">left_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;b0&quot;</span><span class="p">],</span>
-                <span class="n">right_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i_t&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">,</span> <span class="s2">&quot;k_t&quot;</span><span class="p">]</span>
+                <span class="n">right_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i_t&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">,</span> <span class="s2">&quot;k_t&quot;</span><span class="p">],</span>
             <span class="p">)</span>
             <span class="n">sp3_acceptors</span> <span class="o">=</span> <span class="n">df_to_struct</span><span class="p">(</span>
-                <span class="n">sp3_acceptor_table</span><span class="p">,</span> <span class="p">{</span>
-                    <span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;k_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b0&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;acceptor_type&quot;</span><span class="p">:</span> <span class="s2">&quot;acceptor_type&quot;</span>
-                <span class="p">}</span>
+                <span class="n">sp3_acceptor_table</span><span class="p">,</span>
+                <span class="p">{</span><span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;k_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b0&quot;</span><span class="p">,</span> <span class="s2">&quot;acceptor_type&quot;</span><span class="p">:</span> <span class="s2">&quot;acceptor_type&quot;</span><span class="p">},</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">sp3_acceptors</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">acceptor_dtype</span><span class="p">)</span>
@@ -442,15 +427,11 @@
                 <span class="n">bond_sibling_table</span><span class="p">,</span>
                 <span class="n">how</span><span class="o">=</span><span class="s2">&quot;inner&quot;</span><span class="p">,</span>
                 <span class="n">left_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;b0&quot;</span><span class="p">],</span>
-                <span class="n">right_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i_t&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">,</span> <span class="s2">&quot;k_t&quot;</span><span class="p">]</span>
+                <span class="n">right_on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;i_t&quot;</span><span class="p">,</span> <span class="s2">&quot;j_t&quot;</span><span class="p">,</span> <span class="s2">&quot;k_t&quot;</span><span class="p">],</span>
             <span class="p">)</span>
             <span class="n">ring_acceptors</span> <span class="o">=</span> <span class="n">df_to_struct</span><span class="p">(</span>
-                <span class="n">ring_acceptor_table</span><span class="p">,</span> <span class="p">{</span>
-                    <span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;k_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b0&quot;</span><span class="p">,</span>
-                    <span class="s2">&quot;acceptor_type&quot;</span><span class="p">:</span> <span class="s2">&quot;acceptor_type&quot;</span>
-                <span class="p">}</span>
+                <span class="n">ring_acceptor_table</span><span class="p">,</span>
+                <span class="p">{</span><span class="s2">&quot;i_a&quot;</span><span class="p">:</span> <span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;j_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="s2">&quot;k_a&quot;</span><span class="p">:</span> <span class="s2">&quot;b0&quot;</span><span class="p">,</span> <span class="s2">&quot;acceptor_type&quot;</span><span class="p">:</span> <span class="s2">&quot;acceptor_type&quot;</span><span class="p">},</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">ring_acceptors</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">acceptor_dtype</span><span class="p">)</span>
@@ -495,7 +476,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

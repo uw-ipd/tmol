@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.numba &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.utility.numba &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -183,7 +183,9 @@
 <span class="kn">from</span> <span class="nn">numba.cuda.cudadrv</span> <span class="k">import</span> <span class="n">devicearray</span><span class="p">,</span> <span class="n">devices</span><span class="p">,</span> <span class="n">driver</span>
 <span class="kn">import</span> <span class="nn">numba.cuda.simulator</span> <span class="k">as</span> <span class="nn">simulator</span>
 
-<span class="k">assert</span> <span class="n">numba</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&lt;</span> <span class="s2">&quot;0.39&quot;</span><span class="p">,</span> <span class="s2">&quot;Backport of numba v0.39 device array interface no longer needed.&quot;</span>
+<span class="k">assert</span> <span class="p">(</span>
+    <span class="n">numba</span><span class="o">.</span><span class="n">__version__</span> <span class="o">&lt;</span> <span class="s2">&quot;0.39&quot;</span>
+<span class="p">),</span> <span class="s2">&quot;Backport of numba v0.39 device array interface no longer needed.&quot;</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="n">long</span>
@@ -195,7 +197,7 @@
 
 
 <div class="viewcode-block" id="_get_devptr_for_active_ctx"><a class="viewcode-back" href="../../../apidoc/tmol.utility.numba.html#tmol.utility.numba._get_devptr_for_active_ctx">[docs]</a><span class="k">def</span> <span class="nf">_get_devptr_for_active_ctx</span><span class="p">(</span><span class="n">ptr</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Hack implemenation of internal numba 0.39 api, always assume pointer is on device.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Hack of internal numba 0.39 api, always assume pointer is on device.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">c_ulong</span><span class="p">(</span><span class="n">ptr</span><span class="p">)</span></div>
 
 
@@ -205,20 +207,17 @@
 <span class="sd">    The *owner* is the owner of the underlying memory.</span>
 <span class="sd">    The resulting DeviceNDArray will acquire a reference from it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">shape</span> <span class="o">=</span> <span class="n">desc</span><span class="p">[</span><span class="s1">&#39;shape&#39;</span><span class="p">]</span>
-    <span class="n">strides</span> <span class="o">=</span> <span class="n">desc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;strides&#39;</span><span class="p">)</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">desc</span><span class="p">[</span><span class="s1">&#39;typestr&#39;</span><span class="p">])</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">desc</span><span class="p">[</span><span class="s2">&quot;shape&quot;</span><span class="p">]</span>
+    <span class="n">strides</span> <span class="o">=</span> <span class="n">desc</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;strides&quot;</span><span class="p">)</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">desc</span><span class="p">[</span><span class="s2">&quot;typestr&quot;</span><span class="p">])</span>
 
     <span class="n">shape</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="n">_prepare_shape_strides_dtype</span><span class="p">(</span>
-        <span class="n">shape</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;C&#39;</span>
+        <span class="n">shape</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span>
     <span class="p">)</span>
 
-    <span class="n">devptr</span> <span class="o">=</span> <span class="n">_get_devptr_for_active_ctx</span><span class="p">(</span><span class="n">desc</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">devptr</span> <span class="o">=</span> <span class="n">_get_devptr_for_active_ctx</span><span class="p">(</span><span class="n">desc</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">MemoryPointer</span><span class="p">(</span>
-        <span class="n">current_context</span><span class="p">(),</span>
-        <span class="n">devptr</span><span class="p">,</span>
-        <span class="n">size</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">*</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">,</span>
-        <span class="n">owner</span><span class="o">=</span><span class="n">owner</span>
+        <span class="n">current_context</span><span class="p">(),</span> <span class="n">devptr</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">*</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="n">owner</span>
     <span class="p">)</span>
     <span class="n">da</span> <span class="o">=</span> <span class="n">devicearray</span><span class="o">.</span><span class="n">DeviceNDArray</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="n">strides</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">gpu_data</span><span class="o">=</span><span class="n">data</span>
@@ -239,21 +238,16 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
-            <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_context</span><span class="p">(),</span>
-            <span class="n">simulator</span><span class="o">.</span><span class="n">cudadrv</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">FakeCUDAContext</span><span class="p">,</span>
+        <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_context</span><span class="p">(),</span> <span class="n">simulator</span><span class="o">.</span><span class="n">cudadrv</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">FakeCUDAContext</span>
     <span class="p">):</span>
         <span class="k">if</span> <span class="n">is_cuda_array</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Can not create simulator device array from cuda array.&quot;</span>
-            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can not create simulator device array from cuda array.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">simulator</span><span class="o">.</span><span class="n">cudadrv</span><span class="o">.</span><span class="n">devicearray</span><span class="o">.</span><span class="n">FakeCUDAArray</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">__array__</span><span class="p">())</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">is_cuda_array</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;*obj* doesn&#39;t implement the cuda array interface.&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">from_cuda_array_interface</span><span class="p">(</span>
-            <span class="n">obj</span><span class="o">.</span><span class="n">__cuda_array_interface__</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="n">obj</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">from_cuda_array_interface</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">__cuda_array_interface__</span><span class="p">,</span> <span class="n">owner</span><span class="o">=</span><span class="n">obj</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="is_cuda_array"><a class="viewcode-back" href="../../../apidoc/tmol.utility.numba.html#tmol.utility.numba.is_cuda_array">[docs]</a><span class="nd">@singledispatch</span>
@@ -261,18 +255,18 @@
     <span class="sd">&quot;&quot;&quot;Test if the object has defined the ``__cuda_array_interface__``.</span>
 <span class="sd">    Does not verify the validity of the interface.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;__cuda_array_interface__&#39;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;__cuda_array_interface__&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_prepare_shape_strides_dtype"><a class="viewcode-back" href="../../../apidoc/tmol.utility.numba.html#tmol.utility.numba._prepare_shape_strides_dtype">[docs]</a><span class="k">def</span> <span class="nf">_prepare_shape_strides_dtype</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
-        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,)</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">strides</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">long</span><span class="p">)):</span>
-        <span class="n">strides</span> <span class="o">=</span> <span class="p">(</span><span class="n">strides</span><span class="p">,</span> <span class="p">)</span>
+        <span class="n">strides</span> <span class="o">=</span> <span class="p">(</span><span class="n">strides</span><span class="p">,)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">shape</span> <span class="o">==</span> <span class="p">():</span>
-            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">)</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span>
         <span class="n">strides</span> <span class="o">=</span> <span class="n">strides</span> <span class="ow">or</span> <span class="n">_fill_stride_by_order</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">shape</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">dtype</span></div>
 
@@ -280,16 +274,16 @@
 <div class="viewcode-block" id="_fill_stride_by_order"><a class="viewcode-back" href="../../../apidoc/tmol.utility.numba.html#tmol.utility.numba._fill_stride_by_order">[docs]</a><span class="k">def</span> <span class="nf">_fill_stride_by_order</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
     <span class="n">nd</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">strides</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">nd</span>
-    <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">&quot;C&quot;</span><span class="p">:</span>
         <span class="n">strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span>
         <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nd</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)):</span>
             <span class="n">strides</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">strides</span><span class="p">[</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">order</span> <span class="o">==</span> <span class="s2">&quot;F&quot;</span><span class="p">:</span>
         <span class="n">strides</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span>
         <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nd</span><span class="p">):</span>
             <span class="n">strides</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">strides</span><span class="p">[</span><span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;must be either C/F order&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;must be either C/F order&quot;</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">strides</span><span class="p">)</span></div>
 
 
@@ -300,9 +294,7 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">__cuda_array_interface__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="n">f</span><span class="s2">&quot;tensor is not on cuda device: {self.t.device !r}&quot;</span>
-            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;tensor is not on cuda device: {self.t.device !r}&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">index</span> <span class="o">==</span> <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">get_current_device</span><span class="p">()</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="n">f</span><span class="s2">&quot;tensor device: {self.t !r} &quot;</span>
@@ -335,20 +327,13 @@
         <span class="n">strides</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">itemsize</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">stride</span><span class="p">())</span>
         <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">data_ptr</span><span class="p">(),</span> <span class="kc">False</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">typestr</span><span class="o">=</span><span class="n">typestr</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
-            <span class="n">strides</span><span class="o">=</span><span class="n">strides</span><span class="p">,</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
-            <span class="n">version</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">typestr</span><span class="o">=</span><span class="n">typestr</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="n">strides</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TorchCUDAArrayAdaptor.as_cuda_array"><a class="viewcode-back" href="../../../apidoc/tmol.utility.numba.html#tmol.utility.numba.TorchCUDAArrayAdaptor.as_cuda_array">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="nd">@as_cuda_array</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">as_cuda_array</span><span class="p">(</span><span class="n">torch_tensor</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
-                <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_context</span><span class="p">(),</span>
-                <span class="n">simulator</span><span class="o">.</span><span class="n">cudadrv</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">FakeCUDAContext</span><span class="p">,</span>
+            <span class="n">numba</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_context</span><span class="p">(),</span> <span class="n">simulator</span><span class="o">.</span><span class="n">cudadrv</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">FakeCUDAContext</span>
         <span class="p">):</span>
             <span class="c1"># Fall through to default implementation iff in simulator context</span>
             <span class="k">return</span> <span class="n">as_cuda_array</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="nb">object</span><span class="p">)(</span><span class="n">torch_tensor</span><span class="p">)</span>
@@ -393,7 +378,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

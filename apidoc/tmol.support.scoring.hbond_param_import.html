@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.support.scoring.hbond_param_import &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.support.scoring.hbond_param_import &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -185,13 +185,16 @@
   <div class="section" id="module-tmol.support.scoring.hbond_param_import">
 <span id="tmol-support-scoring-hbond-param-import"></span><h1>tmol.support.scoring.hbond_param_import<a class="headerlink" href="#module-tmol.support.scoring.hbond_param_import" title="Permalink to this headline">¶</a></h1>
 <p>Parse and import rosetta hydrogen bond parameters.</p>
-<p>Manages parsing and import a subset of rosetta hydrogen bond parameters into a hydrogen bond
-parameter database file. Selects a minimal subset of polynomial parameters and type pair parameters
-to cover a specificed set of donor/acceptor types.</p>
+<p>Manages parsing and import a subset of rosetta hydrogen bond parameters into a
+hydrogen bond parameter database file. Selects a minimal subset of polynomial
+parameters and type pair parameters to cover a specificed set of donor/acceptor
+types.</p>
 <p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;sp2_elec_hbond_params.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
     <span class="n">params</span> <span class="o">=</span> <span class="n">RosettaHBParams</span><span class="p">(</span>
-        <span class="s2">&quot;~/workspace/rosetta/main/database/scoring/score_functions/hbonds/sp2_elec_params/&quot;</span><span class="p">)</span>
+        <span class="s2">&quot;~/workspace/rosetta/main/&quot;</span>
+        <span class="s2">&quot;database/scoring/score_functions/hbonds/sp2_elec_params/&quot;</span>
+    <span class="p">)</span>
     <span class="n">params</span><span class="o">.</span><span class="n">to_yaml</span><span class="p">(</span><span class="n">outfile</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -333,7 +336,7 @@ to cover a specificed set of donor/acceptor types.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

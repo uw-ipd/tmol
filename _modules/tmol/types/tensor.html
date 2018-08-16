@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.types.tensor &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.types.tensor &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -178,7 +178,7 @@
 <div class="viewcode-block" id="TensorType"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorType">[docs]</a><span class="k">class</span> <span class="nc">TensorType</span><span class="p">:</span>
     <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">)</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,)</span>
 
         <span class="n">shape</span> <span class="o">=</span> <span class="n">Shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
 
@@ -186,13 +186,9 @@
 
 <div class="viewcode-block" id="TensorType.validate"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorType.validate">[docs]</a>    <span class="k">def</span> <span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tensortype</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="n">f</span><span class="s2">&quot;expected </span><span class="si">{self._tensortype!r}</span><span class="s2">, received {type(value)!r}&quot;</span>
-            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;expected </span><span class="si">{self._tensortype!r}</span><span class="s2">, received {type(value)!r}&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="n">f</span><span class="s2">&quot;expected </span><span class="si">{self.dtype!r}</span><span class="s2">, received </span><span class="si">{value.dtype!r}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;expected </span><span class="si">{self.dtype!r}</span><span class="s2">, received </span><span class="si">{value.dtype!r}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="kc">True</span></div>
@@ -211,7 +207,7 @@
 
 <div class="viewcode-block" id="TensorType._expanded_shape"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorType._expanded_shape">[docs]</a>    <span class="k">def</span> <span class="nf">_expanded_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
-            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">)</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">shape</span><span class="p">,)</span>
         <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
 
@@ -219,39 +215,28 @@
         <span class="k">if</span> <span class="n">broadcast</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">Ellipsis</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Tensor must be of broadcast shape: </span><span class="si">{self}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">subshape</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
-                <span class="n">f</span><span class="s2">&quot;Tensor must be fixed size in non-broadcast dims: </span><span class="si">{self}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Tensor must be fixed size in non-broadcast dims: </span><span class="si">{self}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">shape</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">subshape</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorType.zeros"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorType.zeros">[docs]</a>    <span class="k">def</span> <span class="nf">zeros</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorType.ones"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorType.ones">[docs]</a>    <span class="k">def</span> <span class="nf">ones</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorType.empty"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorType.empty">[docs]</a>    <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorType.full"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorType.full">[docs]</a>    <span class="k">def</span> <span class="nf">full</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
-            <span class="n">fill_value</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="n">fill_value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorType._broadcasted_shape"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorType._broadcasted_shape">[docs]</a>    <span class="k">def</span> <span class="nf">_broadcasted_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">):</span>
@@ -265,7 +250,7 @@
             <span class="k">return</span> <span class="n">instance</span><span class="o">.</span><span class="n">shape</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">instance_shape</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">subshape</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">instance_shape</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">subshape</span><span class="p">)]</span></div></div>
+            <span class="k">return</span> <span class="n">instance_shape</span><span class="p">[:</span> <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">subshape</span><span class="p">)]</span></div></div>
 
 
 <div class="viewcode-block" id="TensorGroup"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorGroup">[docs]</a><span class="k">class</span> <span class="nc">TensorGroup</span><span class="p">:</span>
@@ -284,10 +269,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_pure_tensor</span><span class="p">()</span>
 
         <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span>
-                <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)[</span><span class="n">idx</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
-            <span class="p">}</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="o">**</span><span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)[</span><span class="n">idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))},</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
@@ -303,15 +286,15 @@
             <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
 
         <span class="n">reshapes</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">_expanded_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
         <span class="p">}</span>
 
         <span class="k">return</span> <span class="n">attr</span><span class="o">.</span><span class="n">evolve</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="p">{</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="o">**</span><span class="p">{</span>
                 <span class="n">n</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">reshapes</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
                 <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)))</span>
-            <span class="p">}</span>
+            <span class="p">},</span>
         <span class="p">)</span></div>
 
     <span class="nd">@property</span>
@@ -327,33 +310,20 @@
             <span class="o">**</span><span class="p">{</span>
                 <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
                 <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-            <span class="p">},</span>
+            <span class="p">}</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="TensorGroup.zeros"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorGroup.zeros">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">zeros</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="o">**</span><span class="p">{</span>
-                <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-            <span class="p">},</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)})</span></div>
 
 <div class="viewcode-block" id="TensorGroup.ones"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorGroup.ones">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">ones</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="o">**</span><span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-               <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)},</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)})</span></div>
 
 <div class="viewcode-block" id="TensorGroup.empty"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorGroup.empty">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">empty</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="o">**</span><span class="p">{</span>
-                <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-            <span class="p">},</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)})</span></div>
 
 <div class="viewcode-block" id="TensorGroup._broadcasted_shape"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorGroup._broadcasted_shape">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_broadcasted_shape</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">instance</span><span class="p">):</span>
@@ -362,8 +332,9 @@
             <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
         <span class="p">}</span>
 
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">field_shapes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> \
-            <span class="n">f</span><span class="s2">&quot;Group contained inconsistent shapes: </span><span class="si">{field_shapes}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">field_shapes</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="p">),</span> <span class="n">f</span><span class="s2">&quot;Group contained inconsistent shapes: </span><span class="si">{field_shapes}</span><span class="s2">&quot;</span>
 
         <span class="k">return</span> <span class="n">field_shapes</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
@@ -372,28 +343,25 @@
         <span class="k">return</span> <span class="n">shape</span></div>
 
 <div class="viewcode-block" id="TensorGroup.to"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorGroup.to">[docs]</a>    <span class="k">def</span> <span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Perform dtype and/or device conversion for all subtensors via torch.Tensor.to.</span>
+        <span class="sd">&quot;&quot;&quot;Perform dtype/device conversion for all subtensors.</span>
 
 <span class="sd">        Note that this may be an invalid operations if the TensorGroup contains</span>
 <span class="sd">        heterogenous tensor dtypes.</span>
 
-<span class="sd">        Performs Tensor dtype and/or device conversion. A :class:`torch.dtype` and :class:`torch.device` are</span>
-<span class="sd">        inferred from the arguments of ``self.to(*args, **kwargs)``.</span>
+<span class="sd">        Performs Tensor dtype and/or device conversion. A :class:`torch.dtype`</span>
+<span class="sd">        and :class:`torch.device` are inferred from the arguments of</span>
+<span class="sd">        ``self.to(*args, **kwargs)``.</span>
 
-<span class="sd">        If all subtensors already have the correct dtype and device then ``self`` is returned.</span>
+<span class="sd">        If all subtensors already have the correct dtype and device then</span>
+<span class="sd">        ``self`` is returned.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_check_pure_tensor</span><span class="p">()</span>
 
         <span class="n">components</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recurse</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">to_components</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">components</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="p">}</span>
+        <span class="n">to_components</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">components</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
 
-        <span class="n">diff</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
-            <span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">components</span> <span class="k">if</span> <span class="n">components</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">to_components</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
-        <span class="p">)</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">components</span> <span class="k">if</span> <span class="n">components</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">to_components</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">diff</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span>
         <span class="k">else</span><span class="p">:</span>
@@ -415,15 +383,12 @@
 <div class="viewcode-block" id="_cat_tensorgroup"><a class="viewcode-back" href="../../../apidoc/tmol.types.tensor.html#tmol.types.tensor._cat_tensorgroup">[docs]</a><span class="nd">@_cat_internal</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">_cat_tensorgroup</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">rest</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-            <span class="s2">&quot;TensorGroup cat does not support &#39;out&#39; parameter.&quot;</span>
-        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;TensorGroup cat does not support &#39;out&#39; parameter.&quot;</span><span class="p">)</span>
     <span class="bp">cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">first</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">dim</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">component_ndims</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="nb">len</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">_broadcasted_shape</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
+            <span class="nb">len</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">_broadcasted_shape</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">first</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">component_ndims</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can not broadcast cat with negative dimension.&quot;</span><span class="p">)</span>
@@ -438,11 +403,11 @@
 
     <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
         <span class="o">**</span><span class="p">{</span>
-            <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
-            <span class="n">cat</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">rest</span><span class="p">],</span>
-                <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+            <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">rest</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span>
+            <span class="p">)</span>
             <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
-        <span class="p">},</span>
+        <span class="p">}</span>
     <span class="p">)</span></div>
 
 
@@ -488,7 +453,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -183,9 +183,7 @@
 
 <div class="viewcode-block" id="_nan_to_num"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance._nan_to_num">[docs]</a><span class="k">def</span> <span class="nf">_nan_to_num</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
     <span class="n">vals</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-    <span class="n">zeros</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-        <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">vals</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="n">vals</span><span class="o">.</span><span class="n">layout</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">vals</span><span class="o">.</span><span class="n">device</span>
-    <span class="p">)</span>
+    <span class="n">zeros</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">vals</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="n">vals</span><span class="o">.</span><span class="n">layout</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">vals</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">vals</span><span class="p">),</span> <span class="n">zeros</span><span class="p">)</span></div>
 
 
@@ -193,12 +191,14 @@
 <span class="k">class</span> <span class="nc">InteratomicDistanceGraphBase</span><span class="p">(</span><span class="n">BondedAtomScoreGraph</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base graph for interatomic distances.</span>
 
-<span class="sd">    Graph component calculating interatomic distances. Distances are present *once* in the source</span>
-<span class="sd">    graph for a given atomic pair; the rendered distances are equivalent to the upper triangle of</span>
-<span class="sd">    the full interatomic distance matrix.</span>
+<span class="sd">    Graph component calculating interatomic distances. Distances are present</span>
+<span class="sd">    *once* in the source graph for a given atomic pair; the rendered distances</span>
+<span class="sd">    are equivalent to the upper triangle of the full interatomic distance</span>
+<span class="sd">    matrix.</span>
 
-<span class="sd">    Distances are rendered as two tensor properties, ``atom_pair_inds`` and ``atom_pair_dist``,</span>
-<span class="sd">    containing the pair of atomic indicies in ``coords`` and the calculated distance respectively.</span>
+<span class="sd">    Distances are rendered as two tensor properties, ``atom_pair_inds`` and</span>
+<span class="sd">    ``atom_pair_dist``, containing the pair of atomic indicies in ``coords``</span>
+<span class="sd">    and the calculated distance respectively.</span>
 
 <span class="sd">    Components requiring access to interatomic distance components *must* make</span>
 <span class="sd">    the component&#39;s interatomic threshold distance available by implementing</span>
@@ -215,18 +215,16 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="nb">super</span><span class="p">(),</span> <span class="s2">&quot;__attrs_post_init__&quot;</span><span class="p">):</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__attrs_post_init__</span><span class="p">()</span>
 
-    <span class="c1">#interaction threshold distances that *may* be used to optimize distance pair selection</span>
-    <span class="n">atom_pair_dist_thresholds</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span>
-        <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span>
-    <span class="p">)</span>
+    <span class="c1"># interaction threshold distances that *may* be used to optimize distance</span>
+    <span class="c1"># pair selection</span>
+    <span class="n">atom_pair_dist_thresholds</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">atom_pair_delta</span><span class="p">(</span>
-            <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
-            <span class="n">atom_pair_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">atom_pair_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;inter-atomic pairwise distance within threshold distance&quot;&quot;&quot;</span>
-        <span class="n">delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">atom_pair_inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">coords</span><span class="p">[</span><span class="n">atom_pair_inds</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">atom_pair_inds</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">coords</span><span class="p">[</span><span class="n">atom_pair_inds</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
 
         <span class="k">if</span> <span class="n">delta</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
             <span class="n">delta</span><span class="o">.</span><span class="n">register_hook</span><span class="p">(</span><span class="n">_nan_to_num</span><span class="p">)</span>
@@ -234,15 +232,13 @@
         <span class="k">return</span> <span class="n">delta</span>
 
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">atom_pair_dist</span><span class="p">(</span>
-            <span class="n">atom_pair_delta</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:]:</span>
+    <span class="k">def</span> <span class="nf">atom_pair_dist</span><span class="p">(</span><span class="n">atom_pair_delta</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:]:</span>
         <span class="k">return</span> <span class="n">atom_pair_delta</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
 <div class="viewcode-block" id="InteratomicDistanceGraphBase.atom_pair_to_dense"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_to_dense">[docs]</a>    <span class="k">def</span> <span class="nf">atom_pair_to_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom_pair_term</span><span class="p">,</span> <span class="n">null_value</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">):</span>
         <span class="n">sp</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">coo_matrix</span><span class="p">(</span>
             <span class="p">(</span><span class="n">atom_pair_term</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_pair_inds</span><span class="p">)),</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_size</span><span class="p">)</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_size</span><span class="p">),</span>
         <span class="p">)</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">csgraph</span><span class="o">.</span><span class="n">csgraph_to_dense</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">null_value</span><span class="o">=</span><span class="n">null_value</span><span class="p">)</span></div></div>
 
@@ -253,16 +249,14 @@
     <span class="k">def</span> <span class="nf">atom_pair_inds</span><span class="p">(</span><span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Index pairs for all atom pairs.&quot;&quot;&quot;</span>
 
-        <span class="k">return</span> <span class="n">compose</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">,</span>
-            <span class="nb">tuple</span><span class="p">,</span>
-            <span class="nb">map</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">),</span>
-        <span class="p">)(</span><span class="n">numpy</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">system_size</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span></div>
+        <span class="k">return</span> <span class="n">compose</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">))(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">system_size</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="BlockedDistanceAnalysis"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedDistanceAnalysis">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">BlockedDistanceAnalysis</span><span class="p">:</span>
-    <span class="c1">#atom block size for block-neighbor optimization</span>
+    <span class="c1"># atom block size for block-neighbor optimization</span>
     <span class="n">block_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BlockedDistanceAnalysis._valid_block_size"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedDistanceAnalysis._valid_block_size">[docs]</a>    <span class="nd">@block_size</span><span class="o">.</span><span class="n">validator</span>
@@ -287,11 +281,7 @@
     <span class="n">block_triu_min_dist</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
 
 <div class="viewcode-block" id="BlockedDistanceAnalysis.setup"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedDistanceAnalysis.setup">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span>
-            <span class="n">block_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
-    <span class="p">):</span>
+    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">block_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]):</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="n">coords</span><span class="o">.</span><span class="n">requires_grad</span>
 
         <span class="n">num_blocks</span><span class="p">,</span> <span class="n">_remainder</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">block_size</span><span class="p">)</span>
@@ -300,51 +290,39 @@
         <span class="n">bs</span> <span class="o">=</span> <span class="n">block_size</span>
         <span class="n">nb</span> <span class="o">=</span> <span class="n">num_blocks</span>
 
-        <span class="c1"># yapf: disable</span>
         <span class="n">c_isnan</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
         <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">c_isnan</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
 
-        <span class="n">nonnan_atoms</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_isnan</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">atoms_per_block</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">nonnan_atoms</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nb</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="p">)</span>
+        <span class="n">nonnan_atoms</span> <span class="o">=</span> <span class="n">c_isnan</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">atoms_per_block</span> <span class="o">=</span> <span class="n">nonnan_atoms</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nb</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
         <span class="n">nonnan_blocks</span> <span class="o">=</span> <span class="n">atoms_per_block</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-        <span class="n">block_triu_inds</span> <span class="o">=</span> <span class="n">compose</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">,</span>
-            <span class="nb">tuple</span><span class="p">,</span>
-            <span class="nb">map</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">),</span>
-        <span class="p">)(</span><span class="n">numpy</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-
-        <span class="n">block_centers</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">coords</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nb</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span>
-            <span class="n">atoms_per_block</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nb</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">expand</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">block_triu_inds</span> <span class="o">=</span> <span class="n">compose</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">))(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="p">)</span>
+
+        <span class="n">block_centers</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nb</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">dim</span><span class="o">=-</span><span class="mi">2</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="n">atoms_per_block</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nb</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">expand</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
 
         <span class="n">block_radii</span> <span class="o">=</span> <span class="p">(</span>
             <span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nb</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span> <span class="o">-</span> <span class="n">block_centers</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nb</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
             <span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">where</span><span class="p">(</span>
-                <span class="n">nonnan_atoms</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nb</span><span class="p">,</span> <span class="n">bs</span><span class="p">)),</span>
-                <span class="n">coords</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">nonnan_atoms</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nb</span><span class="p">,</span> <span class="n">bs</span><span class="p">)),</span> <span class="n">coords</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
             <span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
 
-        <span class="n">block_triu_ind</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">block_triu_inds</span><span class="p">[:,</span>
-                            <span class="p">(</span><span class="n">nonnan_blocks</span><span class="p">[</span><span class="n">block_triu_inds</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
-                            <span class="o">.</span><span class="n">nonzero</span><span class="p">()</span>
-                            <span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)]</span>
-        <span class="p">)</span>
+        <span class="n">block_triu_ind</span> <span class="o">=</span> <span class="n">block_triu_inds</span><span class="p">[</span>
+            <span class="p">:,</span>
+            <span class="p">(</span><span class="n">nonnan_blocks</span><span class="p">[</span><span class="n">block_triu_inds</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">]</span>
 
         <span class="n">block_triu_dist</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">block_centers</span><span class="p">[</span><span class="n">block_triu_ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">block_centers</span><span class="p">[</span><span class="n">block_triu_ind</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">block_centers</span><span class="p">[</span><span class="n">block_triu_ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">block_centers</span><span class="p">[</span><span class="n">block_triu_ind</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="n">block_triu_min_dist</span> <span class="o">=</span> <span class="n">block_triu_dist</span> <span class="o">-</span> <span class="n">block_radii</span><span class="p">[</span><span class="n">block_triu_ind</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-        <span class="c1"># yapf: enable</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span>
@@ -375,47 +353,41 @@
             <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">inf</span>
 
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">interblock_analysis</span><span class="p">(</span>
-            <span class="n">coords</span><span class="p">,</span>
-            <span class="n">atom_pair_block_size</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BlockedDistanceAnalysis</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">interblock_analysis</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">atom_pair_block_size</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BlockedDistanceAnalysis</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Current inter-block distance analysis.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">BlockedDistanceAnalysis</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span>
-            <span class="n">atom_pair_block_size</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">BlockedDistanceAnalysis</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">atom_pair_block_size</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">atom_pair_inds</span><span class="p">(</span>
-            <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">interblock_analysis</span><span class="p">:</span> <span class="n">BlockedDistanceAnalysis</span><span class="p">,</span>
-            <span class="n">interatomic_threshold_distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">interblock_analysis</span><span class="p">:</span> <span class="n">BlockedDistanceAnalysis</span><span class="p">,</span>
+        <span class="n">interatomic_threshold_distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Indices for all atom pairs potentially within interaction threshold distance.&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot;Indices for atom pairs potentially within interaction threshold distance.&quot;&quot;&quot;</span>
         <span class="n">ba</span><span class="p">:</span> <span class="n">BlockedDistanceAnalysis</span> <span class="o">=</span> <span class="n">interblock_analysis</span>
         <span class="n">bs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">interblock_analysis</span><span class="o">.</span><span class="n">block_size</span>
         <span class="n">nb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">system_size</span> <span class="o">/</span> <span class="n">interblock_analysis</span><span class="o">.</span><span class="n">block_size</span>
 
-        <span class="n">interblock_triu_matches</span> <span class="o">=</span> <span class="n">ba</span><span class="o">.</span><span class="n">block_triu_inds</span><span class="p">[:,</span> <span class="p">(</span>
-               <span class="n">ba</span><span class="o">.</span><span class="n">block_triu_min_dist</span> <span class="o">&lt;</span> <span class="n">interatomic_threshold_distance</span>
-           <span class="p">)</span>
-           <span class="o">.</span><span class="n">nonzero</span><span class="p">()</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="p">]</span>  <span class="c1"># yapf: disable</span>
+        <span class="n">interblock_triu_matches</span> <span class="o">=</span> <span class="n">ba</span><span class="o">.</span><span class="n">block_triu_inds</span><span class="p">[</span>
+            <span class="p">:,</span>
+            <span class="p">(</span><span class="n">ba</span><span class="o">.</span><span class="n">block_triu_min_dist</span> <span class="o">&lt;</span> <span class="n">interatomic_threshold_distance</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">nonzero</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="p">]</span>
 
-        <span class="n">interblock_atom_pair_ind</span> <span class="o">=</span> <span class="p">((</span>
-            <span class="p">(</span><span class="n">interblock_triu_matches</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">bs</span><span class="p">)</span> <span class="o">+</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[:</span><span class="n">bs</span><span class="p">,</span> <span class="p">:</span><span class="n">bs</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">bs</span><span class="p">))</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">interblock_atom_pair_ind</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">interblock_triu_matches</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">bs</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">mgrid</span><span class="p">[:</span><span class="n">bs</span><span class="p">,</span> <span class="p">:</span><span class="n">bs</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">bs</span><span class="p">))</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="n">intrablock_triu</span> <span class="o">=</span> <span class="n">compose</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">,</span>
-            <span class="nb">tuple</span><span class="p">,</span>
-            <span class="nb">map</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">),</span>
-        <span class="p">)(</span><span class="n">numpy</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">intrablock_triu</span> <span class="o">=</span> <span class="n">compose</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">))(</span>
+            <span class="n">numpy</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
 
-        <span class="n">intrablock_atom_pair_ind</span> <span class="o">=</span> <span class="p">((</span>
-            <span class="n">intrablock_triu</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span>
-            <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nb</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nb</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">bs</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">intrablock_atom_pair_ind</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">intrablock_triu</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="o">+</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nb</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nb</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">bs</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="n">raw_atom_pairs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
             <span class="p">(</span><span class="n">intrablock_atom_pair_ind</span><span class="p">,</span> <span class="n">interblock_atom_pair_ind</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
@@ -456,7 +428,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

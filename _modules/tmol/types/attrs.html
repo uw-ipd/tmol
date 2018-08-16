@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.types.attrs &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.types.attrs &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -174,9 +174,7 @@
         <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__attrs_attrs__</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">converter</span><span class="p">:</span>
                 <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="p">,</span>
-                    <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                    <span class="n">get_converter</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">)(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">)),</span>
+                    <span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">get_converter</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">)(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
                 <span class="p">)</span></div>
 
 
@@ -219,7 +217,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

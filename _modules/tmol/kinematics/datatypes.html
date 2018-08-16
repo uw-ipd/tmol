@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.datatypes &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.kinematics.datatypes &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -176,6 +176,7 @@
 
 <div class="viewcode-block" id="NodeType"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.NodeType">[docs]</a><span class="k">class</span> <span class="nc">NodeType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;KinTree node types.&quot;&quot;&quot;</span>
+
     <span class="n">root</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">jump</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
     <span class="n">bond</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span></div>
@@ -227,13 +228,13 @@
 <div class="viewcode-block" id="KinTree.node"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.KinTree.node">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@convert_args</span>
     <span class="k">def</span> <span class="nf">node</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span>
-            <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">doftype</span><span class="p">:</span> <span class="n">NodeType</span><span class="p">,</span>
-            <span class="n">parent</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">frame_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">frame_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-            <span class="n">frame_z</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">doftype</span><span class="p">:</span> <span class="n">NodeType</span><span class="p">,</span>
+        <span class="n">parent</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">frame_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">frame_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">frame_z</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Construct a single node from element values.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
@@ -249,12 +250,7 @@
     <span class="k">def</span> <span class="nf">root_node</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;The global/root kinematic node at KinTree[0].&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">node</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">doftype</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">root</span><span class="p">,</span>
-            <span class="n">parent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">frame_x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">frame_y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-            <span class="n">frame_z</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="nb">id</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">doftype</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frame_x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frame_y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">frame_z</span><span class="o">=</span><span class="mi">0</span>
         <span class="p">)</span></div></div>
 
 
@@ -285,6 +281,7 @@
 
 <div class="viewcode-block" id="BondDOFTypes"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.BondDOFTypes">[docs]</a><span class="k">class</span> <span class="nc">BondDOFTypes</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Indices of bond dof types within KinDOF.raw.&quot;&quot;&quot;</span>
+
     <span class="n">phi_p</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
     <span class="n">d</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
@@ -293,6 +290,7 @@
 
 <div class="viewcode-block" id="JumpDOFTypes"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.JumpDOFTypes">[docs]</a><span class="k">class</span> <span class="nc">JumpDOFTypes</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">IntEnum</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Indices of jump dof types within KinDOF.raw.&quot;&quot;&quot;</span>
+
     <span class="n">RBx</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">RBy</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
     <span class="n">RBz</span> <span class="o">=</span> <span class="n">enum</span><span class="o">.</span><span class="n">auto</span><span class="p">()</span>
@@ -307,6 +305,7 @@
 <div class="viewcode-block" id="BondDOF"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.BondDOF">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">BondDOF</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A bond dof view of KinDOF.&quot;&quot;&quot;</span>
+
     <span class="n">raw</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
 
     <span class="nd">@property</span>
@@ -329,6 +328,7 @@
 <div class="viewcode-block" id="JumpDOF"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.JumpDOF">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">JumpDOF</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A jump dof view of KinDOF.&quot;&quot;&quot;</span>
+
     <span class="n">raw</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">9</span><span class="p">]</span>
 
     <span class="nd">@property</span>
@@ -400,7 +400,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

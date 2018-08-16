@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.reactive &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.utility.reactive &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -183,8 +183,12 @@
 <span class="sd">    class FactionalAnalysis:</span>
 <span class="sd">        source: str</span>
 
-<span class="sd">        montegue_faction: Sequence[str] = [&quot;Romeo&quot;, &quot;Benvolio&quot;, &quot;Montegue&quot;, &quot;Lady Montegue&quot;]</span>
-<span class="sd">        capulet_faction: Sequence[str] = [&quot;Juliet&quot;, &quot;Tybalt&quot;, &quot;Capulet&quot;, &quot;Lady Capulet&quot;]</span>
+<span class="sd">        montegue_faction: Sequence[str] = [</span>
+<span class="sd">            &quot;Romeo&quot;, &quot;Benvolio&quot;, &quot;Montegue&quot;, &quot;Lady Montegue&quot;</span>
+<span class="sd">        ]</span>
+<span class="sd">        capulet_faction: Sequence[str] = [</span>
+<span class="sd">            &quot;Juliet&quot;, &quot;Tybalt&quot;, &quot;Capulet&quot;, &quot;Lady Capulet&quot;</span>
+<span class="sd">        ]</span>
 
 <span class="sd">        @reactive_property</span>
 <span class="sd">        def lines(source);</span>
@@ -399,8 +403,12 @@
 <span class="sd">    class Source:</span>
 <span class="sd">        source: str</span>
 
-<span class="sd">        montegue_faction: Sequence[str] = [&quot;Romeo&quot;, &quot;Benvolio&quot;, &quot;Montegue&quot;, &quot;Lady Montegue&quot;]</span>
-<span class="sd">        capulet_faction: Sequence[str] = [&quot;Juliet&quot;, &quot;Tybalt&quot;, &quot;Capulet&quot;, &quot;Lady Capulet&quot;]</span>
+<span class="sd">        montegue_faction: Sequence[str] = [</span>
+<span class="sd">            &quot;Romeo&quot;, &quot;Benvolio&quot;, &quot;Montegue&quot;, &quot;Lady Montegue&quot;</span>
+<span class="sd">        ]</span>
+<span class="sd">        capulet_faction: Sequence[str] = [</span>
+<span class="sd">            &quot;Juliet&quot;, &quot;Tybalt&quot;, &quot;Capulet&quot;, &quot;Lady Capulet&quot;</span>
+<span class="sd">        ]</span>
 
 <span class="sd">        @reactive_property</span>
 <span class="sd">        def lines(source);</span>
@@ -619,29 +627,32 @@
 
 <div class="viewcode-block" id="_ReactiveProperty.from_function"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive._ReactiveProperty.from_function">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_function</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span>
-            <span class="n">fun</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span>
-            <span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">fun</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">fun</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
 
         <span class="n">param_types</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">)</span>
 
         <span class="c1">### Check for any positional-only arguments</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">param_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span>
-                                  <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">,</span>
-                                  <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span><span class="p">)</span>
-               <span class="k">for</span> <span class="n">param_type</span> <span class="ow">in</span> <span class="n">param_types</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">param_type</span>
+            <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span>
+                <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">,</span>
+                <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">param_type</span> <span class="ow">in</span> <span class="n">param_types</span>
+        <span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="n">f</span><span class="s2">&quot;function signature contains invalid parameter type: </span><span class="si">{parameters}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
         <span class="c1">### Get name of all keyword params</span>
         <span class="n">parameter_names</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span>
-                <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span>
-            <span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span>
+            <span class="ow">in</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">)</span>
         <span class="p">)</span>
 
         <span class="c1">### Check for &quot;self&quot; parameter</span>
@@ -653,7 +664,7 @@
         <span class="c1">### Check for **kwargs, and add request kwarg names if provided</span>
         <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span> <span class="ow">in</span> <span class="n">param_types</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">(</span><span class="n">kwargs</span><span class="p">,</span> <span class="p">)</span>
+                <span class="n">kwargs</span> <span class="o">=</span> <span class="p">(</span><span class="n">kwargs</span><span class="p">,)</span>
 
             <span class="k">if</span> <span class="n">kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -661,7 +672,8 @@
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="nb">set</span><span class="p">(</span><span class="n">parameter_names</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="s2">&quot;Specified kwarg is already explict parameter. parameters: </span><span class="si">{params}</span><span class="s2"> kwargs: </span><span class="si">{kwargs}</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;Specified kwarg is already explict parameter. &quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;parameters: </span><span class="si">{parameter_names}</span><span class="s2"> kwargs: </span><span class="si">{kwargs}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
             <span class="n">parameter_names</span> <span class="o">=</span> <span class="n">parameter_names</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
@@ -671,21 +683,13 @@
                     <span class="s2">&quot;Function does not bind **kwargs, but kwarg names provided.&quot;</span>
                 <span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">fun</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-            <span class="n">parameters</span><span class="o">=</span><span class="n">parameter_names</span><span class="p">,</span>
-            <span class="n">f_value</span><span class="o">=</span><span class="n">fun</span><span class="p">,</span>
-        <span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">fun</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameter_names</span><span class="p">,</span> <span class="n">f_value</span><span class="o">=</span><span class="n">fun</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="_setup_reactive"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.utility.reactive._setup_reactive">[docs]</a><span class="k">def</span> <span class="nf">_setup_reactive</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">cd</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span>
 
-    <span class="n">reactive_props</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="n">n</span><span class="p">:</span> <span class="n">v</span>
-        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cd</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">_ReactiveProperty</span><span class="p">)</span>
-    <span class="p">}</span>
+    <span class="n">reactive_props</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cd</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">_ReactiveProperty</span><span class="p">)}</span>
 
     <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">reactive_props</span><span class="p">:</span>
         <span class="nb">delattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
@@ -704,37 +708,30 @@
 
     <span class="n">ReactiveValues</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">make_class</span><span class="p">(</span>
         <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;ReactiveValues&quot;</span><span class="p">,</span>
-        <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">reactive_props</span><span class="p">},</span>
-        <span class="n">slots</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">reactive_props</span><span class="p">},</span>
+        <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Setup reactive property &quot;result&quot; attrs</span>
     <span class="k">if</span> <span class="s2">&quot;__annotations__&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;__annotations__&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">())</span>
     <span class="nb">setattr</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;_reactive_values&quot;</span><span class="p">,</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="s2">&quot;_reactive_values&quot;</span><span class="p">,</span>
         <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">(</span>
-            <span class="n">default</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">Factory</span><span class="p">(</span><span class="n">ReactiveValues</span><span class="p">),</span>
-            <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="nb">cmp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span>
-        <span class="p">)</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">Factory</span><span class="p">(</span><span class="n">ReactiveValues</span><span class="p">),</span> <span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">cmp</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">),</span>
     <span class="p">)</span>
     <span class="bp">cls</span><span class="o">.</span><span class="vm">__annotations__</span><span class="p">[</span><span class="s2">&quot;_reactive_values&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ReactiveValues</span>
 
     <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;__reactive_props__&quot;</span><span class="p">,</span> <span class="n">reactive_props</span><span class="p">)</span>
-    <span class="nb">setattr</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;__reactive_deps__&quot;</span><span class="p">,</span>
-        <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-         <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">reactive_deps</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-    <span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s2">&quot;__reactive_deps__&quot;</span><span class="p">,</span> <span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">reactive_deps</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
 
     <span class="bp">cls</span><span class="o">.</span><span class="fm">__getattr__</span> <span class="o">=</span> <span class="n">__reactive_getattr__</span>
     <span class="bp">cls</span><span class="o">.</span><span class="fm">__setattr__</span> <span class="o">=</span> <span class="n">__reactive_setattr__</span>
     <span class="bp">cls</span><span class="o">.</span><span class="fm">__delattr__</span> <span class="o">=</span> <span class="n">__reactive_delattr__</span>
 
-    <span class="c1">#for p in reactive_props:</span>
+    <span class="c1"># for p in reactive_props:</span>
     <span class="c1">#    prop_attr = attr.ib(init=False, repr=False, cmp=False, hash=False)</span>
 
     <span class="c1">#    prop_attr_name = &quot;_&quot; + p.name</span>
@@ -819,7 +816,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

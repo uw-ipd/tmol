@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -229,11 +229,13 @@
 <em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">InteratomicDistanceGraphBase</code><span class="sig-paren">(</span><em>atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#InteratomicDistanceGraphBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a></p>
 <p>Base graph for interatomic distances.</p>
-<p>Graph component calculating interatomic distances. Distances are present <em>once</em> in the source
-graph for a given atomic pair; the rendered distances are equivalent to the upper triangle of
-the full interatomic distance matrix.</p>
-<p>Distances are rendered as two tensor properties, <code class="docutils literal notranslate"><span class="pre">atom_pair_inds</span></code> and <code class="docutils literal notranslate"><span class="pre">atom_pair_dist</span></code>,
-containing the pair of atomic indicies in <code class="docutils literal notranslate"><span class="pre">coords</span></code> and the calculated distance respectively.</p>
+<p>Graph component calculating interatomic distances. Distances are present
+<em>once</em> in the source graph for a given atomic pair; the rendered distances
+are equivalent to the upper triangle of the full interatomic distance
+matrix.</p>
+<p>Distances are rendered as two tensor properties, <code class="docutils literal notranslate"><span class="pre">atom_pair_inds</span></code> and
+<code class="docutils literal notranslate"><span class="pre">atom_pair_dist</span></code>, containing the pair of atomic indicies in <code class="docutils literal notranslate"><span class="pre">coords</span></code>
+and the calculated distance respectively.</p>
 <p>Components requiring access to interatomic distance components <em>must</em> make
 the component’s interatomic threshold distance available by implementing
 the <code class="docutils literal notranslate"><span class="pre">component_atom_pair_dist_threshold</span></code> property. The generated
@@ -364,7 +366,7 @@ distance of all score graph components.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

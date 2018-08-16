@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations.forward &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.kinematics.gpu_operations.forward &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -228,25 +228,15 @@
         <span class="c1"># Determine the number of atoms present in paths at each path depth,</span>
         <span class="c1"># and the index ranges needed for each depth in the scan buffer.</span>
         <span class="n">subpath_roots</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">is_subpath_root</span><span class="p">)</span>
-        <span class="n">subpath_depths_from_root</span> <span class="o">=</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_depth_from_root</span><span class="p">[</span>
-            <span class="n">subpath_roots</span>
-        <span class="p">]</span>
+        <span class="n">subpath_depths_from_root</span> <span class="o">=</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_depth_from_root</span><span class="p">[</span><span class="n">subpath_roots</span><span class="p">]</span>
         <span class="n">subpath_lengths</span> <span class="o">=</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_length</span><span class="p">[</span><span class="n">subpath_roots</span><span class="p">]</span>
 
         <span class="n">depth_offsets</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ndepths</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
-        <span class="n">numpy</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">at</span><span class="p">(</span>
-            <span class="n">depth_offsets</span><span class="p">,</span>
-            <span class="n">subpath_depths_from_root</span><span class="p">,</span>
-            <span class="n">subpath_lengths</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">numpy</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">depth_offsets</span><span class="p">,</span> <span class="n">subpath_depths_from_root</span><span class="p">,</span> <span class="n">subpath_lengths</span><span class="p">)</span>
         <span class="n">depth_offsets</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">depth_offsets</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">depth_offsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="n">atom_range_for_depth</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">ndepths</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
-            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">atom_range_for_depth</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">ndepths</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndepths</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">atom_range_for_depth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">depth_offsets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
             <span class="n">atom_range_for_depth</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">depth_offsets</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
@@ -260,11 +250,7 @@
         <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndepths</span><span class="p">):</span>
             <span class="n">ii_roots</span> <span class="o">=</span> <span class="n">subpath_roots</span><span class="p">[</span><span class="n">subpath_depths_from_root</span> <span class="o">==</span> <span class="n">ii</span><span class="p">]</span>
             <span class="n">forward_jit</span><span class="o">.</span><span class="n">finalize_refold_indices</span><span class="p">(</span>
-                <span class="n">ii_roots</span><span class="p">,</span>
-                <span class="n">depth_offsets</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span>
-                <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_child</span><span class="p">,</span>
-                <span class="n">ri2ki</span><span class="p">,</span>
-                <span class="n">ki2ri</span><span class="p">,</span>
+                <span class="n">ii_roots</span><span class="p">,</span> <span class="n">depth_offsets</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_child</span><span class="p">,</span> <span class="n">ri2ki</span><span class="p">,</span> <span class="n">ki2ri</span>
             <span class="p">)</span>
 
         <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">ri2ki</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -276,16 +262,12 @@
             <span class="n">atom_range_for_depth</span><span class="o">=</span><span class="n">atom_range_for_depth</span><span class="p">,</span>
             <span class="n">is_subpath_root</span><span class="o">=</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">is_subpath_root</span><span class="p">[</span><span class="n">ri2ki</span><span class="p">],</span>
             <span class="n">non_subpath_parent</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-                <span class="n">scan_paths</span><span class="o">.</span><span class="n">is_subpath_root</span><span class="p">[</span><span class="n">ri2ki</span><span class="p">],</span>
-                <span class="n">ki2ri</span><span class="p">[</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">ri2ki</span><span class="p">]],</span>
-                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">scan_paths</span><span class="o">.</span><span class="n">is_subpath_root</span><span class="p">[</span><span class="n">ri2ki</span><span class="p">],</span> <span class="n">ki2ri</span><span class="p">[</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">ri2ki</span><span class="p">]],</span> <span class="o">-</span><span class="mi">1</span>
             <span class="p">),</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="RefoldOrdering.segscan_hts"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.forward.html#tmol.kinematics.gpu_operations.RefoldOrdering.segscan_hts">[docs]</a>    <span class="k">def</span> <span class="nf">segscan_hts</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">hts_kintree_ordering</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f8&quot;</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
-            <span class="n">inplace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hts_kintree_ordering</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f8&quot;</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">inplace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f8&quot;</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Perform a series of segmented scan operations on the input</span>
 <span class="sd">        homogeneous transforms to compute the coordinate frames of all atoms in</span>
@@ -343,7 +325,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

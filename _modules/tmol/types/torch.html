@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.types.torch &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.types.torch &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -206,9 +206,7 @@
 
     <span class="n">torch_type</span> <span class="o">=</span> <span class="n">_torch_dtype_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">numeric_type</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">torch_type</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="n">f</span><span class="s2">&quot;Unsupported dtype: </span><span class="si">{dt}</span><span class="s2"> numeric type: </span><span class="si">{numeric_type}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Unsupported dtype: </span><span class="si">{dt}</span><span class="s2"> numeric type: </span><span class="si">{numeric_type}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">torch_type</span></div>
 
@@ -220,11 +218,7 @@
 
 <div class="viewcode-block" id="like_kwargs"><a class="viewcode-back" href="../../../apidoc/tmol.types.torch.html#tmol.types.torch.like_kwargs">[docs]</a><span class="k">def</span> <span class="nf">like_kwargs</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extract kwargs args needed to initialize an identical tensor.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">layout</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">layout</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">layout</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Tensor"><a class="viewcode-back" href="../../../apidoc/tmol.types.torch.html#tmol.types.torch.Tensor">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -295,7 +289,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

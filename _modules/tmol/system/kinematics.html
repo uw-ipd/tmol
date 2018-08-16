@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.kinematics &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.system.kinematics &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -182,15 +182,16 @@
 <div class="viewcode-block" id="KinematicDescription"><a class="viewcode-back" href="../../../apidoc/tmol.system.kinematics.html#tmol.system.kinematics.KinematicDescription">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">KinematicDescription</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A kinematic tree paired and mobile dofs for the tree.&quot;&quot;&quot;</span>
+
     <span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span>
     <span class="n">dof_metadata</span><span class="p">:</span> <span class="n">DOFMetadata</span>
 
 <div class="viewcode-block" id="KinematicDescription.for_system"><a class="viewcode-back" href="../../../apidoc/tmol.system.kinematics.html#tmol.system.kinematics.KinematicDescription.for_system">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">for_system</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span>
-            <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
-            <span class="n">torsion_metadata</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">torsion_metadata_dtype</span><span class="p">)[:],</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">torsion_metadata</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">torsion_metadata_dtype</span><span class="p">)[:],</span>
     <span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Generate kinematics for system atoms and named torsions.</span>
 
@@ -199,30 +200,25 @@
 <span class="sd">        coordinate. Note that this is a covering of indices within the system</span>
 <span class="sd">        &quot;non-atom&quot; ids are not present in the tree.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">torsion_pairs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">block</span><span class="p">([</span>
-            <span class="p">[</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">]],</span>
-            <span class="p">[</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">]],</span>
-        <span class="p">])</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">torsion_pairs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">block</span><span class="p">(</span>
+            <span class="p">[[</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">]],</span> <span class="p">[</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">]]]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">T</span>
         <span class="n">torsion_bonds</span> <span class="o">=</span> <span class="n">torsion_pairs</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torsion_pairs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)]</span>
 
         <span class="n">builder</span> <span class="o">=</span> <span class="n">KinematicBuilder</span><span class="p">()</span><span class="o">.</span><span class="n">append_connected_component</span><span class="p">(</span>
             <span class="o">*</span><span class="n">KinematicBuilder</span><span class="o">.</span><span class="n">component_for_prioritized_bonds</span><span class="p">(</span>
-                <span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                <span class="n">mandatory_bonds</span><span class="o">=</span><span class="n">torsion_bonds</span><span class="p">,</span>
-                <span class="n">all_bonds</span><span class="o">=</span><span class="n">bonds</span><span class="p">,</span>
+                <span class="n">root</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">mandatory_bonds</span><span class="o">=</span><span class="n">torsion_bonds</span><span class="p">,</span> <span class="n">all_bonds</span><span class="o">=</span><span class="n">bonds</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
         <span class="n">kintree</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">kintree</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">kintree</span><span class="o">=</span><span class="n">builder</span><span class="o">.</span><span class="n">kintree</span><span class="p">,</span>
-            <span class="n">dof_metadata</span><span class="o">=</span><span class="n">DOFMetadata</span><span class="o">.</span><span class="n">for_kintree</span><span class="p">(</span><span class="n">kintree</span><span class="p">),</span>
+            <span class="n">kintree</span><span class="o">=</span><span class="n">builder</span><span class="o">.</span><span class="n">kintree</span><span class="p">,</span> <span class="n">dof_metadata</span><span class="o">=</span><span class="n">DOFMetadata</span><span class="o">.</span><span class="n">for_kintree</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="KinematicDescription.extract_kincoords"><a class="viewcode-back" href="../../../apidoc/tmol.system.kinematics.html#tmol.system.kinematics.KinematicDescription.extract_kincoords">[docs]</a>    <span class="k">def</span> <span class="nf">extract_kincoords</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">coords</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Extract the kinematic-derived coordinates from system coords.</span>
 
@@ -277,7 +273,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

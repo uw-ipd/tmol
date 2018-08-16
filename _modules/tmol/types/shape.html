@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.types.shape &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.types.shape &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -167,12 +167,16 @@
 <span class="sd">Shape Specifications</span>
 <span class="sd">--------------------</span>
 
-<span class="sd">Shape specifications are intended to allow a reasonable description of common array shapes, with an emphasis on functionally relevant shape cases. This includes dimensionality, shape of specific dimensions, implied broadcastable dimensions, contiguous ordering (ie. C vs F ordering), and density.</span>
+<span class="sd">Shape specifications are intended to allow a reasonable description of common</span>
+<span class="sd">array shapes, with an emphasis on functionally relevant shape cases. This</span>
+<span class="sd">includes dimensionality, shape of specific dimensions, implied broadcastable</span>
+<span class="sd">dimensions, contiguous ordering (ie. C vs F ordering), and density.</span>
 
 <span class="sd">``ndim`` and ``shape``</span>
 <span class="sd">~~~~~~~~~~~~~~~~~~~~~~</span>
 
-<span class="sd">Basic dimensionality and shape requirements are specified via slices. Dimensions may be unconstrained or constrainted to a fixed shape.</span>
+<span class="sd">Basic dimensionality and shape requirements are specified via slices.</span>
+<span class="sd">Dimensions may be unconstrained or constrainted to a fixed shape.</span>
 
 <span class="sd">- ``[:]`` - ndim 1, any shape</span>
 <span class="sd">- ``[3]`` or ``[:3]`` - ndim 1, shape (3,)</span>
@@ -182,7 +186,10 @@
 <span class="sd">Broadcastable Dimensions</span>
 <span class="sd">~~~~~~~~~~~~~~~~~~~~~~~~</span>
 
-<span class="sd">Optional dimensions are represented by an elipsis. This should generally be limited to *only* [implicitly broadcastable](https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html) upper dimensions.</span>
+<span class="sd">Optional dimensions are represented by an elipsis. This should generally be</span>
+<span class="sd">limited to *only* [implicitly</span>
+<span class="sd">broadcastable](https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html)</span>
+<span class="sd">upper dimensions.</span>
 
 <span class="sd">- ``[...,:3]`` - ndim 1+, shape ([any]*, 3)</span>
 <span class="sd">- ``[...,:,:3]`` - ndim 2+, shape ([any]+, 3, 3)</span>
@@ -191,9 +198,14 @@
 <span class="sd">Stride and Contiguous Dimensions</span>
 <span class="sd">~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
 
-<span class="sd">Memory layout constraints can be used to specify contiguous dimensions and their ordering. Dense dimensions are specified in the standard \[inner|c|numpy|row-major\] order or or in \[outer|fortran|col-major\] order. Any number of dimensions, starting from either ordering, can be specified as dense. Elements of dense dimensions are contiguous support a raveled view.</span>
+<span class="sd">Memory layout constraints can be used to specify contiguous dimensions and</span>
+<span class="sd">their ordering. Dense dimensions are specified in the standard</span>
+<span class="sd">\[inner|c|numpy|row-major\] order or or in \[outer|fortran|col-major\] order.</span>
+<span class="sd">Any number of dimensions, starting from either ordering, can be specified as</span>
+<span class="sd">dense. Elements of dense dimensions are contiguous support a raveled view.</span>
 
-<span class="sd">The exact syntax for this dimension specification is unclear. The &quot;inline&quot;, utilizing the slide step component:</span>
+<span class="sd">The exact syntax for this dimension specification is unclear. The &quot;inline&quot;,</span>
+<span class="sd">utilizing the slide step component:</span>
 
 
 <span class="sd">- ``[::1]`` - ndim 1, any shape, contiguous</span>
@@ -239,7 +251,7 @@
             <span class="k">return</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;size must be None, Ellipsis, or &gt;1&#39;</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span></div>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;size must be None, Ellipsis, or &gt;1&quot;</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="ow">is</span> <span class="bp">Ellipsis</span><span class="p">:</span>
@@ -256,7 +268,7 @@
         <span class="nd">@staticmethod</span>
         <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
-                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="p">)</span>
+                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">args</span><span class="p">,)</span>
 
             <span class="k">return</span> <span class="n">Shape</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">))</span></div>
 
@@ -289,18 +301,21 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">adims</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">Ellipsis</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="n">f</span><span class="s2">&quot;No implied broadcast to shape. expected: </span><span class="si">{self!s}</span><span class="s2"> received: </span><span class="si">{adims}</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;No implied broadcast to shape. &quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;expected: </span><span class="si">{self!s}</span><span class="s2"> received: </span><span class="si">{adims}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
             <span class="n">dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">Dim</span><span class="p">(</span><span class="bp">Ellipsis</span><span class="p">)]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">adims</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">))</span> <span class="o">+</span> <span class="n">dims</span>
         <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">adims</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">dims</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">adims</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="n">f</span><span class="s2">&quot;Fewer than expected dims in shape. expected: </span><span class="si">{self!s}</span><span class="s2"> received: </span><span class="si">{adims}</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;Fewer than expected dims in shape. &quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;expected: </span><span class="si">{self!s}</span><span class="s2"> received: </span><span class="si">{adims}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
             <span class="k">elif</span> <span class="ow">not</span> <span class="n">dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="ow">is</span> <span class="bp">Ellipsis</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="n">f</span><span class="s2">&quot;No implied broadcast to shape. expected: </span><span class="si">{self!s}</span><span class="s2"> received: </span><span class="si">{adims}</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;No implied broadcast to shape. &quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;expected: </span><span class="si">{self!s}</span><span class="s2"> received: </span><span class="si">{adims}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
             <span class="n">dims</span> <span class="o">=</span> <span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
 
@@ -309,7 +324,8 @@
         <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">adims</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="n">d</span><span class="o">.</span><span class="n">size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">Ellipsis</span> <span class="ow">and</span> <span class="n">d</span><span class="o">.</span><span class="n">size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">a</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                    <span class="n">f</span><span class="s2">&quot;Invalid dimension size. expected: </span><span class="si">{self!s}</span><span class="s2"> received: </span><span class="si">{adims}</span><span class="s2"> dim: </span><span class="si">{d}</span><span class="s2"> size: </span><span class="si">{a}</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;Invalid dimension size. &quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;expected: </span><span class="si">{self!s}</span><span class="s2"> received: </span><span class="si">{adims}</span><span class="s2"> dim: </span><span class="si">{d}</span><span class="s2"> size: </span><span class="si">{a}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
         <span class="k">return</span> <span class="kc">True</span></div>
@@ -320,9 +336,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">value</span>
         <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">vex</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="n">f</span><span class="s2">&quot;Invalid shape: </span><span class="si">{value.shape}</span><span class="s2"> expected: </span><span class="si">{self}</span><span class="s2">&quot;</span>
-            <span class="p">)</span> <span class="kn">from</span> <span class="nn">vex</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Invalid shape: </span><span class="si">{value.shape}</span><span class="s2"> expected: </span><span class="si">{self}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span> <span class="nn">vex</span>
 
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s2">&quot;[</span><span class="si">{}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dims</span><span class="p">)))</span>
@@ -365,7 +379,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

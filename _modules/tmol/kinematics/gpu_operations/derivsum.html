@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations.derivsum &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.kinematics.gpu_operations.derivsum &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -223,9 +223,7 @@
         <span class="c1"># Determine the number of atoms present in paths at each path depth,</span>
         <span class="c1"># and the index ranges needed for each depth in the scan buffer.</span>
         <span class="n">subpath_leaves</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">is_subpath_leaf</span><span class="p">)</span>
-        <span class="n">subpath_depths_from_leaf</span> <span class="o">=</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_depth_from_leaf</span><span class="p">[</span>
-            <span class="n">subpath_leaves</span>
-        <span class="p">]</span>
+        <span class="n">subpath_depths_from_leaf</span> <span class="o">=</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_depth_from_leaf</span><span class="p">[</span><span class="n">subpath_leaves</span><span class="p">]</span>
         <span class="n">subpath_lengths</span> <span class="o">=</span> <span class="n">scan_paths</span><span class="o">.</span><span class="n">subpath_length</span><span class="p">[</span><span class="n">subpath_leaves</span><span class="p">]</span>
 
         <span class="n">depth_offsets</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ndepths</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
@@ -233,11 +231,7 @@
         <span class="n">depth_offsets</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">depth_offsets</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">depth_offsets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
 
-        <span class="n">atom_range_for_depth</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">ndepths</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
-            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">atom_range_for_depth</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">ndepths</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;int32&quot;</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndepths</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">atom_range_for_depth</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">depth_offsets</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
@@ -270,15 +264,14 @@
             <span class="c1"># the nonpath children array into dsi ordering</span>
             <span class="n">nonpath_children</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
                 <span class="n">scan_paths</span><span class="o">.</span><span class="n">nonpath_children</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-                <span class="n">ki2dsi</span><span class="p">[</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">nonpath_children</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="n">ki2dsi</span><span class="p">[</span><span class="n">scan_paths</span><span class="o">.</span><span class="n">nonpath_children</span><span class="p">],</span>
+                <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)[</span><span class="n">dsi2ki</span><span class="p">],</span>
-            <span class="n">atom_range_for_depth</span><span class="o">=</span><span class="n">atom_range_for_depth</span>
+            <span class="n">atom_range_for_depth</span><span class="o">=</span><span class="n">atom_range_for_depth</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="DerivsumOrdering.segscan_f1f2s"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.DerivsumOrdering.segscan_f1f2s">[docs]</a>    <span class="k">def</span> <span class="nf">segscan_f1f2s</span><span class="p">(</span>
-            <span class="bp">self</span><span class="p">,</span>
-            <span class="n">f1f2s_kintree_ordering</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f8&quot;</span><span class="p">)[:,</span> <span class="mi">6</span><span class="p">],</span>
-            <span class="n">inplace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">f1f2s_kintree_ordering</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f8&quot;</span><span class="p">)[:,</span> <span class="mi">6</span><span class="p">],</span> <span class="n">inplace</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f8&quot;</span><span class="p">)[:,</span> <span class="mi">6</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">inplace</span><span class="p">:</span>
             <span class="n">f1f2s_kintree_ordering</span> <span class="o">=</span> <span class="n">f1f2s_kintree_ordering</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
@@ -330,7 +323,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

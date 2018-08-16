@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.io.generic &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.io.generic &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -185,25 +185,21 @@
 <span class="sd">    https://github.com/3dmol/3Dmol.js/blob/master/3Dmol/parsers.js#L698</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="p">[{</span>
-        <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="p">[</span>
             <span class="p">{</span>
-                <span class="s2">&quot;l&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
-                <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-                <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-                <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span><span class="s2">&quot;l&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="mi">2</span><span class="p">])}</span>
+                    <span class="k">for</span> <span class="n">e</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">elems</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+                <span class="p">],</span>
+                <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="p">{</span><span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="s2">&quot;e&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">)}</span>
+                    <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">bonds</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">b</span><span class="p">])</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">e</span><span class="p">]))</span>
+                <span class="p">],</span>
             <span class="p">}</span>
-            <span class="k">for</span> <span class="n">e</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">elems</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
-        <span class="p">],</span>
-        <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="p">[</span>
-            <span class="p">{</span>
-                <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span><span class="p">),</span>
-                <span class="s2">&quot;e&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-            <span class="p">}</span>
-            <span class="k">for</span> <span class="n">b</span><span class="p">,</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">bonds</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">b</span><span class="p">])</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">e</span><span class="p">]))</span>
         <span class="p">]</span>
-    <span class="p">}]}</span>  <span class="c1"># yapf: disable</span></div>
+    <span class="p">}</span></div>
 </pre></div>
 
            </div>
@@ -238,7 +234,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.types.shape &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.types.shape &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -195,10 +195,14 @@
 <span id="tmol-types-shape"></span><h1>tmol.types.shape<a class="headerlink" href="#module-tmol.types.shape" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="shape-specifications">
 <h2>Shape Specifications<a class="headerlink" href="#shape-specifications" title="Permalink to this headline">¶</a></h2>
-<p>Shape specifications are intended to allow a reasonable description of common array shapes, with an emphasis on functionally relevant shape cases. This includes dimensionality, shape of specific dimensions, implied broadcastable dimensions, contiguous ordering (ie. C vs F ordering), and density.</p>
+<p>Shape specifications are intended to allow a reasonable description of common
+array shapes, with an emphasis on functionally relevant shape cases. This
+includes dimensionality, shape of specific dimensions, implied broadcastable
+dimensions, contiguous ordering (ie. C vs F ordering), and density.</p>
 <div class="section" id="ndim-and-shape">
 <h3><code class="docutils literal notranslate"><span class="pre">ndim</span></code> and <code class="docutils literal notranslate"><span class="pre">shape</span></code><a class="headerlink" href="#ndim-and-shape" title="Permalink to this headline">¶</a></h3>
-<p>Basic dimensionality and shape requirements are specified via slices. Dimensions may be unconstrained or constrainted to a fixed shape.</p>
+<p>Basic dimensionality and shape requirements are specified via slices.
+Dimensions may be unconstrained or constrainted to a fixed shape.</p>
 <ul class="simple">
 <li><code class="docutils literal notranslate"><span class="pre">[:]</span></code> - ndim 1, any shape</li>
 <li><code class="docutils literal notranslate"><span class="pre">[3]</span></code> or <code class="docutils literal notranslate"><span class="pre">[:3]</span></code> - ndim 1, shape (3,)</li>
@@ -208,7 +212,10 @@
 </div>
 <div class="section" id="broadcastable-dimensions">
 <h3>Broadcastable Dimensions<a class="headerlink" href="#broadcastable-dimensions" title="Permalink to this headline">¶</a></h3>
-<p>Optional dimensions are represented by an elipsis. This should generally be limited to <em>only</em> [implicitly broadcastable](<a class="reference external" href="https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html">https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html</a>) upper dimensions.</p>
+<p>Optional dimensions are represented by an elipsis. This should generally be
+limited to <em>only</em> [implicitly
+broadcastable](<a class="reference external" href="https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html">https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html</a>)
+upper dimensions.</p>
 <ul class="simple">
 <li><code class="docutils literal notranslate"><span class="pre">[...,:3]</span></code> - ndim 1+, shape ([any]*, 3)</li>
 <li><code class="docutils literal notranslate"><span class="pre">[...,:,:3]</span></code> - ndim 2+, shape ([any]+, 3, 3)</li>
@@ -217,8 +224,13 @@
 </div>
 <div class="section" id="stride-and-contiguous-dimensions">
 <h3>Stride and Contiguous Dimensions<a class="headerlink" href="#stride-and-contiguous-dimensions" title="Permalink to this headline">¶</a></h3>
-<p>Memory layout constraints can be used to specify contiguous dimensions and their ordering. Dense dimensions are specified in the standard [inner|c|numpy|row-major] order or or in [outer|fortran|col-major] order. Any number of dimensions, starting from either ordering, can be specified as dense. Elements of dense dimensions are contiguous support a raveled view.</p>
-<p>The exact syntax for this dimension specification is unclear. The “inline”, utilizing the slide step component:</p>
+<p>Memory layout constraints can be used to specify contiguous dimensions and
+their ordering. Dense dimensions are specified in the standard
+[inner|c|numpy|row-major] order or or in [outer|fortran|col-major] order.
+Any number of dimensions, starting from either ordering, can be specified as
+dense. Elements of dense dimensions are contiguous support a raveled view.</p>
+<p>The exact syntax for this dimension specification is unclear. The “inline”,
+utilizing the slide step component:</p>
 <ul class="simple">
 <li><code class="docutils literal notranslate"><span class="pre">[::1]</span></code> - ndim 1, any shape, contiguous</li>
 <li><code class="docutils literal notranslate"><span class="pre">[:,::1]</span></code> - ndim 2, any shape, c-contiguous</li>
@@ -371,7 +383,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

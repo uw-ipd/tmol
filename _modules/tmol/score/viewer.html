@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.viewer &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.score.viewer &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -178,23 +178,17 @@
     <span class="n">atom_coords</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="n">atom_types</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">atom_types</span>
 
-    <span class="n">render_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span>
-        <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">atom_coords</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="p">)</span>
+    <span class="n">render_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">atom_coords</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
 
-    <span class="n">atom_records</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span>
-        <span class="n">render_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pdb_parsing</span><span class="o">.</span><span class="n">atom_record_dtype</span>
-    <span class="p">)</span>
+    <span class="n">atom_records</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">render_atoms</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pdb_parsing</span><span class="o">.</span><span class="n">atom_record_dtype</span><span class="p">)</span>
 
-    <span class="n">atom_records</span><span class="p">[</span><span class="s1">&#39;record_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;ATOM&quot;</span>
+    <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;record_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;ATOM&quot;</span>
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;chain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;X&quot;</span>
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;resn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;UNK&quot;</span>
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;atomi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">render_atoms</span>
-    <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;atomn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">score_graph</span><span class="o">.</span><span class="n">chemical_db</span><span class="o">.</span><span class="n">atom_properties</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span>
-            <span class="n">atom_types</span><span class="p">[</span><span class="n">render_atoms</span><span class="p">]</span>
-        <span class="p">)[</span><span class="s2">&quot;elem&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
-    <span class="p">)</span>
+    <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;atomn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">chemical_db</span><span class="o">.</span><span class="n">atom_properties</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span>
+        <span class="n">atom_types</span><span class="p">[</span><span class="n">render_atoms</span><span class="p">]</span>
+    <span class="p">)[</span><span class="s2">&quot;elem&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
 
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_coords</span><span class="p">[</span><span class="n">render_atoms</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_coords</span><span class="p">[</span><span class="n">render_atoms</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">]</span>
@@ -246,7 +240,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

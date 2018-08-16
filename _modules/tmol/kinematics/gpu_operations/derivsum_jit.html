@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations.derivsum_jit &mdash; TMol 0.0.0-84-g2ba60d4 documentation</title>
+  <title>tmol.kinematics.gpu_operations.derivsum_jit &mdash; TMol 0.0.0-85-g73439ec documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-84-g2ba60d4
+                0.0.0-85-g73439ec
               </div>
             
           
@@ -172,9 +172,7 @@
 
 
 <div class="viewcode-block" id="finalize_derivsum_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum_jit.html#tmol.kinematics.gpu_operations.derivsum_jit.finalize_derivsum_indices">[docs]</a><span class="nd">@numba</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">finalize_derivsum_indices</span><span class="p">(</span>
-        <span class="n">leaves</span><span class="p">,</span> <span class="n">start_ind</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">is_root</span><span class="p">,</span> <span class="n">ki2dsi</span><span class="p">,</span> <span class="n">dsi2ki</span>
-<span class="p">):</span>
+<span class="k">def</span> <span class="nf">finalize_derivsum_indices</span><span class="p">(</span><span class="n">leaves</span><span class="p">,</span> <span class="n">start_ind</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">is_root</span><span class="p">,</span> <span class="n">ki2dsi</span><span class="p">,</span> <span class="n">dsi2ki</span><span class="p">):</span>
     <span class="n">count</span> <span class="o">=</span> <span class="n">start_ind</span>
     <span class="k">for</span> <span class="n">leaf</span> <span class="ow">in</span> <span class="n">leaves</span><span class="p">:</span>
         <span class="n">nextatom</span> <span class="o">=</span> <span class="n">leaf</span>
@@ -188,7 +186,7 @@
 
 
 <div class="viewcode-block" id="F1F2Scan"><a class="viewcode-back" href="../../../../apidoc/tmol.kinematics.gpu_operations.derivsum_jit.html#tmol.kinematics.gpu_operations.derivsum_jit.F1F2Scan">[docs]</a><span class="k">class</span> <span class="nc">F1F2Scan</span><span class="p">(</span><span class="n">GenerationalSegmentedScan</span><span class="p">):</span>
-    <span class="n">val_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="p">)</span>
+    <span class="n">val_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">6</span><span class="p">,)</span>
 
     <span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">f1f2s</span><span class="p">,</span> <span class="n">ind</span><span class="p">):</span>
@@ -261,7 +259,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-84-g2ba60d4',
+            VERSION:'0.0.0-85-g73439ec',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
