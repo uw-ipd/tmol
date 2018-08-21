@@ -41,17 +41,44 @@ These components operate over a shared chemical vocabulary defined in
 Scoring
 =======
 
-* Scoring is executed via a dynamic "score graph" component, managing
-creation of a torch compute graph for the current score model.
-* Score model is partitioned into score graph component classes, each
-covering a logically distinct component of the score model. This may be
-a score term, or support data required for score evaluation.
-* Component classes are combined as mixins into a reactive score graph,
-reference reactive docs.
-* Initialization is handled via cooperative factory. 
+Scoring is managed via a "score graph" object, managing the initialization
+of a torch compute graph calculating a setup of score terms for
+a collection model states. 
 
-Scoring model operates on system stacks, a batch of systems of equivalent
-maximum size. Score operations are defined for "intra-layer" scores,
-mapping a [L, N] stack into [L] intra-stack scores, or "inter-layer" scores, mapping 
-a [L1, N1], [L2, N2] pair of stacks into an [L1, L2] inter-stack score
-matrix.
+A model is defined over of a set ``n`` of bonded atoms. Each atom is
+located at an atom index, and is defined by a type and coordinate. Atoms
+may be "null", defining no type and a nan coordinate at a given index. 
+
+Bonds are defined via a set of ``b``` sparse, undirected bonded inter-atom 
+index pairs.
+
+A score graph operates over set of ``l`` layers, each containing a single
+model. Models must contain the same number of atoms ``n``, but may have
+differing atom types and null atoms. Bonds are strictly intra-layer, and
+form a disjoint set per-layer inter-atom graphs.
+
+
+.. aafig::
+
+  +---------------------------------------+  
+  |                                  --   |  
+  | "[n] atom_types"                /  \  |  
+  | "[n] coordinates"            +-+    + |  
+  | "[b] (a,b) bond indices"    /   \  /  |  
+  |                                  --   |  
+  +-------------------+-------------------+  
+                      |
+                      |
+  +-------------------|----+
+  | Model:            |    |
+  |               +---o--+ |
+  | "[l] layers"  +------+ |
+  |               +------+ |
+  |               +------+ |
+  +------------------------+
+
+The score graph implementation is partitioned into score component
+classes, each covering a logically distinct component of the score
+function. These components may may be score terms, derived model
+representations, or support data required for score evaluation. Component
+classes are combined as mixins into a `reactive` score graph.
