@@ -17,10 +17,7 @@ def total(component_total):
 
 
 class ScoreComponent:
-    """Base class for intra & inter system score summation.
-
-    Graph component managing dispatch of score components for "intra"
-    (single-system) and "inter" (two-system) scoring.
+    """Graph component managing dispatch of "intra" and "inter" layer scoring.
 
     Score dispatch involves the interaction of three components:
 

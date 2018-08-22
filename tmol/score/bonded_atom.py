@@ -18,6 +18,16 @@ from .stacked_system import StackedSystem
 
 @reactive_attrs(auto_attribs=True)
 class BondedAtomScoreGraph(StackedSystem, Factory):
+    """Score graph component describing a system's atom types and bonds.
+
+    Attributes:
+        atom_types: [layer, atom_index] String atom type descriptors, as
+            defined in `tmol.database.chemical`.
+        bonds: [layer, atom_index, atom_index] Inter-atomic bond indices. Note that
+            bonds are strictly intra-layer, and are therefor defined by a single
+            layer index for both atoms of the bond.
+    """
+
     MAX_BONDED_PATH_LENGTH = 6
 
     @staticmethod
@@ -26,16 +36,13 @@ class BondedAtomScoreGraph(StackedSystem, Factory):
         """`clone`-factory, extract atom types and bonds from other."""
         return dict(atom_types=other.atom_types, bonds=other.bonds)
 
-    # String atom types indexed by [layer, atom]
     atom_types: NDArray(object)[:, :]
-
-    # Inter-atomic bond indices of form [layer, from_atom, to_atom]
     bonds: NDArray(int)[:, 3]
 
     @reactive_property
     @validate_args
     def real_atoms(atom_types: NDArray(object)[:, :],) -> Tensor(bool)[:, :]:
-        """Mask of 'real' atomic indices in the system."""
+        """Mask of non-null atomic indices in the system."""
         return torch.ByteTensor(
             (atom_types != None).astype(numpy.ubyte)
         )  # noqa: E711 - None != is a vectorized check for None.
@@ -48,7 +55,12 @@ class BondedAtomScoreGraph(StackedSystem, Factory):
         system_size: int,
         MAX_BONDED_PATH_LENGTH: int,
     ) -> NDArray("f4")[:, :, :]:
-        """Dense inter-atomic bonded path length distance matrix."""
+        """Dense inter-atomic bonded path length distance tables.
+
+        Returns:
+            [layer, from_atom, to_atom]
+            Per-layer interatomic bonded path length entries.
+        """
 
         bond_graph = sparse.COO(
             bonds.T,
