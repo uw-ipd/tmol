@@ -1,7 +1,5 @@
 from typing import Optional
 
-import attr
-
 import torch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -53,11 +51,7 @@ class LJLKScoreGraph(
 
         return dict(ljlk_database=ljlk_database)
 
-    ljlk_database: LJLKDatabase = attr.ib()
-
-    @ljlk_database.default
-    def _default_ljlk_database(self):
-        return self.parameter_database.scoring.ljlk
+    ljlk_database: LJLKDatabase
 
     @property
     def component_total_score_terms(self):
@@ -83,11 +77,10 @@ class LJLKScoreGraph(
     @reactive_property
     @validate_args
     def ljlk_interaction_weight(
-        bonded_path_length: NDArray("f4")[:, :],
-        atom_types: NDArray(object)[:],
-        real_atoms: Tensor(bool)[:],
+        bonded_path_length: NDArray("f4")[:, :, :],
+        real_atoms: Tensor(bool)[:, :],
         device: torch.device,
-    ) -> Tensor(torch.float)[:, :]:
+    ) -> Tensor(torch.float)[:, :, :]:
         """lj&lk interaction weight, bonded cutoff"""
 
         bonded_path_length = torch.from_numpy(bonded_path_length).to(device)
@@ -96,33 +89,43 @@ class LJLKScoreGraph(
             bonded_path_length.shape, dtype=torch.float
         )
 
+        real_atoms = real_atoms.to(device=device)
+
         result[bonded_path_length < 4] = 0
         result[bonded_path_length == 4] = .2
-        result[~real_atoms, :] = 0
-        result[:, ~real_atoms] = 0
+        result = result.where(real_atoms[:, None, :], result.new_full((1,), 0))
+        result = result.where(real_atoms[:, :, None], result.new_full((1,), 0))
 
         return result
 
     @reactive_property
     @validate_args
     def ljlk_atom_pair_params(
-        atom_types: NDArray(object)[:], param_resolver: LJLKParamResolver
+        atom_types: NDArray(object)[:, :], param_resolver: LJLKParamResolver
     ) -> LJLKTypePairParams:
         """Pair parameter tensors for all atoms within system."""
+        assert atom_types.shape[0] == 1
+        atom_types = atom_types[0]
         return param_resolver[atom_types.reshape((-1, 1)), atom_types.reshape((1, -1))]
 
     @reactive_property
     @validate_args
     def lj(
-        atom_pair_inds: Tensor(torch.long)[2, :],
+        atom_pair_inds: Tensor(torch.long)[:, 3],
         atom_pair_dist: Tensor(torch.float)[:],
-        ljlk_interaction_weight: Tensor(torch.float)[:, :],
+        ljlk_interaction_weight: Tensor(torch.float)[:, :, :],
         ljlk_atom_pair_params: LJLKTypePairParams,
         param_resolver: LJLKParamResolver,
     ):
         gparams = param_resolver.global_params
         pparams = ljlk_atom_pair_params
-        pidx = (atom_pair_inds[0], atom_pair_inds[1])
+
+        assert (atom_pair_inds[:, 0] == 0).all()
+        pidx = (atom_pair_inds[:, 1], atom_pair_inds[:, 2])
+
+        assert ljlk_interaction_weight.shape[0] == 1
+        ljlk_interaction_weight = ljlk_interaction_weight[0]
+
         return lj_score(
             # Distance
             dist=atom_pair_dist,
@@ -154,15 +157,21 @@ class LJLKScoreGraph(
     @reactive_property
     @validate_args
     def lk(
-        atom_pair_inds: Tensor(torch.long)[2, :],
+        atom_pair_inds: Tensor(torch.long)[:, 3],
         atom_pair_dist: Tensor(torch.float)[:],
-        ljlk_interaction_weight: Tensor(torch.float)[:, :],
+        ljlk_interaction_weight: Tensor(torch.float)[:, :, :],
         ljlk_atom_pair_params: LJLKTypePairParams,
         param_resolver: LJLKParamResolver,
     ):
         gparams = param_resolver.global_params
         pparams = ljlk_atom_pair_params
-        pidx = (atom_pair_inds[0], atom_pair_inds[1])
+
+        assert (atom_pair_inds[:, 0] == 0).all()
+        pidx = (atom_pair_inds[:, 1], atom_pair_inds[:, 2])
+
+        assert ljlk_interaction_weight.shape[0] == 1
+        ljlk_interaction_weight = ljlk_interaction_weight[0]
+
         return lk_score(
             # Distance
             dist=atom_pair_dist,

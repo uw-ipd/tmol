@@ -1,15 +1,15 @@
 """Generic py3mol-based visualization."""
 
 from IPython.display import display
+import py3Dmol
 
-import tmol.extern.py3dmol as py3dmol
 from tmol.io.generic import to_pdb, to_cdjson
 
 
 class SystemViewer:
-    """Generic py3dmol-based jupyter display widget.
+    """Generic py3Dmol-based jupyter display widget.
 
-    A py3dmol-based jupyter viewing component, utilizing :py:mod:`tmol.io.generic`
+    A py3Dmol-based jupyter viewing component, utilizing :py:mod:`tmol.io.generic`
     dispatch functions to render arbitrary model components.
     """
 
@@ -25,7 +25,7 @@ class SystemViewer:
 
         self.data = None
 
-        self.view = py3dmol.view(1200, 600)
+        self.view = py3Dmol.view(1200, 600)
 
         self.update()
         self.view.zoomTo()

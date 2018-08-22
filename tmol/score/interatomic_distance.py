@@ -1,6 +1,5 @@
 from typing import Dict
 
-from toolz.curried import compose, map
 import attr
 import torch
 import numpy
@@ -9,9 +8,12 @@ import scipy.sparse.csgraph
 from tmol.utility.reactive import reactive_attrs, reactive_property
 from tmol.utility.mixins import gather_superclass_properies
 
+from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
+from tmol.types.tensor import TensorGroup
 
-from .bonded_atom import BondedAtomScoreGraph
+from .stacked_system import StackedSystem
+from .factory import Factory
 
 
 def _nan_to_num(var):
@@ -21,7 +23,7 @@ def _nan_to_num(var):
 
 
 @reactive_attrs(auto_attribs=True)
-class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
+class InteratomicDistanceGraphBase(StackedSystem):
     """Base graph for interatomic distances.
 
     Graph component calculating interatomic distances. Distances are present
@@ -36,7 +38,7 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
     Components requiring access to interatomic distance components *must* make
     the component's interatomic threshold distance available by implementing
     the ``component_atom_pair_dist_threshold`` property. The generated
-    interatomic distance graph will respecte the *maximum* required interatomic
+    interatomic distance graph will respect the *maximum* required interatomic
     distance of all score graph components.
     """
 
@@ -53,11 +55,15 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
     atom_pair_dist_thresholds: Dict[str, float] = attr.ib(repr=False, init=False)
 
     @reactive_property
+    @validate_args
     def atom_pair_delta(
-        coords: Tensor("f4")[:, 3], atom_pair_inds: Tensor(torch.long)[:, 2]
+        coords: Tensor("f4")[:, :, 3], atom_pair_inds: Tensor(torch.long)[:, 3]
     ) -> Tensor("f4")[:, 3]:
         """inter-atomic pairwise distance within threshold distance"""
-        delta = coords[atom_pair_inds[0]] - coords[atom_pair_inds[1]]
+        delta = (
+            coords[atom_pair_inds[:, 0], atom_pair_inds[:, 1]]
+            - coords[atom_pair_inds[:, 0], atom_pair_inds[:, 2]]
+        )
 
         if delta.requires_grad:
             delta.register_hook(_nan_to_num)
@@ -65,6 +71,7 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
         return delta
 
     @reactive_property
+    @validate_args
     def atom_pair_dist(atom_pair_delta: Tensor("f4")[:, 3],) -> Tensor("f4")[:]:
         return atom_pair_delta.norm(dim=-1)
 
@@ -73,110 +80,174 @@ class InteratomicDistanceGraphBase(BondedAtomScoreGraph):
             (atom_pair_term, tuple(self.atom_pair_inds)),
             shape=(self.system_size, self.system_size),
         ).tocsr()
+
         return scipy.sparse.csgraph.csgraph_to_dense(sp, null_value=null_value)
+
+
+@validate_args
+def triu_indices(n, k=0, m=None) -> Tensor(torch.long)[:, 2]:
+    """Repacked triu_indices, see numpy.triu_indices for details."""
+    i, j = numpy.triu_indices(n, k, m)
+    return torch.stack((torch.from_numpy(i), torch.from_numpy(j)), dim=-1)
 
 
 @reactive_attrs(auto_attribs=True)
 class NaiveInteratomicDistanceGraph(InteratomicDistanceGraphBase):
     @reactive_property
-    def atom_pair_inds(system_size: int) -> Tensor(torch.long)[:, 2]:
+    @validate_args
+    def atom_pair_inds(
+        stack_depth: int, system_size: int, device: torch.device
+    ) -> Tensor(torch.long)[:, 3]:
         """Index pairs for all atom pairs."""
 
-        return compose(torch.stack, tuple, map(torch.LongTensor))(
-            numpy.triu_indices(system_size, k=1)
-        )
+        layer_inds = torch.arange(stack_depth, device=device, dtype=torch.long)
+        per_layer_inds = triu_indices(system_size, k=1).to(device)
+        npair = per_layer_inds.shape[0]
+
+        return torch.cat(
+            (
+                layer_inds[:, None, None].expand(-1, npair, 1),
+                per_layer_inds[None, :, :].expand(stack_depth, -1, 2),
+            ),
+            dim=-1,
+        ).reshape(-1, 3)
 
 
 @attr.s(slots=True, auto_attribs=True, frozen=True)
-class BlockedDistanceAnalysis:
-    # atom block size for block-neighbor optimization
-    block_size: int = attr.ib()
+class Sphere(TensorGroup):
+    """Mean & radii for fixed size contiguous coordinate blocks."""
 
-    @block_size.validator
-    def _valid_block_size(self, attribute, value):
-        if value < 1 or value > 255:
-            raise ValueError("Invalid block size.")
-
-    # nan-to-num-ed system coordinates
-    coords: Tensor("f4")[:, 3]
-
-    # block mean coordinates`
-    block_centers: Tensor(torch.float)[:, 3]
-    # maximum block coordinates<-> mean distance
-    block_radii: Tensor(torch.float)[:, 3]
-
-    # triu indicies of the inter-block interaction matrix
-    block_triu_inds: Tensor(torch.long)[:, 2]
-
-    # inter-block mean coordinate interaction distances
-    block_triu_dist: Tensor(torch.float)[:, 2]
-    # inter-block minimum member coordinate interaction distance
-    block_triu_min_dist: Tensor(torch.float)[:, 2]
+    center: Tensor(torch.float)[..., 3]
+    radius: Tensor(torch.float)[...]
 
     @classmethod
-    def setup(cls, block_size: int, coords: Tensor(torch.float)[:, 3]):
+    @validate_args
+    def from_coord_blocks(cls, block_size: int, coords: Tensor(torch.float)[..., :, 3]):
         assert not coords.requires_grad
 
-        num_blocks, _remainder = divmod(coords.shape[0], block_size)
+        num_blocks, _remainder = map(int, divmod(coords.shape[-2], block_size))
         assert _remainder == 0
 
-        bs = block_size
-        nb = num_blocks
+        # The "broadcast shape" component
+        brs = broadcast_shape = coords.shape[:-2]
 
-        c_isnan = torch.isnan(coords)
-        coords = coords.where(~c_isnan, coords.new_zeros(1))
+        # coord shape w/ minor access
+        blocked_shape = broadcast_shape + (num_blocks, block_size)
 
-        nonnan_atoms = c_isnan.sum(dim=-1) == 0
-        atoms_per_block = nonnan_atoms.reshape(nb, bs).sum(dim=-1).to(coords.dtype)
+        nonnan_coords = torch.isnan(coords).sum(dim=-1) == 0
+        coords = coords.where(nonnan_coords[..., None], coords.new_zeros(1))
 
-        nonnan_blocks = atoms_per_block > 0
-
-        block_triu_inds = compose(torch.stack, tuple, map(torch.LongTensor))(
-            numpy.triu_indices(num_blocks, k=1)
+        blocked_coords = coords.reshape(broadcast_shape + (num_blocks, block_size, 3))
+        coords_per_block = (
+            nonnan_coords.reshape(blocked_shape).sum(dim=-1).to(coords.dtype)
         )
 
-        block_centers = coords.reshape((nb, bs, 3)).sum(
-            dim=-2
-        ) / atoms_per_block.reshape((nb, 1)).expand((-1, 3))
+        block_centers = blocked_coords.sum(dim=-2) / coords_per_block[..., None]
 
         block_radii = (
-            (coords.reshape((nb, bs, 3)) - block_centers.reshape((nb, 1, 3)))
+            (blocked_coords - block_centers.reshape(brs + (num_blocks, 1, 3)))
             .norm(dim=-1)
-            .where(nonnan_atoms.reshape((nb, bs)), coords.new_zeros(1))
-            .max(dim=1)[0]
+            .where(nonnan_coords.reshape(blocked_shape), coords.new_zeros(1))
+            .max(dim=-1)[0]
         )
 
-        block_triu_ind = block_triu_inds[
-            :,
-            (nonnan_blocks[block_triu_inds].sum(dim=0) == 2).nonzero().squeeze(dim=-1),
-        ]
+        return cls(center=block_centers, radius=block_radii)
 
-        block_triu_dist = (
-            block_centers[block_triu_ind[0]] - block_centers[block_triu_ind[1]]
-        ).norm(dim=-1)
 
-        block_triu_min_dist = block_triu_dist - block_radii[block_triu_ind].sum(dim=0)
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class SphereDistance(TensorGroup):
+    center_dist: Tensor(torch.float)[...]
+    min_dist: Tensor(torch.float)[...]
 
-        return cls(
-            coords=coords,
-            block_size=block_size,
-            block_centers=block_centers,
-            block_radii=block_radii,
-            block_triu_inds=block_triu_inds,
-            block_triu_dist=block_triu_dist,
-            block_triu_min_dist=block_triu_min_dist,
+    @classmethod
+    def for_spheres(cls, a: Sphere, b: Sphere):
+        center_dist = (a.center - b.center).norm(dim=-1)
+
+        min_dist = center_dist - (a.radius + b.radius)
+
+        return cls(center_dist=center_dist, min_dist=min_dist)
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class IntraLayerAtomPairs:
+    inds: Tensor(torch.long)[:, 3]
+
+    @classmethod
+    def for_coord_blocks(
+        cls, block_size: int, coord_blocks: Sphere, threshold_distance: float
+    ):
+        # Abbreviations used in indexing below
+        # num_layers, num_blocks
+        nl, nb = coord_blocks.shape
+        bs: int = block_size
+
+        interblock = SphereDistance.for_spheres(
+            coord_blocks[:, :, None, None, None], coord_blocks[:, None, None, :, None]
         )
+        assert interblock.shape == (nl, nb, 1, nb, 1)
+
+        atom_pair_mask = interblock.min_dist.new_full(
+            (nl, nb, bs, nb, bs), 0, dtype=torch.uint8
+        )
+
+        atom_pair_mask.masked_fill_(interblock.min_dist < threshold_distance, 1)
+        atom_pair_mask = atom_pair_mask.reshape((nl, nb * bs, nb * bs))
+
+        atom_pair_mask.masked_fill_(
+            torch.ones_like(atom_pair_mask[0]).tril()[None, :, :], 0
+        )
+
+        return cls(atom_pair_mask.nonzero())
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class InterLayerAtomPairs:
+    inds: Tensor(torch.long)[:, 4]
+
+    @classmethod
+    def for_coord_blocks(
+        cls,
+        atom_pair_block_size: int,
+        coord_blocks_a: Sphere,
+        coord_blocks_b: Sphere,
+        interatomic_threshold_distance: float,
+    ):
+        # Abbreviations used in indexing below
+        # num_layers_[ab], num_blocks_[ab]
+        nla, nba = coord_blocks_a.shape
+        nlb, nbb = coord_blocks_b.shape
+        # block_size
+        bs: int = atom_pair_block_size
+
+        interblock = SphereDistance.for_spheres(
+            coord_blocks_a[:, :, None, None, None, None],
+            coord_blocks_b[None, None, None, :, :, None],
+        )
+        assert interblock.shape == (nla, nba, 1, nlb, nbb, 1)
+
+        atom_pair_mask = interblock.min_dist.new_full(
+            (nla, nba, bs, nlb, nbb, bs), 0, dtype=torch.uint8
+        )
+        atom_pair_mask.masked_fill_(
+            interblock.min_dist < interatomic_threshold_distance, 1
+        )
+        atom_pair_mask = atom_pair_mask.reshape((nla, nba * bs, nlb, nbb * bs))
+
+        return cls(torch.nonzero(atom_pair_mask))
 
 
 @reactive_attrs(auto_attribs=True)
-class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
+class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
     # atom block size for block-neighbor optimization
-    atom_pair_block_size: int = attr.ib(8, converter=int)
+    atom_pair_block_size: int = attr.ib()
 
     @atom_pair_block_size.validator
     def _valid_block_size(self, attribute, value):
         if value < 1 or value > 255:
             raise ValueError("Invalid block size.")
+
+    def factory_for(obj, **_):
+        return dict(atom_pair_block_size=8)
 
     @property
     def interatomic_threshold_distance(self):
@@ -186,44 +257,27 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
             return numpy.inf
 
     @reactive_property
-    def interblock_analysis(coords, atom_pair_block_size) -> BlockedDistanceAnalysis:
-        """Current inter-block distance analysis."""
-        return BlockedDistanceAnalysis.setup(atom_pair_block_size, coords.detach())
+    @validate_args
+    def coord_blocks(
+        atom_pair_block_size: int, coords: Tensor(torch.float)[:, :, 3]
+    ) -> Sphere:
+        return Sphere.from_coord_blocks(
+            block_size=atom_pair_block_size, coords=coords.detach()
+        )
 
     @reactive_property
     def atom_pair_inds(
-        system_size: int,
-        interblock_analysis: BlockedDistanceAnalysis,
+        atom_pair_block_size: int,
+        coord_blocks: Sphere,
         interatomic_threshold_distance: float,
-    ) -> Tensor(torch.long)[:, 2]:
-        """Indices for atom pairs potentially within interaction threshold distance."""
-        ba: BlockedDistanceAnalysis = interblock_analysis
-        bs: int = interblock_analysis.block_size
-        nb: int = system_size / interblock_analysis.block_size
+    ) -> Tensor(torch.long)[:, 3]:
+        """Triu atom pairs potentially within interaction threshold distance.
 
-        interblock_triu_matches = ba.block_triu_inds[
-            :,
-            (ba.block_triu_min_dist < interatomic_threshold_distance)
-            .nonzero()
-            .squeeze(dim=-1),
-        ]
-
-        interblock_atom_pair_ind = (
-            (interblock_triu_matches.reshape((2, -1, 1, 1)) * bs)
-            + torch.LongTensor(numpy.mgrid[:bs, :bs]).reshape((2, 1, bs, bs))
-        ).reshape(2, -1)
-
-        intrablock_triu = compose(torch.stack, tuple, map(torch.LongTensor))(
-            numpy.triu_indices(bs, k=1)
-        )
-
-        intrablock_atom_pair_ind = (
-            intrablock_triu.reshape(2, 1, -1)
-            + (torch.LongTensor(numpy.arange(nb)).reshape(1, nb, 1) * bs)
-        ).reshape(2, -1)
-
-        raw_atom_pairs = torch.cat(
-            (intrablock_atom_pair_ind, interblock_atom_pair_ind), dim=-1
-        )
-
-        return raw_atom_pairs
+        [layer, atom_i, atom_i] index tensor for all triu (upper triangular)
+        per-layer atom pairs.
+        """
+        return IntraLayerAtomPairs.for_coord_blocks(
+            block_size=atom_pair_block_size,
+            coord_blocks=coord_blocks,
+            threshold_distance=interatomic_threshold_distance,
+        ).inds

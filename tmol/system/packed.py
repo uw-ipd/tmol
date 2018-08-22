@@ -59,6 +59,11 @@ class PackedResidueSystem:
         res_lengths = numpy.array([len(r.coords) for r in res])
         res_segment_lengths = _ceil_to_size(block_size, res_lengths)
 
+        # Ensure that the -1 index is a valid "null atom"
+        # padding with a null block if needed.
+        if (res_lengths[-1] % block_size) == 0:
+            res_segment_lengths[-1] += block_size
+
         segment_ends = res_segment_lengths.cumsum()
         segment_starts = numpy.empty_like(segment_ends)
         segment_starts[0] = 0
@@ -74,9 +79,6 @@ class PackedResidueSystem:
             r.attach_to(cbuff[start : start + len(r.coords)])
             for r, start in zip(res, res_aidx)
         ]
-
-        # TODO temporary hack to ensure that -1 is a valid "non-atom" index
-        assert (res_lengths[-1] % block_size) != 0
 
         ### Generate atom metadata
 

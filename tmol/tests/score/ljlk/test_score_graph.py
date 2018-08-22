@@ -102,11 +102,3 @@ def test_ljlk_database_clone_factory(ubq_system):
     )
     assert clone.ljlk_database is not src.ljlk_database
     assert clone.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
-
-    # Standard init results in default db
-    params = LJLKGraph.init_parameters_for(ubq_system)
-
-    del params["ljlk_database"]
-    src = LJLKGraph(**params)
-
-    assert src.ljlk_database is ParameterDatabase.get_default().scoring.ljlk

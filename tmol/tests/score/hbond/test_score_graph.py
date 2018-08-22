@@ -71,11 +71,3 @@ def test_hbond_database_clone_factory(ubq_system):
     )
     assert clone.hbond_database is not src.hbond_database
     assert clone.hbond_database is ParameterDatabase.get_default().scoring.hbond
-
-    # Standard init results in default db
-    params = HBGraph.init_parameters_for(ubq_system)
-
-    del params["hbond_database"]
-    src = HBGraph(**params)
-
-    assert src.hbond_database is ParameterDatabase.get_default().scoring.hbond
