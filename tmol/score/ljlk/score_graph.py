@@ -13,7 +13,6 @@ from tmol.database.scoring import LJLKDatabase
 
 from ..database import ParamDB
 from ..device import TorchDevice
-from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..interatomic_distance import InteratomicDistanceGraphBase
 from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
@@ -24,12 +23,7 @@ from .params import LJLKParamResolver, LJLKTypePairParams
 
 @reactive_attrs(auto_attribs=True)
 class LJLKScoreGraph(
-    InteratomicDistanceGraphBase,
-    BondedAtomScoreGraph,
-    TotalScoreComponentsGraph,
-    ParamDB,
-    TorchDevice,
-    Factory,
+    InteratomicDistanceGraphBase, BondedAtomScoreGraph, ParamDB, TorchDevice, Factory
 ):
     @staticmethod
     def factory_for(
@@ -52,14 +46,6 @@ class LJLKScoreGraph(
         return dict(ljlk_database=ljlk_database)
 
     ljlk_database: LJLKDatabase
-
-    @property
-    def component_total_score_terms(self):
-        """Expose lj/lk as total_score terms."""
-        return (
-            ScoreComponentAttributes(name="lk", total="total_lk"),
-            ScoreComponentAttributes(name="lj", total="total_lj"),
-        )
 
     @property
     def component_atom_pair_dist_threshold(self):

@@ -6,7 +6,6 @@ import numpy
 
 from ..database import ParamDB
 from ..device import TorchDevice
-from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
 
@@ -123,9 +122,7 @@ class HBondPairs(ValidateAttrs):
 
 
 @reactive_attrs(auto_attribs=True)
-class HBondScoreGraph(
-    BondedAtomScoreGraph, TotalScoreComponentsGraph, ParamDB, TorchDevice, Factory
-):
+class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice, Factory):
     """Compute graph for the HBond term.
 
     It uses the reactive system to compute the list of donors and acceptors
@@ -166,18 +163,6 @@ class HBondScoreGraph(
         return dict(hbond_database=hbond_database)
 
     hbond_database: HBondDatabase
-
-    @property
-    def component_total_score_terms(self):
-        """Expose hbond score sum as total_score term.
-
-        This function will be invoked by the TotalScoreComponentsGraph
-        and will inform that class to request the total_hbond data/property.
-        The reactive system will then request the other reactive properties
-        such as donor_sp2_hbond, which will request other reactive properties
-        in turn.
-        """
-        return ScoreComponentAttributes(name="hbond", total="total_hbond")
 
     @property
     def component_atom_pair_dist_threshold(self):

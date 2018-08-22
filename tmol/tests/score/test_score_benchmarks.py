@@ -6,7 +6,6 @@ from tmol.score import TotalScoreGraph
 
 from tmol.score.device import TorchDevice
 
-from tmol.score.total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 
 from tmol.score.bonded_atom import BondedAtomScoreGraph
 
@@ -22,15 +21,8 @@ from tmol.score.hbond import HBondScoreGraph
 
 @reactive_attrs
 class DofSpaceDummy(
-    KinematicAtomicCoordinateProvider,
-    BondedAtomScoreGraph,
-    TotalScoreComponentsGraph,
-    TorchDevice,
+    KinematicAtomicCoordinateProvider, BondedAtomScoreGraph, TorchDevice
 ):
-    @property
-    def component_total_score_terms(self):
-        return ScoreComponentAttributes(name="dummy", total="dummy_total")
-
     @reactive_property
     def dummy_total(coords):
         return coords.sum()
