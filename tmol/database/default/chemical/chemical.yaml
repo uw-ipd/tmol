@@ -5,7 +5,7 @@ atom_types:
   - CH1
   - CH2
   - CH3
-  - aroC
+  - Caro
   - Ntrp #Tryp indole or pyrrole
   - NhisD #Near in His imidazole
   - NhisDDepro
@@ -89,7 +89,7 @@ residues:
     - { *n: CG  ,  *t: CH2  }
     - { *n: CD  ,  *t: CH2  }
     - { *n: NE  ,  *t: NtrR }
-    - { *n: CZ  ,  *t: aroC }
+    - { *n: CZ  ,  *t: Caro }
     - { *n: NH1 ,  *t: Narg }
     - { *n: NH2 ,  *t: Narg }
     - { *n: H   ,  *t: HNbb }
@@ -501,8 +501,8 @@ residues:
     - { *n: CG  ,  *t: CH0  }
     - { *n: ND1 ,  *t: NhisDDepro }
 
-    - { *n: CD2 ,  *t: aroC }
-    - { *n: CE1 ,  *t: aroC }
+    - { *n: CD2 ,  *t: Caro }
+    - { *n: CE1 ,  *t: Caro }
     - { *n: NE2 ,  *t: NhisE }
 
     - { *n: H   ,  *t: HNbb }
@@ -570,8 +570,8 @@ residues:
     - { *n: CB  ,  *t: CH2  }
     - { *n: CG  ,  *t: CH0  }
     - { *n: ND1 ,  *t: NhisD}
-    - { *n: CD2 ,  *t: aroC }
-    - { *n: CE1 ,  *t: aroC }
+    - { *n: CD2 ,  *t: Caro }
+    - { *n: CE1 ,  *t: Caro }
     - { *n: NE2 ,  *t: NhisEDepro }
     #- { *n: NE2 ,  *t: NtrpDepro }
     - { *n: H   ,  *t: HNbb }
@@ -936,11 +936,11 @@ residues:
     - { *n: O   ,  *t: OCbb }
     - { *n: CB  ,  *t: CH2  }
     - { *n: CG  ,  *t: CH0  }
-    - { *n: CD1 ,  *t: aroC }
-    - { *n: CD2 ,  *t: aroC }
-    - { *n: CE1 ,  *t: aroC }
-    - { *n: CE2 ,  *t: aroC }
-    - { *n: CZ  ,  *t: aroC }
+    - { *n: CD1 ,  *t: Caro }
+    - { *n: CD2 ,  *t: Caro }
+    - { *n: CE1 ,  *t: Caro }
+    - { *n: CE2 ,  *t: Caro }
+    - { *n: CZ  ,  *t: Caro }
     - { *n: H   ,  *t: HNbb }
     - { *n: HA  ,  *t: Hapo }
     - { *n: 1HB ,  *t: Hapo }
@@ -1179,14 +1179,14 @@ residues:
     - { *n: O   ,  *t: OCbb }
     - { *n: CB  ,  *t: CH2  }
     - { *n: CG  ,  *t: CH0  }
-    - { *n: CD1 ,  *t: aroC }
+    - { *n: CD1 ,  *t: Caro }
     - { *n: CD2 ,  *t: CH0  }
     - { *n: NE1 ,  *t: Ntrp }
     - { *n: CE2 ,  *t: CH0  }
-    - { *n: CE3 ,  *t: aroC }
-    - { *n: CZ2 ,  *t: aroC }
-    - { *n: CZ3 ,  *t: aroC }
-    - { *n: CH2 ,  *t: aroC }
+    - { *n: CE3 ,  *t: Caro }
+    - { *n: CZ2 ,  *t: Caro }
+    - { *n: CZ3 ,  *t: Caro }
+    - { *n: CH2 ,  *t: Caro }
     - { *n: H   ,  *t: HNbb }
     - { *n: HA  ,  *t: Hapo }
     - { *n: 1HB ,  *t: Hapo }
@@ -1269,10 +1269,10 @@ residues:
     - { *n: O   ,  *t: OCbb }
     - { *n: CB  ,  *t: CH2  }
     - { *n: CG  ,  *t: CH0  }
-    - { *n: CD1 ,  *t: aroC }
-    - { *n: CD2 ,  *t: aroC }
-    - { *n: CE1 ,  *t: aroC }
-    - { *n: CE2 ,  *t: aroC }
+    - { *n: CD1 ,  *t: Caro }
+    - { *n: CD2 ,  *t: Caro }
+    - { *n: CE1 ,  *t: Caro }
+    - { *n: CE2 ,  *t: Caro }
     - { *n: CZ  ,  *t: CH0  }
     - { *n: OH  ,  *t: OHphenol   }
     - { *n: H   ,  *t: HNbb }

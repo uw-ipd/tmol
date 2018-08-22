@@ -8,6 +8,12 @@ from .factory import Factory
 
 @reactive_attrs(auto_attribs=True)
 class TorchDevice(Factory):
+    """Graph component specifying the target compute device.
+
+    Attributes:
+        device: The common torch compute device used for all operations.
+    """
+
     @staticmethod
     def factory_for(val, device: Optional[torch.device] = None, **_):
         """Overridable clone-constructor.
@@ -22,5 +28,4 @@ class TorchDevice(Factory):
 
         return dict(device=device)
 
-    # The target torch device
-    device: torch.device = torch.device("cpu")
+    device: torch.device

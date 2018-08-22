@@ -1,5 +1,3 @@
-import attr
-
 from typing import Optional
 
 from tmol.utility.reactive import reactive_attrs
@@ -11,6 +9,12 @@ from .factory import Factory
 
 @reactive_attrs(auto_attribs=True)
 class ParamDB(Factory):
+    """Graph component containing the common database.
+
+    Attributes:
+        parameter_database: A single, shared database for all graph components.
+    """
+
     @staticmethod
     def factory_for(val, parameter_database: Optional[ParameterDatabase] = None, **_):
         """Overridable clone-constructor.
@@ -26,9 +30,4 @@ class ParamDB(Factory):
 
         return dict(parameter_database=parameter_database)
 
-    # The target torch device
-    parameter_database: ParameterDatabase = attr.ib()
-
-    @parameter_database.default
-    def _default_parameter_database(self):
-        return ParameterDatabase.get_default()
+    parameter_database: ParameterDatabase
