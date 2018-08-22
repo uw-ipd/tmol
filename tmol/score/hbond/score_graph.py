@@ -340,7 +340,6 @@ class HBondScoreGraph(
         donor_ring_hbond: Tensor(torch.float)[:],
     ) -> Tensor(torch.float)[:]:
         """total hbond score"""
-        # TODO shimed back into multi-layer...
         return (
             donor_sp2_hbond.sum() + donor_sp3_hbond.sum() + donor_ring_hbond.sum()
         ).reshape((1,))
