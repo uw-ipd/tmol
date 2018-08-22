@@ -12,20 +12,27 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
+from .database import ParamDB
 from .factory import Factory
 from .stacked_system import StackedSystem
 
 
 @reactive_attrs(auto_attribs=True)
-class BondedAtomScoreGraph(StackedSystem, Factory):
+class BondedAtomScoreGraph(StackedSystem, ParamDB, Factory):
     """Score graph component describing a system's atom types and bonds.
 
     Attributes:
-        atom_types: [layer, atom_index] String atom type descriptors, as
-            defined in `tmol.database.chemical`.
-        bonds: [layer, atom_index, atom_index] Inter-atomic bond indices. Note that
-            bonds are strictly intra-layer, and are therefor defined by a single
-            layer index for both atoms of the bond.
+        atom_types: [layer, atom_index] String atom type descriptors.
+            Type descriptions defined in :py:mod:`tmol.database.chemical`.
+
+        bonds:[layer, atom_index, atom_index] Inter-atomic bond indices.
+            Note that bonds are strictly intra-layer, and are defined by a
+            single layer index for both atoms of the bond.
+
+        MAX_BONDED_PATH_LENGTH: Maximum relevant inter-atomic path length.
+            Limits search depth used in ``bonded_path_length``, all longer
+            paths reported as ``inf``.
+
     """
 
     MAX_BONDED_PATH_LENGTH = 6

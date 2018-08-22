@@ -8,7 +8,8 @@ from . import bonded_atom
 
 @tmol.io.generic.to_pdb.register(bonded_atom.BondedAtomScoreGraph)
 def score_graph_to_pdb(score_graph):
-    assert score_graph.stack_depth == 1
+    if score_graph.stack_depth != 1:
+        raise NotImplementedError("Can not convert stack_depth != 1 to pdb.")
 
     atom_coords = score_graph.coords[0].detach().numpy()
     atom_types = score_graph.atom_types[0]
@@ -21,9 +22,7 @@ def score_graph_to_pdb(score_graph):
     atom_records["chain"] = "X"
     atom_records["resn"] = "UNK"
     atom_records["atomi"] = render_atoms
-    atom_records["atomn"] = score_graph.chemical_db.atom_properties.table.reindex(
-        atom_types[render_atoms]
-    )["elem"].values
+    atom_records["atomn"] = [t[0] for t in atom_types[render_atoms]]
 
     atom_records["x"] = atom_coords[render_atoms][:, 0]
     atom_records["y"] = atom_coords[render_atoms][:, 1]
@@ -36,10 +35,11 @@ def score_graph_to_pdb(score_graph):
 
 @tmol.io.generic.to_cdjson.register(bonded_atom.BondedAtomScoreGraph)
 def score_graph_to_cdjson(score_graph):
-    assert score_graph.stack_depth == 1
+    if score_graph.stack_depth != 1:
+        raise NotImplementedError("Can not convert stack_depth != 1 to cdjson.")
 
     coords = score_graph.coords[0].detach().numpy()
-    elems = map(lambda t: t[0] if t else "x", score_graph.score_graph.atom_types[0])
-    bonds = list(map(tuple, score_graph.bonds))
+    elems = map(lambda t: t[0] if t else "x", score_graph.atom_types[0])
+    bonds = list(map(tuple, score_graph.bonds[:, 1:]))
 
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)

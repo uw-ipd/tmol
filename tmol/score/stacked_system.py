@@ -15,15 +15,16 @@ class StackedSystem(Factory):
     maximum number of atoms, but systems may have varying number of null atoms.
 
     Atom indices are defined by a layer index, atom index (l, n) tuple.
+
+    Attributes:
+        stack_depth: The system stack depth, ``l``.
+        system_size: The maximum number of atoms per layer, ``n``.
     """
 
     @staticmethod
     @singledispatch
     def factory_for(val, **_):
-        """Overridable clone-constructor.
-
-        Initialize from ``val.device`` if possible, otherwise defaulting to cpu.
-        """
+        """Overridable clone-constructor."""
         return dict(stack_depth=val.stack_depth, system_size=val.system_size)
 
     stack_depth: int

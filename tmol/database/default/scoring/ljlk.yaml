@@ -19,7 +19,7 @@ atom_type_parameters:
   - { name: CH1 , *e: C, *ljr: 2.011760, *ljw: 0.062642, *lkd:  -3.538387, *lkl: 3.500000, *lkv: 10.686000 }
   - { name: CH2 , *e: C, *ljr: 2.011760, *ljw: 0.062642, *lkd:  -1.854658, *lkl: 3.500000, *lkv: 18.331000 }
   - { name: CH3 , *e: C, *ljr: 2.011760, *ljw: 0.062642, *lkd:   7.292929, *lkl: 3.500000, *lkv: 25.855000 }
-  - { name: aroC, *e: C, *ljr: 2.016441, *ljw: 0.068775, *lkd:   1.797950, *lkl: 3.500000, *lkv: 16.704000 }
+  - { name: Caro, *e: C, *ljr: 2.016441, *ljw: 0.068775, *lkd:   1.797950, *lkl: 3.500000, *lkv: 16.704000 }
   - &Ntrp { name: Ntrp, *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -8.413116, *lkl: 3.500000, *lkv:  9.522100, is_donor : true }
   - &NhisE { <<: *Ntrp, name: NhisE } # Far HIS nitrogen is treated like indole
   - { <<: *NhisE, name: NhisEDepro, is_donor : false, is_acceptor: true} # Deprotenated form in HIS

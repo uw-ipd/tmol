@@ -20,7 +20,7 @@ def test_interatomic_distance_stacked(
     inter_layer_counts = [
         [numpy.nansum(cdist(tc[i], tc[j]) < threshold_distance) for j in range(len(tc))]
         for i in range(len(tc))
-    ]  # yapf: disable
+    ]
 
     score_state = threshold_distance_score_class.build_for(
         Namespace(

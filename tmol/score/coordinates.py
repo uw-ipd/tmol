@@ -40,7 +40,7 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
 
 
 @reactive_attrs(auto_attribs=True)
-class KinematicAtomicCoordinateProvider(TorchDevice, Factory):
+class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
     @staticmethod
     @singledispatch
     def factory_for(

@@ -9,6 +9,12 @@ from .factory import Factory
 
 @reactive_attrs(auto_attribs=True)
 class ParamDB(Factory):
+    """Graph component containing the common database.
+
+    Attributes:
+        parameter_database: A single, shared database for all graph components.
+    """
+
     @staticmethod
     def factory_for(val, parameter_database: Optional[ParameterDatabase] = None, **_):
         """Overridable clone-constructor.
