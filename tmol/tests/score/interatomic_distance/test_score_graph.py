@@ -1,7 +1,7 @@
 import pytest
 import numpy
 
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import pdist, cdist, squareform
 
 from argparse import Namespace
 
@@ -17,6 +17,11 @@ def test_interatomic_distance_stacked(
         numpy.nansum(pdist(tc[l]) < threshold_distance) for l in range(len(tc))
     ]
 
+    inter_layer_counts = [
+        [numpy.nansum(cdist(tc[i], tc[j]) < threshold_distance) for j in range(len(tc))]
+        for i in range(len(tc))
+    ]
+
     score_state = threshold_distance_score_class.build_for(
         Namespace(
             stack_depth=multilayer_test_coords.shape[0],
@@ -28,10 +33,17 @@ def test_interatomic_distance_stacked(
         )
     )
 
-    intra_total = score_state.total_score
+    intra_total = threshold_distance_score_class.intra_score(score_state).total
 
     assert intra_total.shape == (4,)
     assert (intra_total.new_tensor(intra_layer_counts) == intra_total).all()
+
+    inter_total = threshold_distance_score_class.inter_score(
+        score_state, score_state
+    ).total
+
+    assert inter_total.shape == (4, 4)
+    assert (inter_total.new_tensor(inter_layer_counts) == inter_total).all()
 
 
 @pytest.mark.benchmark(group="interatomic_distance_calculation")
@@ -66,7 +78,7 @@ def test_interatomic_distance_ubq_smoke(
         # Calculate total score, rather than atom pair distances
         # As naive implemenation returns a more precise set of distances
         # to the resulting score function.
-        return dgraph.total_score
+        return dgraph.intra_score(dgraph).total
 
     assert total_score.shape == (1,)
     assert (scipy_count == total_score).all()
