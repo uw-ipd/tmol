@@ -373,16 +373,16 @@ Custom Invalidation
 ~~~~~~~~~~~~~~~~~~~
 
 Forward-invalidation can be customized on a per-property basis via an optional
-`should_invalidate` function. The function is provided (a) the current
+:py:meth:`should_invalidate` function. The function is provided (a) the current
 reactive property value, (b) the name of the changed input value and (c) the
 updated input parameter value, returning `True` if the reactive property should
 be invalidated in response to the change and `False` if the reactive value
 should be preserved.
 
 .. note::
-    `should_invalidate` *requires* the value of reevaluation of
+    ``should_invalidate`` *requires* the value of reevaluation of
     parameter dependencies to provide an updated input parameter value, causing an
-    "eager" reevaluation of the subgraph preceeding the `should_invalidate`
+    "eager" reevaluation of the subgraph preceeding the ``should_invalidate``
     property.
 
 ** Parameters

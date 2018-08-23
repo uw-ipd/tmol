@@ -95,7 +95,7 @@ class GPUKinTreeReordering(ValidateAttrs):
     def calculate_from_kintree(cls, kintree: KinTree):
         """Setup for operations over KinTree.
 
-        `device` for gpu array is inferred from kintree tensor device.
+        ``device`` for gpu array is inferred from kintree tensor device.
         """
 
         scan_paths = PathPartitioning.minimum_subpath_depth(
