@@ -121,6 +121,54 @@ def test_args_invalid():
         _ReactiveProperty.from_function(foobar_args)
 
 
+def test_property_override_in_subclass():
+    """Reactive properties override standard properties in base classes."""
+
+    @reactive_attrs
+    class Foo:
+        foo: str = attr.ib()
+
+        @property
+        def foo2(self):
+            return self.foo + self.foo
+
+        @reactive_property
+        def foo3(foo):
+            return foo + foo + foo
+
+    @reactive_attrs
+    class SubFoo(Foo):
+        @reactive_property
+        def foo2(foo):
+            return foo + "two"
+
+    # Foo has foo2 prop and foo3 reactive prop
+    assert tuple(Foo.__reactive_props__) == ("foo3",)
+    assert Foo.__reactive_props__["foo3"].name == "foo3"
+    assert Foo.__reactive_props__["foo3"].parameters == ("foo",)
+    assert Foo.__reactive_props__["foo3"].f_value("bar") == "barbarbar"
+
+    fc = Foo("bar")
+    assert fc.foo == "bar"
+    assert fc.foo2 == "barbar"
+    assert fc.foo3 == "barbarbar"
+
+    # SubFoo has new foo2 reactive prop and resolves value correctly
+    assert tuple(SubFoo.__reactive_props__) == ("foo2", "foo3")
+    assert SubFoo.__reactive_props__["foo2"].name == "foo2"
+    assert SubFoo.__reactive_props__["foo2"].parameters == ("foo",)
+    assert SubFoo.__reactive_props__["foo2"].f_value("bar") == "bartwo"
+
+    assert SubFoo.__reactive_props__["foo3"].name == "foo3"
+    assert SubFoo.__reactive_props__["foo3"].parameters == ("foo",)
+    assert SubFoo.__reactive_props__["foo3"].f_value("bar") == "barbarbar"
+
+    sfc = SubFoo("bar")
+    assert sfc.foo == "bar"
+    assert sfc.foo2 == "bartwo"
+    assert sfc.foo3 == "barbarbar"
+
+
 def test_binding_in_subclass():
     """Reactive graph is an mro-based union of base and class props.
 
