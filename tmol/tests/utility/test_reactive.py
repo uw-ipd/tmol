@@ -22,8 +22,7 @@ def test_params():
         pass
 
     rp = _ReactiveProperty.from_function(foobar_valid)
-    assert rp.name == "foobar_valid"
-    assert rp.f_value == foobar_valid
+    assert rp.f == foobar_valid
     assert rp.parameters == ("a", "b", "c")
 
 
@@ -36,15 +35,13 @@ def test_kwarg_param_resolution():
     # binds kwarg names as parameters
     rp = _ReactiveProperty.from_function(foobar_kwargs, kwargs=("b", "c"))
 
-    assert rp.name == "foobar_kwargs"
-    assert rp.f_value == foobar_kwargs
+    assert rp.f == foobar_kwargs
     assert rp.parameters == ("a", "b", "c")
 
     # does "the right thing" if string, rather than tuple, is provided
     rp = _ReactiveProperty.from_function(foobar_kwargs, kwargs=("b"))
 
-    assert rp.name == "foobar_kwargs"
-    assert rp.f_value == foobar_kwargs
+    assert rp.f == foobar_kwargs
     assert rp.parameters == ("a", "b")
 
     # raises an error if not explicitly specified
@@ -104,6 +101,8 @@ def test_dynamic_property():
 
     DFoo = dynamic_total(Foo, auto_attribs=True)
     assert set(attr.fields_dict(DFoo)) == set(("a", "b", "_reactive_values"))
+
+    assert DFoo.total is DFoo.__reactive_props__["total"]
     assert DFoo.__reactive_props__["total"].name == "total"
     assert DFoo.__reactive_props__["total"].parameters == ("a", "b")
     assert Foo.__reactive_deps__ == {"a": ("total",), "b": ("total",)}
@@ -144,9 +143,11 @@ def test_property_override_in_subclass():
 
     # Foo has foo2 prop and foo3 reactive prop
     assert tuple(Foo.__reactive_props__) == ("foo3",)
+
+    assert Foo.foo3 is Foo.__reactive_props__["foo3"]
     assert Foo.__reactive_props__["foo3"].name == "foo3"
     assert Foo.__reactive_props__["foo3"].parameters == ("foo",)
-    assert Foo.__reactive_props__["foo3"].f_value("bar") == "barbarbar"
+    assert Foo.__reactive_props__["foo3"].f("bar") == "barbarbar"
 
     fc = Foo("bar")
     assert fc.foo == "bar"
@@ -155,13 +156,15 @@ def test_property_override_in_subclass():
 
     # SubFoo has new foo2 reactive prop and resolves value correctly
     assert tuple(SubFoo.__reactive_props__) == ("foo2", "foo3")
+    assert SubFoo.foo2 is SubFoo.__reactive_props__["foo2"]
     assert SubFoo.__reactive_props__["foo2"].name == "foo2"
     assert SubFoo.__reactive_props__["foo2"].parameters == ("foo",)
-    assert SubFoo.__reactive_props__["foo2"].f_value("bar") == "bartwo"
+    assert SubFoo.__reactive_props__["foo2"].f("bar") == "bartwo"
 
+    assert SubFoo.foo3 is Foo.__reactive_props__["foo3"]
     assert SubFoo.__reactive_props__["foo3"].name == "foo3"
     assert SubFoo.__reactive_props__["foo3"].parameters == ("foo",)
-    assert SubFoo.__reactive_props__["foo3"].f_value("bar") == "barbarbar"
+    assert SubFoo.__reactive_props__["foo3"].f("bar") == "barbarbar"
 
     sfc = SubFoo("bar")
     assert sfc.foo == "bar"
@@ -175,6 +178,12 @@ def test_binding_in_subclass():
     The reactive property graph of a subclass the mro-based union of the
     class's reactive properties with the reactive properties of its base
     classes. This allows override-by-name of superclass reactive properties.
+
+    Reactive properties are resolved, like normal properties, via the mro, and
+    can accessed by name as class attributes.
+
+    The full set class and inherited reactive properties are bound in the
+    __reactive_props__ class member.
     """
 
     @reactive_attrs(auto_attribs=True)
@@ -200,17 +209,20 @@ def test_binding_in_subclass():
     assert tuple(Foo.__reactive_props__) == ("bar", "bat", "bun")
 
     # The functions are exposed and have proper parameters
+    assert Foo.bar is Foo.__reactive_props__["bar"]
     assert Foo.__reactive_props__["bar"].name == "bar"
     assert Foo.__reactive_props__["bar"].parameters == ("n",)
-    assert Foo.__reactive_props__["bar"].f_value(2) == "barbar"
+    assert Foo.__reactive_props__["bar"].f(2) == "barbar"
 
+    assert Foo.bun is Foo.__reactive_props__["bun"]
     assert Foo.__reactive_props__["bun"].name == "bun"
     assert Foo.__reactive_props__["bun"].parameters == ("n",)
-    assert Foo.__reactive_props__["bun"].f_value(2) == "bunbun"
+    assert Foo.__reactive_props__["bun"].f(2) == "bunbun"
 
+    assert Foo.bat is Foo.__reactive_props__["bat"]
     assert Foo.__reactive_props__["bat"].name == "bat"
     assert Foo.__reactive_props__["bat"].parameters == ()
-    assert Foo.__reactive_props__["bat"].f_value() == "bat"
+    assert Foo.__reactive_props__["bat"].f() == "bat"
 
     # Dependencies are resolved from parameter names
     assert Foo.__reactive_deps__ == {"n": ("bar", "bun")}
@@ -238,23 +250,29 @@ def test_binding_in_subclass():
     assert tuple(SubFoo.__reactive_props__) == ("bar", "baz", "bat", "bun")
 
     # The subclass properties override superclass values
+    assert SubFoo.bar is SubFoo.__reactive_props__["bar"]
     assert SubFoo.__reactive_props__["bar"].name == "bar"
     assert SubFoo.__reactive_props__["bar"].parameters == ("n", "minus_n")
-    assert SubFoo.__reactive_props__["bar"].f_value(3, 1) == "subbarsubbar"
+    assert SubFoo.__reactive_props__["bar"].f(3, 1) == "subbarsubbar"
 
     # superclass is inherited
+    assert SubFoo.bat is SubFoo.__reactive_props__["bat"]
+    assert SubFoo.bat is Foo.bat
     assert SubFoo.__reactive_props__["bat"].name == "bat"
     assert SubFoo.__reactive_props__["bat"].parameters == ()
-    assert SubFoo.__reactive_props__["bat"].f_value() == "bat"
+    assert SubFoo.__reactive_props__["bat"].f() == "bat"
 
-    assert Foo.__reactive_props__["bun"].name == "bun"
-    assert Foo.__reactive_props__["bun"].parameters == ("n",)
-    assert Foo.__reactive_props__["bun"].f_value(2) == "bunbun"
+    assert SubFoo.bun is SubFoo.__reactive_props__["bun"]
+    assert SubFoo.bun is Foo.bun
+    assert SubFoo.__reactive_props__["bun"].name == "bun"
+    assert SubFoo.__reactive_props__["bun"].parameters == ("n",)
+    assert SubFoo.__reactive_props__["bun"].f(2) == "bunbun"
 
     # new properties are picked up
+    assert SubFoo.baz is SubFoo.__reactive_props__["baz"]
     assert SubFoo.__reactive_props__["baz"].name == "baz"
     assert SubFoo.__reactive_props__["baz"].parameters == ()
-    assert SubFoo.__reactive_props__["baz"].f_value() == "baz"
+    assert SubFoo.__reactive_props__["baz"].f() == "baz"
 
     # and non-reactive are passed through normally
     assert not isinstance(SubFoo.np, _ReactiveProperty)
@@ -422,3 +440,19 @@ def test_should_invalidate():
 
     assert getattr(t._reactive_values, "i_mod2") == 0
     assert getattr(t._reactive_values, "k") == "0"
+
+
+def test_docstring_forwarding():
+    """ReactiveProperty docstrings match source function docs."""
+
+    @reactive_attrs
+    class Foo:
+        foo = attr.ib
+
+        @reactive_property
+        def bar(foo):
+            """After foo we hit bar."""
+            return foo + "bar"
+
+    assert Foo.bar.__doc__ == Foo.bar.f.__doc__
+    assert Foo.bar.__doc__ == "After foo we hit bar."
