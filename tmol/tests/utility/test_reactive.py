@@ -447,7 +447,7 @@ def test_docstring_forwarding():
 
     @reactive_attrs
     class Foo:
-        foo = attr.ib
+        foo = attr.ib()
 
         @reactive_property
         def bar(foo):
@@ -456,3 +456,23 @@ def test_docstring_forwarding():
 
     assert Foo.bar.__doc__ == Foo.bar.f.__doc__
     assert Foo.bar.__doc__ == "After foo we hit bar."
+    assert Foo("foo").bar == "foobar"
+
+
+def test_reactive_property_frozen():
+    """ReactiveProperty instances can't be updated via getter/setter/deleter."""
+
+    @reactive_attrs
+    class Foo:
+        @reactive_property
+        def p():
+            pass
+
+    with pytest.raises(NotImplementedError):
+        Foo.p.getter(lambda s: None)
+
+    with pytest.raises(NotImplementedError):
+        Foo.p.setter(lambda s, _: None)
+
+    with pytest.raises(NotImplementedError):
+        Foo.p.deleter(lambda s: None)
