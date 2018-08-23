@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.database &mdash; TMol 0.0.0-86-g918715b documentation</title>
+  <title>tmol.score.database &mdash; TMol 0.0.0-87-gc70dbd9 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-86-g918715b
+                0.0.0-87-gc70dbd9
               </div>
             
           
@@ -122,7 +122,6 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
 </ul>
 
             
@@ -202,7 +201,7 @@
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.database.ParamDB" title="tmol.score.database.ParamDB"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParamDB</span></code></a></td>
-<td></td>
+<td>Graph component containing the common database.</td>
 </tr>
 </tbody>
 </table>
@@ -212,8 +211,17 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tmol.score.database.ParamDB">
-<em class="property">class </em><code class="descclassname">tmol.score.database.</code><code class="descname">ParamDB</code><span class="sig-paren">(</span><em>parameter_database: tmol.database.ParameterDatabase = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/database.html#ParamDB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.database.ParamDB" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.database.</code><code class="descname">ParamDB</code><span class="sig-paren">(</span><em>parameter_database: tmol.database.ParameterDatabase</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/database.html#ParamDB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.database.ParamDB" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
+<p>Graph component containing the common database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><strong>parameter_database</strong> – A single, shared database for all graph components.</td>
+</tr>
+</tbody>
+</table>
 <dl class="staticmethod">
 <dt id="tmol.score.database.ParamDB.factory_for">
 <em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>val</em>, <em>parameter_database: Union[tmol.database.ParameterDatabase</em>, <em>NoneType] = None</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/database.html#ParamDB.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.database.ParamDB.factory_for" title="Permalink to this definition">¶</a></dt>
@@ -221,11 +229,6 @@
 <p>Initialize from <code class="docutils literal notranslate"><span class="pre">val.parameter_database</span></code> if possible, otherwise
 default ParameterDatabase.</p>
 </dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.database.ParamDB._default_parameter_database">
-<code class="descname">_default_parameter_database</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/database.html#ParamDB._default_parameter_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.database.ParamDB._default_parameter_database" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
@@ -274,7 +277,7 @@ default ParameterDatabase.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-86-g918715b',
+            VERSION:'0.0.0-87-gc70dbd9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

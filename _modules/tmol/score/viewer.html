@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.viewer &mdash; TMol 0.0.0-86-g918715b documentation</title>
+  <title>tmol.score.viewer &mdash; TMol 0.0.0-87-gc70dbd9 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-86-g918715b
+                0.0.0-87-gc70dbd9
               </div>
             
           
@@ -99,7 +99,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
 </ul>
 
             
@@ -186,9 +185,7 @@
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;chain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;X&quot;</span>
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;resn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;UNK&quot;</span>
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;atomi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">render_atoms</span>
-    <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;atomn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">chemical_db</span><span class="o">.</span><span class="n">atom_properties</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span>
-        <span class="n">atom_types</span><span class="p">[</span><span class="n">render_atoms</span><span class="p">]</span>
-    <span class="p">)[</span><span class="s2">&quot;elem&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;atomn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">render_atoms</span><span class="p">]]</span>
 
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_coords</span><span class="p">[</span><span class="n">render_atoms</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="n">atom_records</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_coords</span><span class="p">[</span><span class="n">render_atoms</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">]</span>
@@ -240,7 +237,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-86-g918715b',
+            VERSION:'0.0.0-87-gc70dbd9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

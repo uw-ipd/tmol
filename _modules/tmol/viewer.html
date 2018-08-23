@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.viewer &mdash; TMol 0.0.0-86-g918715b documentation</title>
+  <title>tmol.viewer &mdash; TMol 0.0.0-87-gc70dbd9 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-86-g918715b
+                0.0.0-87-gc70dbd9
               </div>
             
           
@@ -99,7 +99,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.support.html">tmol.support</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.extern.html">tmol.extern</a></li>
 </ul>
 
             
@@ -166,15 +165,15 @@
 <span></span><span class="sd">&quot;&quot;&quot;Generic py3mol-based visualization.&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">IPython.display</span> <span class="k">import</span> <span class="n">display</span>
+<span class="kn">import</span> <span class="nn">py3Dmol</span>
 
-<span class="kn">import</span> <span class="nn">tmol.extern.py3dmol</span> <span class="k">as</span> <span class="nn">py3dmol</span>
 <span class="kn">from</span> <span class="nn">tmol.io.generic</span> <span class="k">import</span> <span class="n">to_pdb</span><span class="p">,</span> <span class="n">to_cdjson</span>
 
 
 <div class="viewcode-block" id="SystemViewer"><a class="viewcode-back" href="../../apidoc/tmol.viewer.html#tmol.viewer.SystemViewer">[docs]</a><span class="k">class</span> <span class="nc">SystemViewer</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Generic py3dmol-based jupyter display widget.</span>
+    <span class="sd">&quot;&quot;&quot;Generic py3Dmol-based jupyter display widget.</span>
 
-<span class="sd">    A py3dmol-based jupyter viewing component, utilizing :py:mod:`tmol.io.generic`</span>
+<span class="sd">    A py3Dmol-based jupyter viewing component, utilizing :py:mod:`tmol.io.generic`</span>
 <span class="sd">    dispatch functions to render arbitrary model components.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -190,7 +189,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">view</span> <span class="o">=</span> <span class="n">py3dmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1200</span><span class="p">,</span> <span class="mi">600</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">view</span> <span class="o">=</span> <span class="n">py3Dmol</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1200</span><span class="p">,</span> <span class="mi">600</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">zoomTo</span><span class="p">()</span>
@@ -239,7 +238,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'0.0.0-86-g918715b',
+            VERSION:'0.0.0-87-gc70dbd9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
