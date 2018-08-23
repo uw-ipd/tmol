@@ -19,9 +19,7 @@ def score_graph_to_pdb(score_graph):
     atom_records["chain"] = "X"
     atom_records["resn"] = "UNK"
     atom_records["atomi"] = render_atoms
-    atom_records["atomn"] = score_graph.chemical_db.atom_properties.table.reindex(
-        atom_types[render_atoms]
-    )["elem"].values
+    atom_records["atomn"] = [t[0] for t in atom_types[render_atoms]]
 
     atom_records["x"] = atom_coords[render_atoms][:, 0]
     atom_records["y"] = atom_coords[render_atoms][:, 1]

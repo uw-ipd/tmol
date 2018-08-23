@@ -10,11 +10,12 @@ from tmol.utility.reactive import reactive_attrs, reactive_property
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
+from .database import ParamDB
 from .factory import Factory
 
 
 @reactive_attrs(auto_attribs=True)
-class BondedAtomScoreGraph(Factory):
+class BondedAtomScoreGraph(ParamDB, Factory):
     @staticmethod
     @singledispatch
     def factory_for(other, **_):
