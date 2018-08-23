@@ -649,7 +649,7 @@ class _ReactiveProperty:
 
 def _setup_reactive(cls):
 
-    # Rather all _ReactiveProperty in this class and transform into ReactiveProperty
+    # Gather all _ReactiveProperty in this class and transform into ReactiveProperty
     reactive_props = {
         n: ReactiveProperty(
             name=n,
@@ -664,7 +664,8 @@ def _setup_reactive(cls):
     for n, v in reactive_props.items():
         setattr(cls, n, v)
 
-    # Walk through the class bases in  MRO, adding reactive props *if new*
+    # Walk through the class bases in MRO, adding reactive props if not already
+    # defined under given name.
     for super_cls in cls.__mro__[1:]:
         if "__reactive_props__" not in super_cls.__dict__:
             continue
@@ -682,7 +683,7 @@ def _setup_reactive(cls):
 
     setattr(cls, "__reactive_props__", reactive_props)
 
-    # Expand identified properties into reactive dependencies for this class
+    # Expand identified properties into dependency graph for this class
     reactive_deps = defaultdict(list)
     for p in reactive_props.values():
         for param in p.parameters:
