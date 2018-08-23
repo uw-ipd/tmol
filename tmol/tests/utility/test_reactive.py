@@ -40,7 +40,7 @@ def test_kwarg_param_resolution():
     assert rp.f_value == foobar_kwargs
     assert rp.parameters == ("a", "b", "c")
 
-    # does "the right thing" if string name is provided
+    # does "the right thing" if string, rather than tuple, is provided
     rp = _ReactiveProperty.from_function(foobar_kwargs, kwargs=("b"))
 
     assert rp.name == "foobar_kwargs"
@@ -68,6 +68,8 @@ def test_kwarg_param_resolution():
 
 
 def test_kwarg():
+    """The kwargs of a reactive prop are resolved at evaluation time."""
+
     @reactive_attrs(auto_attribs=True)
     class Foo:
         bar: str
@@ -78,12 +80,12 @@ def test_kwarg():
             assert set(kwargs) == set(("bar", "bat"))
             return kwargs["bar"] + kwargs["bat"]
 
-    # kwargs are resolved from class propertie
+    # kwargs are resolved from class properties
     assert Foo("bar", "bat").cat == "barbat"
 
 
 def test_dynamic_property():
-    """A reactive property can be determined via build-time introspection."""
+    """A property can be added dynamically via pre-transform inspection."""
 
     class Foo:
         a: int
@@ -92,6 +94,7 @@ def test_dynamic_property():
         def total(**fields) -> int:
             return sum(fields.values())
 
+    # A decorator that inspects the class and sets up an additional prop.
     def dynamic_total(cls, **attrs_kwargs):
         components = tuple(Foo.__annotations__.keys())
 
@@ -119,6 +122,13 @@ def test_args_invalid():
 
 
 def test_binding_in_subclass():
+    """Reactive graph is an mro-based union of base and class props.
+
+    The reactive property graph of a subclass the mro-based union of the
+    class's reactive properties with the reactive properties of its base
+    classes. This allows override-by-name of superclass reactive properties.
+    """
+
     @reactive_attrs(auto_attribs=True)
     class Foo:
         n: int
@@ -157,13 +167,13 @@ def test_binding_in_subclass():
     # Dependencies are resolved from parameter names
     assert Foo.__reactive_deps__ == {"n": ("bar", "bun")}
 
-    # Non-reactive properies are passed through
+    # Non-reactive properties are passed through
     assert not isinstance(Foo.np, _ReactiveProperty)
 
     # Values are resolved from inputs
     assert Foo(n=2).bar == "barbar"
 
-    ### Test subclassing of properties
+    ### Test property override in subclass
     @reactive_attrs(auto_attribs=True)
     class SubFoo(Foo):
         minus_n: int
@@ -193,7 +203,7 @@ def test_binding_in_subclass():
     assert Foo.__reactive_props__["bun"].parameters == ("n",)
     assert Foo.__reactive_props__["bun"].f_value(2) == "bunbun"
 
-    # new properites are picked up
+    # new properties are picked up
     assert SubFoo.__reactive_props__["baz"].name == "baz"
     assert SubFoo.__reactive_props__["baz"].parameters == ()
     assert SubFoo.__reactive_props__["baz"].f_value() == "baz"
@@ -201,7 +211,7 @@ def test_binding_in_subclass():
     # and non-reactive are passed through normally
     assert not isinstance(SubFoo.np, _ReactiveProperty)
 
-    # deps are resolved using overriden values
+    # deps are resolved using overridden values
     assert SubFoo.__reactive_deps__ == {"n": ("bar", "bun"), "minus_n": ("bar",)}
 
     v = SubFoo(n=3, minus_n=1)
@@ -210,6 +220,8 @@ def test_binding_in_subclass():
 
 
 def test_runtime_resolution():
+    """Dependencies are resolved on execution, and can resolve dynamic attributes."""
+
     @reactive_attrs(auto_attribs=True)
     class Foo:
         n: int
@@ -224,17 +236,24 @@ def test_runtime_resolution():
 
     v = Foo(n=2)
 
-    # Dependencies are resolved at runtime
+    # Dependencies are resolved at runtime, missing m
     assert v.bar == "barbar"
     with pytest.raises(AttributeError):
         v.bad
 
-    # including dynamic properties...
+    # including dynamic properties, ok when m is added
     v.m = 2
     assert v.bad == "badbad"
 
 
 def test_calculation():
+    """Reactive props are evaled on pull, and push invalidated by upstream changes.
+
+    Reactive properties are evaluated when requested and stored in the
+    _reactive_values container. Upstream changes will propogate downward,
+    invalidating dependent values.
+    """
+
     @reactive_attrs(auto_attribs=True, slots=True)
     class Foo:
         i: int = 1
@@ -249,6 +268,7 @@ def test_calculation():
 
     t = Foo()
 
+    ## Check for evaluation and caching as props are requested
     assert t.i == 1
 
     assert not hasattr(t._reactive_values, "j")
@@ -263,6 +283,7 @@ def test_calculation():
     assert getattr(t._reactive_values, "j") == 2
     assert getattr(t._reactive_values, "k") == 3
 
+    ## Upstream change invalidates all dependent values
     t.i = 10
     assert not hasattr(t._reactive_values, "j")
     assert not hasattr(t._reactive_values, "k")
@@ -276,6 +297,7 @@ def test_calculation():
     assert getattr(t._reactive_values, "j") == 11
     assert getattr(t._reactive_values, "k") == 12
 
+    ## Upstream del invalidates all dependent values
     del t.i
     assert not hasattr(t._reactive_values, "j")
     assert not hasattr(t._reactive_values, "k")
@@ -293,7 +315,16 @@ def test_calculation():
     assert not hasattr(t._reactive_values, "k")
 
 
-def test_change_observer():
+def test_should_invalidate():
+    """'should_invalidate' handler will block forward-invalidation if it returns False.
+
+    The 'should_invalidate' handler for a given property will block removal of
+    the target property from the _reactive_values container if it returns
+    false. This will halt forward-prop of the invalidation event, also
+    preventing removal of downstream properties that only depend on the
+    intermediate reative property.
+    """
+
     @reactive_attrs(auto_attribs=True, slots=True)
     class Foo:
         i: int
@@ -314,6 +345,7 @@ def test_change_observer():
         def k(i_mod2):
             return str(i_mod2)
 
+    # Check that the downstream properties are calculated and stored
     t = Foo(i=1)
     assert not hasattr(t._reactive_values, "i_mod2")
     assert not hasattr(t._reactive_values, "k")
@@ -324,11 +356,15 @@ def test_change_observer():
     assert getattr(t._reactive_values, "i_mod2") == 1
     assert getattr(t._reactive_values, "k") == "1"
 
+    # When 'should_invalidate' handler returns True the downstream props
+    # remain in the container
     t.i = 3
 
     assert getattr(t._reactive_values, "i_mod2") == 1
     assert getattr(t._reactive_values, "k") == "1"
 
+    # When 'should_invalidate' handler returns True the downstream props are
+    # cleared from the container then successfully recalculated when requested.
     t.i = 4
     assert not hasattr(t._reactive_values, "i_mod2")
     assert not hasattr(t._reactive_values, "k")
