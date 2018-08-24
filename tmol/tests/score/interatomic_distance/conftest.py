@@ -1,7 +1,5 @@
 from math import nan
 
-import attr
-
 import pytest
 
 import torch
@@ -9,7 +7,12 @@ import torch
 from tmol.score.factory import Factory
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.score_components import ScoreComponent, ScoreComponentClasses
+from tmol.score.score_components import (
+    ScoreComponent,
+    ScoreComponentClasses,
+    InterScoreGraph,
+    IntraScoreGraph,
+)
 from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase,
     BlockedInteratomicDistanceGraph,
@@ -83,11 +86,9 @@ def multilayer_test_coords(multilayer_test_offsets):
 
 
 @reactive_attrs(auto_attribs=True)
-class ThresholdDistanceCountIntraScore:
-    target: "ThresholdDistanceCount" = attr.ib()
-
+class ThresholdDistanceCountIntraScore(IntraScoreGraph):
     @reactive_property
-    def component_total(target):
+    def total_threshold_count(target):
         "number of bonds under threshold distance"
 
         return (
@@ -105,12 +106,9 @@ class ThresholdDistanceCountIntraScore:
 
 
 @reactive_attrs(auto_attribs=True)
-class ThresholdDistanceCountInterScore:
-    target_i: "ThresholdDistanceCount" = attr.ib()
-    target_j: "ThresholdDistanceCount" = attr.ib()
-
+class ThresholdDistanceCountInterScore(InterScoreGraph):
     @reactive_property
-    def component_total(target_i, target_j):
+    def total_threshold_count(target_i, target_j):
         assert target_i.threshold_distance == target_j.threshold_distance
         assert target_i.atom_pair_block_size == target_j.atom_pair_block_size
 
