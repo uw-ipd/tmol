@@ -1,0 +1,741 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.numeric.bspline &mdash; TMol 0.0.0-88-g683561e documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/numeric/bspline.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-88-g683561e
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.numeric.bspline</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.numeric.bspline</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;N-dimensional B-spline interpolation with periodic boundary conditions.</span>
+
+<span class="sd">Reference:</span>
+<span class="sd">    Thévenaz, Philippe, Thierry Blu, and Michael Unser.</span>
+<span class="sd">    &quot;Interpolation revisited [medical images application].&quot;</span>
+<span class="sd">    IEEE Transactions on medical imaging 19.7 (2000): 739-758.</span>
+
+<span class="sd">    http://bigwww.epfl.ch/publications/thevenaz0002.pdf</span>
+
+<span class="sd">B-splines can be used for interpolation, using only as much space</span>
+<span class="sd">as the original data, after the original data is processed to produce</span>
+<span class="sd">coefficients for the polynomials. When interpolating, B-splines read from</span>
+<span class="sd">as much memory as bicublic-spline interpolation does (e.g. 16 values</span>
+<span class="sd">in 2D, 64 values in 3D), but they read from a wider number of grid cells</span>
+<span class="sd">to do so, instead of making each grid cell contain more entries. For this</span>
+<span class="sd">reason, the memory footprint for B-splines is substantially lower than</span>
+<span class="sd">that for bicuplic spline interpolation. (Catmull-Rom splines are similarly</span>
+<span class="sd">low-memory overhead, but do not fit the data as cleanly).</span>
+
+<span class="sd">To use these B-splines, construct a BSplineInterpolation object using the</span>
+<span class="sd">``from_coordinates`` function, passing in the tensor of coordinates that</span>
+<span class="sd">should be interpolated, indicating the degree of the spline (3 for</span>
+<span class="sd">the equivalent of bicubic spline interpolation), and indicating the</span>
+<span class="sd">number of dimensions in the coordinate tensor that are indexing rather</span>
+<span class="sd">than interpolating. (Indexing dimensions must appear first). Indexing</span>
+<span class="sd">dimensions allow stacks of coordinate tensors to be interpolated</span>
+<span class="sd">simultaneously as might be useful, e.g., if one had 20 different 36x36</span>
+<span class="sd">tables as one does when computing the Ramachandran potential.</span>
+
+<span class="sd">Interpolation is performed where the input X values must be in the range of</span>
+<span class="sd">(0, len(X_i)] for dimension i -- if, e.g., you are interpolating dihedrals</span>
+<span class="sd">in degrees with a 10 degree step size in the range (-180, 180], then add 180</span>
+<span class="sd">to the dihedral shifting to the range [0, 360) and then divide by 10 to produce</span>
+<span class="sd">an interpolation value in the range (0, 36]. Another way to say this is that</span>
+<span class="sd">the code assumes a uniform unit distance between interpolation points.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">attr</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span>
+
+
+<div class="viewcode-block" id="BSplineDegree"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BSplineDegree</span><span class="p">:</span>
+<div class="viewcode-block" id="BSplineDegree.empty_wts_bydim"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree.empty_wts_bydim">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">empty_wts_bydim</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">ndims</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span> <span class="n">X</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+        <span class="sd">&quot;&quot;&quot;Allocate wts_bydim tensor with the dtype and device matching</span>
+<span class="sd">        coeffs&#39;s dtype and device.</span>
+
+<span class="sd">        X is a [n_points x ndims] tensor representing the set of n-dimensional</span>
+<span class="sd">        points whose values are being interpolated.</span>
+<span class="sd">        This function returns an empty [n_points x cls.degree+1 x ndims] tensor</span>
+<span class="sd">        that will be populated by the derived class</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">cls</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ndims</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">coeffs</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BSplineDegree2"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree2">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BSplineDegree2</span><span class="p">(</span><span class="n">BSplineDegree</span><span class="p">):</span>
+    <span class="n">degree</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">poles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">8.0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">3.0</span><span class="p">])</span>
+
+<div class="viewcode-block" id="BSplineDegree2.compute_wts_bydim"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree2.compute_wts_bydim">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">compute_wts_bydim</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">ndims</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span>
+        <span class="n">X</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">indx_bydim</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+        <span class="sd">&quot;&quot;&quot;Populate a tensor of shape [n_points x 3 x ndims ]</span>
+<span class="sd">        with the polynomial&#39;s evaluated for the set of n points</span>
+<span class="sd">        that will be multiplied by the b-spline coefficients</span>
+<span class="sd">        taken from neighboring grid cells.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">wts_bydim</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty_wts_bydim</span><span class="p">(</span><span class="n">ndims</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">indx_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">3.0</span> <span class="o">/</span> <span class="mf">4.0</span> <span class="o">-</span> <span class="n">w</span> <span class="o">*</span> <span class="n">w</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="k">return</span> <span class="n">wts_bydim</span></div></div>
+
+
+<div class="viewcode-block" id="BSplineDegree3"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree3">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BSplineDegree3</span><span class="p">(</span><span class="n">BSplineDegree</span><span class="p">):</span>
+    <span class="n">degree</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">poles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.0</span><span class="p">])</span>
+
+<div class="viewcode-block" id="BSplineDegree3.compute_wts_bydim"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree3.compute_wts_bydim">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">compute_wts_bydim</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">ndims</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span>
+        <span class="n">X</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">indx_bydim</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+        <span class="sd">&quot;&quot;&quot;Populate a tensor of shape [n_points x 4 x ndims ]</span>
+<span class="sd">        with the polynomial&#39;s evaluated for the set of n points</span>
+<span class="sd">        that will be multiplied by the b-spline coefficients</span>
+<span class="sd">        taken from neighboring grid cells.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">wts_bydim</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty_wts_bydim</span><span class="p">(</span><span class="n">ndims</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">indx_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="n">w</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="p">)</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">w</span> <span class="o">+</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mf">1.0</span> <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">wts_bydim</span></div></div>
+
+
+<div class="viewcode-block" id="BSplineDegree4"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree4">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BSplineDegree4</span><span class="p">(</span><span class="n">BSplineDegree</span><span class="p">):</span>
+    <span class="n">degree</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">poles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">664.0</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">438976.0</span><span class="p">))</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">304.0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">19.0</span><span class="p">,</span>
+            <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">664.0</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">438976.0</span><span class="p">))</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">304.0</span><span class="p">)</span> <span class="o">-</span> <span class="mf">19.0</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="BSplineDegree4.compute_wts_bydim"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree4.compute_wts_bydim">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">compute_wts_bydim</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">ndims</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span>
+        <span class="n">X</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">indx_bydim</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+        <span class="sd">&quot;&quot;&quot;Populate a tensor of shape [n_points x 5 x ndims ]</span>
+<span class="sd">        with the polynomial&#39;s evaluated for the set of n points</span>
+<span class="sd">        that will be multiplied by the b-spline coefficients</span>
+<span class="sd">        taken from neighboring grid cells.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">wts_bydim</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty_wts_bydim</span><span class="p">(</span><span class="n">ndims</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">indx_bydim</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">w2</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">w</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">w2</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="n">w</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">24.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mf">11.0</span> <span class="o">/</span> <span class="mf">24.0</span><span class="p">)</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="mf">19.0</span> <span class="o">/</span> <span class="mf">96.0</span> <span class="o">+</span> <span class="n">w2</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">4.0</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">t1</span> <span class="o">+</span> <span class="n">t0</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">t1</span> <span class="o">-</span> <span class="n">t0</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">+</span> <span class="n">t0</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mf">1.0</span>
+            <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">wts_bydim</span></div></div>
+
+
+<div class="viewcode-block" id="BSplineDegree5"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree5">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BSplineDegree5</span><span class="p">(</span><span class="n">BSplineDegree</span><span class="p">):</span>
+    <span class="n">degree</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">poles</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">135.0</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">17745.0</span> <span class="o">/</span> <span class="mf">4.0</span><span class="p">))</span>
+            <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">105.0</span> <span class="o">/</span> <span class="mf">4.0</span><span class="p">)</span>
+            <span class="o">-</span> <span class="mf">13.0</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span>
+            <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">135.0</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">17745.0</span> <span class="o">/</span> <span class="mf">4.0</span><span class="p">))</span>
+            <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">105.0</span> <span class="o">/</span> <span class="mf">4.0</span><span class="p">)</span>
+            <span class="o">-</span> <span class="mf">13.0</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="BSplineDegree5.compute_wts_bydim"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree5.compute_wts_bydim">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">compute_wts_bydim</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">ndims</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span>
+        <span class="n">X</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">indx_bydim</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+        <span class="sd">&quot;&quot;&quot;Populate a tensor of shape [n_points x 6 x ndims ]</span>
+<span class="sd">        with the polynomial&#39;s evaluated for the set of n points</span>
+<span class="sd">        that will be multiplied by the b-spline coefficients</span>
+<span class="sd">        taken from neighboring grid cells.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">wts_bydim</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">empty_wts_bydim</span><span class="p">(</span><span class="n">ndims</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">indx_bydim</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">w2</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">w</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">120.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="n">w2</span> <span class="o">*</span> <span class="n">w2</span>
+        <span class="n">w2</span> <span class="o">-=</span> <span class="n">w</span>
+        <span class="n">w4</span> <span class="o">=</span> <span class="n">w2</span> <span class="o">*</span> <span class="n">w2</span>
+        <span class="n">w</span> <span class="o">-=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mf">2.0</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">w2</span> <span class="o">*</span> <span class="p">(</span><span class="n">w2</span> <span class="o">-</span> <span class="mf">3.0</span><span class="p">)</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">24.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">5.0</span> <span class="o">+</span> <span class="n">w2</span> <span class="o">+</span> <span class="n">w4</span><span class="p">)</span> <span class="o">-</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">5</span><span class="p">,</span> <span class="p">:]</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">24.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">w2</span> <span class="o">*</span> <span class="p">(</span><span class="n">w2</span> <span class="o">-</span> <span class="mf">5.0</span><span class="p">)</span> <span class="o">+</span> <span class="mf">46.0</span> <span class="o">/</span> <span class="mf">5.0</span><span class="p">)</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">12.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mf">4.0</span><span class="p">)</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">t0</span> <span class="o">+</span> <span class="n">t1</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">t0</span> <span class="o">-</span> <span class="n">t1</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">16.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">9.0</span> <span class="o">/</span> <span class="mf">5.0</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span>
+        <span class="n">t1</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">24.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="n">w4</span> <span class="o">-</span> <span class="n">w2</span> <span class="o">-</span> <span class="mf">5.0</span><span class="p">)</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">t0</span> <span class="o">+</span> <span class="n">t1</span>
+        <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">t0</span> <span class="o">-</span> <span class="n">t1</span>
+
+        <span class="k">return</span> <span class="n">wts_bydim</span></div></div>
+
+
+<span class="c1"># Mapping from (integer) degree to the set of BSplineDegrees that</span>
+<span class="c1"># are supported</span>
+<span class="n">bsplines_by_degree</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">b</span><span class="o">.</span><span class="n">degree</span><span class="p">:</span> <span class="n">b</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="p">[</span><span class="n">BSplineDegree2</span><span class="p">,</span> <span class="n">BSplineDegree3</span><span class="p">,</span> <span class="n">BSplineDegree4</span><span class="p">,</span> <span class="n">BSplineDegree5</span><span class="p">]</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="BSplineInterpolation"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BSplineInterpolation</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Class for performing bspline interpolation with periodic boundary conditions.</span>
+
+<span class="sd">    Construct an instance of this class using the ``from_coordinates`` function, handing</span>
+<span class="sd">    it a (possibly stacked) table of coordinates that should be interpolated by the</span>
+<span class="sd">    splines, the degree of the spline that should be constructed, and (optionally)</span>
+<span class="sd">    the number of dimensions in the coordinates tensor that are &quot;indexing dimensions&quot;</span>
+<span class="sd">    and not interpolation dimensions. The indexing dimensions should appear as the</span>
+<span class="sd">    most significant dimensions and the interpolating dimensions should appear as the</span>
+<span class="sd">    least significant dimensions.</span>
+
+<span class="sd">    Once constructed, the ``interpolate`` method can be given a tensor of coordinates</span>
+<span class="sd">    ``X`` (and if the original coordinate tensor had indexing dimensions, a tensor of</span>
+<span class="sd">    indices ``Y``) to produce a tensor of interpolated values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">degree</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+    <span class="n">interp_shape</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+    <span class="n">n_interp_dims</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">n_index_dims</span><span class="p">:</span> <span class="nb">int</span>
+
+<div class="viewcode-block" id="BSplineInterpolation.from_coordinates"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation.from_coordinates">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">from_coordinates</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span> <span class="n">degree</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_index_dims</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Construct a BSplineInterpolation instance from  the input coordinates</span>
+<span class="sd">        (i.e. the data to be interpolated)</span>
+
+<span class="sd">        This code handles splines of arbitrary dimension.</span>
+
+<span class="sd">        The input coordinate tensor holds the values that should be interpolated.</span>
+<span class="sd">        The first n_index_dims are not interpolated, but are rather used to hold</span>
+<span class="sd">        indexing dimensions so that stacks of tables can be interpolated together.</span>
+<span class="sd">        (E.g, as the 20x2 set of 36x36 tables are organized for the Ramachandran</span>
+<span class="sd">        term.)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">original_shape</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">n_interp_dims</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="n">n_index_dims</span>
+
+        <span class="n">interp_shape</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">n_index_dims</span><span class="p">:]</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">interp_shape</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">degree</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bsplines_by_degree</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid b-spline degree of </span><span class="si">%d</span><span class="s2"> requested; available degrees are </span><span class="si">%s</span><span class="s2">&quot;</span>
+                <span class="o">%</span> <span class="p">(</span><span class="n">degree</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">bsplines_by_degree</span><span class="o">.</span><span class="n">keys</span><span class="p">()]))</span>
+            <span class="p">)</span>
+
+        <span class="n">bspdeg</span> <span class="o">=</span> <span class="n">bsplines_by_degree</span><span class="p">[</span><span class="n">degree</span><span class="p">]</span>
+        <span class="n">poles</span> <span class="o">=</span> <span class="n">bspdeg</span><span class="o">.</span><span class="n">poles</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="c1"># slice &quot;row&quot; i</span>
+            <span class="n">icoeffs</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">icoeffs_out</span> <span class="o">=</span> <span class="n">icoeffs</span>
+            <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_interp_dims</span><span class="p">):</span>
+                <span class="c1"># permutation to make &#39;dim&#39; the last dimension</span>
+                <span class="n">icoeffs</span> <span class="o">=</span> <span class="n">icoeffs</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">n_interp_dims</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">trans_shape</span> <span class="o">=</span> <span class="n">icoeffs</span><span class="o">.</span><span class="n">shape</span>
+                <span class="c1"># now flatten all other dimensions</span>
+                <span class="n">icoeffs</span> <span class="o">=</span> <span class="n">icoeffs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">interp_shape</span><span class="p">[</span><span class="n">dim</span><span class="p">])</span>
+
+                <span class="c1"># compute the interp coeffs along last dimension</span>
+                <span class="n">icoeffs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_convert_interp_coeffs</span><span class="p">(</span><span class="n">icoeffs</span><span class="p">,</span> <span class="n">poles</span><span class="p">)</span>
+
+                <span class="c1"># restore to the translated shape and then transpose</span>
+                <span class="c1"># the last dimension to where it belongs</span>
+                <span class="n">icoeffs</span> <span class="o">=</span> <span class="n">icoeffs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">trans_shape</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">n_interp_dims</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">icoeffs_out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">icoeffs</span>
+
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">original_shape</span><span class="p">)</span>
+        <span class="n">interp_shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">n_index_dims</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">degree</span><span class="o">=</span><span class="n">degree</span><span class="p">,</span>
+            <span class="n">coeffs</span><span class="o">=</span><span class="n">coeffs</span><span class="p">,</span>
+            <span class="n">interp_shape</span><span class="o">=</span><span class="n">interp_shape</span><span class="p">,</span>
+            <span class="n">n_interp_dims</span><span class="o">=</span><span class="n">n_interp_dims</span><span class="p">,</span>
+            <span class="n">n_index_dims</span><span class="o">=</span><span class="n">n_index_dims</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="BSplineInterpolation.interpolate"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation.interpolate">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">interpolate</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">Y</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[:,</span> <span class="p">:]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:]:</span>
+        <span class="sd">&quot;&quot;&quot;B-spline interpolation function</span>
+
+<span class="sd">        X should be a two dimensional tensor of size [ n_points, n_interp_dims ]</span>
+<span class="sd">        Y should be a two dimensional tensor of size [ n_points, n_index_dims  ]</span>
+<span class="sd">        the result will be a one dimensional tensor of size [ n_points ].</span>
+
+<span class="sd">        n_points represents the number of points in the n-dimensional space that is</span>
+<span class="sd">        being interpolated (n-dimensional == n_interp_dims-dimensional). The</span>
+<span class="sd">        result returned by this is the interpolated value for each of the input points.</span>
+
+<span class="sd">        Input X values must be in the range [0..|X_i|) for each dimension i.</span>
+
+<span class="sd">        If Y is provided, it is treated as providing indexes for the (leading)</span>
+<span class="sd">        non-interpolating dimensions;</span>
+
+<span class="sd">        e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state</span>
+<span class="sd">        which of the 20 amino acids were being read from for each point</span>
+<span class="sd">        (Y[:,0]), and whether or not the next residue is proline (Y[:,1]) and</span>
+<span class="sd">        then the X tensor would provided the (shifted+scaled)</span>
+<span class="sd">        phi (X[:,0]) and psi (X[:,1]) values.</span>
+
+<span class="sd">        Y must have the same number of rows as X (their first dimensions must</span>
+<span class="sd">        be the same size)</span>
+
+<span class="sd">        X and Y must both be on the same device that the BSplineInterpolation</span>
+<span class="sd">        object was created for; i.e. the device of the ``coords`` argument to</span>
+<span class="sd">        ``from_coords``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interp_dims</span>
+        <span class="k">assert</span> <span class="n">Y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">Y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">Y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_index_dims</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">Y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_index_dims</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">X</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span>
+        <span class="k">assert</span> <span class="n">Y</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">Y</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span>
+
+        <span class="n">bspdeg</span> <span class="o">=</span> <span class="n">bsplines_by_degree</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">degree</span><span class="p">]</span>
+        <span class="n">nx</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># we need to compute over a ((bspdeg.degree+1)^N) box</span>
+        <span class="c1">#  - we first calculate indices seperately in a (bspdeg.degree+1) x N array</span>
+        <span class="c1">#  - then we expand to the full ((bspdeg.degree+1)^N) box and dot-prod</span>
+
+        <span class="c1"># calculate interpolation indices</span>
+        <span class="n">baseline</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="p">(</span><span class="n">bspdeg</span><span class="o">.</span><span class="n">degree</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
+        <span class="n">indx_bydim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">bspdeg</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="p">)</span> <span class="o">+</span> <span class="n">baseline</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interp_dims</span><span class="p">)</span>
+
+        <span class="c1"># construct weight matrix -- this varies depending on the degree of the</span>
+        <span class="c1"># bspline, and therefore is delegated to the BSplineDegree class</span>
+        <span class="n">wts_bydim</span> <span class="o">=</span> <span class="n">bspdeg</span><span class="o">.</span><span class="n">compute_wts_bydim</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_interp_dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">indx_bydim</span>
+        <span class="p">)</span>
+
+        <span class="c1"># apply periodicity.</span>
+        <span class="c1"># this is only valid for periodic boundaries.</span>
+        <span class="c1"># ``remainder`` and not ``fmod`` so that all results are non-negative.</span>
+        <span class="n">indx_bydim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">remainder</span><span class="p">(</span><span class="n">indx_bydim</span><span class="o">.</span><span class="n">long</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">interp_shape</span><span class="p">)</span>
+
+        <span class="c1"># now expand to (n_interp_dims)-dimensional box.</span>
+        <span class="c1"># there might be a better way to do this</span>
+        <span class="n">wts_expand</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">interp_dims_offset</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_interp_dims</span><span class="p">):</span>
+            <span class="n">inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">dim</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_index_dims</span><span class="p">]</span> <span class="o">*</span> <span class="n">inds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">nx</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
+            <span class="p">)</span> <span class="o">+</span> <span class="n">indx_bydim</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">dim</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">interp_dims_offset</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">interp_dims_offset</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">dim</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_index_dims</span><span class="p">]</span>
+            <span class="p">)</span>
+
+            <span class="n">wts_expand</span> <span class="o">=</span> <span class="n">wts_expand</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">wts_bydim</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">dim</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">nx</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">Y</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">non_interp_dims_offset</span> <span class="o">=</span> <span class="n">interp_dims_offset</span>
+            <span class="c1"># create a tuple of -1 followed by 1s of the right length for broadcasting</span>
+            <span class="c1"># against the inds tensor</span>
+            <span class="n">newshape</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_index_dims</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="c1"># now increment the indices</span>
+                <span class="n">inds</span> <span class="o">=</span> <span class="n">inds</span> <span class="o">+</span> <span class="p">(</span><span class="n">non_interp_dims_offset</span> <span class="o">*</span> <span class="n">Y</span><span class="p">[:,</span> <span class="n">ii</span><span class="p">])</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">newshape</span><span class="p">)</span>
+                <span class="n">non_interp_dims_offset</span> <span class="o">=</span> <span class="n">non_interp_dims_offset</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+
+        <span class="c1"># ... and do the dot product</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">wts_expand</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">inds</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">retval</span></div>
+
+<div class="viewcode-block" id="BSplineInterpolation._init_causal_coeff"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation._init_causal_coeff">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_init_causal_coeff</span><span class="p">(</span>
+        <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">pole</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Helper function for b-spline coefficient calculation</span>
+
+<span class="sd">        inplace calculation of [:,0] coefficients.</span>
+<span class="sd">        currently, initialization corresponds to periodic boundaries</span>
+<span class="sd">        (if one were to add alternate boundary conditions, this would be the place)</span>
+<span class="sd">        assumes inputs are an M x N tensor, and splines are computed in the 2nd dim&quot;&quot;&quot;</span>
+
+        <span class="n">N</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-7</span>
+        <span class="n">horiz</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tol</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">pole</span><span class="o">.</span><span class="n">item</span><span class="p">())))</span>
+
+        <span class="n">zn</span> <span class="o">=</span> <span class="n">pole</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">horiz</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">horiz</span><span class="p">):</span>
+                <span class="n">coeffs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">zn</span> <span class="o">*</span> <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">i</span><span class="p">]</span>
+                <span class="n">zn</span> <span class="o">*=</span> <span class="n">pole</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+                <span class="n">coeffs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">zn</span> <span class="o">*</span> <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">N</span> <span class="o">-</span> <span class="n">i</span><span class="p">]</span>
+                <span class="n">zn</span> <span class="o">*=</span> <span class="n">pole</span>
+            <span class="n">coeffs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">coeffs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">zn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BSplineInterpolation._init_anticausal_coeff"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation._init_anticausal_coeff">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_init_anticausal_coeff</span><span class="p">(</span>
+        <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">pole</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;inplace calculation of [:,N] coefficients.</span>
+<span class="sd">        currently, initialization corresponds to periodic boundaries</span>
+<span class="sd">        (if one were to add alternate boundary conditions, this would be the place)</span>
+<span class="sd">        assumes inputs are an M x N tensor, and splines are computed in the 2nd dim</span>
+<span class="sd">        this initialization corresponds to periodic boundaries&quot;&quot;&quot;</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-7</span>
+        <span class="n">horiz</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tol</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">pole</span><span class="o">.</span><span class="n">item</span><span class="p">())))</span>
+
+        <span class="n">zn</span> <span class="o">=</span> <span class="n">pole</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">horiz</span> <span class="o">&lt;</span> <span class="n">N</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">horiz</span><span class="p">):</span>
+                <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">zn</span> <span class="o">*</span> <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>
+                <span class="n">zn</span> <span class="o">*=</span> <span class="n">pole</span>
+            <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">pole</span> <span class="o">*</span> <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+                <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">zn</span> <span class="o">*</span> <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>
+                <span class="n">zn</span> <span class="o">*=</span> <span class="n">pole</span>
+            <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">pole</span> <span class="o">*</span> <span class="n">coeffs</span><span class="p">[:,</span> <span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">zn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BSplineInterpolation._convert_interp_coeffs"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation._convert_interp_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_convert_interp_coeffs</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">poles</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:]</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;interpolation coefficients in one dimension</span>
+<span class="sd">        assumes input an M x N tensor, and interpolation is carried out in the 2nd dim</span>
+<span class="sd">        returns resulting coefficients</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">retval</span>
+
+        <span class="n">lmbda</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">prod</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">poles</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">poles</span><span class="p">))</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">lmbda</span> <span class="o">*</span> <span class="n">retval</span>
+
+        <span class="k">for</span> <span class="n">pole</span> <span class="ow">in</span> <span class="n">poles</span><span class="p">:</span>
+            <span class="c1"># init ( [:,0] ) coeffs, in-place</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_init_causal_coeff</span><span class="p">(</span><span class="n">retval</span><span class="p">,</span> <span class="n">pole</span><span class="p">)</span>
+            <span class="c1"># forward sweep</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+                <span class="n">retval</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">pole</span> <span class="o">*</span> <span class="n">retval</span><span class="p">[:,</span> <span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># final ( [:,N-1] ) coeffs, in-place</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_init_anticausal_coeff</span><span class="p">(</span><span class="n">retval</span><span class="p">,</span> <span class="n">pole</span><span class="p">)</span>
+            <span class="c1"># backward sweep</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">retval</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pole</span> <span class="o">*</span> <span class="p">(</span><span class="n">retval</span><span class="p">[:,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">retval</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">retval</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.0-88-g683561e',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

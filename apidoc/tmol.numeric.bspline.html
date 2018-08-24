@@ -1,0 +1,544 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.numeric.bspline &mdash; TMol 0.0.0-88-g683561e documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.numeric.bspline.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.numeric.dihedrals" href="tmol.numeric.dihedrals.html" />
+    <link rel="prev" title="tmol.numeric" href="tmol.numeric.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-88-g683561e
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.numeric.bspline</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.numeric.dihedrals.html">tmol.numeric.dihedrals</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.numeric.html">tmol.numeric</a> &raquo;</li>
+        
+      <li>tmol.numeric.bspline</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.numeric.bspline.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.numeric.bspline">
+<span id="tmol-numeric-bspline"></span><h1>tmol.numeric.bspline<a class="headerlink" href="#module-tmol.numeric.bspline" title="Permalink to this headline">¶</a></h1>
+<p>N-dimensional B-spline interpolation with periodic boundary conditions.</p>
+<dl class="docutils">
+<dt>Reference:</dt>
+<dd><p class="first">Thévenaz, Philippe, Thierry Blu, and Michael Unser.
+“Interpolation revisited [medical images application].”
+IEEE Transactions on medical imaging 19.7 (2000): 739-758.</p>
+<p class="last"><a class="reference external" href="http://bigwww.epfl.ch/publications/thevenaz0002.pdf">http://bigwww.epfl.ch/publications/thevenaz0002.pdf</a></p>
+</dd>
+</dl>
+<p>B-splines can be used for interpolation, using only as much space
+as the original data, after the original data is processed to produce
+coefficients for the polynomials. When interpolating, B-splines read from
+as much memory as bicublic-spline interpolation does (e.g. 16 values
+in 2D, 64 values in 3D), but they read from a wider number of grid cells
+to do so, instead of making each grid cell contain more entries. For this
+reason, the memory footprint for B-splines is substantially lower than
+that for bicuplic spline interpolation. (Catmull-Rom splines are similarly
+low-memory overhead, but do not fit the data as cleanly).</p>
+<p>To use these B-splines, construct a BSplineInterpolation object using the
+<code class="docutils literal notranslate"><span class="pre">from_coordinates</span></code> function, passing in the tensor of coordinates that
+should be interpolated, indicating the degree of the spline (3 for
+the equivalent of bicubic spline interpolation), and indicating the
+number of dimensions in the coordinate tensor that are indexing rather
+than interpolating. (Indexing dimensions must appear first). Indexing
+dimensions allow stacks of coordinate tensors to be interpolated
+simultaneously as might be useful, e.g., if one had 20 different 36x36
+tables as one does when computing the Ramachandran potential.</p>
+<p>Interpolation is performed where the input X values must be in the range of
+(0, len(X_i)] for dimension i – if, e.g., you are interpolating dihedrals
+in degrees with a 10 degree step size in the range (-180, 180], then add 180
+to the dihedral shifting to the range [0, 360) and then divide by 10 to produce
+an interpolation value in the range (0, 36]. Another way to say this is that
+the code assumes a uniform unit distance between interpolation points.</p>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree" title="tmol.numeric.bspline.BSplineDegree"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BSplineDegree</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree2" title="tmol.numeric.bspline.BSplineDegree2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BSplineDegree2</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree3" title="tmol.numeric.bspline.BSplineDegree3"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BSplineDegree3</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree4" title="tmol.numeric.bspline.BSplineDegree4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BSplineDegree4</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree5" title="tmol.numeric.bspline.BSplineDegree5"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BSplineDegree5</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.numeric.bspline.BSplineInterpolation" title="tmol.numeric.bspline.BSplineInterpolation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BSplineInterpolation</span></code></a></td>
+<td>Class for performing bspline interpolation with periodic boundary conditions.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tmol.numeric.bspline.BSplineDegree">
+<em class="property">class </em><code class="descclassname">tmol.numeric.bspline.</code><code class="descname">BSplineDegree</code><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="classmethod">
+<dt id="tmol.numeric.bspline.BSplineDegree.empty_wts_bydim">
+<em class="property">classmethod </em><code class="descname">empty_wts_bydim</code><span class="sig-paren">(</span><em>ndims: int, coeffs: Tensor(torch.float32)[...], X: Tensor(torch.float32)[:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float32)[:,:,:]<a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree.empty_wts_bydim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree.empty_wts_bydim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allocate wts_bydim tensor with the dtype and device matching
+coeffs’s dtype and device.</p>
+<p>X is a [n_points x ndims] tensor representing the set of n-dimensional
+points whose values are being interpolated.
+This function returns an empty [n_points x cls.degree+1 x ndims] tensor
+that will be populated by the derived class</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.numeric.bspline.BSplineDegree2">
+<em class="property">class </em><code class="descclassname">tmol.numeric.bspline.</code><code class="descname">BSplineDegree2</code><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree" title="tmol.numeric.bspline.BSplineDegree"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.numeric.bspline.BSplineDegree</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineDegree2.degree">
+<code class="descname">degree</code><em class="property"> = 2</em><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree2.degree" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineDegree2.poles">
+<code class="descname">poles</code><em class="property"> = tensor([-0.1716])</em><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree2.poles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.numeric.bspline.BSplineDegree2.compute_wts_bydim">
+<em class="property">classmethod </em><code class="descname">compute_wts_bydim</code><span class="sig-paren">(</span><em>ndims: int, coeffs: Tensor(torch.float32)[...], X: Tensor(torch.float32)[:,:], indx_bydim: Tensor(torch.float32)[:,:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float32)[:,:,:]<a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree2.compute_wts_bydim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree2.compute_wts_bydim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populate a tensor of shape [n_points x 3 x ndims ]
+with the polynomial’s evaluated for the set of n points
+that will be multiplied by the b-spline coefficients
+taken from neighboring grid cells.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.numeric.bspline.BSplineDegree3">
+<em class="property">class </em><code class="descclassname">tmol.numeric.bspline.</code><code class="descname">BSplineDegree3</code><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree3"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree" title="tmol.numeric.bspline.BSplineDegree"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.numeric.bspline.BSplineDegree</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineDegree3.degree">
+<code class="descname">degree</code><em class="property"> = 3</em><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree3.degree" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineDegree3.poles">
+<code class="descname">poles</code><em class="property"> = tensor([-0.2679])</em><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree3.poles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.numeric.bspline.BSplineDegree3.compute_wts_bydim">
+<em class="property">classmethod </em><code class="descname">compute_wts_bydim</code><span class="sig-paren">(</span><em>ndims: int, coeffs: Tensor(torch.float32)[...], X: Tensor(torch.float32)[:,:], indx_bydim: Tensor(torch.float32)[:,:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float32)[:,:,:]<a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree3.compute_wts_bydim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree3.compute_wts_bydim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populate a tensor of shape [n_points x 4 x ndims ]
+with the polynomial’s evaluated for the set of n points
+that will be multiplied by the b-spline coefficients
+taken from neighboring grid cells.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.numeric.bspline.BSplineDegree4">
+<em class="property">class </em><code class="descclassname">tmol.numeric.bspline.</code><code class="descname">BSplineDegree4</code><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree4"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree4" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree" title="tmol.numeric.bspline.BSplineDegree"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.numeric.bspline.BSplineDegree</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineDegree4.degree">
+<code class="descname">degree</code><em class="property"> = 4</em><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree4.degree" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineDegree4.poles">
+<code class="descname">poles</code><em class="property"> = tensor([-0.3613, -0.0137])</em><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree4.poles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.numeric.bspline.BSplineDegree4.compute_wts_bydim">
+<em class="property">classmethod </em><code class="descname">compute_wts_bydim</code><span class="sig-paren">(</span><em>ndims: int, coeffs: Tensor(torch.float32)[...], X: Tensor(torch.float32)[:,:], indx_bydim: Tensor(torch.float32)[:,:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float32)[:,:,:]<a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree4.compute_wts_bydim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree4.compute_wts_bydim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populate a tensor of shape [n_points x 5 x ndims ]
+with the polynomial’s evaluated for the set of n points
+that will be multiplied by the b-spline coefficients
+taken from neighboring grid cells.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.numeric.bspline.BSplineDegree5">
+<em class="property">class </em><code class="descclassname">tmol.numeric.bspline.</code><code class="descname">BSplineDegree5</code><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree5"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.numeric.bspline.BSplineDegree" title="tmol.numeric.bspline.BSplineDegree"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.numeric.bspline.BSplineDegree</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineDegree5.degree">
+<code class="descname">degree</code><em class="property"> = 5</em><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree5.degree" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineDegree5.poles">
+<code class="descname">poles</code><em class="property"> = tensor([-0.4306, -0.0431])</em><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree5.poles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.numeric.bspline.BSplineDegree5.compute_wts_bydim">
+<em class="property">classmethod </em><code class="descname">compute_wts_bydim</code><span class="sig-paren">(</span><em>ndims: int, coeffs: Tensor(torch.float32)[...], X: Tensor(torch.float32)[:,:], indx_bydim: Tensor(torch.float32)[:,:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float32)[:,:,:]<a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineDegree5.compute_wts_bydim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineDegree5.compute_wts_bydim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populate a tensor of shape [n_points x 6 x ndims ]
+with the polynomial’s evaluated for the set of n points
+that will be multiplied by the b-spline coefficients
+taken from neighboring grid cells.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.numeric.bspline.BSplineInterpolation">
+<em class="property">class </em><code class="descclassname">tmol.numeric.bspline.</code><code class="descname">BSplineInterpolation</code><span class="sig-paren">(</span><em>degree: int, coeffs: Tensor(torch.float32)[...], interp_shape: Tensor(torch.float32)[...], n_interp_dims: int, n_index_dims: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineInterpolation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Class for performing bspline interpolation with periodic boundary conditions.</p>
+<p>Construct an instance of this class using the <code class="docutils literal notranslate"><span class="pre">from_coordinates</span></code> function, handing
+it a (possibly stacked) table of coordinates that should be interpolated by the
+splines, the degree of the spline that should be constructed, and (optionally)
+the number of dimensions in the coordinates tensor that are “indexing dimensions”
+and not interpolation dimensions. The indexing dimensions should appear as the
+most significant dimensions and the interpolating dimensions should appear as the
+least significant dimensions.</p>
+<p>Once constructed, the <code class="docutils literal notranslate"><span class="pre">interpolate</span></code> method can be given a tensor of coordinates
+<code class="docutils literal notranslate"><span class="pre">X</span></code> (and if the original coordinate tensor had indexing dimensions, a tensor of
+indices <code class="docutils literal notranslate"><span class="pre">Y</span></code>) to produce a tensor of interpolated values.</p>
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineInterpolation.degree">
+<code class="descname">degree</code><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation.degree" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineInterpolation.coeffs">
+<code class="descname">coeffs</code><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation.coeffs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineInterpolation.interp_shape">
+<code class="descname">interp_shape</code><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation.interp_shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineInterpolation.n_interp_dims">
+<code class="descname">n_interp_dims</code><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation.n_interp_dims" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.numeric.bspline.BSplineInterpolation.n_index_dims">
+<code class="descname">n_index_dims</code><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation.n_index_dims" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.numeric.bspline.BSplineInterpolation.from_coordinates">
+<em class="property">classmethod </em><code class="descname">from_coordinates</code><span class="sig-paren">(</span><em>coords: Tensor(torch.float32)[...], degree: int, n_index_dims: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineInterpolation.from_coordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation.from_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a BSplineInterpolation instance from  the input coordinates
+(i.e. the data to be interpolated)</p>
+<p>This code handles splines of arbitrary dimension.</p>
+<p>The input coordinate tensor holds the values that should be interpolated.
+The first n_index_dims are not interpolated, but are rather used to hold
+indexing dimensions so that stacks of tables can be interpolated together.
+(E.g, as the 20x2 set of 36x36 tables are organized for the Ramachandran
+term.)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.numeric.bspline.BSplineInterpolation.interpolate">
+<code class="descname">interpolate</code><span class="sig-paren">(</span><em>X: Tensor(torch.float32)[:,:], Y: Union[Tensor(torch.int64)[:,:], NoneType] = None</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float32)[:]<a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineInterpolation.interpolate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation.interpolate" title="Permalink to this definition">¶</a></dt>
+<dd><p>B-spline interpolation function</p>
+<p>X should be a two dimensional tensor of size [ n_points, n_interp_dims ]
+Y should be a two dimensional tensor of size [ n_points, n_index_dims  ]
+the result will be a one dimensional tensor of size [ n_points ].</p>
+<p>n_points represents the number of points in the n-dimensional space that is
+being interpolated (n-dimensional == n_interp_dims-dimensional). The
+result returned by this is the interpolated value for each of the input points.</p>
+<p>Input X values must be in the range [0..|X_i|) for each dimension i.</p>
+<p>If Y is provided, it is treated as providing indexes for the (leading)
+non-interpolating dimensions;</p>
+<p>e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state
+which of the 20 amino acids were being read from for each point
+(Y[:,0]), and whether or not the next residue is proline (Y[:,1]) and
+then the X tensor would provided the (shifted+scaled)
+phi (X[:,0]) and psi (X[:,1]) values.</p>
+<p>Y must have the same number of rows as X (their first dimensions must
+be the same size)</p>
+<p>X and Y must both be on the same device that the BSplineInterpolation
+object was created for; i.e. the device of the <code class="docutils literal notranslate"><span class="pre">coords</span></code> argument to
+<code class="docutils literal notranslate"><span class="pre">from_coords</span></code>.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="tmol.numeric.bspline.BSplineInterpolation._init_causal_coeff">
+<em class="property">static </em><code class="descname">_init_causal_coeff</code><span class="sig-paren">(</span><em>coeffs: Tensor(torch.float32)[:,:], pole: Tensor(torch.float32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineInterpolation._init_causal_coeff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation._init_causal_coeff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function for b-spline coefficient calculation</p>
+<p>inplace calculation of [:,0] coefficients.
+currently, initialization corresponds to periodic boundaries
+(if one were to add alternate boundary conditions, this would be the place)
+assumes inputs are an M x N tensor, and splines are computed in the 2nd dim</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="tmol.numeric.bspline.BSplineInterpolation._init_anticausal_coeff">
+<em class="property">static </em><code class="descname">_init_anticausal_coeff</code><span class="sig-paren">(</span><em>coeffs: Tensor(torch.float32)[:,:], pole: Tensor(torch.float32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineInterpolation._init_anticausal_coeff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation._init_anticausal_coeff" title="Permalink to this definition">¶</a></dt>
+<dd><p>inplace calculation of [:,N] coefficients.
+currently, initialization corresponds to periodic boundaries
+(if one were to add alternate boundary conditions, this would be the place)
+assumes inputs are an M x N tensor, and splines are computed in the 2nd dim
+this initialization corresponds to periodic boundaries</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.numeric.bspline.BSplineInterpolation._convert_interp_coeffs">
+<em class="property">classmethod </em><code class="descname">_convert_interp_coeffs</code><span class="sig-paren">(</span><em>coeffs: Tensor(torch.float32)[:,:], poles: Tensor(torch.float32)[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/numeric/bspline.html#BSplineInterpolation._convert_interp_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.bspline.BSplineInterpolation._convert_interp_coeffs" title="Permalink to this definition">¶</a></dt>
+<dd><p>interpolation coefficients in one dimension
+assumes input an M x N tensor, and interpolation is carried out in the 2nd dim
+returns resulting coefficients</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.numeric.dihedrals.html" class="btn btn-neutral float-right" title="tmol.numeric.dihedrals" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.numeric.html" class="btn btn-neutral" title="tmol.numeric" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.0.0-88-g683561e',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

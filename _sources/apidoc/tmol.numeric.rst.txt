@@ -11,6 +11,7 @@ tmol.numeric
     .. toctree::
        :maxdepth: 1
   
+       tmol.numeric.bspline
        tmol.numeric.dihedrals
   
 
