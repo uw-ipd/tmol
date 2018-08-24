@@ -26,6 +26,170 @@ def test_2d_bspline(bspline_degree, torch_device):
     numpy.testing.assert_allclose(zint.cpu().numpy(), zgold.numpy(), atol=1e-5)
 
 
+def test_2d_bspline_off_grid(bspline_degree, torch_device):
+    # 2d
+    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
+    y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+    z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
+    z = z.type(torch.float)
+
+    offgrid = torch.tensor([[3.125, 4.5], [3.25, 4.75]],
+                           dtype=torch.float,
+                           device=torch_device)
+    x_og = -5 + offgrid[:, 0]
+    y_og = -5 + offgrid[:, 1]
+    z_offgrid = (1 - x_og * x_og - y_og * y_og
+                 ) * torch.exp(-0.5 * (x_og * x_og + y_og * y_og))
+
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
+    zint = zspline.interpolate(offgrid)
+
+    # empirically observed increase in quality-of-fit for this landscape for the chosen
+    # spline degrees for the particular choices of off-grid points. Totally detached
+    # from any numerical analysis or theory. Unlikely to apply to other cases.
+    # Duplicate these tolerances at your own risk!
+    atol = 3 * pow(10, -0.5 * bspline_degree)
+
+    numpy.testing.assert_allclose(
+        zint.cpu().numpy(), z_offgrid.numpy(), atol=atol
+    )
+
+
+def test_2d_bspline_off_grid_at_edges(bspline_degree, torch_device):
+    # 2d
+    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
+    y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+    z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
+    z = z.type(torch.float)
+
+    offgrid = torch.tensor([[0.15625, 10 - 0.15625], [0.140625, 0.125],
+                            [5.140625, 0.125]],
+                           dtype=torch.float,
+                           device=torch_device)
+    x_og = -5 + offgrid[:, 0]
+    y_og = -5 + offgrid[:, 1]
+    z_offgrid = (1 - x_og * x_og - y_og * y_og
+                 ) * torch.exp(-0.5 * (x_og * x_og + y_og * y_og))
+
+    x1 = -5 + 0.15625
+    y1 = -5 + 10 - 0.15625
+    print((1 - x1 * x1 - y1 * y1) * numpy.exp(-0.5 * (x1 * x1 + y1 * y1)))
+    x2 = -5 + 0.140625
+    y2 = -5 + 0.125
+    print((1 - x2 * x2 - y2 * y2) * numpy.exp(-0.5 * (x2 * x2 + y2 * y2)))
+    x3 = -5 + 5.140625
+    y3 = -5 + 0.125
+    print((1 - x3 * x3 - y3 * y3) * numpy.exp(-0.5 * (x3 * x3 + y3 * y3)))
+
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
+    zint = zspline.interpolate(offgrid)
+
+    # empirically observed "increase" in quality-of-fit for this landscape for the chosen
+    # spline degrees for the particular choices of off-grid points. Totally detached
+    # from any numerical analysis or theory. Unlikely to apply to other cases.
+    # Duplicate these tolerances at your own risk!
+    # The quality of fit actually decreases as the spline degree increases as the chosen
+    # landscape is not inherrently periodic. As the degree increases and the spline reaches
+    # for more and more data, it has to distort the potential toward the edges more and more. Eww.
+    atol = 4 * pow(10, -5 + 0.5 * bspline_degree)
+    print(bspline_degree, "z_offgrid", z_offgrid.numpy())
+    print(bspline_degree, "zint", zint.cpu().numpy())
+    print(bspline_degree, "diff", z_offgrid.numpy() - zint.numpy())
+    print(bspline_degree, "atol", atol)
+
+    numpy.testing.assert_allclose(
+        zint.cpu().numpy(), z_offgrid.numpy(), atol=atol
+    )
+
+
+def test_2d_bspline_off_grid_at_edges_periodic(bspline_degree, torch_device):
+    # 2d
+    x = torch.arange(-20, 21, device=torch_device).unsqueeze(1)
+    y = torch.arange(-20, 21, device=torch_device).unsqueeze(0)
+    z = torch.sin(numpy.pi / 10 * x) + torch.cos(numpy.pi / 10 * y)
+    z = z.type(torch.float)
+
+    offgrid = torch.tensor([[0.15625, 40 - 0.15625], [0.140625, 0.125],
+                            [5.140625, 0.125]],
+                           dtype=torch.float,
+                           device=torch_device)
+    x_og = -20 + offgrid[:, 0]
+    y_og = -20 + offgrid[:, 1]
+    z_offgrid = torch.sin(numpy.pi / 10 * x_og
+                          ) + torch.cos(numpy.pi / 10 * y_og)
+
+    x1 = -20 + 0.15625
+    y1 = -20 + 40 - 0.15625
+    print(numpy.sin(numpy.pi / 10 * x1) + numpy.cos(numpy.pi / 10 * y1))
+    x2 = -20 + 0.140625
+    y2 = -20 + 0.125
+    print(numpy.sin(numpy.pi / 10 * x2) + numpy.cos(numpy.pi / 10 * y2))
+    x3 = -20 + 5.140625
+    y3 = -20 + 0.125
+    print(numpy.sin(numpy.pi / 10 * x3) + numpy.cos(numpy.pi / 10 * y3))
+
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
+    zint = zspline.interpolate(offgrid)
+
+    # empirically observed "increase" in quality-of-fit for this landscape for the chosen
+    # spline degrees for the particular choices of off-grid points. Totally detached
+    # from any numerical analysis or theory. Unlikely to apply to other cases.
+    # Duplicate these tolerances at your own risk!
+    atol = 4 * pow(10, -1 * bspline_degree)
+    print(bspline_degree, "z_offgrid", z_offgrid.numpy())
+    print(bspline_degree, "zint", zint.cpu().numpy())
+    print(bspline_degree, "diff", z_offgrid.numpy() - zint.numpy())
+    print(bspline_degree, "atol", atol)
+
+    numpy.testing.assert_allclose(
+        zint.cpu().numpy(), z_offgrid.numpy(), atol=atol
+    )
+
+
+def test_2d_bspline_off_grid_periodic(bspline_degree, torch_device):
+    # 2d
+    x = torch.arange(-20, 21, device=torch_device).unsqueeze(1)
+    y = torch.arange(-20, 21, device=torch_device).unsqueeze(0)
+    z = torch.sin(numpy.pi / 10 * x) + torch.cos(numpy.pi / 10 * y)
+    z = z.type(torch.float)
+
+    offgrid = torch.tensor([[11.15625, 22.15625], [15.140625, 8.125],
+                            [23.140625, 17.125]],
+                           dtype=torch.float,
+                           device=torch_device)
+    x_og = -20 + offgrid[:, 0]
+    y_og = -20 + offgrid[:, 1]
+    z_offgrid = torch.sin(numpy.pi / 10 * x_og
+                          ) + torch.cos(numpy.pi / 10 * y_og)
+
+    x1 = -20 + 11.15625
+    y1 = -20 + 22.15625
+    print(numpy.sin(numpy.pi / 10 * x1) + numpy.cos(numpy.pi / 10 * y1))
+    x2 = -20 + 15.140625
+    y2 = -20 + 8.125
+    print(numpy.sin(numpy.pi / 10 * x2) + numpy.cos(numpy.pi / 10 * y2))
+    x3 = -20 + 23.140625
+    y3 = -20 + 17.125
+    print(numpy.sin(numpy.pi / 10 * x3) + numpy.cos(numpy.pi / 10 * y3))
+
+    zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
+    zint = zspline.interpolate(offgrid)
+
+    # empirically observed "increase" in quality-of-fit for this landscape for the chosen
+    # spline degrees for the particular choices of off-grid points. Totally detached
+    # from any numerical analysis or theory. Unlikely to apply to other cases.
+    # Duplicate these tolerances at your own risk!
+    atol = 4 * pow(10, -1 * bspline_degree)
+    print(bspline_degree, "z_offgrid", z_offgrid.numpy())
+    print(bspline_degree, "zint", zint.cpu().numpy())
+    print(bspline_degree, "diff", z_offgrid.numpy() - zint.numpy())
+    print(bspline_degree, "atol", atol)
+
+    numpy.testing.assert_allclose(
+        zint.cpu().numpy(), z_offgrid.numpy(), atol=atol
+    )
+
+
 def test_2d_bspline_not_square(bspline_degree, torch_device):
     # 2d
     x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
