@@ -18,6 +18,7 @@ from tmol.kinematics.datatypes import NodeType, KinDOF, KinTree
 
 class DOFTypes(enum.IntEnum):
     """High-level class of kinematic DOF types."""
+
     jump = 0
     bond_angle = enum.auto()
     bond_distance = enum.auto()
@@ -54,8 +55,10 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         # Leaving all non-movable or invalid dofs as nan.
         dof_types = KinDOF.full(kintree.shape, math.nan)
         node_has_children = (
-            torch.zeros_like(kintree.id)
-            .put_(kintree.parent, torch.ones_like(kintree.parent), True) > 0
+            torch.zeros_like(kintree.id).put_(
+                kintree.parent, torch.ones_like(kintree.parent), True
+            )
+            > 0
         )
 
         bsel = kintree.doftype == NodeType.bond
@@ -101,9 +104,9 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         cols = {n: c.values for n, c in dict(frame).items()}
 
         if isinstance(cols["dof_type"], pandas.Categorical):
-            cols["dof_type"] = (
-                names_to_val_cat(DOFTypes, cols["dof_type"]).codes.astype(int)
-            )
+            cols["dof_type"] = names_to_val_cat(
+                DOFTypes, cols["dof_type"]
+            ).codes.astype(int)
 
         return cls(
             node_idx=cols["node_idx"],

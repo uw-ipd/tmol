@@ -40,22 +40,19 @@ def test_array_adaptor():
         assert numba_view.strides == npt.strides
         assert numba_view.shape == cudat.shape
         # Pass back to cuda from host for fp16 comparisons
-        assert (cudat == torch.tensor(numba_view.copy_to_host()
-                                      ).to("cuda")).all()
+        assert (cudat == torch.tensor(numba_view.copy_to_host()).to("cuda")).all()
 
         cudat[:5] = math.pi
         # Pass back to cuda from host for fp16 comparisons
-        assert (cudat == torch.tensor(numba_view.copy_to_host()
-                                      ).to("cuda")).all()
+        assert (cudat == torch.tensor(numba_view.copy_to_host()).to("cuda")).all()
 
         strided_cudat = cudat[::2]
         strided_numba_view = as_cuda_array(strided_cudat)
         with pytest.raises((TypeError, ValueError)):
             # Bug with copies of strided data device->host
             assert (
-                strided_cudat.to("cpu") == torch.tensor(
-                    strided_numba_view.copy_to_host()
-                )
+                strided_cudat.to("cpu")
+                == torch.tensor(strided_numba_view.copy_to_host())
             ).all()
 
         result_buffer = numpy.empty(10, dtype=strided_numba_view.dtype)
@@ -67,7 +64,7 @@ def test_array_adaptor():
 
 @pytest.mark.skipif(
     numba.cuda.is_available(),
-    reason="Can only test numba_cudasim fixuture if cuda is not available."
+    reason="Can only test numba_cudasim fixuture if cuda is not available.",
 )
 def test_no_cudasim():
     from tmol.utility.numba import as_cuda_array, is_cuda_array

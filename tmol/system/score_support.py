@@ -6,8 +6,9 @@ from ..types.functional import validate_args
 from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
 
-from ..score import (
-    BondedAtomScoreGraph,
+from ..score.bonded_atom import BondedAtomScoreGraph
+
+from ..score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
@@ -19,9 +20,7 @@ from .kinematics import KinematicDescription
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
 def bonded_atoms_for_system(
-        system: PackedResidueSystem,
-        drop_missing_atoms: bool = False,
-        **_,
+    system: PackedResidueSystem, drop_missing_atoms: bool = False, **_
 ):
     bonds = system.bonds
 
@@ -30,40 +29,27 @@ def bonded_atoms_for_system(
     if drop_missing_atoms:
         atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
 
-    return dict(
-        bonds=bonds,
-        atom_types=atom_types,
-    )
+    return dict(bonds=bonds, atom_types=atom_types)
 
 
 @CartesianAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
 @validate_args
 def coords_for_system(
-        system: PackedResidueSystem,
-        device: torch.device,
-        requires_grad: bool = True,
-        **_,
+    system: PackedResidueSystem, device: torch.device, requires_grad: bool = True, **_
 ):
     """Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`"""
 
-    coords = (
-        torch.tensor(
-            system.coords,
-            dtype=torch.float,
-            device=device,
-        ).requires_grad_(requires_grad)
-    )
+    coords = torch.tensor(
+        system.coords, dtype=torch.float, device=device
+    ).requires_grad_(requires_grad)
 
-    return dict(coords=coords, )
+    return dict(coords=coords)
 
 
 @KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
 @validate_args
 def system_torsion_graph_inputs(
-        system: PackedResidueSystem,
-        device: torch.device,
-        requires_grad: bool = True,
-        **_,
+    system: PackedResidueSystem, device: torch.device, requires_grad: bool = True, **_
 ):
     """Constructor parameters for torsion space scoring.
 
@@ -74,9 +60,7 @@ def system_torsion_graph_inputs(
     """
 
     # Initialize kinematic tree for the system
-    sys_kin = KinematicDescription.for_system(
-        system.bonds, system.torsion_metadata
-    )
+    sys_kin = KinematicDescription.for_system(system.bonds, system.torsion_metadata)
 
     # Select torsion dofs
     torsion_dofs = sys_kin.dof_metadata[
@@ -87,13 +71,8 @@ def system_torsion_graph_inputs(
     kincoords = sys_kin.extract_kincoords(system.coords).to(device)
 
     # Initialize op for torsion-space kinematics
-    kop = KinematicOp.from_coords(
-        sys_kin.kintree,
-        torsion_dofs,
-        kincoords,
-    )
+    kinop = KinematicOp.from_coords(sys_kin.kintree, torsion_dofs, kincoords)
 
     return dict(
-        dofs=kop.src_mobile_dofs.clone().requires_grad_(requires_grad),
-        kinop=kop,
+        dofs=kinop.src_mobile_dofs.clone().requires_grad_(requires_grad), kinop=kinop
     )

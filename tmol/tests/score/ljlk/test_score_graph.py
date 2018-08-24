@@ -13,9 +13,7 @@ from tmol.utility.reactive import reactive_attrs
 
 @reactive_attrs
 class LJLKGraph(
-        CartesianAtomicCoordinateProvider,
-        BlockedInteratomicDistanceGraph,
-        LJLKScoreGraph,
+    CartesianAtomicCoordinateProvider, BlockedInteratomicDistanceGraph, LJLKScoreGraph
 ):
     pass
 
@@ -29,9 +27,7 @@ def save_intermediate_grad(var):
 
 def test_ljlk_smoke(ubq_system, torch_device):
     score_graph = LJLKGraph.build_for(
-        ubq_system,
-        requires_grad=True,
-        device=torch_device,
+        ubq_system, requires_grad=True, device=torch_device
     )
 
     save_intermediate_grad(score_graph.lj)
@@ -60,23 +56,17 @@ def test_ljlk_smoke(ubq_system, torch_device):
 
     nonzero_delta_grads = torch.nonzero(score_graph.atom_pair_delta.grad)
     assert len(nonzero_delta_grads) != 0
-    nan_delta_grads = torch.nonzero(
-        torch.isnan(score_graph.atom_pair_delta.grad)
-    )
+    nan_delta_grads = torch.nonzero(torch.isnan(score_graph.atom_pair_delta.grad))
     assert len(nan_delta_grads) == 0
 
     nan_coord_grads = torch.nonzero(torch.isnan(score_graph.coords.grad))
     assert len(nan_coord_grads) == 0
 
 
-@pytest.mark.benchmark(
-    group="score_setup",
-)
+@pytest.mark.benchmark(group="score_setup")
 def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
     graph_params = LJLKGraph.init_parameters_for(
-        ubq_system,
-        requires_grad=True,
-        device=torch_device,
+        ubq_system, requires_grad=True, device=torch_device
     )
 
     @benchmark

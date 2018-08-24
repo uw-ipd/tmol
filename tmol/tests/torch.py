@@ -57,6 +57,7 @@ def torch_backward_coverage(cov):
                 print(f"pytorch backward trace: {tid}")
                 cov.collector.added_tracers.add(tid)
                 cov.collector._start_tracer()
+
     else:
 
         def add_tracer(_):

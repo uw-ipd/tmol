@@ -1,9 +1,9 @@
 python>=3.6
 ipython
-numpy
+numpy==1.14.*
 pandas==0.22
 numba==0.38.1
-scipy
+scipy=1.1.*
 requests
 toolz
 pyyaml

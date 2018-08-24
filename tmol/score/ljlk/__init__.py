@@ -1,2 +1,1 @@
-from .score_graph import LJLKScoreGraph
-__all__ = (LJLKScoreGraph, )
+from .score_graph import LJLKScoreGraph  # noqa: F401

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -x
+set -e
+
+docs/make
+
+pushd docs/_build
+# Add zip of docs build for easy artifact access
+tar -czvf html.tgz html/
+popd
+
+if [ -s docs/_build/warnings ]; then
+{
+  echo '## `docs/_build/warnings`'
+  echo '```'
+  cat docs/_build/warnings
+  echo '```'
+} | /buildkite/bin/buildkite-agent annotate --style="warning" --context="docs/make"
+
+exit 1
+fi

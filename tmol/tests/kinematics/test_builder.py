@@ -1,26 +1,25 @@
 import numpy
 import torch
 
-from tmol.kinematics import (
-    backwardKin,
-    forwardKin,
-)
+from tmol.kinematics import backwardKin, forwardKin
 
+# from tmol.tests.torch import torch_device
 from tmol.kinematics.builder import KinematicBuilder
 
 
-def test_builder_refold(ubq_system):
+def test_builder_refold(ubq_system, torch_device):
     tsys = ubq_system
 
-    kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
-    ).kintree
+    kintree = (
+        KinematicBuilder()
+        .append_connected_component(
+            *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
+        )
+        .kintree
+    )
 
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
-    refold_kincoords = forwardKin(
-        kintree,
-        backwardKin(kintree, kincoords).dofs
-    ).coords
+    refold_kincoords = forwardKin(kintree, backwardKin(kintree, kincoords).dofs).coords
 
     assert numpy.all(refold_kincoords[0] == 0)
 
@@ -33,9 +32,13 @@ def test_builder_refold(ubq_system):
 def test_builder_framing(ubq_system):
     """Test first-three-atom framing logic in kinematic builder."""
     tsys = ubq_system
-    kintree = KinematicBuilder().append_connected_component(
-        *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
-    ).kintree
+    kintree = (
+        KinematicBuilder()
+        .append_connected_component(
+            *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
+        )
+        .kintree
+    )
 
     # The first entries in the tree should be the global DOF root, self-parented,
     # followed by the first atom.
@@ -69,13 +72,10 @@ def test_builder_framing(ubq_system):
 
     # Other atoms are framed normally, [self, parent, grandparent]
     normal_atoms = numpy.flatnonzero(numpy.array(kintree.parent > 1))
-    numpy.testing.assert_array_equal(
-        kintree.frame_x[normal_atoms], normal_atoms
-    )
+    numpy.testing.assert_array_equal(kintree.frame_x[normal_atoms], normal_atoms)
     numpy.testing.assert_array_equal(
         kintree.frame_y[normal_atoms], kintree.parent[normal_atoms]
     )
     numpy.testing.assert_array_equal(
-        kintree.frame_z[normal_atoms],
-        kintree.parent[kintree.parent[normal_atoms]]
+        kintree.frame_z[normal_atoms], kintree.parent[kintree.parent[normal_atoms]]
     )

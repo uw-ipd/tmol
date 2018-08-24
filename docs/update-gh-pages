@@ -1,0 +1,47 @@
+#!/bin/bash
+#http://redsymbol.net/articles/unofficial-bash-strict-mode/
+
+set -x
+set -euo pipefail
+IFS=$'\n\t'
+
+
+# change to build directory
+pushd "$( dirname "${BASH_SOURCE[0]}" )"/_build
+
+## Update gh-pages branch via build product at docs/_build/html
+echo --- Clean gh-pages
+# -ff clean to remove untracked subrepositories
+git clean -xdff -- gh-pages
+
+echo --- Clone gh-pages into subpath
+# Checkout gh-pages
+git clone -n --reference `git rev-parse --show-toplevel` --single-branch -b gh-pages `git config remote.origin.url` gh-pages
+
+echo --- Copy html docs to gh-pages
+# subshell to contain dotglob
+(
+  shopt -s dotglob
+  cp -r html/* gh-pages/
+)
+
+echo --- Commit pages changes
+# Copy authorship information from current commit
+export GIT_AUTHOR_NAME=`git show -s --format="%aN" HEAD`
+export GIT_AUTHOR_EMAIL=`git show -s --format="%aE" HEAD`
+export GIT_COMMITTER_NAME=buildkite
+export GIT_COMMITTER_EMAIL=`git show -s --format="%aE" HEAD`
+export HEAD_REF=`git rev-parse --abbrev-ref HEAD`
+export HEAD_SHA=`git rev-parse --verify HEAD`
+export HEAD_DESCR=`git describe --tags --dirty`
+
+pushd gh-pages
+git add .
+# Reuse source commit authorship via -c
+git commit -F - <<COMMIT
+buildkite/bin/update-gh-pages at ${HEAD_DESCR} (${HEAD_REF})
+
+source: ${HEAD_SHA}
+COMMIT
+
+popd

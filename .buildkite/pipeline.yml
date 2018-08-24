@@ -1,46 +1,72 @@
+test_agent: &test_agent
+  agents:
+    queue: cuda
+
+cuda_container: &cuda_container 
+  plugins:
+    docker-compose#v2.5.1:
+        run: buildkite
+
+cpu_container: &cpu_container 
+  plugins:
+    docker-compose#v2.5.1:
+        run: buildkite-cpu
+
 steps:
   ### Test installation from source
   # Note that this tests setup and *does not* modify the runtime environment below.
   - label: ':electric_plug: Setup'
     command: .buildkite/bin/setup
-    plugins:
-      uw-ipd/docker-compose#run_workdir:
-        run: buildkite
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+    << : *test_agent
+    << : *cuda_container
 
+  ### Wait on setup to allow image build to complete before further, potentially parallel steps
+  - wait: ~
+    continue_on_failure: true
+
+  ### Run formatting/linting checks.
+  - label: ':microscope: Linting'
+    command: .buildkite/bin/linting
+    << : *test_agent
+    << : *cuda_container
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CUDA'
     command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cuda.junit.xml
-
-    plugins:
-      uw-ipd/docker-compose#run_workdir:
-        run: buildkite
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
     artifact_paths:
       - testing.cuda.junit.xml
       - .coverage
+    << : *test_agent
+    << : *cuda_container
 
   ### Run tests and generate coverage reports
   - label: ':shrug: Testing - CPU'
     command: .buildkite/bin/testing --cov=./tmol --junitxml=testing.cpu.junit.xml
-    plugins:
-      uw-ipd/docker-compose#run_workdir:
-        run: buildkite-cpu
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
     artifact_paths:
       - testing.cpu.junit.xml
       - .coverage
+    << : *test_agent
+    << : *cpu_container
 
-  ### Run formatting/linting checks.
-  - label: ':microscope: Linting'
-    command: .buildkite/bin/linting --junitxml=linting.junit.xml
-    plugins:
-      uw-ipd/docker-compose#run_workdir:
-        run: buildkite
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+  ### Generate project documentation
+  - label: ':open_book: Docs'
+    command: .buildkite/bin/docs
     artifact_paths:
-      - linting.junit.xml
+      - docs/_build/**/*
+    << : *test_agent
+    << : *cuda_container
+
+  ### Run benchmark tests
+  - label: ':racehorse: Benchmark'
+    command: .buildkite/bin/benchmark --benchmark-max-time=.1 
+    artifact_paths:
+      - benchmark/**/*
+    << : *test_agent
+    << : *cuda_container
+
+  ### Wait for all tests to finish and upload artifacts
+  - wait: ~
+    continue_on_failure: true
 
   - label: ':clipboard: Report'
     plugins:
@@ -52,18 +78,14 @@ steps:
           - label: Testing - CPU
             artifact_path: testing.cpu.junit.xml
             type: junit
-          - label: Linting
-            artifact_path: linting.junit.xml
-            type: junit
         formatter:
           type: details
+    << : *test_agent
 
-  ### Run benchmark tests
-  - label: ':racehorse: Benchmark'
-    command: .buildkite/bin/benchmark --benchmark-max-time=.1 
-    artifact_paths:
-      - benchmark/**/*
+  ### Deploy documentation to gh-pages iff running a master build
+  - label: ':rocket: Pages'
+    command: .buildkite/bin/gh-pages
     plugins:
-      uw-ipd/docker-compose#run_workdir:
-        run: buildkite
-        workdir: "${BUILDKITE_BUILD_CHECKOUT_PATH}"
+      artifacts#v1.2.0:
+        download: "docs/_build/**/*"
+    << : *test_agent
