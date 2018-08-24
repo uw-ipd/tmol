@@ -50,7 +50,7 @@ def test_2d_bspline_off_grid(bspline_degree, torch_device):
     atol = 3 * pow(10, -0.5 * bspline_degree)
 
     numpy.testing.assert_allclose(
-        zint.cpu().numpy(), z_offgrid.numpy(), atol=atol
+        zint.cpu().numpy(), z_offgrid.cpu().numpy(), atol=atol
     )
 
 
@@ -85,7 +85,7 @@ def test_2d_bspline_off_grid_at_edges(bspline_degree, torch_device):
     atol = 4 * pow(10, -5 + 0.5 * bspline_degree)
 
     numpy.testing.assert_allclose(
-        zint.cpu().numpy(), z_offgrid.numpy(), atol=atol
+        zint.cpu().numpy(), z_offgrid.cpu().numpy(), atol=atol
     )
 
 
@@ -116,7 +116,7 @@ def test_2d_bspline_off_grid_periodic(bspline_degree, torch_device):
     atol = 5 * pow(10, -2 + -1 * bspline_degree)
 
     numpy.testing.assert_allclose(
-        zint.cpu().numpy(), z_offgrid.numpy(), atol=atol
+        zint.cpu().numpy(), z_offgrid.cpu().numpy(), atol=atol
     )
 
 
@@ -147,7 +147,7 @@ def test_2d_bspline_off_grid_at_edges_periodic(bspline_degree, torch_device):
     atol = 5 * pow(10, -2 + -1 * bspline_degree)
 
     numpy.testing.assert_allclose(
-        zint.cpu().numpy(), z_offgrid.numpy(), atol=atol
+        zint.cpu().numpy(), z_offgrid.cpu().numpy(), atol=atol
     )
 
 
@@ -157,7 +157,7 @@ def test_request_unsupported_bspline_degree(torch_device):
     z = torch.sin(numpy.pi / 10 * x) + torch.cos(numpy.pi / 10 * y)
     z = z.type(torch.float)
 
-    with pytest.raises( ValueError ) as e:
+    with pytest.raises(ValueError):
         BSplineInterpolation.from_coordinates(z, 6)
 
 
