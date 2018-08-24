@@ -148,6 +148,21 @@ def test_2d_bspline_off_grid_at_edges_periodic(bspline_degree, torch_device):
     )
 
 
+def test_request_unsupported_bspline_degree(torch_device):
+    x = torch.arange(-20, 20, device=torch_device).unsqueeze(1)
+    y = torch.arange(-20, 20, device=torch_device).unsqueeze(0)
+    z = torch.sin(numpy.pi / 10 * x) + torch.cos(numpy.pi / 10 * y)
+    z = z.type(torch.float)
+
+    try:
+        zspline = BSplineInterpolation.from_coordinates(z, 6)
+        assert False  # should not be reached!
+    except ValueError:
+        assert True
+    except:
+        assert False  # we should have thrown a ValueError
+
+
 def test_2d_bspline_not_square(bspline_degree, torch_device):
     # 2d
     x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
