@@ -4,7 +4,6 @@ import pytest
 from tmol.numeric.bspline import BSplineInterpolation
 
 
-#@pytest.fixture(params=[3])
 @pytest.fixture(params=[2, 3, 4, 5])
 def bspline_degree(request):
     return request.param
@@ -74,13 +73,15 @@ def test_2d_bspline_off_grid_at_edges(bspline_degree, torch_device):
     zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
     zint = zspline.interpolate(offgrid)
 
-    # empirically observed "increase" in quality-of-fit for this landscape for the chosen
-    # spline degrees for the particular choices of off-grid points. Totally detached
-    # from any numerical analysis or theory. Unlikely to apply to other cases.
-    # Duplicate these tolerances at your own risk!
-    # The quality of fit actually decreases as the spline degree increases as the chosen
-    # landscape is not inherrently periodic. As the degree increases and the spline reaches
-    # for more and more data, it has to distort the potential toward the edges more and more. Eww.
+    # empirically observed "increase" in quality-of-fit for this landscape
+    # for the chosen spline degrees for the particular choices of off-grid
+    # points. Totally detached from any numerical analysis or theory.
+    # Unlikely to apply to other cases. Duplicate these tolerances at your
+    # own risk!
+    # The quality of fit actually decreases as the spline degree increases
+    # as the chosen landscape is not inherrently periodic. As the degree
+    # increases and the spline reaches for more and more data, it has to
+    # distort the potential toward the edges more and more. Eww.
     atol = 4 * pow(10, -5 + 0.5 * bspline_degree)
 
     numpy.testing.assert_allclose(
@@ -107,10 +108,11 @@ def test_2d_bspline_off_grid_periodic(bspline_degree, torch_device):
     zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
     zint = zspline.interpolate(offgrid)
 
-    # empirically observed "increase" in quality-of-fit for this landscape for the chosen
-    # spline degrees for the particular choices of off-grid points. Totally detached
-    # from any numerical analysis or theory. Unlikely to apply to other cases.
-    # Duplicate these tolerances at your own risk!
+    # empirically observed "increase" in quality-of-fit for this landscape
+    # for the chosen spline degrees for the particular choices of off-grid
+    # points. Totally detached from any numerical analysis or theory.
+    # Unlikely to apply to other cases. Duplicate these tolerances at your
+    # own risk!
     atol = 5 * pow(10, -2 + -1 * bspline_degree)
 
     numpy.testing.assert_allclose(
@@ -137,10 +139,11 @@ def test_2d_bspline_off_grid_at_edges_periodic(bspline_degree, torch_device):
     zspline = BSplineInterpolation.from_coordinates(z, bspline_degree)
     zint = zspline.interpolate(offgrid)
 
-    # empirically observed increase in quality-of-fit for this landscape for the chosen
-    # spline degrees for the particular choices of off-grid points. Totally detached
-    # from any numerical analysis or theory. Unlikely to apply to other cases.
-    # Duplicate these tolerances at your own risk!
+    # empirically observed increase in quality-of-fit for this landscape
+    # for the chosen spline degrees for the particular choices of off-grid
+    # points. Totally detached from any numerical analysis or theory.
+    # Unlikely to apply to other cases. Duplicate these tolerances at your
+    # own risk!
     atol = 5 * pow(10, -2 + -1 * bspline_degree)
 
     numpy.testing.assert_allclose(
@@ -154,13 +157,8 @@ def test_request_unsupported_bspline_degree(torch_device):
     z = torch.sin(numpy.pi / 10 * x) + torch.cos(numpy.pi / 10 * y)
     z = z.type(torch.float)
 
-    try:
-        zspline = BSplineInterpolation.from_coordinates(z, 6)
-        assert False  # should not be reached!
-    except ValueError:
-        assert True
-    except:
-        assert False  # we should have thrown a ValueError
+    with pytest.raises( ValueError ) as e:
+        BSplineInterpolation.from_coordinates(z, 6)
 
 
 def test_2d_bspline_not_square(bspline_degree, torch_device):

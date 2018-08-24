@@ -116,10 +116,12 @@ class BSplineDegree3(BSplineDegree):
         w = X - indx_bydim[:, 1, :]
         wts_bydim[:, 3, :] = (1.0 / 6.0) * w * w * w
         wts_bydim[:, 0, :] = ((1.0 / 6.0) +
-            (1.0 / 2.0) * w * (w - 1.0) - wts_bydim[:, 3, :]) # yapf: disable
+                              (1.0 / 2.0) * w * (w - 1.0) -
+                              wts_bydim[:, 3, :])  # yapf: disable
         wts_bydim[:, 2, :] = w + wts_bydim[:, 0, :] - 2.0 * wts_bydim[:, 3, :]
         wts_bydim[:, 1, :] = (1.0 - wts_bydim[:, 0, :] -
-            wts_bydim[:, 2, :] - wts_bydim[:, 3, :]) # yapf: disable
+                              wts_bydim[:, 2, :] -
+                              wts_bydim[:, 3, :])  # yapf: disable
 
         return wts_bydim
 
@@ -159,7 +161,9 @@ class BSplineDegree4(BSplineDegree):
         wts_bydim[:, 3, :] = t1 - t0
         wts_bydim[:, 4, :] = wts_bydim[:, 0, :] + t0 + (1.0 / 2.0) * w
         wts_bydim[:, 2, :] = (1.0 - wts_bydim[:, 0, :] -
-            wts_bydim[:, 1, :] - wts_bydim[:, 3, :] - wts_bydim[:, 4, :])# yapf: disable
+                              wts_bydim[:, 1, :] -
+                              wts_bydim[:, 3, :] -
+                              wts_bydim[:, 4, :])  # yapf: disable
 
         return wts_bydim
 
@@ -197,7 +201,7 @@ class BSplineDegree5(BSplineDegree):
         w -= 1.0 / 2.0
         t = w2 * (w2 - 3.0)
         wts_bydim[:, 0, :] = ((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) -
-            wts_bydim[:, 5, :]) # yapf: disable
+                              wts_bydim[:, 5, :])  # yapf: disable
         t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0)
         t1 = (-1.0 / 12.0) * w * (t + 4.0)
         wts_bydim[:, 2, :] = t0 + t1
@@ -340,15 +344,18 @@ class BSplineInterpolation:
         If Y is provided, it is treated as providing indexes for the (leading)
         non-interpolating dimensions;
 
-        e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state which of the
-        20 amino acids were being read from for each point (Y[:,0]), and whether or not the next
-        residue is proline (Y[:,1]) and then the X tensor would provided the (shifted+scaled)
+        e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state
+        which of the 20 amino acids were being read from for each point
+        (Y[:,0]), and whether or not the next residue is proline (Y[:,1]) and
+        then the X tensor would provided the (shifted+scaled)
         phi (X[:,0]) and psi (X[:,1]) values.
 
-        Y must have the same number of rows as X (their first dimensions must be the same size)
+        Y must have the same number of rows as X (their first dimensions must
+        be the same size)
 
-        X and Y must both be on the same device that the BSplineInterpolation object was
-        created for; i.e. the device of the `coords` argument to `from_coords`.
+        X and Y must both be on the same device that the BSplineInterpolation
+        object was created for; i.e. the device of the `coords` argument to
+        `from_coords`.
         """
 
         assert len(X.shape) == 2
@@ -356,7 +363,7 @@ class BSplineInterpolation:
         assert Y is None or len(Y.shape) == 2
         assert Y is None or X.shape[0] == Y.shape[0]
         assert ((Y is None and self.n_index_dims == 0) or
-                (Y is not None and Y.shape[1] == self.n_index_dims)) # yapf: disable
+                (Y is not None and Y.shape[1] == self.n_index_dims))  # yapf: disable
         assert X.device == self.coeffs.device
         assert Y is None or Y.device == self.coeffs.device
 
