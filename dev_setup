@@ -90,5 +90,5 @@ else:
 
 check_call("%s/bin/pip install -e ." % envpath)
 
-call("ln -s ../../.post-checkout .git/hooks/post-checkout")
-call("ln -s ../../.pre-commit .git/hooks/pre-commit")
+call("ln -sf ../../.post-checkout .git/hooks/post-checkout")
+check_call("%s/bin/pre-commit install " % envpath)

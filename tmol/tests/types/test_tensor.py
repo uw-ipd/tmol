@@ -30,17 +30,11 @@ def test_attr_checking():
         broadcast: NDArray(int)[..., 2]
 
     # Safely initialize with manual input
-    inv = NoBroadcastShape(
-        numpy.arange(10),
-        numpy.arange(20).reshape(10, 2),
-    )
+    inv = NoBroadcastShape(numpy.arange(10), numpy.arange(20).reshape(10, 2))
 
     r = inv[:5]
     numpy.testing.assert_allclose(r.no_broadcast, numpy.arange(5))
-    numpy.testing.assert_allclose(
-        r.broadcast,
-        numpy.arange(20).reshape(10, 2)[:5]
-    )
+    numpy.testing.assert_allclose(r.broadcast, numpy.arange(20).reshape(10, 2)[:5])
 
     # Require broadcast shape for constructors
     with pytest.raises(TypeError):
@@ -83,14 +77,14 @@ def test_nested_group():
     assert s.g2.b.shape == (3, 5, 5)
     assert s.idx.shape == (3, 5, 2)
 
-    assert s[0].g1.a.shape == (5, )
+    assert s[0].g1.a.shape == (5,)
     assert s[0].g1.b.shape == (5, 5)
-    assert s[0].g2.a.shape == (5, )
+    assert s[0].g2.a.shape == (5,)
     assert s[0].g2.b.shape == (5, 5)
     assert s[0].idx.shape == (5, 2)
 
     sg = SubGroup.full((5), numpy.pi)
-    numpy.testing.assert_allclose(sg.a, torch.full((5, ), numpy.pi))
+    numpy.testing.assert_allclose(sg.a, torch.full((5,), numpy.pi))
     numpy.testing.assert_allclose(sg.b, torch.full((5, 5), numpy.pi))
 
     # FrozenInstance prevents direct assignment to members
@@ -100,9 +94,9 @@ def test_nested_group():
     # Slice assignment updates member tensors
     s[0].g1[:] = sg
 
-    numpy.testing.assert_allclose(s.g1.a[0], torch.full((5, ), numpy.pi))
+    numpy.testing.assert_allclose(s.g1.a[0], torch.full((5,), numpy.pi))
     numpy.testing.assert_allclose(s.g1.b[0], torch.full((5, 5), numpy.pi))
-    numpy.testing.assert_allclose(s.g1.a[1], torch.full((5, ), 1.0))
+    numpy.testing.assert_allclose(s.g1.a[1], torch.full((5,), 1.0))
     numpy.testing.assert_allclose(s.g1.b[1], torch.full((5, 5), 1.0))
 
 
@@ -110,10 +104,10 @@ def test_tensor_group_reshape():
     # Test reshape operations over nested groups
     start = MultiGroup.full(10, numpy.pi)
 
-    assert start.g1.a.shape == (10, )
+    assert start.g1.a.shape == (10,)
     assert start.g1.b.shape == (10, 5)
 
-    assert start.g2.a.shape == (10, )
+    assert start.g2.a.shape == (10,)
     assert start.g2.b.shape == (10, 5)
 
     assert start.idx.shape == (10, 2)
@@ -141,10 +135,10 @@ def test_tensor_group_reshape():
 
     # Test flatten to implied dimension
     restore = reshape.reshape(-1)
-    assert restore.g1.a.shape == (10, )
+    assert restore.g1.a.shape == (10,)
     assert restore.g1.b.shape == (10, 5)
 
-    assert restore.g2.a.shape == (10, )
+    assert restore.g2.a.shape == (10,)
     assert restore.g2.b.shape == (10, 5)
 
     assert restore.idx.shape == (10, 2)
@@ -174,7 +168,7 @@ def test_tensorgroup_smoke():
         a: NDArray(float)[...]
         coord: NDArray(float)[..., 3]
 
-    val = NumpyTensorGroup.zeros((10, ))
+    val = NumpyTensorGroup.zeros((10,))
     numpy.testing.assert_allclose(val.a, numpy.zeros(10))
     numpy.testing.assert_allclose(val.coord, numpy.zeros((10, 3)))
 
@@ -187,7 +181,7 @@ def test_tensorgroup_smoke():
     numpy.testing.assert_allclose(val.coord, numpy.full((10, 3), numpy.pi))
 
     val = NumpyTensorGroup.empty(10)
-    assert val.a.shape == (10, )
+    assert val.a.shape == (10,)
     assert val.coord.shape == (10, 3)
 
     val = NumpyTensorGroup.empty((10, 100))
@@ -200,19 +194,19 @@ def test_tensorgroup_smoke():
         coord: Tensor(float)[..., 3]
 
     val = TorchTensorGroup.zeros(10)
-    numpy.testing.assert_allclose(val.a, torch.zeros((10, )))
+    numpy.testing.assert_allclose(val.a, torch.zeros((10,)))
     numpy.testing.assert_allclose(val.coord, torch.zeros((10, 3)))
 
     val = TorchTensorGroup.ones(10)
-    numpy.testing.assert_allclose(val.a, torch.ones((10, )))
+    numpy.testing.assert_allclose(val.a, torch.ones((10,)))
     numpy.testing.assert_allclose(val.coord, torch.ones((10, 3)))
 
     val = TorchTensorGroup.full(10, numpy.pi)
-    numpy.testing.assert_allclose(val.a, torch.full((10, ), numpy.pi))
+    numpy.testing.assert_allclose(val.a, torch.full((10,), numpy.pi))
     numpy.testing.assert_allclose(val.coord, torch.full((10, 3), numpy.pi))
 
     val = TorchTensorGroup.empty(10)
-    assert val.a.shape == (10, )
+    assert val.a.shape == (10,)
     assert val.coord.shape == (10, 3)
 
     val = TorchTensorGroup.empty((10, 100))
@@ -332,14 +326,10 @@ def test_tensorgroup_to_device():
         sub: STG
 
     cpu_float = dict(
-        dtype=torch.float,
-        layout=torch.strided,
-        device=torch.device("cpu"),
+        dtype=torch.float, layout=torch.strided, device=torch.device("cpu")
     )
     cpu_double = dict(
-        dtype=torch.double,
-        layout=torch.strided,
-        device=torch.device("cpu"),
+        dtype=torch.double, layout=torch.strided, device=torch.device("cpu")
     )
     cuda_float = dict(
         dtype=torch.float,

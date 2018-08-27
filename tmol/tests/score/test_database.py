@@ -8,7 +8,7 @@ def test_database_clone_factory(ubq_system):
     clone_db = copy.copy(ParameterDatabase.get_default())
 
     # Parameter database defaults
-    src = ParamDB()
+    src = ParamDB.build_for(object())
     assert src.parameter_database is ParameterDatabase.get_default()
 
     src: ParamDB = ParamDB.build_for(ubq_system)

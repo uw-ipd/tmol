@@ -25,7 +25,5 @@ class ParameterDatabase:
     def from_file(cls, path):
         return cls(
             scoring=ScoringDatabase.from_file(os.path.join(path, "scoring")),
-            chemical=ChemicalDatabase.from_file(
-                os.path.join(path, "chemical")
-            )
+            chemical=ChemicalDatabase.from_file(os.path.join(path, "chemical")),
         )

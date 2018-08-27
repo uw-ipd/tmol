@@ -22,7 +22,7 @@ validation_examples = [
             [1, 2, 3],
             [[1, 2, 3]],
             numpy.array([["one", "two", "three"]]),
-        ]
+        ],
     },
     {
         "spec": NDArray(object)[:],
@@ -39,16 +39,14 @@ validation_examples = [
             numpy.arange(3),
             [1, 2, 3],
             [[1, 2, 3]],
-        ]
+        ],
     },
 ]
 
 
 @pytest.mark.parametrize("example", validation_examples)
 def test_array_validation(example):
-    spec, valid, invalid = (
-        example["spec"], example["valid"], example["invalid"]
-    )
+    spec, valid, invalid = (example["spec"], example["valid"], example["invalid"])
 
     for v in valid:
         assert spec.validate(v)
@@ -70,8 +68,7 @@ converstion_examples = [
             (
                 [((1, 1, 1), 10), ((2, 2, 2), 20)],
                 numpy.array(
-                    [((1.0, 1.0, 1.0), 10), ((2.0, 2.0, 2.0), 20)],
-                    dtype=packed_dtype,
+                    [((1.0, 1.0, 1.0), 10), ((2.0, 2.0, 2.0), 20)], dtype=packed_dtype
                 ),
             ),
             (numpy.zeros(3, dtype=packed_dtype), numpy.zeros(3, packed_dtype)),
@@ -80,7 +77,7 @@ converstion_examples = [
             numpy.zeros(3, dtype=incompatible_dtype),
             numpy.zeros((1, 10), dtype=packed_dtype),
             numpy.arange(4),
-        ]
+        ],
     },
     {
         "spec": NDArray(int)[3],
@@ -93,13 +90,13 @@ converstion_examples = [
         "invalid": [
             # Invalid casts.
             numpy.array(list("abc")),
-            numpy.array(['a', 'b', 'c'], dtype=object),
+            numpy.array(["a", "b", "c"], dtype=object),
             ["one", "two", "three"],
             # No shape coercion
             numpy.arange(30).reshape(10, 3),
             numpy.arange(3).reshape(1, 3),
             [[1, 2, 3]],
-        ]
+        ],
     },
     {
         "spec": NDArray(float)[1],
@@ -114,7 +111,7 @@ converstion_examples = [
             numpy.array(["one"]),
             numpy.arange(3),
             numpy.arange(3).astype(float),
-        ]
+        ],
     },
 ]
 
@@ -122,7 +119,9 @@ converstion_examples = [
 @pytest.mark.parametrize("example", converstion_examples)
 def test_array_conversion(example):
     spec, conversions, invalid = (
-        example["spec"], example["conversions"], example["invalid"]
+        example["spec"],
+        example["conversions"],
+        example["invalid"],
     )
 
     for f, t in conversions:

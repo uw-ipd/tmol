@@ -1,0 +1,2 @@
+let &l:makeprg="cd ".g:localvimrc_script_dir_unresolved." && ./make"
+let &errorformat = '%f:docstring of %m,' . &errorformat

@@ -8,60 +8,45 @@ root = os.path.dirname(__file__)
 
 def render(components):
 
-    dependencies = []
-    requirements = []
+    fields = dict(channels=[], dependencies=[], requirements=[])
 
     for c in components:
-        dp = os.path.join(root, "%s.dependencies.txt" % c)
-        rp = os.path.join(root, "%s.requirements.txt" % c)
-
-        if os.path.exists(dp):
-            dependencies.append("# %s" % c)
-            dependencies.extend(
-                "- %s" % l.strip()
-                for l in open(dp, "r").readlines()
-                if l.strip()
-            )
-
-        if os.path.exists(rp):
-            requirements.append("# %s" % c)
-            requirements.extend(
-                "- %s" % l.strip()
-                for l in open(rp, "r").readlines()
-                if l.strip()
-            )
+        for f in fields:
+            p = os.path.join(root, "%s.%s.txt" % (c, f))
+            if os.path.exists(p):
+                fields[f].append("# %s" % c)
+                fields[f].extend(
+                    "- %s" % l.strip()
+                    for l in open(p, "r").readlines()
+                    if l.strip()
+                )
 
     env = io.StringIO()
+
+    print("channels:", file=env)
+    for d in fields["channels"]:
+        print("  %s" % d, file=env)
     print("dependencies:", file=env)
-    for d in dependencies:
+    for d in fields["dependencies"]:
         print("  %s" % d, file=env)
     print("  - pip:", file=env)
-    for r in requirements:
+    for r in fields["requirements"]:
         print("    %s" % r, file=env)
 
     return env.getvalue()
 
 
 parser = argparse.ArgumentParser(
-    description='Render environment.yml for target configuration.'
+    description="Render environment.yml for target configuration."
 )
-parser.add_argument(
-    'platform',
-    choices=["linux.cuda", "linux.cpu", "osx.cpu"],
-)
-parser.add_argument(
-    'target',
-    choices=["run", "test", "dev"],
-)
+parser.add_argument("platform", choices=["linux.cuda", "linux.cpu", "osx.cpu"])
+parser.add_argument("target", choices=["run", "test", "dev"])
 args = parser.parse_args()
 
-layers = (
-    ["core", args.platform] +
-    {
-        "run": [],
-        "test": ["test"],
-        "dev": ["test", "dev"],
-    }[args.target]
-)
+layers = ["core", args.platform] + {
+    "run": [],
+    "test": ["test", "docs"],
+    "dev": ["test", "docs", "support", "dev"],
+}[args.target]
 
 print(render(layers))

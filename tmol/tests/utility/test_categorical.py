@@ -21,15 +21,11 @@ def test_categorical_conversion():
     missing_names = list("abcd")
     missing_mask = [False, False, False, True]
 
-    assert list(pandas.isna(names_to_val_cat(
-        TE,
-        missing_names,
-    ))) == missing_mask
+    assert list(pandas.isna(names_to_val_cat(TE, missing_names))) == missing_mask
 
-    assert list(pandas.isna(vals_to_name_cat(
-        TE,
-        [TE.a, TE.b, TE.c, -1],
-    ))) == missing_mask
+    assert (
+        list(pandas.isna(vals_to_name_cat(TE, [TE.a, TE.b, TE.c, -1]))) == missing_mask
+    )
 
 
 def test_flag_enum():

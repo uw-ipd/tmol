@@ -13,18 +13,12 @@ from tmol.utility.reactive import reactive_attrs
 
 
 @reactive_attrs
-class RealSpaceScore(
-        CartesianAtomicCoordinateProvider,
-        TotalScoreGraph,
-):
+class RealSpaceScore(CartesianAtomicCoordinateProvider, TotalScoreGraph):
     pass
 
 
 @reactive_attrs
-class DofSpaceScore(
-        KinematicAtomicCoordinateProvider,
-        TotalScoreGraph,
-):
+class DofSpaceScore(KinematicAtomicCoordinateProvider, TotalScoreGraph):
     pass
 
 
@@ -36,12 +30,12 @@ def test_torsion_space_by_real_space_total_score(ubq_system):
     real_total = real_space.step()
     torsion_total = torsion_space.step()
 
-    #assert (real_total == torsion_total).all()
+    # assert (real_total == torsion_total).all()
     numpy.testing.assert_allclose(
         real_total.detach().numpy(),
         torsion_total.detach().numpy(),
         atol=1e-5,
-        rtol=1e-5
+        rtol=1e-5,
     )
 
 
@@ -54,12 +48,10 @@ def test_torsion_space_coord_smoke(ubq_system):
 
     def coord_residuals(dofs):
         torsion_space.dofs = dofs
-        return (torsion_space.coords[cmask] -
-                start_coords[cmask]).norm(dim=-1).sum()
+        return (torsion_space.coords[cmask] - start_coords[cmask]).norm(dim=-1).sum()
 
     torch.random.manual_seed(1663)
-    pdofs = torch.tensor((torch.rand_like(start_dofs) - .5) * 1e-2,
-                         requires_grad=True)
+    pdofs = torch.tensor((torch.rand_like(start_dofs) - .5) * 1e-2, requires_grad=True)
 
     assert pdofs.requires_grad
 
@@ -87,5 +79,5 @@ def test_torsion_space_to_coordinate_gradcheck(ubq_res):
         return res
 
     assert torch.autograd.gradcheck(
-        coord_residuals, (start_dofs, ), eps=5e-3, atol=5e-4, rtol=5e-3
+        coord_residuals, (start_dofs,), eps=5e-3, atol=5e-4, rtol=5e-3
     )

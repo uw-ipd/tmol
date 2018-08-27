@@ -71,9 +71,7 @@ def union_array_func(val: Union[float, NDArray(float)[:]]):
 
 
 @validate_args
-def tuple_array_func(
-        val: Tuple[float, NDArray(float)[:]],
-) -> NDArray(float)[:]:
+def tuple_array_func(val: Tuple[float, NDArray(float)[:]],) -> NDArray(float)[:]:
     m, v = val
 
     assert isinstance(m, float)
@@ -85,32 +83,13 @@ def tuple_array_func(
 validate_examples = [
     {
         "func": int_func,
-        "valid": [
-            f(1),
-            f(2),
-            f(val=2),
-        ],
-        "invalid": [
-            f(),
-            f(1.1),
-            f(None),
-            f("one"),
-            f(1, 2),
-        ]
+        "valid": [f(1), f(2), f(val=2)],
+        "invalid": [f(), f(1.1), f(None), f("one"), f(1, 2)],
     },
     {
         "func": str_func,
-        "valid": [
-            f("one"),
-            f("two"),
-            f(""),
-        ],
-        "invalid": [
-            f(None),
-            f(b"bytes"),
-            f(1),
-            f(1, 2),
-        ]
+        "valid": [f("one"), f("two"), f("")],
+        "invalid": [f(None), f(b"bytes"), f(1), f(1, 2)],
     },
     {
         "func": array_func,
@@ -118,11 +97,7 @@ validate_examples = [
             f(numpy.array([1, 2, 3], dtype=float)),
             f(numpy.arange(30).reshape(-1, 3).astype(float)),
         ],
-        "invalid": [
-            f(None),
-            f([[1, 2, 3]]),
-            f(numpy.arange(30).reshape(-1, 3)),
-        ]
+        "invalid": [f(None), f([[1, 2, 3]]), f(numpy.arange(30).reshape(-1, 3))],
     },
     {
         "func": union_array_func,
@@ -137,98 +112,52 @@ validate_examples = [
             f(1),
             f("1.1"),
             f(numpy.arange(30).reshape(-1, 3).astype(float)),
-        ]
+        ],
     },
     {
         "func": tuple_array_func,
-        "valid": [f((1.1, numpy.array([1, 2, 3], dtype=float))), ],
+        "valid": [f((1.1, numpy.array([1, 2, 3], dtype=float)))],
         "invalid": [
             f((1, numpy.array([1, 2, 3], dtype=float))),  # First entry type
-            f((1.1, numpy.array([[1.1, 2.2], [3.3, 4.4]])),
-              ),  # Send entry shape
+            f((1.1, numpy.array([[1.1, 2.2], [3.3, 4.4]]))),  # Send entry shape
             f((1.1, 1.1)),
             f(None),
             f(1),
             f("1.1"),
             f(numpy.arange(30).reshape(-1, 3).astype(float)),
-        ]
+        ],
     },
     {
         "func": union_func,
-        "valid": [
-            f(1),
-            f(2),
-            f(None),
-            f(val=2),
-            f(val=None),
-        ],
-        "invalid": [
-            f(),
-            f(1.1),
-            f("one"),
-            f(1, 2),
-            f(None, 2),
-        ]
+        "valid": [f(1), f(2), f(None), f(val=2), f(val=None)],
+        "invalid": [f(), f(1.1), f("one"), f(1, 2), f(None, 2)],
     },
     {
         "func": tuple_func,
-        "valid": [f(("a", 1)), ],
-        "invalid": [
-            f((1, "a")),
-            f(("a", )),
-            f("a", 1),
-            f((None, 1)),
-        ]
+        "valid": [f(("a", 1))],
+        "invalid": [f((1, "a")), f(("a",)), f("a", 1), f((None, 1))],
     },
     {
         "func": nest_tuple_func,
-        "valid": [f(((1, 1), "a")), ],
-        "invalid": [
-            f((1, 1, "a")),
-            f(((), "a")),
-            f(("a", )),
-            f("a", 1),
-            f((None, 1)),
-        ]
+        "valid": [f(((1, 1), "a"))],
+        "invalid": [f((1, 1, "a")), f(((), "a")), f(("a",)), f("a", 1), f((None, 1))],
     },
     {
         "func": anytuple_func,
-        "valid": [
-            f(("a", 1)),
-            f((1, "a")),
-            f(()),
-            f((("a", 1), 1, 1)),
-        ],
-        "invalid": [
-            f("a"),
-            f(("a", 1), 1),
-            f(None),
-            f(),
-        ]
+        "valid": [f(("a", 1)), f((1, "a")), f(()), f((("a", 1), 1, 1))],
+        "invalid": [f("a"), f(("a", 1), 1), f(None), f()],
     },
     {
         "func": ellipsis_tuple_func,
-        "valid": [
-            f(()),
-            f((1, )),
-            f((1, 1)),
-            f((1, 1, 1, 1, 1)),
-        ],
-        "invalid": [
-            f(),
-            f(1),
-            f((1, 1, 1, "a", 1)),
-            f(1, 1, 1),
-        ]
+        "valid": [f(()), f((1,)), f((1, 1)), f((1, 1, 1, 1, 1))],
+        "invalid": [f(), f(1), f((1, 1, 1, "a", 1)), f(1, 1, 1)],
     },
 ]
 
 
 @pytest.mark.parametrize("example", validate_examples)
 def test_func_validation(example):
-    func, valid, invalid = (
-        example["func"], example["valid"], example["invalid"]
-    )
+    func, valid, invalid = (example["func"], example["valid"], example["invalid"])
 
     for args, kwargs in valid:
         func(*args, **kwargs)
@@ -270,35 +199,13 @@ def tuple_cfunc(val: typing.Tuple[str, int]):
 convert_examples = [
     {
         "func": int_cfunc,
-        "valid": [
-            f(1),
-            f(1.1),
-            f("1"),
-            f(2),
-            f(val="2"),
-        ],
-        "invalid": [
-            f(),
-            f(None),
-            f("one"),
-            f("1.1"),
-            f(1, 2),
-        ]
+        "valid": [f(1), f(1.1), f("1"), f(2), f(val="2")],
+        "invalid": [f(), f(None), f("one"), f("1.1"), f(1, 2)],
     },
     {
         "func": str_cfunc,
-        "valid": [
-            f(1),
-            f("two"),
-            f("bytes"),
-            f(""),
-            f(None),
-            f(1.1),
-        ],
-        "invalid": [
-            f(1, 2),
-            f(),
-        ]
+        "valid": [f(1), f("two"), f("bytes"), f(""), f(None), f(1.1)],
+        "invalid": [f(1, 2), f()],
     },
     {
         "func": array_cfunc,
@@ -308,42 +215,24 @@ convert_examples = [
             f(numpy.arange(30).reshape(-1, 3).astype(float)),
             f(numpy.arange(30).reshape(-1, 3)),
         ],
-        "invalid": [f(None), f([["one", "two", "three"]])]
+        "invalid": [f(None), f([["one", "two", "three"]])],
     },
     {
         "func": union_cfunc,
-        "valid": [
-            f(None),
-            f(1),
-            f(1.1),
-            f('1'),
-        ],
-        "invalid": [
-            f(),
-            f(numpy.nan),
-            f("one"),
-            f(1, 2),
-            f(None, 2),
-        ]
+        "valid": [f(None), f(1), f(1.1), f("1")],
+        "invalid": [f(), f(numpy.nan), f("one"), f(1, 2), f(None, 2)],
     },
     {
         "func": tuple_cfunc,
-        "valid": [f(("a", 1)), ],
-        "invalid": [
-            f((1, "a")),
-            f(("a", )),
-            f("a", 1),
-            f((None, 1)),
-        ]
+        "valid": [f(("a", 1))],
+        "invalid": [f((1, "a")), f(("a",)), f("a", 1), f((None, 1))],
     },
 ]
 
 
 @pytest.mark.parametrize("example", convert_examples)
 def test_func_conversion(example):
-    func, valid, invalid = (
-        example["func"], example["valid"], example["invalid"]
-    )
+    func, valid, invalid = (example["func"], example["valid"], example["invalid"])
 
     for args, kwargs in valid:
         func(*args, **kwargs)

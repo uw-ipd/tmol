@@ -29,11 +29,11 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
 
     @classmethod
     def full(cls, shape, fill_value):
-        shape = (shape, ) if isinstance(shape, int) else tuple(shape)
+        shape = (shape,) if isinstance(shape, int) else tuple(shape)
         return cls(
-            range=torch.full(shape + (2, ), fill_value),
-            bound=torch.full(shape + (2, ), fill_value),
-            coeffs=torch.full(shape + (11, ), fill_value),
+            range=torch.full(shape + (2,), fill_value),
+            bound=torch.full(shape + (2,), fill_value),
+            coeffs=torch.full(shape + (11,), fill_value),
         )
 
 
@@ -52,8 +52,7 @@ class HBondParamResolver(ValidateAttrs):
     acceptor_type_index: pandas.Index = attr.ib()
     pair_params: HBondPairParams = attr.ib()
 
-    def __getitem__(self, key: Tuple[Sequence[str], Sequence[str]]
-                    ) -> HBondPairParams:
+    def __getitem__(self, key: Tuple[Sequence[str], Sequence[str]]) -> HBondPairParams:
         donor_types, acceptor_types = key
 
         di = self.donor_type_index.get_indexer(donor_types)
@@ -70,39 +69,52 @@ class HBondParamResolver(ValidateAttrs):
         donors = list(set(g.donor_type for g in atom_groups.donors))
         acceptors = list(
             toolz.reduce(
-                set.union, (
+                set.union,
+                (
                     set(g.acceptor_type for g in atom_groups.sp2_acceptors),
                     set(g.acceptor_type for g in atom_groups.sp3_acceptors),
                     set(g.acceptor_type for g in atom_groups.ring_acceptors),
-                )
+                ),
             )
         )
 
         donor_type_index = pandas.Index(donors)
 
-        donor_weights = torch.Tensor((
-            pandas.DataFrame.from_records(
-                cattr.unstructure(hbond_database.don_weights)
-            ).set_index("name")["weight"].reindex(donor_type_index).values
-        ))
+        donor_weights = torch.Tensor(
+            (
+                pandas.DataFrame.from_records(
+                    cattr.unstructure(hbond_database.don_weights)
+                )
+                .set_index("name")["weight"]
+                .reindex(donor_type_index)
+                .values
+            )
+        )
 
         acceptor_type_index = pandas.Index(acceptors)
 
-        acceptor_weights = torch.Tensor((
-            pandas.DataFrame.from_records(
-                cattr.unstructure(hbond_database.acc_weights)
-            ).set_index("name")["weight"].reindex(acceptor_type_index)
-        ))
+        acceptor_weights = torch.Tensor(
+            (
+                pandas.DataFrame.from_records(
+                    cattr.unstructure(hbond_database.acc_weights)
+                )
+                .set_index("name")["weight"]
+                .reindex(acceptor_type_index)
+            )
+        )
 
         # Get polynomial parameters index by polynomial name
         poly_params = HBondPolyParams(
             **toolz.merge_with(
                 numpy.vstack,
-                [{
-                    "range": [p.xmin, p.xmax],
-                    "bound": [p.min_val, p.max_val],
-                    "coeffs": [getattr(p, "c_" + i) for i in "abcdefghijk"]
-                } for p in hbond_database.polynomial_parameters]
+                [
+                    {
+                        "range": [p.xmin, p.xmax],
+                        "bound": [p.min_val, p.max_val],
+                        "coeffs": [getattr(p, "c_" + i) for i in "abcdefghijk"],
+                    }
+                    for p in hbond_database.polynomial_parameters
+                ],
             )
         )
 
@@ -111,10 +123,7 @@ class HBondParamResolver(ValidateAttrs):
             for i, p in enumerate(hbond_database.polynomial_parameters)
         }
 
-        pair_params = HBondPairParams.full(
-            (len(donors), len(acceptors)),
-            numpy.nan,
-        )
+        pair_params = HBondPairParams.full((len(donors), len(acceptors)), numpy.nan)
 
         for pp in hbond_database.pair_parameters:
             di, = donor_type_index.get_indexer([pp.don_chem_type])
@@ -127,8 +136,7 @@ class HBondParamResolver(ValidateAttrs):
             pair_params[di, ai].cosBAH[:] = poly_params[pp.cosBAH]
             pair_params[di, ai].cosAHD[:] = poly_params[pp.cosAHD]
             pair_params[di, ai].donor_weight.reshape(1)[:] = donor_weights[di]
-            pair_params[di, ai
-                        ].acceptor_weight.reshape(1)[:] = acceptor_weights[ai]
+            pair_params[di, ai].acceptor_weight.reshape(1)[:] = acceptor_weights[ai]
 
         return cls(
             donor_type_index=donor_type_index,

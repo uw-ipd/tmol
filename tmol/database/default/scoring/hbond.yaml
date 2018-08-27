@@ -28,8 +28,8 @@ atom_groups:
     - { a: OHphenol, b: CH0,  b0: Hpol, acceptor_type: hbacc_AHX } #ex: Tyr OH
     - { a: Owat,     b: Hwat, b0: Hwat, acceptor_type: hbacc_H2O } #ex: water O--H
   ring_acceptors:
-    - { a: NhisDDepro, b: aroC, b0: CH0,  acceptor_type: hbacc_IMD } #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
-    - { a: NhisEDepro, b: aroC, b0: aroC, acceptor_type: hbacc_IME } #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
+    - { a: NhisDDepro, b: Caro, b0: CH0,  acceptor_type: hbacc_IMD } #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
+    - { a: NhisEDepro, b: Caro, b0: Caro, acceptor_type: hbacc_IME } #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
 don_weights:
   - {name: hbdon_IND, weight: 1.15}
   - {name: hbdon_CXA, weight: 1.29}

@@ -2,7 +2,7 @@ import torch
 
 from tmol.system.packed import PackedResidueSystem
 
-from tmol.score import (TotalScoreGraph, TotalScoreComponentsGraph)
+from tmol.score import TotalScoreGraph, TotalScoreComponentsGraph
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
@@ -14,18 +14,12 @@ from tmol.utility.reactive import reactive_attrs
 
 
 @reactive_attrs
-class RealSpaceScore(
-        CartesianAtomicCoordinateProvider,
-        TotalScoreGraph,
-):
+class RealSpaceScore(CartesianAtomicCoordinateProvider, TotalScoreGraph):
     pass
 
 
 @reactive_attrs
-class DofSpaceScore(
-        KinematicAtomicCoordinateProvider,
-        TotalScoreGraph,
-):
+class DofSpaceScore(KinematicAtomicCoordinateProvider, TotalScoreGraph):
     pass
 
 
@@ -40,11 +34,7 @@ def test_torsion_space_gradcheck(ubq_res):
         return torsion_space.total_score
 
     assert torch.autograd.gradcheck(
-        total_score,
-        (start_dofs, ),
-        eps=1e-3,
-        rtol=5e-3,
-        atol=8e-4,
+        total_score, (start_dofs,), eps=1e-3, rtol=5e-3, atol=5e-4
     )
 
 
@@ -61,4 +51,4 @@ def test_real_space_gradcheck(ubq_res):
 
         return real_space.total_score
 
-    assert torch.autograd.gradcheck(total_score, (start_coords, ))
+    assert torch.autograd.gradcheck(total_score, (start_coords,))

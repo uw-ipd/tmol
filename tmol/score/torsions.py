@@ -18,44 +18,21 @@ from .factory import Factory
 class AlphaAABackboneTorsionProvider(Factory):
     @staticmethod
     @singledispatch
-    def factory_for(
-            other,
-            device: torch.device,
-            **_,
-    ):
-        """`clone`-factory, extract coords from other."""
-        #if requires_grad is None:
+    def factory_for(other, device: torch.device, **_):
+        """``clone``-factory, extract coords from other."""
+        # if requires_grad is None:
         #    requires_grad = other.coords.requires_grad
 
-        phi_inds = torch.tensor(
-            other.phi_inds,
-            dtype=torch.long,
-            device=device,
-        )
+        phi_inds = torch.tensor(other.phi_inds, dtype=torch.long, device=device)
 
-        psi_inds = torch.tensor(
-            other.psi_inds,
-            dtype=torch.long,
-            device=device,
-        )
+        psi_inds = torch.tensor(other.psi_inds, dtype=torch.long, device=device)
 
-        omega_inds = torch.tensor(
-            other.omega_inds,
-            dtype=torch.long,
-            device=device,
-        )
+        omega_inds = torch.tensor(other.omega_inds, dtype=torch.long, device=device)
 
-        res_aas = torch.tensor(
-            other.res_aas,
-            dtype=torch.long,
-            device=device,
-        )
+        res_aas = torch.tensor(other.res_aas, dtype=torch.long, device=device)
 
         return dict(
-            phi_inds=phi_inds,
-            psi_inds=psi_inds,
-            omega_inds=omega_inds,
-            res_aas=res_aas
+            phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds, res_aas=res_aas
         )
 
     # global indices used to define the torsions
@@ -90,24 +67,21 @@ class AlphaAABackboneTorsionProvider(Factory):
 
     @reactive_property
     def phi_tor(
-            coords64: Tensor(torch.double)[:, 3],
-            phi_inds: Tensor(torch.long)[:, 4]
+        coords64: Tensor(torch.double)[:, 3], phi_inds: Tensor(torch.long)[:, 4]
     ) -> Tensor(torch.float)[:]:
         phi_tor = measure_torsions(coords64, phi_inds)
         return phi_tor
 
     @reactive_property
     def psi_tor(
-            coords64: Tensor(torch.double)[:, 3],
-            psi_inds: Tensor(torch.long)[:, 4]
+        coords64: Tensor(torch.double)[:, 3], psi_inds: Tensor(torch.long)[:, 4]
     ) -> Tensor(torch.float)[:]:
         psi_tor = measure_torsions(coords64, psi_inds)
         return psi_tor
 
     @reactive_property
     def omega_tor(
-            coords64: Tensor(torch.double)[:, 3],
-            omega_inds: Tensor(torch.long)[:, 4]
+        coords64: Tensor(torch.double)[:, 3], omega_inds: Tensor(torch.long)[:, 4]
     ):
         omega_tor = measure_torsions(coords64, omega_inds)
         return omega_tor
@@ -115,13 +89,12 @@ class AlphaAABackboneTorsionProvider(Factory):
 
 @validate_args
 def measure_torsions(
-        coords: Tensor(torch.double)[:, 3], inds: Tensor(torch.long)[:, 4]
+    coords: Tensor(torch.double)[:, 3], inds: Tensor(torch.long)[:, 4]
 ) -> Tensor(torch.float):
     bad = torch.sum(inds == -1, 1) > 0
-    tors = torch.full((inds.shape[0], ),
-                      numpy.nan,
-                      dtype=torch.float,
-                      device=coords.device)
+    tors = torch.full(
+        (inds.shape[0],), numpy.nan, dtype=torch.float, device=coords.device
+    )
     tors[bad] = numpy.nan
     p1 = coords[inds[~bad, 0]]
     p2 = coords[inds[~bad, 1]]

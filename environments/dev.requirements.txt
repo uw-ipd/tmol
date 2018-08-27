@@ -1,3 +1,6 @@
 pytest-watch
 pytest-instafail
+pytest-repeat
 pdbpp
+
+pre-commit

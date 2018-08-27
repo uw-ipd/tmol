@@ -16,7 +16,9 @@ import numba
 from numba.cuda.cudadrv import devicearray, devices, driver
 import numba.cuda.simulator as simulator
 
-assert numba.__version__ < "0.39", "Backport of numba v0.39 device array interface no longer needed."
+assert (
+    numba.__version__ < "0.39"
+), "Backport of numba v0.39 device array interface no longer needed."
 
 try:
     long
@@ -28,7 +30,7 @@ current_context = devices.get_context
 
 
 def _get_devptr_for_active_ctx(ptr):
-    """Hack implemenation of internal numba 0.39 api, always assume pointer is on device."""
+    """Hack of internal numba 0.39 api, always assume pointer is on device."""
     return c_ulong(ptr)
 
 
@@ -38,20 +40,17 @@ def from_cuda_array_interface(desc, owner=None):
     The *owner* is the owner of the underlying memory.
     The resulting DeviceNDArray will acquire a reference from it.
     """
-    shape = desc['shape']
-    strides = desc.get('strides')
-    dtype = np.dtype(desc['typestr'])
+    shape = desc["shape"]
+    strides = desc.get("strides")
+    dtype = np.dtype(desc["typestr"])
 
     shape, strides, dtype = _prepare_shape_strides_dtype(
-        shape, strides, dtype, order='C'
+        shape, strides, dtype, order="C"
     )
 
-    devptr = _get_devptr_for_active_ctx(desc['data'][0])
+    devptr = _get_devptr_for_active_ctx(desc["data"][0])
     data = driver.MemoryPointer(
-        current_context(),
-        devptr,
-        size=np.prod(shape) * dtype.itemsize,
-        owner=owner
+        current_context(), devptr, size=np.prod(shape) * dtype.itemsize, owner=owner
     )
     da = devicearray.DeviceNDArray(
         shape=shape, strides=strides, dtype=dtype, gpu_data=data
@@ -65,47 +64,42 @@ def as_cuda_array(obj):
     cuda-array-interface.
 
     A view of the underlying GPU buffer is created.  No copying of the data is
-    done.  The resulting DeviceNDArray will acquire a reference from `obj`.
+    done.  The resulting DeviceNDArray will acquire a reference from ``obj``.
 
     Shim interface supports creation of *fake* cuda arrays iff the cuda
     simulator is active as the current context.
     """
 
     if isinstance(
-            numba.cuda.current_context(),
-            simulator.cudadrv.devices.FakeCUDAContext,
+        numba.cuda.current_context(), simulator.cudadrv.devices.FakeCUDAContext
     ):
         if is_cuda_array(obj):
-            raise ValueError(
-                "Can not create simulator device array from cuda array."
-            )
+            raise ValueError("Can not create simulator device array from cuda array.")
         return simulator.cudadrv.devicearray.FakeCUDAArray(obj.__array__())
 
     if not is_cuda_array(obj):
         raise TypeError("*obj* doesn't implement the cuda array interface.")
     else:
-        return from_cuda_array_interface(
-            obj.__cuda_array_interface__, owner=obj
-        )
+        return from_cuda_array_interface(obj.__cuda_array_interface__, owner=obj)
 
 
 @singledispatch
 def is_cuda_array(obj):
-    """Test if the object has defined the `__cuda_array_interface__`.
+    """Test if the object has defined the ``__cuda_array_interface__``.
     Does not verify the validity of the interface.
     """
-    return hasattr(obj, '__cuda_array_interface__')
+    return hasattr(obj, "__cuda_array_interface__")
 
 
 def _prepare_shape_strides_dtype(shape, strides, dtype, order):
     dtype = np.dtype(dtype)
     if isinstance(shape, (int, long)):
-        shape = (shape, )
+        shape = (shape,)
     if isinstance(strides, (int, long)):
-        strides = (strides, )
+        strides = (strides,)
     else:
         if shape == ():
-            shape = (1, )
+            shape = (1,)
         strides = strides or _fill_stride_by_order(shape, dtype, order)
     return shape, strides, dtype
 
@@ -113,16 +107,16 @@ def _prepare_shape_strides_dtype(shape, strides, dtype, order):
 def _fill_stride_by_order(shape, dtype, order):
     nd = len(shape)
     strides = [0] * nd
-    if order == 'C':
+    if order == "C":
         strides[-1] = dtype.itemsize
         for d in reversed(range(nd - 1)):
             strides[d] = strides[d + 1] * shape[d + 1]
-    elif order == 'F':
+    elif order == "F":
         strides[0] = dtype.itemsize
         for d in range(1, nd):
             strides[d] = strides[d - 1] * shape[d - 1]
     else:
-        raise ValueError('must be either C/F order')
+        raise ValueError("must be either C/F order")
     return tuple(strides)
 
 
@@ -133,9 +127,7 @@ class TorchCUDAArrayAdaptor:
     @property
     def __cuda_array_interface__(self):
         if not self.t.device.type == "cuda":
-            raise ValueError(
-                f"tensor is not on cuda device: {self.t.device !r}"
-            )
+            raise ValueError(f"tensor is not on cuda device: {self.t.device !r}")
         if not self.t.device.index == numba.cuda.get_current_device().id:
             raise ValueError(
                 f"tensor device: {self.t !r} "
@@ -168,20 +160,13 @@ class TorchCUDAArrayAdaptor:
         strides = tuple(s * itemsize for s in self.t.stride())
         data = (self.t.data_ptr(), False)
 
-        return dict(
-            typestr=typestr,
-            shape=shape,
-            strides=strides,
-            data=data,
-            version=0,
-        )
+        return dict(typestr=typestr, shape=shape, strides=strides, data=data, version=0)
 
     @staticmethod
     @as_cuda_array.register(torch.Tensor)
     def as_cuda_array(torch_tensor):
         if isinstance(
-                numba.cuda.current_context(),
-                simulator.cudadrv.devices.FakeCUDAContext,
+            numba.cuda.current_context(), simulator.cudadrv.devices.FakeCUDAContext
         ):
             # Fall through to default implementation iff in simulator context
             return as_cuda_array.dispatch(object)(torch_tensor)

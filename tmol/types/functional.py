@@ -1,3 +1,5 @@
+"""Runtime type validation and conversion."""
+
 import inspect
 from decorator import decorate
 import typing
@@ -8,10 +10,7 @@ from .converters import get_converter
 
 def validate_args(f):
     f._signature = inspect.signature(f)
-    f._validators = {
-        n: get_validator(v)
-        for n, v in typing.get_type_hints(f).items()
-    }
+    f._validators = {n: get_validator(v) for n, v in typing.get_type_hints(f).items()}
 
     def validate_f(f, *args, **kwargs):
         bound = f._signature.bind(*args, **kwargs)
@@ -41,10 +40,7 @@ def validate_args(f):
 
 def convert_args(f):
     f._signature = inspect.signature(f)
-    f._converters = {
-        n: get_converter(v)
-        for n, v in typing.get_type_hints(f).items()
-    }
+    f._converters = {n: get_converter(v) for n, v in typing.get_type_hints(f).items()}
 
     def convert_f(f, *args, **kwargs):
         bound = f._signature.bind(*args, **kwargs)

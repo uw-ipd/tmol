@@ -17,21 +17,10 @@ def f(*args, **kwargs):
 validate_examples = [
     {
         "func": ValidateObj,
-        "expected": {
-            "a": 1,
-            "b": "b"
-        },
-        "valid": [
-            f(a=1, b="b"),
-            f(1, "b"),
-        ],
-        "invalid": [
-            f(1, 1),
-            f(1),
-            f("b", 1),
-            f((1, "b")),
-        ]
-    },
+        "expected": {"a": 1, "b": "b"},
+        "valid": [f(a=1, b="b"), f(1, "b")],
+        "invalid": [f(1, 1), f(1), f("b", 1), f((1, "b"))],
+    }
 ]
 
 
@@ -70,20 +59,10 @@ class ConvertObj(ConvertAttrs):
 convert_examples = [
     {
         "func": ConvertObj,
-        "expected": {
-            "a": 1,
-            "b": 1
-        },
-        "valid": [
-            f(a=1, b="1"),
-            f(1, 1),
-        ],
-        "invalid": [
-            f(1),
-            f("b", 1),
-            f((1, "b")),
-        ]
-    },
+        "expected": {"a": 1, "b": 1},
+        "valid": [f(a=1, b="1"), f(1, 1)],
+        "invalid": [f(1), f("b", 1), f((1, "b"))],
+    }
 ]
 
 

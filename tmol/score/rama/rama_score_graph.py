@@ -5,11 +5,12 @@ import numpy
 
 from ..database import ParamDB
 from ..device import TorchDevice
-from ..total_score import ScoreComponentAttributes
+from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..factory import Factory
 from ..torsions import AlphaAABackboneTorsionProvider
 from ..polymeric_bonds import PolymericBonds
 
+from tmol.database import ParameterDatabase
 from tmol.database.chemical import AAType
 from tmol.database.scoring.rama import CompactedRamaDatabase
 
@@ -21,15 +22,16 @@ from tmol.types.torch import Tensor
 
 @reactive_attrs(auto_attribs=True)
 class RamaScoreGraph(
-        AlphaAABackboneTorsionProvider,
-        PolymericBonds,
-        ParamDB,
-        TorchDevice,
-        Factory,
+    AlphaAABackboneTorsionProvider,
+    TotalScoreComponentsGraph,
+    PolymericBonds,
+    ParamDB,
+    TorchDevice,
+    Factory,
 ):
     @staticmethod
     def factory_for(
-            val, parameter_database: ParamDB, device: torch.device, **_
+        val, parameter_database: ParameterDatabase, device: torch.device, **_
     ):
         """Request the CompoactedRamaDatabase "held" (memoized) in the
         parameter database. We only want a single copy of the parameter
@@ -38,7 +40,7 @@ class RamaScoreGraph(
         rama_db = CompactedRamaDatabase.from_ramadb(
             parameter_database.scoring.rama, device
         )
-        return dict(rama_db=rama_db, )
+        return dict(rama_db=rama_db)
 
     rama_db: CompactedRamaDatabase = attr.ib()
 
@@ -51,32 +53,35 @@ class RamaScoreGraph(
     @property
     def component_total_score_terms(self):
         """Expose rama score sum as total_score term."""
-        return ScoreComponentAttributes(
-            name="rama",
-            total="total_rama",
-        )
+        return ScoreComponentAttributes(name="rama", total="total_rama")
 
     @reactive_property
     @validate_args
     def rama_scores(
-            rama_db: CompactedRamaDatabase, upper: Tensor(torch.long)[:],
-            res_aas: Tensor(torch.long)[:], phi_tor: Tensor(torch.float)[:],
-            psi_tor: Tensor(torch.float)[:]
+        rama_db: CompactedRamaDatabase,
+        upper: Tensor(torch.long)[:],
+        res_aas: Tensor(torch.long)[:],
+        phi_tor: Tensor(torch.float)[:],
+        psi_tor: Tensor(torch.float)[:],
     ) -> Tensor(torch.float):
         has_rama = ~torch.isnan(phi_tor) & ~torch.isnan(psi_tor)
-        phi_psi = torch.cat((
-            phi_tor[has_rama].reshape(-1, 1), psi_tor[has_rama].reshape(-1, 1)
-        ),
-                            dim=1)
+        phi_psi = torch.cat(
+            (phi_tor[has_rama].reshape(-1, 1), psi_tor[has_rama].reshape(-1, 1)), dim=1
+        )
         # shift range of [-pi,pi) to [0,36)
         phi_psi = (18 / numpy.pi) * phi_psi + 18
 
         has_upper = upper != -1
-        upper_is_pro = (res_aas[upper[has_upper & has_rama]
-                                ] == AAType.aa_pro).type(torch.long)
-        rama_inds = torch.cat(((res_aas[has_upper & has_rama]).reshape(-1, 1),
-                               upper_is_pro.reshape(-1, 1)),
-                              dim=1)
+        upper_is_pro = (res_aas[upper[has_upper & has_rama]] == AAType.aa_pro).type(
+            torch.long
+        )
+        rama_inds = torch.cat(
+            (
+                (res_aas[has_upper & has_rama]).reshape(-1, 1),
+                upper_is_pro.reshape(-1, 1),
+            ),
+            dim=1,
+        )
         return rama_db.bspline.interpolate(phi_psi, rama_inds)
 
     @reactive_property

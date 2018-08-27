@@ -1,2 +1,1 @@
-from .score_graph import HBondScoreGraph
-__all__ = (HBondScoreGraph)
+from .score_graph import HBondScoreGraph  # noqa: F401
