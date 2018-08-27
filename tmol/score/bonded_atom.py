@@ -79,7 +79,10 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, Factory):
         result = numpy.empty(bond_graph.shape, dtype="f4")
         for l in range(stack_depth):
             result[l] = csgraph.dijkstra(
-                bond_graph[l].tocsr(), directed=False, unweighted=True, limit=6
+                bond_graph[l].tocsr(),
+                directed=False,
+                unweighted=True,
+                limit=MAX_BONDED_PATH_LENGTH,
             )
 
         return result
