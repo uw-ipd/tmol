@@ -8,7 +8,7 @@ from tmol.score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 from tmol.score.total_score import TotalScoreComponentsGraph
-from tmol.score.rama.rama_score_graph import RamaScoreGraph
+from tmol.score.rama.score_graph import RamaScoreGraph
 from tmol.score.bonded_atom import BondedAtomScoreGraph
 
 
