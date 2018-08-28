@@ -7,7 +7,7 @@ from tmol.utility.units import parse_angle
 
 
 def test_coord_dihedrals():
-    coords = numpy.array(
+    coords = torch.tensor(
         [
             [24.969, 13.428, 30.692],  # N
             [24.044, 12.661, 29.808],  # CA
@@ -18,11 +18,12 @@ def test_coord_dihedrals():
             [23.691, 9.935, 28.389],  # CD1
             [22.557, 9.096, 30.459],  # CD2
             [numpy.nan, numpy.nan, numpy.nan],
-        ]
+        ],
+        dtype=torch.float64,
     )
 
-    dihedral_atoms = numpy.array(
-        [[0, 1, 2, 3], [0, 1, 4, 5], [1, 4, 5, 6], [1, 4, 5, 7], [-1, 0, 1, 3]]
+    dihedral_atoms = torch.LongTensor(
+        [[0, 1, 2, 3], [0, 1, 4, 5], [1, 4, 5, 6], [1, 4, 5, 7], [8, 0, 1, 3]]
     )
 
     dihedrals = compose(numpy.array, list, map(parse_angle))(
