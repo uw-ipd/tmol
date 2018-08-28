@@ -35,7 +35,7 @@ def test_torsion_space_gradcheck(ubq_res):
         return torsion_space.total_score
 
     assert torch.autograd.gradcheck(
-        total_score, (start_dofs,), eps=1e-3, rtol=5e-3, atol=5e-4
+        total_score, (start_dofs,), eps=1e-3, rtol=5e-3, atol=5e-3
     )
 
 

@@ -105,5 +105,5 @@ def test_create_torsion_provider(ubq_system):
         ]
     )  # yapf: disable
     numpy.testing.assert_allclose(
-        (src.phi_tor * 180 / numpy.pi).detach().numpy(), gold_phi, atol=1e-4
+        (src.phi_tor * 180 / numpy.pi).detach().numpy().squeeze(), gold_phi, atol=1e-4
     )

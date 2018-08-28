@@ -21,7 +21,7 @@ class TCartBonds(
 
 def test_create_torsion_provider(ubq_system):
     src = TCartBonds.build_for(ubq_system)
-    assert (src.upper.numpy()[:75] == (numpy.arange(75) + 1)).all()
-    assert src.upper.numpy()[75] == -1
-    assert (src.lower.numpy()[1:] == numpy.arange(75)).all()
-    assert src.lower[0] == -1
+    assert (src.upper.numpy().squeeze()[:75] == (numpy.arange(75) + 1)).all()
+    assert src.upper.numpy()[0, 75] == -1
+    assert (src.lower.numpy().squeeze()[1:] == numpy.arange(75)).all()
+    assert src.lower[0, 0] == -1
