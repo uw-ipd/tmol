@@ -6,7 +6,7 @@ import toolz.functoolz
 from typing import Tuple, Optional
 
 import torch
-from ..chemical import AAType, aatype_to_three_letter
+from tmol.chemical.aa import AAIndex
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.numeric.bspline import BSplineInterpolation
@@ -61,11 +61,12 @@ class CompactedRamaDatabase:
 
     table: Tensor(torch.float)[20, 2, 36, 36]
     bspline: BSplineInterpolation
+    pro_ind: int
 
     @classmethod
     @toolz.functoolz.memoize(
         cache=_from_rama_db_cache,
-        key=lambda args, kwargs: (args[1], args[2].type, args[2].index)
+        key=lambda args, kwargs: (args[1], args[2].type, args[2].index),
     )
     def from_ramadb(cls, ramadb: RamaDatabase, device: torch.device):
         """
@@ -77,12 +78,9 @@ class CompactedRamaDatabase:
         to create it.
         """
 
-        table = torch.full((20, 2, 36, 36),
-                           -1234,
-                           dtype=torch.float,
-                           device=device)
-        for aa in range(len(AAType)):
-            aa3name = aatype_to_three_letter[aa]
+        table = torch.full((20, 2, 36, 36), -1234, dtype=torch.float, device=device)
+        for aa in range(len(AAIndex.canonical_laa_ind3)):
+            aa3name = AAIndex.canonical_laa_ind3[aa]
             for prepro in range(2):
                 aatab = ramadb.find(aa3name, bool(prepro))
                 assert aatab
@@ -96,13 +94,13 @@ class CompactedRamaDatabase:
 
         # exp of the -energies should get back to the original probabilities
         # so we can calculate the table entropies
-        entropy = ((table * torch.log(table)).sum(dim=3)).sum(dim=2).reshape(
-            20, 2, 1, 1
+        entropy = (
+            ((table * torch.log(table)).sum(dim=3)).sum(dim=2).reshape(20, 2, 1, 1)
         )
         table = -1 * torch.log(table) + entropy
 
-        bspline = BSplineInterpolation.from_coordinates(
-            table, degree=3, n_index_dims=2
-        )
+        bspline = BSplineInterpolation.from_coordinates(table, degree=3, n_index_dims=2)
 
-        return cls(table=table, bspline=bspline)
+        pro_ind = AAIndex.canonical_laa_ind3.get_loc("PRO")
+
+        return cls(table=table, bspline=bspline, pro_ind=pro_ind)

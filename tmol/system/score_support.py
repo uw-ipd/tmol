@@ -20,7 +20,8 @@ from ..score.polymeric_bonds import PolymericBonds
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
-from ..database.chemical import three_letter_to_aatype
+# from ..database.chemical import three_letter_to_aatype
+from tmol.chemical.aa import AAIndex
 
 
 @StackedSystem.factory_for.register(PackedResidueSystem)
@@ -115,8 +116,8 @@ def system_torsions_from_coordinates(
 
     res_aas = torch.tensor(
         [
-            three_letter_to_aatype[res.residue_type.name3]
-            if res.residue_type.name3 in three_letter_to_aatype
+            AAIndex.canonical_laa_ind3.get_loc(res.residue_type.name3)
+            if res.residue_type.name3 in AAIndex.canonical_laa_ind3
             else -1
             for res in system.residues
         ],

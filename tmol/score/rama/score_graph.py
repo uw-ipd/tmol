@@ -11,7 +11,8 @@ from ..torsions import AlphaAABackboneTorsionProvider
 from ..polymeric_bonds import PolymericBonds
 
 from tmol.database import ParameterDatabase
-from tmol.database.chemical import AAType
+
+# from tmol.database.chemical import AAType
 from tmol.database.scoring.rama import CompactedRamaDatabase
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -72,7 +73,7 @@ class RamaScoreGraph(
 
         has_upper = upper != -1
         upper_is_pro = (
-            res_aas.squeeze()[upper[has_upper & has_rama]] == AAType.aa_pro
+            res_aas.squeeze()[upper[has_upper & has_rama]] == rama_db.pro_ind
         ).type(torch.long)
         rama_inds = torch.cat(
             (
