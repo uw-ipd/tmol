@@ -104,8 +104,8 @@ def test_bb_identification(bb_hbond_database, ubq_system):
 
     hbe = HBondElementAnalysis.setup(
         hbond_database=bb_hbond_database,
-        atom_types=test_params["atom_types"],
-        bonds=test_params["bonds"],
+        atom_types=test_params["atom_types"][0],
+        bonds=test_params["bonds"][:, 1:],
     )
 
     pandas.testing.assert_frame_equal(

@@ -165,11 +165,7 @@ class HBondScoreGraph(
 
         return dict(hbond_database=hbond_database)
 
-    hbond_database: HBondDatabase = attr.ib()
-
-    @hbond_database.default
-    def _default_hbond_database(self):
-        return self.parameter_database.scoring.hbond
+    hbond_database: HBondDatabase
 
     @property
     def component_total_score_terms(self):
@@ -198,12 +194,15 @@ class HBondScoreGraph(
     @validate_args
     def hbond_elements(
         hbond_database: HBondDatabase,
-        atom_types: NDArray(object)[:],
-        bonds: NDArray(int)[:, 2],
+        atom_types: NDArray(object)[:, :],
+        bonds: NDArray(int)[:, 3],
     ) -> HBondElementAnalysis:
         """hbond score elements in target graph"""
+        assert atom_types.shape[0] == 1
+        assert numpy.all(bonds[:, 0] == 0)
+
         return HBondElementAnalysis.setup(
-            hbond_database=hbond_database, atom_types=atom_types, bonds=bonds
+            hbond_database=hbond_database, atom_types=atom_types[0], bonds=bonds[:, 1:]
         )
 
     @reactive_property
@@ -219,11 +218,14 @@ class HBondScoreGraph(
     @reactive_property
     @validate_args
     def donor_sp2_hbond(
-        coords: Tensor(torch.float)[:, 3],
+        coords: Tensor(torch.float)[:, :, 3],
         hbond_pairs: HBondPairs,
         hbond_database: HBondDatabase,
     ) -> Tensor(torch.float)[:]:
         """donor-sp2 hbond scores"""
+
+        assert len(coords) == 1, "Only single depth supported"
+        coords = coords[0]
 
         donor_sp2_pairs = hbond_pairs.donor_sp2_pairs
         donor_sp2_pair_params = hbond_pairs.donor_sp2_pair_params
@@ -258,12 +260,15 @@ class HBondScoreGraph(
     @reactive_property
     @validate_args
     def donor_sp3_hbond(
-        coords: Tensor(torch.float)[:, 3],
+        coords: Tensor(torch.float)[:, :, 3],
         hbond_pairs: HBondPairs,
         hbond_database: HBondDatabase,
     ) -> Tensor(torch.float)[:]:
         donor_sp3_pairs = hbond_pairs.donor_sp3_pairs
         donor_sp3_pair_params = hbond_pairs.donor_sp3_pair_params
+
+        assert len(coords) == 1, "Only single depth supported"
+        coords = coords[0]
 
         if len(donor_sp3_pairs) == 0:
             return coords.new(0)
@@ -293,7 +298,7 @@ class HBondScoreGraph(
     @reactive_property
     @validate_args
     def donor_ring_hbond(
-        coords: Tensor(torch.float)[:, 3],
+        coords: Tensor(torch.float)[:, :, 3],
         hbond_pairs: HBondPairs,
         hbond_database: HBondDatabase,
     ) -> Tensor(torch.float)[:]:
@@ -301,6 +306,8 @@ class HBondScoreGraph(
 
         donor_ring_pairs = hbond_pairs.donor_ring_pairs
         donor_ring_pair_params = hbond_pairs.donor_ring_pair_params
+        assert len(coords) == 1, "Only single layer supported."
+        coords = coords[0]
 
         if len(donor_ring_pairs) == 0:
             return coords.new(0)
@@ -331,9 +338,11 @@ class HBondScoreGraph(
         donor_sp2_hbond: Tensor(torch.float)[:],
         donor_sp3_hbond: Tensor(torch.float)[:],
         donor_ring_hbond: Tensor(torch.float)[:],
-    ) -> Tensor(torch.float):
+    ) -> Tensor(torch.float)[:]:
         """total hbond score"""
-        return donor_sp2_hbond.sum() + donor_sp3_hbond.sum() + donor_ring_hbond.sum()
+        return (
+            donor_sp2_hbond.sum() + donor_sp3_hbond.sum() + donor_ring_hbond.sum()
+        ).reshape((1,))
 
     @reactive_property
     @validate_args

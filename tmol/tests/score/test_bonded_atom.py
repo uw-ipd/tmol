@@ -1,11 +1,15 @@
 import pytest
+import toolz
+
+import scipy.sparse.csgraph as csgraph
 
 import numpy
 
 from tmol.score.bonded_atom import BondedAtomScoreGraph
+from tmol.system.packed import PackedResidueSystem
 
 
-def test_bonded_atom_clone_factory(ubq_system):
+def test_bonded_atom_clone_factory(ubq_system: PackedResidueSystem):
     src: BondedAtomScoreGraph = BondedAtomScoreGraph.build_for(ubq_system)
 
     # Bond graph is referenced
@@ -23,3 +27,42 @@ def test_bonded_atom_clone_factory(ubq_system):
 
     # Atom types are referenced
     assert clone.atom_types is src.atom_types
+
+
+def test_real_atoms(ubq_system: PackedResidueSystem):
+    """``real_atoms`` is set for every residue's atom in an packed residue system."""
+    expected_real_indices = list(
+        toolz.concat(
+            range(i, i + len(r.coords))
+            for i, r in zip(ubq_system.res_start_ind, ubq_system.residues)
+        )
+    )
+
+    src: BondedAtomScoreGraph = BondedAtomScoreGraph.build_for(ubq_system)
+
+    assert src.real_atoms.shape == (1, src.system_size)
+    assert list(numpy.flatnonzero(numpy.array(src.real_atoms))) == expected_real_indices
+
+
+def test_bonded_path_length(ubq_system: PackedResidueSystem):
+    """Bonded path length is evaluated up to MAX_BONDED_PATH_LENGTH."""
+
+    src: BondedAtomScoreGraph = BondedAtomScoreGraph.build_for(ubq_system)
+    src_bond_table = numpy.zeros((src.system_size, src.system_size))
+    src_bond_table[src.bonds[:, 1], src.bonds[:, 2]] = 1
+    bond_graph = csgraph.csgraph_from_dense(src_bond_table)
+    distance_table = csgraph.shortest_path(bond_graph, directed=False, unweighted=True)
+
+    for mlen in (None, 6, 8, 12):
+        if mlen is not None:
+            src.MAX_BONDED_PATH_LENGTH = mlen
+
+        assert src.bonded_path_length.shape == (1, src.system_size, src.system_size)
+        assert numpy.all(
+            src.bonded_path_length[0][distance_table > src.MAX_BONDED_PATH_LENGTH]
+            == numpy.inf
+        )
+        assert numpy.all(
+            src.bonded_path_length[0][distance_table < src.MAX_BONDED_PATH_LENGTH]
+            == distance_table[distance_table < src.MAX_BONDED_PATH_LENGTH]
+        )
