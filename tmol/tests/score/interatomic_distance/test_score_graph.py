@@ -33,14 +33,12 @@ def test_interatomic_distance_stacked(
         )
     )
 
-    intra_total = threshold_distance_score_class.intra_score(score_state).total
+    intra_total = score_state.intra_score().total
 
     assert intra_total.shape == (4,)
     assert (intra_total.new_tensor(intra_layer_counts) == intra_total).all()
 
-    inter_total = threshold_distance_score_class.inter_score(
-        score_state, score_state
-    ).total
+    inter_total = score_state.inter_score(score_state).total
 
     assert inter_total.shape == (4, 4)
     assert (inter_total.new_tensor(inter_layer_counts) == inter_total).all()
@@ -78,7 +76,7 @@ def test_interatomic_distance_ubq_smoke(
         # Calculate total score, rather than atom pair distances
         # As naive implemenation returns a more precise set of distances
         # to the resulting score function.
-        return dgraph.intra_score(dgraph).total
+        return dgraph.intra_score().total
 
     assert total_score.shape == (1,)
     assert (scipy_count == total_score).all()

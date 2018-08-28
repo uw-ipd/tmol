@@ -93,36 +93,36 @@ def test_single_component():
     fb = Foo(foo="foo")
     fb2 = Foo(foo="foo2")
 
-    assert fb.intra_score(fb).total == "foo"
-    assert fb.intra_score(fb).total_foo == "foo"
+    assert fb.intra_score().total == "foo"
+    assert fb.intra_score().total_foo == "foo"
 
-    assert fb.inter_score(fb, fb).total == "foofoo"
-    assert fb.inter_score(fb, fb).total_foo == "foofoo"
+    assert fb.inter_score(fb).total == "foofoo"
+    assert fb.inter_score(fb).total_foo == "foofoo"
 
-    assert fb.inter_score(fb, fb2).total == "foofoo2"
-    assert fb.inter_score(fb, fb2).total_foo == "foofoo2"
+    assert fb.inter_score(fb2).total == "foofoo2"
+    assert fb.inter_score(fb2).total_foo == "foofoo2"
 
-    assert fb.inter_score(fb2, fb).total == "foo2foo"
-    assert fb.inter_score(fb2, fb).total_foo == "foo2foo"
+    assert fb2.inter_score(fb).total == "foo2foo"
+    assert fb2.inter_score(fb).total_foo == "foo2foo"
 
     # Check missing inter accessor
     inter_fb = JustInterFoo(foo="foo")
     inter_fb2 = JustInterFoo(foo="foo2")
 
     with pytest.raises(NotImplementedError):
-        assert inter_fb.intra_score(fb)
+        assert inter_fb.intra_score()
 
-    assert inter_fb.inter_score(inter_fb, inter_fb).total == "foofoo"
-    assert inter_fb.inter_score(inter_fb, inter_fb2).total == "foofoo2"
-    assert inter_fb.inter_score(inter_fb2, inter_fb).total == "foo2foo"
+    assert inter_fb.inter_score(inter_fb).total == "foofoo"
+    assert inter_fb.inter_score(inter_fb2).total == "foofoo2"
+    assert inter_fb2.inter_score(inter_fb).total == "foo2foo"
 
     # Check missing intra accessor
     intra_fb = JustIntraFoo(foo="foo")
 
-    assert intra_fb.intra_score(intra_fb).total == "foo"
+    assert intra_fb.intra_score().total == "foo"
 
     with pytest.raises(NotImplementedError):
-        assert intra_fb.inter_score(intra_fb, intra_fb)
+        assert intra_fb.inter_score(intra_fb)
 
 
 def test_two_component():
@@ -150,21 +150,21 @@ def test_two_component():
         pass
 
     fb = FooBar(foo="foo", bar="bar")
-    assert fb.intra_score(fb).total == "foobar"
-    assert fb.intra_score(fb).total_foo == "foo"
-    assert fb.intra_score(fb).total_bar == "bar"
+    assert fb.intra_score().total == "foobar"
+    assert fb.intra_score().total_foo == "foo"
+    assert fb.intra_score().total_bar == "bar"
 
     fb2 = FooBar(foo="foo2", bar="bar2")
 
-    assert fb.inter_score(fb, fb2).total == "foofoo2barbar2"
-    assert fb.inter_score(fb, fb2).total_foo == "foofoo2"
-    assert fb.inter_score(fb, fb2).total_bar == "barbar2"
+    assert fb.inter_score(fb2).total == "foofoo2barbar2"
+    assert fb.inter_score(fb2).total_foo == "foofoo2"
+    assert fb.inter_score(fb2).total_bar == "barbar2"
 
     # Set summation order from mro
     bf = BarFoo(foo="foo", bar="bar")
-    bf.intra_score(bf).total == "barfoo"
-    bf.intra_score(bf).total_foo == "foo"
-    bf.intra_score(bf).total_bar == "bar"
+    bf.intra_score().total == "barfoo"
+    bf.intra_score().total_foo == "foo"
+    bf.intra_score().total_bar == "bar"
 
     # Check missing inter accessor on single component
     @attr.s
@@ -174,11 +174,11 @@ def test_two_component():
     inter_fb = JustInterFooBar("foo", "bar")
 
     with pytest.raises(NotImplementedError):
-        inter_fb.intra_score(inter_fb)
+        inter_fb.intra_score()
 
-    assert inter_fb.inter_score(inter_fb, fb2).total == "foofoo2barbar2"
-    assert inter_fb.inter_score(inter_fb, fb2).total_foo == "foofoo2"
-    assert inter_fb.inter_score(inter_fb, fb2).total_bar == "barbar2"
+    assert inter_fb.inter_score(fb2).total == "foofoo2barbar2"
+    assert inter_fb.inter_score(fb2).total_foo == "foofoo2"
+    assert inter_fb.inter_score(fb2).total_bar == "barbar2"
 
     # Check missing intra accessor on single component
     @attr.s
@@ -187,9 +187,9 @@ def test_two_component():
 
     intra_fb = JustIntraFooBar("foo", "bar")
 
-    assert intra_fb.intra_score(intra_fb).total == "foobar"
-    assert intra_fb.intra_score(intra_fb).total_foo == "foo"
-    assert intra_fb.intra_score(intra_fb).total_bar == "bar"
+    assert intra_fb.intra_score().total == "foobar"
+    assert intra_fb.intra_score().total_foo == "foo"
+    assert intra_fb.intra_score().total_bar == "bar"
 
     with pytest.raises(NotImplementedError):
-        intra_fb.inter_score(intra_fb, intra_fb)
+        intra_fb.inter_score(intra_fb)

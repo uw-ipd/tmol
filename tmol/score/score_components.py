@@ -89,17 +89,13 @@ class ScoreComponent:
     __resolved_intra_score_type__: Optional[type]
     __resolved_inter_score_type__: Optional[type]
 
-    @classmethod
-    def intra_score(cls: "ScoreComponent", target: "ScoreComponent") -> IntraScoreGraph:
+    def intra_score(self) -> IntraScoreGraph:
         """Create intra-score container for target."""
-        return cls._intra_score_type()(target)
+        return self._intra_score_type()(self)
 
-    @classmethod
-    def inter_score(
-        cls: "ScoreComponent", target_i: "ScoreComponent", target_j: "ScoreComponent"
-    ) -> InterScoreGraph:
+    def inter_score(self: "ScoreComponent", other: "ScoreComponent") -> InterScoreGraph:
         """Create inter-score container for i/j."""
-        return cls._inter_score_type()(target_i, target_j)
+        return self._inter_score_type()(self, other)
 
     @classmethod
     def _intra_score_type(cls):
