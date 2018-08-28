@@ -8,8 +8,11 @@ from . import bonded_atom
 
 @tmol.io.generic.to_pdb.register(bonded_atom.BondedAtomScoreGraph)
 def score_graph_to_pdb(score_graph):
-    atom_coords = score_graph.coords.detach().numpy()
-    atom_types = score_graph.atom_types
+    if score_graph.stack_depth != 1:
+        raise NotImplementedError("Can not convert stack_depth != 1 to pdb.")
+
+    atom_coords = score_graph.coords[0].detach().numpy()
+    atom_types = score_graph.atom_types[0]
 
     render_atoms = numpy.flatnonzero(numpy.all(~numpy.isnan(atom_coords), axis=-1))
 
@@ -32,8 +35,11 @@ def score_graph_to_pdb(score_graph):
 
 @tmol.io.generic.to_cdjson.register(bonded_atom.BondedAtomScoreGraph)
 def score_graph_to_cdjson(score_graph):
-    coords = score_graph.coords.detach().numpy()
-    elems = map(lambda t: t[0] if t else "x", score_graph.atom_types)
-    bonds = list(map(tuple, score_graph.bonds))
+    if score_graph.stack_depth != 1:
+        raise NotImplementedError("Can not convert stack_depth != 1 to cdjson.")
+
+    coords = score_graph.coords[0].detach().numpy()
+    elems = map(lambda t: t[0] if t else "x", score_graph.atom_types[0])
+    bonds = list(map(tuple, score_graph.bonds[:, 1:]))
 
     return tmol.io.generic.pack_cdjson(coords, elems, bonds)

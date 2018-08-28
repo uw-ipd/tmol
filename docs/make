@@ -36,7 +36,7 @@ strip_color() {
   sphinx-build -M html docs docs/_build -w docs/_build/warnings.raw | filter_warnings
 
   # Strip expected warnings and colorized output
-  cat docs/_build/warnings.raw | filter_warnings | strip_color | tee > docs/_build/warnings
+  cat docs/_build/warnings.raw | filter_warnings | strip_color | tee docs/_build/warnings
 )
 
 popd

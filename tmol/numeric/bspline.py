@@ -18,7 +18,7 @@ that for bicuplic spline interpolation. (Catmull-Rom splines are similarly
 low-memory overhead, but do not fit the data as cleanly).
 
 To use these B-splines, construct a BSplineInterpolation object using the
-`from_coordinates` function, passing in the tensor of coordinates that
+``from_coordinates`` function, passing in the tensor of coordinates that
 should be interpolated, indicating the degree of the spline (3 for
 the equivalent of bicubic spline interpolation), and indicating the
 number of dimensions in the coordinate tensor that are indexing rather
@@ -27,12 +27,12 @@ dimensions allow stacks of coordinate tensors to be interpolated
 simultaneously as might be useful, e.g., if one had 20 different 36x36
 tables as one does when computing the Ramachandran potential.
 
-Interpolation is performed where the input X values must be in the range of (0, |X_i|]
-for dimension i -- if, e.g., you are interpolating dihedrals in degrees with a 10 degree
-step size in the range (-180, 180], then add 180 to the dihedral shifting to the range
-[0, 360) and then divide by 10 to produce an interpolation value in the range (0, 36].
-Another way to say this is that the code assumes unit distance between interpolation
-points.
+Interpolation is performed where the input X values must be in the range of
+(0, len(X_i)] for dimension i -- if, e.g., you are interpolating dihedrals
+in degrees with a 10 degree step size in the range (-180, 180], then add 180
+to the dihedral shifting to the range [0, 360) and then divide by 10 to produce
+an interpolation value in the range (0, 36]. Another way to say this is that
+the code assumes a uniform unit distance between interpolation points.
 """
 
 import torch
@@ -49,15 +49,22 @@ class BSplineDegree:
     @classmethod
     @validate_args
     def empty_wts_bydim(
-            cls, ndims: int, coeffs: Tensor(torch.float),
-            X: Tensor(torch.float)[:, :]
+        cls, ndims: int, coeffs: Tensor(torch.float), X: Tensor(torch.float)[:, :]
     ) -> Tensor(torch.float)[:, :, :]:
-        """Allocate wts_bydim tensor with the dtype and device following
-        coeffs's example
+        """Allocate wts_bydim tensor with the dtype and device matching
+        coeffs's dtype and device.
+
+        X is a [n_points x ndims] tensor representing the set of n-dimensional
+        points whose values are being interpolated.
+        This function returns an empty [n_points x cls.degree+1 x ndims] tensor
+        that will be populated by the derived class
+
         """
-        return torch.empty((X.shape[0], cls.degree + 1, ndims),
-                           dtype=coeffs.dtype,
-                           device=coeffs.device)
+        return torch.empty(
+            (X.shape[0], cls.degree + 1, ndims),
+            dtype=coeffs.dtype,
+            device=coeffs.device,
+        )
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -68,10 +75,17 @@ class BSplineDegree2(BSplineDegree):
     @classmethod
     @validate_args
     def compute_wts_bydim(
-            cls, ndims: int, coeffs: Tensor(torch.float),
-            X: Tensor(torch.float)[:, :],
-            indx_bydim: Tensor(torch.float)[:, :, :]
+        cls,
+        ndims: int,
+        coeffs: Tensor(torch.float),
+        X: Tensor(torch.float)[:, :],
+        indx_bydim: Tensor(torch.float)[:, :, :],
     ) -> Tensor(torch.float)[:, :, :]:
+        """Populate a tensor of shape [n_points x 3 x ndims ]
+        with the polynomial's evaluated for the set of n points
+        that will be multiplied by the b-spline coefficients
+        taken from neighboring grid cells.
+        """
 
         wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
@@ -90,20 +104,29 @@ class BSplineDegree3(BSplineDegree):
     @classmethod
     @validate_args
     def compute_wts_bydim(
-            cls, ndims: int, coeffs: Tensor(torch.float),
-            X: Tensor(torch.float)[:, :],
-            indx_bydim: Tensor(torch.float)[:, :, :]
+        cls,
+        ndims: int,
+        coeffs: Tensor(torch.float),
+        X: Tensor(torch.float)[:, :],
+        indx_bydim: Tensor(torch.float)[:, :, :],
     ) -> Tensor(torch.float)[:, :, :]:
+        """Populate a tensor of shape [n_points x 4 x ndims ]
+        with the polynomial's evaluated for the set of n points
+        that will be multiplied by the b-spline coefficients
+        taken from neighboring grid cells.
+        """
 
         wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
         w = X - indx_bydim[:, 1, :]
         wts_bydim[:, 3, :] = (1.0 / 6.0) * w * w * w
-        wts_bydim[:, 0, :] = ((1.0 / 6.0) +
-            (1.0 / 2.0) * w * (w - 1.0) - wts_bydim[:, 3, :]) # yapf: disable
+        wts_bydim[:, 0, :] = (
+            (1.0 / 6.0) + (1.0 / 2.0) * w * (w - 1.0) - wts_bydim[:, 3, :]
+        )
         wts_bydim[:, 2, :] = w + wts_bydim[:, 0, :] - 2.0 * wts_bydim[:, 3, :]
-        wts_bydim[:, 1, :] = (1.0 - wts_bydim[:, 0, :] -
-            wts_bydim[:, 2, :] - wts_bydim[:, 3, :]) # yapf: disable
+        wts_bydim[:, 1, :] = (
+            1.0 - wts_bydim[:, 0, :] - wts_bydim[:, 2, :] - wts_bydim[:, 3, :]
+        )
 
         return wts_bydim
 
@@ -111,18 +134,27 @@ class BSplineDegree3(BSplineDegree):
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree4(BSplineDegree):
     degree = 4
-    poles = torch.tensor([
-        math.sqrt(664.0 - math.sqrt(438976.0)) + math.sqrt(304.0) - 19.0,
-        math.sqrt(664.0 + math.sqrt(438976.0)) - math.sqrt(304.0) - 19.0
-    ])
+    poles = torch.tensor(
+        [
+            math.sqrt(664.0 - math.sqrt(438976.0)) + math.sqrt(304.0) - 19.0,
+            math.sqrt(664.0 + math.sqrt(438976.0)) - math.sqrt(304.0) - 19.0,
+        ]
+    )
 
     @classmethod
     @validate_args
     def compute_wts_bydim(
-            cls, ndims: int, coeffs: Tensor(torch.float),
-            X: Tensor(torch.float)[:, :],
-            indx_bydim: Tensor(torch.float)[:, :, :]
+        cls,
+        ndims: int,
+        coeffs: Tensor(torch.float),
+        X: Tensor(torch.float)[:, :],
+        indx_bydim: Tensor(torch.float)[:, :, :],
     ) -> Tensor(torch.float)[:, :, :]:
+        """Populate a tensor of shape [n_points x 5 x ndims ]
+        with the polynomial's evaluated for the set of n points
+        that will be multiplied by the b-spline coefficients
+        taken from neighboring grid cells.
+        """
 
         wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
@@ -137,8 +169,13 @@ class BSplineDegree4(BSplineDegree):
         wts_bydim[:, 1, :] = t1 + t0
         wts_bydim[:, 3, :] = t1 - t0
         wts_bydim[:, 4, :] = wts_bydim[:, 0, :] + t0 + (1.0 / 2.0) * w
-        wts_bydim[:, 2, :] = (1.0 - wts_bydim[:, 0, :] -
-            wts_bydim[:, 1, :] - wts_bydim[:, 3, :] - wts_bydim[:, 4, :])# yapf: disable
+        wts_bydim[:, 2, :] = (
+            1.0
+            - wts_bydim[:, 0, :]
+            - wts_bydim[:, 1, :]
+            - wts_bydim[:, 3, :]
+            - wts_bydim[:, 4, :]
+        )
 
         return wts_bydim
 
@@ -146,20 +183,31 @@ class BSplineDegree4(BSplineDegree):
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class BSplineDegree5(BSplineDegree):
     degree = 5
-    poles = torch.tensor([
-        math.sqrt(135.0 / 2.0 - math.sqrt(17745.0 / 4.0)) +
-        math.sqrt(105.0 / 4.0) - 13.0 / 2.0,
-        math.sqrt(135.0 / 2.0 + math.sqrt(17745.0 / 4.0)) -
-        math.sqrt(105.0 / 4.0) - 13.0 / 2.0
-    ])
+    poles = torch.tensor(
+        [
+            math.sqrt(135.0 / 2.0 - math.sqrt(17745.0 / 4.0))
+            + math.sqrt(105.0 / 4.0)
+            - 13.0 / 2.0,
+            math.sqrt(135.0 / 2.0 + math.sqrt(17745.0 / 4.0))
+            - math.sqrt(105.0 / 4.0)
+            - 13.0 / 2.0,
+        ]
+    )
 
     @classmethod
     @validate_args
     def compute_wts_bydim(
-            cls, ndims: int, coeffs: Tensor(torch.float),
-            X: Tensor(torch.float)[:, :],
-            indx_bydim: Tensor(torch.float)[:, :, :]
+        cls,
+        ndims: int,
+        coeffs: Tensor(torch.float),
+        X: Tensor(torch.float)[:, :],
+        indx_bydim: Tensor(torch.float)[:, :, :],
     ) -> Tensor(torch.float)[:, :, :]:
+        """Populate a tensor of shape [n_points x 6 x ndims ]
+        with the polynomial's evaluated for the set of n points
+        that will be multiplied by the b-spline coefficients
+        taken from neighboring grid cells.
+        """
 
         wts_bydim = cls.empty_wts_bydim(ndims, coeffs, X)
 
@@ -170,8 +218,7 @@ class BSplineDegree5(BSplineDegree):
         w4 = w2 * w2
         w -= 1.0 / 2.0
         t = w2 * (w2 - 3.0)
-        wts_bydim[:, 0, :] = ((1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) -
-            wts_bydim[:, 5, :]) # yapf: disable
+        wts_bydim[:, 0, :] = (1.0 / 24.0) * (1.0 / 5.0 + w2 + w4) - wts_bydim[:, 5, :]
         t0 = (1.0 / 24.0) * (w2 * (w2 - 5.0) + 46.0 / 5.0)
         t1 = (-1.0 / 12.0) * w * (t + 4.0)
         wts_bydim[:, 2, :] = t0 + t1
@@ -188,12 +235,7 @@ class BSplineDegree5(BSplineDegree):
 # are supported
 bsplines_by_degree = {
     b.degree: b
-    for b in [
-        BSplineDegree2,
-        BSplineDegree3,
-        BSplineDegree4,
-        BSplineDegree5,
-    ]
+    for b in [BSplineDegree2, BSplineDegree3, BSplineDegree4, BSplineDegree5]
 }
 
 
@@ -201,7 +243,7 @@ bsplines_by_degree = {
 class BSplineInterpolation:
     """Class for performing bspline interpolation with periodic boundary conditions.
 
-    Construct an instance of this class using the `from_coordinates` function, handing
+    Construct an instance of this class using the ``from_coordinates`` function, handing
     it a (possibly stacked) table of coordinates that should be interpolated by the
     splines, the degree of the spline that should be constructed, and (optionally)
     the number of dimensions in the coordinates tensor that are "indexing dimensions"
@@ -209,9 +251,9 @@ class BSplineInterpolation:
     most significant dimensions and the interpolating dimensions should appear as the
     least significant dimensions.
 
-    Once constructed, the `interpolate` method can be given a tensor of coordinates
-    `X` (and if the original coordinate tensor had indexing dimensions, a tensor of
-    indices `Y`) to produce a tensor of interpolated values.
+    Once constructed, the ``interpolate`` method can be given a tensor of coordinates
+    ``X`` (and if the original coordinate tensor had indexing dimensions, a tensor of
+    indices ``Y``) to produce a tensor of interpolated values.
     """
 
     degree: int
@@ -223,8 +265,7 @@ class BSplineInterpolation:
     @classmethod
     @validate_args
     def from_coordinates(
-            cls, coords: Tensor(torch.float), degree: int,
-            n_index_dims: int = 0
+        cls, coords: Tensor(torch.float), degree: int, n_index_dims: int = 0
     ):
         """Construct a BSplineInterpolation instance from  the input coordinates
         (i.e. the data to be interpolated)
@@ -249,10 +290,7 @@ class BSplineInterpolation:
         if degree not in bsplines_by_degree:
             raise ValueError(
                 "Invalid b-spline degree of %d requested; available degrees are %s"
-                % (
-                    degree,
-                    ", ".join([str(k) for k in bsplines_by_degree.keys()])
-                )
+                % (degree, ", ".join([str(k) for k in bsplines_by_degree.keys()]))
             )
 
         bspdeg = bsplines_by_degree[degree]
@@ -273,16 +311,12 @@ class BSplineInterpolation:
 
                 # restore to the translated shape and then transpose
                 # the last dimension to where it belongs
-                icoeffs = icoeffs.reshape(trans_shape).transpose(
-                    dim, n_interp_dims - 1
-                )
+                icoeffs = icoeffs.reshape(trans_shape).transpose(dim, n_interp_dims - 1)
                 icoeffs_out[:] = icoeffs
 
         coeffs = coeffs.reshape(original_shape)
         interp_shape = torch.tensor(
-            coeffs.shape[n_index_dims:],
-            dtype=torch.long,
-            device=coeffs.device
+            coeffs.shape[n_index_dims:], dtype=torch.long, device=coeffs.device
         )
 
         return cls(
@@ -290,14 +324,12 @@ class BSplineInterpolation:
             coeffs=coeffs,
             interp_shape=interp_shape,
             n_interp_dims=n_interp_dims,
-            n_index_dims=n_index_dims
+            n_index_dims=n_index_dims,
         )
 
     @validate_args
     def interpolate(
-            self,
-            X: Tensor(torch.float)[:, :],
-            Y: Optional[Tensor(torch.long)[:, :]] = None
+        self, X: Tensor(torch.float)[:, :], Y: Optional[Tensor(torch.long)[:, :]] = None
     ) -> Tensor(torch.float)[:]:
         """B-spline interpolation function
 
@@ -314,23 +346,27 @@ class BSplineInterpolation:
         If Y is provided, it is treated as providing indexes for the (leading)
         non-interpolating dimensions;
 
-        e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state which of the
-        20 amino acids were being read from for each point (Y[:,0]), and whether or not the next
-        residue is proline (Y[:,1]) and then the X tensor would provided the (shifted+scaled)
+        e.g. if the Ramachandran map is 20x36x36, then the Y tensor could state
+        which of the 20 amino acids were being read from for each point
+        (Y[:,0]), and whether or not the next residue is proline (Y[:,1]) and
+        then the X tensor would provided the (shifted+scaled)
         phi (X[:,0]) and psi (X[:,1]) values.
 
-        Y must have the same number of rows as X (their first dimensions must be the same size)
+        Y must have the same number of rows as X (their first dimensions must
+        be the same size)
 
-        X and Y must both be on the same device that the BSplineInterpolation object was
-        created for; i.e. the device of the `coords` argument to `from_coords`.
+        X and Y must both be on the same device that the BSplineInterpolation
+        object was created for; i.e. the device of the ``coords`` argument to
+        ``from_coords``.
         """
 
         assert len(X.shape) == 2
         assert X.shape[1] == self.n_interp_dims
         assert Y is None or len(Y.shape) == 2
         assert Y is None or X.shape[0] == Y.shape[0]
-        assert ((Y is None and self.n_index_dims == 0) or
-                (Y is not None and Y.shape[1] == self.n_index_dims)) # yapf: disable
+        assert (Y is None and self.n_index_dims == 0) or (
+            Y is not None and Y.shape[1] == self.n_index_dims
+        )
         assert X.device == self.coeffs.device
         assert Y is None or Y.device == self.coeffs.device
 
@@ -343,9 +379,9 @@ class BSplineInterpolation:
 
         # calculate interpolation indices
         baseline = torch.floor(X - (bspdeg.degree - 1) / 2.0)
-        indx_bydim = torch.arange(
-            bspdeg.degree + 1, device=self.coeffs.device
-        ).view(1, -1, 1) + baseline.view(-1, 1, self.n_interp_dims)
+        indx_bydim = torch.arange(bspdeg.degree + 1, device=self.coeffs.device).view(
+            1, -1, 1
+        ) + baseline.view(-1, 1, self.n_interp_dims)
 
         # construct weight matrix -- this varies depending on the degree of the
         # bspline, and therefore is delegated to the BSplineDegree class
@@ -355,50 +391,43 @@ class BSplineInterpolation:
 
         # apply periodicity.
         # this is only valid for periodic boundaries.
-        # `remainder` and not `fmod` so that all results are non-negative.
+        # ``remainder`` and not ``fmod`` so that all results are non-negative.
         indx_bydim = torch.remainder(indx_bydim.long(), self.interp_shape)
 
         # now expand to (n_interp_dims)-dimensional box.
         # there might be a better way to do this
-        wts_expand = torch.full((nx, 1),
-                                1.0,
-                                dtype=torch.float,
-                                device=self.coeffs.device)
+        wts_expand = torch.full(
+            (nx, 1), 1.0, dtype=torch.float, device=self.coeffs.device
+        )
 
-        inds = torch.zeros((nx, 1),
-                           dtype=torch.long,
-                           device=self.coeffs.device)
+        inds = torch.zeros((nx, 1), dtype=torch.long, device=self.coeffs.device)
 
         interp_dims_offset = 1
         for dim in range(self.n_interp_dims):
             inds = self.coeffs.shape[dim + self.n_index_dims] * inds.view(
                 nx, -1, 1
             ) + indx_bydim[:, :, dim].view(nx, 1, -1)
-            interp_dims_offset = interp_dims_offset * self.coeffs.shape[
-                dim + self.n_index_dims
-            ]
+            interp_dims_offset = (
+                interp_dims_offset * self.coeffs.shape[dim + self.n_index_dims]
+            )
 
-            wts_expand = wts_expand.view(
-                nx, -1, 1
-            ) * wts_bydim[:, :, dim].view(nx, 1, -1)
+            wts_expand = wts_expand.view(nx, -1, 1) * wts_bydim[:, :, dim].view(
+                nx, 1, -1
+            )
 
         if Y is not None:
             non_interp_dims_offset = interp_dims_offset
             # create a tuple of -1 followed by 1s of the right length for broadcasting
             # against the inds tensor
-            newshape = (-1, ) + (1, ) * (len(inds.shape) - 1)
+            newshape = (-1,) + (1,) * (len(inds.shape) - 1)
             for ii in range(self.n_index_dims - 1, -1, -1):
                 # now increment the indices
-                inds = inds + (non_interp_dims_offset *
-                               Y[:, ii]).view(newshape)
-                non_interp_dims_offset = non_interp_dims_offset * self.coeffs.shape[
-                    ii
-                ]
+                inds = inds + (non_interp_dims_offset * Y[:, ii]).view(newshape)
+                non_interp_dims_offset = non_interp_dims_offset * self.coeffs.shape[ii]
 
         # ... and do the dot product
         retval = torch.sum(
-            wts_expand.view(nx, -1) * self.coeffs.view(-1)[inds].view(nx, -1),
-            1
+            wts_expand.view(nx, -1) * self.coeffs.view(-1)[inds].view(nx, -1), 1
         )
 
         return retval
@@ -406,7 +435,7 @@ class BSplineInterpolation:
     @staticmethod
     @validate_args
     def _init_causal_coeff(
-            coeffs: Tensor(torch.float)[:, :], pole: Tensor(torch.float)
+        coeffs: Tensor(torch.float)[:, :], pole: Tensor(torch.float)
     ):
         """Helper function for b-spline coefficient calculation
 
@@ -420,7 +449,7 @@ class BSplineInterpolation:
         horiz = math.ceil(math.log(tol) / math.log(abs(pole.item())))
 
         zn = pole.clone()
-        if (horiz < N):
+        if horiz < N:
             for i in range(1, horiz):
                 coeffs[:, 0] += zn * coeffs[:, N - i]
                 zn *= pole
@@ -428,12 +457,12 @@ class BSplineInterpolation:
             for i in range(1, N):
                 coeffs[:, 0] += zn * coeffs[:, N - i]
                 zn *= pole
-            coeffs[:, 0] = (coeffs[:, 0] / (1 - zn))
+            coeffs[:, 0] = coeffs[:, 0] / (1 - zn)
 
     @staticmethod
     @validate_args
     def _init_anticausal_coeff(
-            coeffs: Tensor(torch.float)[:, :], pole: Tensor(torch.float)
+        coeffs: Tensor(torch.float)[:, :], pole: Tensor(torch.float)
     ):
         """inplace calculation of [:,N] coefficients.
         currently, initialization corresponds to periodic boundaries
@@ -445,7 +474,7 @@ class BSplineInterpolation:
         horiz = math.ceil(math.log(tol) / math.log(abs(pole.item())))
 
         zn = pole.clone()
-        if (horiz < N):
+        if horiz < N:
             for i in range(horiz):
                 coeffs[:, N - 1] += zn * coeffs[:, i]
                 zn *= pole
@@ -459,8 +488,7 @@ class BSplineInterpolation:
     @classmethod
     @validate_args
     def _convert_interp_coeffs(
-            cls, coeffs: Tensor(torch.float)[:, :],
-            poles: Tensor(torch.float)[:]
+        cls, coeffs: Tensor(torch.float)[:, :], poles: Tensor(torch.float)[:]
     ):
         """interpolation coefficients in one dimension
         assumes input an M x N tensor, and interpolation is carried out in the 2nd dim
@@ -468,7 +496,7 @@ class BSplineInterpolation:
         """
         N = coeffs.shape[1]
         retval = coeffs.clone()
-        if (N == 1):
+        if N == 1:
             return retval
 
         lmbda = torch.prod((1 - poles) * (1 - 1 / poles))

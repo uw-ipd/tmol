@@ -11,11 +11,12 @@ from tmol.utility.reactive import reactive_attrs, reactive_property
 from tmol.types.torch import Tensor
 
 from .factory import Factory
+from .stacked_system import StackedSystem
 from .device import TorchDevice
 
 
 @reactive_attrs(auto_attribs=True)
-class CartesianAtomicCoordinateProvider(TorchDevice, Factory):
+class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
     @staticmethod
     @singledispatch
     def factory_for(
@@ -32,7 +33,7 @@ class CartesianAtomicCoordinateProvider(TorchDevice, Factory):
         return dict(coords=coords)
 
     # Source atomic coordinates
-    coords: Tensor(torch.float)[:, 3]
+    coords: Tensor(torch.float)[:, :, 3]
 
     @reactive_property
     def coords64(coords):
@@ -43,7 +44,7 @@ class CartesianAtomicCoordinateProvider(TorchDevice, Factory):
 
 
 @reactive_attrs(auto_attribs=True)
-class KinematicAtomicCoordinateProvider(TorchDevice, Factory):
+class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
     @staticmethod
     @singledispatch
     def factory_for(
@@ -72,7 +73,7 @@ class KinematicAtomicCoordinateProvider(TorchDevice, Factory):
     @reactive_property
     def coords64(
         dofs: Tensor("f4")[:], kinop: KinematicOp, system_size: int
-    ) -> Tensor("f8")[:, 3]:
+    ) -> Tensor("f8")[:, :, 3]:
         """System cartesian atomic coordinates at double precision."""
         kincoords = kinop(dofs)
 
@@ -86,10 +87,10 @@ class KinematicAtomicCoordinateProvider(TorchDevice, Factory):
         )
 
         coords64[kinop.kintree.id[1:]] = kincoords[1:]
-        return coords64
+        return coords64[None, ...]
 
     @reactive_property
-    def coords(coords64: Tensor("f8")[:, 3]) -> Tensor("f4")[:, 3]:
+    def coords(coords64: Tensor("f8")[:, :, 3]) -> Tensor("f4")[:, :, 3]:
         """System cartesian atomic coordinates at single precision."""
         return coords64.to(torch.float)
 

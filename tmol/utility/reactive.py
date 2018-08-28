@@ -373,16 +373,16 @@ Custom Invalidation
 ~~~~~~~~~~~~~~~~~~~
 
 Forward-invalidation can be customized on a per-property basis via an optional
-`should_invalidate` function. The function is provided (a) the current
+:py:meth:`should_invalidate` function. The function is provided (a) the current
 reactive property value, (b) the name of the changed input value and (c) the
 updated input parameter value, returning `True` if the reactive property should
 be invalidated in response to the change and `False` if the reactive value
 should be preserved.
 
 .. note::
-    `should_invalidate` *requires* the value of reevaluation of
+    ``should_invalidate`` *requires* the value of reevaluation of
     parameter dependencies to provide an updated input parameter value, causing an
-    "eager" reevaluation of the subgraph preceeding the `should_invalidate`
+    "eager" reevaluation of the subgraph preceeding the ``should_invalidate``
     property.
 
 ** Parameters
@@ -398,7 +398,65 @@ import inspect
 from collections import defaultdict
 from typing import Callable, Any, Optional, Tuple, Union
 
+import types
+
 import attr
+import toolz
+
+
+def _code(
+    argcount,
+    kwonlyargcount,
+    nlocals,
+    stacksize,
+    flags,
+    codestring,
+    constants,
+    names,
+    varnames,
+    filename,
+    name,
+    firstlineno,
+    lnotab,
+    freevars,
+    cellvars,
+    **kwargs,
+):
+    """Construct type.CodeType, ignoring unneeded kwargs."""
+    return types.CodeType(
+        argcount,
+        kwonlyargcount,
+        nlocals,
+        stacksize,
+        flags,
+        codestring,
+        constants,
+        names,
+        varnames,
+        filename,
+        name,
+        firstlineno,
+        lnotab,
+        freevars,
+        cellvars,
+    )
+
+
+def _code_attrs(c):
+    """Unpack types.CodeType attrs ('co_<name>') into __init__ params ('<name>')."""
+    cattrs = {n[3:]: getattr(c, n) for n in dir(c) if n.startswith("co_")}
+    cattrs["constants"] = cattrs.pop("consts")
+    cattrs["codestring"] = cattrs.pop("code")
+    return cattrs
+
+
+def _rename_code_object(func, new_name):
+    cattrs = _code_attrs(func.__code__)
+    cattrs["name"] = new_name
+
+    return types.FunctionType(
+        _code(**cattrs), func.__globals__, new_name, func.__defaults__, func.__closure__
+    )
 
 
 def reactive_attrs(maybe_cls=None, **attrs_kwargs):
@@ -445,23 +503,97 @@ def reactive_property(func=None, *, should_invalidate=None, kwargs=None):
         return bind
 
 
+@attr.s(auto_attribs=True)
+class ReactiveProperty(property):
+    """Post-init property managing a reactive property.
+
+    `property` subclass representing a reactive property within a reactive
+    class. This is a standard `property` with fget & fdel methods and
+    reactive-level metadata.
+
+    Attributes:
+        name: Name within the reactive property graph, inferred from assigned
+            name in class construction
+        f: Pure function used to calculate the property value.
+        parameters: Named parameters for f, to be resolved from reactive object.
+        should_invalidate: An optional value invalidation check function for f.
+    """
+
+    name: str
+    f: Callable
+    parameters: Tuple[str, ...]
+    should_invalidate: Optional[Callable[[Any, str, Any], bool]] = None
+
+    def __attrs_post_init__(self):
+        prop = self
+
+        def fget(self):
+            val = getattr(self._reactive_values, prop.name, attr.NOTHING)
+            if val is not attr.NOTHING:
+                return val
+
+            # Resolve function input parameters from object, potentially
+            # traversing through reactive property dependencies.
+            val = prop.f(**{p: getattr(self, p) for p in prop.parameters})
+            setattr(self._reactive_values, prop.name, val)
+
+            return val
+
+        def fdel(self):
+            # fdel just clears the stored value, invalidation is handeled by
+            # class-level __delattr__
+            delattr(self._reactive_values, prop.name)
+
+        property.__init__(
+            self,
+            fget=_rename_code_object(fget, "get_" + prop.name),
+            fdel=_rename_code_object(fdel, "del_" + prop.name),
+        )
+
+        self.__doc__ = prop.f.__doc__
+
+    def getter(self, _):
+        raise NotImplementedError(
+            "ReactiveProperty does not support getter modifications"
+        )
+
+    def setter(self, _):
+        raise NotImplementedError(
+            "ReactiveProperty does not support setter modifications"
+        )
+
+    def deleter(self, _):
+        raise NotImplementedError(
+            "ReactiveProperty does not support deleter modifications"
+        )
+
+
 @attr.s(slots=True, auto_attribs=True)
 class _ReactiveProperty:
-    name: str
+    """Pre-init representation of a reactive property.
+
+    Stub representation of a reactive property before a reactive class is
+    processed to generate the reactive property graph.
+
+    Attributes:
+        f: Pure function used to calculate the property value.
+        parameters: Named parameters for f, to be resolved from reactive object.
+        _should_invalidate: An optional value invalidation check function for f.
+    """
+
+    f: Callable
     parameters: Tuple[str, ...]
-
-    f_value: Callable
-
-    _should_invalidate_check: Optional[Callable[[Any, str, Any], bool]] = None
+    _should_invalidate: Optional[Callable[[Any, str, Any], bool]] = None
 
     def should_invalidate(self, f=None):
-        self._should_invalidate_check = f
+        self._should_invalidate = f
         return f
 
     @classmethod
     def from_function(
         cls, fun: Callable, kwargs: Optional[Union[str, Tuple[str, ...]]] = None
     ):
+        """Init property from function, inferring parameters from signature."""
         parameters = inspect.signature(fun).parameters.values()
 
         param_types = set(p.kind for p in parameters)
@@ -505,7 +637,7 @@ class _ReactiveProperty:
                 )
             elif set(parameter_names).intersection(kwargs):
                 raise ValueError(
-                    f"Specified kwarg is already explict parameter. "
+                    f"Specified kwarg is already an explicit parameter. "
                     f"parameters: {parameter_names} kwargs: {kwargs}"
                 )
 
@@ -516,38 +648,51 @@ class _ReactiveProperty:
                     "Function does not bind **kwargs, but kwarg names provided."
                 )
 
-        return cls(name=fun.__name__, parameters=parameter_names, f_value=fun)
+        return cls(parameters=parameter_names, f=fun)
 
 
 def _setup_reactive(cls):
-    cd = cls.__dict__
 
-    reactive_props = {n: v for n, v in cd.items() if isinstance(v, _ReactiveProperty)}
+    # Gather all _ReactiveProperty in this class and transform into ReactiveProperty
+    cls_reactive_props = {
+        n: ReactiveProperty(
+            name=n,
+            f=v.f,
+            parameters=v.parameters,
+            should_invalidate=v._should_invalidate,
+        )
+        for n, v in cls.__dict__.items()
+        if isinstance(v, _ReactiveProperty)
+    }
 
-    for n in reactive_props:
-        delattr(cls, n)
+    for n, v in cls_reactive_props.items():
+        setattr(cls, n, v)
 
-    for super_cls in cls.__mro__[1:-1]:  # Traverse the MRO and collect
-        sub_props = getattr(super_cls, "__reactive_props__", None)
-        if sub_props is not None:
-            for p in sub_props:
-                if p not in reactive_props:
-                    reactive_props[p] = sub_props[p]
+    # Gather all ReactiveProperty defined in the class (and bases)
+    reactive_props = {
+        n: getattr(cls, n)
+        for n in dir(cls)
+        if isinstance(getattr(cls, n), ReactiveProperty)
+    }
 
+    setattr(cls, "__reactive_props__", reactive_props)
+
+    # Expand identified properties into dependency graph for this class
     reactive_deps = defaultdict(list)
     for p in reactive_props.values():
         for param in p.parameters:
             reactive_deps[param].append(p.name)
 
+    setattr(cls, "__reactive_deps__", toolz.valmap(tuple, reactive_deps))
+
+    # Create reactive value container type for this class
     ReactiveValues = attr.make_class(
         cls.__name__ + "ReactiveValues",
         {p: attr.ib(init=False) for p in reactive_props},
         slots=True,
     )
 
-    # Setup reactive property "result" attrs
-    if "__annotations__" not in cls.__dict__:
-        setattr(cls, "__annotations__", dict())
+    # Add attrs attribute for the value container
     setattr(
         cls,
         "_reactive_values",
@@ -555,56 +700,42 @@ def _setup_reactive(cls):
             default=attr.Factory(ReactiveValues), init=False, cmp=False, repr=False
         ),
     )
+
+    setattr(cls, "__annotations__", cls.__dict__.get("__annotations__", dict()))
     cls.__annotations__["_reactive_values"] = ReactiveValues
 
-    setattr(cls, "__reactive_props__", reactive_props)
-    setattr(cls, "__reactive_deps__", {n: tuple(v) for n, v in reactive_deps.items()})
-
-    cls.__getattr__ = __reactive_getattr__
+    # Add setattr/delattr hooks for reactive updates
     cls.__setattr__ = __reactive_setattr__
     cls.__delattr__ = __reactive_delattr__
-
-    # for p in reactive_props:
-    #    prop_attr = attr.ib(init=False, repr=False, cmp=False, hash=False)
-
-    #    prop_attr_name = "_" + p.name
-    #    setattr(cls, prop_attr_name, prop_attr)
-    #    cls.__annotations__[prop_attr_name] = p.f_type
 
     return cls
 
 
-def _invalidate_reactive_deps(obj, n, n_value=attr.NOTHING):
-    if not hasattr(obj, "_reactive_values") or n not in obj.__reactive_deps__:
+def _invalidate_reactive_deps(obj, attribute_name, new_val=attr.NOTHING):
+    if not hasattr(obj, "_reactive_values"):
+        # No reactive value container yet, haven't finished __init__
+        return
+    if attribute_name not in obj.__reactive_deps__:
+        # Update is not a dependency of any reactive property
         return
 
-    for dname in obj.__reactive_deps__[n]:
-        if hasattr(obj._reactive_values, dname):
-            prop = obj.__reactive_props__[dname]
+    # Walk reactive dependents
+    for dname in obj.__reactive_deps__[attribute_name]:
+        # If there's no value abort
+        if not hasattr(obj._reactive_values, dname):
+            continue
 
-            if prop._should_invalidate_check:
-                current_prop = getattr(obj._reactive_values, dname)
-                if not prop._should_invalidate_check(current_prop, n, n_value):
-                    continue
+        # Otherwise get the reactive property
+        prop = obj.__reactive_props__[dname]
 
-            delattr(obj._reactive_values, dname)
-            _invalidate_reactive_deps(obj, dname)
+        # Check it's should_invalidate function, if one is defined
+        if prop.should_invalidate:
+            current_prop = getattr(obj._reactive_values, dname)
+            if not prop.should_invalidate(current_prop, attribute_name, new_val):
+                continue
 
-
-def __reactive_getattr__(self, n):
-    prop = self.__reactive_props__.get(n, None)
-
-    if n is "_reactive_values" or prop is None:
-        return object.__getattribute__(self, n)
-
-    if hasattr(self._reactive_values, n):
-        return getattr(self._reactive_values, n)
-
-    val = prop.f_value(**{p: getattr(self, p) for p in prop.parameters})
-
-    setattr(self._reactive_values, n, val)
-
-    return val
+        # Then call through the reactive delete, triggering a recursive invalidation
+        delattr(obj, dname)
 
 
 def __reactive_setattr__(self, n, v):

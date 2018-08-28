@@ -7,6 +7,7 @@ from ..types.torch import Tensor
 from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
 
+from ..score.stacked_system import StackedSystem
 from ..score.bonded_atom import BondedAtomScoreGraph
 
 from ..score.coordinates import (
@@ -22,17 +23,25 @@ from .kinematics import KinematicDescription
 from ..database.chemical import three_letter_to_aatype
 
 
+@StackedSystem.factory_for.register(PackedResidueSystem)
+@validate_args
+def stack_params_for_system(system: PackedResidueSystem, **_):
+    return dict(stack_depth=1, system_size=int(system.system_size))
+
+
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
 def bonded_atoms_for_system(
     system: PackedResidueSystem, drop_missing_atoms: bool = False, **_
 ):
-    bonds = system.bonds
+    bonds = numpy.empty((len(system.bonds), 3), dtype=int)
+    bonds[:, 0] = 0
+    bonds[:, 1:] = system.bonds
 
-    atom_types = system.atom_metadata["atom_type"].copy()
+    atom_types = system.atom_metadata["atom_type"].copy()[None, :]
 
     if drop_missing_atoms:
-        atom_types[numpy.any(numpy.isnan(system.coords), axis=-1)] = None
+        atom_types[0, numpy.any(numpy.isnan(system.coords), axis=-1)] = None
 
     return dict(bonds=bonds, atom_types=atom_types)
 
@@ -44,11 +53,16 @@ def coords_for_system(
 ):
     """Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`"""
 
+    stack_depth = 1
+    system_size = len(system.coords)
+
     coords = torch.tensor(
-        system.coords, dtype=torch.float, device=device
+        system.coords.reshape(stack_depth, system_size, 3),
+        dtype=torch.float,
+        device=device,
     ).requires_grad_(requires_grad)
 
-    return dict(coords=coords)
+    return dict(coords=coords, stack_depth=stack_depth, system_size=system_size)
 
 
 @KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
