@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations &mdash; TMol 0.0.0-88-g683561e documentation</title>
+  <title>tmol.kinematics.gpu_operations &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-88-g683561e
+                0.0.0-89-g7c0fe99
               </div>
             
           
@@ -271,7 +271,7 @@ Graphics hardware. Vol. 2007. 2007.
 <dt id="tmol.kinematics.gpu_operations.GPUKinTreeReordering.calculate_from_kintree">
 <em class="property">classmethod </em><code class="descname">calculate_from_kintree</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations.html#GPUKinTreeReordering.calculate_from_kintree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.GPUKinTreeReordering.calculate_from_kintree" title="Permalink to this definition">¶</a></dt>
 <dd><p>Setup for operations over KinTree.</p>
-<p><a class="reference internal" href="tmol.score.device.html#module-tmol.score.device" title="tmol.score.device"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">device</span></code></a> for gpu array is inferred from kintree tensor device.</p>
+<p><code class="docutils literal notranslate"><span class="pre">device</span></code> for gpu array is inferred from kintree tensor device.</p>
 </dd></dl>
 
 <dl class="classmethod">
@@ -399,6 +399,11 @@ a minimum depth tree of paths.</p>
 <code class="descname">atom_range_for_depth</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.atom_range_for_depth" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.atom_range_for_depth_d">
+<code class="descname">atom_range_for_depth_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.atom_range_for_depth_d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="classmethod">
 <dt id="tmol.kinematics.gpu_operations.RefoldOrdering.for_scan_paths">
 <em class="property">classmethod </em><code class="descname">for_scan_paths</code><span class="sig-paren">(</span><em>scan_paths: tmol.kinematics.gpu_operations.scan_paths.PathPartitioning</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/gpu_operations/forward.html#RefoldOrdering.for_scan_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.for_scan_paths" title="Permalink to this definition">¶</a></dt>
@@ -410,8 +415,18 @@ a minimum depth tree of paths.</p>
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.is_subpath_root_d">
+<code class="descname">is_subpath_root_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.is_subpath_root_d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="tmol.kinematics.gpu_operations.RefoldOrdering.ki2ri">
 <code class="descname">ki2ri</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.ki2ri" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.ki2ri_d">
+<code class="descname">ki2ri_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.ki2ri_d" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -420,8 +435,18 @@ a minimum depth tree of paths.</p>
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.non_subpath_parent_d">
+<code class="descname">non_subpath_parent_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.non_subpath_parent_d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="tmol.kinematics.gpu_operations.RefoldOrdering.ri2ki">
 <code class="descname">ri2ki</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.ri2ki" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.RefoldOrdering.ri2ki_d">
+<code class="descname">ri2ki_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.RefoldOrdering.ri2ki_d" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -457,8 +482,18 @@ using numba’s CUDA simulator.</p>
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.atom_range_for_depth_d">
+<code class="descname">atom_range_for_depth_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.atom_range_for_depth_d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.dsi2ki">
 <code class="descname">dsi2ki</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.dsi2ki" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.dsi2ki_d">
+<code class="descname">dsi2ki_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.dsi2ki_d" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
@@ -472,6 +507,11 @@ using numba’s CUDA simulator.</p>
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.is_leaf_d">
+<code class="descname">is_leaf_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.is_leaf_d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.ki2dsi">
 <code class="descname">ki2dsi</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.ki2dsi" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -479,6 +519,11 @@ using numba’s CUDA simulator.</p>
 <dl class="attribute">
 <dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.nonpath_children">
 <code class="descname">nonpath_children</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.nonpath_children" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.kinematics.gpu_operations.DerivsumOrdering.nonpath_children_d">
+<code class="descname">nonpath_children_d</code><a class="headerlink" href="#tmol.kinematics.gpu_operations.DerivsumOrdering.nonpath_children_d" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -538,7 +583,7 @@ using numba’s CUDA simulator.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-88-g683561e',
+            VERSION:'0.0.0-89-g7c0fe99',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

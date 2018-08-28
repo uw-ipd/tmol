@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.reactive &mdash; TMol 0.0.0-88-g683561e documentation</title>
+  <title>tmol.utility.reactive &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-88-g683561e
+                0.0.0-89-g7c0fe99
               </div>
             
           
@@ -114,6 +114,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
 </ul>
 </li>
@@ -544,16 +545,16 @@ additional form of sentiment analysis:</p>
 <div class="section" id="custom-invalidation">
 <h3>Custom Invalidation<a class="headerlink" href="#custom-invalidation" title="Permalink to this headline">¶</a></h3>
 <p>Forward-invalidation can be customized on a per-property basis via an optional
-<a class="reference internal" href="#tmol.utility.reactive._ReactiveProperty.should_invalidate" title="tmol.utility.reactive._ReactiveProperty.should_invalidate"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">should_invalidate</span></code></a> function. The function is provided (a) the current
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">should_invalidate()</span></code> function. The function is provided (a) the current
 reactive property value, (b) the name of the changed input value and (c) the
 updated input parameter value, returning <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> if the reactive property should
 be invalidated in response to the change and <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a> if the reactive value
 should be preserved.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last"><a class="reference internal" href="#tmol.utility.reactive._ReactiveProperty.should_invalidate" title="tmol.utility.reactive._ReactiveProperty.should_invalidate"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">should_invalidate</span></code></a> <em>requires</em> the value of reevaluation of
+<p class="last"><code class="docutils literal notranslate"><span class="pre">should_invalidate</span></code> <em>requires</em> the value of reevaluation of
 parameter dependencies to provide an updated input parameter value, causing an
-“eager” reevaluation of the subgraph preceeding the <a class="reference internal" href="#tmol.utility.reactive._ReactiveProperty.should_invalidate" title="tmol.utility.reactive._ReactiveProperty.should_invalidate"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">should_invalidate</span></code></a>
+“eager” reevaluation of the subgraph preceeding the <code class="docutils literal notranslate"><span class="pre">should_invalidate</span></code>
 property.</p>
 </div>
 </div>
@@ -565,6 +566,20 @@ specify a set of expected argument names when added as a <a class="reference int
 </div>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.reactive.ReactiveProperty" title="tmol.utility.reactive.ReactiveProperty"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ReactiveProperty</span></code></a></td>
+<td>Post-init property managing a reactive property.</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="functions">
 <h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
 <table border="1" class="longtable docutils">
@@ -585,6 +600,23 @@ specify a set of expected argument names when added as a <a class="reference int
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tmol.utility.reactive._code">
+<code class="descclassname">tmol.utility.reactive.</code><code class="descname">_code</code><span class="sig-paren">(</span><em>argcount</em>, <em>kwonlyargcount</em>, <em>nlocals</em>, <em>stacksize</em>, <em>flags</em>, <em>codestring</em>, <em>constants</em>, <em>names</em>, <em>varnames</em>, <em>filename</em>, <em>name</em>, <em>firstlineno</em>, <em>lnotab</em>, <em>freevars</em>, <em>cellvars</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._code" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct type.CodeType, ignoring unneeded kwargs.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.reactive._code_attrs">
+<code class="descclassname">tmol.utility.reactive.</code><code class="descname">_code_attrs</code><span class="sig-paren">(</span><em>c</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_code_attrs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._code_attrs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpack types.CodeType attrs (‘co_&lt;name&gt;’) into __init__ params (‘&lt;name&gt;’).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.reactive._rename_code_object">
+<code class="descclassname">tmol.utility.reactive.</code><code class="descname">_rename_code_object</code><span class="sig-paren">(</span><em>func</em>, <em>new_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_rename_code_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._rename_code_object" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="function">
 <dt id="tmol.utility.reactive.reactive_attrs">
 <code class="descclassname">tmol.utility.reactive.</code><code class="descname">reactive_attrs</code><span class="sig-paren">(</span><em>maybe_cls=None</em>, <em>**attrs_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#reactive_attrs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.reactive_attrs" title="Permalink to this definition">¶</a></dt>
@@ -621,27 +653,101 @@ changes.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.utility.reactive._ReactiveProperty">
-<em class="property">class </em><code class="descclassname">tmol.utility.reactive.</code><code class="descname">_ReactiveProperty</code><span class="sig-paren">(</span><em>name: str, parameters: Tuple[str, ...], f_value: Callable, should_invalidate_check: Union[typing.Callable[[typing.Any, str, typing.Any], bool], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_ReactiveProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dt id="tmol.utility.reactive.ReactiveProperty">
+<em class="property">class </em><code class="descclassname">tmol.utility.reactive.</code><code class="descname">ReactiveProperty</code><span class="sig-paren">(</span><em>name: str, f: Callable, parameters: Tuple[str, ...], should_invalidate: Union[typing.Callable[[typing.Any, str, typing.Any], bool], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#ReactiveProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">property</span></code></a></p>
+<p>Post-init property managing a reactive property.</p>
+<p><a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">property</span></code></a> subclass representing a reactive property within a reactive
+class. This is a standard <a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">property</span></code></a> with fget &amp; fdel methods and
+reactive-level metadata.</p>
 <dl class="attribute">
-<dt id="tmol.utility.reactive._ReactiveProperty.name">
-<code class="descname">name</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.name" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.utility.reactive.ReactiveProperty.name">
+<code class="descname">name</code><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Name within the reactive property graph, inferred from assigned
+name in class construction</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.utility.reactive.ReactiveProperty.f">
+<code class="descname">f</code><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.f" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pure function used to calculate the property value.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.utility.reactive.ReactiveProperty.parameters">
+<code class="descname">parameters</code><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Named parameters for f, to be resolved from reactive object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.utility.reactive.ReactiveProperty.should_invalidate">
+<code class="descname">should_invalidate</code><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.should_invalidate" title="Permalink to this definition">¶</a></dt>
+<dd><p>An optional value invalidation check function for f.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">should_invalidate</code><em class="property"> = None</em></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="tmol.utility.reactive.ReactiveProperty.getter">
+<code class="descname">getter</code><span class="sig-paren">(</span><em>_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#ReactiveProperty.getter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.getter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Descriptor to change the getter on a property.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.utility.reactive.ReactiveProperty.setter">
+<code class="descname">setter</code><span class="sig-paren">(</span><em>_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#ReactiveProperty.setter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.setter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Descriptor to change the setter on a property.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.utility.reactive.ReactiveProperty.deleter">
+<code class="descname">deleter</code><span class="sig-paren">(</span><em>_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#ReactiveProperty.deleter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty.deleter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Descriptor to change the deleter on a property.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.utility.reactive._ReactiveProperty">
+<em class="property">class </em><code class="descclassname">tmol.utility.reactive.</code><code class="descname">_ReactiveProperty</code><span class="sig-paren">(</span><em>f: Callable, parameters: Tuple[str, ...], should_invalidate: Union[typing.Callable[[typing.Any, str, typing.Any], bool], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_ReactiveProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Pre-init representation of a reactive property.</p>
+<p>Stub representation of a reactive property before a reactive class is
+processed to generate the reactive property graph.</p>
+<dl class="attribute">
+<dt id="tmol.utility.reactive._ReactiveProperty.f">
+<code class="descname">f</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.f" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pure function used to calculate the property value.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.utility.reactive._ReactiveProperty.parameters">
 <code class="descname">parameters</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Named parameters for f, to be resolved from reactive object.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.utility.reactive._ReactiveProperty._should_invalidate">
+<code class="descname">_should_invalidate</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty._should_invalidate" title="Permalink to this definition">¶</a></dt>
+<dd><p>An optional value invalidation check function for f.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">f</code></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.utility.reactive._ReactiveProperty.f_value">
-<code class="descname">f_value</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.f_value" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">parameters</code></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.utility.reactive._ReactiveProperty._should_invalidate_check">
-<code class="descname">_should_invalidate_check</code><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty._should_invalidate_check" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descname">_should_invalidate</code></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -652,7 +758,8 @@ changes.</li>
 <dl class="classmethod">
 <dt id="tmol.utility.reactive._ReactiveProperty.from_function">
 <em class="property">classmethod </em><code class="descname">from_function</code><span class="sig-paren">(</span><em>fun: Callable, kwargs: Union[str, typing.Tuple[str, ...], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_ReactiveProperty.from_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty.from_function" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Init property from function, inferring parameters from signature.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -663,7 +770,7 @@ changes.</li>
 
 <dl class="function">
 <dt id="tmol.utility.reactive._invalidate_reactive_deps">
-<code class="descclassname">tmol.utility.reactive.</code><code class="descname">_invalidate_reactive_deps</code><span class="sig-paren">(</span><em>obj</em>, <em>n</em>, <em>n_value=NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_invalidate_reactive_deps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._invalidate_reactive_deps" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">tmol.utility.reactive.</code><code class="descname">_invalidate_reactive_deps</code><span class="sig-paren">(</span><em>obj</em>, <em>attribute_name</em>, <em>new_val=NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_invalidate_reactive_deps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._invalidate_reactive_deps" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -711,7 +818,7 @@ changes.</li>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-88-g683561e',
+            VERSION:'0.0.0-89-g7c0fe99',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

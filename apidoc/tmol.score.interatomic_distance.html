@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-88-g683561e documentation</title>
+  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-88-g683561e
+                0.0.0-89-g7c0fe99
               </div>
             
           
@@ -240,6 +240,17 @@ the component’s interatomic threshold distance available by implementing
 the <code class="docutils literal notranslate"><span class="pre">component_atom_pair_dist_threshold</span></code> property. The generated
 interatomic distance graph will respecte the <em>maximum</em> required interatomic
 distance of all score graph components.</p>
+<dl class="attribute">
+<dt id="tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_delta">
+<code class="descname">atom_pair_delta</code><a class="headerlink" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_delta" title="Permalink to this definition">¶</a></dt>
+<dd><p>inter-atomic pairwise distance within threshold distance</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_dist">
+<code class="descname">atom_pair_dist</code><a class="headerlink" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_dist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_to_dense">
 <code class="descname">atom_pair_to_dense</code><span class="sig-paren">(</span><em>atom_pair_term</em>, <em>null_value=nan</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#InteratomicDistanceGraphBase.atom_pair_to_dense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_to_dense" title="Permalink to this definition">¶</a></dt>
@@ -251,6 +262,12 @@ distance of all score graph components.</p>
 <dt id="tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph">
 <em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">NaiveInteratomicDistanceGraph</code><span class="sig-paren">(</span><em>parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#NaiveInteratomicDistanceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="tmol.score.interatomic_distance.InteratomicDistanceGraphBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.interatomic_distance.InteratomicDistanceGraphBase</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph.atom_pair_inds">
+<code class="descname">atom_pair_inds</code><a class="headerlink" href="#tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph.atom_pair_inds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Index pairs for all atom pairs.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -318,6 +335,18 @@ distance of all score graph components.</p>
 <code class="descname">interatomic_threshold_distance</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.interatomic_threshold_distance" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="attribute">
+<dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.interblock_analysis">
+<code class="descname">interblock_analysis</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.interblock_analysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Current inter-block distance analysis.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.atom_pair_inds">
+<code class="descname">atom_pair_inds</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.atom_pair_inds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Indices for atom pairs potentially within interaction threshold distance.</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -365,7 +394,7 @@ distance of all score graph components.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-88-g683561e',
+            VERSION:'0.0.0-89-g7c0fe99',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
