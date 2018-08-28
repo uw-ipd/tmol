@@ -1,18 +1,21 @@
 import numpy
 
 from tmol.utility.reactive import reactive_attrs
-from tmol.score import (
-    TotalScoreComponentsGraph,
-    CartesianAtomicCoordinateProvider,
-)
+from tmol.score.total_score import TotalScoreComponentsGraph
+from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.polymeric_bonds import PolymericBonds
 
 
 @reactive_attrs(auto_attribs=True)
-class TCartBonds(CartesianAtomicCoordinateProvider, PolymericBonds,
-                 TorchDevice, TotalScoreComponentsGraph):
+class TCartBonds(
+    CartesianAtomicCoordinateProvider,
+    PolymericBonds,
+    TorchDevice,
+    TotalScoreComponentsGraph,
+):
     """Cart total."""
+
     pass
 
 

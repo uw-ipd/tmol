@@ -2,7 +2,8 @@ import torch
 
 from tmol.system.packed import PackedResidueSystem
 
-from tmol.score import TotalScoreGraph, TotalScoreComponentsGraph
+from tmol.score import TotalScoreGraph
+from tmol.score.total_score import TotalScoreComponentsGraph
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
