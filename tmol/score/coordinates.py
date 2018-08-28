@@ -35,7 +35,8 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
     # Source atomic coordinates
     coords: Tensor(torch.float)[:, :, 3]
 
-    def reset_total_score(self):
+    def reset_coords(self):
+        """Reset coordinate state in compute graph, clearing dependent properties."""
         self.coords = self.coords
 
 
@@ -86,5 +87,6 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
 
         return coords.to(torch.float)[None, ...]
 
-    def reset_total_score(self):
+    def reset_coords(self):
+        """Reset coordinate state in compute graph, clearing dependent properties."""
         self.dofs = self.dofs

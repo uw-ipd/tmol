@@ -25,41 +25,44 @@ def save_intermediate_grad(var):
     var.register_hook(store_grad)
 
 
-def test_ljlk_smoke(ubq_system, torch_device):
-    score_graph = LJLKGraph.build_for(
+def test_ljlk_nan_prop(ubq_system, torch_device):
+    """LJLK graph filters nan-coords, prevening nan entries on backward prop."""
+    ljlk_graph = LJLKGraph.build_for(
         ubq_system, requires_grad=True, device=torch_device
     )
+    save_intermediate_grad(ljlk_graph.atom_pair_dist)
+    save_intermediate_grad(ljlk_graph.atom_pair_delta)
 
-    save_intermediate_grad(score_graph.lj)
-    save_intermediate_grad(score_graph.lk)
-    save_intermediate_grad(score_graph.atom_pair_dist)
-    save_intermediate_grad(score_graph.atom_pair_delta)
+    intra_graph = ljlk_graph.intra_score()
 
-    score_graph.total_score.backward(retain_graph=True)
+    save_intermediate_grad(intra_graph.lj)
+    save_intermediate_grad(intra_graph.lk)
 
-    assert (score_graph.total_score != 0).all()
+    intra_graph.total.backward(retain_graph=True)
 
-    lj_nan_scores = torch.nonzero(torch.isnan(score_graph.lj))
-    lj_nan_grads = torch.nonzero(torch.isnan(score_graph.lj.grad))
+    assert (intra_graph.total != 0).all()
+
+    lj_nan_scores = torch.nonzero(torch.isnan(intra_graph.lj_total))
+    lj_nan_grads = torch.nonzero(torch.isnan(intra_graph.lj_total.grad))
     assert len(lj_nan_scores) == 0
     assert len(lj_nan_grads) == 0
-    assert (score_graph.total_lj != 0).all()
+    assert (intra_graph.total_lj != 0).all()
 
-    lk_nan_scores = torch.nonzero(torch.isnan(score_graph.lk))
-    lk_nan_grads = torch.nonzero(torch.isnan(score_graph.lk.grad))
+    lk_nan_scores = torch.nonzero(torch.isnan(intra_graph.lk))
+    lk_nan_grads = torch.nonzero(torch.isnan(intra_graph.lk.grad))
     assert len(lk_nan_scores) == 0
     assert len(lk_nan_grads) == 0
-    assert (score_graph.total_lk != 0).all()
+    assert (intra_graph.total_lk != 0).all()
 
-    nonzero_dist_grads = torch.nonzero(score_graph.atom_pair_dist.grad)
+    nonzero_dist_grads = torch.nonzero(ljlk_graph.atom_pair_dist.grad)
     assert len(nonzero_dist_grads) != 0
 
-    nonzero_delta_grads = torch.nonzero(score_graph.atom_pair_delta.grad)
+    nonzero_delta_grads = torch.nonzero(ljlk_graph.atom_pair_delta.grad)
     assert len(nonzero_delta_grads) != 0
-    nan_delta_grads = torch.nonzero(torch.isnan(score_graph.atom_pair_delta.grad))
+    nan_delta_grads = torch.nonzero(torch.isnan(ljlk_graph.atom_pair_delta.grad))
     assert len(nan_delta_grads) == 0
 
-    nan_coord_grads = torch.nonzero(torch.isnan(score_graph.coords.grad))
+    nan_coord_grads = torch.nonzero(torch.isnan(ljlk_graph.coords.grad))
     assert len(nan_coord_grads) == 0
 
 
