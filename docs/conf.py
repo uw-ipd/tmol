@@ -91,8 +91,8 @@ autodoc_default_flags = [
 
 # Napoleon settings
 
-napoleon_numpy_docstring = False  # Force consistency, leave only Google
-napoleon_use_ivar = True
+napoleon_numpy_docstring = False  # Force consistency, leave only Google style
+napoleon_use_ivar = False  # Report "Attributes:" with class property style
 
 # Default role for `backtick` annotated text, try to find any possible link.
 default_role = "any"
