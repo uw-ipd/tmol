@@ -42,8 +42,8 @@ def test_ljlk_nan_prop(ubq_system, torch_device):
 
     assert (intra_graph.total != 0).all()
 
-    lj_nan_scores = torch.nonzero(torch.isnan(intra_graph.lj_total))
-    lj_nan_grads = torch.nonzero(torch.isnan(intra_graph.lj_total.grad))
+    lj_nan_scores = torch.nonzero(torch.isnan(intra_graph.lj))
+    lj_nan_grads = torch.nonzero(torch.isnan(intra_graph.lj.grad))
     assert len(lj_nan_scores) == 0
     assert len(lj_nan_grads) == 0
     assert (intra_graph.total_lj != 0).all()
