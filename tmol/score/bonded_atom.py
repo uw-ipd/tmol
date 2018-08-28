@@ -3,7 +3,7 @@ from functools import singledispatch
 import torch
 import numpy
 
-import sparse
+# import sparse
 import scipy.sparse.csgraph as csgraph
 
 from tmol.utility.reactive import reactive_attrs, reactive_property

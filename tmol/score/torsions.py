@@ -24,11 +24,8 @@ class AlphaAABackboneTorsionProvider(Factory):
         #    requires_grad = other.coords.requires_grad
 
         phi_inds = torch.tensor(other.phi_inds, dtype=torch.long, device=device)
-
         psi_inds = torch.tensor(other.psi_inds, dtype=torch.long, device=device)
-
         omega_inds = torch.tensor(other.omega_inds, dtype=torch.long, device=device)
-
         res_aas = torch.tensor(other.res_aas, dtype=torch.long, device=device)
 
         return dict(
@@ -38,27 +35,11 @@ class AlphaAABackboneTorsionProvider(Factory):
     # global indices used to define the torsions
     # an entry of -1 for any atom means the torsion is undefined
     # and will produce a NaN in the corresponding _tor Tensor
-    phi_inds: Tensor(torch.long)[:, 4] = attr.ib()
-    psi_inds: Tensor(torch.long)[:, 4] = attr.ib()
-    omega_inds: Tensor(torch.long)[:, 4] = attr.ib()
+    phi_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
+    psi_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
+    omega_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
 
-    res_aas: Tensor(torch.long)[:] = attr.ib()
-
-    @phi_inds.default
-    def _nonsense_phi_inds(self):
-        return torch.full((1, 4), -1, dtype=torch.long)
-
-    @psi_inds.default
-    def _nonsense_psi_inds(self):
-        return torch.full((1, 4), -1, dtype=torch.long)
-
-    @omega_inds.default
-    def _nonsense_omega_inds(self):
-        return torch.full((1, 4), -1, dtype=torch.long)
-
-    @res_aas.default
-    def _nonsense_res_aas(self):
-        return torch.full((1), -1, dtype=torch.long)
+    res_aas: Tensor(torch.long)[:, :] = attr.ib()
 
     def reset_total_score(self):
         self.phi_inds = self.phi_inds
@@ -67,24 +48,30 @@ class AlphaAABackboneTorsionProvider(Factory):
 
     @reactive_property
     def phi_tor(
-        coords64: Tensor(torch.double)[:, 3], phi_inds: Tensor(torch.long)[:, 4]
-    ) -> Tensor(torch.float)[:]:
-        phi_tor = measure_torsions(coords64, phi_inds)
-        return phi_tor
+        coords64: Tensor(torch.double)[:, :, 3], phi_inds: Tensor(torch.long)[:, :, 4]
+    ) -> Tensor(torch.float)[:, :]:
+        assert coords64.shape[0] == 1
+        assert phi_inds.shape[0] == 1
+        phi_tor = measure_torsions(coords64[0, :], phi_inds[0, :])
+        return phi_tor[None, :]
 
     @reactive_property
     def psi_tor(
-        coords64: Tensor(torch.double)[:, 3], psi_inds: Tensor(torch.long)[:, 4]
-    ) -> Tensor(torch.float)[:]:
-        psi_tor = measure_torsions(coords64, psi_inds)
-        return psi_tor
+        coords64: Tensor(torch.double)[:, :, 3], psi_inds: Tensor(torch.long)[:, :, 4]
+    ) -> Tensor(torch.float)[:, :]:
+        assert coords64.shape[0] == 1
+        assert psi_inds.shape[0] == 1
+        psi_tor = measure_torsions(coords64[0, :], psi_inds[0, :])
+        return psi_tor[None, :]
 
     @reactive_property
     def omega_tor(
-        coords64: Tensor(torch.double)[:, 3], omega_inds: Tensor(torch.long)[:, 4]
-    ):
-        omega_tor = measure_torsions(coords64, omega_inds)
-        return omega_tor
+        coords64: Tensor(torch.double)[:, :, 3], omega_inds: Tensor(torch.long)[:, :, 4]
+    ) -> Tensor(torch.float)[:, :]:
+        assert coords64.shape[0] == 1
+        assert omega_inds.shape[0] == 1
+        omega_tor = measure_torsions(coords64[0, :], omega_inds[0, :])
+        return omega_tor[None, :]
 
 
 @validate_args

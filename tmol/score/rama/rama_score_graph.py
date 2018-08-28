@@ -44,12 +44,6 @@ class RamaScoreGraph(
 
     rama_db: CompactedRamaDatabase = attr.ib()
 
-    @rama_db.default
-    def _default_rama_database(self):
-        return self.parameter_database.scoring.get_compacted_rama_database(
-            torch.device("cpu")
-        )
-
     @property
     def component_total_score_terms(self):
         """Expose rama score sum as total_score term."""
@@ -59,11 +53,16 @@ class RamaScoreGraph(
     @validate_args
     def rama_scores(
         rama_db: CompactedRamaDatabase,
-        upper: Tensor(torch.long)[:],
-        res_aas: Tensor(torch.long)[:],
-        phi_tor: Tensor(torch.float)[:],
-        psi_tor: Tensor(torch.float)[:],
-    ) -> Tensor(torch.float):
+        upper: Tensor(torch.long)[:, :],
+        res_aas: Tensor(torch.long)[:, :],
+        phi_tor: Tensor(torch.float)[:, :],
+        psi_tor: Tensor(torch.float)[:, :],
+    ) -> Tensor(torch.float)[:, :]:
+        assert upper.shape[0] == 1
+        assert res_aas.shape[0] == 1
+        assert phi_tor.shape[0] == 1
+        assert psi_tor.shape[0] == 1
+
         has_rama = ~torch.isnan(phi_tor) & ~torch.isnan(psi_tor)
         phi_psi = torch.cat(
             (phi_tor[has_rama].reshape(-1, 1), psi_tor[has_rama].reshape(-1, 1)), dim=1
@@ -72,9 +71,9 @@ class RamaScoreGraph(
         phi_psi = (18 / numpy.pi) * phi_psi + 18
 
         has_upper = upper != -1
-        upper_is_pro = (res_aas[upper[has_upper & has_rama]] == AAType.aa_pro).type(
-            torch.long
-        )
+        upper_is_pro = (
+            res_aas.squeeze()[upper[has_upper & has_rama]] == AAType.aa_pro
+        ).type(torch.long)
         rama_inds = torch.cat(
             (
                 (res_aas[has_upper & has_rama]).reshape(-1, 1),
@@ -82,10 +81,10 @@ class RamaScoreGraph(
             ),
             dim=1,
         )
-        return rama_db.bspline.interpolate(phi_psi, rama_inds)
+        return rama_db.bspline.interpolate(phi_psi, rama_inds).unsqueeze(0)
 
     @reactive_property
     @validate_args
-    def total_rama(rama_scores: Tensor(torch.float)[:]) -> Tensor(torch.float):
+    def total_rama(rama_scores: Tensor(torch.float)[:, :]) -> Tensor(torch.float):
         """total ramachandran score"""
         return rama_scores.sum()

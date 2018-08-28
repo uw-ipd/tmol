@@ -18,23 +18,12 @@ class PolymericBonds(Factory):
         """`clone`-factory, extract upper- and lower- residue indices from other."""
         upper = torch.tensor(other.upper, dtype=torch.long, device=device)
         lower = torch.tensor(other.lower, dtype=torch.long, device=device)
-        return dict(
-            upper=upper,
-            lower=lower,
-        )
+        return dict(upper=upper, lower=lower)
 
     # The index of the residue that residue i has as its upper-connection neighbor
     # (often i+1), with -1 signifying that no upper connection is present
-    upper: Tensor(torch.long)[:] = attr.ib()
+    upper: Tensor(torch.long)[:, :] = attr.ib()
 
     # The index of the residue that residue i has as its lower-connection neighbor
     # (often i-1), with -1 signifying that no lower connection is present
-    lower: Tensor(torch.long)[:] = attr.ib()
-
-    @upper.default
-    def _nonsense_upper(self):
-        return torch.full((1), -1, torch.long)
-
-    @lower.default
-    def _nonsense_lower(self):
-        return torch.full((1), -1, torch.long)
+    lower: Tensor(torch.long)[:, :] = attr.ib()

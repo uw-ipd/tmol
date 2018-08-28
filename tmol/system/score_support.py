@@ -109,9 +109,9 @@ def system_torsions_from_coordinates(
     don't exist for a canonical AA at that residue or that residue is not a canonical AA.
     """
 
-    phi_inds = inds_for_torsion(system, device, "phi")
-    psi_inds = inds_for_torsion(system, device, "psi")
-    omega_inds = inds_for_torsion(system, device, "omega")
+    phi_inds = inds_for_torsion(system, device, "phi").unsqueeze(0)
+    psi_inds = inds_for_torsion(system, device, "psi").unsqueeze(0)
+    omega_inds = inds_for_torsion(system, device, "omega").unsqueeze(0)
 
     res_aas = torch.tensor(
         [
@@ -122,7 +122,7 @@ def system_torsions_from_coordinates(
         ],
         dtype=torch.long,
         device=device,
-    )
+    ).unsqueeze(0)
 
     return dict(
         phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds, res_aas=res_aas
@@ -180,4 +180,4 @@ def system_polymeric_connections(
         downs["to_residue_index"], dtype=torch.long
     )
 
-    return dict(upper=upper, lower=lower)
+    return dict(upper=upper.unsqueeze(0), lower=lower.unsqueeze(0))
