@@ -159,6 +159,7 @@ def test_property_override_in_subclass():
     assert SubFoo.foo2 is SubFoo.__reactive_props__["foo2"]
     assert SubFoo.__reactive_props__["foo2"].name == "foo2"
     assert SubFoo.__reactive_props__["foo2"].parameters == ("foo",)
+    # Resolve to SubFoo.foo2, returning "bartwo" not "barbar"
     assert SubFoo.__reactive_props__["foo2"].f("bar") == "bartwo"
 
     assert SubFoo.foo3 is Foo.__reactive_props__["foo3"]
@@ -175,12 +176,12 @@ def test_property_override_in_subclass():
 def test_binding_in_subclass():
     """Reactive graph is an mro-based union of base and class props.
 
-    The reactive property graph of a subclass the mro-based union of the
+    The reactive property graph of a subclass is the mro-based union of the
     class's reactive properties with the reactive properties of its base
     classes. This allows override-by-name of superclass reactive properties.
 
     Reactive properties are resolved, like normal properties, via the mro, and
-    can accessed by name as class attributes.
+    can be accessed by name as class attributes.
 
     The full set class and inherited reactive properties are bound in the
     __reactive_props__ class member.
@@ -246,8 +247,10 @@ def test_binding_in_subclass():
         def baz():
             return "baz"
 
-    # Properties are resolved from class and superclass
-    assert tuple(SubFoo.__reactive_props__) == ("bar", "baz", "bat", "bun")
+    # Properties are resolved from class and superclass, order insensitive comparison
+    assert sorted(SubFoo.__reactive_props__.keys()) == sorted(
+        ("bar", "baz", "bat", "bun")
+    )
 
     # The subclass properties override superclass values
     assert SubFoo.bar is SubFoo.__reactive_props__["bar"]
@@ -388,7 +391,7 @@ def test_should_invalidate():
     the target property from the _reactive_values container if it returns
     false. This will halt forward-prop of the invalidation event, also
     preventing removal of downstream properties that only depend on the
-    intermediate reative property.
+    intermediate reactive property.
     """
 
     @reactive_attrs(auto_attribs=True, slots=True)

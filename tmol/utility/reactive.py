@@ -422,6 +422,7 @@ def _code(
     cellvars,
     **kwargs,
 ):
+    """Construct type.CodeType, ignoring unneeded kwargs."""
     return types.CodeType(
         argcount,
         kwonlyargcount,
@@ -442,6 +443,7 @@ def _code(
 
 
 def _code_attrs(c):
+    """Unpack types.CodeType attrs ('co_<name>') into __init__ params ('<name>')."""
     cattrs = {n[3:]: getattr(c, n) for n in dir(c) if n.startswith("co_")}
     cattrs["constants"] = cattrs.pop("consts")
     cattrs["codestring"] = cattrs.pop("code")
@@ -530,6 +532,8 @@ class ReactiveProperty(property):
             if val is not attr.NOTHING:
                 return val
 
+            # Resolve function input parameters from object, potentially
+            # traversing through reactive property dependencies.
             val = prop.f(**{p: getattr(self, p) for p in prop.parameters})
             setattr(self._reactive_values, prop.name, val)
 
@@ -633,7 +637,7 @@ class _ReactiveProperty:
                 )
             elif set(parameter_names).intersection(kwargs):
                 raise ValueError(
-                    f"Specified kwarg is already explicit parameter. "
+                    f"Specified kwarg is already an explicit parameter. "
                     f"parameters: {parameter_names} kwargs: {kwargs}"
                 )
 
@@ -650,7 +654,7 @@ class _ReactiveProperty:
 def _setup_reactive(cls):
 
     # Gather all _ReactiveProperty in this class and transform into ReactiveProperty
-    reactive_props = {
+    cls_reactive_props = {
         n: ReactiveProperty(
             name=n,
             f=v.f,
@@ -661,25 +665,15 @@ def _setup_reactive(cls):
         if isinstance(v, _ReactiveProperty)
     }
 
-    for n, v in reactive_props.items():
+    for n, v in cls_reactive_props.items():
         setattr(cls, n, v)
 
-    # Walk through the class bases in MRO, adding reactive props if not already
-    # defined under given name.
-    for super_cls in cls.__mro__[1:]:
-        if "__reactive_props__" not in super_cls.__dict__:
-            continue
-
-        for n, p in super_cls.__dict__["__reactive_props__"].items():
-            if n in reactive_props:
-                # Already resolved a property with this name
-                continue
-
-            if n not in super_cls.__dict__:
-                # This is the super super's prop, will resolve later
-                continue
-
-            reactive_props[n] = p
+    # Gather all ReactiveProperty defined in the class (and bases)
+    reactive_props = {
+        n: getattr(cls, n)
+        for n in dir(cls)
+        if isinstance(getattr(cls, n), ReactiveProperty)
+    }
 
     setattr(cls, "__reactive_props__", reactive_props)
 
