@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.score.total_score" href="tmol.score.total_score.html" />
+    <link rel="next" title="tmol.score.stacked_system" href="tmol.score.stacked_system.html" />
     <link rel="prev" title="tmol.score.factory" href="tmol.score.factory.html" /> 
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -101,11 +101,13 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.score.interatomic_distance</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.total_score.html">tmol.score.total_score</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
@@ -200,17 +202,37 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis" title="tmol.score.interatomic_distance.BlockedDistanceAnalysis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BlockedDistanceAnalysis</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph" title="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BlockedInteratomicDistanceGraph</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph" title="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BlockedInteratomicDistanceGraph</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="tmol.score.interatomic_distance.InteratomicDistanceGraphBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InteratomicDistanceGraphBase</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="tmol.score.interatomic_distance.InteratomicDistanceGraphBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InteratomicDistanceGraphBase</span></code></a></td>
 <td>Base graph for interatomic distances.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.interatomic_distance.IntraLayerAtomPairs" title="tmol.score.interatomic_distance.IntraLayerAtomPairs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IntraLayerAtomPairs</span></code></a></td>
+<td></td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph" title="tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NaiveInteratomicDistanceGraph</span></code></a></td>
 <td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.interatomic_distance.Sphere" title="tmol.score.interatomic_distance.Sphere"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sphere</span></code></a></td>
+<td>Mean &amp; radii for fixed size contiguous coordinate blocks.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.interatomic_distance.SphereDistance" title="tmol.score.interatomic_distance.SphereDistance"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SphereDistance</span></code></a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.interatomic_distance.triu_indices" title="tmol.score.interatomic_distance.triu_indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">triu_indices</span></code></a></td>
+<td>Repacked triu_indices, see numpy.triu_indices for details.</td>
 </tr>
 </tbody>
 </table>
@@ -225,8 +247,8 @@
 
 <dl class="class">
 <dt id="tmol.score.interatomic_distance.InteratomicDistanceGraphBase">
-<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">InteratomicDistanceGraphBase</code><span class="sig-paren">(</span><em>parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#InteratomicDistanceGraphBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a></p>
+<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">InteratomicDistanceGraphBase</code><span class="sig-paren">(</span><em>stack_depth: int</em>, <em>system_size: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#InteratomicDistanceGraphBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.score.stacked_system.html#tmol.score.stacked_system.StackedSystem" title="tmol.score.stacked_system.StackedSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.stacked_system.StackedSystem</span></code></a></p>
 <p>Base graph for interatomic distances.</p>
 <p>Graph component calculating interatomic distances. Distances are present
 <em>once</em> in the source graph for a given atomic pair; the rendered distances
@@ -238,7 +260,7 @@ and the calculated distance respectively.</p>
 <p>Components requiring access to interatomic distance components <em>must</em> make
 the component’s interatomic threshold distance available by implementing
 the <code class="docutils literal notranslate"><span class="pre">component_atom_pair_dist_threshold</span></code> property. The generated
-interatomic distance graph will respecte the <em>maximum</em> required interatomic
+interatomic distance graph will respect the <em>maximum</em> required interatomic
 distance of all score graph components.</p>
 <dl class="attribute">
 <dt id="tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_delta">
@@ -258,9 +280,15 @@ distance of all score graph components.</p>
 
 </dd></dl>
 
+<dl class="function">
+<dt id="tmol.score.interatomic_distance.triu_indices">
+<code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">triu_indices</code><span class="sig-paren">(</span><em>n</em>, <em>k=0</em>, <em>m=None</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int64)[:,2]<a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#triu_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.triu_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Repacked triu_indices, see numpy.triu_indices for details.</p>
+</dd></dl>
+
 <dl class="class">
 <dt id="tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph">
-<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">NaiveInteratomicDistanceGraph</code><span class="sig-paren">(</span><em>parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#NaiveInteratomicDistanceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">NaiveInteratomicDistanceGraph</code><span class="sig-paren">(</span><em>stack_depth: int</em>, <em>system_size: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#NaiveInteratomicDistanceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="tmol.score.interatomic_distance.InteratomicDistanceGraphBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.interatomic_distance.InteratomicDistanceGraphBase</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph.atom_pair_inds">
@@ -271,64 +299,78 @@ distance of all score graph components.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis">
-<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">BlockedDistanceAnalysis</code><span class="sig-paren">(</span><em>block_size: int, coords: Tensor(torch.float32)[:,3], block_centers: Tensor(torch.float32)[:,3], block_radii: Tensor(torch.float32)[:,3], block_triu_inds: Tensor(torch.int64)[:,2], block_triu_dist: Tensor(torch.float32)[:,2], block_triu_min_dist: Tensor(torch.float32)[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#BlockedDistanceAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dt id="tmol.score.interatomic_distance.Sphere">
+<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">Sphere</code><span class="sig-paren">(</span><em>center: Tensor(torch.float32)[...,3], radius: Tensor(torch.float32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#Sphere"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.Sphere" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
+<p>Mean &amp; radii for fixed size contiguous coordinate blocks.</p>
 <dl class="attribute">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_size">
-<code class="descname">block_size</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_size" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis._valid_block_size">
-<code class="descname">_valid_block_size</code><span class="sig-paren">(</span><em>attribute</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#BlockedDistanceAnalysis._valid_block_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis._valid_block_size" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.interatomic_distance.Sphere.center">
+<code class="descname">center</code><a class="headerlink" href="#tmol.score.interatomic_distance.Sphere.center" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis.coords">
-<code class="descname">coords</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis.coords" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_centers">
-<code class="descname">block_centers</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_centers" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_radii">
-<code class="descname">block_radii</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_radii" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_triu_inds">
-<code class="descname">block_triu_inds</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_triu_inds" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_triu_dist">
-<code class="descname">block_triu_dist</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_triu_dist" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_triu_min_dist">
-<code class="descname">block_triu_min_dist</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis.block_triu_min_dist" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.interatomic_distance.Sphere.radius">
+<code class="descname">radius</code><a class="headerlink" href="#tmol.score.interatomic_distance.Sphere.radius" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.interatomic_distance.BlockedDistanceAnalysis.setup">
-<em class="property">classmethod </em><code class="descname">setup</code><span class="sig-paren">(</span><em>block_size: int, coords: Tensor(torch.float32)[:,3]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#BlockedDistanceAnalysis.setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedDistanceAnalysis.setup" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.interatomic_distance.Sphere.from_coord_blocks">
+<em class="property">classmethod </em><code class="descname">from_coord_blocks</code><span class="sig-paren">(</span><em>block_size: int, coords: Tensor(torch.float32)[...,:,3]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#Sphere.from_coord_blocks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.Sphere.from_coord_blocks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.interatomic_distance.SphereDistance">
+<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">SphereDistance</code><span class="sig-paren">(</span><em>center_dist: Tensor(torch.float32)[...], min_dist: Tensor(torch.float32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#SphereDistance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.SphereDistance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.interatomic_distance.SphereDistance.center_dist">
+<code class="descname">center_dist</code><a class="headerlink" href="#tmol.score.interatomic_distance.SphereDistance.center_dist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.interatomic_distance.SphereDistance.min_dist">
+<code class="descname">min_dist</code><a class="headerlink" href="#tmol.score.interatomic_distance.SphereDistance.min_dist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.interatomic_distance.SphereDistance.for_spheres">
+<em class="property">classmethod </em><code class="descname">for_spheres</code><span class="sig-paren">(</span><em>a: tmol.score.interatomic_distance.Sphere</em>, <em>b: tmol.score.interatomic_distance.Sphere</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#SphereDistance.for_spheres"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.SphereDistance.for_spheres" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.interatomic_distance.IntraLayerAtomPairs">
+<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">IntraLayerAtomPairs</code><span class="sig-paren">(</span><em>inds: Tensor(torch.int64)[:,3]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#IntraLayerAtomPairs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.IntraLayerAtomPairs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.interatomic_distance.IntraLayerAtomPairs.inds">
+<code class="descname">inds</code><a class="headerlink" href="#tmol.score.interatomic_distance.IntraLayerAtomPairs.inds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.interatomic_distance.IntraLayerAtomPairs.for_coord_blocks">
+<em class="property">classmethod </em><code class="descname">for_coord_blocks</code><span class="sig-paren">(</span><em>block_size: int</em>, <em>coord_blocks: tmol.score.interatomic_distance.Sphere</em>, <em>threshold_distance: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#IntraLayerAtomPairs.for_coord_blocks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.IntraLayerAtomPairs.for_coord_blocks" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph">
-<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">BlockedInteratomicDistanceGraph</code><span class="sig-paren">(</span><em>parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2], atom_pair_block_size=8</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#BlockedInteratomicDistanceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="tmol.score.interatomic_distance.InteratomicDistanceGraphBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.interatomic_distance.InteratomicDistanceGraphBase</span></code></a></p>
+<em class="property">class </em><code class="descclassname">tmol.score.interatomic_distance.</code><code class="descname">BlockedInteratomicDistanceGraph</code><span class="sig-paren">(</span><em>stack_depth: int</em>, <em>system_size: int</em>, <em>atom_pair_block_size: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#BlockedInteratomicDistanceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="tmol.score.interatomic_distance.InteratomicDistanceGraphBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.interatomic_distance.InteratomicDistanceGraphBase</span></code></a>, <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
 <dl class="method">
 <dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph._valid_block_size">
 <code class="descname">_valid_block_size</code><span class="sig-paren">(</span><em>attribute</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#BlockedInteratomicDistanceGraph._valid_block_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph._valid_block_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.factory_for">
+<code class="descname">factory_for</code><span class="sig-paren">(</span><em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/interatomic_distance.html#BlockedInteratomicDistanceGraph.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.factory_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overridable clone-constructor.</p>
+</dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.interatomic_threshold_distance">
@@ -336,15 +378,16 @@ distance of all score graph components.</p>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.interblock_analysis">
-<code class="descname">interblock_analysis</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.interblock_analysis" title="Permalink to this definition">¶</a></dt>
-<dd><p>Current inter-block distance analysis.</p>
-</dd></dl>
+<dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.coord_blocks">
+<code class="descname">coord_blocks</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.coord_blocks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.atom_pair_inds">
 <code class="descname">atom_pair_inds</code><a class="headerlink" href="#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.atom_pair_inds" title="Permalink to this definition">¶</a></dt>
-<dd><p>Indices for atom pairs potentially within interaction threshold distance.</p>
+<dd><p>Triu atom pairs potentially within interaction threshold distance.</p>
+<p>[layer, atom_i, atom_i] index tensor for all triu (upper triangular)
+per-layer atom pairs.</p>
 </dd></dl>
 
 </dd></dl>
@@ -360,7 +403,7 @@ distance of all score graph components.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.score.total_score.html" class="btn btn-neutral float-right" title="tmol.score.total_score" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.stacked_system.html" class="btn btn-neutral float-right" title="tmol.score.stacked_system" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tmol.score.factory.html" class="btn btn-neutral" title="tmol.score.factory" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -394,7 +437,7 @@ distance of all score graph components.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

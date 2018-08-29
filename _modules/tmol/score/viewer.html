@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.viewer &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>tmol.score.viewer &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -174,8 +174,11 @@
 
 <div class="viewcode-block" id="score_graph_to_pdb"><a class="viewcode-back" href="../../../apidoc/tmol.score.viewer.html#tmol.score.viewer.score_graph_to_pdb">[docs]</a><span class="nd">@tmol</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">generic</span><span class="o">.</span><span class="n">to_pdb</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">bonded_atom</span><span class="o">.</span><span class="n">BondedAtomScoreGraph</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">score_graph_to_pdb</span><span class="p">(</span><span class="n">score_graph</span><span class="p">):</span>
-    <span class="n">atom_coords</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-    <span class="n">atom_types</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">atom_types</span>
+    <span class="k">if</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">stack_depth</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can not convert stack_depth != 1 to pdb.&quot;</span><span class="p">)</span>
+
+    <span class="n">atom_coords</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">atom_types</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="n">render_atoms</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">~</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">atom_coords</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
 
@@ -198,9 +201,12 @@
 
 <div class="viewcode-block" id="score_graph_to_cdjson"><a class="viewcode-back" href="../../../apidoc/tmol.score.viewer.html#tmol.score.viewer.score_graph_to_cdjson">[docs]</a><span class="nd">@tmol</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">generic</span><span class="o">.</span><span class="n">to_cdjson</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">bonded_atom</span><span class="o">.</span><span class="n">BondedAtomScoreGraph</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">score_graph_to_cdjson</span><span class="p">(</span><span class="n">score_graph</span><span class="p">):</span>
-    <span class="n">coords</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-    <span class="n">elems</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">t</span> <span class="k">else</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">atom_types</span><span class="p">)</span>
-    <span class="n">bonds</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">bonds</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">stack_depth</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can not convert stack_depth != 1 to cdjson.&quot;</span><span class="p">)</span>
+
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="n">elems</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">t</span> <span class="k">else</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">bonds</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">score_graph</span><span class="o">.</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]))</span>
 
     <span class="k">return</span> <span class="n">tmol</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">generic</span><span class="o">.</span><span class="n">pack_cdjson</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">elems</span><span class="p">,</span> <span class="n">bonds</span><span class="p">)</span></div>
 </pre></div>
@@ -237,7 +243,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

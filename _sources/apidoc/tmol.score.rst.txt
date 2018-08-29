@@ -19,6 +19,7 @@ tmol.score
        tmol.score.device
        tmol.score.factory
        tmol.score.interatomic_distance
+       tmol.score.stacked_system
        tmol.score.total_score
        tmol.score.viewer
   

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.coordinates &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>tmol.score.coordinates &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -177,11 +177,12 @@
 <span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
 
 <span class="kn">from</span> <span class="nn">.factory</span> <span class="k">import</span> <span class="n">Factory</span>
+<span class="kn">from</span> <span class="nn">.stacked_system</span> <span class="k">import</span> <span class="n">StackedSystem</span>
 <span class="kn">from</span> <span class="nn">.device</span> <span class="k">import</span> <span class="n">TorchDevice</span>
 
 
 <div class="viewcode-block" id="CartesianAtomicCoordinateProvider"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">CartesianAtomicCoordinateProvider</span><span class="p">(</span><span class="n">TorchDevice</span><span class="p">,</span> <span class="n">Factory</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">CartesianAtomicCoordinateProvider</span><span class="p">(</span><span class="n">StackedSystem</span><span class="p">,</span> <span class="n">TorchDevice</span><span class="p">,</span> <span class="n">Factory</span><span class="p">):</span>
 <div class="viewcode-block" id="CartesianAtomicCoordinateProvider.factory_for"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="nd">@singledispatch</span>
     <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span>
@@ -198,14 +199,14 @@
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span></div>
 
     <span class="c1"># Source atomic coordinates</span>
-    <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
 
 <div class="viewcode-block" id="CartesianAtomicCoordinateProvider.reset_total_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider.reset_total_score">[docs]</a>    <span class="k">def</span> <span class="nf">reset_total_score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span></div></div>
 
 
 <div class="viewcode-block" id="KinematicAtomicCoordinateProvider"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">KinematicAtomicCoordinateProvider</span><span class="p">(</span><span class="n">TorchDevice</span><span class="p">,</span> <span class="n">Factory</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">KinematicAtomicCoordinateProvider</span><span class="p">(</span><span class="n">StackedSystem</span><span class="p">,</span> <span class="n">TorchDevice</span><span class="p">,</span> <span class="n">Factory</span><span class="p">):</span>
 <div class="viewcode-block" id="KinematicAtomicCoordinateProvider.factory_for"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="nd">@singledispatch</span>
     <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span>
@@ -234,7 +235,7 @@
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">coords</span><span class="p">(</span>
         <span class="n">dofs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:],</span> <span class="n">kinop</span><span class="p">:</span> <span class="n">KinematicOp</span><span class="p">,</span> <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;System cartesian atomic coordinates.&quot;&quot;&quot;</span>
         <span class="n">kincoords</span> <span class="o">=</span> <span class="n">kinop</span><span class="p">(</span><span class="n">dofs</span><span class="p">)</span>
 
@@ -249,7 +250,7 @@
 
         <span class="n">coords</span><span class="p">[</span><span class="n">kinop</span><span class="o">.</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="n">kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
 
-        <span class="k">return</span> <span class="n">coords</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coords</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="KinematicAtomicCoordinateProvider.reset_total_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider.reset_total_score">[docs]</a>    <span class="k">def</span> <span class="nf">reset_total_score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dofs</span></div></div>
@@ -287,7 +288,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.packed &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>tmol.system.packed &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -223,6 +223,11 @@
         <span class="n">res_lengths</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">res</span><span class="p">])</span>
         <span class="n">res_segment_lengths</span> <span class="o">=</span> <span class="n">_ceil_to_size</span><span class="p">(</span><span class="n">block_size</span><span class="p">,</span> <span class="n">res_lengths</span><span class="p">)</span>
 
+        <span class="c1"># Ensure that the -1 index is a valid &quot;null atom&quot;</span>
+        <span class="c1"># padding with a null block if needed.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">res_lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="n">block_size</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">res_segment_lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">block_size</span>
+
         <span class="n">segment_ends</span> <span class="o">=</span> <span class="n">res_segment_lengths</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
         <span class="n">segment_starts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">segment_ends</span><span class="p">)</span>
         <span class="n">segment_starts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
@@ -238,9 +243,6 @@
             <span class="n">r</span><span class="o">.</span><span class="n">attach_to</span><span class="p">(</span><span class="n">cbuff</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">coords</span><span class="p">)])</span>
             <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">start</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">res_aidx</span><span class="p">)</span>
         <span class="p">]</span>
-
-        <span class="c1"># TODO temporary hack to ensure that -1 is a valid &quot;non-atom&quot; index</span>
-        <span class="k">assert</span> <span class="p">(</span><span class="n">res_lengths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">%</span> <span class="n">block_size</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span>
 
         <span class="c1">### Generate atom metadata</span>
 
@@ -528,7 +530,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

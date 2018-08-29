@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Architecture &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>Architecture &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -86,7 +86,10 @@
             
               <p class="caption"><span class="caption-text">Notes</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#scoring">Scoring</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="datatypes.html">Datatypes</a></li>
 </ul>
 <p class="caption"><span class="caption-text">Packages</span></p>
@@ -170,13 +173,44 @@
 <p>TMol is roughly divided into two core modules: a high-level description of
 polymeric molecules in <a class="reference internal" href="apidoc/tmol.system.html#module-tmol.system" title="tmol.system"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.system</span></code></a> and a low-level, term-specific description
 used <a class="reference internal" href="apidoc/tmol.score.html#module-tmol.score" title="tmol.score"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a>.</p>
-<p><a class="reference internal" href="apidoc/tmol.system.html#module-tmol.system" title="tmol.system"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.system</span></code></a> and <a class="reference internal" href="apidoc/tmol.score.html#module-tmol.score" title="tmol.score"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a> are coupled via
-<a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.singledispatch" title="(in Python v3.7)"><code class="xref py py-func docutils literal notranslate"><span class="pre">singledispatch()</span></code></a> hooks registered in
-<a class="reference internal" href="apidoc/tmol.system.score_support.html#module-tmol.system.score_support" title="tmol.system.score_support"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.system.score_support</span></code></a>.</p>
 <p>These components operate over a shared chemical vocabulary defined in
 <a class="reference internal" href="apidoc/tmol.database.chemical.html#module-tmol.database.chemical" title="tmol.database.chemical"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.database.chemical</span></code></a>, with additional term-specific data given in
 <a class="reference internal" href="apidoc/tmol.database.scoring.html#module-tmol.database.scoring" title="tmol.database.scoring"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.database.scoring</span></code></a>.</p>
 <a class="reference internal image-reference" href="_images/aafig-9a2352ec78aa0ad81380b50eb76a8f66261e6a4e.svg"><img alt="_images/aafig-9a2352ec78aa0ad81380b50eb76a8f66261e6a4e.svg" height="244.0" src="_images/aafig-9a2352ec78aa0ad81380b50eb76a8f66261e6a4e.svg" width="440.0" /></a>
+<p><a class="reference internal" href="apidoc/tmol.system.html#module-tmol.system" title="tmol.system"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.system</span></code></a> and <a class="reference internal" href="apidoc/tmol.score.html#module-tmol.score" title="tmol.score"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a> are coupled via
+<a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.singledispatch" title="(in Python v3.7)"><code class="xref py py-func docutils literal notranslate"><span class="pre">singledispatch()</span></code></a> hooks registered in
+<a class="reference internal" href="apidoc/tmol.system.score_support.html#module-tmol.system.score_support" title="tmol.system.score_support"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.system.score_support</span></code></a>.</p>
+<div class="section" id="scoring">
+<h2>Scoring<a class="headerlink" href="#scoring" title="Permalink to this headline">¶</a></h2>
+<p>Scoring is managed via a “score graph” object, managing the initialization
+of a torch compute graph calculating a setup of score terms for
+a collection model states.</p>
+<p>A model is defined over of a set <code class="docutils literal notranslate"><span class="pre">n</span></code> of bonded atoms. Each atom is located at
+an atom index, and is defined by a type and coordinate. Atoms may be “null”,
+defining no type and a nan coordinate at a given index.  Bonds are defined via
+a set of <code class="docutils literal notranslate"><span class="pre">b`</span></code> sparse, undirected bonded inter-atom index pairs.</p>
+<p>A score graph operates over a “depth” of <code class="docutils literal notranslate"><span class="pre">l</span></code> layers, each containing a single
+model. Models must contain the same number of atoms <code class="docutils literal notranslate"><span class="pre">n</span></code>, but may have
+differing atom types and null atoms. Bonds are strictly intra-layer, and form
+a disjoint set per-layer inter-atom graphs.</p>
+<a class="reference internal image-reference" href="_images/aafig-c3222d2549d41aeeac19a556de3c7f80c0c51f46.svg"><img alt="_images/aafig-c3222d2549d41aeeac19a556de3c7f80c0c51f46.svg" height="230.0" src="_images/aafig-c3222d2549d41aeeac19a556de3c7f80c0c51f46.svg" width="580.0" /></a>
+<p>Score calculation is performed in batch on a per-layer basis, defined over
+across all interactions (bonded and non-bonded) within a layer. The
+<code class="docutils literal notranslate"><span class="pre">total_score</span></code> final graph property, computes <code class="docutils literal notranslate"><span class="pre">l</span></code> scores for a score
+graph of depth <code class="docutils literal notranslate"><span class="pre">l</span></code>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><a class="reference internal" href="apidoc/tmol.score.html#module-tmol.score" title="tmol.score"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a> currently only supports intra-layer scoring, and is
+limited to models of depth 1.</p>
+</div>
+<p>The score graph implementation is partitioned into score component classes,
+each covering a logically distinct component of the score function. These
+components include score terms, derived model representations, or support data
+required for score evaluation. Component classes are combined as mixins into
+a <a class="reference internal" href="apidoc/tmol.utility.reactive.html#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> score graph. At minimum, a valid score graph will include an
+atomic representation, some number of score terms, and a total score property.</p>
+<a class="reference internal image-reference" href="_images/aafig-f03b9f97eab59aad88629b36130b928dbaf11182.svg"><img alt="_images/aafig-f03b9f97eab59aad88629b36130b928dbaf11182.svg" height="272.0" src="_images/aafig-f03b9f97eab59aad88629b36130b928dbaf11182.svg" width="454.0" /></a>
+</div>
 </div>
 
 
@@ -221,7 +255,7 @@ used <a class="reference internal" href="apidoc/tmol.score.html#module-tmol.scor
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -106,6 +106,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.factory.html">tmol.score.factory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.total_score.html">tmol.score.total_score</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
@@ -201,7 +202,7 @@
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BondedAtomScoreGraph</span></code></a></td>
-<td></td>
+<td>Score graph component describing a system’s atom types and bonds.</td>
 </tr>
 </tbody>
 </table>
@@ -211,8 +212,37 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tmol.score.bonded_atom.BondedAtomScoreGraph">
-<em class="property">class </em><code class="descclassname">tmol.score.bonded_atom.</code><code class="descname">BondedAtomScoreGraph</code><span class="sig-paren">(</span><em>parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/bonded_atom.html#BondedAtomScoreGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.score.database.html#tmol.score.database.ParamDB" title="tmol.score.database.ParamDB"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.database.ParamDB</span></code></a>, <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
+<em class="property">class </em><code class="descclassname">tmol.score.bonded_atom.</code><code class="descname">BondedAtomScoreGraph</code><span class="sig-paren">(</span><em>stack_depth: int, system_size: int, parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:,:], bonds: NDArray(dtype('int64'))[:,3]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/bonded_atom.html#BondedAtomScoreGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.score.stacked_system.html#tmol.score.stacked_system.StackedSystem" title="tmol.score.stacked_system.StackedSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.stacked_system.StackedSystem</span></code></a>, <a class="reference internal" href="tmol.score.database.html#tmol.score.database.ParamDB" title="tmol.score.database.ParamDB"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.database.ParamDB</span></code></a>, <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
+<p>Score graph component describing a system’s atom types and bonds.</p>
+<dl class="attribute">
+<dt id="tmol.score.bonded_atom.BondedAtomScoreGraph.atom_types">
+<code class="descname">atom_types</code><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph.atom_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>[layer, atom_index] String atom type descriptors.
+Type descriptions defined in <a class="reference internal" href="tmol.database.chemical.html#module-tmol.database.chemical" title="tmol.database.chemical"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tmol.database.chemical</span></code></a>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.bonded_atom.BondedAtomScoreGraph.bonds">
+<code class="descname">bonds</code><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph.bonds" title="Permalink to this definition">¶</a></dt>
+<dd><p>[layer, atom_index, atom_index] Inter-atomic bond indices.
+Note that bonds are strictly intra-layer, and are defined by a
+single layer index for both atoms of the bond.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.bonded_atom.BondedAtomScoreGraph.MAX_BONDED_PATH_LENGTH">
+<code class="descname">MAX_BONDED_PATH_LENGTH</code><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph.MAX_BONDED_PATH_LENGTH" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum relevant inter-atomic path length.
+Limits search depth used in <code class="docutils literal notranslate"><span class="pre">bonded_path_length</span></code>, all longer
+paths reported as <code class="docutils literal notranslate"><span class="pre">inf</span></code>.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">MAX_BONDED_PATH_LENGTH</code><em class="property"> = 6</em></dt>
+<dd></dd></dl>
+
 <dl class="staticmethod">
 <dt id="tmol.score.bonded_atom.BondedAtomScoreGraph.factory_for">
 <em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>other</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/bonded_atom.html#BondedAtomScoreGraph.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph.factory_for" title="Permalink to this definition">¶</a></dt>
@@ -220,21 +250,24 @@
 </dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.bonded_atom.BondedAtomScoreGraph.system_size">
-<code class="descname">system_size</code><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph.system_size" title="Permalink to this definition">¶</a></dt>
-<dd><p>Number of atom locations within the system.</p>
-</dd></dl>
-
-<dl class="attribute">
 <dt id="tmol.score.bonded_atom.BondedAtomScoreGraph.real_atoms">
 <code class="descname">real_atoms</code><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph.real_atoms" title="Permalink to this definition">¶</a></dt>
-<dd><p>Mask of ‘real’ atomic indices in the system.</p>
+<dd><p>Mask of non-null atomic indices in the system.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.bonded_atom.BondedAtomScoreGraph.bonded_path_length">
 <code class="descname">bonded_path_length</code><a class="headerlink" href="#tmol.score.bonded_atom.BondedAtomScoreGraph.bonded_path_length" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dense inter-atomic bonded path length distance matrix.</p>
+<dd><p>Dense inter-atomic bonded path length distance tables.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">[layer, from_atom, to_atom]
+Per-layer interatomic bonded path length entries.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -284,7 +317,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

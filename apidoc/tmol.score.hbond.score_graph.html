@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -99,6 +99,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.factory.html">tmol.score.factory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.total_score.html">tmol.score.total_score</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a><ul class="current">
@@ -274,7 +275,7 @@ seems like it would be pretty expensive!)</p>
 
 <dl class="class">
 <dt id="tmol.score.hbond.score_graph.HBondScoreGraph">
-<em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondScoreGraph</code><span class="sig-paren">(</span><em>parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2], device: torch.Device, hbond_database: tmol.database.scoring.hbond.HBondDatabase = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondScoreGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondScoreGraph</code><span class="sig-paren">(</span><em>stack_depth: int, system_size: int, parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:,:], bonds: NDArray(dtype('int64'))[:,3], device: torch.Device, hbond_database: tmol.database.scoring.hbond.HBondDatabase</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondScoreGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.total_score.html#tmol.score.total_score.TotalScoreComponentsGraph" title="tmol.score.total_score.TotalScoreComponentsGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.total_score.TotalScoreComponentsGraph</span></code></a>, <a class="reference internal" href="tmol.score.database.html#tmol.score.database.ParamDB" title="tmol.score.database.ParamDB"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.database.ParamDB</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a>, <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
 <p>Compute graph for the HBond term.</p>
 <p>It uses the reactive system to compute the list of donors and acceptors
@@ -297,11 +298,6 @@ this code will cull distant acceptor/donor pairs.</p>
 <p>Initialize from <code class="docutils literal notranslate"><span class="pre">val.hbond_database</span></code> if possible, otherwise from
 <code class="docutils literal notranslate"><span class="pre">parameter_database.scoring.hbond</span></code>.</p>
 </dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.hbond.score_graph.HBondScoreGraph._default_hbond_database">
-<code class="descname">_default_hbond_database</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondScoreGraph._default_hbond_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph._default_hbond_database" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.hbond.score_graph.HBondScoreGraph.component_total_score_terms">
@@ -419,7 +415,7 @@ in turn.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

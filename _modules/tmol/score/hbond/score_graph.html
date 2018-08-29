@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -331,11 +331,7 @@
 
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">hbond_database</span><span class="o">=</span><span class="n">hbond_database</span><span class="p">)</span></div>
 
-    <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
-
-<div class="viewcode-block" id="HBondScoreGraph._default_hbond_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph._default_hbond_database">[docs]</a>    <span class="nd">@hbond_database</span><span class="o">.</span><span class="n">default</span>
-    <span class="k">def</span> <span class="nf">_default_hbond_database</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter_database</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">hbond</span></div>
+    <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">component_total_score_terms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -364,12 +360,15 @@
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">hbond_elements</span><span class="p">(</span>
         <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
-        <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:],</span>
-        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondElementAnalysis</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;hbond score elements in target graph&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">atom_types</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">HBondElementAnalysis</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span>
-            <span class="n">hbond_database</span><span class="o">=</span><span class="n">hbond_database</span><span class="p">,</span> <span class="n">atom_types</span><span class="o">=</span><span class="n">atom_types</span><span class="p">,</span> <span class="n">bonds</span><span class="o">=</span><span class="n">bonds</span>
+            <span class="n">hbond_database</span><span class="o">=</span><span class="n">hbond_database</span><span class="p">,</span> <span class="n">atom_types</span><span class="o">=</span><span class="n">atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">bonds</span><span class="o">=</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
         <span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
@@ -385,11 +384,14 @@
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">donor_sp2_hbond</span><span class="p">(</span>
-        <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">],</span>
         <span class="n">hbond_pairs</span><span class="p">:</span> <span class="n">HBondPairs</span><span class="p">,</span>
         <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:]:</span>
         <span class="sd">&quot;&quot;&quot;donor-sp2 hbond scores&quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Only single depth supported&quot;</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">donor_sp2_pairs</span> <span class="o">=</span> <span class="n">hbond_pairs</span><span class="o">.</span><span class="n">donor_sp2_pairs</span>
         <span class="n">donor_sp2_pair_params</span> <span class="o">=</span> <span class="n">hbond_pairs</span><span class="o">.</span><span class="n">donor_sp2_pair_params</span>
@@ -424,12 +426,15 @@
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">donor_sp3_hbond</span><span class="p">(</span>
-        <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">],</span>
         <span class="n">hbond_pairs</span><span class="p">:</span> <span class="n">HBondPairs</span><span class="p">,</span>
         <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:]:</span>
         <span class="n">donor_sp3_pairs</span> <span class="o">=</span> <span class="n">hbond_pairs</span><span class="o">.</span><span class="n">donor_sp3_pairs</span>
         <span class="n">donor_sp3_pair_params</span> <span class="o">=</span> <span class="n">hbond_pairs</span><span class="o">.</span><span class="n">donor_sp3_pair_params</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Only single depth supported&quot;</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">donor_sp3_pairs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">coords</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -459,7 +464,7 @@
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">donor_ring_hbond</span><span class="p">(</span>
-        <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">],</span>
         <span class="n">hbond_pairs</span><span class="p">:</span> <span class="n">HBondPairs</span><span class="p">,</span>
         <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:]:</span>
@@ -467,6 +472,8 @@
 
         <span class="n">donor_ring_pairs</span> <span class="o">=</span> <span class="n">hbond_pairs</span><span class="o">.</span><span class="n">donor_ring_pairs</span>
         <span class="n">donor_ring_pair_params</span> <span class="o">=</span> <span class="n">hbond_pairs</span><span class="o">.</span><span class="n">donor_ring_pair_params</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Only single layer supported.&quot;</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">donor_ring_pairs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">coords</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -497,9 +504,11 @@
         <span class="n">donor_sp2_hbond</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:],</span>
         <span class="n">donor_sp3_hbond</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:],</span>
         <span class="n">donor_ring_hbond</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">):</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:]:</span>
         <span class="sd">&quot;&quot;&quot;total hbond score&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">donor_sp2_hbond</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">donor_sp3_hbond</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">donor_ring_hbond</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">donor_sp2_hbond</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">donor_sp3_hbond</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">donor_ring_hbond</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,))</span>
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
@@ -555,7 +564,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

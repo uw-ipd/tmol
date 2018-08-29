@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.score_support &mdash; TMol 0.0.0-89-g7c0fe99 documentation</title>
+  <title>tmol.system.score_support &mdash; TMol 0.0.0-90-g97dc5e2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-89-g7c0fe99
+                0.0.0-90-g97dc5e2
               </div>
             
           
@@ -170,6 +170,7 @@
 <span class="kn">from</span> <span class="nn">..kinematics.torch_op</span> <span class="k">import</span> <span class="n">KinematicOp</span>
 <span class="kn">from</span> <span class="nn">..kinematics.metadata</span> <span class="k">import</span> <span class="n">DOFTypes</span>
 
+<span class="kn">from</span> <span class="nn">..score.stacked_system</span> <span class="k">import</span> <span class="n">StackedSystem</span>
 <span class="kn">from</span> <span class="nn">..score.bonded_atom</span> <span class="k">import</span> <span class="n">BondedAtomScoreGraph</span>
 
 <span class="kn">from</span> <span class="nn">..score.coordinates</span> <span class="k">import</span> <span class="p">(</span>
@@ -181,17 +182,25 @@
 <span class="kn">from</span> <span class="nn">.kinematics</span> <span class="k">import</span> <span class="n">KinematicDescription</span>
 
 
+<div class="viewcode-block" id="stack_params_for_system"><a class="viewcode-back" href="../../../apidoc/tmol.system.score_support.html#tmol.system.score_support.stack_params_for_system">[docs]</a><span class="nd">@StackedSystem</span><span class="o">.</span><span class="n">factory_for</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">PackedResidueSystem</span><span class="p">)</span>
+<span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">stack_params_for_system</span><span class="p">(</span><span class="n">system</span><span class="p">:</span> <span class="n">PackedResidueSystem</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">stack_depth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">system_size</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">system_size</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="bonded_atoms_for_system"><a class="viewcode-back" href="../../../apidoc/tmol.system.score_support.html#tmol.system.score_support.bonded_atoms_for_system">[docs]</a><span class="nd">@BondedAtomScoreGraph</span><span class="o">.</span><span class="n">factory_for</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">PackedResidueSystem</span><span class="p">)</span>
 <span class="nd">@validate_args</span>
 <span class="k">def</span> <span class="nf">bonded_atoms_for_system</span><span class="p">(</span>
     <span class="n">system</span><span class="p">:</span> <span class="n">PackedResidueSystem</span><span class="p">,</span> <span class="n">drop_missing_atoms</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span>
 <span class="p">):</span>
-    <span class="n">bonds</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">bonds</span>
+    <span class="n">bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">bonds</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">bonds</span>
 
-    <span class="n">atom_types</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">atom_metadata</span><span class="p">[</span><span class="s2">&quot;atom_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">atom_types</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">atom_metadata</span><span class="p">[</span><span class="s2">&quot;atom_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
 
     <span class="k">if</span> <span class="n">drop_missing_atoms</span><span class="p">:</span>
-        <span class="n">atom_types</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">coords</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">coords</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">bonds</span><span class="o">=</span><span class="n">bonds</span><span class="p">,</span> <span class="n">atom_types</span><span class="o">=</span><span class="n">atom_types</span><span class="p">)</span></div>
 
@@ -203,11 +212,16 @@
 <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`&quot;&quot;&quot;</span>
 
+    <span class="n">stack_depth</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">system_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+
     <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-        <span class="n">system</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="n">system</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">stack_depth</span><span class="p">,</span> <span class="n">system_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="n">requires_grad</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">stack_depth</span><span class="o">=</span><span class="n">stack_depth</span><span class="p">,</span> <span class="n">system_size</span><span class="o">=</span><span class="n">system_size</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="system_torsion_graph_inputs"><a class="viewcode-back" href="../../../apidoc/tmol.system.score_support.html#tmol.system.score_support.system_torsion_graph_inputs">[docs]</a><span class="nd">@KinematicAtomicCoordinateProvider</span><span class="o">.</span><span class="n">factory_for</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">PackedResidueSystem</span><span class="p">)</span>
@@ -274,7 +288,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-89-g7c0fe99',
+            VERSION:'0.0.0-90-g97dc5e2',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

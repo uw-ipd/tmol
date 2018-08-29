@@ -7,7 +7,7 @@ tmol.score.interatomic_distance
 .. currentmodule:: tmol.score.interatomic_distance
 
 .. automodule:: tmol.score.interatomic_distance
-    :members: BlockedDistanceAnalysis, BlockedInteratomicDistanceGraph, InteratomicDistanceGraphBase, NaiveInteratomicDistanceGraph
+    :members: BlockedInteratomicDistanceGraph, InteratomicDistanceGraphBase, IntraLayerAtomPairs, NaiveInteratomicDistanceGraph, Sphere, SphereDistance, triu_indices
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,10 +21,20 @@ tmol.score.interatomic_distance
     .. autosummary::
         :nosignatures:
 
-        BlockedDistanceAnalysis
         BlockedInteratomicDistanceGraph
         InteratomicDistanceGraphBase
+        IntraLayerAtomPairs
         NaiveInteratomicDistanceGraph
+        Sphere
+        SphereDistance
+
+    Functions
+    ~~~~~~~~~
+    
+    .. autosummary::
+        :nosignatures:
+
+        triu_indices
 
 
 
