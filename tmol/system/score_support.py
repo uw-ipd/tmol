@@ -176,14 +176,14 @@ def system_polymeric_connections(
         system.connection_metadata["from_connection_name"] == "up"
     ]
     upper[ups["from_residue_index"]] = torch.tensor(
-        ups["to_residue_index"], dtype=torch.long
+        ups["to_residue_index"], dtype=torch.long, device=device
     )
 
     downs = system.connection_metadata[
         system.connection_metadata["from_connection_name"] == "down"
     ]
     lower[downs["from_residue_index"]] = torch.tensor(
-        downs["to_residue_index"], dtype=torch.long
+        downs["to_residue_index"], dtype=torch.long, device=device
     )
 
     return dict(upper=upper.unsqueeze(0), lower=lower.unsqueeze(0))

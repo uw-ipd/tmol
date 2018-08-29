@@ -1,6 +1,5 @@
 import os
 import attr
-import torch
 
 from .hbond import HBondDatabase
 from .ljlk import LJLKDatabase
