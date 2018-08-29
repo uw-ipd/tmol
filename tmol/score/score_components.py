@@ -1,3 +1,129 @@
+"""Graph components managing dispatch of "intra" and "inter" layer scoring.
+
+Score evaluation involves the interaction of three types:
+
+(a) A ``System``, defining a single system state.
+(b) An ``IntraContainer``, managing the total intra-system score for a
+    single system.
+(c) An ``InterContainer``, managing the total inter-system score for a pair
+    of systems.
+
+The ``System`` type is instantiated once for a group of related scoring
+operations, and is responsible for initializing any static or reusable data
+required to score a system. The system state (Eg: atomic coordinates) is
+updated via assignment for each score operation, preserving the ``System``
+object.
+
+The ``[Intra|Inter]ScoreGraph`` types are instantiated for each score
+operation, and are responsible for evaluating the score for a single system
+state using state data stored within the ``System`` object.  A single
+``[Intra|Inter]ScoreGraph`` object is created for every scoring pass, and is
+not reused.
+
+.. aafig::
+
+   +-------------+
+   |"Input Model"|
+   +-------------+
+       |
+       | "Initialized via factory function."
+       V
+   +------------------+
+   |"ScoreComponent"  |
+   |   - 'coords'     |
+   |   - 'database'   |
+   |   - '...'        |
+   +------------------+
+       | | |
+       | | | "Initialized per score operation."
+       V V V
+   +----------------------------+
+   |"IntraScoreGraph"           |
+   |   - "target:ScoreComponent"|
+   +----------------------------+
+
+|
+
+All types are defined via a composition of multiple term-specific
+components, and a term contributes a component each of the three types
+under a common term "name". The ``[Inter|Intra]Container`` component
+exposes a term-specific ``total_<term>`` property, which are summed to
+produce a final ``total`` property.
+
+.. aafig::
+
+   +-----------------------------------------+
+   |"ScoreComponent"                         |
+   |                                         |
+   |               +---------+               |
+   |            ---+ "coords"+---            |
+   |           /   +----+----+   \           |
+   |          |         |         |          |
+   |  +-------v-+  +----v----+  +-v-------+  |
+   |  |"Term A" |  |"Term B" |  |"Term C" |  |
+   |  +--------++  +----+----+  ++--------+  |
+   +-----------|--------|--------|-----------+
+               |        |        |
+   +-----------|--------|--------|-----------+
+   |  +--------v+  +----v----+  +v--------+  |
+   |  |"total_A"|  |"total_B"|  |"total_C"|  |
+   |  +-------+-+  +----+----+  +-+-------+  |
+   |          |         |         |          |
+   |           \   +----v----+   /           |
+   |            -->| "total" |<--            |
+   |               +---------+               |
+   |"IntraScoreGraph"                        |
+   +-----------------------------------------+
+
+|
+
+To "simplify" the definition of concrete scoring classes from a composite
+of score component base classes, the ``IntraContainer`` and ``InterContainer``
+types are dynamically derived from the ``System`` type via inspection of the
+``System`` MRO, gathering base components for the ``IntraContainer`` and
+``InterContainer`` classes. Note that this results in a unsettling inversion
+of ownership between classes and instances: ``System`` component *classes*
+define class level references to their ``IntraContainer`` and
+``InterContainer`` counterparts, but ``intra_container` and ``inter_container``
+*objects* contain references to their target ``system`` object.
+
+.. aafig::
+
+   +---------------------------+
+   | System                    |
+   |                           <-+
+   |  'intra_score_type: type' | |
+   |  'inter_score_type: type' | |
+   |                           | |
+   +---+-----------------------+ |
+       |                         |
+   "Defines via"               "References"
+   "TotalScoreComponents"        |
+   "and constructs"              |
+       |                         |
+       | +---------------------+ |
+       | | IntraScoreContainer | |
+       | |                     | |
+       +->  'target: System'   +-+
+       | |                     | |
+       | +---------------------+ |
+       |                         |
+       | +---------------------+ |
+       | | InterScoreContainer | |
+       | |                     | |
+       +->  'target_i: System' +-+
+         |  'target_j: System' |
+         |                     |
+         +---------------------+
+
+|
+
+Components contributing to inter/intra scores *must* make the component's
+score terms available by implementing the ``total_score_components``
+class-level property, containing a ``ScoreComponentClasses`` instance or
+collection of ``ScoreComponentClasses`` instances.
+
+"""
 from typing import Optional, Tuple
 import operator
 
@@ -26,60 +152,6 @@ class InterScoreGraph:
 
 
 class ScoreComponent:
-    """Graph component managing dispatch of "intra" and "inter" layer scoring.
-
-    Score dispatch involves the interaction of three components:
-
-    (a) A ``System``, defining the basic data within a single system.
-    (b) An ``IntraContainer``, managing the total intra-system score for a
-        single system.
-    (c) An ``InterContainer``, managing the total inter-system score for a pair
-        of systems.
-
-    To "simplify" the definition of concrete scoring classes from a composite
-    of score component base classes, the ``IntraContainer`` and ``InterContainer``
-    types are dynamically derived from the ``System`` type via inspection of the
-    ``System`` MRO, gathering base components for the ``IntraContainer`` and
-    ``InterContainer`` classes. Note that this results in a unsettling inversion
-    of ownership between classes and instances: ``System`` component *classes*
-    define class level references to their ``IntraContainer`` and
-    ``InterContainer`` counterparts, but ``intra_container` and ``inter_container``
-    *objects* contain references to their target ``system`` object.
-
-    .. aafig::
-
-       +---------------------------+
-       | System                    |
-       |                           |
-       |  'intra_score_type: type' |
-       |  'inter_score_type: type' |
-       |                           |
-       +---+-----------------------+
-           |
-           |  Defines via
-           |  TotalScoreComponents
-           |
-           | +---------------------+
-           | | IntraScoreContainer |
-           | |                     |
-           +->  'target: System'   |
-           | |                     |
-           | +---------------------+
-           |
-           | +---------------------+
-           | | InterScoreContainer |
-           | |                     |
-           +->  'target_i: System' |
-             |  'target_j: System' |
-             |                     |
-             +---------------------+
-
-    Components contributing to inter/intra scores *must* make the component's
-    score terms available by implementing the ``total_score_components``
-    class-level property, containing a ``ScoreComponentClasses`` instance or
-    collection of ``ScoreComponentClasses`` instances.
-
-    """
 
     # Score component related data stored as dunder properties on the composite
     # class. Note that these are class specific, and should *not* be returned
