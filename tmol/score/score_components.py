@@ -2,23 +2,22 @@
 
 Score evaluation involves the interaction of three types:
 
-(a) A ``System``, defining a single system state.
-(b) An ``IntraContainer``, managing the total intra-system score for a
+(a) A `ScoreComponent`, defining a single system state.
+(b) An `IntraScore`, managing the total intra-system score for a
     single system.
-(c) An ``InterContainer``, managing the total inter-system score for a pair
+(c) An `IntraScore`, managing the total inter-system score for a pair
     of systems.
 
-The ``System`` type is instantiated once for a group of related scoring
+The ``ScoreComponent`` type is instantiated once for a group of related scoring
 operations, and is responsible for initializing any static or reusable data
 required to score a system. The system state (Eg: atomic coordinates) is
 updated via assignment for each score operation, preserving the ``System``
 object.
 
-The ``[Intra|Inter]ScoreGraph`` types are instantiated for each score
-operation, and are responsible for evaluating the score for a single system
-state using state data stored within the ``System`` object.  A single
-``[Intra|Inter]ScoreGraph`` object is created for every scoring pass, and is
-not reused.
+The ``[Intra|Inter]Score`` types are instantiated for each score operation, and
+are responsible for evaluating the score for a single system state using state
+data stored within the ``System`` object.  A single ``[Intra|Inter]Score``
+object is created for every scoring pass, and is not reused.
 
 .. aafig::
 
@@ -37,18 +36,18 @@ not reused.
        | | |
        | | | "Initialized per score operation."
        V V V
-   +----------------------------+
-   |"IntraScoreGraph"           |
-   |   - "target:ScoreComponent"|
-   +----------------------------+
+   +-----------------------------+
+   |"IntraScore"                 |
+   |   - "target: ScoreComponent"|
+   +-----------------------------+
 
 |
 
-All types are defined via a composition of multiple term-specific
-components, and a term contributes a component each of the three types
-under a common term "name". The ``[Inter|Intra]Container`` component
-exposes a term-specific ``total_<term>`` property, which are summed to
-produce a final ``total`` property.
+All types are defined via a composition of multiple term-specific components,
+and a term contributes a component to each of the three types under a common
+term "name". The ``[Inter|Intra]Score`` component exposes a term-specific
+``total_<term>`` property, which are summed to produce a final ``total``
+property.
 
 .. aafig::
 
@@ -72,60 +71,56 @@ produce a final ``total`` property.
    |           \   +----v----+   /           |
    |            -->| "total" |<--            |
    |               +---------+               |
-   |"IntraScoreGraph"                        |
+   |"IntraScore"                             |
    +-----------------------------------------+
 
 |
 
-To "simplify" the definition of concrete scoring classes from a composite
-of score component base classes, the ``IntraContainer`` and ``InterContainer``
-types are dynamically derived from the ``System`` type via inspection of the
-``System`` MRO, gathering base components for the ``IntraContainer`` and
-``InterContainer`` classes. Note that this results in a unsettling inversion
-of ownership between classes and instances: ``System`` component *classes*
-define class level references to their ``IntraContainer`` and
-``InterContainer`` counterparts, but ``intra_container` and ``inter_container``
-*objects* contain references to their target ``system`` object.
+To "simplify" the definition of concrete scoring classes from a composite of
+score component base classes, the ``IntraScore`` and ``InterScore`` types are
+dynamically derived from the ``ScoreComponent`` type via inspection of the
+``ScoreComponent`` MRO, gathering base components for the ``IntraScore`` and
+``InterScore`` classes. Note that this results in a unsettling inversion of
+ownership between classes and instances: ``ScoreComponent`` types define class
+level references to their ``IntraScore`` and ``InterScore`` counterparts, but
+the resulting ``intra_score` and ``inter_score`` *objects* contain references
+to a target ``ScoreComponent`` object.
 
 .. aafig::
 
    +---------------------------+
-   | System                    |
+   | ScoreComponent            |
    |                           <-+
    |  'intra_score_type: type' | |
    |  'inter_score_type: type' | |
    |                           | |
    +---+-----------------------+ |
        |                         |
-   "Defines via"               "References"
-   "TotalScoreComponents"        |
-   "and constructs"              |
+       |               "References"
+       |                         |
+   "Defines and constructs"      |
        |                         |
        | +---------------------+ |
-       | | IntraScoreContainer | |
+       | | IntraScore          | |
        | |                     | |
-       +->  'target: System'   +-+
-       | |                     | |
+       +->  "target:         " +-+
+       | |  "  ScoreComponent" | |
        | +---------------------+ |
        |                         |
        | +---------------------+ |
-       | | InterScoreContainer | |
+       | | InterScore          | |
        | |                     | |
-       +->  'target_i: System' +-+
-         |  'target_j: System' |
-         |                     |
+       +->  "target_i:       " +-+
+         |  "  ScoreComponent" |
+         |  "target_j:       " |
+         |  "  ScoreComponent" |
          +---------------------+
 
 |
-
-Components contributing to inter/intra scores *must* make the component's
-score terms available by implementing the ``total_score_components``
-class-level property, containing a ``ScoreComponentClasses`` instance or
-collection of ``ScoreComponentClasses`` instances.
-
 """
 from typing import Optional, Tuple
 import operator
+import collections.abc
 
 import attr
 import toolz
@@ -133,44 +128,117 @@ import toolz
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
 
-@attr.s(slots=True, frozen=True, auto_attribs=True)
-class ScoreComponentClasses:
-    name: str
-    intra_container: Optional[type]
-    inter_container: Optional[type]
-
-
 @attr.s
-class IntraScoreGraph:
+class IntraScore:
+    """Base mixin for intra-system scoring.
+
+    Base component for an intra-system score evaluation for a target. The
+    target's ScoreComponent class will define a specific composite IntraScore
+    class with term names defined by `ScoreComponentClasses`. See module
+    documentation for details.
+
+    Components contributing to the score _must_ define ``total_{name}``, which
+    will be provied as keyword args to the score accessors defined in this
+    class.  Contributing components *may* use ``reactive_attrs`` to provide
+    component properties and the ``staticmethod`` score accessors defined below
+    will be exposed via ``reactive_property``.
+    """
+
     target: "ScoreComponent" = attr.ib()
 
+    @staticmethod
+    def total(**component_totals):
+        return toolz.reduce(operator.add, component_totals.values())
+
 
 @attr.s
-class InterScoreGraph:
+class InterScore:
+    """Base mixin for inter-system scoring.
+
+    Base component for an inter-system score evaluation for a target. The
+    target's ScoreComponent class will define a specific composite InterScore
+    class with term names defined by `ScoreComponentClasses`. See module
+    documentation for details.
+
+    Components contributing to the score _must_ define ``total_{name}``, which
+    will be provied as keyword args to the score accessors defined in this
+    class.  Contributing components *may* use ``reactive_attrs`` to provide
+    component properties and the ``staticmethod`` score accessors defined below
+    will be exposed via ``reactive_property``.
+    """
+
     target_i: "ScoreComponent" = attr.ib()
     target_j: "ScoreComponent" = attr.ib()
 
+    @staticmethod
+    def total(**component_totals):
+        return toolz.reduce(operator.add, component_totals.values())
+
+
+@attr.s(slots=True, frozen=True, auto_attribs=True)
+class ScoreComponentClasses:
+    """The intra/inter graph class components for a ScoreComponent.
+
+    Container for intra/inter graph components exposing a specific score term
+    for a `ScoreComponent`. Each ``ScoreComponent``-based term implementation
+    will expose one-or-more named terms via the ``total_score_components``
+    class property, which are composed to generate the corresponding
+    ``IntraScore`` and ``InterScore`` utility classes.
+
+    Attributes:
+        name: The term name, used to determine the container class properties
+            presenting the calculated term value. The _must_ be unique within
+            score composite class.
+        intra_container: Intra-score type, this _may_ be a ``reactive_attrs``
+            type and _must_ expose a ``total_{name}`` property.
+        inter_container: inter-score type, this _may_ be a ``reactive_attrs``
+            type and _must_ expose a ``total_{name}`` property.
+    """
+
+    name: str
+    intra_container: Optional[type] = None
+    inter_container: Optional[type] = None
+
 
 class ScoreComponent:
+    """Mixin-base managing definition of inter/intra score containers.
+
+    A mixin-base for all score term implementations managing definition of
+    ``InterScore`` and ``IntraScore`` composite classes for all terms present
+    in a ``ScoreComponent`` class and creation of ``inter_score`` and
+    ``intra_score`` objects during score evaluation.
+
+    A ``ScoreComponent``-derived term mixin _must_ provide a
+    ``total_score_components`` class property, containing one or more
+    ``ScoreComponentClasses`` of each provided score term.
+
+    The ``ScoreComponent`` base mixin then exposes the ``inter_score`` and
+    ``intra_score`` methods; factory functions for class-specific
+    ``InterScore`` and ``IntraScore`` instances.
+    """
 
     # Score component related data stored as dunder properties on the composite
     # class. Note that these are class specific, and should *not* be returned
-    # from base classes. Ie. Check for existance in cls.__dict__ rather than using
+    # from base classes. Ie. Check for existence in cls.__dict__ rather than using
     # hasattr.
-    __resolved_score_components__: Optional[Tuple[type, ...]]
+    __resolved_score_components__: Optional[
+        Tuple[Tuple[type, ScoreComponentClasses], ...]
+    ]
     __resolved_intra_score_type__: Optional[type]
     __resolved_inter_score_type__: Optional[type]
 
-    def intra_score(self) -> IntraScoreGraph:
-        """Create intra-score container for target."""
+    def intra_score(self) -> IntraScore:
+        """Create intra-score container over this component."""
         return self._intra_score_type()(self)
 
-    def inter_score(self: "ScoreComponent", other: "ScoreComponent") -> InterScoreGraph:
-        """Create inter-score container for i/j."""
+    def inter_score(self: "ScoreComponent", other: "ScoreComponent") -> InterScore:
+        """Create inter-score container for this component and other."""
         return self._inter_score_type()(self, other)
 
     @classmethod
-    def _intra_score_type(cls):
+    def _intra_score_type(cls) -> type:
+        """Compose and create IntraScore type for all ScoreComponents in class."""
+
         if "__resolved_intra_score_type__" in cls.__dict__:
             return cls.__resolved_intra_score_type__
 
@@ -210,10 +278,7 @@ class ScoreComponent:
         }
 
         generated_accessor_props = {
-            accessor: reactive_property(
-                lambda **components: toolz.reduce(operator.add, components.values()),
-                kwargs=tuple(subprops),
-            )
+            accessor: reactive_property(IntraScore.total, kwargs=tuple(subprops))
             for accessor, subprops in generated_accessor_kwargs.items()
         }
 
@@ -230,7 +295,8 @@ class ScoreComponent:
         return cls.__resolved_intra_score_type__
 
     @classmethod
-    def _inter_score_type(cls):
+    def _inter_score_type(cls) -> type:
+        """Compose and create InterScore type for all ScoreComponents in class."""
         if "__resolved_inter_score_type__" in cls.__dict__:
             return cls.__resolved_inter_score_type__
 
@@ -270,14 +336,11 @@ class ScoreComponent:
         }
 
         generated_accessor_props = {
-            accessor: reactive_property(
-                lambda **components: toolz.reduce(operator.add, components.values()),
-                kwargs=tuple(subprops),
-            )
+            accessor: reactive_property(InterScore.total, kwargs=tuple(subprops))
             for accessor, subprops in generated_accessor_kwargs.items()
         }
 
-        # Perfom class declaration and reactive_attrs init of the generated
+        # Perform class declaration and reactive_attrs init of the generated
         # container class
         cls.__resolved_inter_score_type__ = reactive_attrs(
             type(
@@ -291,13 +354,17 @@ class ScoreComponent:
 
     @classmethod
     def _score_components(cls):
+        """Gather all ``total_score_components`` defined in class bases."""
         if "__resolved_score_components__" in cls.__dict__:
             return cls.__resolved_score_components__
 
         score_components = []
         for base in cls.mro():
             base_components = base.__dict__.get("total_score_components", None)
-            if isinstance(base_components, ScoreComponentClasses):
+            if base_components is None:
+                continue
+
+            if not isinstance(base_components, collections.abc.Collection):
                 base_components = (base_components,)
 
             if base_components:

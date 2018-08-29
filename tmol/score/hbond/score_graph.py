@@ -8,7 +8,7 @@ from ..database import ParamDB
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
-from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScoreGraph
+from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 
 from .potentials import (
     hbond_donor_sp2_score,
@@ -123,7 +123,7 @@ class HBondPairs(ValidateAttrs):
 
 
 @reactive_attrs
-class HBondIntraScore(IntraScoreGraph):
+class HBondIntraScore(IntraScore):
     @reactive_property
     def coords(target):
         return target.coords

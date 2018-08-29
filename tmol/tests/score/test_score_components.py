@@ -6,20 +6,20 @@ from tmol.utility.reactive import reactive_attrs, reactive_property
 from tmol.score.score_components import (
     ScoreComponent,
     ScoreComponentClasses,
-    IntraScoreGraph,
-    InterScoreGraph,
+    IntraScore,
+    InterScore,
 )
 
 
 @reactive_attrs
-class IntraFoo(IntraScoreGraph):
+class IntraFoo(IntraScore):
     @reactive_property
     def total_foo(target):
         return target.foo
 
 
 @reactive_attrs
-class InterFoo(InterScoreGraph):
+class InterFoo(InterScore):
     @reactive_property
     def total_foo(target_i, target_j):
         return target_i.foo + target_j.foo
@@ -53,14 +53,14 @@ class JustIntraFoo(ScoreComponent):
 
 
 @reactive_attrs
-class IntraBar(IntraScoreGraph):
+class IntraBar(IntraScore):
     @reactive_property
     def total_bar(target):
         return target.bar
 
 
 @reactive_attrs
-class InterBar(InterScoreGraph):
+class InterBar(InterScore):
     @reactive_property
     def total_bar(target_i, target_j):
         return target_i.bar + target_j.bar

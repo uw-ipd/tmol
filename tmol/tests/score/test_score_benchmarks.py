@@ -11,7 +11,7 @@ from tmol.score.bonded_atom import BondedAtomScoreGraph
 from tmol.score.score_components import (
     ScoreComponent,
     ScoreComponentClasses,
-    IntraScoreGraph,
+    IntraScore,
 )
 
 from tmol.score.coordinates import (
@@ -25,7 +25,7 @@ from tmol.score.hbond import HBondScoreGraph
 
 
 @reactive_attrs
-class DummyIntra(IntraScoreGraph):
+class DummyIntra(IntraScore):
     @reactive_property
     def total_dummy(target):
         return target.coords.sum()

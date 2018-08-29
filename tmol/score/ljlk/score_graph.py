@@ -16,14 +16,14 @@ from ..device import TorchDevice
 from ..interatomic_distance import InteratomicDistanceGraphBase
 from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
-from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScoreGraph
+from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 
 from .potentials import lj_score, lk_score
 from .params import LJLKParamResolver, LJLKTypePairParams
 
 
 @reactive_attrs
-class LJLKIntraParam(IntraScoreGraph):
+class LJLKIntraParam(IntraScore):
     @reactive_property
     def atom_pair_inds(target) -> Tensor(torch.long)[:, 3]:
         return target.atom_pair_inds

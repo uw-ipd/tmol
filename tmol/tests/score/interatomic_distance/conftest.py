@@ -10,8 +10,8 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.score_components import (
     ScoreComponent,
     ScoreComponentClasses,
-    InterScoreGraph,
-    IntraScoreGraph,
+    InterScore,
+    IntraScore,
 )
 from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase,
@@ -86,7 +86,7 @@ def multilayer_test_coords(multilayer_test_offsets):
 
 
 @reactive_attrs(auto_attribs=True)
-class ThresholdDistanceCountIntraScore(IntraScoreGraph):
+class ThresholdDistanceCountIntraScore(IntraScore):
     @reactive_property
     def total_threshold_count(target):
         "number of bonds under threshold distance"
@@ -106,7 +106,7 @@ class ThresholdDistanceCountIntraScore(IntraScoreGraph):
 
 
 @reactive_attrs(auto_attribs=True)
-class ThresholdDistanceCountInterScore(InterScoreGraph):
+class ThresholdDistanceCountInterScore(InterScore):
     @reactive_property
     def total_threshold_count(target_i, target_j):
         assert target_i.threshold_distance == target_j.threshold_distance
