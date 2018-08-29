@@ -3,12 +3,10 @@ import torch
 from tmol.system.packed import PackedResidueSystem
 
 from tmol.score import TotalScoreGraph
-from tmol.score.total_score import TotalScoreComponentsGraph
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
-from tmol.score.bonded_atom import BondedAtomScoreGraph
 
 from tmol.utility.reactive import reactive_attrs
 

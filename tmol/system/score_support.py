@@ -103,11 +103,12 @@ def system_torsion_graph_inputs(
 def system_torsions_from_coordinates(
     system: PackedResidueSystem, device: torch.device, **_
 ):
-    """Constructor for finding the named backbone torsions of residues in the system
+    """Constructor for finding the alpha amino-acid backbone torsions
 
-    Each of the residues in the system is represented by the three atom-index arrays,
-    but some entries are going to be listed with an index of -1. Either these atoms
-    don't exist for a canonical AA at that residue or that residue is not a canonical AA.
+    Each of the residues in the system is represented by the three
+    atom-index arrays, but some entries are going to be listed with
+    an index of -1. Either these atoms don't exist for a canonical
+    AA at that residue or that residue is not a canonical AA.
     """
 
     phi_inds = inds_for_torsion(system, device, "phi").unsqueeze(0)
@@ -159,12 +160,15 @@ def inds_for_torsion(
 def system_polymeric_connections(
     system: PackedResidueSystem, device: torch.device, **_
 ):
-    """Constructor for identifying which polymeric residue is chemically bonded to which
-    other polymeric residue; the upper connection (usually i+1) for cyclic peptides, e.g.,
-    will for the last residue be residue 0, and in the same cyclic peptide, the lower
-    connection for residue 0 with be the last residue. An index of -1 is given to suggest
-    that a residue does not have an upper or lower connection (perhaps because it is not
-    a polymeric residue, or perhaps because it is a chain terminus)."""
+    """Constructor for identifying which polymeric residue is chemically bonded
+    to which other polymeric residue
+
+    The upper connection (usually i+1) for cyclic peptides, e.g., will for the
+    last residue be residue 0, and in the same cyclic peptide, the lower
+    connection for residue 0 with be the last residue. An index of -1 is given
+    to suggest that a residue does not have an upper or lower connection (perhaps
+    because it is not a polymeric residue, or perhaps because it is a chain
+    terminus)."""
 
     upper = torch.full((len(system.residues),), -1, dtype=torch.long, device=device)
     lower = torch.full((len(system.residues),), -1, dtype=torch.long, device=device)

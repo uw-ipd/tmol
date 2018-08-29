@@ -1,14 +1,12 @@
 from typing import Tuple, Optional, NewType
 from tmol.utility.units import parse_angle, u
 from toolz import curry
-from frozendict import frozendict
 
 import attr
 import cattr
 
 import os
 import yaml
-import enum
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

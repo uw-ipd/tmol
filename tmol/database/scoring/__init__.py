@@ -4,9 +4,7 @@ import torch
 
 from .hbond import HBondDatabase
 from .ljlk import LJLKDatabase
-from .rama import RamaDatabase, CompactedRamaDatabase
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+from .rama import RamaDatabase
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
