@@ -114,10 +114,11 @@ def system_torsions_from_coordinates(
     psi_inds = inds_for_torsion(system, device, "psi").unsqueeze(0)
     omega_inds = inds_for_torsion(system, device, "omega").unsqueeze(0)
 
+    ind3 = AAIndex.canonical_laa_ind3()
     res_aas = torch.tensor(
         [
-            AAIndex.canonical_laa_ind3.get_loc(res.residue_type.name3)
-            if res.residue_type.name3 in AAIndex.canonical_laa_ind3
+            ind3.get_loc(res.residue_type.name3)
+            if res.residue_type.name3 in ind3
             else -1
             for res in system.residues
         ],

@@ -1,10 +1,17 @@
 import pandas
-import Bio.Data.IUPACData
+import toolz.functoolz
 
 
 class AAIndex:
     """Indices for canonical, L amino acids"""
 
-    canonical_laa_ind3 = pandas.Index(
-        [x.upper() for x in Bio.Data.IUPACData.protein_letters_1to3.values()]
-    )
+    _indices = {}
+
+    @staticmethod
+    @toolz.functoolz.memoize(cache=_indices)
+    def canonical_laa_ind3():
+        """Convert upper-case 3-letter abbreviations of the 20 canonical L amino acids
+        into an integer index in the range from 0 to 19."""
+        import Bio.Data.IUPACData as bdiupacd
+
+        return pandas.Index([x.upper() for x in bdiupacd.protein_letters_1to3.values()])

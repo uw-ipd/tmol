@@ -79,8 +79,9 @@ class CompactedRamaDatabase:
         """
 
         table = torch.full((20, 2, 36, 36), -1234, dtype=torch.float, device=device)
-        for aa in range(len(AAIndex.canonical_laa_ind3)):
-            aa3name = AAIndex.canonical_laa_ind3[aa]
+        ind3 = AAIndex.canonical_laa_ind3()
+        for aa in range(len(ind3)):
+            aa3name = ind3[aa]
             for prepro in range(2):
                 aatab = ramadb.find(aa3name, bool(prepro))
                 assert aatab
@@ -101,6 +102,6 @@ class CompactedRamaDatabase:
 
         bspline = BSplineInterpolation.from_coordinates(table, degree=3, n_index_dims=2)
 
-        pro_ind = AAIndex.canonical_laa_ind3.get_loc("PRO")
+        pro_ind = ind3.get_loc("PRO")
 
         return cls(table=table, bspline=bspline, pro_ind=pro_ind)
