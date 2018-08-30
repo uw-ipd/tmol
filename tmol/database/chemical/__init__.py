@@ -54,7 +54,6 @@ class ConnectedAtom:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Torsion:
     name: str
-    mainchain: bool
     a: ConnectedAtom
     b: ConnectedAtom
     c: ConnectedAtom
