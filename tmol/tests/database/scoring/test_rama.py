@@ -41,7 +41,7 @@ def test_compacted_rama(torch_device):
             original_vals = compacted.table.reshape(-1)[inds]
             interp_vals = compacted.bspline.interpolate(x, y)
             numpy.testing.assert_allclose(
-                interp_vals.detach().numpy(),
+                interp_vals.cpu().detach().numpy(),
                 original_vals.detach().numpy(),
                 atol=1e-5,
                 rtol=1e-7,
