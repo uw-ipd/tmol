@@ -6,6 +6,7 @@ from tmol.score.total_score import TotalScoreComponentsGraph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.torsions import AlphaAABackboneTorsionProvider
+from tmol.chemical.aa import AAIndex
 
 
 @reactive_attrs(auto_attribs=True)
@@ -22,6 +23,7 @@ class TCartTorsions(
 
 def test_create_torsion_provider(ubq_system):
     src = TCartTorsions.build_for(ubq_system)
+
     assert src
 
     gold_phi = torch.tensor(
@@ -286,3 +288,12 @@ def test_create_torsion_provider(ubq_system):
     #
     # print( "gold omega" )
     # print( (src.omega_tor * 180 / numpy.pi ).detach().numpy() )
+
+
+def test_system_score_support_res_aas(ubq_system):
+    ubq_seq = [res.residue_type.name3 for res in ubq_system.residues]
+    src = TCartTorsions.build_for(ubq_system)
+    ind3 = AAIndex.canonical_laa_ind3()
+    numpy.testing.assert_array_equal(
+        src.res_aas.cpu().numpy().squeeze(), ind3.get_indexer(ubq_seq)
+    )

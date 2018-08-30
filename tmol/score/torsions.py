@@ -39,6 +39,9 @@ class AlphaAABackboneTorsionProvider(Factory):
     psi_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
     omega_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
 
+    # Integer representation of the canonical l-aa for each residue; -1 if the residue
+    # is not a canonical l-aa. This integer index should come from the pandas index
+    # that lives in tmol/chemical/aa.py for consistent use across multiple classes
     res_aas: Tensor(torch.long)[:, :] = attr.ib()
 
     def reset_total_score(self):
