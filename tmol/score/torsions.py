@@ -44,11 +44,6 @@ class AlphaAABackboneTorsionProvider(Factory):
     # that lives in tmol/chemical/aa.py for consistent use across multiple classes
     res_aas: Tensor(torch.long)[:, :] = attr.ib()
 
-    def reset_total_score(self):
-        self.phi_inds = self.phi_inds
-        self.psi_inds = self.psi_inds
-        self.omega_inds = self.omega_inds
-
     @reactive_property
     def phi_tor(
         coords64: Tensor(torch.double)[:, :, 3], phi_inds: Tensor(torch.long)[:, :, 4]

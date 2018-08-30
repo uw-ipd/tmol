@@ -1,7 +1,3 @@
-import yaml
-import cattr
-import json
-import pytest
 import numpy
 import torch
 
@@ -55,31 +51,35 @@ def test_load_compacted_rama_once(torch_device):
     assert crama1 is crama2
 
 
-# -- code coverage killer -- @pytest.mark.skip(reason="Slow benchmark in yaml case, not functionally relevant.")
-# -- code coverage killer -- @pytest.mark.benchmark(group="rama_load", min_rounds=1)
-# -- code coverage killer -- @pytest.mark.parametrize("method", ["json", "yaml-loader", "yaml-cloader"])
-# -- code coverage killer -- def test_rama_load_benchmark(benchmark, method):
-# -- code coverage killer --     path = {
-# -- code coverage killer --         "json": "tmol/database/default/scoring/rama.json",
-# -- code coverage killer --         "yaml-loader": "tmol/database/default/scoring/rama.yaml",
-# -- code coverage killer --         "yaml-cloader": "tmol/database/default/scoring/rama.yaml",
-# -- code coverage killer --     }[method]
-# -- code coverage killer --
-# -- code coverage killer --     load = {
-# -- code coverage killer --         "json": lambda infile: json.load(infile),
-# -- code coverage killer --         "yaml-loader":
-# -- code coverage killer --         # defaults to yaml.Loader
-# -- code coverage killer --         lambda infile: yaml.load(infile),
-# -- code coverage killer --         "yaml-cloader": lambda infile: yaml.load(infile, yaml.CLoader),
-# -- code coverage killer --     }[method]
-# -- code coverage killer --
-# -- code coverage killer --     @benchmark
-# -- code coverage killer --     def db():
-# -- code coverage killer --         with open(path, "r") as infile:
-# -- code coverage killer --             raw = load(infile)
-# -- code coverage killer --         return cattr.structure(raw, RamaDatabase)
-# -- code coverage killer --
-# -- code coverage killer --     assert len(db.tables) == 40
+# @pytest.mark.skip(reason="Slow benchmark in yaml case, not functionally relevant.")
+# @pytest.mark.benchmark(group="rama_load", min_rounds=1)
+# @pytest.mark.parametrize("method", ["json", "yaml-loader", "yaml-cloader"])
+# def test_rama_load_benchmark(benchmark, method):
+#     import yaml
+#     import json
+#     import cattr
+#
+#     path = {
+#         "json": "tmol/database/default/scoring/rama.json",
+#         "yaml-loader": "tmol/database/default/scoring/rama.yaml",
+#         "yaml-cloader": "tmol/database/default/scoring/rama.yaml",
+#     }[method]
+#
+#     load = {
+#         "json": lambda infile: json.load(infile),
+#         "yaml-loader":
+#         # defaults to yaml.Loader
+#         lambda infile: yaml.load(infile),
+#         "yaml-cloader": lambda infile: yaml.load(infile, yaml.CLoader),
+#     }[method]
+#
+#     @benchmark
+#     def db():
+#         with open(path, "r") as infile:
+#             raw = load(infile)
+#         return cattr.structure(raw, RamaDatabase)
+#
+#     assert len(db.tables) == 40
 
 
 def test_rama_request_absent_aa():
