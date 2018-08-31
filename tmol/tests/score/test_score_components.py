@@ -31,7 +31,7 @@ class Foo(ScoreComponent):
         name="foo", intra_container=IntraFoo, inter_container=InterFoo
     )
 
-    foo: int = attr.ib()
+    foo = attr.ib()
 
 
 @attr.s
@@ -40,7 +40,7 @@ class JustInterFoo(ScoreComponent):
         name="foo", intra_container=None, inter_container=InterFoo
     )
 
-    foo: int = attr.ib()
+    foo = attr.ib()
 
 
 @attr.s
@@ -49,7 +49,7 @@ class JustIntraFoo(ScoreComponent):
         name="foo", intra_container=IntraFoo, inter_container=None
     )
 
-    foo: int = attr.ib()
+    foo = attr.ib()
 
 
 @reactive_attrs
@@ -72,7 +72,7 @@ class Bar(ScoreComponent):
         name="bar", intra_container=IntraBar, inter_container=InterBar
     )
 
-    bar: int = attr.ib()
+    bar = attr.ib()
 
 
 def test_single_component():
