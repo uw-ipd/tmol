@@ -6,9 +6,13 @@ from tmol.score import TotalScoreGraph
 
 from tmol.score.device import TorchDevice
 
-from tmol.score.total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 
 from tmol.score.bonded_atom import BondedAtomScoreGraph
+from tmol.score.score_components import (
+    ScoreComponent,
+    ScoreComponentClasses,
+    IntraScore,
+)
 
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
@@ -21,19 +25,19 @@ from tmol.score.hbond import HBondScoreGraph
 
 
 @reactive_attrs
-class DofSpaceDummy(
-    KinematicAtomicCoordinateProvider,
-    BondedAtomScoreGraph,
-    TotalScoreComponentsGraph,
-    TorchDevice,
-):
-    @property
-    def component_total_score_terms(self):
-        return ScoreComponentAttributes(name="dummy", total="dummy_total")
-
+class DummyIntra(IntraScore):
     @reactive_property
-    def dummy_total(coords):
-        return coords.sum()
+    def total_dummy(target):
+        return target.coords.sum()
+
+
+@reactive_attrs
+class DofSpaceDummy(
+    KinematicAtomicCoordinateProvider, BondedAtomScoreGraph, ScoreComponent, TorchDevice
+):
+    total_score_components = [
+        ScoreComponentClasses("dummy", intra_container=DummyIntra, inter_container=None)
+    ]
 
 
 @reactive_attrs
@@ -63,13 +67,17 @@ class LJLKScore(
 
 def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     # Score once to prep graph
-    score_graph.total_score
+    total = score_graph.intra_score().total
 
     if benchmark_pass is "full":
 
         @benchmark
         def run():
-            total = score_graph.step()
+            score_graph.reset_coords()
+
+            total = score_graph.intra_score().total
+            total.backward()
+
             float(total)
 
             return total
@@ -78,8 +86,10 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
         @benchmark
         def run():
-            score_graph.reset_total_score()
-            total = score_graph.total_score
+            score_graph.reset_coords()
+
+            total = score_graph.intra_score().total
+
             float(total)
 
             return total
@@ -88,7 +98,6 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
         @benchmark
         def run():
-            total = score_graph.total_score
             total.backward(retain_graph=True)
             return total
 

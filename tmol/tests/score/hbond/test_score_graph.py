@@ -18,17 +18,27 @@ class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice):
 
 
 def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
-    """`bb_only` covers cases missing specific classes of acceptors."""
+    """Hbond graph filters null atoms and unused functional groups, does not
+    produce nan values in backward pass.
+
+    Params:
+        test_hbond_database:
+            "bb_only" covers cases missing acceptor/donor classes.
+            "default" covers base case configuration.
+    """
+
     hbond_graph = HBGraph.build_for(
         ubq_system, device=torch_device, hbond_database=test_hbond_database
     )
 
-    nan_scores = torch.nonzero(torch.isnan(hbond_graph.hbond_scores))
-    assert len(nan_scores) == 0
-    assert (hbond_graph.total_hbond != 0).all()
-    assert hbond_graph.total_score.device == torch_device
+    intra_graph = hbond_graph.intra_score()
 
-    hbond_graph.total_hbond.backward()
+    nan_scores = torch.nonzero(torch.isnan(intra_graph.hbond_scores))
+    assert len(nan_scores) == 0
+    assert (intra_graph.total_hbond != 0).all()
+    assert intra_graph.total.device == torch_device
+
+    intra_graph.total_hbond.backward()
     nan_grads = torch.nonzero(torch.isnan(hbond_graph.coords.grad))
     assert len(nan_grads) == 0
 

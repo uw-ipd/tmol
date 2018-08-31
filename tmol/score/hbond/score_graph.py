@@ -6,9 +6,9 @@ import numpy
 
 from ..database import ParamDB
 from ..device import TorchDevice
-from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
+from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 
 from .potentials import (
     hbond_donor_sp2_score,
@@ -122,98 +122,19 @@ class HBondPairs(ValidateAttrs):
         )
 
 
-@reactive_attrs(auto_attribs=True)
-class HBondScoreGraph(
-    BondedAtomScoreGraph, TotalScoreComponentsGraph, ParamDB, TorchDevice, Factory
-):
-    """Compute graph for the HBond term.
-
-    It uses the reactive system to compute the list of donors and acceptors
-    (via the HBondElementAnalysis class) and then the list of donor/acceptor
-    pairs (via the HBondPairs class) once, and then reuses these lists.
-
-    The h-bond functional form differs for the three classes of acceptors:
-    sp2-, sp3-, and ring-hybridized acceptors. For this reason, these three are
-    handled separately. Different donor types and different acceptor types within
-    a group of the same hybridization will have different parameters / polynomials,
-    but their functional forms will be the same, and so they can be processed
-    together.
-
-    The code (hopefully only for now?) evaluates the hydrogen bond potential
-    between all pairs of acceptors and donors, in contrast to the Lennard-Jones
-    term which looks only at nearby atom pairs. Perhaps future versions of
-    this code will cull distant acceptor/donor pairs.
-    """
-
-    @staticmethod
-    def factory_for(
-        val,
-        parameter_database: ParameterDatabase,
-        hbond_database: Optional[HBondDatabase] = None,
-        **_,
-    ):
-        """Overridable clone-constructor.
-
-        Initialize from ``val.hbond_database`` if possible, otherwise from
-        ``parameter_database.scoring.hbond``.
-        """
-        if hbond_database is None:
-            if getattr(val, "hbond_database", None):
-                hbond_database = val.hbond_database
-            else:
-                hbond_database = parameter_database.scoring.hbond
-
-        return dict(hbond_database=hbond_database)
-
-    hbond_database: HBondDatabase
-
-    @property
-    def component_total_score_terms(self):
-        """Expose hbond score sum as total_score term.
-
-        This function will be invoked by the TotalScoreComponentsGraph
-        and will inform that class to request the total_hbond data/property.
-        The reactive system will then request the other reactive properties
-        such as donor_sp2_hbond, which will request other reactive properties
-        in turn.
-        """
-        return ScoreComponentAttributes(name="hbond", total="total_hbond")
-
-    @property
-    def component_atom_pair_dist_threshold(self):
-        """Expose threshold distance for InteratomicDisanceGraph."""
-        return self.hbond_database.global_parameters.threshold_distance
+@reactive_attrs
+class HBondIntraScore(IntraScore):
+    @reactive_property
+    def coords(target):
+        return target.coords
 
     @reactive_property
-    @validate_args
-    def hbond_param_resolver(hbond_database: HBondDatabase) -> HBondParamResolver:
-        "hbond pair parameter resolver"
-        return HBondParamResolver.from_database(hbond_database)
+    def hbond_pairs(target):
+        return target.hbond_pairs
 
     @reactive_property
-    @validate_args
-    def hbond_elements(
-        hbond_database: HBondDatabase,
-        atom_types: NDArray(object)[:, :],
-        bonds: NDArray(int)[:, 3],
-    ) -> HBondElementAnalysis:
-        """hbond score elements in target graph"""
-        assert atom_types.shape[0] == 1
-        assert numpy.all(bonds[:, 0] == 0)
-
-        return HBondElementAnalysis.setup(
-            hbond_database=hbond_database, atom_types=atom_types[0], bonds=bonds[:, 1:]
-        )
-
-    @reactive_property
-    @validate_args
-    def hbond_pairs(
-        hbond_param_resolver: HBondParamResolver,
-        hbond_elements: HBondElementAnalysis,
-        device: torch.device,
-    ) -> HBondPairs:
-        """hbond pair metadata and parameters in target graph"""
-        return HBondPairs.setup(hbond_param_resolver, hbond_elements, device)
+    def hbond_database(target):
+        return target.hbond_database
 
     @reactive_property
     @validate_args
@@ -364,3 +285,91 @@ class HBondScoreGraph(
                 hbond_pairs.donor_ring_pairs,
             )
         )
+
+
+@reactive_attrs(auto_attribs=True)
+class HBondScoreGraph(
+    BondedAtomScoreGraph, ScoreComponent, ParamDB, TorchDevice, Factory
+):
+    """Compute graph for the HBond term.
+
+    It uses the reactive system to compute the list of donors and acceptors
+    (via the HBondElementAnalysis class) and then the list of donor/acceptor
+    pairs (via the HBondPairs class) once, and then reuses these lists.
+
+    The h-bond functional form differs for the three classes of acceptors:
+    sp2-, sp3-, and ring-hybridized acceptors. For this reason, these three are
+    handled separately. Different donor types and different acceptor types within
+    a group of the same hybridization will have different parameters / polynomials,
+    but their functional forms will be the same, and so they can be processed
+    together.
+
+    The code (hopefully only for now?) evaluates the hydrogen bond potential
+    between all pairs of acceptors and donors, in contrast to the Lennard-Jones
+    term which looks only at nearby atom pairs. Perhaps future versions of
+    this code will cull distant acceptor/donor pairs.
+    """
+
+    total_score_components = [
+        ScoreComponentClasses(
+            "hbond", intra_container=HBondIntraScore, inter_container=None
+        )
+    ]
+
+    @staticmethod
+    def factory_for(
+        val,
+        parameter_database: ParameterDatabase,
+        hbond_database: Optional[HBondDatabase] = None,
+        **_,
+    ):
+        """Overridable clone-constructor.
+
+        Initialize from ``val.hbond_database`` if possible, otherwise from
+        ``parameter_database.scoring.hbond``.
+        """
+        if hbond_database is None:
+            if getattr(val, "hbond_database", None):
+                hbond_database = val.hbond_database
+            else:
+                hbond_database = parameter_database.scoring.hbond
+
+        return dict(hbond_database=hbond_database)
+
+    hbond_database: HBondDatabase
+
+    @property
+    def component_atom_pair_dist_threshold(self):
+        """Expose threshold distance for InteratomicDisanceGraph."""
+        return self.hbond_database.global_parameters.threshold_distance
+
+    @reactive_property
+    @validate_args
+    def hbond_param_resolver(hbond_database: HBondDatabase) -> HBondParamResolver:
+        "hbond pair parameter resolver"
+        return HBondParamResolver.from_database(hbond_database)
+
+    @reactive_property
+    @validate_args
+    def hbond_elements(
+        hbond_database: HBondDatabase,
+        atom_types: NDArray(object)[:, :],
+        bonds: NDArray(int)[:, 3],
+    ) -> HBondElementAnalysis:
+        """hbond score elements in target graph"""
+        assert atom_types.shape[0] == 1
+        assert numpy.all(bonds[:, 0] == 0)
+
+        return HBondElementAnalysis.setup(
+            hbond_database=hbond_database, atom_types=atom_types[0], bonds=bonds[:, 1:]
+        )
+
+    @reactive_property
+    @validate_args
+    def hbond_pairs(
+        hbond_param_resolver: HBondParamResolver,
+        hbond_elements: HBondElementAnalysis,
+        device: torch.device,
+    ) -> HBondPairs:
+        """hbond pair metadata and parameters in target graph"""
+        return HBondPairs.setup(hbond_param_resolver, hbond_elements, device)

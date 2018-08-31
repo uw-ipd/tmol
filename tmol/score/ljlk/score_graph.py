@@ -13,101 +13,40 @@ from tmol.database.scoring import LJLKDatabase
 
 from ..database import ParamDB
 from ..device import TorchDevice
-from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
 from ..interatomic_distance import InteratomicDistanceGraphBase
 from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
+from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 
 from .potentials import lj_score, lk_score
 from .params import LJLKParamResolver, LJLKTypePairParams
 
 
-@reactive_attrs(auto_attribs=True)
-class LJLKScoreGraph(
-    InteratomicDistanceGraphBase,
-    BondedAtomScoreGraph,
-    TotalScoreComponentsGraph,
-    ParamDB,
-    TorchDevice,
-    Factory,
-):
-    @staticmethod
-    def factory_for(
-        val,
-        parameter_database: ParameterDatabase,
-        ljlk_database: Optional[LJLKDatabase] = None,
-        **_,
-    ):
-        """Overridable clone-constructor.
-
-        Initialize from ``val.ljlk_database`` if possible, otherwise from
-        ``parameter_database.scoring.ljlk``.
-        """
-        if ljlk_database is None:
-            if getattr(val, "ljlk_database", None):
-                ljlk_database = val.ljlk_database
-            else:
-                ljlk_database = parameter_database.scoring.ljlk
-
-        return dict(ljlk_database=ljlk_database)
-
-    ljlk_database: LJLKDatabase
-
-    @property
-    def component_total_score_terms(self):
-        """Expose lj/lk as total_score terms."""
-        return (
-            ScoreComponentAttributes(name="lk", total="total_lk"),
-            ScoreComponentAttributes(name="lj", total="total_lj"),
-        )
-
-    @property
-    def component_atom_pair_dist_threshold(self):
-        """Expose lj threshold distance for interatomic distance dispatch."""
-        return self.ljlk_database.global_parameters.max_dis
+@reactive_attrs
+class LJLKIntraParam(IntraScore):
+    @reactive_property
+    def atom_pair_inds(target) -> Tensor(torch.long)[:, 3]:
+        return target.atom_pair_inds
 
     @reactive_property
-    @validate_args
-    def param_resolver(
-        ljlk_database: LJLKDatabase, device: torch.device
-    ) -> LJLKParamResolver:
-        """Parameter tensor groups and atom-type to parameter resolver."""
-        return LJLKParamResolver.from_database(ljlk_database, device)
+    def atom_pair_dist(target) -> Tensor(torch.float)[:]:
+        return target.atom_pair_dist
 
     @reactive_property
-    @validate_args
-    def ljlk_interaction_weight(
-        bonded_path_length: NDArray("f4")[:, :, :],
-        real_atoms: Tensor(bool)[:, :],
-        device: torch.device,
-    ) -> Tensor(torch.float)[:, :, :]:
-        """lj&lk interaction weight, bonded cutoff"""
-
-        bonded_path_length = torch.from_numpy(bonded_path_length).to(device)
-
-        result = bonded_path_length.new_ones(
-            bonded_path_length.shape, dtype=torch.float
-        )
-
-        real_atoms = real_atoms.to(device=device)
-
-        result[bonded_path_length < 4] = 0
-        result[bonded_path_length == 4] = .2
-        result = result.where(real_atoms[:, None, :], result.new_full((1,), 0))
-        result = result.where(real_atoms[:, :, None], result.new_full((1,), 0))
-
-        return result
+    def ljlk_interaction_weight(target) -> Tensor(torch.float)[:, :, :]:
+        return target.ljlk_interaction_weight
 
     @reactive_property
-    @validate_args
-    def ljlk_atom_pair_params(
-        atom_types: NDArray(object)[:, :], param_resolver: LJLKParamResolver
-    ) -> LJLKTypePairParams:
-        """Pair parameter tensors for all atoms within system."""
-        assert atom_types.shape[0] == 1
-        atom_types = atom_types[0]
-        return param_resolver[atom_types.reshape((-1, 1)), atom_types.reshape((1, -1))]
+    def ljlk_atom_pair_params(target) -> LJLKTypePairParams:
+        return target.ljlk_atom_pair_params
 
+    @reactive_property
+    def param_resolver(target) -> LJLKTypePairParams:
+        return target.param_resolver
+
+
+@reactive_attrs
+class LJIntraScore(LJLKIntraParam):
     @reactive_property
     @validate_args
     def lj(
@@ -155,6 +94,14 @@ class LJLKScoreGraph(
         # repE *= lj_lk_pair_params["weights"]
 
     @reactive_property
+    def total_lj(lj):
+        """total inter-atomic lj"""
+        return lj.sum()
+
+
+@reactive_attrs
+class LKIntraScore(LJLKIntraParam):
+    @reactive_property
     @validate_args
     def lk(
         atom_pair_inds: Tensor(torch.long)[:, 3],
@@ -197,11 +144,90 @@ class LJLKScoreGraph(
         )
 
     @reactive_property
-    def total_lj(lj):
-        """total inter-atomic lj"""
-        return lj.sum()
-
-    @reactive_property
     def total_lk(lk):
         """total inter-atomic lk"""
         return lk.sum()
+
+
+@reactive_attrs(auto_attribs=True)
+class LJLKScoreGraph(
+    InteratomicDistanceGraphBase,
+    BondedAtomScoreGraph,
+    ScoreComponent,
+    ParamDB,
+    TorchDevice,
+    Factory,
+):
+    total_score_components = [
+        ScoreComponentClasses("lj", intra_container=LJIntraScore, inter_container=None),
+        ScoreComponentClasses("lk", intra_container=LKIntraScore, inter_container=None),
+    ]
+
+    @staticmethod
+    def factory_for(
+        val,
+        parameter_database: ParameterDatabase,
+        ljlk_database: Optional[LJLKDatabase] = None,
+        **_,
+    ):
+        """Overridable clone-constructor.
+
+        Initialize from ``val.ljlk_database`` if possible, otherwise from
+        ``parameter_database.scoring.ljlk``.
+        """
+        if ljlk_database is None:
+            if getattr(val, "ljlk_database", None):
+                ljlk_database = val.ljlk_database
+            else:
+                ljlk_database = parameter_database.scoring.ljlk
+
+        return dict(ljlk_database=ljlk_database)
+
+    ljlk_database: LJLKDatabase
+
+    @property
+    def component_atom_pair_dist_threshold(self):
+        """Expose lj threshold distance for interatomic distance dispatch."""
+        return self.ljlk_database.global_parameters.max_dis
+
+    @reactive_property
+    @validate_args
+    def param_resolver(
+        ljlk_database: LJLKDatabase, device: torch.device
+    ) -> LJLKParamResolver:
+        """Parameter tensor groups and atom-type to parameter resolver."""
+        return LJLKParamResolver.from_database(ljlk_database, device)
+
+    @reactive_property
+    @validate_args
+    def ljlk_interaction_weight(
+        bonded_path_length: NDArray("f4")[:, :, :],
+        real_atoms: Tensor(bool)[:, :],
+        device: torch.device,
+    ) -> Tensor(torch.float)[:, :, :]:
+        """lj&lk interaction weight, bonded cutoff"""
+
+        bonded_path_length = torch.from_numpy(bonded_path_length).to(device)
+
+        result = bonded_path_length.new_ones(
+            bonded_path_length.shape, dtype=torch.float
+        )
+
+        real_atoms = real_atoms.to(device=device)
+
+        result[bonded_path_length < 4] = 0
+        result[bonded_path_length == 4] = .2
+        result = result.where(real_atoms[:, None, :], result.new_full((1,), 0))
+        result = result.where(real_atoms[:, :, None], result.new_full((1,), 0))
+
+        return result
+
+    @reactive_property
+    @validate_args
+    def ljlk_atom_pair_params(
+        atom_types: NDArray(object)[:, :], param_resolver: LJLKParamResolver
+    ) -> LJLKTypePairParams:
+        """Pair parameter tensors for all atoms within system."""
+        assert atom_types.shape[0] == 1
+        atom_types = atom_types[0]
+        return param_resolver[atom_types.reshape((-1, 1)), atom_types.reshape((1, -1))]

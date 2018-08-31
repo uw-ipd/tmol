@@ -75,10 +75,12 @@ a disjoint set per-layer inter-atom graphs.
   |                              +------+ |
   +---------------------------------------+
 
-Score calculation is performed in batch on a per-layer basis, defined over
-across all interactions (bonded and non-bonded) within a layer. The
-``total_score`` final graph property, computes ``l`` scores for a score
-graph of depth ``l``.
+Score calculation is performed on an intra-layer and inter-layer basis.
+Intra-layer scoring is defined over across all interactions (bonded and
+non-bonded) within a layer, yielding ``l`` scores for a single score graph of
+depth ``l``. Inter-layer scoring is defined over all inter-layer non-bonded
+interactions, yielding a ``[i, j]`` pairwise score array for two score graphs
+of depth ``i`` and ``j``.
 
 .. note:: `tmol.score` currently only supports intra-layer scoring, and is
    limited to models of depth 1.

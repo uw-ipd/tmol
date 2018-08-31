@@ -24,13 +24,13 @@ def test_ljlk_numpyros_comparison(ubq_system):
     )
 
     numpy.testing.assert_allclose(
-        test_graph.total_lj.detach(),
+        test_graph.intra_score().total_lj.detach(),
         expected_scores["lj_atr"] + expected_scores["lj_rep"],
         rtol=5e-3,
     )
 
     numpy.testing.assert_allclose(
-        test_graph.total_lk.detach(), expected_scores["lk"], rtol=5e-3
+        test_graph.intra_score().total_lk.detach(), expected_scores["lk"], rtol=5e-3
     )
 
 
@@ -42,6 +42,5 @@ def test_baseline_comparison(ubq_system, torch_device):
     expected_scores = {"total_lj": -176.5, "total_lk": 249.3}
 
     for term, val in expected_scores.items():
-        numpy.testing.assert_allclose(
-            getattr(test_graph, term).detach(), val, rtol=5e-3
-        )
+        scores = test_graph.intra_score()
+        numpy.testing.assert_allclose(getattr(scores, term).detach(), val, rtol=5e-3)
