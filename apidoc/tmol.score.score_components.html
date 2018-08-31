@@ -1,0 +1,473 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.score.score_components &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.score_components.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.score.stacked_system" href="tmol.score.stacked_system.html" />
+    <link rel="prev" title="tmol.score.interatomic_distance" href="tmol.score.interatomic_distance.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-92-g4eef0d9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.score.html">tmol.score</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.bonded_atom.html">tmol.score.bonded_atom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.coordinates.html">tmol.score.coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.database.html">tmol.score.database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.factory.html">tmol.score.factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.score.score_components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.html#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.html#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.score.html">tmol.score</a> &raquo;</li>
+        
+      <li>tmol.score.score_components</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.score.score_components.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.score.score_components">
+<span id="tmol-score-score-components"></span><h1>tmol.score.score_components<a class="headerlink" href="#module-tmol.score.score_components" title="Permalink to this headline">¶</a></h1>
+<p>Graph components managing dispatch of “intra” and “inter” layer scoring.</p>
+<p>Score evaluation involves the interaction of three types:</p>
+<ol class="loweralpha simple">
+<li>A <a class="reference internal" href="#tmol.score.score_components.ScoreComponent" title="tmol.score.score_components.ScoreComponent"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ScoreComponent</span></code></a>, defining a single system state.</li>
+<li>An <a class="reference internal" href="#tmol.score.score_components.IntraScore" title="tmol.score.score_components.IntraScore"><code class="xref any py py-class docutils literal notranslate"><span class="pre">IntraScore</span></code></a>, managing the total intra-system score for a
+single system.</li>
+<li>An <a class="reference internal" href="#tmol.score.score_components.IntraScore" title="tmol.score.score_components.IntraScore"><code class="xref any py py-class docutils literal notranslate"><span class="pre">IntraScore</span></code></a>, managing the total inter-system score for a pair
+of systems.</li>
+</ol>
+<p>The <code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code> type is instantiated once for a group of related scoring
+operations, and is responsible for initializing any static or reusable data
+required to score a system. The system state (Eg: atomic coordinates) is
+updated via assignment for each score operation, preserving the <code class="docutils literal notranslate"><span class="pre">System</span></code>
+object.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">[Intra|Inter]Score</span></code> types are instantiated for each score operation, and
+are responsible for evaluating the score for a single system state using state
+data stored within the <code class="docutils literal notranslate"><span class="pre">System</span></code> object.  A single <code class="docutils literal notranslate"><span class="pre">[Intra|Inter]Score</span></code>
+object is created for every scoring pass, and is not reused.</p>
+<a class="reference internal image-reference" href="../_images/aafig-1018b0225ec86109e1c4623317b4cf895ae8058f.svg"><img alt="../_images/aafig-1018b0225ec86109e1c4623317b4cf895ae8058f.svg" height="272.0" src="../_images/aafig-1018b0225ec86109e1c4623317b4cf895ae8058f.svg" width="622.0" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>All types are defined via a composition of multiple term-specific components,
+and a term contributes a component to each of the three types under a common
+term “name”. The <code class="docutils literal notranslate"><span class="pre">[Inter|Intra]Score</span></code> component exposes a term-specific
+<code class="docutils literal notranslate"><span class="pre">total_&lt;term&gt;</span></code> property, which are summed to produce a final <code class="docutils literal notranslate"><span class="pre">total</span></code>
+property.</p>
+<a class="reference internal image-reference" href="../_images/aafig-8a39b57095859a26ff4f9503fa008d0aa46a71a9.svg"><img alt="../_images/aafig-8a39b57095859a26ff4f9503fa008d0aa46a71a9.svg" height="314.0" src="../_images/aafig-8a39b57095859a26ff4f9503fa008d0aa46a71a9.svg" width="608.0" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>To “simplify” the definition of concrete scoring classes from a composite of
+score component base classes, the <code class="docutils literal notranslate"><span class="pre">IntraScore</span></code> and <code class="docutils literal notranslate"><span class="pre">InterScore</span></code> types are
+dynamically derived from the <code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code> type via inspection of the
+<code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code> MRO, gathering base components for the <code class="docutils literal notranslate"><span class="pre">IntraScore</span></code> and
+<code class="docutils literal notranslate"><span class="pre">InterScore</span></code> classes. Note that this results in a unsettling inversion of
+ownership between classes and instances: <code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code> types define class
+level references to their <code class="docutils literal notranslate"><span class="pre">IntraScore</span></code> and <code class="docutils literal notranslate"><span class="pre">InterScore</span></code> counterparts, but
+the resulting <code class="docutils literal notranslate"><span class="pre">intra_score`</span> <span class="pre">and</span> <span class="pre">``inter_score</span></code> <em>objects</em> contain references
+to a target <code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code> object.</p>
+<a class="reference internal image-reference" href="../_images/aafig-e1e990cba2f5691126cbb63f58a4502a3bf14539.svg"><img alt="../_images/aafig-e1e990cba2f5691126cbb63f58a4502a3bf14539.svg" height="384.0" src="../_images/aafig-e1e990cba2f5691126cbb63f58a4502a3bf14539.svg" width="454.0" /></a>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.score_components.InterScore" title="tmol.score.score_components.InterScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InterScore</span></code></a></td>
+<td>Base mixin for inter-system scoring.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.score_components.IntraScore" title="tmol.score.score_components.IntraScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IntraScore</span></code></a></td>
+<td>Base mixin for intra-system scoring.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.score_components.ScoreComponent" title="tmol.score.score_components.ScoreComponent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScoreComponent</span></code></a></td>
+<td>Mixin-base managing definition of inter/intra score containers.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.score_components.ScoreComponentClasses" title="tmol.score.score_components.ScoreComponentClasses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScoreComponentClasses</span></code></a></td>
+<td>The intra/inter graph class components for a ScoreComponent.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tmol.score.score_components.IntraScore">
+<em class="property">class </em><code class="descclassname">tmol.score.score_components.</code><code class="descname">IntraScore</code><span class="sig-paren">(</span><em>target: ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#IntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.IntraScore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base mixin for intra-system scoring.</p>
+<p>Base component for an intra-system score evaluation for a target. The
+target’s ScoreComponent class will define a specific composite IntraScore
+class with term names defined by <a class="reference internal" href="#tmol.score.score_components.ScoreComponentClasses" title="tmol.score.score_components.ScoreComponentClasses"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ScoreComponentClasses</span></code></a>. See module
+documentation for details.</p>
+<p>Components contributing to the score _must_ define <code class="docutils literal notranslate"><span class="pre">total_{name}</span></code>, which
+will be provied as keyword args to the score accessors defined in this
+class.  Contributing components <em>may</em> use <code class="docutils literal notranslate"><span class="pre">reactive_attrs</span></code> to provide
+component properties and the <code class="docutils literal notranslate"><span class="pre">staticmethod</span></code> score accessors defined below
+will be exposed via <code class="docutils literal notranslate"><span class="pre">reactive_property</span></code>.</p>
+<dl class="staticmethod">
+<dt id="tmol.score.score_components.IntraScore.total">
+<em class="property">static </em><code class="descname">total</code><span class="sig-paren">(</span><em>**component_totals</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#IntraScore.total"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.IntraScore.total" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.score_components.InterScore">
+<em class="property">class </em><code class="descclassname">tmol.score.score_components.</code><code class="descname">InterScore</code><span class="sig-paren">(</span><em>target_i: ScoreComponent</em>, <em>target_j: ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#InterScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.InterScore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base mixin for inter-system scoring.</p>
+<p>Base component for an inter-system score evaluation for a target. The
+target’s ScoreComponent class will define a specific composite InterScore
+class with term names defined by <a class="reference internal" href="#tmol.score.score_components.ScoreComponentClasses" title="tmol.score.score_components.ScoreComponentClasses"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ScoreComponentClasses</span></code></a>. See module
+documentation for details.</p>
+<p>Components contributing to the score _must_ define <code class="docutils literal notranslate"><span class="pre">total_{name}</span></code>, which
+will be provied as keyword args to the score accessors defined in this
+class.  Contributing components <em>may</em> use <code class="docutils literal notranslate"><span class="pre">reactive_attrs</span></code> to provide
+component properties and the <code class="docutils literal notranslate"><span class="pre">staticmethod</span></code> score accessors defined below
+will be exposed via <code class="docutils literal notranslate"><span class="pre">reactive_property</span></code>.</p>
+<dl class="staticmethod">
+<dt id="tmol.score.score_components.InterScore.total">
+<em class="property">static </em><code class="descname">total</code><span class="sig-paren">(</span><em>**component_totals</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#InterScore.total"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.InterScore.total" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.score_components.ScoreComponentClasses">
+<em class="property">class </em><code class="descclassname">tmol.score.score_components.</code><code class="descname">ScoreComponentClasses</code><span class="sig-paren">(</span><em>name: str</em>, <em>intra_container: Union[type</em>, <em>NoneType] = None</em>, <em>inter_container: Union[type</em>, <em>NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreComponentClasses"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreComponentClasses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>The intra/inter graph class components for a ScoreComponent.</p>
+<p>Container for intra/inter graph components exposing a specific score term
+for a <a class="reference internal" href="#tmol.score.score_components.ScoreComponent" title="tmol.score.score_components.ScoreComponent"><code class="xref any py py-class docutils literal notranslate"><span class="pre">ScoreComponent</span></code></a>. Each <code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code>-based term implementation
+will expose one-or-more named terms via the <code class="docutils literal notranslate"><span class="pre">total_score_components</span></code>
+class property, which are composed to generate the corresponding
+<code class="docutils literal notranslate"><span class="pre">IntraScore</span></code> and <code class="docutils literal notranslate"><span class="pre">InterScore</span></code> utility classes.</p>
+<dl class="attribute">
+<dt id="tmol.score.score_components.ScoreComponentClasses.name">
+<code class="descname">name</code><a class="headerlink" href="#tmol.score.score_components.ScoreComponentClasses.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>The term name, used to determine the container class properties
+presenting the calculated term value. The _must_ be unique within
+score composite class.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.score_components.ScoreComponentClasses.intra_container">
+<code class="descname">intra_container</code><a class="headerlink" href="#tmol.score.score_components.ScoreComponentClasses.intra_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Intra-score type, this _may_ be a <code class="docutils literal notranslate"><span class="pre">reactive_attrs</span></code>
+type and _must_ expose a <code class="docutils literal notranslate"><span class="pre">total_{name}</span></code> property.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.score_components.ScoreComponentClasses.inter_container">
+<code class="descname">inter_container</code><a class="headerlink" href="#tmol.score.score_components.ScoreComponentClasses.inter_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>inter-score type, this _may_ be a <code class="docutils literal notranslate"><span class="pre">reactive_attrs</span></code>
+type and _must_ expose a <code class="docutils literal notranslate"><span class="pre">total_{name}</span></code> property.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">name</code></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">intra_container</code></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt>
+<code class="descname">inter_container</code></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.score_components.ScoreComponent">
+<em class="property">class </em><code class="descclassname">tmol.score.score_components.</code><code class="descname">ScoreComponent</code><a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreComponent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreComponent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Mixin-base managing definition of inter/intra score containers.</p>
+<p>A mixin-base for all score term implementations managing definition of
+<code class="docutils literal notranslate"><span class="pre">InterScore</span></code> and <code class="docutils literal notranslate"><span class="pre">IntraScore</span></code> composite classes for all terms present
+in a <code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code> class and creation of <code class="docutils literal notranslate"><span class="pre">inter_score</span></code> and
+<code class="docutils literal notranslate"><span class="pre">intra_score</span></code> objects during score evaluation.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code>-derived term mixin _must_ provide a
+<code class="docutils literal notranslate"><span class="pre">total_score_components</span></code> class property, containing one or more
+<code class="docutils literal notranslate"><span class="pre">ScoreComponentClasses</span></code> of each provided score term.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">ScoreComponent</span></code> base mixin then exposes the <code class="docutils literal notranslate"><span class="pre">inter_score</span></code> and
+<code class="docutils literal notranslate"><span class="pre">intra_score</span></code> methods; factory functions for class-specific
+<code class="docutils literal notranslate"><span class="pre">InterScore</span></code> and <code class="docutils literal notranslate"><span class="pre">IntraScore</span></code> instances.</p>
+<dl class="method">
+<dt id="tmol.score.score_components.ScoreComponent.intra_score">
+<code class="descname">intra_score</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.IntraScore<a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreComponent.intra_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreComponent.intra_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create intra-score container over this component.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.score_components.ScoreComponent.inter_score">
+<code class="descname">inter_score</code><span class="sig-paren">(</span><em>other: tmol.score.score_components.ScoreComponent</em><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.InterScore<a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreComponent.inter_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreComponent.inter_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create inter-score container for this component and other.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.score_components.ScoreComponent._intra_score_type">
+<em class="property">classmethod </em><code class="descname">_intra_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreComponent._intra_score_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreComponent._intra_score_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compose and create IntraScore type for all ScoreComponents in class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.score_components.ScoreComponent._inter_score_type">
+<em class="property">classmethod </em><code class="descname">_inter_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreComponent._inter_score_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreComponent._inter_score_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compose and create InterScore type for all ScoreComponents in class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.score_components.ScoreComponent._score_components">
+<em class="property">classmethod </em><code class="descname">_score_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreComponent._score_components"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreComponent._score_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather all <code class="docutils literal notranslate"><span class="pre">total_score_components</span></code> defined in class bases.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.score.stacked_system.html" class="btn btn-neutral float-right" title="tmol.score.stacked_system" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.score.interatomic_distance.html" class="btn btn-neutral" title="tmol.score.interatomic_distance" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'0.0.0-92-g4eef0d9',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

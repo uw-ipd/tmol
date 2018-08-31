@@ -7,7 +7,7 @@ tmol.score.ljlk.score_graph
 .. currentmodule:: tmol.score.ljlk.score_graph
 
 .. automodule:: tmol.score.ljlk.score_graph
-    :members: LJLKScoreGraph
+    :members: LJIntraScore, LJLKIntraParam, LJLKScoreGraph, LKIntraScore
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,7 +21,10 @@ tmol.score.ljlk.score_graph
     .. autosummary::
         :nosignatures:
 
+        LJIntraScore
+        LJLKIntraParam
         LJLKScoreGraph
+        LKIntraScore
 
 
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Architecture &mdash; TMol 0.0.0-91-gacd14ef documentation</title>
+  <title>Architecture &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-91-gacd14ef
+                0.0.0-92-g4eef0d9
               </div>
             
           
@@ -194,10 +194,12 @@ model. Models must contain the same number of atoms <code class="docutils litera
 differing atom types and null atoms. Bonds are strictly intra-layer, and form
 a disjoint set per-layer inter-atom graphs.</p>
 <a class="reference internal image-reference" href="_images/aafig-c3222d2549d41aeeac19a556de3c7f80c0c51f46.svg"><img alt="_images/aafig-c3222d2549d41aeeac19a556de3c7f80c0c51f46.svg" height="230.0" src="_images/aafig-c3222d2549d41aeeac19a556de3c7f80c0c51f46.svg" width="580.0" /></a>
-<p>Score calculation is performed in batch on a per-layer basis, defined over
-across all interactions (bonded and non-bonded) within a layer. The
-<code class="docutils literal notranslate"><span class="pre">total_score</span></code> final graph property, computes <code class="docutils literal notranslate"><span class="pre">l</span></code> scores for a score
-graph of depth <code class="docutils literal notranslate"><span class="pre">l</span></code>.</p>
+<p>Score calculation is performed on an intra-layer and inter-layer basis.
+Intra-layer scoring is defined over across all interactions (bonded and
+non-bonded) within a layer, yielding <code class="docutils literal notranslate"><span class="pre">l</span></code> scores for a single score graph of
+depth <code class="docutils literal notranslate"><span class="pre">l</span></code>. Inter-layer scoring is defined over all inter-layer non-bonded
+interactions, yielding a <code class="docutils literal notranslate"><span class="pre">[i,</span> <span class="pre">j]</span></code> pairwise score array for two score graphs
+of depth <code class="docutils literal notranslate"><span class="pre">i</span></code> and <code class="docutils literal notranslate"><span class="pre">j</span></code>.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p class="last"><a class="reference internal" href="apidoc/tmol.score.html#module-tmol.score" title="tmol.score"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">tmol.score</span></code></a> currently only supports intra-layer scoring, and is
@@ -255,7 +257,7 @@ atomic representation, some number of score terms, and a total score property.</
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.0-91-gacd14ef',
+            VERSION:'0.0.0-92-g4eef0d9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

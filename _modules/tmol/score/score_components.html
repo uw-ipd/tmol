@@ -1,0 +1,600 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.score.score_components &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/score/score_components.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-92-g4eef0d9
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../score.html">tmol.score</a> &raquo;</li>
+        
+      <li>tmol.score.score_components</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.score.score_components</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Graph components managing dispatch of &quot;intra&quot; and &quot;inter&quot; layer scoring.</span>
+
+<span class="sd">Score evaluation involves the interaction of three types:</span>
+
+<span class="sd">(a) A `ScoreComponent`, defining a single system state.</span>
+<span class="sd">(b) An `IntraScore`, managing the total intra-system score for a</span>
+<span class="sd">    single system.</span>
+<span class="sd">(c) An `IntraScore`, managing the total inter-system score for a pair</span>
+<span class="sd">    of systems.</span>
+
+<span class="sd">The ``ScoreComponent`` type is instantiated once for a group of related scoring</span>
+<span class="sd">operations, and is responsible for initializing any static or reusable data</span>
+<span class="sd">required to score a system. The system state (Eg: atomic coordinates) is</span>
+<span class="sd">updated via assignment for each score operation, preserving the ``System``</span>
+<span class="sd">object.</span>
+
+<span class="sd">The ``[Intra|Inter]Score`` types are instantiated for each score operation, and</span>
+<span class="sd">are responsible for evaluating the score for a single system state using state</span>
+<span class="sd">data stored within the ``System`` object.  A single ``[Intra|Inter]Score``</span>
+<span class="sd">object is created for every scoring pass, and is not reused.</span>
+
+<span class="sd">.. aafig::</span>
+
+<span class="sd">   +-------------+</span>
+<span class="sd">   |&quot;Input Model&quot;|</span>
+<span class="sd">   +-------------+</span>
+<span class="sd">       |</span>
+<span class="sd">       | &quot;Initialized via factory function.&quot;</span>
+<span class="sd">       V</span>
+<span class="sd">   +------------------+</span>
+<span class="sd">   |&quot;ScoreComponent&quot;  |</span>
+<span class="sd">   |   - &#39;coords&#39;     |</span>
+<span class="sd">   |   - &#39;database&#39;   |</span>
+<span class="sd">   |   - &#39;...&#39;        |</span>
+<span class="sd">   +------------------+</span>
+<span class="sd">       | | |</span>
+<span class="sd">       | | | &quot;Initialized per score operation.&quot;</span>
+<span class="sd">       V V V</span>
+<span class="sd">   +-----------------------------+</span>
+<span class="sd">   |&quot;IntraScore&quot;                 |</span>
+<span class="sd">   |   - &quot;target: ScoreComponent&quot;|</span>
+<span class="sd">   +-----------------------------+</span>
+
+<span class="sd">|</span>
+
+<span class="sd">All types are defined via a composition of multiple term-specific components,</span>
+<span class="sd">and a term contributes a component to each of the three types under a common</span>
+<span class="sd">term &quot;name&quot;. The ``[Inter|Intra]Score`` component exposes a term-specific</span>
+<span class="sd">``total_&lt;term&gt;`` property, which are summed to produce a final ``total``</span>
+<span class="sd">property.</span>
+
+<span class="sd">.. aafig::</span>
+
+<span class="sd">   +-----------------------------------------+</span>
+<span class="sd">   |&quot;ScoreComponent&quot;                         |</span>
+<span class="sd">   |                                         |</span>
+<span class="sd">   |               +---------+               |</span>
+<span class="sd">   |            ---+ &quot;coords&quot;+---            |</span>
+<span class="sd">   |           /   +----+----+   \           |</span>
+<span class="sd">   |          |         |         |          |</span>
+<span class="sd">   |  +-------v-+  +----v----+  +-v-------+  |</span>
+<span class="sd">   |  |&quot;Term A&quot; |  |&quot;Term B&quot; |  |&quot;Term C&quot; |  |</span>
+<span class="sd">   |  +--------++  +----+----+  ++--------+  |</span>
+<span class="sd">   +-----------|--------|--------|-----------+</span>
+<span class="sd">               |        |        |</span>
+<span class="sd">   +-----------|--------|--------|-----------+</span>
+<span class="sd">   |  +--------v+  +----v----+  +v--------+  |</span>
+<span class="sd">   |  |&quot;total_A&quot;|  |&quot;total_B&quot;|  |&quot;total_C&quot;|  |</span>
+<span class="sd">   |  +-------+-+  +----+----+  +-+-------+  |</span>
+<span class="sd">   |          |         |         |          |</span>
+<span class="sd">   |           \   +----v----+   /           |</span>
+<span class="sd">   |            --&gt;| &quot;total&quot; |&lt;--            |</span>
+<span class="sd">   |               +---------+               |</span>
+<span class="sd">   |&quot;IntraScore&quot;                             |</span>
+<span class="sd">   +-----------------------------------------+</span>
+
+<span class="sd">|</span>
+
+<span class="sd">To &quot;simplify&quot; the definition of concrete scoring classes from a composite of</span>
+<span class="sd">score component base classes, the ``IntraScore`` and ``InterScore`` types are</span>
+<span class="sd">dynamically derived from the ``ScoreComponent`` type via inspection of the</span>
+<span class="sd">``ScoreComponent`` MRO, gathering base components for the ``IntraScore`` and</span>
+<span class="sd">``InterScore`` classes. Note that this results in a unsettling inversion of</span>
+<span class="sd">ownership between classes and instances: ``ScoreComponent`` types define class</span>
+<span class="sd">level references to their ``IntraScore`` and ``InterScore`` counterparts, but</span>
+<span class="sd">the resulting ``intra_score` and ``inter_score`` *objects* contain references</span>
+<span class="sd">to a target ``ScoreComponent`` object.</span>
+
+<span class="sd">.. aafig::</span>
+
+<span class="sd">   +---------------------------+</span>
+<span class="sd">   | ScoreComponent            |</span>
+<span class="sd">   |                           &lt;-+</span>
+<span class="sd">   |  &#39;intra_score_type: type&#39; | |</span>
+<span class="sd">   |  &#39;inter_score_type: type&#39; | |</span>
+<span class="sd">   |                           | |</span>
+<span class="sd">   +---+-----------------------+ |</span>
+<span class="sd">       |                         |</span>
+<span class="sd">       |               &quot;References&quot;</span>
+<span class="sd">       |                         |</span>
+<span class="sd">   &quot;Defines and constructs&quot;      |</span>
+<span class="sd">       |                         |</span>
+<span class="sd">       | +---------------------+ |</span>
+<span class="sd">       | | IntraScore          | |</span>
+<span class="sd">       | |                     | |</span>
+<span class="sd">       +-&gt;  &quot;target:         &quot; +-+</span>
+<span class="sd">       | |  &quot;  ScoreComponent&quot; | |</span>
+<span class="sd">       | +---------------------+ |</span>
+<span class="sd">       |                         |</span>
+<span class="sd">       | +---------------------+ |</span>
+<span class="sd">       | | InterScore          | |</span>
+<span class="sd">       | |                     | |</span>
+<span class="sd">       +-&gt;  &quot;target_i:       &quot; +-+</span>
+<span class="sd">         |  &quot;  ScoreComponent&quot; |</span>
+<span class="sd">         |  &quot;target_j:       &quot; |</span>
+<span class="sd">         |  &quot;  ScoreComponent&quot; |</span>
+<span class="sd">         +---------------------+</span>
+
+<span class="sd">|</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">import</span> <span class="nn">collections.abc</span>
+
+<span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">import</span> <span class="nn">toolz</span>
+
+<span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
+
+
+<div class="viewcode-block" id="IntraScore"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.IntraScore">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
+<span class="k">class</span> <span class="nc">IntraScore</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Base mixin for intra-system scoring.</span>
+
+<span class="sd">    Base component for an intra-system score evaluation for a target. The</span>
+<span class="sd">    target&#39;s ScoreComponent class will define a specific composite IntraScore</span>
+<span class="sd">    class with term names defined by `ScoreComponentClasses`. See module</span>
+<span class="sd">    documentation for details.</span>
+
+<span class="sd">    Components contributing to the score _must_ define ``total_{name}``, which</span>
+<span class="sd">    will be provied as keyword args to the score accessors defined in this</span>
+<span class="sd">    class.  Contributing components *may* use ``reactive_attrs`` to provide</span>
+<span class="sd">    component properties and the ``staticmethod`` score accessors defined below</span>
+<span class="sd">    will be exposed via ``reactive_property``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">target</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="IntraScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.IntraScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">total</span><span class="p">(</span><span class="o">**</span><span class="n">component_totals</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div></div>
+
+
+<div class="viewcode-block" id="InterScore"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.InterScore">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
+<span class="k">class</span> <span class="nc">InterScore</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Base mixin for inter-system scoring.</span>
+
+<span class="sd">    Base component for an inter-system score evaluation for a target. The</span>
+<span class="sd">    target&#39;s ScoreComponent class will define a specific composite InterScore</span>
+<span class="sd">    class with term names defined by `ScoreComponentClasses`. See module</span>
+<span class="sd">    documentation for details.</span>
+
+<span class="sd">    Components contributing to the score _must_ define ``total_{name}``, which</span>
+<span class="sd">    will be provied as keyword args to the score accessors defined in this</span>
+<span class="sd">    class.  Contributing components *may* use ``reactive_attrs`` to provide</span>
+<span class="sd">    component properties and the ``staticmethod`` score accessors defined below</span>
+<span class="sd">    will be exposed via ``reactive_property``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">target_i</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="n">target_j</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="InterScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.InterScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">total</span><span class="p">(</span><span class="o">**</span><span class="n">component_totals</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div></div>
+
+
+<div class="viewcode-block" id="ScoreComponentClasses"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ScoreComponentClasses</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;The intra/inter graph class components for a ScoreComponent.</span>
+
+<span class="sd">    Container for intra/inter graph components exposing a specific score term</span>
+<span class="sd">    for a `ScoreComponent`. Each ``ScoreComponent``-based term implementation</span>
+<span class="sd">    will expose one-or-more named terms via the ``total_score_components``</span>
+<span class="sd">    class property, which are composed to generate the corresponding</span>
+<span class="sd">    ``IntraScore`` and ``InterScore`` utility classes.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        name: The term name, used to determine the container class properties</span>
+<span class="sd">            presenting the calculated term value. The _must_ be unique within</span>
+<span class="sd">            score composite class.</span>
+<span class="sd">        intra_container: Intra-score type, this _may_ be a ``reactive_attrs``</span>
+<span class="sd">            type and _must_ expose a ``total_{name}`` property.</span>
+<span class="sd">        inter_container: inter-score type, this _may_ be a ``reactive_attrs``</span>
+<span class="sd">            type and _must_ expose a ``total_{name}`` property.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">intra_container</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">inter_container</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="ScoreComponent"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent">[docs]</a><span class="k">class</span> <span class="nc">ScoreComponent</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Mixin-base managing definition of inter/intra score containers.</span>
+
+<span class="sd">    A mixin-base for all score term implementations managing definition of</span>
+<span class="sd">    ``InterScore`` and ``IntraScore`` composite classes for all terms present</span>
+<span class="sd">    in a ``ScoreComponent`` class and creation of ``inter_score`` and</span>
+<span class="sd">    ``intra_score`` objects during score evaluation.</span>
+
+<span class="sd">    A ``ScoreComponent``-derived term mixin _must_ provide a</span>
+<span class="sd">    ``total_score_components`` class property, containing one or more</span>
+<span class="sd">    ``ScoreComponentClasses`` of each provided score term.</span>
+
+<span class="sd">    The ``ScoreComponent`` base mixin then exposes the ``inter_score`` and</span>
+<span class="sd">    ``intra_score`` methods; factory functions for class-specific</span>
+<span class="sd">    ``InterScore`` and ``IntraScore`` instances.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Score component related data stored as dunder properties on the composite</span>
+    <span class="c1"># class. Note that these are class specific, and should *not* be returned</span>
+    <span class="c1"># from base classes. Ie. Check for existence in cls.__dict__ rather than using</span>
+    <span class="c1"># hasattr.</span>
+    <span class="n">__resolved_score_components__</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+        <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">type</span><span class="p">,</span> <span class="n">ScoreComponentClasses</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">__resolved_intra_score_type__</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span>
+    <span class="n">__resolved_inter_score_type__</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span>
+
+<div class="viewcode-block" id="ScoreComponent.intra_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent.intra_score">[docs]</a>    <span class="k">def</span> <span class="nf">intra_score</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntraScore</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create intra-score container over this component.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intra_score_type</span><span class="p">()(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ScoreComponent.inter_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent.inter_score">[docs]</a>    <span class="k">def</span> <span class="nf">inter_score</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterScore</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Create inter-score container for this component and other.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inter_score_type</span><span class="p">()(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ScoreComponent._intra_score_type"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._intra_score_type">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_intra_score_type</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Compose and create IntraScore type for all ScoreComponents in class.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="s2">&quot;__resolved_intra_score_type__&quot;</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_intra_score_type__</span>
+
+        <span class="c1"># Walk through the list of &quot;ScoreComponent&quot; inheritors in the primary</span>
+        <span class="c1"># class mro, collecting all the ScoreComponentAccessors. Check that</span>
+        <span class="c1"># every ScoreComponentAccessor provides an intra_container implementation.</span>
+        <span class="n">score_component_accessors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">base</span><span class="p">,</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_score_components</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">component</span><span class="o">.</span><span class="n">intra_container</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">score_component_accessors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;score component does not support intra score container.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;component class: </span><span class="si">{base}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;component: </span><span class="si">{component}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">intra_container</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;total_</span><span class="si">{component.name}</span><span class="s2">&quot;</span><span class="p">),</span> <span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;component.intra_container does not provide &#39;total_</span><span class="si">{component.name}</span><span class="s2">&#39;: &quot;</span>
+                <span class="n">f</span><span class="s2">&quot;</span><span class="si">{component}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Collect the intra_container classes into a base list</span>
+        <span class="n">generated_accessor_bases</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">component</span><span class="o">.</span><span class="n">intra_container</span> <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">score_component_accessors</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Collect the intra_container.total accessor functions, renaming</span>
+        <span class="c1"># into appropriate &quot;total_{name}&quot; accessors, and then add the &quot;total&quot;</span>
+        <span class="c1"># reactive property performing the sum.</span>
+        <span class="n">generated_accessor_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">accessor</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">f</span><span class="s2">&quot;</span><span class="si">{accessor}</span><span class="s2">_</span><span class="si">{component.name}</span><span class="s2">&quot;</span>
+                <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">score_component_accessors</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">accessor</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;total&quot;</span><span class="p">,)</span>
+        <span class="p">}</span>
+
+        <span class="n">generated_accessor_props</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">accessor</span><span class="p">:</span> <span class="n">reactive_property</span><span class="p">(</span><span class="n">IntraScore</span><span class="o">.</span><span class="n">total</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">subprops</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">accessor</span><span class="p">,</span> <span class="n">subprops</span> <span class="ow">in</span> <span class="n">generated_accessor_kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Perfom class declaration and reactive_attrs init of the generated</span>
+        <span class="c1"># container class</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_intra_score_type__</span> <span class="o">=</span> <span class="n">reactive_attrs</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;IntraContainer&quot;</span><span class="p">,</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="n">generated_accessor_bases</span><span class="p">),</span>
+                <span class="n">generated_accessor_props</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_intra_score_type__</span></div>
+
+<div class="viewcode-block" id="ScoreComponent._inter_score_type"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._inter_score_type">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_inter_score_type</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Compose and create InterScore type for all ScoreComponents in class.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;__resolved_inter_score_type__&quot;</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_inter_score_type__</span>
+
+        <span class="c1"># Walk through the list of &quot;ScoreComponent&quot; inheritors in the primary</span>
+        <span class="c1"># class mro, collecting all the ScoreComponentAccessors. Check that</span>
+        <span class="c1"># every ScoreComponentAccessor provides an inter_container implementation.</span>
+        <span class="n">score_component_accessors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">base</span><span class="p">,</span> <span class="n">component</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_score_components</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">component</span><span class="o">.</span><span class="n">inter_container</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">score_component_accessors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">component</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="n">f</span><span class="s2">&quot;score component does not support inter score container.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;component class: </span><span class="si">{base}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="n">f</span><span class="s2">&quot;component: </span><span class="si">{component}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">inter_container</span><span class="p">,</span> <span class="n">f</span><span class="s2">&quot;total_</span><span class="si">{component.name}</span><span class="s2">&quot;</span><span class="p">),</span> <span class="p">(</span>
+                <span class="n">f</span><span class="s2">&quot;component.inter_container does not provide &#39;total_</span><span class="si">{component.name}</span><span class="s2">&#39;: &quot;</span>
+                <span class="n">f</span><span class="s2">&quot;</span><span class="si">{component}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Collect the inter_container classes into a base list</span>
+        <span class="n">generated_accessor_bases</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">component</span><span class="o">.</span><span class="n">inter_container</span> <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">score_component_accessors</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Collect the inter_container.total accessor functions, renaming</span>
+        <span class="c1"># into appropriate &quot;total_{name}&quot; accessors, and then add the &quot;total&quot;</span>
+        <span class="c1"># reactive property performing the sum.</span>
+        <span class="n">generated_accessor_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">accessor</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">f</span><span class="s2">&quot;</span><span class="si">{accessor}</span><span class="s2">_</span><span class="si">{component.name}</span><span class="s2">&quot;</span>
+                <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">score_component_accessors</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">accessor</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;total&quot;</span><span class="p">,)</span>
+        <span class="p">}</span>
+
+        <span class="n">generated_accessor_props</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">accessor</span><span class="p">:</span> <span class="n">reactive_property</span><span class="p">(</span><span class="n">InterScore</span><span class="o">.</span><span class="n">total</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">subprops</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">accessor</span><span class="p">,</span> <span class="n">subprops</span> <span class="ow">in</span> <span class="n">generated_accessor_kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Perform class declaration and reactive_attrs init of the generated</span>
+        <span class="c1"># container class</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_inter_score_type__</span> <span class="o">=</span> <span class="n">reactive_attrs</span><span class="p">(</span>
+            <span class="nb">type</span><span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s2">&quot;InterContainer&quot;</span><span class="p">,</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="n">generated_accessor_bases</span><span class="p">),</span>
+                <span class="n">generated_accessor_props</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_inter_score_type__</span></div>
+
+<div class="viewcode-block" id="ScoreComponent._score_components"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._score_components">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_score_components</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Gather all ``total_score_components`` defined in class bases.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;__resolved_score_components__&quot;</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_score_components__</span>
+
+        <span class="n">score_components</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">mro</span><span class="p">():</span>
+            <span class="n">base_components</span> <span class="o">=</span> <span class="n">base</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;total_score_components&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">base_components</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_components</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Collection</span><span class="p">):</span>
+                <span class="n">base_components</span> <span class="o">=</span> <span class="p">(</span><span class="n">base_components</span><span class="p">,)</span>
+
+            <span class="k">if</span> <span class="n">base_components</span><span class="p">:</span>
+                <span class="n">score_components</span><span class="o">.</span><span class="n">extend</span><span class="p">((</span><span class="n">base</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">base_components</span><span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_score_components__</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">score_components</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_score_components__</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'0.0.0-92-g4eef0d9',
+            LANGUAGE:'None',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

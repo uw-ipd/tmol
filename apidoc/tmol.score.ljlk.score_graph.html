@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.score_graph &mdash; TMol 0.0.0-91-gacd14ef documentation</title>
+  <title>tmol.score.ljlk.score_graph &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-91-gacd14ef
+                0.0.0-92-g4eef0d9
               </div>
             
           
@@ -99,8 +99,8 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.factory.html">tmol.score.factory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.score.total_score.html">tmol.score.total_score</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a><ul class="current">
@@ -205,7 +205,16 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.score_graph.LJIntraScore" title="tmol.score.ljlk.score_graph.LJIntraScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJIntraScore</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.score_graph.LJLKIntraParam" title="tmol.score.ljlk.score_graph.LJLKIntraParam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKIntraParam</span></code></a></td>
+<td></td>
+</tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph" title="tmol.score.ljlk.score_graph.LJLKScoreGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKScoreGraph</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.score_graph.LKIntraScore" title="tmol.score.ljlk.score_graph.LKIntraScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LKIntraScore</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -215,21 +224,85 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
+<dt id="tmol.score.ljlk.score_graph.LJLKIntraParam">
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.score_graph.</code><code class="descname">LJLKIntraParam</code><span class="sig-paren">(</span><em>target: ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/score_graph.html#LJLKIntraParam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKIntraParam" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.score.score_components.html#tmol.score.score_components.IntraScore" title="tmol.score.score_components.IntraScore"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_components.IntraScore</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LJLKIntraParam.atom_pair_inds">
+<code class="descname">atom_pair_inds</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKIntraParam.atom_pair_inds" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LJLKIntraParam.atom_pair_dist">
+<code class="descname">atom_pair_dist</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKIntraParam.atom_pair_dist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LJLKIntraParam.ljlk_interaction_weight">
+<code class="descname">ljlk_interaction_weight</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKIntraParam.ljlk_interaction_weight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LJLKIntraParam.ljlk_atom_pair_params">
+<code class="descname">ljlk_atom_pair_params</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKIntraParam.ljlk_atom_pair_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LJLKIntraParam.param_resolver">
+<code class="descname">param_resolver</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKIntraParam.param_resolver" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.ljlk.score_graph.LJIntraScore">
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.score_graph.</code><code class="descname">LJIntraScore</code><span class="sig-paren">(</span><em>target: ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/score_graph.html#LJIntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJIntraScore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.ljlk.score_graph.LJLKIntraParam" title="tmol.score.ljlk.score_graph.LJLKIntraParam"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ljlk.score_graph.LJLKIntraParam</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LJIntraScore.lj">
+<code class="descname">lj</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJIntraScore.lj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LJIntraScore.total_lj">
+<code class="descname">total_lj</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJIntraScore.total_lj" title="Permalink to this definition">¶</a></dt>
+<dd><p>total inter-atomic lj</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.ljlk.score_graph.LKIntraScore">
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.score_graph.</code><code class="descname">LKIntraScore</code><span class="sig-paren">(</span><em>target: ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/score_graph.html#LKIntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.score_graph.LKIntraScore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.ljlk.score_graph.LJLKIntraParam" title="tmol.score.ljlk.score_graph.LJLKIntraParam"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ljlk.score_graph.LJLKIntraParam</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LKIntraScore.lk">
+<code class="descname">lk</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LKIntraScore.lk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LKIntraScore.total_lk">
+<code class="descname">total_lk</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LKIntraScore.total_lk" title="Permalink to this definition">¶</a></dt>
+<dd><p>total inter-atomic lk</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph">
 <em class="property">class </em><code class="descclassname">tmol.score.ljlk.score_graph.</code><code class="descname">LJLKScoreGraph</code><span class="sig-paren">(</span><em>stack_depth: int, system_size: int, parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:,:], bonds: NDArray(dtype('int64'))[:,3], device: torch.Device, ljlk_database: tmol.database.scoring.ljlk.LJLKDatabase</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/score_graph.html#LJLKScoreGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="tmol.score.interatomic_distance.InteratomicDistanceGraphBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.interatomic_distance.InteratomicDistanceGraphBase</span></code></a>, <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.total_score.html#tmol.score.total_score.TotalScoreComponentsGraph" title="tmol.score.total_score.TotalScoreComponentsGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.total_score.TotalScoreComponentsGraph</span></code></a>, <a class="reference internal" href="tmol.score.database.html#tmol.score.database.ParamDB" title="tmol.score.database.ParamDB"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.database.ParamDB</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a>, <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase" title="tmol.score.interatomic_distance.InteratomicDistanceGraphBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.interatomic_distance.InteratomicDistanceGraphBase</span></code></a>, <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.score_components.html#tmol.score.score_components.ScoreComponent" title="tmol.score.score_components.ScoreComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_components.ScoreComponent</span></code></a>, <a class="reference internal" href="tmol.score.database.html#tmol.score.database.ParamDB" title="tmol.score.database.ParamDB"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.database.ParamDB</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a>, <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph.total_score_components">
+<code class="descname">total_score_components</code><em class="property"> = [ScoreComponentClasses(name='lj', intra_container=&lt;class 'tmol.score.ljlk.score_graph.LJIntraScore'&gt;, inter_container=None), ScoreComponentClasses(name='lk', intra_container=&lt;class 'tmol.score.ljlk.score_graph.LKIntraScore'&gt;, inter_container=None)]</em><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph.total_score_components" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="staticmethod">
 <dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph.factory_for">
 <em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>val</em>, <em>parameter_database: tmol.database.ParameterDatabase</em>, <em>ljlk_database: Union[tmol.database.scoring.ljlk.LJLKDatabase</em>, <em>NoneType] = None</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/score_graph.html#LJLKScoreGraph.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph.factory_for" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overridable clone-constructor.</p>
 <p>Initialize from <code class="docutils literal notranslate"><span class="pre">val.ljlk_database</span></code> if possible, otherwise from
 <code class="docutils literal notranslate"><span class="pre">parameter_database.scoring.ljlk</span></code>.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph.component_total_score_terms">
-<code class="descname">component_total_score_terms</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph.component_total_score_terms" title="Permalink to this definition">¶</a></dt>
-<dd><p>Expose lj/lk as total_score terms.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -254,28 +327,6 @@
 <dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph.ljlk_atom_pair_params">
 <code class="descname">ljlk_atom_pair_params</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph.ljlk_atom_pair_params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pair parameter tensors for all atoms within system.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph.lj">
-<code class="descname">lj</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph.lj" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph.lk">
-<code class="descname">lk</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph.lk" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph.total_lj">
-<code class="descname">total_lj</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph.total_lj" title="Permalink to this definition">¶</a></dt>
-<dd><p>total inter-atomic lj</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.score_graph.LJLKScoreGraph.total_lk">
-<code class="descname">total_lk</code><a class="headerlink" href="#tmol.score.ljlk.score_graph.LJLKScoreGraph.total_lk" title="Permalink to this definition">¶</a></dt>
-<dd><p>total inter-atomic lk</p>
 </dd></dl>
 
 </dd></dl>
@@ -325,7 +376,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-91-gacd14ef',
+            VERSION:'0.0.0-92-g4eef0d9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

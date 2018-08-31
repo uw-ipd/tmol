@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score &mdash; TMol 0.0.0-91-gacd14ef documentation</title>
+  <title>tmol.score &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-91-gacd14ef
+                0.0.0-92-g4eef0d9
               </div>
             
           
@@ -99,8 +99,8 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.factory.html">tmol.score.factory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.score.total_score.html">tmol.score.total_score</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
@@ -194,8 +194,8 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.factory.html">tmol.score.factory</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.score.total_score.html">tmol.score.total_score</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
@@ -230,7 +230,7 @@
 <dl class="class">
 <dt id="tmol.score.TotalScoreGraph">
 <em class="property">class </em><code class="descclassname">tmol.score.</code><code class="descname">TotalScoreGraph</code><span class="sig-paren">(</span><em>stack_depth: int, system_size: int, parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:,:], bonds: NDArray(dtype('int64'))[:,3], device: torch.Device, hbond_database: tmol.database.scoring.hbond.HBondDatabase, ljlk_database: tmol.database.scoring.ljlk.LJLKDatabase, atom_pair_block_size: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score.html#TotalScoreGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.TotalScoreGraph" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph" title="tmol.score.hbond.score_graph.HBondScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.hbond.score_graph.HBondScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph" title="tmol.score.ljlk.score_graph.LJLKScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ljlk.score_graph.LJLKScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph" title="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph</span></code></a>, <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.total_score.html#tmol.score.total_score.TotalScoreComponentsGraph" title="tmol.score.total_score.TotalScoreComponentsGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.total_score.TotalScoreComponentsGraph</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph" title="tmol.score.hbond.score_graph.HBondScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.hbond.score_graph.HBondScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph" title="tmol.score.ljlk.score_graph.LJLKScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ljlk.score_graph.LJLKScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph" title="tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph</span></code></a>, <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
@@ -290,7 +290,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-91-gacd14ef',
+            VERSION:'0.0.0-92-g4eef0d9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

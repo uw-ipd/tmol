@@ -9,7 +9,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; TMol 0.0.0-91-gacd14ef documentation</title>
+  <title>Index &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
   
 
   
@@ -59,7 +59,7 @@
             
             
               <div class="version">
-                0.0.0-91-gacd14ef
+                0.0.0-92-g4eef0d9
               </div>
             
           
@@ -265,6 +265,10 @@
 </li>
       <li><a href="apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation._init_causal_coeff">_init_causal_coeff() (tmol.numeric.bspline.BSplineInterpolation static method)</a>
 </li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._inter_score_type">_inter_score_type() (tmol.score.score_components.ScoreComponent class method)</a>
+</li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._intra_score_type">_intra_score_type() (tmol.score.score_components.ScoreComponent class method)</a>
+</li>
       <li><a href="apidoc/tmol.utility.reactive.html#tmol.utility.reactive._invalidate_reactive_deps">_invalidate_reactive_deps() (in module tmol.utility.reactive)</a>
 </li>
       <li><a href="apidoc/tmol.kinematics.torch_op.html#tmol.kinematics.torch_op.KinematicFun._is_legacy">_is_legacy (tmol.kinematics.torch_op.KinematicFun attribute)</a>
@@ -273,10 +277,10 @@
 </li>
       <li><a href="apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_donor_types">_load_donor_types() (tmol.support.scoring.hbond_param_import.RosettaHBParams method)</a>
 </li>
-      <li><a href="apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_pair_params">_load_pair_params() (tmol.support.scoring.hbond_param_import.RosettaHBParams method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_pair_params">_load_pair_params() (tmol.support.scoring.hbond_param_import.RosettaHBParams method)</a>
+</li>
       <li><a href="apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_polynomial_params">_load_polynomial_params() (tmol.support.scoring.hbond_param_import.RosettaHBParams method)</a>
 </li>
       <li><a href="apidoc/tmol.support.scoring.hbond_param_import.html#tmol.support.scoring.hbond_param_import.RosettaHBParams._load_tables">_load_tables() (tmol.support.scoring.hbond_param_import.RosettaHBParams method)</a>
@@ -318,6 +322,8 @@
 </li>
       </ul></li>
       <li><a href="apidoc/tmol.system.io.html#tmol.system.io.ResidueReader._ResidueReader__default">_ResidueReader__default (tmol.system.io.ResidueReader attribute)</a>
+</li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._score_components">_score_components() (tmol.score.score_components.ScoreComponent class method)</a>
 </li>
       <li><a href="apidoc/tmol.system.restypes.html#tmol.system.restypes.ResidueType._setup_atom_to_idx">_setup_atom_to_idx() (tmol.system.restypes.ResidueType method)</a>
 </li>
@@ -414,13 +420,19 @@
       <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_delta">atom_pair_delta (tmol.score.interatomic_distance.InteratomicDistanceGraphBase attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_dist">atom_pair_dist (tmol.score.interatomic_distance.InteratomicDistanceGraphBase attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKIntraParam.atom_pair_dist">(tmol.score.ljlk.score_graph.LJLKIntraParam attribute)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.atom_pair_inds">atom_pair_inds (tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph attribute)</a>
 
       <ul>
         <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph.atom_pair_inds">(tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph attribute)</a>
+</li>
+        <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKIntraParam.atom_pair_inds">(tmol.score.ljlk.score_graph.LJLKIntraParam attribute)</a>
 </li>
       </ul></li>
       <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase.atom_pair_to_dense">atom_pair_to_dense() (tmol.score.interatomic_distance.InteratomicDistanceGraphBase method)</a>
@@ -629,14 +641,6 @@
       </ul></li>
       <li><a href="apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.component_for_prioritized_bonds">component_for_prioritized_bonds() (tmol.kinematics.builder.KinematicBuilder class method)</a>
 </li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.component_total_score_terms">component_total_score_terms (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
-
-      <ul>
-        <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.component_total_score_terms">(tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
-</li>
-      </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.kinematics.gpu_operations.scan_paths_jit.html#tmol.kinematics.gpu_operations.scan_paths_jit.compute_branching_factor">compute_branching_factor (in module tmol.kinematics.gpu_operations.scan_paths_jit)</a>
 </li>
       <li><a href="apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree2.compute_wts_bydim">compute_wts_bydim() (tmol.numeric.bspline.BSplineDegree2 class method)</a>
@@ -649,6 +653,8 @@
         <li><a href="apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineDegree5.compute_wts_bydim">(tmol.numeric.bspline.BSplineDegree5 class method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.database.chemical.html#tmol.database.chemical.ConnectedAtom">ConnectedAtom (class in tmol.database.chemical)</a>
 </li>
       <li><a href="apidoc/tmol.database.chemical.html#tmol.database.chemical.Connection">Connection (class in tmol.database.chemical)</a>
@@ -689,6 +695,8 @@
 
       <ul>
         <li><a href="apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider.coords">(tmol.score.coordinates.KinematicAtomicCoordinateProvider attribute)</a>
+</li>
+        <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.coords">(tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
 </li>
         <li><a href="apidoc/tmol.system.packed.html#tmol.system.packed.PackedResidueSystem.coords">(tmol.system.packed.PackedResidueSystem attribute)</a>
 </li>
@@ -783,19 +791,19 @@
 </li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.don_weights">don_weights (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.donor_ring_hbond">donor_ring_hbond (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.donor_ring_hbond">donor_ring_hbond (tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondPairs.donor_ring_pair_params">donor_ring_pair_params (tmol.score.hbond.score_graph.HBondPairs attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondPairs.donor_ring_pairs">donor_ring_pairs (tmol.score.hbond.score_graph.HBondPairs attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.donor_sp2_hbond">donor_sp2_hbond (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.donor_sp2_hbond">donor_sp2_hbond (tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondPairs.donor_sp2_pair_params">donor_sp2_pair_params (tmol.score.hbond.score_graph.HBondPairs attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondPairs.donor_sp2_pairs">donor_sp2_pairs (tmol.score.hbond.score_graph.HBondPairs attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.donor_sp3_hbond">donor_sp3_hbond (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.donor_sp3_hbond">donor_sp3_hbond (tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondPairs.donor_sp3_pair_params">donor_sp3_pair_params (tmol.score.hbond.score_graph.HBondPairs attribute)</a>
 </li>
@@ -899,8 +907,12 @@
 </li>
       <li><a href="apidoc/tmol.kinematics.gpu_operations.scan_paths_jit.html#tmol.kinematics.gpu_operations.scan_paths_jit.find_refold_path_depths">find_refold_path_depths (in module tmol.kinematics.gpu_operations.scan_paths_jit)</a>
 </li>
-      <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.IntraLayerAtomPairs.for_coord_blocks">for_coord_blocks() (tmol.score.interatomic_distance.IntraLayerAtomPairs class method)</a>
+      <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InterLayerAtomPairs.for_coord_blocks">for_coord_blocks() (tmol.score.interatomic_distance.InterLayerAtomPairs class method)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.IntraLayerAtomPairs.for_coord_blocks">(tmol.score.interatomic_distance.IntraLayerAtomPairs class method)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.kinematics.gpu_operations.html#tmol.kinematics.gpu_operations.GPUKinTreeReordering.for_kintree">for_kintree() (tmol.kinematics.gpu_operations.GPUKinTreeReordering class method)</a>
 
       <ul>
@@ -919,10 +931,10 @@
       </ul></li>
       <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.SphereDistance.for_spheres">for_spheres() (tmol.score.interatomic_distance.SphereDistance class method)</a>
 </li>
-      <li><a href="apidoc/tmol.system.kinematics.html#tmol.system.kinematics.KinematicDescription.for_system">for_system() (tmol.system.kinematics.KinematicDescription class method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/tmol.system.kinematics.html#tmol.system.kinematics.KinematicDescription.for_system">for_system() (tmol.system.kinematics.KinematicDescription class method)</a>
+</li>
       <li><a href="apidoc/tmol.io.pdb_parsing.html#tmol.io.pdb_parsing.format_atomn">format_atomn() (in module tmol.io.pdb_parsing)</a>
 </li>
       <li><a href="apidoc/tmol.kinematics.torch_op.html#tmol.kinematics.torch_op.KinematicFun.forward">forward() (tmol.kinematics.torch_op.KinematicFun method)</a>
@@ -1047,6 +1059,8 @@
 </li>
       <li><a href="apidoc/tmol.database.scoring.html#tmol.database.scoring.ScoringDatabase.hbond">hbond (tmol.database.scoring.ScoringDatabase attribute)</a>
 </li>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.hbond_database">hbond_database (tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
+</li>
       <li><a href="apidoc/tmol.score.hbond.potentials.html#tmol.score.hbond.potentials.hbond_donor_ring_score">hbond_donor_ring_score() (in module tmol.score.hbond.potentials)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.potentials.html#tmol.score.hbond.potentials.hbond_donor_sp2_score">hbond_donor_sp2_score() (in module tmol.score.hbond.potentials)</a>
@@ -1055,19 +1069,25 @@
 </li>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_elements">hbond_elements (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_pair_metadata">hbond_pair_metadata (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.hbond_pair_metadata">hbond_pair_metadata (tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_pairs">hbond_pairs (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.hbond_pairs">hbond_pairs (tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_pairs">(tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_param_resolver">hbond_param_resolver (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
-</li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_scores">hbond_scores (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.hbond_scores">hbond_scores (tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
+</li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase">HBondDatabase (class in tmol.database.scoring.hbond)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.identification.html#tmol.score.hbond.identification.HBondElementAnalysis">HBondElementAnalysis (class in tmol.score.hbond.identification)</a>
+</li>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore">HBondIntraScore (class in tmol.score.hbond.score_graph)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondPairParams">HBondPairParams (class in tmol.score.hbond.params)</a>
 </li>
@@ -1105,19 +1125,37 @@
 </li>
       <li><a href="apidoc/tmol.database.chemical.html#tmol.database.chemical.Residue.icoors">icoors (tmol.database.chemical.Residue attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.IntraLayerAtomPairs.inds">inds (tmol.score.interatomic_distance.IntraLayerAtomPairs attribute)</a>
+      <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InterLayerAtomPairs.inds">inds (tmol.score.interatomic_distance.InterLayerAtomPairs attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.IntraLayerAtomPairs.inds">(tmol.score.interatomic_distance.IntraLayerAtomPairs attribute)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.score.factory.html#tmol.score.factory.Factory.init_parameters_for">init_parameters_for() (tmol.score.factory.Factory class method)</a>
+</li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses.inter_container">inter_container (tmol.score.score_components.ScoreComponentClasses attribute)</a>, <a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses.inter_container">[1]</a>
+</li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent.inter_score">inter_score() (tmol.score.score_components.ScoreComponent method)</a>
 </li>
       <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph.interatomic_threshold_distance">interatomic_threshold_distance (tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase">InteratomicDistanceGraphBase (class in tmol.score.interatomic_distance)</a>
 </li>
+      <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InterLayerAtomPairs">InterLayerAtomPairs (class in tmol.score.interatomic_distance)</a>
+</li>
       <li><a href="apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation.interp_shape">interp_shape (tmol.numeric.bspline.BSplineInterpolation attribute)</a>
 </li>
       <li><a href="apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation.interpolate">interpolate() (tmol.numeric.bspline.BSplineInterpolation method)</a>
 </li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.InterScore">InterScore (class in tmol.score.score_components)</a>
+</li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses.intra_container">intra_container (tmol.score.score_components.ScoreComponentClasses attribute)</a>, <a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses.intra_container">[1]</a>
+</li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent.intra_score">intra_score() (tmol.score.score_components.ScoreComponent method)</a>
+</li>
       <li><a href="apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.IntraLayerAtomPairs">IntraLayerAtomPairs (class in tmol.score.interatomic_distance)</a>
+</li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.IntraScore">IntraScore (class in tmol.score.score_components)</a>
 </li>
       <li><a href="apidoc/tmol.kinematics.operations.html#tmol.kinematics.operations.InvBondTransforms">InvBondTransforms() (in module tmol.kinematics.operations)</a>
 </li>
@@ -1135,6 +1173,8 @@
         <li><a href="apidoc/tmol.utility.numba.html#tmol.utility.numba.TorchCUDAArrayAdaptor.is_cuda_array">(tmol.utility.numba.TorchCUDAArrayAdaptor static method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_donor">is_donor (tmol.database.scoring.ljlk.LJLKAtomTypeParameters attribute)</a>
 
       <ul>
@@ -1147,8 +1187,6 @@
         <li><a href="apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKTypeParams.is_hydroxyl">(tmol.score.ljlk.params.LJLKTypeParams attribute)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.kinematics.gpu_operations.derivsum.html#tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering.is_leaf">is_leaf (tmol.kinematics.gpu_operations.derivsum.DerivsumOrdering attribute)</a>
 
       <ul>
@@ -1287,7 +1325,7 @@
 </li>
       <li><a href="apidoc/tmol.kinematics.gpu_operations.scan_paths_jit.html#tmol.kinematics.gpu_operations.scan_paths_jit.list_nonpath_children">list_nonpath_children (in module tmol.kinematics.gpu_operations.scan_paths_jit)</a>
 </li>
-      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.lj">lj (tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJIntraScore.lj">lj (tmol.score.ljlk.score_graph.LJIntraScore attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKTypePairParams.lj_coeff_sigma12">lj_coeff_sigma12 (tmol.score.ljlk.params.LJLKTypePairParams attribute)</a>
 </li>
@@ -1347,21 +1385,33 @@
         <li><a href="apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKTypeParams.lj_wdepth">(tmol.score.ljlk.params.LJLKTypeParams attribute)</a>
 </li>
       </ul></li>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJIntraScore">LJIntraScore (class in tmol.score.ljlk.score_graph)</a>
+</li>
       <li><a href="apidoc/tmol.database.scoring.html#tmol.database.scoring.ScoringDatabase.ljlk">ljlk (tmol.database.scoring.ScoringDatabase attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.ljlk_atom_pair_params">ljlk_atom_pair_params (tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKIntraParam.ljlk_atom_pair_params">ljlk_atom_pair_params (tmol.score.ljlk.score_graph.LJLKIntraParam attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.ljlk_atom_pair_params">(tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.ljlk_interaction_weight">ljlk_interaction_weight (tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
+      </ul></li>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKIntraParam.ljlk_interaction_weight">ljlk_interaction_weight (tmol.score.ljlk.score_graph.LJLKIntraParam attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.ljlk_interaction_weight">(tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKAtomTypeParameters">LJLKAtomTypeParameters (class in tmol.database.scoring.ljlk)</a>
 </li>
       <li><a href="apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKDatabase">LJLKDatabase (class in tmol.database.scoring.ljlk)</a>
 </li>
-      <li><a href="apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKGlobalParameters">LJLKGlobalParameters (class in tmol.database.scoring.ljlk)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKGlobalParameters">LJLKGlobalParameters (class in tmol.database.scoring.ljlk)</a>
+</li>
       <li><a href="apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKGlobalParams">LJLKGlobalParams (class in tmol.score.ljlk.params)</a>
+</li>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKIntraParam">LJLKIntraParam (class in tmol.score.ljlk.score_graph)</a>
 </li>
       <li><a href="apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKParamResolver">LJLKParamResolver (class in tmol.score.ljlk.params)</a>
 </li>
@@ -1371,7 +1421,7 @@
 </li>
       <li><a href="apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKTypeParams">LJLKTypeParams (class in tmol.score.ljlk.params)</a>
 </li>
-      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.lk">lk (tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LKIntraScore.lk">lk (tmol.score.ljlk.score_graph.LKIntraScore attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKTypePairParams.lk_coeff1">lk_coeff1 (tmol.score.ljlk.params.LJLKTypePairParams attribute)</a>
 </li>
@@ -1421,6 +1471,8 @@
         <li><a href="apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKTypeParams.lk_volume">(tmol.score.ljlk.params.LJLKTypeParams attribute)</a>
 </li>
       </ul></li>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LKIntraScore">LKIntraScore (class in tmol.score.ljlk.score_graph)</a>
+</li>
       <li><a href="apidoc/tmol.kinematics.gpu_operations.derivsum_jit.html#tmol.kinematics.gpu_operations.derivsum_jit.F1F2Scan.load">load (tmol.kinematics.gpu_operations.derivsum_jit.F1F2Scan attribute)</a>
 
       <ul>
@@ -1504,7 +1556,7 @@
 </li>
         <li><a href="apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.name">(tmol.database.scoring.ljlk.LJLKAtomTypeParameters attribute)</a>
 </li>
-        <li><a href="apidoc/tmol.score.total_score.html#tmol.score.total_score.ScoreComponentAttributes.name">(tmol.score.total_score.ScoreComponentAttributes attribute)</a>
+        <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses.name">(tmol.score.score_components.ScoreComponentClasses attribute)</a>, <a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses.name">[1]</a>
 </li>
         <li><a href="apidoc/tmol.utility.reactive.html#tmol.utility.reactive.ReactiveProperty.name">(tmol.utility.reactive.ReactiveProperty attribute)</a>
 </li>
@@ -1597,8 +1649,12 @@
       </ul></li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.PairParameters">PairParameters (class in tmol.database.scoring.hbond)</a>
 </li>
-      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.param_resolver">param_resolver (tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKIntraParam.param_resolver">param_resolver (tmol.score.ljlk.score_graph.LJLKIntraParam attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.param_resolver">(tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.score.database.html#tmol.score.database.ParamDB">ParamDB (class in tmol.score.database)</a>
 </li>
       <li><a href="apidoc/tmol.score.database.html#tmol.score.database.ParamDB.parameter_database">parameter_database (tmol.score.database.ParamDB attribute)</a>
@@ -1781,10 +1837,10 @@
 </li>
       <li><a href="apidoc/tmol.system.packed.html#tmol.system.packed.PackedResidueSystem.res_start_ind">res_start_ind (tmol.system.packed.PackedResidueSystem attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider.reset_total_score">reset_total_score() (tmol.score.coordinates.CartesianAtomicCoordinateProvider method)</a>
+      <li><a href="apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider.reset_coords">reset_coords() (tmol.score.coordinates.CartesianAtomicCoordinateProvider method)</a>
 
       <ul>
-        <li><a href="apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider.reset_total_score">(tmol.score.coordinates.KinematicAtomicCoordinateProvider method)</a>
+        <li><a href="apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider.reset_coords">(tmol.score.coordinates.KinematicAtomicCoordinateProvider method)</a>
 </li>
       </ul></li>
       <li><a href="apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorGroup.reshape">reshape() (tmol.types.tensor.TensorGroup method)</a>
@@ -1871,7 +1927,9 @@
 </li>
       <li><a href="apidoc/tmol.score.viewer.html#tmol.score.viewer.score_graph_to_pdb">score_graph_to_pdb() (in module tmol.score.viewer)</a>
 </li>
-      <li><a href="apidoc/tmol.score.total_score.html#tmol.score.total_score.ScoreComponentAttributes">ScoreComponentAttributes (class in tmol.score.total_score)</a>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent">ScoreComponent (class in tmol.score.score_components)</a>
+</li>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses">ScoreComponentClasses (class in tmol.score.score_components)</a>
 </li>
       <li><a href="apidoc/tmol.database.scoring.html#tmol.database.scoring.ScoringDatabase">ScoringDatabase (class in tmol.database.scoring)</a>
 </li>
@@ -1917,10 +1975,10 @@
 </li>
       <li><a href="apidoc/tmol.utility.reactive.html#tmol.utility.reactive._ReactiveProperty.should_invalidate">should_invalidate() (tmol.utility.reactive._ReactiveProperty method)</a>
 </li>
-      <li><a href="apidoc/tmol.types.shape.html#tmol.types.shape.Dim.size">size (tmol.types.shape.Dim attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/tmol.types.shape.html#tmol.types.shape.Dim.size">size (tmol.types.shape.Dim attribute)</a>
+</li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.AtomGroups.sp2_acceptors">sp2_acceptors (tmol.database.scoring.hbond.AtomGroups attribute)</a>
 
       <ul>
@@ -1952,8 +2010,6 @@
       <li><a href="apidoc/tmol.system.score_support.html#tmol.system.score_support.stack_params_for_system">stack_params_for_system() (in module tmol.system.score_support)</a>
 </li>
       <li><a href="apidoc/tmol.score.stacked_system.html#tmol.score.stacked_system.StackedSystem">StackedSystem (class in tmol.score.stacked_system)</a>
-</li>
-      <li><a href="apidoc/tmol.score.total_score.html#tmol.score.total_score.TotalScoreComponentsGraph.step">step() (tmol.score.total_score.TotalScoreComponentsGraph method)</a>
 </li>
       <li><a href="apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.strip_variants">strip_variants() (in module tmol.support.scoring.rosetta)</a>
 </li>
@@ -2107,9 +2163,9 @@
 </li>
       <li><a href="apidoc/tmol.score.ljlk.score_graph.html#module-tmol.score.ljlk.score_graph">tmol.score.ljlk.score_graph (module)</a>
 </li>
-      <li><a href="apidoc/tmol.score.stacked_system.html#module-tmol.score.stacked_system">tmol.score.stacked_system (module)</a>
+      <li><a href="apidoc/tmol.score.score_components.html#module-tmol.score.score_components">tmol.score.score_components (module)</a>
 </li>
-      <li><a href="apidoc/tmol.score.total_score.html#module-tmol.score.total_score">tmol.score.total_score (module)</a>
+      <li><a href="apidoc/tmol.score.stacked_system.html#module-tmol.score.stacked_system">tmol.score.stacked_system (module)</a>
 </li>
       <li><a href="apidoc/tmol.score.viewer.html#module-tmol.score.viewer">tmol.score.viewer (module)</a>
 </li>
@@ -2207,21 +2263,25 @@
 </li>
       <li><a href="apidoc/tmol.database.chemical.html#tmol.database.chemical.Residue.torsions">torsions (tmol.database.chemical.Residue attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.total_score.html#tmol.score.total_score.ScoreComponentAttributes.total">total (tmol.score.total_score.ScoreComponentAttributes attribute)</a>
+      <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.InterScore.total">total() (tmol.score.score_components.InterScore static method)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.score_components.html#tmol.score.score_components.IntraScore.total">(tmol.score.score_components.IntraScore static method)</a>
 </li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.total_hbond">total_hbond (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
+      </ul></li>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondIntraScore.total_hbond">total_hbond (tmol.score.hbond.score_graph.HBondIntraScore attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.total_lj">total_lj (tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJIntraScore.total_lj">total_lj (tmol.score.ljlk.score_graph.LJIntraScore attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.total_lk">total_lk (tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LKIntraScore.total_lk">total_lk (tmol.score.ljlk.score_graph.LKIntraScore attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.total_score.html#tmol.score.total_score.TotalScoreComponentsGraph.total_score">total_score (tmol.score.total_score.TotalScoreComponentsGraph attribute)</a>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.total_score_components">total_score_components (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJLKScoreGraph.total_score_components">(tmol.score.ljlk.score_graph.LJLKScoreGraph attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.score.total_score.html#tmol.score.total_score.TotalScoreComponentsGraph.total_score_components">total_score_components (tmol.score.total_score.TotalScoreComponentsGraph attribute)</a>
-</li>
+      </ul></li>
       <li><a href="apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.PoseScoreWrapper.total_scores">total_scores (tmol.support.scoring.rosetta.PoseScoreWrapper attribute)</a>
-</li>
-      <li><a href="apidoc/tmol.score.total_score.html#tmol.score.total_score.TotalScoreComponentsGraph">TotalScoreComponentsGraph (class in tmol.score.total_score)</a>
 </li>
       <li><a href="apidoc/tmol.score.html#tmol.score.TotalScoreGraph">TotalScoreGraph (class in tmol.score)</a>
 </li>
@@ -2364,7 +2424,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.0.0-91-gacd14ef',
+            VERSION:'0.0.0-92-g4eef0d9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

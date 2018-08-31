@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-91-gacd14ef documentation</title>
+  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-91-gacd14ef
+                0.0.0-92-g4eef0d9
               </div>
             
           
@@ -366,6 +366,42 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">atom_pair_mask</span><span class="o">.</span><span class="n">nonzero</span><span class="p">())</span></div></div>
 
 
+<div class="viewcode-block" id="InterLayerAtomPairs"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InterLayerAtomPairs">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">InterLayerAtomPairs</span><span class="p">:</span>
+    <span class="n">inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">]</span>
+
+<div class="viewcode-block" id="InterLayerAtomPairs.for_coord_blocks"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InterLayerAtomPairs.for_coord_blocks">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">for_coord_blocks</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">atom_pair_block_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">coord_blocks_a</span><span class="p">:</span> <span class="n">Sphere</span><span class="p">,</span>
+        <span class="n">coord_blocks_b</span><span class="p">:</span> <span class="n">Sphere</span><span class="p">,</span>
+        <span class="n">interatomic_threshold_distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># Abbreviations used in indexing below</span>
+        <span class="c1"># num_layers_[ab], num_blocks_[ab]</span>
+        <span class="n">nla</span><span class="p">,</span> <span class="n">nba</span> <span class="o">=</span> <span class="n">coord_blocks_a</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">nlb</span><span class="p">,</span> <span class="n">nbb</span> <span class="o">=</span> <span class="n">coord_blocks_b</span><span class="o">.</span><span class="n">shape</span>
+        <span class="c1"># block_size</span>
+        <span class="n">bs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">atom_pair_block_size</span>
+
+        <span class="n">interblock</span> <span class="o">=</span> <span class="n">SphereDistance</span><span class="o">.</span><span class="n">for_spheres</span><span class="p">(</span>
+            <span class="n">coord_blocks_a</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
+            <span class="n">coord_blocks_b</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">],</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">interblock</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">nla</span><span class="p">,</span> <span class="n">nba</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nlb</span><span class="p">,</span> <span class="n">nbb</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">atom_pair_mask</span> <span class="o">=</span> <span class="n">interblock</span><span class="o">.</span><span class="n">min_dist</span><span class="o">.</span><span class="n">new_full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">nla</span><span class="p">,</span> <span class="n">nba</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">nlb</span><span class="p">,</span> <span class="n">nbb</span><span class="p">,</span> <span class="n">bs</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">uint8</span>
+        <span class="p">)</span>
+        <span class="n">atom_pair_mask</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span>
+            <span class="n">interblock</span><span class="o">.</span><span class="n">min_dist</span> <span class="o">&lt;</span> <span class="n">interatomic_threshold_distance</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">atom_pair_mask</span> <span class="o">=</span> <span class="n">atom_pair_mask</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nla</span><span class="p">,</span> <span class="n">nba</span> <span class="o">*</span> <span class="n">bs</span><span class="p">,</span> <span class="n">nlb</span><span class="p">,</span> <span class="n">nbb</span> <span class="o">*</span> <span class="n">bs</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">atom_pair_mask</span><span class="p">))</span></div></div>
+
+
 <div class="viewcode-block" id="BlockedInteratomicDistanceGraph"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">BlockedInteratomicDistanceGraph</span><span class="p">(</span><span class="n">InteratomicDistanceGraphBase</span><span class="p">,</span> <span class="n">Factory</span><span class="p">):</span>
     <span class="c1"># atom block size for block-neighbor optimization</span>
@@ -445,7 +481,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-91-gacd14ef',
+            VERSION:'0.0.0-92-g4eef0d9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

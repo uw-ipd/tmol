@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.coordinates &mdash; TMol 0.0.0-91-gacd14ef documentation</title>
+  <title>tmol.score.coordinates &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-91-gacd14ef
+                0.0.0-92-g4eef0d9
               </div>
             
           
@@ -201,7 +201,8 @@
     <span class="c1"># Source atomic coordinates</span>
     <span class="n">coords</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
 
-<div class="viewcode-block" id="CartesianAtomicCoordinateProvider.reset_total_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider.reset_total_score">[docs]</a>    <span class="k">def</span> <span class="nf">reset_total_score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CartesianAtomicCoordinateProvider.reset_coords"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider.reset_coords">[docs]</a>    <span class="k">def</span> <span class="nf">reset_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset coordinate state in compute graph, clearing dependent properties.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span></div></div>
 
 
@@ -252,7 +253,8 @@
 
         <span class="k">return</span> <span class="n">coords</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
-<div class="viewcode-block" id="KinematicAtomicCoordinateProvider.reset_total_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider.reset_total_score">[docs]</a>    <span class="k">def</span> <span class="nf">reset_total_score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="KinematicAtomicCoordinateProvider.reset_coords"><a class="viewcode-back" href="../../../apidoc/tmol.score.coordinates.html#tmol.score.coordinates.KinematicAtomicCoordinateProvider.reset_coords">[docs]</a>    <span class="k">def</span> <span class="nf">reset_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reset coordinate state in compute graph, clearing dependent properties.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dofs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dofs</span></div></div>
 </pre></div>
 
@@ -288,7 +290,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-91-gacd14ef',
+            VERSION:'0.0.0-92-g4eef0d9',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
