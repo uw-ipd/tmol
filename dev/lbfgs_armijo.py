@@ -241,8 +241,6 @@ class LBFGS_Armijo(Optimizer):
         old_dirs = state.get('old_dirs')  # history of directions
         old_stps = state.get('old_stps')  # history of stepsizes
 
-        H_diag = state.get('H_diag')  # Hessian estimate
-
         prev_flat_grad = state.get('prev_flat_grad')  # previous grad
         prev_loss = state.get('prev_loss')  # previous energy
 
@@ -258,7 +256,6 @@ class LBFGS_Armijo(Optimizer):
                 d = flat_grad.neg()
                 old_dirs = []
                 old_stps = []
-                H_diag = 1
             else:
                 # do lbfgs update (update memory)
                 y = flat_grad.sub(prev_flat_grad)
@@ -274,9 +271,6 @@ class LBFGS_Armijo(Optimizer):
                     # store new direction/step
                     old_dirs.append(y)
                     old_stps.append(s)
-
-                    # update scale of initial Hessian approximation
-                    H_diag = ys / y.dot(y)  # (y*y)
 
                 # compute the approximate (L-BFGS) inverse Hessian
                 # multiplied by the gradient
@@ -297,9 +291,8 @@ class LBFGS_Armijo(Optimizer):
                     al[i] = old_stps[i].dot(q) * ro[i]
                     q.add_(-al[i], old_dirs[i])
 
-                # multiply by initial Hessian
                 # r/d is the final direction
-                d = r = torch.mul(q, H_diag)
+                d = r = q
                 for i in range(num_old):
                     be_i = old_dirs[i].dot(r) * ro[i]
                     r.add_(al[i] - be_i, old_stps[i])
@@ -333,7 +326,6 @@ class LBFGS_Armijo(Optimizer):
                 d = flat_grad.neg()
                 old_dirs = []
                 old_stps = []
-                H_diag = 1
 
             # define the line search function
             # we do not need to compute gradients in here
@@ -393,7 +385,6 @@ class LBFGS_Armijo(Optimizer):
         state['t'] = t
         state['old_dirs'] = old_dirs
         state['old_stps'] = old_stps
-        state['H_diag'] = H_diag
         state['prev_flat_grad'] = prev_flat_grad
         state['prev_loss'] = prev_loss
 
