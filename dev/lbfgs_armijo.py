@@ -15,39 +15,39 @@ def armijo_linesearch(
 ):
     """Minimize over alpha, the function ``f(xk+alpha pk)``.
 
-	Arguments:
-		f (callable): Function to be minimized, f(step)
-		derphi0 : (float) directional derivative
-		fval0 : (float) func(0), the value of the function at the origin
-		alpha0 : (float) the initial stepsize
-		sigma_increase : (float) initial stepsize [must be in (0,1) and >=sigma_decrease]
-		sigma_decrease : (float) initial stepsize [must be in (0,1) and <=sigma_increase]
-		factor : (float) scalefactor in modifying stepsize [must be in (0,1)]
-		minstep : (float) minimum stepsize to take
+    Arguments:
+        f (callable): Function to be minimized, f(step)
+        derphi0 : (float) directional derivative
+        fval0 : (float) func(0), the value of the function at the origin
+        alpha0 : (float) the initial stepsize
+        sigma_increase : (float) initial stepsize [must be in (0,1) and >=sigma_decrease]
+        sigma_decrease : (float) initial stepsize [must be in (0,1) and <=sigma_increase]
+        factor : (float) scalefactor in modifying stepsize [must be in (0,1)]
+        minstep : (float) minimum stepsize to take
 
-	Returns:
-		stepsize - accepted stepsize
-		f_val - final function value
+    Returns:
+        stepsize - accepted stepsize
+        f_val - final function value
 
-	Notes
-		See D.P. Bertsekas, Nonlinear Programming, 2nd ed, 1999, page 29.
+    Notes
+        See D.P. Bertsekas, Nonlinear Programming, 2nd ed, 1999, page 29.
 
-		(fd) A few notes about this specific implementation:
-		0) I believe this method was originally from Jim Havranek
-		1) 'factor' corresponds roughly to 'beta', BUT on a successful initial step,
-		   factor is used to increase the stepsize.  When factor is used to decrease
-		   stepsize, factor^2 is used
-		2) The stopping critera used is that in the paper, the first integer m>=0 s.t.:
-			 f(x_k) - f(x_k+beta^m*s*d_k) >= -sigma * beta^m * s * grad{f}(x_k) * d_k
-		   however, the two different values of sigma are used:
-			  * sigma_increase (0.8) is used to trigger an _increased_ stepsize
-			  * sigma_decrease (0.1) is _required_ or the step size is decreased
-		3) in the code
-			  * 'alpha' corresponds to 's' in the text
-			  * 'factor' corresponds roughly to 'beta' in the text (see point 1)
+        (fd) A few notes about this specific implementation:
+        0) I believe this method was originally from Jim Havranek
+        1) 'factor' corresponds roughly to 'beta', BUT on a successful initial step,
+           factor is used to increase the stepsize.  When factor is used to decrease
+           stepsize, factor^2 is used
+        2) The stopping critera used is that in the paper, the first integer m>=0 s.t.:
+             f(x_k) - f(x_k+beta^m*s*d_k) >= -sigma * beta^m * s * grad{f}(x_k) * d_k
+           however, the two different values of sigma are used:
+              * sigma_increase (0.8) is used to trigger an _increased_ stepsize
+              * sigma_decrease (0.1) is _required_ or the step size is decreased
+        3) in the code
+              * 'alpha' corresponds to 's' in the text
+              * 'factor' corresponds roughly to 'beta' in the text (see point 1)
 
-		'factor' corresponds roughly to 'beta'
-	"""
+        'factor' corresponds roughly to 'beta'
+    """
     # evaluate phi(0) if not input
     if old_fval is None:
         phi0 = func(0.)
@@ -58,7 +58,7 @@ def armijo_linesearch(
     phi_a0 = func(alpha0)
 
     # first, we check if we can increase the stepsize
-    #	 (if the func is still behaving linearly)
+    #     (if the func is still behaving linearly)
 
     if phi_a0 <= phi0 + alpha0 * sigma_increase * derphi0:
         # attempt to increase stepsize
@@ -76,12 +76,12 @@ def armijo_linesearch(
     while (phi_a1 > phi0 + alpha1 * sigma_decrease * derphi0):
         # (fd) check for search failure.  In R3, "Inaccurate G!" is reported
         # (fd) I have made a few modifications to this from R3
-        #	  (1) there is no relative stepsize check, only an absolute one
-        #		  (R3 checks that step is >=1e-5 times orig step and >=1e-12)
-        #	  (2) if the search fails to satisfy Armijo cond, but decreases
-        #		  the function at min stepsize, accept the step
+        #      (1) there is no relative stepsize check, only an absolute one
+        #          (R3 checks that step is >=1e-5 times orig step and >=1e-12)
+        #      (2) if the search fails to satisfy Armijo cond, but decreases
+        #          the function at min stepsize, accept the step
         # (fd) I think change (1) is hit reasonably often in R3
-        #	  (and while usually bad is not necessarily so, particularly on 1st step)
+        #      (and while usually bad is not necessarily so, particularly on 1st step)
         # (fd) Change (2) probably is infrequent (and might slow things down?)
         if (alpha1 < minstep):
             if (phi_a1 > phi0):
@@ -96,24 +96,24 @@ def armijo_linesearch(
         alpha1 *= factor * factor  # see note above, decrease by factor^2
         phi_a1 = func(alpha1)
 
-        tempx=(phi0 + alpha1 * sigma_decrease * derphi0);
+        tempx = (phi0 + alpha1 * sigma_decrease * derphi0)
 
     return alpha1, phi_a1
 
 
 class LBFGS_Armijo(Optimizer):
     """
-	Implements L-BFGS algorithm with Armijo line search.
-	All scaling and parameters taken directly from Rosetta
+    Implements L-BFGS algorithm with Armijo line search.
+    All scaling and parameters taken directly from Rosetta
 
-	Parameters:
-		lr (float): learning rate (default: 1)
-		max_iter (int): maximal number of iterations (default: 200)
-		reltol (float): relative tolerance (default: 1e-6)
-		abstol (float): absolute tolerance (default: 0)
-		gradtol (float): an absolute tolerance on max_i df/dx_i (default: 1e-4)
-		history_size (int): update history size (default: 128).
-	"""
+    Parameters:
+        lr (float): learning rate (default: 1)
+        max_iter (int): maximal number of iterations (default: 200)
+        reltol (float): relative tolerance (default: 1e-6)
+        abstol (float): absolute tolerance (default: 0)
+        gradtol (float): an absolute tolerance on max_i df/dx_i (default: 1e-4)
+        history_size (int): update history size (default: 128).
+    """
 
     def __init__(
             self,
@@ -189,9 +189,7 @@ class LBFGS_Armijo(Optimizer):
         for p in self._params:
             numel = p.numel()
             # view as to avoid deprecated pointwise semantics
-            p.data.copy_(
-                update[offset:offset + numel].view_as(p.data)
-            )
+            p.data.copy_(update[offset:offset + numel].view_as(p.data))
             offset += numel
         assert offset == self._numel()
 
@@ -326,12 +324,12 @@ class LBFGS_Armijo(Optimizer):
             # (fd) Perhaps there are better ways to do this?
 
             # check 1: if dir. deriv. is positive, flip signs of positive components
-            if ( gtd > -1e-5 ):
-                d *= -sign (flat_grad*d)
+            if (gtd > -1e-5):
+                d *= -sign(flat_grad * d)
                 gtd = flat_grad.dot(d)
 
             # check 2: if derivative is still positive, reset Hessian
-            if ( gtd > -1e-5 ):
+            if (gtd > -1e-5):
                 d = flat_grad.neg()
                 old_dirs = []
                 old_stps = []
@@ -343,16 +341,16 @@ class LBFGS_Armijo(Optimizer):
 
             def linefn(alpha_test):
                 self.ls_func_evals += 1
-                self._set_x_from_flat(x + alpha_test*d)
+                self._set_x_from_flat(x + alpha_test * d)
                 E = closure()
                 return E
 
             # do the line search
             t, loss = armijo_linesearch(
-                linefn,     # callback for energy eval
-                gtd,        # directional derivative
+                linefn,  # callback for energy eval
+                gtd,  # directional derivative
                 prev_loss,  # current function value (at x)
-                alpha0=t,   #  stepsize
+                alpha0=t,  #  stepsize
                 factor=0.5,
                 sigma_decrease=0.1,
                 sigma_increase=0.8,
@@ -360,9 +358,10 @@ class LBFGS_Armijo(Optimizer):
             )
 
             # update
-            x = x + t*d
+            x = x + t * d
             self._set_x_from_flat(x)
-            closure() # fd: needed for derivatives, but adds an extra func eval...
+            closure(
+            )  # fd: needed for derivatives, but adds an extra func eval...
             flat_grad = self._gather_flat_grad()
             max_grad = flat_grad.max()
 
@@ -379,12 +378,16 @@ class LBFGS_Armijo(Optimizer):
                 break
 
             # converge check 3: rel tol
-            if 2*abs(loss - prev_loss) <= reltol*(abs(loss) + abs(prev_loss) + 1e-10):
+            if 2 * abs(loss - prev_loss) <= reltol * (
+                    abs(loss) + abs(prev_loss) + 1e-10):
                 break
 
             # report if we have hit max cycles (mimicing R3)
-            if state['n_iter'] == max_iter-1:
-                print ("LBFGS_Armijo finished ",max_iter," cycles without converging.")
+            if state['n_iter'] == max_iter - 1:
+                print(
+                    "LBFGS_Armijo finished ", max_iter,
+                    " cycles without converging."
+                )
 
         state['d'] = d
         state['t'] = t

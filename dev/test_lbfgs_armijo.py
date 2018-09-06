@@ -1,8 +1,9 @@
 import torch
 import lbfgs_armijo
 
+
 class SimpleLJScore:
-    def __init__(self, r_m = 1.0, epsilon = 1.0):
+    def __init__(self, r_m=1.0, epsilon=1.0):
         self.r_m = r_m
         self.epsilon = epsilon
 
@@ -19,24 +20,23 @@ class SimpleLJScore:
         fd2 = fd * fd
         fd6 = fd2 * fd2 * fd2
         fd12 = fd6 * fd6
-        lj = self.epsilon * (fd12  - 3 * fd6)
+        lj = self.epsilon * (fd12 - 3 * fd6)
 
-        self.lj = torch.where(
-            ind_a != ind_b, lj, torch.Tensor([0.0])
-        )
+        self.lj = torch.where(ind_a != ind_b, lj, torch.Tensor([0.0]))
 
         self.atom_scores = torch.sum(self.lj.detach(), dim=-1)
         self.total_score = torch.sum(self.lj)
 
         return self
 
+
 if __name__ == '__main__':
     dtype = torch.float
     device = torch.device("cpu")
 
     Natoms = 100
-    x = torch.randn(Natoms,3, device=device, dtype=dtype, requires_grad=True)
-    scorefunc = SimpleLJScore(r_m=1.0,epsilon=1.0)
+    x = torch.randn(Natoms, 3, device=device, dtype=dtype, requires_grad=True)
+    scorefunc = SimpleLJScore(r_m=1.0, epsilon=1.0)
 
     learning_rate = 1e-3
 
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     def closure():
         optimizer.zero_grad()
-        E = scorefunc(10*x)
+        E = scorefunc(10 * x)
         E.total_score.backward()
         return E.total_score
 
