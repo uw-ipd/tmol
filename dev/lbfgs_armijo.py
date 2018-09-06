@@ -326,6 +326,7 @@ class LBFGS_Armijo(Optimizer):
                 d = flat_grad.neg()
                 old_dirs = []
                 old_stps = []
+                gtd = flat_grad.dot(d)
 
             # define the line search function
             # we do not need to compute gradients in here
