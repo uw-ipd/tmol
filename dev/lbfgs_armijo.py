@@ -84,7 +84,7 @@ def armijo_linesearch(
         #      (and while usually bad is not necessarily so, particularly on 1st step)
         # (fd) Change (2) probably is infrequent (and might slow things down?)
         if (alpha1 < minstep):
-            if (phi_a1 > phi0):
+            if (phi_a1 >= phi0):
                 finite_diff = (phi_a1 - phi0) / alpha1
                 print(
                     "Inaccurate G! Step=", alpha1, " Deriv=", derphi0,
