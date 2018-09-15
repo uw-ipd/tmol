@@ -20,8 +20,10 @@ def armijo_linesearch(
         derphi0 : (float) directional derivative
         fval0 : (float) func(0), the value of the function at the origin
         alpha0 : (float) the initial stepsize
-        sigma_increase : (float) initial stepsize [must be in (0,1) and >=sigma_decrease]
-        sigma_decrease : (float) initial stepsize [must be in (0,1) and <=sigma_increase]
+        sigma_increase : (float) initial stepsize
+                         [must be in (0,1) and >=sigma_decrease]
+        sigma_decrease : (float) initial stepsize
+                         [must be in (0,1) and <=sigma_increase]
         factor : (float) scalefactor in modifying stepsize [must be in (0,1)]
         minstep : (float) minimum stepsize to take
 
@@ -95,8 +97,6 @@ def armijo_linesearch(
 
         alpha1 *= factor * factor  # see note above, decrease by factor^2
         phi_a1 = func(alpha1)
-
-        tempx = (phi0 + alpha1 * sigma_decrease * derphi0)
 
     return alpha1, phi_a1
 
@@ -318,7 +318,7 @@ class LBFGS_Armijo(Optimizer):
 
             # check 1: if dir. deriv. is positive, flip signs of positive components
             if (gtd > -1e-5):
-                d *= -sign(flat_grad * d)
+                d *= -torch.sign(flat_grad * d)
                 gtd = flat_grad.dot(d)
 
             # check 2: if derivative is still positive, reset Hessian
@@ -340,10 +340,10 @@ class LBFGS_Armijo(Optimizer):
 
             # do the line search
             t, loss = armijo_linesearch(
-                linefn,  # callback for energy eval
-                gtd,  # directional derivative
+                linefn,     # callback for energy eval
+                gtd,        # directional derivative
                 prev_loss,  # current function value (at x)
-                alpha0=t,  #  stepsize
+                alpha0=t,   # stepsize
                 factor=0.5,
                 sigma_decrease=0.1,
                 sigma_increase=0.8,
