@@ -11,12 +11,13 @@ import torch.cuda
 import numba.cuda
 
 from tmol.types.torch import _torch_dtype_mapping
+from numba.cuda import as_cuda_array, is_cuda_array
+
+import tmol.utility.numba  # noqa
 
 
 @requires_cuda
 def test_array_adaptor():
-    # Import in test due to expected assertion failure on numba upgrade
-    from tmol.utility.numba import as_cuda_array, is_cuda_array
 
     for dt in set(_torch_dtype_mapping.values()):
         if dt == torch.int8:
@@ -28,7 +29,7 @@ def test_array_adaptor():
 
         assert not is_cuda_array(cput)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             as_cuda_array(cput)
 
         cudat = cput.to(device="cuda")
@@ -67,8 +68,6 @@ def test_array_adaptor():
     reason="Can only test numba_cudasim fixuture if cuda is not available.",
 )
 def test_no_cudasim():
-    from tmol.utility.numba import as_cuda_array, is_cuda_array
-
     data = torch.arange(10)
     assert data.device.type == "cpu"
     # When the simulator is *not* enable as_cuda_array errors
@@ -77,9 +76,8 @@ def test_no_cudasim():
         as_cuda_array(data)
 
 
+@pytest.mark.xfail
 def test_cudasim_adaptor(numba_cudasim, torch_device):
-    from tmol.utility.numba import as_cuda_array, is_cuda_array
-
     data = torch.arange(10, device=torch_device)
 
     if data.device.type == "cpu":
@@ -112,11 +110,18 @@ def test_cudasim_adaptor(numba_cudasim, torch_device):
     reason="Requires multiple cuda devices.",
 )
 def test_active_device():
-    # Import in test due to expected assertion failure on numba upgrade
-    from tmol.utility.numba import as_cuda_array, is_cuda_array
+    """'as_cuda_array' tensor device must match active numba context."""
 
-    # Should fail if the tensor device id is not the current numba context.
-    cudat = torch.arange(10).to(device=torch.device("cuda", 1))
-    assert is_cuda_array(cudat)
-    with pytest.raises(ValueError):
+    # Both torch/numba default to device 0 and can interop freely
+    cudat = torch.arange(10, device="cuda")
+    assert cudat.device.index == 0
+    assert as_cuda_array(cudat)
+
+    # Tensors on non-default device raise api error if converted
+    cudat = torch.arange(10, device=torch.device("cuda", 1))
+    with pytest.raises(numba.cuda.driver.CudaAPIError):
         as_cuda_array(cudat)
+
+    # but can be converted when switching to the device's context
+    with numba.cuda.devices.gpus[cudat.device.index]:
+        assert as_cuda_array(cudat)
