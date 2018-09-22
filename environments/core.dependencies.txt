@@ -2,7 +2,7 @@ python>=3.6
 ipython
 numpy==1.14.*
 pandas==0.22
-numba==0.38.1
+numba::numba==0.40
 scipy=1.1.*
 requests
 toolz
