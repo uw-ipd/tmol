@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.numba &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
+  <title>tmol.utility.numba &mdash; TMol 0.0.0-93-gc2de501 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-92-g4eef0d9
+                0.0.0-93-gc2de501
               </div>
             
           
@@ -104,7 +104,6 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.mixins.html">tmol.utility.mixins</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.utility.numba</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
 </ul>
 </li>
@@ -189,25 +188,8 @@
   <div class="section" id="module-tmol.utility.numba">
 <span id="tmol-utility-numba"></span><h1>tmol.utility.numba<a class="headerlink" href="#module-tmol.utility.numba" title="Permalink to this headline">¶</a></h1>
 <p>Utilities for numba/torch interconversion.</p>
-<p>The primary functions provided “to_cuda_array” and “is_cuda_array”, backports of
-numba 0.39 memory management utility functions, updated with single-dispatch based
-adaptors for torch tensors.</p>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
-<table border="1" class="longtable docutils">
-<colgroup>
-<col width="10%" />
-<col width="90%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.numba.TorchCUDAArrayAdaptor" title="tmol.utility.numba.TorchCUDAArrayAdaptor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TorchCUDAArrayAdaptor</span></code></a></td>
-<td></td>
-</tr>
-</tbody>
-</table>
-</div>
 <div class="section" id="functions">
 <h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
 <table border="1" class="longtable docutils">
@@ -216,14 +198,8 @@ adaptors for torch tensors.</p>
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.numba.as_cuda_array" title="tmol.utility.numba.as_cuda_array"><code class="xref py py-obj docutils literal notranslate"><span class="pre">as_cuda_array</span></code></a></td>
-<td>Create a DeviceNDArray from any object that implements the cuda-array-interface.</td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.utility.numba.from_cuda_array_interface" title="tmol.utility.numba.from_cuda_array_interface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_cuda_array_interface</span></code></a></td>
-<td>Create a DeviceNDArray from a cuda-array-interface description.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.numba.is_cuda_array" title="tmol.utility.numba.is_cuda_array"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_cuda_array</span></code></a></td>
-<td>Test if the object has defined the <code class="docutils literal notranslate"><span class="pre">__cuda_array_interface__</span></code>.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.numba.torch_cuda_array_interface" title="tmol.utility.numba.torch_cuda_array_interface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_cuda_array_interface</span></code></a></td>
+<td>__cuda_array_interface__ getter implementation for torch.Tensor.</td>
 </tr>
 </tbody>
 </table>
@@ -232,66 +208,9 @@ adaptors for torch tensors.</p>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="tmol.utility.numba._get_devptr_for_active_ctx">
-<code class="descclassname">tmol.utility.numba.</code><code class="descname">_get_devptr_for_active_ctx</code><span class="sig-paren">(</span><em>ptr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#_get_devptr_for_active_ctx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba._get_devptr_for_active_ctx" title="Permalink to this definition">¶</a></dt>
-<dd><p>Hack of internal numba 0.39 api, always assume pointer is on device.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="tmol.utility.numba.from_cuda_array_interface">
-<code class="descclassname">tmol.utility.numba.</code><code class="descname">from_cuda_array_interface</code><span class="sig-paren">(</span><em>desc</em>, <em>owner=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#from_cuda_array_interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba.from_cuda_array_interface" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a DeviceNDArray from a cuda-array-interface description.
-The <em>owner</em> is the owner of the underlying memory.
-The resulting DeviceNDArray will acquire a reference from it.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="tmol.utility.numba.as_cuda_array">
-<code class="descclassname">tmol.utility.numba.</code><code class="descname">as_cuda_array</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#as_cuda_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba.as_cuda_array" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a DeviceNDArray from any object that implements the
-cuda-array-interface.</p>
-<p>A view of the underlying GPU buffer is created.  No copying of the data is
-done.  The resulting DeviceNDArray will acquire a reference from <code class="docutils literal notranslate"><span class="pre">obj</span></code>.</p>
-<p>Shim interface supports creation of <em>fake</em> cuda arrays iff the cuda
-simulator is active as the current context.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="tmol.utility.numba.is_cuda_array">
-<code class="descclassname">tmol.utility.numba.</code><code class="descname">is_cuda_array</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#is_cuda_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba.is_cuda_array" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test if the object has defined the <code class="docutils literal notranslate"><span class="pre">__cuda_array_interface__</span></code>.
-Does not verify the validity of the interface.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="tmol.utility.numba._prepare_shape_strides_dtype">
-<code class="descclassname">tmol.utility.numba.</code><code class="descname">_prepare_shape_strides_dtype</code><span class="sig-paren">(</span><em>shape</em>, <em>strides</em>, <em>dtype</em>, <em>order</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#_prepare_shape_strides_dtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba._prepare_shape_strides_dtype" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="tmol.utility.numba._fill_stride_by_order">
-<code class="descclassname">tmol.utility.numba.</code><code class="descname">_fill_stride_by_order</code><span class="sig-paren">(</span><em>shape</em>, <em>dtype</em>, <em>order</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#_fill_stride_by_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba._fill_stride_by_order" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="class">
-<dt id="tmol.utility.numba.TorchCUDAArrayAdaptor">
-<em class="property">class </em><code class="descclassname">tmol.utility.numba.</code><code class="descname">TorchCUDAArrayAdaptor</code><span class="sig-paren">(</span><em>t: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#TorchCUDAArrayAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba.TorchCUDAArrayAdaptor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.utility.numba.TorchCUDAArrayAdaptor.t">
-<code class="descname">t</code><a class="headerlink" href="#tmol.utility.numba.TorchCUDAArrayAdaptor.t" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="staticmethod">
-<dt id="tmol.utility.numba.TorchCUDAArrayAdaptor.as_cuda_array">
-<em class="property">static </em><code class="descname">as_cuda_array</code><span class="sig-paren">(</span><em>torch_tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#TorchCUDAArrayAdaptor.as_cuda_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba.TorchCUDAArrayAdaptor.as_cuda_array" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="staticmethod">
-<dt id="tmol.utility.numba.TorchCUDAArrayAdaptor.is_cuda_array">
-<em class="property">static </em><code class="descname">is_cuda_array</code><span class="sig-paren">(</span><em>torch_tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#TorchCUDAArrayAdaptor.is_cuda_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba.TorchCUDAArrayAdaptor.is_cuda_array" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<dt id="tmol.utility.numba.torch_cuda_array_interface">
+<code class="descclassname">tmol.utility.numba.</code><code class="descname">torch_cuda_array_interface</code><span class="sig-paren">(</span><em>tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#torch_cuda_array_interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba.torch_cuda_array_interface" title="Permalink to this definition">¶</a></dt>
+<dd><p>__cuda_array_interface__ getter implementation for torch.Tensor.</p>
 </dd></dl>
 
 </div>
@@ -339,7 +258,7 @@ Does not verify the validity of the interface.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.0.0-92-g4eef0d9',
+            VERSION:'0.0.0-93-gc2de501',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

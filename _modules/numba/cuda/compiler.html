@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>numba.cuda.compiler &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
+  <title>numba.cuda.compiler &mdash; TMol 0.0.0-93-gc2de501 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-92-g4eef0d9
+                0.0.0-93-gc2de501
               </div>
             
           
@@ -171,37 +171,23 @@
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
 <span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">ctypes_support</span> <span class="k">as</span> <span class="n">ctypes</span>
 <span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">config</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">types</span><span class="p">,</span> <span class="n">sigutils</span>
 <span class="kn">from</span> <span class="nn">numba.typing.templates</span> <span class="k">import</span> <span class="n">AbstractTemplate</span><span class="p">,</span> <span class="n">ConcreteTemplate</span>
 <span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">funcdesc</span><span class="p">,</span> <span class="n">typing</span><span class="p">,</span> <span class="n">utils</span><span class="p">,</span> <span class="n">serialize</span>
+<span class="kn">from</span> <span class="nn">numba.compiler_lock</span> <span class="k">import</span> <span class="n">global_compiler_lock</span>
 
 <span class="kn">from</span> <span class="nn">.cudadrv.autotune</span> <span class="k">import</span> <span class="n">AutoTuner</span>
 <span class="kn">from</span> <span class="nn">.cudadrv.devices</span> <span class="k">import</span> <span class="n">get_context</span>
 <span class="kn">from</span> <span class="nn">.cudadrv</span> <span class="k">import</span> <span class="n">nvvm</span><span class="p">,</span> <span class="n">devicearray</span><span class="p">,</span> <span class="n">driver</span>
 <span class="kn">from</span> <span class="nn">.errors</span> <span class="k">import</span> <span class="n">normalize_kernel_dimensions</span>
 <span class="kn">from</span> <span class="nn">.api</span> <span class="k">import</span> <span class="n">get_current_device</span>
+<span class="kn">from</span> <span class="nn">.args</span> <span class="k">import</span> <span class="n">wrap_arg</span>
 
 
-<span class="n">_cuda_compiler_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
-
-
-<span class="k">def</span> <span class="nf">nonthreadsafe</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Wraps a function to prevent multiple threads from executing it in parallel</span>
-<span class="sd">    due to LLVM is not threadsafe.</span>
-<span class="sd">    This is preferred over contextmanager due to llvm.Module.__del__ being</span>
-<span class="sd">    non-threadsafe and it is cumbersome to manually keep track of when it is</span>
-<span class="sd">    triggered.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nd">@wraps</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">core</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">with</span> <span class="n">_cuda_compiler_lock</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">core</span>
-
-
-<span class="nd">@nonthreadsafe</span>
+<span class="nd">@global_compiler_lock</span>
 <span class="k">def</span> <span class="nf">compile_cuda</span><span class="p">(</span><span class="n">pyfunc</span><span class="p">,</span> <span class="n">return_type</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">debug</span><span class="p">,</span> <span class="n">inline</span><span class="p">):</span>
     <span class="c1"># First compilation will trigger the initialization of the CUDA backend.</span>
     <span class="kn">from</span> <span class="nn">.descriptor</span> <span class="k">import</span> <span class="n">CUDATargetDesc</span>
@@ -233,9 +219,9 @@
     <span class="k">return</span> <span class="n">cres</span>
 
 
-<span class="nd">@nonthreadsafe</span>
+<span class="nd">@global_compiler_lock</span>
 <span class="k">def</span> <span class="nf">compile_kernel</span><span class="p">(</span><span class="n">pyfunc</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">link</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                   <span class="n">fastmath</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                   <span class="n">fastmath</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">extensions</span><span class="o">=</span><span class="p">[]):</span>
     <span class="n">cres</span> <span class="o">=</span> <span class="n">compile_cuda</span><span class="p">(</span><span class="n">pyfunc</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">void</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="n">inline</span><span class="p">)</span>
     <span class="n">fname</span> <span class="o">=</span> <span class="n">cres</span><span class="o">.</span><span class="n">fndesc</span><span class="o">.</span><span class="n">llvm_func_name</span>
     <span class="n">lib</span><span class="p">,</span> <span class="n">kernel</span> <span class="o">=</span> <span class="n">cres</span><span class="o">.</span><span class="n">target_context</span><span class="o">.</span><span class="n">prepare_cuda_kernel</span><span class="p">(</span><span class="n">cres</span><span class="o">.</span><span class="n">library</span><span class="p">,</span> <span class="n">fname</span><span class="p">,</span>
@@ -250,7 +236,8 @@
                         <span class="n">link</span><span class="o">=</span><span class="n">link</span><span class="p">,</span>
                         <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span>
                         <span class="n">call_helper</span><span class="o">=</span><span class="n">cres</span><span class="o">.</span><span class="n">call_helper</span><span class="p">,</span>
-                        <span class="n">fastmath</span><span class="o">=</span><span class="n">fastmath</span><span class="p">)</span>
+                        <span class="n">fastmath</span><span class="o">=</span><span class="n">fastmath</span><span class="p">,</span>
+                        <span class="n">extensions</span><span class="o">=</span><span class="n">extensions</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">cukern</span>
 
 
@@ -387,18 +374,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">sig</span> <span class="o">=</span> <span class="n">sig</span>
 
 
-<span class="k">def</span> <span class="nf">_compute_thread_per_block</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="n">tpb</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">tpb</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">tpb</span>
-
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">tpb</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">autotune</span><span class="o">.</span><span class="n">best</span><span class="p">()</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Could not autotune, using default tpb of 128&#39;</span><span class="p">)</span>
-            <span class="n">tpb</span> <span class="o">=</span> <span class="mi">128</span>
-
-        <span class="k">return</span> <span class="n">tpb</span>
 
 <span class="k">class</span> <span class="nc">ForAll</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">ntasks</span><span class="p">,</span> <span class="n">tpb</span><span class="p">,</span> <span class="n">stream</span><span class="p">,</span> <span class="n">sharedmem</span><span class="p">):</span>
@@ -414,12 +389,44 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel</span>
 
-        <span class="n">tpb</span> <span class="o">=</span> <span class="n">_compute_thread_per_block</span><span class="p">(</span><span class="n">kernel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">thread_per_block</span><span class="p">)</span>
+        <span class="n">tpb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_thread_per_block</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
         <span class="n">tpbm1</span> <span class="o">=</span> <span class="n">tpb</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="n">blkct</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ntasks</span> <span class="o">+</span> <span class="n">tpbm1</span><span class="p">)</span> <span class="o">//</span> <span class="n">tpb</span>
 
         <span class="k">return</span> <span class="n">kernel</span><span class="o">.</span><span class="n">configure</span><span class="p">(</span><span class="n">blkct</span><span class="p">,</span> <span class="n">tpb</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stream</span><span class="p">,</span>
                                 <span class="n">sharedmem</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sharedmem</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute_thread_per_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kernel</span><span class="p">):</span>
+        <span class="n">tpb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thread_per_block</span>
+        <span class="c1"># Prefer user-specified config</span>
+        <span class="k">if</span> <span class="n">tpb</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tpb</span>
+        <span class="c1"># Else, ask the driver to give a good cofnig</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ctx</span> <span class="o">=</span> <span class="n">get_context</span><span class="p">()</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">func</span><span class="o">=</span><span class="n">kernel</span><span class="o">.</span><span class="n">_func</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span>
+                <span class="n">b2d_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">tpb</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="n">memsize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sharedmem</span><span class="p">,</span>
+                <span class="n">blocksizelimit</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Raises from the driver if the feature is unavailable</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">tpb</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">get_max_potential_block_size</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="c1"># Fallback to table-based approach.</span>
+                <span class="n">tpb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fallback_autotune_best</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+                <span class="k">raise</span>
+            <span class="k">return</span> <span class="n">tpb</span>
+
+    <span class="k">def</span> <span class="nf">_fallback_autotune_best</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kernel</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">tpb</span> <span class="o">=</span> <span class="n">kernel</span><span class="o">.</span><span class="n">autotune</span><span class="o">.</span><span class="n">best</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Could not autotune, using default tpb of 128&#39;</span><span class="p">)</span>
+            <span class="n">tpb</span> <span class="o">=</span> <span class="mi">128</span>
+
+        <span class="k">return</span> <span class="n">tpb</span>
 
 
 <span class="k">class</span> <span class="nc">CUDAKernelBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -584,7 +591,8 @@
 <span class="sd">    specialized, and then launch the kernel on the device.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llvm_module</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">pretty_name</span><span class="p">,</span> <span class="n">argtypes</span><span class="p">,</span> <span class="n">call_helper</span><span class="p">,</span>
-                 <span class="n">link</span><span class="o">=</span><span class="p">(),</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fastmath</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">type_annotation</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">link</span><span class="o">=</span><span class="p">(),</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fastmath</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">type_annotation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">extensions</span><span class="o">=</span><span class="p">[]):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">CUDAKernel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="c1"># initialize CUfunction</span>
         <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;debug&#39;</span><span class="p">:</span> <span class="n">debug</span><span class="p">}</span>
@@ -604,9 +612,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_func</span> <span class="o">=</span> <span class="n">cufunc</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">call_helper</span> <span class="o">=</span> <span class="n">call_helper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extensions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">extensions</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_rebuild</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">argtypes</span><span class="p">,</span> <span class="n">cufunc</span><span class="p">,</span> <span class="n">link</span><span class="p">,</span> <span class="n">debug</span><span class="p">,</span> <span class="n">call_helper</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_rebuild</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">argtypes</span><span class="p">,</span> <span class="n">cufunc</span><span class="p">,</span> <span class="n">link</span><span class="p">,</span> <span class="n">debug</span><span class="p">,</span> <span class="n">call_helper</span><span class="p">,</span> <span class="n">extensions</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Rebuild an instance.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -621,6 +630,7 @@
         <span class="n">instance</span><span class="o">.</span><span class="n">_func</span> <span class="o">=</span> <span class="n">cufunc</span>
         <span class="n">instance</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
         <span class="n">instance</span><span class="o">.</span><span class="n">call_helper</span> <span class="o">=</span> <span class="n">call_helper</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">extensions</span> <span class="o">=</span> <span class="n">extensions</span>
         <span class="c1"># update config</span>
         <span class="n">instance</span><span class="o">.</span><span class="n">_deserialize_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">instance</span>
@@ -636,7 +646,7 @@
         <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_serialize_config</span><span class="p">()</span>
         <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">entry_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">argument_types</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">linking</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">call_helper</span><span class="p">,</span>
-                <span class="n">config</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">extensions</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">serialize</span><span class="o">.</span><span class="n">_rebuild_reduction</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -753,6 +763,15 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convert arguments to ctypes and append to kernelargs</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># map the arguments using any extension you&#39;ve registered</span>
+        <span class="k">for</span> <span class="n">extension</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extensions</span><span class="p">):</span>
+            <span class="n">ty</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">extension</span><span class="o">.</span><span class="n">prepare_args</span><span class="p">(</span>
+                <span class="n">ty</span><span class="p">,</span>
+                <span class="n">val</span><span class="p">,</span>
+                <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span>
+                <span class="n">retr</span><span class="o">=</span><span class="n">retr</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ty</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ty</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">SmartArrayType</span><span class="p">):</span>
                 <span class="n">devary</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;gpu&#39;</span><span class="p">)</span>
@@ -760,9 +779,7 @@
                 <span class="n">outer_parent</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
                 <span class="n">kernelargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">outer_parent</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">devary</span><span class="p">,</span> <span class="n">conv</span> <span class="o">=</span> <span class="n">devicearray</span><span class="o">.</span><span class="n">auto_device</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">conv</span><span class="p">:</span>
-                    <span class="n">retr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">devary</span><span class="o">.</span><span class="n">copy_to_host</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">))</span>
+                <span class="n">devary</span> <span class="o">=</span> <span class="n">wrap_arg</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">to_device</span><span class="p">(</span><span class="n">retr</span><span class="p">,</span> <span class="n">stream</span><span class="p">)</span>
 
             <span class="n">c_intp</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ssize_t</span>
 
@@ -805,20 +822,20 @@
             <span class="n">kernelargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">real</span><span class="p">))</span>
             <span class="n">kernelargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">imag</span><span class="p">))</span>
 
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ty</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">Record</span><span class="p">):</span>
-            <span class="n">devrec</span><span class="p">,</span> <span class="n">conv</span> <span class="o">=</span> <span class="n">devicearray</span><span class="o">.</span><span class="n">auto_device</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">conv</span><span class="p">:</span>
-                <span class="n">retr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">devrec</span><span class="o">.</span><span class="n">copy_to_host</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ty</span><span class="p">,</span> <span class="p">(</span><span class="n">types</span><span class="o">.</span><span class="n">NPDatetime</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">NPTimedelta</span><span class="p">)):</span>
+            <span class="n">kernelargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_int64</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)))</span>
 
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ty</span><span class="p">,</span> <span class="n">types</span><span class="o">.</span><span class="n">Record</span><span class="p">):</span>
+            <span class="n">devrec</span> <span class="o">=</span> <span class="n">wrap_arg</span><span class="p">(</span><span class="n">val</span><span class="p">)</span><span class="o">.</span><span class="n">to_device</span><span class="p">(</span><span class="n">retr</span><span class="p">,</span> <span class="n">stream</span><span class="p">)</span>
             <span class="n">kernelargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">devrec</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">ty</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
-
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">autotune</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Return the autotuner object associated with this kernel.&quot;&quot;&quot;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">_deprec_warn_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;autotune&#39;</span><span class="p">),</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
         <span class="n">has_autotune</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_autotune&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">has_autotune</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_autotune</span><span class="o">.</span><span class="n">dynsmem</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">sharedmem</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_autotune</span>
@@ -835,15 +852,21 @@
 <span class="sd">        number of warps that can be active on the multiprocessor at once.</span>
 <span class="sd">        Calculate the theoretical occupancy of the kernel given the</span>
 <span class="sd">        current configuration.&quot;&quot;&quot;</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="n">_deprec_warn_msg</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;occupancy&#39;</span><span class="p">),</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
         <span class="n">thread_per_block</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">mul</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blockdim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">autotune</span><span class="o">.</span><span class="n">closest</span><span class="p">(</span><span class="n">thread_per_block</span><span class="p">)</span>
+
+
+<span class="n">_deprec_warn_msg</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;The .</span><span class="si">{}</span><span class="s2"> attribute is is deprecated and will be &quot;</span>
+                    <span class="s2">&quot;removed in a future release&quot;</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">AutoJitCUDAKernel</span><span class="p">(</span><span class="n">CUDAKernelBase</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    CUDA Kernel object. When called, the kernel object will specialize itself</span>
 <span class="sd">    for the given arguments (if no suitable specialized version already exists)</span>
-<span class="sd">    and launch on the device associated with the current context.</span>
+<span class="sd">    &amp; compute capability, and launch on the device associated with the current</span>
+<span class="sd">    context.</span>
 
 <span class="sd">    Kernel objects are not to be constructed by the user, but instead are</span>
 <span class="sd">    created using the :func:`numba.cuda.jit` decorator.</span>
@@ -852,12 +875,40 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">AutoJitCUDAKernel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">py_func</span> <span class="o">=</span> <span class="n">func</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bind</span> <span class="o">=</span> <span class="n">bind</span>
+
+        <span class="c1"># keyed by a `(compute capability, args)` tuple</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span> <span class="o">=</span> <span class="p">{}</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">targetoptions</span> <span class="o">=</span> <span class="n">targetoptions</span>
+
+        <span class="c1"># defensive copy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">targetoptions</span><span class="p">[</span><span class="s1">&#39;extensions&#39;</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetoptions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;extensions&#39;</span><span class="p">,</span> <span class="p">[]))</span>
 
         <span class="kn">from</span> <span class="nn">.descriptor</span> <span class="k">import</span> <span class="n">CUDATargetDesc</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">typingctx</span> <span class="o">=</span> <span class="n">CUDATargetDesc</span><span class="o">.</span><span class="n">typingctx</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">extensions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        A list of objects that must have a `prepare_args` function. When a</span>
+<span class="sd">        specialized kernel is called, each argument will be passed through</span>
+<span class="sd">        to the `prepare_args` (from the last object in this list to the</span>
+<span class="sd">        first). The arguments to `prepare_args` are:</span>
+
+<span class="sd">        - `ty` the numba type of the argument</span>
+<span class="sd">        - `val` the argument value itself</span>
+<span class="sd">        - `stream` the CUDA stream used for the current call to the kernel</span>
+<span class="sd">        - `retr` a list of zero-arg functions that you may want to append</span>
+<span class="sd">          post-call cleanup work to.</span>
+
+<span class="sd">        The `prepare_args` function must return a tuple `(ty, val)`, which</span>
+<span class="sd">        will be passed in turn to the next right-most `extension`. After all</span>
+<span class="sd">        the extensions have been called, the resulting `(ty, val)` will be</span>
+<span class="sd">        passed into Numba&#39;s default argument marshalling logic.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetoptions</span><span class="p">[</span><span class="s1">&#39;extensions&#39;</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
@@ -884,35 +935,39 @@
 <span class="sd">        &#39;&#39;&#39;</span>
         <span class="n">argtypes</span><span class="p">,</span> <span class="n">return_type</span> <span class="o">=</span> <span class="n">sigutils</span><span class="o">.</span><span class="n">normalize_signature</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">return_type</span> <span class="ow">is</span> <span class="kc">None</span>
-        <span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">argtypes</span><span class="p">)</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="n">get_current_device</span><span class="p">()</span><span class="o">.</span><span class="n">compute_capability</span>
+        <span class="n">kernel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="o">.</span><span class="n">get</span><span class="p">((</span><span class="n">cc</span><span class="p">,</span> <span class="n">argtypes</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">kernel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="s1">&#39;link&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetoptions</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">targetoptions</span><span class="p">[</span><span class="s1">&#39;link&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>
             <span class="n">kernel</span> <span class="o">=</span> <span class="n">compile_kernel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">py_func</span><span class="p">,</span> <span class="n">argtypes</span><span class="p">,</span>
                                     <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">targetoptions</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="p">[</span><span class="n">argtypes</span><span class="p">]</span> <span class="o">=</span> <span class="n">kernel</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="p">[(</span><span class="n">cc</span><span class="p">,</span> <span class="n">argtypes</span><span class="p">)]</span> <span class="o">=</span> <span class="n">kernel</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">:</span>
                 <span class="n">kernel</span><span class="o">.</span><span class="n">bind</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">kernel</span>
 
-    <span class="k">def</span> <span class="nf">inspect_llvm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">inspect_llvm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compute_capability</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Return the LLVM IR for all signatures encountered thus far, or the LLVM</span>
-<span class="sd">        IR for a specific signature if given.</span>
+<span class="sd">        IR for a specific signature and compute_capability if given.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="n">compute_capability</span> <span class="ow">or</span> <span class="n">get_current_device</span><span class="p">()</span><span class="o">.</span><span class="n">compute_capability</span>
         <span class="k">if</span> <span class="n">signature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="p">[</span><span class="n">signature</span><span class="p">]</span><span class="o">.</span><span class="n">inspect_llvm</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="p">[(</span><span class="n">cc</span><span class="p">,</span> <span class="n">signature</span><span class="p">)]</span><span class="o">.</span><span class="n">inspect_llvm</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">sig</span><span class="p">,</span> <span class="n">defn</span><span class="o">.</span><span class="n">inspect_llvm</span><span class="p">())</span>
                         <span class="k">for</span> <span class="n">sig</span><span class="p">,</span> <span class="n">defn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
 
-    <span class="k">def</span> <span class="nf">inspect_asm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">inspect_asm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signature</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">compute_capability</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">        Return the generated assembly code for all signatures encountered thus</span>
-<span class="sd">        far, or the LLVM IR for a specific signature if given.</span>
+<span class="sd">        far, or the LLVM IR for a specific signature and compute_capability</span>
+<span class="sd">        if given.</span>
 <span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="n">compute_capability</span> <span class="ow">or</span> <span class="n">get_current_device</span><span class="p">()</span><span class="o">.</span><span class="n">compute_capability</span>
         <span class="k">if</span> <span class="n">signature</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="p">[</span><span class="n">signature</span><span class="p">]</span><span class="o">.</span><span class="n">inspect_asm</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="p">[(</span><span class="n">cc</span><span class="p">,</span> <span class="n">signature</span><span class="p">)]</span><span class="o">.</span><span class="n">inspect_asm</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">sig</span><span class="p">,</span> <span class="n">defn</span><span class="o">.</span><span class="n">inspect_asm</span><span class="p">())</span>
                         <span class="k">for</span> <span class="n">sig</span><span class="p">,</span> <span class="n">defn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
@@ -926,7 +981,7 @@
         <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">file</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
 
-        <span class="k">for</span> <span class="n">ver</span><span class="p">,</span> <span class="n">defn</span> <span class="ow">in</span> <span class="n">utils</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">defn</span> <span class="ow">in</span> <span class="n">utils</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">definitions</span><span class="p">):</span>
             <span class="n">defn</span><span class="o">.</span><span class="n">inspect_types</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
@@ -942,7 +997,7 @@
     <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reduce the instance for serialization.</span>
-<span class="sd">        Compiled definitions are serialized in PTX form.</span>
+<span class="sd">        Compiled definitions are discarded.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">glbls</span> <span class="o">=</span> <span class="n">serialize</span><span class="o">.</span><span class="n">_get_function_globals_for_reduction</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">py_func</span><span class="p">)</span>
         <span class="n">func_reduced</span> <span class="o">=</span> <span class="n">serialize</span><span class="o">.</span><span class="n">_reduce_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">py_func</span><span class="p">,</span> <span class="n">glbls</span><span class="p">)</span>
@@ -984,7 +1039,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.0.0-92-g4eef0d9',
+            VERSION:'0.0.0-93-gc2de501',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',

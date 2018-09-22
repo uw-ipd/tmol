@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations.derivsum &mdash; TMol 0.0.0-92-g4eef0d9 documentation</title>
+  <title>tmol.kinematics.gpu_operations.derivsum &mdash; TMol 0.0.0-93-gc2de501 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-92-g4eef0d9
+                0.0.0-93-gc2de501
               </div>
             
           
@@ -168,11 +168,12 @@
 <span class="kn">import</span> <span class="nn">numba</span>
 <span class="kn">import</span> <span class="nn">numba.cuda</span>
 
+<span class="kn">from</span> <span class="nn">numba.cuda</span> <span class="k">import</span> <span class="n">as_cuda_array</span>
+
 <span class="kn">from</span> <span class="nn">tmol.types.attrs</span> <span class="k">import</span> <span class="n">ValidateAttrs</span>
 <span class="kn">from</span> <span class="nn">tmol.types.array</span> <span class="k">import</span> <span class="n">NDArray</span>
 <span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
 
-<span class="kn">from</span> <span class="nn">tmol.utility.numba</span> <span class="k">import</span> <span class="n">as_cuda_array</span>
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
 
 <span class="kn">from</span> <span class="nn">.scan_paths</span> <span class="k">import</span> <span class="n">PathPartitioning</span>
@@ -322,7 +323,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.0.0-92-g4eef0d9',
+            VERSION:'0.0.0-93-gc2de501',
             LANGUAGE:'None',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
