@@ -3,7 +3,7 @@ import cattr
 import json
 import toolz.functoolz
 
-from typing import Tuple, Optional, FrozenSet
+from typing import Tuple, Optional
 
 import torch
 from frozendict import frozendict
@@ -50,6 +50,7 @@ class RamaSingleMapper:
     which_table: int
 
     @staticmethod
+    @validate_args
     def from_condition(condition: str, which_table: int):
         """Turn the condition string in rama.json into the parts that
         decide which table to use for each residue"""
@@ -101,8 +102,10 @@ class RamaMapper:
     mappers_by_centres: frozendict
     ndots_to_consider: Tuple[int]
 
+    @validate_args
     def from_eval_mapping_and_table_list(
-        evaluation_mappings: Tuple[EvaluationMapping], tables: Tuple[RamaTable, ...]
+        evaluation_mappings: Tuple[EvaluationMapping, ...],
+        tables: Tuple[RamaTable, ...],
     ):
         ndots_to_consider = set([])
         mappers = []
@@ -218,7 +221,6 @@ class CompactedRamaDatabase:
         table = torch.full(
             (len(ramadb.tables), 36, 36), -1234, dtype=torch.float, device=device
         )
-        ind3 = AAIndex.canonical_laa_ind3()
         for i, tab in enumerate(ramadb.tables):
             for entry in tab.entries:
                 phi_i = int(entry.phi) // 10 + 18
