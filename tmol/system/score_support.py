@@ -14,6 +14,7 @@ from ..score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
+from ..score.residue_properties import ResidueProperties
 from ..score.torsions import AlphaAABackboneTorsionProvider
 from ..score.polymeric_bonds import PolymericBonds
 
@@ -21,7 +22,7 @@ from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
 # from ..database.chemical import three_letter_to_aatype
-from tmol.chemical.aa import AAIndex
+# from tmol.chemical.aa import AAIndex
 
 
 @StackedSystem.factory_for.register(PackedResidueSystem)
@@ -115,21 +116,7 @@ def system_torsions_from_coordinates(
     psi_inds = inds_for_torsion(system, device, "psi").unsqueeze(0)
     omega_inds = inds_for_torsion(system, device, "omega").unsqueeze(0)
 
-    ind3 = AAIndex.canonical_laa_ind3()
-    res_aas = torch.tensor(
-        [
-            ind3.get_loc(res.residue_type.name3)
-            if res.residue_type.name3 in ind3
-            else -1
-            for res in system.residues
-        ],
-        dtype=torch.long,
-        device=device,
-    ).unsqueeze(0)
-
-    return dict(
-        phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds, res_aas=res_aas
-    )
+    return dict(phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds)
 
 
 @validate_args
@@ -187,3 +174,12 @@ def system_polymeric_connections(
     )
 
     return dict(upper=upper.unsqueeze(0), lower=lower.unsqueeze(0))
+
+
+@ResidueProperties.factory_for.register(PackedResidueSystem)
+@validate_args
+def system_residue_properties(system: PackedResidueSystem, **_):
+    residue_properties = [None] * len(system.residues)
+    for i, res in enumerate(system.residues):
+        residue_properties[i] = res.residue_type.hierarchies
+    return dict(residue_properties=residue_properties)

@@ -26,11 +26,8 @@ class AlphaAABackboneTorsionProvider(Factory):
         phi_inds = torch.tensor(other.phi_inds, dtype=torch.long, device=device)
         psi_inds = torch.tensor(other.psi_inds, dtype=torch.long, device=device)
         omega_inds = torch.tensor(other.omega_inds, dtype=torch.long, device=device)
-        res_aas = torch.tensor(other.res_aas, dtype=torch.long, device=device)
 
-        return dict(
-            phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds, res_aas=res_aas
-        )
+        return dict(phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds)
 
     # global indices used to define the torsions
     # an entry of -1 for any atom means the torsion is undefined
@@ -38,11 +35,6 @@ class AlphaAABackboneTorsionProvider(Factory):
     phi_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
     psi_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
     omega_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
-
-    # Integer representation of the canonical l-aa for each residue; -1 if the residue
-    # is not a canonical l-aa. This integer index should come from the pandas index
-    # that lives in tmol/chemical/aa.py for consistent use across multiple classes
-    res_aas: Tensor(torch.long)[:, :] = attr.ib()
 
     @reactive_property
     def phi_tor(

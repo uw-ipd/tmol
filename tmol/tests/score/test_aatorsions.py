@@ -290,10 +290,10 @@ def test_create_torsion_provider(ubq_system):
     # print( (src.omega_tor * 180 / numpy.pi ).detach().numpy() )
 
 
-def test_system_score_support_res_aas(ubq_system):
-    ubq_seq = [res.residue_type.name3 for res in ubq_system.residues]
-    src = TCartTorsions.build_for(ubq_system)
-    ind3 = AAIndex.canonical_laa_ind3()
-    numpy.testing.assert_array_equal(
-        src.res_aas.cpu().numpy().squeeze(), ind3.get_indexer(ubq_seq)
-    )
+# def test_system_score_support_res_aas(ubq_system):
+#     ubq_seq = [res.residue_type.name3 for res in ubq_system.residues]
+#     src = TCartTorsions.build_for(ubq_system)
+#     ind3 = AAIndex.canonical_laa_ind3()
+#     numpy.testing.assert_array_equal(
+#         src.res_aas.cpu().numpy().squeeze(), ind3.get_indexer(ubq_seq)
+#     )
