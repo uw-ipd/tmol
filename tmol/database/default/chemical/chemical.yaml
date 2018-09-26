@@ -78,6 +78,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.900000 deg, d:  1.090078,        *p: CA,             *gp:   N,                    *ggp:   CB }
     - { *n:  down, phi: -150.000000 deg, theta:   58.300003 deg, d:  1.328685,        *p:  N,             *gp:  CA,                    *ggp:    C }
     - { *n:     H, phi: -180.000000 deg, theta:   60.849998 deg, d:  1.010000,        *p:  N,             *gp:  CA,                    *ggp: down }
+    hierarchies:
+    - aa.alpha.l.alanine
   - name:  ARG
     name3: ARG
     atoms:
@@ -168,6 +170,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:  1.090421, *p:   CA, *gp:   N, *ggp:     CB }
     - { *n:  down, phi: -149.999939 deg, theta:   58.300037 deg, d:  1.328685, *p:    N, *gp:  CA, *ggp:      C }
     - { *n:     H, phi: -179.999969 deg, theta:   60.849937 deg, d:  1.010001, *p:    N, *gp:  CA, *ggp:   down }
+    hierarchies:
+    - aa.alpha.l.arginine
   - name:  ASN
     name3: ASN
     atoms:
@@ -226,6 +230,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.091156, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000015 deg, theta:   58.300072 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000 deg, theta:   60.849964 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.asparagine
   - name:  ASP
     name3: ASP
     atoms:
@@ -278,6 +284,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090385, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000015 deg, theta:   58.300011 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000 deg, theta:   60.849979 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.aspartate
   - name:  CYS
     name3: CYS
     atoms:
@@ -326,6 +334,8 @@ residues:
     - { *n:    HA, phi:      -119.0 deg, theta:   71.500000 deg, d:    1.090059, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi:      -150.0 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:       180.0 deg, theta:   60.849998 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.cysteine
   - name:  GLN
     name3: GLN
     atoms:
@@ -394,6 +404,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089870, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000031 deg, theta:   58.300022 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000 deg, theta:   60.850025 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.glutamine
   - name:  GLU
     name3: GLU
     atoms:
@@ -456,6 +468,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090506, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999985 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -180.000000 deg, theta:   60.850025 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.glutamate
   - name:  GLY
     name3: GLY
     atoms:
@@ -490,6 +504,8 @@ residues:
     - { *n:   2HA, phi:  117.200000 deg, theta:   70.500000 deg, d:    1.089353, *p:    CA, *gp:     N, *ggp:   1HA}
     - { *n:  down, phi: -150.000015 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.850040 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.glycine
   - name:  HIS
     name3: HIS
     atoms:
@@ -560,6 +576,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089618, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999969 deg, theta:   58.300014 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999985 deg, theta:   60.850006 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.histidine.ne2_protonated
   - name:  HIS_D
     name3: HIS
     atoms:
@@ -629,6 +647,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   70.500000 deg, d:    1.089614, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999908 deg, theta:   58.300098 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999939 deg, theta:   60.850052 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.histidine.nd1_protonated
   - name:  ILE
     name3: ILE
     atoms:
@@ -702,6 +722,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089328, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000015 deg, theta:   58.300030 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999985 deg, theta:   60.849998 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.isoleucine
   - name:  LEU
     name3: LEU
     atoms:
@@ -775,6 +797,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089438, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999985 deg, theta:   58.299976 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.849979 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.leucine
   - name:  LYS
     name3: LYS
     atoms:
@@ -859,6 +883,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090528, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999969 deg, theta:   58.300011 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  179.999985 deg, theta:   60.849998 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.lysine
   - name:  MET
     name3: MET
     atoms:
@@ -927,6 +953,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089824, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000046 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999985 deg, theta:   60.850040 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.methoinine
   - name:  PHE
     name3: PHE
     atoms:
@@ -1004,6 +1032,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090899, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000031 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.850014 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.phenylalanine
   - name:  PRO
     name3: PRO
     atoms:
@@ -1063,6 +1093,9 @@ residues:
     - { *n:   2HB, phi:  117.600000 deg, theta:   70.000000 deg, d:    1.100000, *p:    CB, *gp:    CA, *ggp:   1HB}
     - { *n:    HA, phi: -118.000000 deg, theta:   70.800000 deg, d:    1.100000, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000000 deg, theta:   58.299934 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
+    hierarchies:
+    - aa.alpha.l.proline
+    - aa.n_branched
   - name:  SER
     name3: SER
     atoms:
@@ -1112,6 +1145,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090924, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000000 deg, theta:   58.299988 deg, d:    1.328684, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999969 deg, theta:   60.849979 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.serine
   - name:  THR
     name3: THR
     atoms:
@@ -1170,6 +1205,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090258, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999969 deg, theta:   58.300030 deg, d:    1.328684, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.849979 deg, d:    1.010000, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.threonine
   - name:  TRP
     name3: TRP
     atoms:
@@ -1260,6 +1297,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.089883, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000046 deg, theta:   58.299980 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999878 deg, theta:   60.850006 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.tryptophan
   - name:  TYR
     name3: TYR
     atoms:
@@ -1342,6 +1381,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090319, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -150.000107 deg, theta:   58.299919 deg, d:    1.328686, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999924 deg, theta:   60.849972 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.tyrosine
   - name:  VAL
     name3: VAL
     atoms:
@@ -1406,6 +1447,8 @@ residues:
     - { *n:    HA, phi: -119.000000 deg, theta:   71.500000 deg, d:    1.090646, *p:    CA, *gp:     N, *ggp:    CB}
     - { *n:  down, phi: -149.999924 deg, theta:   58.299995 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi:  180.000000 deg, theta:   60.849918 deg, d:    1.009999, *p:     N, *gp:    CA, *ggp:  down}
+    hierarchies:
+    - aa.alpha.l.valine
   - name:  HOH
     name3: HOH
     atoms:
@@ -1421,3 +1464,5 @@ residues:
     - { *n:     O, phi:    0.000000 deg, theta:    0.000000 deg, d:    0.000000, *p:     O, *gp:    H1, *ggp:     H2}
     - { *n:    H1, phi:    0.000000 deg, theta:  180.000000 deg, d:    0.957200, *p:     O, *gp:    H1, *ggp:     H2}
     - { *n:    H2, phi:    0.000000 deg, theta:   75.480000 deg, d:    0.957200, *p:     O, *gp:    H1, *ggp:     H2}
+    hierarchies:
+    - water

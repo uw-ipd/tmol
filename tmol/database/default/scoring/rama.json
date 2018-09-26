@@ -1,8 +1,7 @@
 { "tables": [
-  { "aa_class": "ALA",
+  { "name": "LAA_ALA_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 7.61222e-05, "energy": 9.48317 }
       ,{ "phi": -180, "psi": -170, "prob": 2.23348e-05, "energy": 10.7094 }
@@ -1302,10 +1301,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 2.58068e-05, "energy": 10.5649 }
      ]
   },
-  { "aa_class": "CYS",
+  { "name": "LAA_CYS_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 0.00029663, "energy": 8.12303 }
       ,{ "phi": -180, "psi": -170, "prob": 9.60237e-05, "energy": 9.25092 }
@@ -2605,10 +2603,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 8.87191e-05, "energy": 9.33004 }
      ]
   },
-  { "aa_class": "ASP",
+  { "name": "LAA_ASP_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 7.2598e-05, "energy": 9.53057 }
       ,{ "phi": -180, "psi": -170, "prob": 4.30324e-05, "energy": 10.0536 }
@@ -3908,10 +3905,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.11847e-05, "energy": 11.401 }
      ]
   },
-  { "aa_class": "GLU",
+  { "name": "LAA_GLU_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 2.56113e-05, "energy": 10.5725 }
       ,{ "phi": -180, "psi": -170, "prob": 7.51004e-06, "energy": 11.7993 }
@@ -5211,10 +5207,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 7.21073e-06, "energy": 11.8399 }
      ]
   },
-  { "aa_class": "PHE",
+  { "name": "LAA_PHE_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 5.36901e-05, "energy": 9.83228 }
       ,{ "phi": -180, "psi": -170, "prob": 1.77921e-05, "energy": 10.9368 }
@@ -6514,10 +6509,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.90257e-05, "energy": 10.8697 }
      ]
   },
-  { "aa_class": "GLY",
+  { "name": "LAA_GLY_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 0.00387986, "energy": 5.55196 }
       ,{ "phi": -180, "psi": -170, "prob": 0.00298098, "energy": 5.8155 }
@@ -7817,10 +7811,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 0.00285484, "energy": 5.85874 }
      ]
   },
-  { "aa_class": "HIS",
+  { "name": "LAA_HIS_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 0.000145342, "energy": 8.83642 }
       ,{ "phi": -180, "psi": -170, "prob": 5.83614e-05, "energy": 9.74886 }
@@ -9120,10 +9113,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 4.04353e-05, "energy": 10.1158 }
      ]
   },
-  { "aa_class": "ILE",
+  { "name": "LAA_ILE_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 4.37364e-06, "energy": 12.3399 }
       ,{ "phi": -180, "psi": -170, "prob": 8.86548e-07, "energy": 13.9359 }
@@ -10423,10 +10415,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.3787e-06, "energy": 12.598 }
      ]
   },
-  { "aa_class": "LYS",
+  { "name": "LAA_LYS_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 2.95046e-05, "energy": 10.431 }
       ,{ "phi": -180, "psi": -170, "prob": 7.03826e-06, "energy": 11.8641 }
@@ -11726,10 +11717,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.5156e-05, "energy": 11.0971 }
      ]
   },
-  { "aa_class": "LEU",
+  { "name": "LAA_LEU_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 8.63294e-06, "energy": 11.6599 }
       ,{ "phi": -180, "psi": -170, "prob": 2.36523e-06, "energy": 12.9546 }
@@ -13029,10 +13019,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.24883e-06, "energy": 12.6372 }
      ]
   },
-  { "aa_class": "MET",
+  { "name": "LAA_MET_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 8.71272e-05, "energy": 9.34814 }
       ,{ "phi": -180, "psi": -170, "prob": 3.19377e-05, "energy": 10.3517 }
@@ -14332,10 +14321,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.98958e-05, "energy": 10.1292 }
      ]
   },
-  { "aa_class": "ASN",
+  { "name": "LAA_ASN_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 8.59491e-05, "energy": 9.36176 }
       ,{ "phi": -180, "psi": -170, "prob": 4.18121e-05, "energy": 10.0823 }
@@ -15635,10 +15623,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.53003e-05, "energy": 11.0876 }
      ]
   },
-  { "aa_class": "PRO",
+  { "name": "LAA_PRO_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 1.57284e-09, "energy": 20.2704 }
       ,{ "phi": -180, "psi": -170, "prob": 1.57283e-09, "energy": 20.2704 }
@@ -16938,10 +16925,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.57282e-09, "energy": 20.2704 }
      ]
   },
-  { "aa_class": "GLN",
+  { "name": "LAA_GLN_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 2.90162e-05, "energy": 10.4477 }
       ,{ "phi": -180, "psi": -170, "prob": 8.89845e-06, "energy": 11.6296 }
@@ -18241,10 +18227,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 8.79056e-06, "energy": 11.6418 }
      ]
   },
-  { "aa_class": "ARG",
+  { "name": "LAA_ARG_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 6.21211e-05, "energy": 9.68642 }
       ,{ "phi": -180, "psi": -170, "prob": 2.28346e-05, "energy": 10.6872 }
@@ -19544,10 +19529,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.91546e-05, "energy": 10.863 }
      ]
   },
-  { "aa_class": "SER",
+  { "name": "LAA_SER_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 0.000144123, "energy": 8.84484 }
       ,{ "phi": -180, "psi": -170, "prob": 4.57093e-05, "energy": 9.99321 }
@@ -20847,10 +20831,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.50393e-05, "energy": 10.259 }
      ]
   },
-  { "aa_class": "THR",
+  { "name": "LAA_THR_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 2.8213e-05, "energy": 10.4757 }
       ,{ "phi": -180, "psi": -170, "prob": 1.52732e-05, "energy": 11.0894 }
@@ -22150,10 +22133,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 7.92271e-06, "energy": 11.7458 }
      ]
   },
-  { "aa_class": "VAL",
+  { "name": "LAA_VAL_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 2.71662e-06, "energy": 12.8161 }
       ,{ "phi": -180, "psi": -170, "prob": 5.16195e-07, "energy": 14.4768 }
@@ -23453,10 +23435,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 2.15622e-06, "energy": 13.0472 }
      ]
   },
-  { "aa_class": "TRP",
+  { "name": "LAA_TRP_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 0.000136372, "energy": 8.90012 }
       ,{ "phi": -180, "psi": -170, "prob": 5.26334e-05, "energy": 9.85216 }
@@ -24756,10 +24737,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.66003e-05, "energy": 10.2155 }
      ]
   },
-  { "aa_class": "TYR",
+  { "name": "LAA_TYR_STANDARD",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": false,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 6.712e-05, "energy": 9.60903 }
       ,{ "phi": -180, "psi": -170, "prob": 1.77453e-05, "energy": 10.9394 }
@@ -26059,10 +26039,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 2.41161e-05, "energy": 10.6326 }
     ]
   },
-  { "aa_class": "ALA",
+  { "name": "LAA_ALA_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 6.44043e-05, "energy": 9.65033 }
       ,{ "phi": -180, "psi": -170, "prob": 1.30777e-05, "energy": 11.2446 }
@@ -27362,10 +27341,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.09865e-05, "energy": 10.382 }
      ]
   },
-  { "aa_class": "ARG",
+  { "name": "LAA_ARG_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 6.87005e-05, "energy": 9.58575 }
       ,{ "phi": -180, "psi": -170, "prob": 1.42755e-05, "energy": 11.157 }
@@ -28665,10 +28643,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.96301e-05, "energy": 10.1359 }
      ]
   },
-  { "aa_class": "ASN",
+  { "name": "LAA_ASN_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 3.70869e-05, "energy": 10.2022 }
       ,{ "phi": -180, "psi": -170, "prob": 1.01775e-05, "energy": 11.4953 }
@@ -29968,10 +29945,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.28041e-05, "energy": 11.2657 }
      ]
   },
-  { "aa_class": "ASP",
+  { "name": "LAA_ASP_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 1.3618e-05, "energy": 11.2041 }
       ,{ "phi": -180, "psi": -170, "prob": 3.33416e-06, "energy": 12.6113 }
@@ -31271,10 +31247,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 9.09718e-06, "energy": 11.6075 }
      ]
   },
-  { "aa_class": "CYS",
+  { "name": "LAA_CYS_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 7.29799e-05, "energy": 9.52533 }
       ,{ "phi": -180, "psi": -170, "prob": 1.62729e-05, "energy": 11.026 }
@@ -32574,10 +32549,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 2.4017e-05, "energy": 10.6367 }
      ]
   },
-  { "aa_class": "GLN",
+  { "name": "LAA_GLN_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 4.84336e-05, "energy": 9.93532 }
       ,{ "phi": -180, "psi": -170, "prob": 8.51143e-06, "energy": 11.6741 }
@@ -33877,10 +33851,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 2.38426e-05, "energy": 10.644 }
      ]
   },
-  { "aa_class": "GLU",
+  { "name": "LAA_GLU_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 1.31568e-05, "energy": 11.2386 }
       ,{ "phi": -180, "psi": -170, "prob": 1.71191e-06, "energy": 13.2779 }
@@ -35180,10 +35153,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.0791e-05, "energy": 11.4368 }
      ]
   },
-  { "aa_class": "GLY",
+  { "name": "LAA_GLY_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 0.000663293, "energy": 7.31829 }
       ,{ "phi": -180, "psi": -170, "prob": 0.000449041, "energy": 7.7084 }
@@ -36483,10 +36455,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 0.000438933, "energy": 7.73116 }
      ]
   },
-  { "aa_class": "HIS",
+  { "name": "LAA_HIS_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 4.64845e-05, "energy": 9.97639 }
       ,{ "phi": -180, "psi": -170, "prob": 9.80451e-06, "energy": 11.5327 }
@@ -37786,10 +37757,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 2.82743e-05, "energy": 10.4736 }
      ]
   },
-  { "aa_class": "ILE",
+  { "name": "LAA_ILE_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 3.81376e-07, "energy": 14.7795 }
       ,{ "phi": -180, "psi": -170, "prob": 4.86332e-08, "energy": 16.839 }
@@ -39089,10 +39059,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.45785e-07, "energy": 15.7411 }
      ]
   },
-  { "aa_class": "LEU",
+  { "name": "LAA_LEU_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 1.56005e-06, "energy": 13.3708 }
       ,{ "phi": -180, "psi": -170, "prob": 2.11328e-07, "energy": 15.3699 }
@@ -40392,10 +40361,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.09461e-06, "energy": 13.7251 }
      ]
   },
-  { "aa_class": "LYS",
+  { "name": "LAA_LYS_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 2.2701e-05, "energy": 10.6931 }
       ,{ "phi": -180, "psi": -170, "prob": 2.17889e-06, "energy": 13.0367 }
@@ -41695,10 +41663,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.30867e-05, "energy": 11.2439 }
      ]
   },
-  { "aa_class": "MET",
+  { "name": "LAA_MET_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 5.00436e-05, "energy": 9.90262 }
       ,{ "phi": -180, "psi": -170, "prob": 8.65063e-06, "energy": 11.6579 }
@@ -42998,10 +42965,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.24903e-05, "energy": 10.3346 }
      ]
   },
-  { "aa_class": "PHE",
+  { "name": "LAA_PHE_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 2.61048e-05, "energy": 10.5534 }
       ,{ "phi": -180, "psi": -170, "prob": 3.7705e-06, "energy": 12.4883 }
@@ -44301,10 +44267,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.5803e-05, "energy": 11.0553 }
      ]
   },
-  { "aa_class": "PRO",
+  { "name": "LAA_PRO_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 9.23745e-09, "energy": 18.5 }
       ,{ "phi": -180, "psi": -170, "prob": 9.23745e-09, "energy": 18.5 }
@@ -45604,10 +45569,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 9.23745e-09, "energy": 18.5 }
      ]
   },
-  { "aa_class": "SER",
+  { "name": "LAA_SER_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 0.00010187, "energy": 9.19181 }
       ,{ "phi": -180, "psi": -170, "prob": 2.57806e-05, "energy": 10.5659 }
@@ -46907,10 +46871,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 3.81188e-05, "energy": 10.1748 }
      ]
   },
-  { "aa_class": "THR",
+  { "name": "LAA_THR_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 8.20006e-06, "energy": 11.7114 }
       ,{ "phi": -180, "psi": -170, "prob": 1.37268e-06, "energy": 13.4987 }
@@ -48210,10 +48173,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 8.16451e-06, "energy": 11.7157 }
      ]
   },
-  { "aa_class": "TRP",
+  { "name": "LAA_TRP_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 3.14711e-05, "energy": 10.3664 }
       ,{ "phi": -180, "psi": -170, "prob": 6.12685e-06, "energy": 12.0028 }
@@ -49513,10 +49475,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.63141e-05, "energy": 11.0235 }
      ]
   },
-  { "aa_class": "TYR",
+  { "name": "LAA_TYR_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 5.29169e-05, "energy": 9.84679 }
       ,{ "phi": -180, "psi": -170, "prob": 6.33979e-06, "energy": 11.9687 }
@@ -50816,10 +50777,9 @@
       ,{ "phi": 170, "psi": 170, "prob": 5.50084e-05, "energy": 9.80802 }
      ]
   },
-  { "aa_class": "VAL",
+  { "name": "LAA_VAL_PREPRO",
     "phi_step": 10,
     "psi_step": 10,
-    "prepro": true,
     "entries": [
       { "phi": -180, "psi": -180, "prob": 3.17908e-07, "energy": 14.9615 }
       ,{ "phi": -180, "psi": -170, "prob": 5.31028e-08, "energy": 16.751 }
@@ -52119,5 +52079,47 @@
       ,{ "phi": 170, "psi": 170, "prob": 1.18324e-07, "energy": 15.9498 }
     ]
   }
+  ],
+  "evaluation_mappings":[
+    {"condition": "aa.alpha.l.alanine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_ALA_STANDARD"},
+    {"condition": "aa.alpha.l.arginine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_ARG_STANDARD"},
+    {"condition": "aa.alpha.l.asparagine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_ASN_STANDARD"},
+    {"condition": "aa.alpha.l.aspartate,(upper:!aa.alpha.l.proline)", "table_name": "LAA_ASP_STANDARD"},
+    {"condition": "aa.alpha.l.cysteine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_CYS_STANDARD"},
+    {"condition": "aa.alpha.l.glutamine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_GLN_STANDARD"},
+    {"condition": "aa.alpha.l.glutamate,(upper:!aa.alpha.l.proline)", "table_name": "LAA_GLU_STANDARD"},
+    {"condition": "aa.alpha.l.glycine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_GLY_STANDARD"},
+    {"condition": "aa.alpha.l.histidine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_HIS_STANDARD"},
+    {"condition": "aa.alpha.l.isoleucine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_ILE_STANDARD"},
+    {"condition": "aa.alpha.l.leucine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_LEU_STANDARD"},
+    {"condition": "aa.alpha.l.lysine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_LYS_STANDARD"},
+    {"condition": "aa.alpha.l.methionine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_MET_STANDARD"},
+    {"condition": "aa.alpha.l.phenylalanine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_PHE_STANDARD"},
+    {"condition": "aa.alpha.l.proline,(upper:!aa.alpha.l.proline)", "table_name": "LAA_PRO_STANDARD"},
+    {"condition": "aa.alpha.l.serine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_SER_STANDARD"},
+    {"condition": "aa.alpha.l.threonine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_THR_STANDARD"},
+    {"condition": "aa.alpha.l.tryptophan,(upper:!aa.alpha.l.proline)", "table_name": "LAA_TRP_STANDARD"},
+    {"condition": "aa.alpha.l.tyrosine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_TYR_STANDARD"},
+    {"condition": "aa.alpha.l.valine,(upper:!aa.alpha.l.proline)", "table_name": "LAA_VAL_STANDARD"},
+    {"condition": "aa.alpha.l.alanine,(upper:aa.alpha.l.proline)", "table_name": "LAA_ALA_PREPRO"},
+    {"condition": "aa.alpha.l.arginine,(upper:aa.alpha.l.proline)", "table_name": "LAA_ARG_PREPRO"},
+    {"condition": "aa.alpha.l.asparagine,(upper:aa.alpha.l.proline)", "table_name": "LAA_ASN_PREPRO"},
+    {"condition": "aa.alpha.l.aspartate,(upper:aa.alpha.l.proline)", "table_name": "LAA_ASP_PREPRO"},
+    {"condition": "aa.alpha.l.cysteine,(upper:aa.alpha.l.proline)", "table_name": "LAA_CYS_PREPRO"},
+    {"condition": "aa.alpha.l.glutamine,(upper:aa.alpha.l.proline)", "table_name": "LAA_GLN_PREPRO"},
+    {"condition": "aa.alpha.l.glutamate,(upper:aa.alpha.l.proline)", "table_name": "LAA_GLU_PREPRO"},
+    {"condition": "aa.alpha.l.glycine,(upper:aa.alpha.l.proline)", "table_name": "LAA_GLY_PREPRO"},
+    {"condition": "aa.alpha.l.histidine,(upper:aa.alpha.l.proline)", "table_name": "LAA_HIS_PREPRO"},
+    {"condition": "aa.alpha.l.isoleucine,(upper:aa.alpha.l.proline)", "table_name": "LAA_ILE_PREPRO"},
+    {"condition": "aa.alpha.l.leucine,(upper:aa.alpha.l.proline)", "table_name": "LAA_LEU_PREPRO"},
+    {"condition": "aa.alpha.l.lysine,(upper:aa.alpha.l.proline)", "table_name": "LAA_LYS_PREPRO"},
+    {"condition": "aa.alpha.l.methionine,(upper:aa.alpha.l.proline)", "table_name": "LAA_MET_PREPRO"},
+    {"condition": "aa.alpha.l.phenylalanine,(upper:aa.alpha.l.proline)", "table_name": "LAA_PHE_PREPRO"},
+    {"condition": "aa.alpha.l.proline,(upper:aa.alpha.l.proline)", "table_name": "LAA_PRO_PREPRO"},
+    {"condition": "aa.alpha.l.serine,(upper:aa.alpha.l.proline)", "table_name": "LAA_SER_PREPRO"},
+    {"condition": "aa.alpha.l.threonine,(upper:aa.alpha.l.proline)", "table_name": "LAA_THR_PREPRO"},
+    {"condition": "aa.alpha.l.tryptophan,(upper:aa.alpha.l.proline)", "table_name": "LAA_TRP_PREPRO"},
+    {"condition": "aa.alpha.l.tyrosine,(upper:aa.alpha.l.proline)", "table_name": "LAA_TYR_PREPRO"},
+    {"condition": "aa.alpha.l.valine,(upper:aa.alpha.l.proline)", "table_name": "LAA_VAL_PREPRO"}
   ]
 }
