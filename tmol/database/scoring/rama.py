@@ -7,7 +7,6 @@ from typing import Tuple
 
 import torch
 from frozendict import frozendict
-from tmol.chemical.aa import AAIndex
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.numeric.bspline import BSplineInterpolation
