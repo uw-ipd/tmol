@@ -20,12 +20,18 @@ def test_rama_mapper():
         mapper.table_ind_for_res(["aa.alpha.l.alanine"], ["aa.alpha.l.proline"]) == 20
     )
     assert mapper.table_ind_for_res(["aa.alpha.l.alanine"], ["aa.alpha.l.glycine"]) == 0
+    assert (
+        mapper.table_ind_for_res(
+            ["aa.alpha.l.serine.phosphorylated"], ["aa.alpha.l.glycine"]
+        )
+        == 15
+    )
 
 
-def dont_test_compacted_rama(torch_device):
+def test_compacted_rama(torch_device):
     ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
     compacted = CompactedRamaDatabase.from_ramadb(ramadb, torch_device)
-    assert compacted.table.shape == (20, 2, 36, 36)
+    assert compacted.table.shape == (40, 36, 36)
     phi_vals = (
         torch.arange(36, device=torch_device)
         .reshape(-1, 1)
@@ -34,18 +40,12 @@ def dont_test_compacted_rama(torch_device):
     )
     psi_vals = torch.arange(36, device=torch_device).repeat(1, 36).reshape(-1, 1)
     x = torch.cat((phi_vals, psi_vals), dim=1)
-    y = torch.full((36 * 36, 2), 0, dtype=torch.long, device=torch_device)
+    y = torch.full((36 * 36, 1), 0, dtype=torch.long, device=torch_device)
     for i in range(20):
-        y[:, 0] = i
         for j in range(2):
-            y[:, 1] = j
+            y[:, 0] = i + 20 * j
             xlong = x.type(torch.long)
-            inds = (
-                y[:, 0] * 2 * 36 * 36
-                + y[:, 1] * 36 * 36
-                + xlong[:, 0] * 36
-                + xlong[:, 1]
-            )
+            inds = y[:, 0] * 36 * 36 + xlong[:, 0] * 36 + xlong[:, 1]
             original_vals = compacted.table.reshape(-1)[inds]
             interp_vals = compacted.bspline.interpolate(x, y)
             numpy.testing.assert_allclose(

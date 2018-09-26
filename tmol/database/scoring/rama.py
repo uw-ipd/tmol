@@ -207,8 +207,6 @@ class CompactedRamaDatabase:
     bspline: BSplineInterpolation
     mapper: RamaMapper
 
-    # pro_ind: int
-
     @classmethod
     @toolz.functoolz.memoize(
         cache=_from_rama_db_cache,
@@ -224,30 +222,27 @@ class CompactedRamaDatabase:
         to create it.
         """
 
-        table = torch.full((20, 2, 36, 36), -1234, dtype=torch.float, device=device)
+        table = torch.full(
+            (len(ramadb.tables), 36, 36), -1234, dtype=torch.float, device=device
+        )
         ind3 = AAIndex.canonical_laa_ind3()
-        for aa in range(len(ind3)):
-            aa3name = ind3[aa]
-            for prepro in range(2):
-                aatab = ramadb.find(aa3name, bool(prepro))
-                assert aatab
-                aatab = aatab.entries
-                for entry in aatab:
-                    phi_i = int(entry.phi) // 10 + 18
-                    psi_i = int(entry.psi) // 10 + 18
-                    assert phi_i < 36 and psi_i < 36
-                    assert phi_i >= 0 and psi_i >= 0
-                    table[aa, prepro, phi_i, psi_i] = entry.prob
+        for i, tab in enumerate(ramadb.tables):
+            for entry in tab.entries:
+                phi_i = int(entry.phi) // 10 + 18
+                psi_i = int(entry.psi) // 10 + 18
+                assert phi_i < 36 and psi_i < 36
+                assert phi_i >= 0 and psi_i >= 0
+                table[i, phi_i, psi_i] = entry.prob
 
         # exp of the -energies should get back to the original probabilities
         # so we can calculate the table entropies
         entropy = (
-            ((table * torch.log(table)).sum(dim=3)).sum(dim=2).reshape(20, 2, 1, 1)
+            ((table * torch.log(table)).sum(dim=2))
+            .sum(dim=1)
+            .reshape(len(ramadb.tables), 1, 1)
         )
         table = -1 * torch.log(table) + entropy
 
-        bspline = BSplineInterpolation.from_coordinates(table, degree=3, n_index_dims=2)
+        bspline = BSplineInterpolation.from_coordinates(table, degree=3, n_index_dims=1)
 
-        pro_ind = ind3.get_loc("PRO")
-
-        return cls(table=table, bspline=bspline, pro_ind=pro_ind)
+        return cls(table=table, bspline=bspline, mapper=ramadb.mapper)
