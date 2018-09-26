@@ -191,13 +191,6 @@ class RamaDatabase:
             mapper=mapper,
         )
 
-    @validate_args
-    def find(self, aaname: str, prepro: bool) -> Optional[RamaTable]:
-        for table in self.tables:
-            if table.aa_class == aaname and table.prepro == prepro:
-                return table
-        return None
-
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CompactedRamaDatabase:

@@ -56,7 +56,7 @@ def test_compacted_rama(torch_device):
             )
 
 
-def dont_test_load_compacted_rama_once(torch_device):
+def test_load_compacted_rama_once(torch_device):
     db = ParameterDatabase.get_default()
     crama1 = CompactedRamaDatabase.from_ramadb(db.scoring.rama, torch_device)
     crama2 = CompactedRamaDatabase.from_ramadb(db.scoring.rama, torch_device)
@@ -94,13 +94,7 @@ def dont_test_load_compacted_rama_once(torch_device):
 #     assert len(db.tables) == 40
 
 
-def dont_test_rama_request_absent_aa():
-    db = ParameterDatabase.get_default()
-    rama_table = db.scoring.rama.find("CYX", False)
-    assert rama_table is None
-
-
-def dont_test_rama_repr():
+def test_rama_repr():
     db = ParameterDatabase.get_default()
     rama_repr = repr(db.scoring.rama)
     parts = rama_repr.partition("(")

@@ -69,7 +69,7 @@ class Residue:
     connections: Tuple[Connection, ...]
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
-    heirarchies: Tuple[str, ...]
+    hierarchies: Tuple[str, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
