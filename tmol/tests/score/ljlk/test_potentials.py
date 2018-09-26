@@ -114,8 +114,8 @@ def test_potential_comparisons(benchmark, ubq_system):
             parallel=True,
         )
 
-    assert torch_impl.sum() == numba_impl.sum()
-    assert torch_impl.sum() == numba_impl_serial.sum()
+    torch.testing.assert_allclose(torch_impl, numba_impl)
+    torch.testing.assert_allclose(torch_impl, numba_impl_serial)
 
 
 def test_potential_trace():

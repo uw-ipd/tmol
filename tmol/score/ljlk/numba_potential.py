@@ -73,13 +73,13 @@ def _lj_kernel_cpu(
     a_b_bonded_path_length,
     lj_out,
     # Pair score parameters
-    lj_sigma: float,
-    lj_switch_slope: float,
-    lj_switch_intercept: float,
-    lj_coeff_sigma12: float,
-    lj_coeff_sigma6: float,
-    lj_spline_y0: float,
-    lj_spline_dy0: float,
+    lj_sigma,
+    lj_switch_slope,
+    lj_switch_intercept,
+    lj_coeff_sigma12,
+    lj_coeff_sigma6,
+    lj_spline_y0,
+    lj_spline_dy0,
     # Global score parameters
     lj_switch_dis2sigma,
     spline_start,
@@ -112,9 +112,9 @@ def _lj_kernel_cpu(
                 lj_coeff_sigma6[at, bt],
                 lj_spline_y0[at, bt],
                 lj_spline_dy0[at, bt],
-                lj_switch_dis2sigma,
-                spline_start,
-                max_dis,
+                lj_switch_dis2sigma[0],
+                spline_start[0],
+                max_dis[0],
             )
 
 
@@ -170,9 +170,9 @@ def lj_kernel_cuda(
         lj_coeff_sigma6[at, bt],
         lj_spline_y0[at, bt],
         lj_spline_dy0[at, bt],
-        lj_switch_dis2sigma,
-        spline_start,
-        max_dis,
+        lj_switch_dis2sigma[0],
+        spline_start[0],
+        max_dis[0],
     )
 
 
@@ -215,9 +215,9 @@ def lj_kernel(
             lj_spline_y0.__array__(),
             lj_spline_dy0.__array__(),
             # Global score parameters
-            f4(lj_switch_dis2sigma),
-            f4(spline_start),
-            f4(max_dis),
+            lj_switch_dis2sigma.reshape(1).__array__(),
+            spline_start.reshape(1).__array__(),
+            max_dis.reshape(1).__array__(),
         )
     else:
         assert a_coords.device.type == "cuda"
@@ -240,9 +240,9 @@ def lj_kernel(
             lj_spline_y0,
             lj_spline_dy0,
             # Global score parameters
-            f4(lj_switch_dis2sigma),
-            f4(spline_start),
-            f4(max_dis),
+            lj_switch_dis2sigma,
+            spline_start,
+            max_dis,
         )
 
     return result
