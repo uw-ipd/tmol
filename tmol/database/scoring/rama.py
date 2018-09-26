@@ -3,7 +3,7 @@ import cattr
 import json
 import toolz.functoolz
 
-from typing import Tuple, Optional
+from typing import Tuple
 
 import torch
 from frozendict import frozendict

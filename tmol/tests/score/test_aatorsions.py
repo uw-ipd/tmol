@@ -6,7 +6,6 @@ from tmol.score.total_score import TotalScoreComponentsGraph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.torsions import AlphaAABackboneTorsionProvider
-from tmol.chemical.aa import AAIndex
 
 
 @reactive_attrs(auto_attribs=True)
