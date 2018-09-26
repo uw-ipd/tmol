@@ -92,7 +92,7 @@ class LJPairwiseFun(torch.autograd.Function):
         assert a_b_bonded_path_length.device == ctx.op.device
         assert not a_b_bonded_path_length.requires_grad
 
-        result = a_coords.new_empty((a_coords.shape[0], b_coords.shape[0]))
+        result = a_coords.new_zeros((a_coords.shape[0], b_coords.shape[0]))
 
         if ctx.op.device.type == "cpu":
             if ctx.op.parallel_cpu:
