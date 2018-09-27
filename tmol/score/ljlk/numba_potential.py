@@ -200,49 +200,57 @@ def lj_intra_kernel_cuda(
     spline_start,
     max_dis,
 ):
-    i, j = numba.cuda.grid(2)
+    b_i, b_j = numba.cuda.grid(2)
 
-    if i >= j:
+    if b_j < b_i:
         return
 
-    if i >= coords.shape[0] or j >= coords.shape[0]:
-        return
+    nblocks = coords.shape[0] // BLOCK_SIZE
 
-    b_i = i // BLOCK_SIZE
-    b_j = j // BLOCK_SIZE
+    if b_i >= nblocks or b_j >= nblocks:
+        return
 
     if block_distances[b_i, b_j] > max_dis[0]:
         return
 
-    a = coords[i]
-    at = types[i]
-    if at == -1:
-        return
+    bs_i = b_i * BLOCK_SIZE
+    for i in range(bs_i, bs_i + BLOCK_SIZE):
+        a = coords[i]
+        at = types[i]
 
-    b = coords[j]
-    bt = types[j]
-    if bt == -1:
-        return
+        if at == -1:
+            continue
 
-    lj_out[i, j] = lj_pair_potential(
-        a,
-        at,
-        b,
-        bt,
-        bonded_path_length[i, j],
-        # Pair score parameters
-        lj_sigma,
-        lj_switch_slope,
-        lj_switch_intercept,
-        lj_coeff_sigma12,
-        lj_coeff_sigma6,
-        lj_spline_y0,
-        lj_spline_dy0,
-        # Global score parameters
-        lj_switch_dis2sigma,
-        spline_start,
-        max_dis,
-    )
+        bs_j = b_j * BLOCK_SIZE
+        for j in range(bs_j, bs_j + BLOCK_SIZE):
+            if j <= i:
+                continue
+
+            b = coords[j]
+            bt = types[j]
+
+            if bt == -1:
+                continue
+
+            lj_out[i, j] = lj_pair_potential(
+                a,
+                at,
+                b,
+                bt,
+                bonded_path_length[i, j],
+                # Pair score parameters
+                lj_sigma,
+                lj_switch_slope,
+                lj_switch_intercept,
+                lj_coeff_sigma12,
+                lj_coeff_sigma6,
+                lj_spline_y0,
+                lj_spline_dy0,
+                # Global score parameters
+                lj_switch_dis2sigma,
+                spline_start,
+                max_dis,
+            )
 
 
 def lj_intra_kernel(
@@ -297,10 +305,13 @@ def lj_intra_kernel(
         )
     else:
         assert coords.device.type == "cuda"
-        blocks_per_grid = ((coords.shape[0] // 32) + 1, (coords.shape[0] // 32) + 1)
-        threads_per_block = (32, 32)
+        bdim = 16
+        blocks_per_grid = (nblocks // bdim) + (1 if nblocks % bdim else 0)
+        threads_per_block = bdim
 
-        lj_intra_kernel_cuda[blocks_per_grid, threads_per_block](
+        lj_intra_kernel_cuda[
+            (blocks_per_grid, blocks_per_grid), (threads_per_block, threads_per_block)
+        ](
             coords,
             atom_types,
             bonded_path_length,

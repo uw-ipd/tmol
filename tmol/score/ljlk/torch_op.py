@@ -114,10 +114,14 @@ class LJIntraFun(torch.autograd.Function):
                 **ctx.op.params,
             )
         else:
-            blocks_per_grid = ((coords.shape[0] // 32) + 1, (coords.shape[0] // 32) + 1)
-            threads_per_block = (32, 32)
+            bdim = 16
+            blocks_per_grid = (nblocks // bdim) + (1 if nblocks % bdim else 0)
+            threads_per_block = bdim
 
-            numba_potential.lj_intra_kernel_cuda[blocks_per_grid, threads_per_block](
+            numba_potential.lj_intra_kernel_cuda[
+                (blocks_per_grid, blocks_per_grid),
+                (threads_per_block, threads_per_block),
+            ](
                 *ctx.op.kernel_signature.bind(
                     coords,
                     types,
