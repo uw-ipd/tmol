@@ -37,8 +37,10 @@ def test_op_device(torch_device, ubq_system):
     raw_bpl[raw_bpl == math.inf] = 64
     bonded_path_length = torch.tensor(raw_bpl).to(dg.device, dtype=torch.uint8)
     coords = dg.coords[0]
-    atom_types = torch.tensor(params.type_idx(dg.atom_types[0])).to(dg.device)
-    atom_types[(dg.atom_types[0] == None).astype("u1")] = -1  # noqa
+    atom_types = params.type_idx(dg.atom_types[0])
+    atom_types[dg.atom_types[0] == None] = -1  # noqa
+    atom_types = torch.tensor(atom_types).to(device=torch_device)
+    interblock_distance = dg.interblock_distance.min_dist[0]
 
     op = torch_op.LJOp.from_params(params)
     assert op.device == torch_device
@@ -63,7 +65,6 @@ def test_op_device(torch_device, ubq_system):
         lj_switch_dis2sigma=params.global_params.lj_switch_dis2sigma,
         spline_start=params.global_params.spline_start,
         max_dis=params.global_params.max_dis,
-        parallel=False,
     )
 
     torch.testing.assert_allclose(pscore, kernel_result)
