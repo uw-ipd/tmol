@@ -24,7 +24,7 @@ def test_op_device(torch_device, ubq_system):
     Op is initialized over a fixed parameter resolver, and is affinitized to
     that device. Op pre-loads parameter tensors as array views for later reuse.
     Op accepts input coordinate locations and atom types (resolved as type
-    numbers) and executes the forward pass, returning a dense pairwise
+    numbers) and executes the forward pass, returning a triu pairwise
     potential value.
     """
 
@@ -43,14 +43,12 @@ def test_op_device(torch_device, ubq_system):
     op = torch_op.LJOp.from_params(params)
     assert op.device == torch_device
 
-    pscore = op.pairwise(coords, atom_types, coords, atom_types, bonded_path_length)
+    pscore = op.intra(coords, atom_types, bonded_path_length)
 
     assert pscore.shape == (coords.shape[0], coords.shape[0])
 
     # old kernel impl
-    kernel_result = numba_potential.lj_kernel(
-        coords,
-        atom_types,
+    kernel_result = numba_potential.lj_intra_kernel(
         coords,
         atom_types,
         bonded_path_length,

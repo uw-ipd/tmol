@@ -65,12 +65,49 @@ def _lj_potential(
 lj_potential = numba.njit(_lj_potential)
 
 
-def _lj_kernel_cpu(
-    a_coords,
-    a_types,
-    b_coords,
-    b_types,
+@numba.njit
+def lj_pair_potential(
+    a,
+    at,
+    b,
+    bt,
     a_b_bonded_path_length,
+    # Pair score parameters
+    lj_sigma,
+    lj_switch_slope,
+    lj_switch_intercept,
+    lj_coeff_sigma12,
+    lj_coeff_sigma6,
+    lj_spline_y0,
+    lj_spline_dy0,
+    # Global score parameters
+    lj_switch_dis2sigma,
+    spline_start,
+    max_dis,
+):
+    delta = (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+    dist = math.sqrt(delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2])
+
+    return lj_potential(
+        dist,
+        a_b_bonded_path_length,
+        lj_sigma[at, bt],
+        lj_switch_slope[at, bt],
+        lj_switch_intercept[at, bt],
+        lj_coeff_sigma12[at, bt],
+        lj_coeff_sigma6[at, bt],
+        lj_spline_y0[at, bt],
+        lj_spline_dy0[at, bt],
+        lj_switch_dis2sigma[0],
+        spline_start[0],
+        max_dis[0],
+    )
+
+
+def _lj_intra_kernel_cpu(
+    coords,
+    types,
+    bonded_path_length,
     lj_out,
     # Pair score parameters
     lj_sigma,
@@ -85,50 +122,52 @@ def _lj_kernel_cpu(
     spline_start,
     max_dis,
 ):
-    for i in numba.prange(a_coords.shape[0]):
-        at = a_types[i]
-        a = a_coords[i]
+    for i in numba.prange(coords.shape[0]):
+        a = coords[i]
+        at = types[i]
         if at == -1:
             continue
 
-        for j in numba.prange(b_coords.shape[0]):
-            bt = b_types[j]
-            b = b_coords[j]
+        for j in numba.prange(i + 1, coords.shape[0]):
+            b = coords[j]
+            bt = types[j]
             if bt == -1:
                 continue
 
-            delta = (a[0] - b[0], a[1] - b[1], a[2] - b[2])
-            dist = math.sqrt(
-                delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2]
+            lj_out[i, j] = lj_pair_potential(
+                a,
+                at,
+                b,
+                bt,
+                bonded_path_length[i, j],
+                # Pair score parameters
+                lj_sigma,
+                lj_switch_slope,
+                lj_switch_intercept,
+                lj_coeff_sigma12,
+                lj_coeff_sigma6,
+                lj_spline_y0,
+                lj_spline_dy0,
+                # Global score parameters
+                lj_switch_dis2sigma,
+                spline_start,
+                max_dis,
             )
 
-            lj_out[i, j] = lj_potential(
-                dist,
-                a_b_bonded_path_length[i, j],
-                lj_sigma[at, bt],
-                lj_switch_slope[at, bt],
-                lj_switch_intercept[at, bt],
-                lj_coeff_sigma12[at, bt],
-                lj_coeff_sigma6[at, bt],
-                lj_spline_y0[at, bt],
-                lj_spline_dy0[at, bt],
-                lj_switch_dis2sigma[0],
-                spline_start[0],
-                max_dis[0],
-            )
 
-
-lj_kernel_serial_cpu = numba.njit(parallel=False, nogil=True)(_lj_kernel_cpu)
-lj_kernel_parallel_cpu = numba.njit(parallel=True, nogil=True)(_lj_kernel_cpu)
+lj_intra_kernel_serial_cpu = numba.njit(parallel=False, nogil=True)(
+    _lj_intra_kernel_cpu
+)
+lj_intra_kernel_parallel_cpu = numba.njit(parallel=True, nogil=True)(
+    _lj_intra_kernel_cpu
+)
 
 
 @numba.cuda.jit
-def lj_kernel_cuda(
-    a_coords,
-    a_types,
-    b_coords,
-    b_types,
-    a_b_bonded_path_length,
+def lj_intra_kernel_cuda(
+    coords,
+    types,
+    bonded_path_length,
     lj_out,
     # Pair score parameters
     lj_sigma,
@@ -145,43 +184,47 @@ def lj_kernel_cuda(
 ):
     i, j = numba.cuda.grid(2)
 
-    if i >= a_coords.shape[0] or j >= b_coords.shape[0]:
+    if i >= j:
         return
 
-    at = a_types[i]
-    a = a_coords[i]
-
-    bt = b_types[j]
-    b = b_coords[j]
-
-    if at == -1 or bt == -1:
+    if i >= coords.shape[0] or j >= coords.shape[0]:
         return
 
-    delta = (a[0] - b[0], a[1] - b[1], a[2] - b[2])
-    dist = math.sqrt(delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2])
+    a = coords[i]
+    at = types[i]
+    if at == -1:
+        return
 
-    lj_out[i, j] = lj_potential(
-        dist,
-        a_b_bonded_path_length[i, j],
-        lj_sigma[at, bt],
-        lj_switch_slope[at, bt],
-        lj_switch_intercept[at, bt],
-        lj_coeff_sigma12[at, bt],
-        lj_coeff_sigma6[at, bt],
-        lj_spline_y0[at, bt],
-        lj_spline_dy0[at, bt],
-        lj_switch_dis2sigma[0],
-        spline_start[0],
-        max_dis[0],
+    b = coords[j]
+    bt = types[j]
+    if bt == -1:
+        return
+
+    lj_out[i, j] = lj_pair_potential(
+        a,
+        at,
+        b,
+        bt,
+        bonded_path_length[i, j],
+        # Pair score parameters
+        lj_sigma,
+        lj_switch_slope,
+        lj_switch_intercept,
+        lj_coeff_sigma12,
+        lj_coeff_sigma6,
+        lj_spline_y0,
+        lj_spline_dy0,
+        # Global score parameters
+        lj_switch_dis2sigma,
+        spline_start,
+        max_dis,
     )
 
 
-def lj_kernel(
-    a_coords,
-    a_types,
-    b_coords,
-    b_types,
-    a_b_bonded_path_length,
+def lj_intra_kernel(
+    coords,
+    atom_types,
+    bonded_path_length,
     # Pair score parameters
     lj_sigma,
     lj_switch_slope,
@@ -196,15 +239,13 @@ def lj_kernel(
     max_dis,
     parallel=True,
 ):
-    result = a_coords.new_zeros(a_coords.shape[0], b_coords.shape[0])
+    result = coords.new_zeros(coords.shape[0], coords.shape[0])
 
-    if a_coords.device.type == "cpu":
-        (lj_kernel_parallel_cpu if parallel else lj_kernel_serial_cpu)(
-            a_coords.__array__(),
-            a_types.__array__(),
-            b_coords.__array__(),
-            b_types.__array__(),
-            a_b_bonded_path_length.__array__(),
+    if coords.device.type == "cpu":
+        (lj_intra_kernel_parallel_cpu if parallel else lj_intra_kernel_serial_cpu)(
+            coords.__array__(),
+            atom_types.__array__(),
+            bonded_path_length.__array__(),
             result.__array__(),
             # Pair score parameters
             lj_sigma.__array__(),
@@ -220,16 +261,14 @@ def lj_kernel(
             max_dis.reshape(1).__array__(),
         )
     else:
-        assert a_coords.device.type == "cuda"
-        blocks_per_grid = ((a_coords.shape[0] // 32) + 1, (b_coords.shape[0] // 32) + 1)
+        assert coords.device.type == "cuda"
+        blocks_per_grid = ((coords.shape[0] // 32) + 1, (coords.shape[0] // 32) + 1)
         threads_per_block = (32, 32)
 
-        lj_kernel_cuda[blocks_per_grid, threads_per_block](
-            a_coords,
-            a_types,
-            b_coords,
-            b_types,
-            a_b_bonded_path_length,
+        lj_intra_kernel_cuda[blocks_per_grid, threads_per_block](
+            coords,
+            atom_types,
+            bonded_path_length,
             result,
             # Pair score parameters
             lj_sigma,

@@ -7,10 +7,7 @@ import numba.cuda
 import inspect
 
 # monkey-patch torch tensor support
-import tmol.utility.numba
-
-from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
+import tmol.utility.numba  # noqa
 
 from .params import LJLKParamResolver
 from . import numba_potential
@@ -23,7 +20,7 @@ class LJOp:
     device: torch.device
     params: typing.Mapping[str, typing.Any]
     kernel_signature: inspect.Signature
-    parallel_cpu: bool = True
+    parallel_cpu: bool
 
     @staticmethod
     def _prepare_input(tensor, for_device):
@@ -34,28 +31,27 @@ class LJOp:
         else:
             raise ValueError(f"Invalid target device: {for_device}")
 
-    def pairwise(self, a_coords, a_types, b_coords, b_types, a_b_bonded_path_length):
-        return LJPairwiseFun(self)(
-            a_coords, a_types, b_coords, b_types, a_b_bonded_path_length
-        )
+    def intra(self, coords, types, bonded_path_length):
+        return LJIntraFun(self)(coords, types, bonded_path_length)
 
     @classmethod
-    def from_params(cls, param_resolver: LJLKParamResolver):
+    def from_params(cls, param_resolver: LJLKParamResolver, parallel_cpu=True):
+
+        pair_params = param_resolver.pair_params
+        global_params = param_resolver.global_params
 
         raw_params = dict(
-            lj_sigma=param_resolver.pair_params.lj_sigma,
-            lj_switch_slope=param_resolver.pair_params.lj_switch_slope,
-            lj_switch_intercept=param_resolver.pair_params.lj_switch_intercept,
-            lj_coeff_sigma12=param_resolver.pair_params.lj_coeff_sigma12,
-            lj_coeff_sigma6=param_resolver.pair_params.lj_coeff_sigma6,
-            lj_spline_y0=param_resolver.pair_params.lj_spline_y0,
-            lj_spline_dy0=param_resolver.pair_params.lj_spline_dy0,
+            lj_sigma=pair_params.lj_sigma,
+            lj_switch_slope=pair_params.lj_switch_slope,
+            lj_switch_intercept=pair_params.lj_switch_intercept,
+            lj_coeff_sigma12=pair_params.lj_coeff_sigma12,
+            lj_coeff_sigma6=pair_params.lj_coeff_sigma6,
+            lj_spline_y0=pair_params.lj_spline_y0,
+            lj_spline_dy0=pair_params.lj_spline_dy0,
             # Global param_resolver
-            lj_switch_dis2sigma=param_resolver.global_params.lj_switch_dis2sigma.reshape(
-                1
-            ),
-            spline_start=param_resolver.global_params.spline_start.reshape(1),
-            max_dis=param_resolver.global_params.max_dis.reshape(1),
+            lj_switch_dis2sigma=global_params.lj_switch_dis2sigma.reshape(1),
+            spline_start=global_params.spline_start.reshape(1),
+            max_dis=global_params.max_dis.reshape(1),
         )
 
         assert (
@@ -66,65 +62,55 @@ class LJOp:
 
         params = valmap(lambda t: cls._prepare_input(t, device), raw_params)
 
-        kernel_signature = inspect.signature(numba_potential.lj_kernel_cuda.py_func)
+        kernel_signature = inspect.signature(
+            numba_potential.lj_intra_kernel_cuda.py_func
+        )
 
-        return cls(device=device, params=params, kernel_signature=kernel_signature)
+        return cls(
+            device=device,
+            params=params,
+            kernel_signature=kernel_signature,
+            parallel_cpu=parallel_cpu,
+        )
 
 
-class LJPairwiseFun(torch.autograd.Function):
+class LJIntraFun(torch.autograd.Function):
     def __init__(self, op: LJOp):
         self.op = op
         super().__init__()
 
-    def forward(ctx, a_coords, a_types, b_coords, b_types, a_b_bonded_path_length):
-        assert a_coords.device == ctx.op.device
-        assert not a_coords.requires_grad
+    def forward(ctx, coords, types, bonded_path_length):
+        assert coords.device == ctx.op.device
+        assert not coords.requires_grad
 
-        assert a_types.device == ctx.op.device
-        assert not a_types.requires_grad
+        assert types.device == ctx.op.device
+        assert not types.requires_grad
 
-        assert b_coords.device == ctx.op.device
-        assert not b_coords.requires_grad
+        assert bonded_path_length.device == ctx.op.device
+        assert not bonded_path_length.requires_grad
 
-        assert b_types.device == ctx.op.device
-        assert not b_types.requires_grad
-
-        assert a_b_bonded_path_length.device == ctx.op.device
-        assert not a_b_bonded_path_length.requires_grad
-
-        result = a_coords.new_zeros((a_coords.shape[0], b_coords.shape[0]))
+        result = coords.new_zeros((coords.shape[0], coords.shape[0]))
 
         if ctx.op.device.type == "cpu":
             if ctx.op.parallel_cpu:
-                kernel = numba_potential.lj_kernel_parallel_cpu
+                kernel = numba_potential.lj_intra_kernel_parallel_cpu
             else:
-                kernel = numba_potential.lj_kernel_serial_cpu
+                kernel = numba_potential.lj_intra_kernel_serial_cpu
 
             kernel(
-                a_coords.__array__(),
-                a_types.__array__(),
-                b_coords.__array__(),
-                b_types.__array__(),
-                a_b_bonded_path_length.__array__(),
+                coords.__array__(),
+                types.__array__(),
+                bonded_path_length.__array__(),
                 result.__array__(),
                 **ctx.op.params,
             )
         else:
-            blocks_per_grid = (
-                (a_coords.shape[0] // 32) + 1,
-                (b_coords.shape[0] // 32) + 1,
-            )
+            blocks_per_grid = ((coords.shape[0] // 32) + 1, (coords.shape[0] // 32) + 1)
             threads_per_block = (32, 32)
 
-            numba_potential.lj_kernel_cuda[blocks_per_grid, threads_per_block](
+            numba_potential.lj_intra_kernel_cuda[blocks_per_grid, threads_per_block](
                 *ctx.op.kernel_signature.bind(
-                    a_coords,
-                    a_types,
-                    b_coords,
-                    b_types,
-                    a_b_bonded_path_length,
-                    result,
-                    **ctx.op.params,
+                    coords, types, bonded_path_length, result, **ctx.op.params
                 ).args
             )
 
