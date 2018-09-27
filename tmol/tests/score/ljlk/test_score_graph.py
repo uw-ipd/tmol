@@ -123,9 +123,7 @@ def test_jit_graph(benchmark, torch_device, ubq_system):
 
     @reactive_attrs
     class JitLJLKGraph(
-        CartesianAtomicCoordinateProvider,
-        BlockedInteratomicDistanceGraph,
-        jit_score_graph.JitLJLKScoreGraph,
+        jit_score_graph.JitLJLKScoreGraph, CartesianAtomicCoordinateProvider
     ):
         pass
 

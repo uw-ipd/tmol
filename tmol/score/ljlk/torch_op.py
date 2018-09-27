@@ -31,8 +31,11 @@ class LJOp:
         else:
             raise ValueError(f"Invalid target device: {for_device}")
 
-    def intra(self, coords, types, bonded_path_length):
-        return LJIntraFun(self)(coords, types, bonded_path_length)
+    def intra(self, coords, types, bonded_path_length, block_distances=None):
+        if block_distances is not None:
+            return LJIntraFun(self)(coords, types, bonded_path_length, block_distances)
+        else:
+            return LJIntraFun(self)(coords, types, bonded_path_length)
 
     @classmethod
     def from_params(cls, param_resolver: LJLKParamResolver, parallel_cpu=True):

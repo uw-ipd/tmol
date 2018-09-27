@@ -18,16 +18,13 @@ from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
 from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
+from ..interatomic_distance import BlockedInteratomicDistanceGraph
 from .params import LJLKParamResolver
 from .torch_op import LJOp
 
 
 @reactive_attrs
 class JitLJIntraScore(IntraScore):
-    @reactive_property
-    def coords(target) -> Tensor(torch.long)[:, 3]:
-        return target.atom_pair_inds
-
     @reactive_property
     @validate_args
     def lj_pairwise(target) -> Tensor(float)[:, :]:
@@ -37,6 +34,7 @@ class JitLJIntraScore(IntraScore):
             target.coords[0],
             target.ljlk_atom_types[0],
             target.ljlk_bonded_path_length[0],
+            target.interblock_distance.min_dist[0],
         )
 
         return pscores
@@ -58,7 +56,12 @@ class JitLJIntraScore(IntraScore):
 
 @reactive_attrs(auto_attribs=True)
 class JitLJLKScoreGraph(
-    BondedAtomScoreGraph, ScoreComponent, ParamDB, TorchDevice, Factory
+    BondedAtomScoreGraph,
+    BlockedInteratomicDistanceGraph,
+    ScoreComponent,
+    ParamDB,
+    TorchDevice,
+    Factory,
 ):
     total_score_components = [
         ScoreComponentClasses(
