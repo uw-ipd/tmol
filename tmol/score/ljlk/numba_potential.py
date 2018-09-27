@@ -3,6 +3,8 @@ import math
 import numba
 from numpy import float32 as f4
 
+BLOCK_SIZE = 8
+
 
 def _lj_potential(
     dist,
@@ -122,37 +124,49 @@ def _lj_intra_kernel_cpu(
     spline_start,
     max_dis,
 ):
-    for i in numba.prange(coords.shape[0]):
-        a = coords[i]
-        at = types[i]
-        if at == -1:
-            continue
+    nblocks = coords.shape[0] // BLOCK_SIZE
 
-        for j in numba.prange(i + 1, coords.shape[0]):
-            b = coords[j]
-            bt = types[j]
-            if bt == -1:
-                continue
+    for b_i in range(nblocks):
+        for b_j in range(b_i, nblocks):
 
-            lj_out[i, j] = lj_pair_potential(
-                a,
-                at,
-                b,
-                bt,
-                bonded_path_length[i, j],
-                # Pair score parameters
-                lj_sigma,
-                lj_switch_slope,
-                lj_switch_intercept,
-                lj_coeff_sigma12,
-                lj_coeff_sigma6,
-                lj_spline_y0,
-                lj_spline_dy0,
-                # Global score parameters
-                lj_switch_dis2sigma,
-                spline_start,
-                max_dis,
-            )
+            bs_i = b_i * BLOCK_SIZE
+            for i in range(bs_i, bs_i + BLOCK_SIZE):
+                a = coords[i]
+                at = types[i]
+
+                if at == -1:
+                    continue
+
+                bs_j = b_j * BLOCK_SIZE
+                for j in range(bs_j, bs_j + BLOCK_SIZE):
+                    if j <= i:
+                        continue
+
+                    b = coords[j]
+                    bt = types[j]
+
+                    if bt == -1:
+                        continue
+
+                    lj_out[i, j] = lj_pair_potential(
+                        a,
+                        at,
+                        b,
+                        bt,
+                        bonded_path_length[i, j],
+                        # Pair score parameters
+                        lj_sigma,
+                        lj_switch_slope,
+                        lj_switch_intercept,
+                        lj_coeff_sigma12,
+                        lj_coeff_sigma6,
+                        lj_spline_y0,
+                        lj_spline_dy0,
+                        # Global score parameters
+                        lj_switch_dis2sigma,
+                        spline_start,
+                        max_dis,
+                    )
 
 
 lj_intra_kernel_serial_cpu = numba.njit(parallel=False, nogil=True)(
@@ -239,6 +253,8 @@ def lj_intra_kernel(
     max_dis,
     parallel=True,
 ):
+    assert coords.shape[0] % BLOCK_SIZE == 0
+
     result = coords.new_zeros(coords.shape[0], coords.shape[0])
 
     if coords.device.type == "cpu":
