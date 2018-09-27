@@ -79,7 +79,9 @@ class LJIntraFun(torch.autograd.Function):
         self.op = op
         super().__init__()
 
-    def forward(ctx, coords, types, bonded_path_length):
+    def forward(ctx, coords, types, bonded_path_length, block_distances=None):
+        nblocks = coords.shape[0] // numba_potential.BLOCK_SIZE
+
         assert coords.device == ctx.op.device
         assert not coords.requires_grad
 
@@ -91,6 +93,9 @@ class LJIntraFun(torch.autograd.Function):
 
         result = coords.new_zeros((coords.shape[0], coords.shape[0]))
 
+        if block_distances is None:
+            block_distances = coords.new_zeros((nblocks, nblocks))
+
         if ctx.op.device.type == "cpu":
             if ctx.op.parallel_cpu:
                 kernel = numba_potential.lj_intra_kernel_parallel_cpu
@@ -101,6 +106,7 @@ class LJIntraFun(torch.autograd.Function):
                 coords.__array__(),
                 types.__array__(),
                 bonded_path_length.__array__(),
+                block_distances.__array__(),
                 result.__array__(),
                 **ctx.op.params,
             )

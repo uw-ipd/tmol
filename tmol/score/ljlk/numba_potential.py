@@ -110,6 +110,7 @@ def _lj_intra_kernel_cpu(
     coords,
     types,
     bonded_path_length,
+    block_distances,
     lj_out,
     # Pair score parameters
     lj_sigma,
@@ -126,8 +127,10 @@ def _lj_intra_kernel_cpu(
 ):
     nblocks = coords.shape[0] // BLOCK_SIZE
 
-    for b_i in range(nblocks):
-        for b_j in range(b_i, nblocks):
+    for b_i in numba.prange(nblocks):
+        for b_j in numba.prange(b_i, nblocks):
+            if block_distances[b_i, b_j] > max_dis[0]:
+                continue
 
             bs_i = b_i * BLOCK_SIZE
             for i in range(bs_i, bs_i + BLOCK_SIZE):
@@ -251,9 +254,17 @@ def lj_intra_kernel(
     lj_switch_dis2sigma,
     spline_start,
     max_dis,
+    *,
     parallel=True,
+    block_distances=None,
 ):
     assert coords.shape[0] % BLOCK_SIZE == 0
+    nblocks = coords.shape[0] // BLOCK_SIZE
+
+    if block_distances is None:
+        block_distances = coords.new_zeros((nblocks, nblocks))
+
+    assert block_distances.shape == (nblocks, nblocks)
 
     result = coords.new_zeros(coords.shape[0], coords.shape[0])
 
@@ -262,6 +273,7 @@ def lj_intra_kernel(
             coords.__array__(),
             atom_types.__array__(),
             bonded_path_length.__array__(),
+            block_distances.__array__(),
             result.__array__(),
             # Pair score parameters
             lj_sigma.__array__(),

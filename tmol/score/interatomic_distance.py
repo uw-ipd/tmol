@@ -266,6 +266,14 @@ class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
         )
 
     @reactive_property
+    @validate_args
+    def interblock_distance(coord_blocks: Sphere) -> SphereDistance:
+
+        return SphereDistance.for_spheres(
+            coord_blocks[:, :, None], coord_blocks[:, None, :]
+        )
+
+    @reactive_property
     def atom_pair_inds(
         atom_pair_block_size: int,
         coord_blocks: Sphere,
