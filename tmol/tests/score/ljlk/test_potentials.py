@@ -19,8 +19,8 @@ class DataGraph(CartesianAtomicCoordinateProvider, BondedAtomScoreGraph):
     pass
 
 
-def test_potential_comparisons(benchmark, ubq_system):
-    ubq_g = DataGraph.build_for(ubq_system)
+def test_potential_comparisons(benchmark, ubq_system, torch_device):
+    ubq_g = DataGraph.build_for(ubq_system, device=torch_device)
 
     params = LJLKParamResolver.from_database(
         tmol.database.ParameterDatabase.get_default().scoring.ljlk, ubq_g.device
@@ -31,7 +31,7 @@ def test_potential_comparisons(benchmark, ubq_system):
     bonded_path_length = torch.tensor(ubq_g.bonded_path_length[0])
 
     bonded_path_length[bonded_path_length > 6] = 255
-    bonded_path_length = bonded_path_length.to(dtype=torch.uint8)
+    bonded_path_length = bonded_path_length.to(device=torch_device, dtype=torch.uint8)
 
     types = params.type_idx(type_strs)
     types[type_strs == None] = -1  # noqa
@@ -43,6 +43,8 @@ def test_potential_comparisons(benchmark, ubq_system):
     b_t = types[None, :]
 
     pparams = params.pair_params[a_t, b_t]
+
+    assert coords.device == torch_device
 
     @subfixture(benchmark)
     def torch_impl():
