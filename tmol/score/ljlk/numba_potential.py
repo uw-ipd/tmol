@@ -185,6 +185,7 @@ def lj_intra_kernel_cuda(
     coords,
     types,
     bonded_path_length,
+    block_distances,
     lj_out,
     # Pair score parameters
     lj_sigma,
@@ -205,6 +206,12 @@ def lj_intra_kernel_cuda(
         return
 
     if i >= coords.shape[0] or j >= coords.shape[0]:
+        return
+
+    b_i = i // BLOCK_SIZE
+    b_j = j // BLOCK_SIZE
+
+    if block_distances[b_i, b_j] > max_dis[0]:
         return
 
     a = coords[i]
@@ -297,6 +304,7 @@ def lj_intra_kernel(
             coords,
             atom_types,
             bonded_path_length,
+            block_distances,
             result,
             # Pair score parameters
             lj_sigma,

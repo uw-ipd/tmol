@@ -119,7 +119,12 @@ class LJIntraFun(torch.autograd.Function):
 
             numba_potential.lj_intra_kernel_cuda[blocks_per_grid, threads_per_block](
                 *ctx.op.kernel_signature.bind(
-                    coords, types, bonded_path_length, result, **ctx.op.params
+                    coords,
+                    types,
+                    bonded_path_length,
+                    block_distances,
+                    result,
+                    **ctx.op.params,
                 ).args
             )
 

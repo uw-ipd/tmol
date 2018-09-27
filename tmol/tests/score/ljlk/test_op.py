@@ -8,13 +8,18 @@ from tmol.utility.reactive import reactive_attrs
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.score.bonded_atom import BondedAtomScoreGraph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
+from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 
 import tmol.score.ljlk.numba_potential as numba_potential
 import tmol.score.ljlk.torch_op as torch_op
 
 
 @reactive_attrs
-class DataGraph(BondedAtomScoreGraph, CartesianAtomicCoordinateProvider):
+class DataGraph(
+    BondedAtomScoreGraph,
+    BlockedInteratomicDistanceGraph,
+    CartesianAtomicCoordinateProvider,
+):
     pass
 
 
@@ -46,6 +51,9 @@ def test_op_device(torch_device, ubq_system):
     assert op.device == torch_device
 
     pscore = op.intra(coords, atom_types, bonded_path_length)
+    blocked_pscore = op.intra(
+        coords, atom_types, bonded_path_length, interblock_distance
+    )
 
     assert pscore.shape == (coords.shape[0], coords.shape[0])
 
@@ -68,3 +76,4 @@ def test_op_device(torch_device, ubq_system):
     )
 
     torch.testing.assert_allclose(pscore, kernel_result)
+    torch.testing.assert_allclose(blocked_pscore, kernel_result)
