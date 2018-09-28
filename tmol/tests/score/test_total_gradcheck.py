@@ -29,7 +29,7 @@ def test_torsion_space_gradcheck(ubq_res):
 
     def total_score(dofs):
         torsion_space.dofs = dofs
-        return torsion_space.total_score
+        return torsion_space.intra_score().total
 
     assert torch.autograd.gradcheck(
         total_score, (start_dofs,), eps=1e-3, rtol=5e-3, atol=5e-3
@@ -47,6 +47,6 @@ def test_real_space_gradcheck(ubq_res):
         state_coords = real_space.coords.detach().clone()
         state_coords[coord_mask] = coords
 
-        return real_space.total_score
+        return real_space.intra_score().total
 
     assert torch.autograd.gradcheck(total_score, (start_coords,))

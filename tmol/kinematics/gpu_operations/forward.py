@@ -1,6 +1,7 @@
 import numpy
 import numba
 import numba.cuda
+from numba.cuda import as_cuda_array
 
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
@@ -8,7 +9,6 @@ from tmol.types.torch import Tensor
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
-from tmol.utility.numba import as_cuda_array
 
 from .scan_paths import PathPartitioning
 

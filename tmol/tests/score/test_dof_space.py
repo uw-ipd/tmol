@@ -27,8 +27,8 @@ def test_torsion_space_by_real_space_total_score(ubq_system):
     real_space = RealSpaceScore.build_for(ubq_system)
     torsion_space = DofSpaceScore.build_for(ubq_system)
 
-    real_total = real_space.step()
-    torsion_total = torsion_space.step()
+    real_total = real_space.intra_score().total
+    torsion_total = torsion_space.intra_score().total
 
     # assert (real_total == torsion_total).all()
     numpy.testing.assert_allclose(

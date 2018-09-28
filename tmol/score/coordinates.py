@@ -39,7 +39,8 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
     def coords64(coords):
         return coords.to(torch.double)
 
-    def reset_total_score(self):
+    def reset_coords(self):
+        """Reset coordinate state in compute graph, clearing dependent properties."""
         self.coords = self.coords
 
 
@@ -94,5 +95,6 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
         """System cartesian atomic coordinates at single precision."""
         return coords64.to(torch.float)
 
-    def reset_total_score(self):
+    def reset_coords(self):
+        """Reset coordinate state in compute graph, clearing dependent properties."""
         self.dofs = self.dofs

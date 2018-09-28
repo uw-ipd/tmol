@@ -200,6 +200,42 @@ class IntraLayerAtomPairs:
         return cls(atom_pair_mask.nonzero())
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class InterLayerAtomPairs:
+    inds: Tensor(torch.long)[:, 4]
+
+    @classmethod
+    def for_coord_blocks(
+        cls,
+        atom_pair_block_size: int,
+        coord_blocks_a: Sphere,
+        coord_blocks_b: Sphere,
+        interatomic_threshold_distance: float,
+    ):
+        # Abbreviations used in indexing below
+        # num_layers_[ab], num_blocks_[ab]
+        nla, nba = coord_blocks_a.shape
+        nlb, nbb = coord_blocks_b.shape
+        # block_size
+        bs: int = atom_pair_block_size
+
+        interblock = SphereDistance.for_spheres(
+            coord_blocks_a[:, :, None, None, None, None],
+            coord_blocks_b[None, None, None, :, :, None],
+        )
+        assert interblock.shape == (nla, nba, 1, nlb, nbb, 1)
+
+        atom_pair_mask = interblock.min_dist.new_full(
+            (nla, nba, bs, nlb, nbb, bs), 0, dtype=torch.uint8
+        )
+        atom_pair_mask.masked_fill_(
+            interblock.min_dist < interatomic_threshold_distance, 1
+        )
+        atom_pair_mask = atom_pair_mask.reshape((nla, nba * bs, nlb, nbb * bs))
+
+        return cls(torch.nonzero(atom_pair_mask))
+
+
 @reactive_attrs(auto_attribs=True)
 class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
     # atom block size for block-neighbor optimization
