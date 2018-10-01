@@ -1,3 +1,9 @@
 set makeprg=pytest
 " Capture errors of the form 'E    filename:line:column:message' reported by pytest
 let &errorformat = '%t%*[ ]%f:%l:%c:%m,' . &errorformat
+
+let g:ale_linters={
+      \ 'python' :  ["black", "flake8"],
+      \ 'cpp' :  [],
+      \ 'cuda' :  [],
+      \ }
