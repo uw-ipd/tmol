@@ -7,15 +7,12 @@ from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
-from tmol.score.total_score import TotalScoreComponentsGraph
 from tmol.score.rama.score_graph import RamaScoreGraph
 from tmol.score.bonded_atom import BondedAtomScoreGraph
 
 
 @reactive_attrs(auto_attribs=True)
-class TRama(
-    CartesianAtomicCoordinateProvider, RamaScoreGraph, TotalScoreComponentsGraph
-):
+class TRama(CartesianAtomicCoordinateProvider, RamaScoreGraph):
     """Cart total."""
 
     pass
@@ -24,6 +21,9 @@ class TRama(
 def test_create_torsion_provider(ubq_system):
     trama = TRama.build_for(ubq_system)
     assert trama
+
+    # construct the intra-component score evaluator
+    trama_intra = trama.intra_score()
 
     gold_rama_scores = numpy.array(
         [
@@ -105,11 +105,11 @@ def test_create_torsion_provider(ubq_system):
     )
 
     numpy.testing.assert_allclose(
-        trama.rama_scores.squeeze().detach().numpy(), gold_rama_scores, atol=1e-4
+        trama_intra.rama_scores.squeeze().detach().numpy(), gold_rama_scores, atol=1e-4
     )
 
     gold_total_score = 16.6269
-    assert abs(trama.total_rama - gold_total_score) < 1e-4
+    assert abs(trama_intra.total_rama - gold_total_score) < 1e-4
 
     # R3 scores
     R3_scores = [
@@ -190,7 +190,7 @@ def test_create_torsion_provider(ubq_system):
 
     # weight of 0.5; then assign 0.5 to residue i and 0.5 to residue i+1
     two_body_version = 0.25 * (
-        trama.rama_scores.squeeze()[1:] + trama.rama_scores.squeeze()[:-1]
+        trama_intra.rama_scores.squeeze()[1:] + trama_intra.rama_scores.squeeze()[:-1]
     )
     numpy.testing.assert_allclose(
         two_body_version.detach().numpy(), numpy.array(R3_scores), atol=1e-4
@@ -199,10 +199,7 @@ def test_create_torsion_provider(ubq_system):
 
 @reactive_attrs
 class DofSpaceRamaScore(
-    KinematicAtomicCoordinateProvider,
-    BondedAtomScoreGraph,
-    RamaScoreGraph,
-    TotalScoreComponentsGraph,
+    KinematicAtomicCoordinateProvider, BondedAtomScoreGraph, RamaScoreGraph
 ):
     pass
 
@@ -211,11 +208,12 @@ def test_torsion_space_rama_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
 
     torsion_space = DofSpaceRamaScore.build_for(test_system)
+    torsion_space_intra = torsion_space.intra_score()
     start_dofs = torsion_space.dofs.clone()
 
     def total_score(dofs):
         torsion_space.dofs = dofs
-        return torsion_space.total_score
+        return torsion_space.intra_score().total
 
     assert torch.autograd.gradcheck(
         total_score, (start_dofs,), eps=1e-3, rtol=5e-4, atol=5e-5
@@ -224,25 +222,22 @@ def test_torsion_space_rama_gradcheck(ubq_res):
 
 @reactive_attrs
 class CartSpaceRamaScore(
-    CartesianAtomicCoordinateProvider,
-    BondedAtomScoreGraph,
-    RamaScoreGraph,
-    TotalScoreComponentsGraph,
+    CartesianAtomicCoordinateProvider, BondedAtomScoreGraph, RamaScoreGraph
 ):
     pass
 
 
 def test_cartesian_space_rama_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
-
     real_space = CartSpaceRamaScore.build_for(test_system)
+
     coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
     start_coords = real_space.coords[coord_mask]
 
     def total_score(coords):
         state_coords = real_space.coords.detach().clone()
         state_coords[coord_mask] = coords
-
-        return real_space.total_score
+        # real_space.coords = state_coords
+        return real_space.intra_score().total
 
     assert torch.autograd.gradcheck(total_score, (start_coords,))

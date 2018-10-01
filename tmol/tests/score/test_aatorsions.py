@@ -2,7 +2,6 @@ import torch
 import numpy
 
 from tmol.utility.reactive import reactive_attrs
-from tmol.score.total_score import TotalScoreComponentsGraph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.torsions import AlphaAABackboneTorsionProvider
@@ -10,10 +9,7 @@ from tmol.score.torsions import AlphaAABackboneTorsionProvider
 
 @reactive_attrs(auto_attribs=True)
 class TCartTorsions(
-    CartesianAtomicCoordinateProvider,
-    AlphaAABackboneTorsionProvider,
-    TorchDevice,
-    TotalScoreComponentsGraph,
+    CartesianAtomicCoordinateProvider, AlphaAABackboneTorsionProvider, TorchDevice
 ):
     """Cart total."""
 
