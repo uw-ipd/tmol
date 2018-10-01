@@ -1,5 +1,4 @@
 import torch
-import numpy
 
 from tmol.utility.reactive import reactive_attrs
 from tmol.tests.benchmark import subfixture
@@ -11,7 +10,6 @@ import tmol.database
 from tmol.score.ljlk.params import LJLKParamResolver
 
 import tmol.score.ljlk.potentials as potentials
-import tmol.score.ljlk.numba_potential as numba_potential
 
 
 @reactive_attrs
@@ -20,6 +18,9 @@ class DataGraph(CartesianAtomicCoordinateProvider, BondedAtomScoreGraph):
 
 
 def test_potential_comparisons(benchmark, ubq_system, torch_device):
+    import tmol.score.ljlk.numba_potential as numba_potential
+    import tmol.score.ljlk.cpp_potential as cpp_potential
+
     ubq_g = DataGraph.build_for(ubq_system, device=torch_device)
 
     params = LJLKParamResolver.from_database(
@@ -35,6 +36,7 @@ def test_potential_comparisons(benchmark, ubq_system, torch_device):
 
     types = params.type_idx(type_strs)
     types[type_strs == None] = -1  # noqa
+    types = torch.tensor(types).to(device=torch_device)
 
     # prev score form
     a = coords[:, None]
@@ -73,9 +75,8 @@ def test_potential_comparisons(benchmark, ubq_system, torch_device):
 
     torch_impl[torch.isnan(torch_impl)] = 0.0
 
-    # new op
     @subfixture(benchmark)
-    def numba_impl_serial():
+    def numba_impl():
         return numba_potential.lj_intra_kernel(
             coords,
             types,
@@ -94,28 +95,30 @@ def test_potential_comparisons(benchmark, ubq_system, torch_device):
             parallel=False,
         )
 
-    @subfixture(benchmark)
-    def numba_impl():
-        return numba_potential.lj_intra_kernel(
-            coords,
-            types,
-            bonded_path_length,
-            lj_sigma=params.pair_params.lj_sigma,
-            lj_switch_slope=params.pair_params.lj_switch_slope,
-            lj_switch_intercept=params.pair_params.lj_switch_intercept,
-            lj_coeff_sigma12=params.pair_params.lj_coeff_sigma12,
-            lj_coeff_sigma6=params.pair_params.lj_coeff_sigma6,
-            lj_spline_y0=params.pair_params.lj_spline_y0,
-            lj_spline_dy0=params.pair_params.lj_spline_dy0,
-            # Global params
-            lj_switch_dis2sigma=params.global_params.lj_switch_dis2sigma,
-            spline_start=params.global_params.spline_start,
-            max_dis=params.global_params.max_dis,
-            parallel=True,
-        )
-
     torch.testing.assert_allclose(torch_impl, numba_impl)
-    torch.testing.assert_allclose(torch_impl, numba_impl_serial)
+
+    if torch_device.type != "cuda":
+
+        @subfixture(benchmark)
+        def cpp_impl():
+            return cpp_potential.cpu.lj_intra(
+                coords,
+                types,
+                bonded_path_length,
+                lj_sigma=params.pair_params.lj_sigma,
+                lj_switch_slope=params.pair_params.lj_switch_slope,
+                lj_switch_intercept=params.pair_params.lj_switch_intercept,
+                lj_coeff_sigma12=params.pair_params.lj_coeff_sigma12,
+                lj_coeff_sigma6=params.pair_params.lj_coeff_sigma6,
+                lj_spline_y0=params.pair_params.lj_spline_y0,
+                lj_spline_dy0=params.pair_params.lj_spline_dy0,
+                # Global params
+                lj_switch_dis2sigma=params.global_params.lj_switch_dis2sigma,
+                spline_start=params.global_params.spline_start,
+                max_dis=params.global_params.max_dis,
+            )
+
+        torch.testing.assert_allclose(torch_impl, cpp_impl)
 
 
 # def test_potential_trace():
