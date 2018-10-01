@@ -241,5 +241,5 @@ def test_cartesian_space_rama_gradcheck(ubq_res):
         return real_space.intra_score().total
 
     assert torch.autograd.gradcheck(
-        total_score, (start_coords,), eps=3e-3, rtol=5e-4, atol=8e-4
+        total_score, (start_coords,), eps=2e-3, rtol=5e-4, atol=5e-4
     )
