@@ -237,7 +237,9 @@ def test_cartesian_space_rama_gradcheck(ubq_res):
     def total_score(coords):
         state_coords = real_space.coords.detach().clone()
         state_coords[coord_mask] = coords
-        # real_space.coords = state_coords
+        real_space.coords = state_coords
         return real_space.intra_score().total
 
-    assert torch.autograd.gradcheck(total_score, (start_coords,))
+    assert torch.autograd.gradcheck(
+        total_score, (start_coords,), eps=3e-3, rtol=5e-4, atol=8e-4
+    )
