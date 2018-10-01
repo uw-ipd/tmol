@@ -2,8 +2,11 @@ set makeprg=pytest
 " Capture errors of the form 'E    filename:line:column:message' reported by pytest
 let &errorformat = '%t%*[ ]%f:%l:%c:%m,' . &errorformat
 
+" Disable Ale on cpp/cuda, allowing ycm to perform checks
 let g:ale_linters={
       \ 'python' :  ["black", "flake8"],
       \ 'cpp' :  [],
       \ 'cuda' :  [],
       \ }
+
+call add(g:ycm_extra_conf_globlist, g:localvimrc_script_dir . "/.ycm_extra_conf.py")

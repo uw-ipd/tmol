@@ -43,21 +43,26 @@ torch_paths = subprocess.check_output(
     "'import torch.utils.cpp_extension; "
     'print("\\n".join(torch.utils.cpp_extension.include_paths(True)))\'',
     shell=True,
+    universal_newlines=True,
 ).splitlines()
 
 tmol_paths = subprocess.check_output(
     "python -c 'import tmol.extern; "
-    'print("\\n".join(tmol.include_paths() + tmol.extern.include_paths()))\'',
+    'print("\\n".join(tmol.include_paths())); '
+    'print("\\n".join(tmol.extern.include_paths())); \'',
     shell=True,
+    universal_newlines=True,
 ).splitlines()
 
 
 # These are the compilation flags that will be used in case there's no
 # compilation database set (by default, one is not set).
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
-flags = ["-fexceptions", "-DNDEBUG", "-std=c++11", "-isystem", get_python_inc()] + [
-    "-I%s" % p for p in torch_paths + tmol_paths
-]
+flags = (
+    ["-fexceptions", "-DNDEBUG", "-std=c++11", "-isystem", get_python_inc()]
+    + ["-I" + p for p in torch_paths]
+    + ["-I" + p for p in tmol_paths]
+)
 
 
 def is_header_file(filename):
@@ -103,3 +108,7 @@ def Settings(**kwargs):
         }
 
     return {}
+
+
+if __name__ == "__main__":
+    print(Settings(language="cfamily", filename="foo.cpp"))
