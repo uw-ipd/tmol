@@ -20,7 +20,7 @@ at::Tensor lj_intra(
     at::Tensor lj_switch_dis2sigma_t,
     at::Tensor spline_start_t,
     at::Tensor max_dis_t) {
-  auto out_t = at::zeros(coords_t.type(), {coords_t.size(0), coords_t.size(0)});
+  auto out_t = coords_t.type().zeros({coords_t.size(0), coords_t.size(0)});
   auto out = out_t.accessor<float, 2>();
 
   auto coords = tmol::reinterpret_tensor<Eigen::Vector3f, float, 2>(coords_t);

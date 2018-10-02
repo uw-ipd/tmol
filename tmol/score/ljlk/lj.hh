@@ -7,7 +7,7 @@ namespace score
 namespace ljlk
 {
 template <typename Real, typename Int>
-Real lj_potential(
+EIGEN_DEVICE_FUNC Real lj_potential(
     Real& dist,
     const Int& bonded_path_length,
     const Real& lj_sigma,

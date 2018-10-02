@@ -1,3 +1,5 @@
+import functools
+
 import torch
 
 from tmol.utility.reactive import reactive_attrs
@@ -48,7 +50,22 @@ def test_potential_comparisons(benchmark, ubq_system, torch_device):
 
     assert coords.device == torch_device
 
+    def bsync(f):
+        if torch_device.type == "cuda":
+
+            @functools.wraps(f)
+            def syncf():
+                try:
+                    return f()
+                finally:
+                    torch.cuda.synchronize()
+
+            return syncf
+        else:
+            return f
+
     @subfixture(benchmark)
+    @bsync
     def torch_impl():
         delta = (a[..., 0] - b[..., 0], a[..., 1] - b[..., 1], a[..., 2] - b[..., 2])
         dists = torch.sqrt(
@@ -76,6 +93,7 @@ def test_potential_comparisons(benchmark, ubq_system, torch_device):
     torch_impl[torch.isnan(torch_impl)] = 0.0
 
     @subfixture(benchmark)
+    @bsync
     def numba_impl():
         return numba_potential.lj_intra_kernel(
             coords,
@@ -97,28 +115,27 @@ def test_potential_comparisons(benchmark, ubq_system, torch_device):
 
     torch.testing.assert_allclose(torch_impl, numba_impl)
 
-    if torch_device.type != "cuda":
+    @subfixture(benchmark)
+    @bsync
+    def cpp_impl():
+        return cpp_potential.lj_intra(
+            coords,
+            types,
+            bonded_path_length,
+            lj_sigma=params.pair_params.lj_sigma,
+            lj_switch_slope=params.pair_params.lj_switch_slope,
+            lj_switch_intercept=params.pair_params.lj_switch_intercept,
+            lj_coeff_sigma12=params.pair_params.lj_coeff_sigma12,
+            lj_coeff_sigma6=params.pair_params.lj_coeff_sigma6,
+            lj_spline_y0=params.pair_params.lj_spline_y0,
+            lj_spline_dy0=params.pair_params.lj_spline_dy0,
+            # Global params
+            lj_switch_dis2sigma=params.global_params.lj_switch_dis2sigma,
+            spline_start=params.global_params.spline_start,
+            max_dis=params.global_params.max_dis,
+        )
 
-        @subfixture(benchmark)
-        def cpp_impl():
-            return cpp_potential.cpu.lj_intra(
-                coords,
-                types,
-                bonded_path_length,
-                lj_sigma=params.pair_params.lj_sigma,
-                lj_switch_slope=params.pair_params.lj_switch_slope,
-                lj_switch_intercept=params.pair_params.lj_switch_intercept,
-                lj_coeff_sigma12=params.pair_params.lj_coeff_sigma12,
-                lj_coeff_sigma6=params.pair_params.lj_coeff_sigma6,
-                lj_spline_y0=params.pair_params.lj_spline_y0,
-                lj_spline_dy0=params.pair_params.lj_spline_dy0,
-                # Global params
-                lj_switch_dis2sigma=params.global_params.lj_switch_dis2sigma,
-                spline_start=params.global_params.spline_start,
-                max_dis=params.global_params.max_dis,
-            )
-
-        torch.testing.assert_allclose(torch_impl, cpp_impl)
+    torch.testing.assert_allclose(torch_impl, cpp_impl)
 
 
 # def test_potential_trace():
