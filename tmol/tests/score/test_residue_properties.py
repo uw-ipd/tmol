@@ -1,6 +1,3 @@
-import torch
-import numpy
-
 from tmol.utility.reactive import reactive_attrs
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
