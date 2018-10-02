@@ -208,7 +208,6 @@ def test_torsion_space_rama_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
 
     torsion_space = DofSpaceRamaScore.build_for(test_system)
-    torsion_space_intra = torsion_space.intra_score()
     start_dofs = torsion_space.dofs.clone()
 
     def total_score(dofs):
