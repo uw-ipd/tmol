@@ -16,3 +16,8 @@ repos:
     sha: master
     hooks:
     -   id: clang-format
+        exclude: >
+            (?x)^(
+                tmol/extern/.* |
+                dev/.* 
+            )$
