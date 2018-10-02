@@ -47,15 +47,27 @@ def test_op_device(torch_device, ubq_system):
     atom_types = torch.tensor(atom_types).to(device=torch_device)
     interblock_distance = dg.interblock_distance.min_dist[0]
 
-    op = torch_op.LJOp.from_params(params)
-    assert op.device == torch_device
+    numba_op = torch_op.LJOp.from_params(params, jit_type="numba")
+    assert numba_op.device == torch_device
+    assert numba_op.jit_type == "numba"
 
-    pscore = op.intra(coords, atom_types, bonded_path_length)
-    blocked_pscore = op.intra(
+    numba_pscore = numba_op.intra(coords, atom_types, bonded_path_length)
+    numba_blocked_pscore = numba_op.intra(
         coords, atom_types, bonded_path_length, interblock_distance
     )
 
-    assert pscore.shape == (coords.shape[0], coords.shape[0])
+    assert numba_pscore.shape == (coords.shape[0], coords.shape[0])
+
+    cpp_op = torch_op.LJOp.from_params(params, jit_type="cpp")
+    assert cpp_op.device == torch_device
+    assert cpp_op.jit_type == "cpp"
+
+    cpp_pscore = cpp_op.intra(coords, atom_types, bonded_path_length)
+    cpp_blocked_pscore = cpp_op.intra(
+        coords, atom_types, bonded_path_length, interblock_distance
+    )
+
+    assert cpp_pscore.shape == (coords.shape[0], coords.shape[0])
 
     # old kernel impl
     kernel_result = numba_potential.lj_intra_kernel(
@@ -75,5 +87,8 @@ def test_op_device(torch_device, ubq_system):
         max_dis=params.global_params.max_dis,
     )
 
-    torch.testing.assert_allclose(pscore, kernel_result)
-    torch.testing.assert_allclose(blocked_pscore, kernel_result)
+    torch.testing.assert_allclose(numba_pscore, kernel_result)
+    torch.testing.assert_allclose(numba_blocked_pscore, kernel_result)
+
+    torch.testing.assert_allclose(cpp_pscore, kernel_result)
+    torch.testing.assert_allclose(cpp_blocked_pscore, kernel_result)

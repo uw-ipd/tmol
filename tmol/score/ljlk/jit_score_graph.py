@@ -34,7 +34,9 @@ class JitLJIntraScore(IntraScore):
             target.coords[0],
             target.ljlk_atom_types[0],
             target.ljlk_bonded_path_length[0],
-            target.interblock_distance.min_dist[0],
+            # Remove block optimization from all compiled kernels
+            # for head-to-head comparison of execution times.
+            # target.interblock_distance.min_dist[0],
         )
 
         return pscores
@@ -69,11 +71,14 @@ class JitLJLKScoreGraph(
         )
     ]
 
+    lj_jit_type: str
+
     @staticmethod
     def factory_for(
         val,
         parameter_database: ParameterDatabase,
         ljlk_database: Optional[LJLKDatabase] = None,
+        lj_jit_type: str = "numba",
         **_,
     ):
         """Overridable clone-constructor.
@@ -87,7 +92,7 @@ class JitLJLKScoreGraph(
             else:
                 ljlk_database = parameter_database.scoring.ljlk
 
-        return dict(ljlk_database=ljlk_database)
+        return dict(ljlk_database=ljlk_database, lj_jit_type=lj_jit_type)
 
     ljlk_database: LJLKDatabase
 
@@ -117,16 +122,18 @@ class JitLJLKScoreGraph(
         atom_types: NDArray(object)[:, :],
         ljlk_param_resolver: LJLKParamResolver,
         device: torch.device,
-    ) -> Tensor(torch.int16)[:, :]:
+    ) -> Tensor(torch.int64)[:, :]:
         """lj&lk interaction weight, bonded cutoff"""
 
         type_idx = ljlk_param_resolver.type_idx(atom_types)
         type_idx[atom_types == None] = -1  # noqa
-        return torch.tensor(type_idx).to(device=device, dtype=torch.int16)
+        return torch.tensor(type_idx).to(device=device, dtype=torch.int64)
 
     @reactive_property
     @validate_args
-    def lj_op(ljlk_param_resolver: LJLKParamResolver) -> LJOp:
+    def lj_op(ljlk_param_resolver: LJLKParamResolver, lj_jit_type: str) -> LJOp:
         """Parameter tensor groups and atom-type to parameter resolver."""
-        op = LJOp.from_params(ljlk_param_resolver, parallel_cpu=False)
+        op = LJOp.from_params(
+            ljlk_param_resolver, parallel_cpu=False, jit_type=lj_jit_type
+        )
         return op

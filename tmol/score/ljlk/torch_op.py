@@ -11,6 +11,7 @@ import tmol.utility.numba  # noqa
 
 from .params import LJLKParamResolver
 from . import numba_potential
+from . import cpp_potential
 
 import typing
 
@@ -18,9 +19,11 @@ import typing
 @attr.s(auto_attribs=True, frozen=True)
 class LJOp:
     device: torch.device
+    raw_params: typing.Mapping[str, typing.Any]
     params: typing.Mapping[str, typing.Any]
     kernel_signature: inspect.Signature
     parallel_cpu: bool
+    jit_type: str
 
     @staticmethod
     def _prepare_input(tensor, for_device):
@@ -32,13 +35,25 @@ class LJOp:
             raise ValueError(f"Invalid target device: {for_device}")
 
     def intra(self, coords, types, bonded_path_length, block_distances=None):
-        if block_distances is not None:
-            return LJIntraFun(self)(coords, types, bonded_path_length, block_distances)
-        else:
-            return LJIntraFun(self)(coords, types, bonded_path_length)
+        if self.jit_type == "numba":
+            if block_distances is not None:
+                return LJIntraNumbaFun(self)(
+                    coords, types, bonded_path_length, block_distances
+                )
+            else:
+                return LJIntraNumbaFun(self)(coords, types, bonded_path_length)
+        elif self.jit_type == "cpp":
+            if block_distances is not None:
+                return LJIntraCppFun(self)(
+                    coords, types, bonded_path_length, block_distances
+                )
+            else:
+                return LJIntraCppFun(self)(coords, types, bonded_path_length)
 
     @classmethod
-    def from_params(cls, param_resolver: LJLKParamResolver, parallel_cpu=True):
+    def from_params(
+        cls, param_resolver: LJLKParamResolver, parallel_cpu=True, jit_type="numba"
+    ):
 
         pair_params = param_resolver.pair_params
         global_params = param_resolver.global_params
@@ -71,13 +86,36 @@ class LJOp:
 
         return cls(
             device=device,
+            raw_params=raw_params,
             params=params,
             kernel_signature=kernel_signature,
             parallel_cpu=parallel_cpu,
+            jit_type=jit_type,
         )
 
 
-class LJIntraFun(torch.autograd.Function):
+class LJIntraCppFun(torch.autograd.Function):
+    def __init__(self, op: LJOp):
+        self.op = op
+        super().__init__()
+
+    def forward(ctx, coords, types, bonded_path_length, block_distances=None):
+
+        assert coords.device == ctx.op.device
+        assert not coords.requires_grad
+
+        assert types.device == ctx.op.device
+        assert not types.requires_grad
+
+        assert bonded_path_length.device == ctx.op.device
+        assert not bonded_path_length.requires_grad
+
+        return cpp_potential.lj_intra(
+            coords, types, bonded_path_length, **ctx.op.raw_params
+        )
+
+
+class LJIntraNumbaFun(torch.autograd.Function):
     def __init__(self, op: LJOp):
         self.op = op
         super().__init__()
@@ -96,8 +134,8 @@ class LJIntraFun(torch.autograd.Function):
 
         result = coords.new_zeros((coords.shape[0], coords.shape[0]))
 
-        if block_distances is None:
-            block_distances = coords.new_zeros((nblocks, nblocks))
+        # if block_distances is None:
+        block_distances = coords.new_zeros((nblocks, nblocks))
 
         if ctx.op.device.type == "cpu":
             if ctx.op.parallel_cpu:
