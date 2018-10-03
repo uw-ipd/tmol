@@ -1,5 +1,6 @@
 import numpy
 import torch
+import zarr
 
 from tmol.database.scoring.rama import RamaDatabase, CompactedRamaDatabase
 from tmol.database import ParameterDatabase
@@ -8,6 +9,15 @@ from tmol.database import ParameterDatabase
 def test_rama_from_json():
     ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
     assert len(ramadb.tables) == 40
+
+
+def test_save_rama_with_zarr():
+    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
+    assert len(ramadb.tables) == 40
+    ramadb.save_to_binary()
+    zgroup = zarr.group(ramadb.sourcefilepath + ".bin")
+    assert "LAA_ALA_STANDARD" in zgroup
+    assert "LAA_ALA_STANDARD" in zgroup.attrs["tables"]
 
 
 def test_rama_mapper():

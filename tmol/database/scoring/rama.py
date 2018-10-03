@@ -2,6 +2,8 @@ import attr
 import cattr
 import json
 import toolz.functoolz
+import zarr
+import numpy
 
 from typing import Tuple
 
@@ -188,6 +190,10 @@ class RamaDatabase:
             assert phi_step == tab.phi_step
             assert psi_step == tab.psi_step
 
+        return cls.from_ramadb_from_text(path, prelim_rep)
+
+    @classmethod
+    def from_ramadb_from_text(cls, path, prelim_rep):
         mapper = RamaMapper.from_eval_mapping_and_table_list(
             prelim_rep.evaluation_mappings, prelim_rep.tables
         )
@@ -207,15 +213,22 @@ class RamaDatabase:
             tgroup = zarr_group.create_group(table.name)
             tgroup.attrs["phi_step"] = table.phi_step
             tgroup.attrs["psi_step"] = table.psi_step
-            nphi = 360 / table.phi_step
-            npsi = 360 / table.psi_step
-            assert len(table.entries) == nphi * npsi
-            numpy_prob_table = numpy.array((nphi, npsi), dtype=numpy.float64)
-            numpy_e_table = numpy.array((nphi, npsi), dtype=numpy.float64)
-            for entry in table.entries:
-                phi_ind = entry.phi / table.phi_step % nphi
-                psi_ind = entry.psi / table.psi_step % nphi
-            z_prob_table = tgroup.array((nphi, npsi))
+            nphi = int(360 / table.phi_step)
+            npsi = int(360 / table.psi_step)
+            numpy_prob_table = numpy.zeros((nphi, npsi), dtype=numpy.float64)
+            numpy_e_table = numpy.zeros((nphi, npsi), dtype=numpy.float64)
+            for i, psi_row in enumerate(table.probabilities):
+                for j, phi_psi_val in enumerate(psi_row):
+                    numpy_prob_table[i, j] = phi_psi_val
+            z_prob_table = tgroup.array("probabilities", numpy_prob_table)
+            for i, psi_row in enumerate(table.energies):
+                for j, phi_psi_val in enumerate(psi_row):
+                    numpy_e_table[i, j] = phi_psi_val
+            z_e_table = tgroup.array("energies", numpy_prob_table)
+        zarr_group.attrs["tables"] = table_names
+        zarr_group.attrs["eval_map"] = [
+            (x.condition, x.table_name) for x in self.evaluation_mappings
+        ]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
