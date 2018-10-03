@@ -13,19 +13,14 @@ from tmol.numeric.bspline import BSplineInterpolation
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class RamaEntry:
-    phi: float
-    psi: float
-    prob: float
-    energy: float
-
-
-@attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaTable:
     name: str
     phi_step: float
     psi_step: float
-    entries: Tuple[RamaEntry, ...]
+    phi_start: float
+    psi_start: float
+    probabilities: Tuple[Tuple[float, ...], ...]
+    energies: Tuple[Tuple[float, ...], ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -180,9 +175,19 @@ class RamaDatabase:
 
     @classmethod
     def from_file(cls, path):
+        """Load Ramachandran tables from JSON.
+
+        All tables in the json file must have the same phi & psi step sizes"""
         with open(path, "r") as infile:
             raw = json.load(infile)
         prelim_rep = cattr.structure(raw, RamaDBFromText)
+        for i, tab in enumerate(prelim_rep.tables):
+            if i == 0:
+                phi_step = tab.phi_step
+                psi_step = tab.psi_step
+            assert phi_step == tab.phi_step
+            assert psi_step == tab.psi_step
+
         mapper = RamaMapper.from_eval_mapping_and_table_list(
             prelim_rep.evaluation_mappings, prelim_rep.tables
         )
@@ -192,6 +197,25 @@ class RamaDatabase:
             evaluation_mappings=prelim_rep.evaluation_mappings,
             mapper=mapper,
         )
+
+    def save_to_binary(self):
+        # save the tables to binary
+        zarr_group = zarr.group(self.sourcefilepath + ".bin")
+        table_names = []
+        for table in self.tables:
+            table_names.append(table.name)
+            tgroup = zarr_group.create_group(table.name)
+            tgroup.attrs["phi_step"] = table.phi_step
+            tgroup.attrs["psi_step"] = table.psi_step
+            nphi = 360 / table.phi_step
+            npsi = 360 / table.psi_step
+            assert len(table.entries) == nphi * npsi
+            numpy_prob_table = numpy.array((nphi, npsi), dtype=numpy.float64)
+            numpy_e_table = numpy.array((nphi, npsi), dtype=numpy.float64)
+            for entry in table.entries:
+                phi_ind = entry.phi / table.phi_step % nphi
+                psi_ind = entry.psi / table.psi_step % nphi
+            z_prob_table = tgroup.array((nphi, npsi))
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -220,13 +244,17 @@ class CompactedRamaDatabase:
         table = torch.full(
             (len(ramadb.tables), 36, 36), -1234, dtype=torch.float, device=device
         )
+
         for i, tab in enumerate(ramadb.tables):
-            for entry in tab.entries:
-                phi_i = int(entry.phi) // 10 + 18
-                psi_i = int(entry.psi) // 10 + 18
-                assert phi_i < 36 and psi_i < 36
-                assert phi_i >= 0 and psi_i >= 0
-                table[i, phi_i, psi_i] = entry.prob
+            n_rows = int(360 // tab.psi_step)
+            n_cols = 360 // tab.phi_step
+            assert len(tab.probabilities) == n_rows
+            for j, psi_row in enumerate(tab.probabilities):
+                assert len(tab.probabilities) == n_cols
+                for k, phi_psi_prob in enumerate(psi_row):
+                    phi_ind = k
+                    psi_ind = n_rows - j - 1
+                    table[i, phi_ind, psi_ind] = phi_psi_prob
 
         # exp of the -energies should get back to the original probabilities
         # so we can calculate the table entropies
