@@ -379,9 +379,9 @@ class BSplineInterpolation:
 
         # calculate interpolation indices
         baseline = torch.floor(X - (bspdeg.degree - 1) / 2.0)
-        indx_bydim = torch.arange(bspdeg.degree + 1, device=self.coeffs.device).view(
-            1, -1, 1
-        ) + baseline.view(-1, 1, self.n_interp_dims)
+        indx_bydim = torch.arange(
+            bspdeg.degree + 1, device=self.coeffs.device, dtype=torch.float
+        ).view(1, -1, 1) + baseline.view(-1, 1, self.n_interp_dims)
 
         # construct weight matrix -- this varies depending on the degree of the
         # bspline, and therefore is delegated to the BSplineDegree class

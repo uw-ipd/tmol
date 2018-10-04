@@ -1,1 +1,1 @@
-pytorch::pytorch-cpu=0.4.0
+pytorch::pytorch-cpu=0.4.1

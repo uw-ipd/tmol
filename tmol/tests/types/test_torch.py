@@ -20,12 +20,12 @@ validation_examples = [
             numpy.array([[0, 1, 1]]).astype("u1"),
             # bad shape
             numpy.arange(30).reshape(3, 10),
-            torch.arange(30, dtype=torch.int64).reshape(3, 10),
+            torch.zeros(30, dtype=torch.int64).reshape(3, 10),
             numpy.arange(3),
             # defaults to floating-point types
             torch.Tensor([True, True, False]),
             torch.Tensor([[1, 2, 3]]),
-            torch.arange(30),
+            torch.zeros(30),
             # no casting
             numpy.arange(30).reshape(10, 3).astype(float),
             numpy.array([[1.0, 2.0, 3.0]]),
@@ -52,7 +52,7 @@ validation_examples = [
             numpy.arange(3),
             # defaults to floating-point types
             torch.Tensor([[1, 2, 3]]),
-            torch.arange(30),
+            torch.zeros(30),
             # no casting
             numpy.arange(30).reshape(10, 3).astype(float),
             numpy.array([[1.0, 2.0, 3.0]]),
@@ -63,11 +63,12 @@ validation_examples = [
     },
     {
         "spec": Tensor("f")[:],
-        "valid": [torch.arange(30), torch.Tensor([1, 2, 3])],
+        "valid": [torch.zeros(30), torch.Tensor([1, 2, 3])],
         "invalid": [
             # bad shape
-            torch.arange(30).reshape(3, 10),
-            torch.arange(30).to(torch.int32),
+            torch.zeros(30).reshape(3, 10),
+            # bad type
+            torch.zeros(30).to(torch.int32),
             # no float-float casting
             numpy.array([1.0, 2.0, 3.0]).astype("f"),
             numpy.arange(30).astype("f"),
@@ -83,11 +84,11 @@ validation_examples = [
     },
     {
         "spec": Tensor(float)[:],
-        "valid": [torch.arange(30), torch.Tensor([1, 2, 3])],
+        "valid": [torch.zeros(30), torch.Tensor([1, 2, 3])],
         "invalid": [
             # bad shape
-            torch.arange(30).reshape(3, 10),
-            torch.arange(30).to(torch.float64),
+            torch.zeros(30).reshape(3, 10),
+            torch.zeros(30).to(torch.float64),
             # no float-float casting
             numpy.array([1.0, 2.0, 3.0]).astype("f"),
             numpy.arange(30).astype("f"),
