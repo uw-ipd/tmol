@@ -49,6 +49,7 @@ Packages
   apidoc/tmol.io
   apidoc/tmol.viewer
   apidoc/tmol.support
+  apidoc/tmol.extern
 
 .. autosummary::
 
@@ -62,6 +63,7 @@ Packages
   tmol.io
   tmol.viewer
   tmol.support
+  tmol.extern
 
 Indicies
 ==================
