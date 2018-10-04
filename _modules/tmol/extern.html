@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database &mdash; TMol 0.0.0-98-g7626909 documentation</title>
+  <title>tmol.extern &mdash; TMol 0.0.0-98-g7626909 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/database.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/extern.html"/>
   
 
   
@@ -146,7 +146,7 @@
         
           <li><a href="../index.html">Module code</a> &raquo;</li>
         
-      <li>tmol.database</li>
+      <li>tmol.extern</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -161,36 +161,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <h1>Source code for tmol.database</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">attr</span>
+  <h1>Source code for tmol.extern</h1><div class="highlight"><pre>
+<div class="viewcode-block" id="include_paths"><a class="viewcode-back" href="../../apidoc/tmol.extern.html#tmol.extern.include_paths">[docs]</a><span></span><span class="k">def</span> <span class="nf">include_paths</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Get -I compatible include dirs for external modules.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">.chemical</span> <span class="k">import</span> <span class="n">ChemicalDatabase</span>
-<span class="kn">from</span> <span class="nn">.scoring</span> <span class="k">import</span> <span class="n">ScoringDatabase</span>
+    <span class="kn">import</span> <span class="nn">os.path</span>
 
-
-<div class="viewcode-block" id="ParameterDatabase"><a class="viewcode-back" href="../../apidoc/tmol.database.html#tmol.database.ParameterDatabase">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
-<span class="k">class</span> <span class="nc">ParameterDatabase</span><span class="p">:</span>
-    <span class="n">__default</span> <span class="o">=</span> <span class="kc">None</span>
-
-<div class="viewcode-block" id="ParameterDatabase.get_default"><a class="viewcode-back" href="../../apidoc/tmol.database.html#tmol.database.ParameterDatabase.get_default">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">get_default</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;ParameterDatabase&quot;</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Load and return default parameter database.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__default</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">cls</span><span class="o">.</span><span class="n">__default</span> <span class="o">=</span> <span class="n">ParameterDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s2">&quot;default&quot;</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__default</span></div>
-
-    <span class="n">scoring</span><span class="p">:</span> <span class="n">ScoringDatabase</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
-    <span class="n">chemical</span><span class="p">:</span> <span class="n">ChemicalDatabase</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
-
-<div class="viewcode-block" id="ParameterDatabase.from_file"><a class="viewcode-back" href="../../apidoc/tmol.database.html#tmol.database.ParameterDatabase.from_file">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">scoring</span><span class="o">=</span><span class="n">ScoringDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;scoring&quot;</span><span class="p">)),</span>
-            <span class="n">chemical</span><span class="o">=</span><span class="n">ChemicalDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;chemical&quot;</span><span class="p">)),</span>
-        <span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))]</span></div>
 </pre></div>
 
            </div>
