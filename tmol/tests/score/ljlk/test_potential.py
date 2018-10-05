@@ -1,10 +1,25 @@
+import functools
+
 import torch
+
+from tmol.utility.reactive import reactive_attrs
+from tmol.tests.benchmark import subfixture
 
 from tmol.database import ParameterDatabase
 from tmol.score.ljlk.params import LJLKParamResolver
 
+from tmol.score.coordinates import CartesianAtomicCoordinateProvider
+from tmol.score.bonded_atom import BondedAtomScoreGraph
 
-def test_lj_welldepth():
+import tmol.score.ljlk.torch_potential as torch_potential
+
+
+def test_lj_welldepth_smoketest():
+    """Check cpp potential against expected value.
+
+    Value reported by the cpp potential implementation should match the
+    expected well depth from atom type paramters.
+    """
     import tmol.score.ljlk.cpp_potential as cpp_potential
 
     params = LJLKParamResolver.from_database(
@@ -35,3 +50,102 @@ def test_lj_welldepth():
     )
 
     torch.testing.assert_allclose(depth, pval, rtol=5e-3, atol=0)
+
+
+def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
+    import tmol.score.ljlk.cpp_potential as cpp_potential
+
+    @reactive_attrs
+    class DataGraph(CartesianAtomicCoordinateProvider, BondedAtomScoreGraph):
+        pass
+
+    ubq_g = DataGraph.build_for(ubq_system, device=torch_device)
+
+    params = LJLKParamResolver.from_database(
+        ParameterDatabase.get_default().scoring.ljlk, ubq_g.device
+    )
+
+    coords = ubq_g.coords[0].detach()
+    type_strs = ubq_g.atom_types[0]
+    bonded_path_length = torch.tensor(ubq_g.bonded_path_length[0])
+
+    bonded_path_length[bonded_path_length > 6] = 255
+    bonded_path_length = bonded_path_length.to(device=torch_device, dtype=torch.uint8)
+
+    types = params.type_idx(type_strs)
+    types[type_strs == None] = -1  # noqa
+    types = torch.tensor(types).to(device=torch_device)
+
+    # prev score form
+    a = coords[:, None]
+    a_t = types[:, None]
+    b = coords[None, :]
+    b_t = types[None, :]
+
+    pparams = params.pair_params[a_t, b_t]
+
+    assert coords.device == torch_device
+
+    def bsync(f):
+        if torch_device.type == "cuda":
+
+            @functools.wraps(f)
+            def syncf():
+                try:
+                    return f()
+                finally:
+                    torch.cuda.synchronize()
+
+            return syncf
+        else:
+            return f
+
+    @subfixture(benchmark)
+    @bsync
+    def torch_impl():
+        delta = (a[..., 0] - b[..., 0], a[..., 1] - b[..., 1], a[..., 2] - b[..., 2])
+        dists = torch.sqrt(
+            delta[0] * delta[0] + delta[1] * delta[1] + delta[2] * delta[2]
+        )
+
+        pscore = torch_potential.lj_score(
+            dists,
+            bonded_path_length,
+            lj_sigma=pparams.lj_sigma,
+            lj_switch_slope=pparams.lj_switch_slope,
+            lj_switch_intercept=pparams.lj_switch_intercept,
+            lj_coeff_sigma12=pparams.lj_coeff_sigma12,
+            lj_coeff_sigma6=pparams.lj_coeff_sigma6,
+            lj_spline_y0=pparams.lj_spline_y0,
+            lj_spline_dy0=pparams.lj_spline_dy0,
+            # Global params
+            lj_switch_dis2sigma=params.global_params.lj_switch_dis2sigma,
+            spline_start=params.global_params.spline_start,
+            max_dis=params.global_params.max_dis,
+        )
+
+        return torch.triu(pscore, diagonal=1)
+
+    torch_impl[torch.isnan(torch_impl)] = 0.0
+
+    @subfixture(benchmark)
+    @bsync
+    def cpp_impl():
+        return cpp_potential.lj_intra(
+            coords,
+            types,
+            bonded_path_length,
+            lj_sigma=params.pair_params.lj_sigma,
+            lj_switch_slope=params.pair_params.lj_switch_slope,
+            lj_switch_intercept=params.pair_params.lj_switch_intercept,
+            lj_coeff_sigma12=params.pair_params.lj_coeff_sigma12,
+            lj_coeff_sigma6=params.pair_params.lj_coeff_sigma6,
+            lj_spline_y0=params.pair_params.lj_spline_y0,
+            lj_spline_dy0=params.pair_params.lj_spline_dy0,
+            # Global params
+            lj_switch_dis2sigma=params.global_params.lj_switch_dis2sigma,
+            spline_start=params.global_params.spline_start,
+            max_dis=params.global_params.max_dis,
+        )
+
+    torch.testing.assert_allclose(torch_impl, cpp_impl)
