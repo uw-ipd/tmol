@@ -76,9 +76,9 @@ def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
     def score_graph():
         score_graph = LJLKGraph(**graph_params)
 
-        # Non-coordinate depdendent components for scoring
+        # Non-coordinate dependendent components for scoring
         score_graph.ljlk_atom_pair_params
-        score_graph.ljlk_interaction_weight
+        score_graph.ljlk_bonded_path_length
 
         return score_graph
 

@@ -15,7 +15,7 @@ from tmol.types.functional import validate_args
 
 from tmol.database.scoring.ljlk import LJLKDatabase
 
-from . import potentials
+from . import torch_potential
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -167,7 +167,7 @@ class LJLKParamResolver(ValidateAttrs):
 
         # Broadcast N atom type parameters against itself, resolving an [N,N]
         # type pair parameter tensor group.
-        pair_params = potentials.render_pair_parameters(
+        pair_params = torch_potential.render_pair_parameters(
             global_params, type_params.reshape((-1, 1)), type_params.reshape((1, -1))
         )
 
