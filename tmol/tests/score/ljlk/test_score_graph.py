@@ -5,10 +5,13 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.ljlk import LJLKScoreGraph
+from tmol.score.ljlk.score_graph import LJLKScoreGraph
+from tmol.score.ljlk.jit_score_graph import JitLJLKScoreGraph
 from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 
 from tmol.utility.reactive import reactive_attrs
+
+from tmol.tests.benchmark import subfixture
 
 
 @reactive_attrs
@@ -105,3 +108,38 @@ def test_ljlk_database_clone_factory(ubq_system):
     )
     assert clone.ljlk_database is not src.ljlk_database
     assert clone.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
+
+
+def test_jit_graph(benchmark, torch_device, ubq_system):
+    @reactive_attrs
+    class LJLKGraph(
+        CartesianAtomicCoordinateProvider,
+        BlockedInteratomicDistanceGraph,
+        LJLKScoreGraph,
+    ):
+        pass
+
+    @reactive_attrs
+    class JitLJLKGraph(JitLJLKScoreGraph, CartesianAtomicCoordinateProvider):
+        pass
+
+    sg = LJLKGraph.build_for(ubq_system, device=torch_device, requires_grad=False)
+    jit_sg = JitLJLKGraph.build_for(
+        ubq_system, device=torch_device, requires_grad=False
+    )
+
+    # Pre-load totals
+    sg.intra_score().total
+    jit_sg.intra_score().total
+
+    @subfixture(benchmark)
+    def naive():
+        sg.reset_coords()
+        return float(sg.intra_score().total_lj)
+
+    @subfixture(benchmark)
+    def jit():
+        jit_sg.reset_coords()
+        return float(jit_sg.intra_score().total_lj)
+
+    torch.testing.assert_allclose(naive, jit)
