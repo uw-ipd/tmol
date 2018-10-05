@@ -161,7 +161,7 @@ def render_pair_parameters(
 def lj_score(
     # Pair conf/bond dependent inputs
     dist: Params,
-    interaction_weight: Params,
+    bonded_path_length: Tensor(torch.uint8)[...],
     # Pair score parameters
     lj_sigma: Params,
     lj_switch_slope: Params,
@@ -210,8 +210,14 @@ def lj_score(
         + spline_fade_component * spline_fade_selector.to(real)
     )
 
+    interaction_weight = torch.where(
+        bonded_path_length == 4,
+        raw_lj.new_full((1,), .2, requires_grad=False),
+        raw_lj.new_full((1,), 1, requires_grad=False),
+    )
+
     return torch.where(
-        interaction_weight > 0,
+        ~torch.isnan(lj_sigma) & (bonded_path_length > 3),
         interaction_weight * raw_lj,
         interaction_weight.new_zeros(1, requires_grad=False),
     )
@@ -221,7 +227,7 @@ def lj_score(
 def lk_score(
     # Pair conf/bond dependent inputs
     dist: Params,
-    interaction_weight: Params,
+    bonded_path_length: Tensor(torch.uint8)[...],
     # Pair score parameters
     lj_rad1: Params,
     lj_rad2: Params,
@@ -294,8 +300,14 @@ def lk_score(
         + far_spline_component * far_spline_selector.to(real)
     )
 
+    interaction_weight = torch.where(
+        bonded_path_length == 4,
+        raw_lk.new_full((1,), .2, requires_grad=False),
+        raw_lk.new_full((1,), 1, requires_grad=False),
+    )
+
     return torch.where(
-        interaction_weight > 0,
+        ~torch.isnan(lk_coeff1) & (bonded_path_length > 3),
         interaction_weight * raw_lk,
-        interaction_weight.new_zeros(1, requires_grad=False),
+        raw_lk.new_zeros(1, requires_grad=False),
     )

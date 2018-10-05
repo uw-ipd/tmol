@@ -1,5 +1,6 @@
 from typing import Optional
 
+import math
 import torch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -18,7 +19,7 @@ from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
 from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 
-from .potentials import lj_score, lk_score
+from .torch_potential import lj_score, lk_score
 from .params import LJLKParamResolver, LJLKTypePairParams
 
 
@@ -33,8 +34,8 @@ class LJLKIntraParam(IntraScore):
         return target.atom_pair_dist
 
     @reactive_property
-    def ljlk_interaction_weight(target) -> Tensor(torch.float)[:, :, :]:
-        return target.ljlk_interaction_weight
+    def ljlk_bonded_path_length(target) -> Tensor(torch.uint8)[:]:
+        return target.ljlk_bonded_path_length
 
     @reactive_property
     def ljlk_atom_pair_params(target) -> LJLKTypePairParams:
@@ -52,7 +53,7 @@ class LJIntraScore(LJLKIntraParam):
     def lj(
         atom_pair_inds: Tensor(torch.long)[:, 3],
         atom_pair_dist: Tensor(torch.float)[:],
-        ljlk_interaction_weight: Tensor(torch.float)[:, :, :],
+        ljlk_bonded_path_length: Tensor(torch.uint8)[:, :, :],
         ljlk_atom_pair_params: LJLKTypePairParams,
         param_resolver: LJLKParamResolver,
     ):
@@ -62,14 +63,14 @@ class LJIntraScore(LJLKIntraParam):
         assert (atom_pair_inds[:, 0] == 0).all()
         pidx = (atom_pair_inds[:, 1], atom_pair_inds[:, 2])
 
-        assert ljlk_interaction_weight.shape[0] == 1
-        ljlk_interaction_weight = ljlk_interaction_weight[0]
+        assert ljlk_bonded_path_length.shape[0] == 1
+        ljlk_bonded_path_length = ljlk_bonded_path_length[0]
 
         return lj_score(
             # Distance
             dist=atom_pair_dist,
             # Bonded params
-            interaction_weight=ljlk_interaction_weight[pidx],
+            bonded_path_length=ljlk_bonded_path_length[pidx],
             # Pair params
             lj_sigma=pparams.lj_sigma[pidx],
             lj_switch_slope=pparams.lj_switch_slope[pidx],
@@ -106,7 +107,7 @@ class LKIntraScore(LJLKIntraParam):
     def lk(
         atom_pair_inds: Tensor(torch.long)[:, 3],
         atom_pair_dist: Tensor(torch.float)[:],
-        ljlk_interaction_weight: Tensor(torch.float)[:, :, :],
+        ljlk_bonded_path_length: Tensor(torch.uint8)[:, :, :],
         ljlk_atom_pair_params: LJLKTypePairParams,
         param_resolver: LJLKParamResolver,
     ):
@@ -116,14 +117,14 @@ class LKIntraScore(LJLKIntraParam):
         assert (atom_pair_inds[:, 0] == 0).all()
         pidx = (atom_pair_inds[:, 1], atom_pair_inds[:, 2])
 
-        assert ljlk_interaction_weight.shape[0] == 1
-        ljlk_interaction_weight = ljlk_interaction_weight[0]
+        assert ljlk_bonded_path_length.shape[0] == 1
+        ljlk_bonded_path_length = ljlk_bonded_path_length[0]
 
         return lk_score(
             # Distance
             dist=atom_pair_dist,
             # Bonded params
-            interaction_weight=ljlk_interaction_weight[pidx],
+            bonded_path_length=ljlk_bonded_path_length[pidx],
             # Pair params
             lj_rad1=pparams.lj_rad1[pidx],
             lj_rad2=pparams.lj_rad2[pidx],
@@ -200,27 +201,15 @@ class LJLKScoreGraph(
 
     @reactive_property
     @validate_args
-    def ljlk_interaction_weight(
-        bonded_path_length: NDArray("f4")[:, :, :],
-        real_atoms: Tensor(bool)[:, :],
-        device: torch.device,
-    ) -> Tensor(torch.float)[:, :, :]:
+    def ljlk_bonded_path_length(
+        bonded_path_length: NDArray("f4")[:, :, :], device: torch.device
+    ) -> Tensor(torch.uint8)[:, :, :]:
         """lj&lk interaction weight, bonded cutoff"""
 
-        bonded_path_length = torch.from_numpy(bonded_path_length).to(device)
-
-        result = bonded_path_length.new_ones(
-            bonded_path_length.shape, dtype=torch.float
+        bpl = torch.from_numpy(bonded_path_length)
+        return torch.where(bpl != math.inf, bpl, bpl.new_full((1,), 128)).to(
+            device=device, dtype=torch.uint8
         )
-
-        real_atoms = real_atoms.to(device=device)
-
-        result[bonded_path_length < 4] = 0
-        result[bonded_path_length == 4] = .2
-        result = result.where(real_atoms[:, None, :], result.new_full((1,), 0))
-        result = result.where(real_atoms[:, :, None], result.new_full((1,), 0))
-
-        return result
 
     @reactive_property
     @validate_args
