@@ -1,3 +1,4 @@
+import torch
 import os.path
 import tmol.utility.cpp_extension
 
@@ -6,13 +7,16 @@ cpu = tmol.utility.cpp_extension.load(
     [os.path.join(os.path.dirname(__file__), f) for f in ("cpp_potential.cpu.cpp",)],
 )
 
-cuda = tmol.utility.cpp_extension.load(
-    (__name__ + ".cuda").replace(".", "_"),
-    [
-        os.path.join(os.path.dirname(__file__), f)
-        for f in ("cpp_potential.cuda.cpp", "cpp_potential.cuda.cu")
-    ],
-)
+if torch.cuda.is_available():
+    cuda = tmol.utility.cpp_extension.load(
+        (__name__ + ".cuda").replace(".", "_"),
+        [
+            os.path.join(os.path.dirname(__file__), f)
+            for f in ("cpp_potential.cuda.cpp", "cpp_potential.cuda.cu")
+        ],
+    )
+else:
+    cuda = None
 
 
 def lj_intra(
