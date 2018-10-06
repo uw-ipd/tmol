@@ -41,7 +41,9 @@ HEADER_EXTENSIONS = [".h", ".hxx", "hpp", ".hh"]
 torch_paths = subprocess.check_output(
     "python -c "
     "'import torch.utils.cpp_extension; "
-    'print("\\n".join(torch.utils.cpp_extension.include_paths(True)))\'',
+    'print("\\n".join( '
+    "torch.utils.cpp_extension.include_paths(torch.cuda.is_available())"
+    "))'",
     shell=True,
     universal_newlines=True,
 ).splitlines()

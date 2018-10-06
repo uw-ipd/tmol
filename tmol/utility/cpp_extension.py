@@ -1,14 +1,15 @@
-import os
-
 from functools import wraps
+import warnings
 
 from ..extern import include_paths as extern_include_paths
 from .. import include_paths as tmol_include_paths
 
 import torch.utils.cpp_extension
 
-os.environ.update(CXX="g++")
 
+warnings.filterwarnings(
+    "ignore", message=r"(\n|.)*\(c\+\+\) may be ABI-incompatible with PyTorch"
+)
 
 _default_include_paths = tmol_include_paths() + extern_include_paths()
 
