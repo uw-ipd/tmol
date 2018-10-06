@@ -1,5 +1,6 @@
 ipykernel
 numba
 seaborn
+sympy
 biopython
 line_profiler
