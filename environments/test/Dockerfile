@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.1-runtime-ubuntu16.04
+FROM nvidia/cuda:9.1-devel-ubuntu16.04
 
 ### Install Conda
 # Installation steps from https://hub.docker.com/r/continuumio/miniconda3/~/dockerfile/
