@@ -1,5 +1,9 @@
 import functools
 
+import numpy
+import scipy.optimize
+import pandas
+
 import torch
 
 from tmol.utility.reactive import reactive_attrs
@@ -34,7 +38,7 @@ def test_lj_welldepth_smoketest():
     dmin = at.lj_radius + bt.lj_radius
     depth = -(at.lj_wdepth + bt.lj_wdepth) / 2
 
-    pval = cpp_potential.cpu.lj_potential(
+    pval = cpp_potential.cpu.lj(
         dmin,
         10,
         pparams.lj_sigma,
@@ -50,6 +54,62 @@ def test_lj_welldepth_smoketest():
     )
 
     torch.testing.assert_allclose(depth, pval, rtol=5e-3, atol=0)
+
+
+def lj_gradcheck():
+    """Generate gradcheck summary frame for lj potential.
+
+    See dependent analysis in dev/score/ljlj/lj_backward.
+    """
+    import tmol.score.ljlk.cpp_potential as cpp_potential
+
+    lj = numpy.vectorize(cpp_potential.cpu.lj)
+    d_lj_d_dist = numpy.vectorize(cpp_potential.cpu.d_lj_d_dist)
+
+    params = LJLKParamResolver.from_database(
+        ParameterDatabase.get_default().scoring.ljlk, torch.device("cpu")
+    )
+
+    pparams = params.pair_params[1, 8]
+
+    input_params = (
+        numpy.array([10], dtype="u1"),
+        pparams.lj_sigma,
+        pparams.lj_switch_slope,
+        pparams.lj_switch_intercept,
+        pparams.lj_coeff_sigma12,
+        pparams.lj_coeff_sigma6,
+        pparams.lj_spline_y0,
+        pparams.lj_spline_dy0,
+        params.global_params.lj_switch_dis2sigma,
+        params.global_params.spline_start,
+        params.global_params.max_dis,
+    )
+
+    dist = numpy.linspace(0, 6.1, 100)
+
+    numeric = numpy.concatenate(
+        [scipy.optimize.approx_fprime([p], lj, 1e-4, *input_params) for p in dist]
+    )
+    analytic = numpy.concatenate([d_lj_d_dist(p, *input_params) for p in dist])
+
+    gradcheck = pandas.DataFrame.from_dict(
+        dict(dist=dist, numeric=numeric, analytic=analytic)
+    )
+    gradcheck = gradcheck.eval("absolute = numeric - analytic")
+    gradcheck = gradcheck.eval("relative = (numeric - analytic) / analytic")
+
+    return gradcheck
+
+
+def test_lj_gradcheck():
+    """Gradcheck lj potential wrt distance."""
+
+    gradcheck = lj_gradcheck()
+
+    torch.testing.assert_allclose(
+        gradcheck.numeric, gradcheck.analytic, rtol=7.5e-3, atol=1e-4
+    )
 
 
 def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
