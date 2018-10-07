@@ -60,6 +60,13 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def("lj", &lj<float, uint8_t>, "LJ potential.", "dist"_a, LJ_PARAM_PYARGS);
 
   m.def(
+      "d_lj_d_dist",
+      &d_lj_d_dist<float, uint8_t>,
+      "LJ potential derivative.",
+      "dist"_a,
+      LJ_PARAM_PYARGS);
+
+  m.def(
       "lj_intra",
       &lj_intra<float, int64_t, uint8_t>,
       "LJ intra-coordinate score.",
