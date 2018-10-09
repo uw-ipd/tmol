@@ -2,7 +2,7 @@
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace lj {
 
 at::Tensor lj_intra_cuda(
     at::Tensor coords_t,
