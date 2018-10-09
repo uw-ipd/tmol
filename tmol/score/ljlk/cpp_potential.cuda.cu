@@ -9,7 +9,7 @@
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace lj {
 
 void __global__ lj_intra_kernel(
     tmol::PackedTensorAccessor<Eigen::Vector3f, 2> coords,
@@ -53,7 +53,7 @@ void __global__ lj_intra_kernel(
   Eigen::Vector3f delta = a - b;
   auto dist = std::sqrt(delta.dot(delta));
 
-  out[i][j] = lj_potential(
+  out[i][j] = lj(
       dist,
       bonded_path_length[i][j],
       lj_sigma[at][bt],
