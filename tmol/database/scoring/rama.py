@@ -2,6 +2,10 @@ import attr
 import cattr
 import json
 import toolz.functoolz
+import zarr
+import numpy
+import os
+import shutil
 
 from typing import Tuple
 
@@ -13,19 +17,14 @@ from tmol.numeric.bspline import BSplineInterpolation
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class RamaEntry:
-    phi: float
-    psi: float
-    prob: float
-    energy: float
-
-
-@attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaTable:
     name: str
     phi_step: float
     psi_step: float
-    entries: Tuple[RamaEntry, ...]
+    phi_start: float
+    psi_start: float
+    probabilities: Tuple[Tuple[float, ...], ...]
+    energies: Tuple[Tuple[float, ...], ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -179,10 +178,36 @@ class RamaDatabase:
         return "RamaDatabase(%s)" % self.sourcefilepath
 
     @classmethod
-    def from_file(cls, path):
-        with open(path, "r") as infile:
-            raw = json.load(infile)
-        prelim_rep = cattr.structure(raw, RamaDBFromText)
+    def from_file(cls, path, read_binary=True, write_binary=True):
+        """Load Ramachandran tables from JSON.
+
+        All tables in the json file must have the same phi & psi step sizes.
+        If there is a zarr binary representation of the data already
+        present, then load from that instead of the JSON file. If the
+        zarr binary representation of the data is not yet present, then
+        save the binary format.
+        """
+        bin_fname = cls.binary_filename_for_path(path)
+        if os.path.isdir(bin_fname) and read_binary:
+            prelim_rep = cls.load_textrep_from_binary(path)
+        else:
+            with open(path, "r") as infile:
+                raw = json.load(infile)
+            prelim_rep = cattr.structure(raw, RamaDBFromText)
+            for i, tab in enumerate(prelim_rep.tables):
+                if i == 0:
+                    phi_step = tab.phi_step
+                    psi_step = tab.psi_step
+                assert phi_step == tab.phi_step
+                assert psi_step == tab.psi_step
+
+        instance = cls.from_ramadb_from_text(path, prelim_rep)
+        if not os.path.isdir(bin_fname) and write_binary:
+            instance.save_to_binary()
+        return instance
+
+    @classmethod
+    def from_ramadb_from_text(cls, path, prelim_rep):
         mapper = RamaMapper.from_eval_mapping_and_table_list(
             prelim_rep.evaluation_mappings, prelim_rep.tables
         )
@@ -192,6 +217,74 @@ class RamaDatabase:
             evaluation_mappings=prelim_rep.evaluation_mappings,
             mapper=mapper,
         )
+
+    @classmethod
+    def binary_filename_for_path(cls, path):
+        return path + ".bin"
+
+    @classmethod
+    def clear_binary_rep_for_file(cls, path):
+        bin_fname = cls.binary_filename_for_path(path)
+        if os.path.isdir(bin_fname):
+            shutil.rmtree(bin_fname)
+
+    def save_to_binary(self):
+        # save the tables to binary
+        zarr_group = zarr.group(self.binary_filename_for_path(self.sourcefilepath))
+        table_names = []
+        for table in self.tables:
+            table_names.append(table.name)
+            tgroup = zarr_group.create_group(table.name)
+            tgroup.attrs["phi_step"] = table.phi_step
+            tgroup.attrs["psi_step"] = table.psi_step
+            tgroup.attrs["phi_start"] = table.phi_start
+            tgroup.attrs["psi_start"] = table.psi_start
+            tgroup.array("probabilities", numpy.array(table.probabilities))
+            tgroup.array("energies", numpy.array(table.energies))
+        zarr_group.attrs["tables"] = table_names
+        zarr_group.attrs["eval_map"] = [
+            (x.condition, x.table_name) for x in self.evaluation_mappings
+        ]
+
+    @classmethod
+    def load_textrep_from_binary(cls, path):
+        zarr_group = zarr.group(cls.binary_filename_for_path(path))
+        tables = []
+        evaluation_mappings = []
+        table_names = zarr_group.attrs["tables"]
+        for table_name in table_names:
+            tgroup = zarr_group[table_name]
+            phi_step = tgroup.attrs["phi_step"]
+            psi_step = tgroup.attrs["psi_step"]
+            phi_start = tgroup.attrs["phi_start"]
+            psi_start = tgroup.attrs["psi_start"]
+            prob_table = tgroup["probabilities"][:]
+            engy_table = tgroup["energies"][:]
+
+            prob_tuple = tuple(
+                [tuple(prob_table[i, :]) for i in range(prob_table.shape[0])]
+            )
+            engy_tuple = tuple(
+                [tuple(engy_table[i, :]) for i in range(engy_table.shape[0])]
+            )
+            tables.append(
+                RamaTable(
+                    name=table_name,
+                    phi_step=phi_step,
+                    psi_step=psi_step,
+                    phi_start=phi_start,
+                    psi_start=psi_start,
+                    probabilities=prob_tuple,
+                    energies=engy_tuple,
+                )
+            )
+        tables = tuple(tables)
+        mappings = zarr_group.attrs["eval_map"]
+        eval_mappings = tuple(
+            EvaluationMapping(condition=emap[0], table_name=emap[1])
+            for emap in mappings
+        )
+        return RamaDBFromText(tables=tables, evaluation_mappings=eval_mappings)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -220,13 +313,17 @@ class CompactedRamaDatabase:
         table = torch.full(
             (len(ramadb.tables), 36, 36), -1234, dtype=torch.float, device=device
         )
+
         for i, tab in enumerate(ramadb.tables):
-            for entry in tab.entries:
-                phi_i = int(entry.phi) // 10 + 18
-                psi_i = int(entry.psi) // 10 + 18
-                assert phi_i < 36 and psi_i < 36
-                assert phi_i >= 0 and psi_i >= 0
-                table[i, phi_i, psi_i] = entry.prob
+            n_rows = int(360 // tab.psi_step)
+            n_cols = 360 // tab.phi_step
+            assert len(tab.probabilities) == n_rows
+            for j, psi_row in enumerate(tab.probabilities):
+                assert len(tab.probabilities) == n_cols
+                for k, phi_psi_prob in enumerate(psi_row):
+                    phi_ind = k
+                    psi_ind = n_rows - j - 1
+                    table[i, phi_ind, psi_ind] = phi_psi_prob
 
         # exp of the -energies should get back to the original probabilities
         # so we can calculate the table entropies
