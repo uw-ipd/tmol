@@ -4,6 +4,8 @@ import json
 import toolz.functoolz
 import zarr
 import numpy
+import os
+import shutil
 
 from typing import Tuple
 
@@ -176,21 +178,33 @@ class RamaDatabase:
         return "RamaDatabase(%s)" % self.sourcefilepath
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path, read_binary=True, write_binary=True):
         """Load Ramachandran tables from JSON.
 
-        All tables in the json file must have the same phi & psi step sizes"""
-        with open(path, "r") as infile:
-            raw = json.load(infile)
-        prelim_rep = cattr.structure(raw, RamaDBFromText)
-        for i, tab in enumerate(prelim_rep.tables):
-            if i == 0:
-                phi_step = tab.phi_step
-                psi_step = tab.psi_step
-            assert phi_step == tab.phi_step
-            assert psi_step == tab.psi_step
+        All tables in the json file must have the same phi & psi step sizes.
+        If there is a zarr binary representation of the data already
+        present, then load from that instead of the JSON file. If the
+        zarr binary representation of the data is not yet present, then
+        save the binary format.
+        """
+        bin_fname = cls.binary_filename_for_path(path)
+        if os.path.isdir(bin_fname) and read_binary:
+            prelim_rep = cls.load_textrep_from_binary(path)
+        else:
+            with open(path, "r") as infile:
+                raw = json.load(infile)
+            prelim_rep = cattr.structure(raw, RamaDBFromText)
+            for i, tab in enumerate(prelim_rep.tables):
+                if i == 0:
+                    phi_step = tab.phi_step
+                    psi_step = tab.psi_step
+                assert phi_step == tab.phi_step
+                assert psi_step == tab.psi_step
 
-        return cls.from_ramadb_from_text(path, prelim_rep)
+        instance = cls.from_ramadb_from_text(path, prelim_rep)
+        if not os.path.isdir(bin_fname) and write_binary:
+            instance.save_to_binary()
+        return instance
 
     @classmethod
     def from_ramadb_from_text(cls, path, prelim_rep):
@@ -204,31 +218,73 @@ class RamaDatabase:
             mapper=mapper,
         )
 
+    @classmethod
+    def binary_filename_for_path(cls, path):
+        return path + ".bin"
+
+    @classmethod
+    def clear_binary_rep_for_file(cls, path):
+        bin_fname = cls.binary_filename_for_path(path)
+        if os.path.isdir(bin_fname):
+            shutil.rmtree(bin_fname)
+
     def save_to_binary(self):
         # save the tables to binary
-        zarr_group = zarr.group(self.sourcefilepath + ".bin")
+        zarr_group = zarr.group(self.binary_filename_for_path(self.sourcefilepath))
         table_names = []
         for table in self.tables:
             table_names.append(table.name)
             tgroup = zarr_group.create_group(table.name)
             tgroup.attrs["phi_step"] = table.phi_step
             tgroup.attrs["psi_step"] = table.psi_step
-            nphi = int(360 / table.phi_step)
-            npsi = int(360 / table.psi_step)
-            numpy_prob_table = numpy.zeros((nphi, npsi), dtype=numpy.float64)
-            numpy_e_table = numpy.zeros((nphi, npsi), dtype=numpy.float64)
-            for i, psi_row in enumerate(table.probabilities):
-                for j, phi_psi_val in enumerate(psi_row):
-                    numpy_prob_table[i, j] = phi_psi_val
-            z_prob_table = tgroup.array("probabilities", numpy_prob_table)
-            for i, psi_row in enumerate(table.energies):
-                for j, phi_psi_val in enumerate(psi_row):
-                    numpy_e_table[i, j] = phi_psi_val
-            z_e_table = tgroup.array("energies", numpy_prob_table)
+            tgroup.attrs["phi_start"] = table.phi_start
+            tgroup.attrs["psi_start"] = table.psi_start
+            tgroup.array("probabilities", numpy.array(table.probabilities))
+            tgroup.array("energies", numpy.array(table.energies))
         zarr_group.attrs["tables"] = table_names
         zarr_group.attrs["eval_map"] = [
             (x.condition, x.table_name) for x in self.evaluation_mappings
         ]
+
+    @classmethod
+    def load_textrep_from_binary(cls, path):
+        zarr_group = zarr.group(cls.binary_filename_for_path(path))
+        tables = []
+        evaluation_mappings = []
+        table_names = zarr_group.attrs["tables"]
+        for table_name in table_names:
+            tgroup = zarr_group[table_name]
+            phi_step = tgroup.attrs["phi_step"]
+            psi_step = tgroup.attrs["psi_step"]
+            phi_start = tgroup.attrs["phi_start"]
+            psi_start = tgroup.attrs["psi_start"]
+            prob_table = tgroup["probabilities"][:]
+            engy_table = tgroup["energies"][:]
+
+            prob_tuple = tuple(
+                [tuple(prob_table[i, :]) for i in range(prob_table.shape[0])]
+            )
+            engy_tuple = tuple(
+                [tuple(engy_table[i, :]) for i in range(engy_table.shape[0])]
+            )
+            tables.append(
+                RamaTable(
+                    name=table_name,
+                    phi_step=phi_step,
+                    psi_step=psi_step,
+                    phi_start=phi_start,
+                    psi_start=psi_start,
+                    probabilities=prob_tuple,
+                    energies=engy_tuple,
+                )
+            )
+        tables = tuple(tables)
+        mappings = zarr_group.attrs["eval_map"]
+        eval_mappings = tuple(
+            EvaluationMapping(condition=emap[0], table_name=emap[1])
+            for emap in mappings
+        )
+        return RamaDBFromText(tables=tables, evaluation_mappings=eval_mappings)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

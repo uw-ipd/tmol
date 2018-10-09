@@ -1,23 +1,62 @@
 import numpy
 import torch
 import zarr
+import os
 
 from tmol.database.scoring.rama import RamaDatabase, CompactedRamaDatabase
 from tmol.database import ParameterDatabase
 
 
 def test_rama_from_json():
-    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
+    fname = "tmol/database/default/scoring/rama.json"
+    ramadb = RamaDatabase.from_file(fname, read_binary=False, write_binary=False)
     assert len(ramadb.tables) == 40
 
 
 def test_save_rama_with_zarr():
-    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
+    # setup
+    fname = "tmol/database/default/scoring/rama.json"
+    temp_fname = "temp_rama.json"
+    RamaDatabase.clear_binary_rep_for_file(temp_fname)
+    if os.path.isfile(temp_fname):
+        os.remove(temp_fname)
+    os.system("ln -s %s %s" % (fname, temp_fname))
+
+    ramadb = RamaDatabase.from_file(temp_fname, read_binary=False, write_binary=True)
     assert len(ramadb.tables) == 40
-    ramadb.save_to_binary()
-    zgroup = zarr.group(ramadb.sourcefilepath + ".bin")
+    zgroup = zarr.group(ramadb.binary_filename_for_path(temp_fname))
     assert "LAA_ALA_STANDARD" in zgroup
     assert "LAA_ALA_STANDARD" in zgroup.attrs["tables"]
+
+    # clean up
+    os.remove(temp_fname)
+    RamaDatabase.clear_binary_rep_for_file(temp_fname)
+
+
+def test_rama_with_zarr_matches_rama_from_json():
+    # setup
+    fname = "tmol/database/default/scoring/rama.json"
+    temp_fname = "temp_rama.json"
+    RamaDatabase.clear_binary_rep_for_file(temp_fname)
+    if os.path.isfile(temp_fname):
+        os.remove(temp_fname)
+    os.system("ln -s %s %s" % (fname, temp_fname))
+
+    ramadb_from_json = RamaDatabase.from_file(
+        fname, read_binary=False, write_binary=False
+    )
+    assert len(ramadb_from_json.tables) == 40
+
+    ramadb_from_binary = RamaDatabase.from_file(fname, read_binary=True)
+    for i, json_table in enumerate(ramadb_from_json.tables):
+        bin_table = ramadb_from_binary.tables[i]
+        assert json_table.name == bin_table.name
+        assert json_table.probabilities == bin_table.probabilities
+        assert json_table.energies == bin_table.energies
+
+    # clean up
+    os.remove(temp_fname)
+    RamaDatabase.clear_binary_rep_for_file(temp_fname)
 
 
 def test_rama_mapper():
