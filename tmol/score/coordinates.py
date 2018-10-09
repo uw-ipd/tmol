@@ -35,6 +35,10 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
     # Source atomic coordinates
     coords: Tensor(torch.float)[:, :, 3]
 
+    @reactive_property
+    def coords64(coords):
+        return coords.to(torch.double)
+
     def reset_coords(self):
         """Reset coordinate state in compute graph, clearing dependent properties."""
         self.coords = self.coords
@@ -68,13 +72,13 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
     kinop: KinematicOp
 
     @reactive_property
-    def coords(
+    def coords64(
         dofs: Tensor("f4")[:], kinop: KinematicOp, system_size: int
-    ) -> Tensor("f4")[:, :, 3]:
-        """System cartesian atomic coordinates."""
+    ) -> Tensor("f8")[:, :, 3]:
+        """System cartesian atomic coordinates at double precision."""
         kincoords = kinop(dofs)
 
-        coords = torch.full(
+        coords64 = torch.full(
             (system_size, 3),
             math.nan,
             dtype=dofs.dtype,
@@ -83,9 +87,13 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
             requires_grad=False,
         )
 
-        coords[kinop.kintree.id[1:]] = kincoords[1:]
+        coords64[kinop.kintree.id[1:]] = kincoords[1:]
+        return coords64[None, ...]
 
-        return coords.to(torch.float)[None, ...]
+    @reactive_property
+    def coords(coords64: Tensor("f8")[:, :, 3]) -> Tensor("f4")[:, :, 3]:
+        """System cartesian atomic coordinates at single precision."""
+        return coords64.to(torch.float)
 
     def reset_coords(self):
         """Reset coordinate state in compute graph, clearing dependent properties."""

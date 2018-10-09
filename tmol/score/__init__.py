@@ -10,6 +10,7 @@ from . import (  # noqa: F401
     hbond,
     coordinates,
     viewer,  # import viewer to register io overloads
+    rama,
 )
 
 
@@ -17,6 +18,7 @@ from . import (  # noqa: F401
 class TotalScoreGraph(
     hbond.HBondScoreGraph,
     ljlk.LJLKScoreGraph,
+    rama.RamaScoreGraph,
     interatomic_distance.BlockedInteratomicDistanceGraph,
     bonded_atom.BondedAtomScoreGraph,
     device.TorchDevice,

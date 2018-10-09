@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from tmol.system.packed import PackedResidueSystem
 
@@ -29,7 +30,13 @@ def test_torsion_space_by_real_space_total_score(ubq_system):
     real_total = real_space.intra_score().total
     torsion_total = torsion_space.intra_score().total
 
-    assert (real_total == torsion_total).all()
+    # assert (real_total == torsion_total).all()
+    numpy.testing.assert_allclose(
+        real_total.detach().numpy(),
+        torsion_total.detach().numpy(),
+        atol=1e-5,
+        rtol=1e-5,
+    )
 
 
 def test_torsion_space_coord_smoke(ubq_system):
