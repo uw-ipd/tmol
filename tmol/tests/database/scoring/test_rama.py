@@ -2,8 +2,13 @@ import numpy
 import torch
 import zarr
 import os
+import pytest
 
-from tmol.database.scoring.rama import RamaDatabase, CompactedRamaDatabase
+from tmol.database.scoring.rama import (
+    RamaDatabase,
+    RamaDBFromText,
+    CompactedRamaDatabase,
+)
 from tmol.database import ParameterDatabase
 
 
@@ -112,35 +117,30 @@ def test_load_compacted_rama_once(torch_device):
     assert crama1 is crama2
 
 
-# @pytest.mark.skip(reason="Slow benchmark in yaml case, not functionally relevant.")
-# @pytest.mark.benchmark(group="rama_load", min_rounds=1)
-# @pytest.mark.parametrize("method", ["json", "yaml-loader", "yaml-cloader"])
-# def test_rama_load_benchmark(benchmark, method):
-#     import yaml
-#     import json
-#     import cattr
-#
-#     path = {
-#         "json": "tmol/database/default/scoring/rama.json",
-#         "yaml-loader": "tmol/database/default/scoring/rama.yaml",
-#         "yaml-cloader": "tmol/database/default/scoring/rama.yaml",
-#     }[method]
-#
-#     load = {
-#         "json": lambda infile: json.load(infile),
-#         "yaml-loader":
-#         # defaults to yaml.Loader
-#         lambda infile: yaml.load(infile),
-#         "yaml-cloader": lambda infile: yaml.load(infile, yaml.CLoader),
-#     }[method]
-#
-#     @benchmark
-#     def db():
-#         with open(path, "r") as infile:
-#             raw = load(infile)
-#         return cattr.structure(raw, RamaDatabase)
-#
-#     assert len(db.tables) == 40
+@pytest.mark.benchmark(group="rama_load", min_rounds=1)
+@pytest.mark.parametrize("method", ["json", "binary"])
+def test_rama_load_benchmark(benchmark, method):
+    import yaml
+    import json
+    import cattr
+
+    path = {
+        "json": "tmol/database/default/scoring/rama.json",
+        "binary": "tmol/database/default/scoring/rama.json",
+    }[method]
+
+    load = {
+        "json": lambda infile: cattr.structure(
+            json.load(open(infile, "r")), RamaDBFromText
+        ),
+        "binary": lambda infile: RamaDatabase.load_textrep_from_binary(infile),
+    }[method]
+
+    @benchmark
+    def db():
+        return load(path)
+
+    assert len(db.tables) == 40
 
 
 def test_rama_repr():
