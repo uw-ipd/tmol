@@ -1,54 +1,99 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <torch/torch.h>
+#include "Eigen/Geometry"
 #include "lj.hh"
 
 namespace tmol {
 namespace score {
 namespace lj {
 
+const int64_t BLOCK_SIZE = 8;
+
 template <typename Real, typename AtomType, typename Int>
 at::Tensor lj_intra(at::Tensor coords_t, at::Tensor types_t, LJ_PARAM_ARGS) {
-  auto out_t = coords_t.type().zeros({coords_t.size(0), coords_t.size(0)});
+  typedef Eigen::AlignedBox<Real, 3> Box;
+  typedef Eigen::Matrix<Real, 3, 1> Vector;
 
-  auto coords = tmol::reinterpret_tensor<Eigen::Vector3f, Real, 2>(coords_t);
+  auto out_t = at::zeros({coords_t.size(0), coords_t.size(0)}, coords_t.type());
+
+  auto coords = tmol::reinterpret_tensor<Vector, Real, 2>(coords_t);
   auto types = types_t.accessor<AtomType, 1>();
 
   auto out = out_t.accessor<Real, 2>();
 
   LJ_PARAM_UNPACK
 
-  for (int i = 0; i < coords.size(0); ++i) {
-    auto a = coords[i][0];
-    auto at = types[i];
+  AT_ASSERTM(
+      coords_t.size(0) % BLOCK_SIZE == 0,
+      "Coordinate size must be even multiple of target block size.");
+  int64_t num_blocks = coords_t.size(0) / BLOCK_SIZE;
 
-    if (at == -1) {
-      continue;
+  static_assert(sizeof(Box) == sizeof(Real) * 6, "");
+
+  auto box_t = at::zeros({num_blocks, 6}, coords_t.type());
+  auto boxes = tmol::reinterpret_tensor<Box, Real, 2>(box_t);
+  for (int bi = 0; bi < num_blocks; ++bi) {
+    Box block_box;
+    for (int si = 0; si < BLOCK_SIZE; ++si) {
+      block_box.extend(coords[(bi * BLOCK_SIZE) + si][0]);
     }
 
-    for (int j = i; j < coords.size(0); ++j) {
-      auto b = coords[j][0];
-      auto bt = types[j];
-      if (bt == -1) {
+    boxes[bi][0] = block_box;
+  }
+
+  for (int bi = 0; bi < num_blocks; ++bi) {
+    Box block_box = boxes[bi][0];
+    block_box.extend(
+        block_box.max() + Vector(max_dis[0], max_dis[0], max_dis[0]));
+    block_box.extend(
+        block_box.min() - Vector(max_dis[0], max_dis[0], max_dis[0]));
+
+    for (int bj = bi; bj < num_blocks; ++bj) {
+      if (!block_box.intersects(boxes[bj][0])) {
         continue;
       }
 
-      Eigen::Vector3f delta = a - b;
-      auto dist = std::sqrt(delta.dot(delta));
+      int bsi = bi * BLOCK_SIZE;
+      int bsj = bj * BLOCK_SIZE;
 
-      out[i][j] =
-          lj(dist,
-             bonded_path_length[i][j],
-             lj_sigma[at][bt],
-             lj_switch_slope[at][bt],
-             lj_switch_intercept[at][bt],
-             lj_coeff_sigma12[at][bt],
-             lj_coeff_sigma6[at][bt],
-             lj_spline_y0[at][bt],
-             lj_spline_dy0[at][bt],
-             lj_switch_dis2sigma[0],
-             spline_start[0],
-             max_dis[0]);
+      for (int i = bsi; i < bsi + BLOCK_SIZE; ++i) {
+        auto a = coords[i][0];
+        auto at = types[i];
+
+        if (at == -1) {
+          continue;
+        }
+
+        for (int j = bsj; j < bsj + BLOCK_SIZE; ++j) {
+          if (j < i) {
+            continue;
+          }
+
+          auto b = coords[j][0];
+          auto bt = types[j];
+          if (bt == -1) {
+            continue;
+          }
+
+          Vector delta = a - b;
+          auto dist = std::sqrt(delta.dot(delta));
+
+          out[i][j] =
+              lj(dist,
+                 bonded_path_length[i][j],
+                 lj_sigma[at][bt],
+                 lj_switch_slope[at][bt],
+                 lj_switch_intercept[at][bt],
+                 lj_coeff_sigma12[at][bt],
+                 lj_coeff_sigma6[at][bt],
+                 lj_spline_y0[at][bt],
+                 lj_spline_dy0[at][bt],
+                 lj_switch_dis2sigma[0],
+                 spline_start[0],
+                 max_dis[0]);
+        }
+      }
     }
   }
 
