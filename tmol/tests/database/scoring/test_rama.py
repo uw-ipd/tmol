@@ -56,8 +56,13 @@ def test_rama_with_zarr_matches_rama_from_json():
     for i, json_table in enumerate(ramadb_from_json.tables):
         bin_table = ramadb_from_binary.tables[i]
         assert json_table.name == bin_table.name
-        assert json_table.probabilities == bin_table.probabilities
-        assert json_table.energies == bin_table.energies
+        assert json_table.phi_start == bin_table.phi_start
+        assert json_table.psi_start == bin_table.psi_start
+        assert json_table.phi_step == bin_table.phi_step
+        assert json_table.psi_step == bin_table.psi_step
+        numpy.testing.assert_array_equal(
+            json_table.probabilities.numpy(), bin_table.probabilities.numpy()
+        )
 
     # clean up
     os.remove(temp_fname)
@@ -117,12 +122,22 @@ def test_load_compacted_rama_once(torch_device):
     assert crama1 is crama2
 
 
+def helper_structure_ramadbfromtext(infile):
+    from tmol.types.torch import Tensor
+    import cattr
+    import json
+
+    converter = cattr.Converter()
+    converter.register_structure_hook(
+        Tensor(torch.float)[:, :], lambda arr, _: torch.FloatTensor(arr)
+    )
+    return converter.structure(json.load(open(infile, "r")), RamaDBFromText)
+
+
 @pytest.mark.benchmark(group="rama_load", min_rounds=1)
 @pytest.mark.parametrize("method", ["json", "binary"])
 def test_rama_load_benchmark(benchmark, method):
-    import yaml
-    import json
-    import cattr
+    # import yaml
 
     path = {
         "json": "tmol/database/default/scoring/rama.json",
@@ -130,9 +145,7 @@ def test_rama_load_benchmark(benchmark, method):
     }[method]
 
     load = {
-        "json": lambda infile: cattr.structure(
-            json.load(open(infile, "r")), RamaDBFromText
-        ),
+        "json": lambda infile: helper_structure_ramadbfromtext(infile),
         "binary": lambda infile: RamaDatabase.load_textrep_from_binary(infile),
     }[method]
 

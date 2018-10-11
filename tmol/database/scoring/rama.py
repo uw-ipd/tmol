@@ -10,6 +10,7 @@ import shutil
 from typing import Tuple
 
 import torch
+
 from frozendict import frozendict
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
@@ -23,8 +24,7 @@ class RamaTable:
     psi_step: float
     phi_start: float
     psi_start: float
-    probabilities: Tuple[Tuple[float, ...], ...]
-    energies: Tuple[Tuple[float, ...], ...]
+    probabilities: Tensor(torch.float)[:, :]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -187,13 +187,18 @@ class RamaDatabase:
         zarr binary representation of the data is not yet present, then
         save the binary format.
         """
+        converter = cattr.Converter()
+        converter.register_structure_hook(
+            Tensor(torch.float)[:, :], lambda arr, _: torch.FloatTensor(arr)
+        )
+
         bin_fname = cls.binary_filename_for_path(path)
         if os.path.isdir(bin_fname) and read_binary:
             prelim_rep = cls.load_textrep_from_binary(path)
         else:
             with open(path, "r") as infile:
                 raw = json.load(infile)
-            prelim_rep = cattr.structure(raw, RamaDBFromText)
+            prelim_rep = converter.structure(raw, RamaDBFromText)
             for i, tab in enumerate(prelim_rep.tables):
                 if i == 0:
                     phi_step = tab.phi_step
@@ -230,7 +235,11 @@ class RamaDatabase:
 
     def save_to_binary(self):
         # save the tables to binary
-        zarr_group = zarr.group(self.binary_filename_for_path(self.sourcefilepath))
+
+        store = zarr.storage.LMDBStore(
+            self.binary_filename_for_path(self.sourcefilepath)
+        )
+        zarr_group = zarr.group(store=store)
         table_names = []
         for table in self.tables:
             table_names.append(table.name)
@@ -240,15 +249,17 @@ class RamaDatabase:
             tgroup.attrs["phi_start"] = table.phi_start
             tgroup.attrs["psi_start"] = table.psi_start
             tgroup.array("probabilities", numpy.array(table.probabilities))
-            tgroup.array("energies", numpy.array(table.energies))
+            # tgroup.array("energies", numpy.array(table.energies))
         zarr_group.attrs["tables"] = table_names
         zarr_group.attrs["eval_map"] = [
             (x.condition, x.table_name) for x in self.evaluation_mappings
         ]
+        store.close()
 
     @classmethod
     def load_textrep_from_binary(cls, path):
-        zarr_group = zarr.group(cls.binary_filename_for_path(path))
+        store = zarr.storage.LMDBStore(cls.binary_filename_for_path(path))
+        zarr_group = zarr.group(store=store)
         tables = []
         evaluation_mappings = []
         table_names = zarr_group.attrs["tables"]
@@ -259,14 +270,7 @@ class RamaDatabase:
             phi_start = tgroup.attrs["phi_start"]
             psi_start = tgroup.attrs["psi_start"]
             prob_table = tgroup["probabilities"][:]
-            engy_table = tgroup["energies"][:]
-
-            prob_tuple = tuple(
-                [tuple(prob_table[i, :]) for i in range(prob_table.shape[0])]
-            )
-            engy_tuple = tuple(
-                [tuple(engy_table[i, :]) for i in range(engy_table.shape[0])]
-            )
+            prob_table = torch.FloatTensor(prob_table[:])
             tables.append(
                 RamaTable(
                     name=table_name,
@@ -274,8 +278,7 @@ class RamaDatabase:
                     psi_step=psi_step,
                     phi_start=phi_start,
                     psi_start=psi_start,
-                    probabilities=prob_tuple,
-                    energies=engy_tuple,
+                    probabilities=prob_table,
                 )
             )
         tables = tuple(tables)
@@ -284,6 +287,7 @@ class RamaDatabase:
             EvaluationMapping(condition=emap[0], table_name=emap[1])
             for emap in mappings
         )
+        store.close()
         return RamaDBFromText(tables=tables, evaluation_mappings=eval_mappings)
 
 
@@ -317,13 +321,19 @@ class CompactedRamaDatabase:
         for i, tab in enumerate(ramadb.tables):
             n_rows = int(360 // tab.psi_step)
             n_cols = 360 // tab.phi_step
-            assert len(tab.probabilities) == n_rows
-            for j, psi_row in enumerate(tab.probabilities):
-                assert len(tab.probabilities) == n_cols
-                for k, phi_psi_prob in enumerate(psi_row):
+            assert tab.probabilities.shape[0] == n_rows
+            assert tab.probabilities.shape[1] == n_cols
+
+            # effectively reshaping the matrix from the human-readable,
+            # if questionably laid out, format that resembles the
+            # X and Y axis of the Ramachandran plot (where the upper-left
+            # corner is the (phi=-180,psi=+180) coordinate), to one where
+            # [0,0] refers to phi=-180, psi=-180.
+            for j in range(tab.probabilities.shape[0]):
+                for k in range(tab.probabilities.shape[1]):
                     phi_ind = k
                     psi_ind = n_rows - j - 1
-                    table[i, phi_ind, psi_ind] = phi_psi_prob
+                    table[i, phi_ind, psi_ind] = tab.probabilities[j, k]
 
         # exp of the -energies should get back to the original probabilities
         # so we can calculate the table entropies
