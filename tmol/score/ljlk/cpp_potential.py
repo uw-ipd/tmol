@@ -18,6 +18,19 @@ if torch.cuda.is_available():
 else:
     cuda = None
 
+potentials = {
+    "blocked": {
+        "cpu": cpu.lj_intra,
+        # "cuda" : cuda.lj_intra,
+    },
+    "naive": {
+        "cpu": cpu.lj_intra_naive,
+        # "cuda" : cuda.lj_intra,
+    },
+}
+
+POTENTIAL_SET = "blocked"
+
 
 def lj_intra(
     coords,
@@ -36,10 +49,7 @@ def lj_intra(
     spline_start,
     max_dis,
 ):
-    if coords.device.type == "cpu":
-        kernel = cpu.lj_intra
-    else:
-        kernel = cuda.lj_intra
+    kernel = potentials[POTENTIAL_SET][coords.device.type]
 
     return kernel(
         coords,
