@@ -20,11 +20,17 @@ from tmol.numeric.bspline import BSplineInterpolation
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaTable:
     name: str
-    phi_step: float
-    psi_step: float
-    phi_start: float
-    psi_start: float
-    probabilities: Tensor(torch.float)[:, :]
+    bb_start: Tensor(float)[:]
+    bb_step: Tensor(float)[:]
+    probabilities: Tensor(float)
+
+    @classmethod
+    def from_zarr(cls, zgroup, name):
+        table_group = zgroup[name]
+        bb_start = torch.tensor(table_group["bb_start"][:], torch.float)
+        bb_step = torch.tensor(table_group["bb_step"][:], torch.float)
+        probs = torch.tensor(table_group["probabilities"][:], torch.float)
+        return cls(name=name, bb_start=bb_start, bb_step=bb_step, probabilities=probs)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -33,10 +39,9 @@ class EvaluationMapping:
     table_name: str
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True, hash=False, repr=False)
-class RamaDBFromText:
-    tables: Tuple[RamaTable, ...]
-    evaluation_mappings: Tuple[EvaluationMapping, ...]
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class EvaluationMappings:
+    mappings: Tuple[EvaluationMapping, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -168,7 +173,7 @@ class RamaMapper:
 class RamaDatabase:
     sourcefilepath: str
     tables: Tuple[RamaTable, ...]
-    evaluation_mappings: Tuple[EvaluationMapping, ...]
+    evaluation_mappings: EvaluationMappings
     mapper: RamaMapper
 
     def __hash__(self):
@@ -178,117 +183,95 @@ class RamaDatabase:
         return "RamaDatabase(%s)" % self.sourcefilepath
 
     @classmethod
-    def from_file(cls, path, read_binary=True, write_binary=True):
-        """Load Ramachandran tables from JSON.
+    def from_files(cls, path):
+        store = zarr.ZipStore(path + "rama.bin")
+        zgroup = zarr.group(store)
+        table_list = zgroup.attrs["tables"]
+        tables = []
+        for table_name in table_list:
+            tables.append(RamaTable.from_zarr(zgroup, table_name))
 
-        All tables in the json file must have the same phi & psi step sizes.
-        If there is a zarr binary representation of the data already
-        present, then load from that instead of the JSON file. If the
-        zarr binary representation of the data is not yet present, then
-        save the binary format.
-        """
-        converter = cattr.Converter()
-        converter.register_structure_hook(
-            Tensor(torch.float)[:, :], lambda arr, _: torch.FloatTensor(arr)
-        )
+        # load the evaluation mappings from yaml
+        with open(path + "rama_mapping.yaml") as fid:
+            raw = yaml.load(fid)
+        evaluation_mappings = cattr.structure(raw, EvaluationMappings)
 
-        bin_fname = cls.binary_filename_for_path(path)
-        if os.path.isdir(bin_fname) and read_binary:
-            prelim_rep = cls.load_textrep_from_binary(path)
-        else:
-            with open(path, "r") as infile:
-                raw = json.load(infile)
-            prelim_rep = converter.structure(raw, RamaDBFromText)
-            for i, tab in enumerate(prelim_rep.tables):
-                if i == 0:
-                    phi_step = tab.phi_step
-                    psi_step = tab.psi_step
-                assert phi_step == tab.phi_step
-                assert psi_step == tab.psi_step
-
-        instance = cls.from_ramadb_from_text(path, prelim_rep)
-        if not os.path.isdir(bin_fname) and write_binary:
-            instance.save_to_binary()
-        return instance
-
-    @classmethod
-    def from_ramadb_from_text(cls, path, prelim_rep):
         mapper = RamaMapper.from_eval_mapping_and_table_list(
-            prelim_rep.evaluation_mappings, prelim_rep.tables
+            evaluation_mappings.mappings, tables
         )
         return cls(
             sourcefilepath=path,
-            tables=prelim_rep.tables,
-            evaluation_mappings=prelim_rep.evaluation_mappings,
+            tables=tables,
+            evaluation_mappings=evaluation_mappings,
             mapper=mapper,
         )
 
-    @classmethod
-    def binary_filename_for_path(cls, path):
-        return path + ".bin"
-
-    @classmethod
-    def clear_binary_rep_for_file(cls, path):
-        bin_fname = cls.binary_filename_for_path(path)
-        if os.path.isdir(bin_fname):
-            shutil.rmtree(bin_fname)
-
-    def save_to_binary(self):
-        # save the tables to binary
-
-        store = zarr.storage.LMDBStore(
-            self.binary_filename_for_path(self.sourcefilepath)
-        )
-        zarr_group = zarr.group(store=store)
-        table_names = []
-        for table in self.tables:
-            table_names.append(table.name)
-            tgroup = zarr_group.create_group(table.name)
-            tgroup.attrs["phi_step"] = table.phi_step
-            tgroup.attrs["psi_step"] = table.psi_step
-            tgroup.attrs["phi_start"] = table.phi_start
-            tgroup.attrs["psi_start"] = table.psi_start
-            tgroup.array("probabilities", numpy.array(table.probabilities))
-            # tgroup.array("energies", numpy.array(table.energies))
-        zarr_group.attrs["tables"] = table_names
-        zarr_group.attrs["eval_map"] = [
-            (x.condition, x.table_name) for x in self.evaluation_mappings
-        ]
-        store.close()
-
-    @classmethod
-    def load_textrep_from_binary(cls, path):
-        store = zarr.storage.LMDBStore(cls.binary_filename_for_path(path))
-        zarr_group = zarr.group(store=store)
-        tables = []
-        evaluation_mappings = []
-        table_names = zarr_group.attrs["tables"]
-        for table_name in table_names:
-            tgroup = zarr_group[table_name]
-            phi_step = tgroup.attrs["phi_step"]
-            psi_step = tgroup.attrs["psi_step"]
-            phi_start = tgroup.attrs["phi_start"]
-            psi_start = tgroup.attrs["psi_start"]
-            prob_table = tgroup["probabilities"][:]
-            prob_table = torch.FloatTensor(prob_table[:])
-            tables.append(
-                RamaTable(
-                    name=table_name,
-                    phi_step=phi_step,
-                    psi_step=psi_step,
-                    phi_start=phi_start,
-                    psi_start=psi_start,
-                    probabilities=prob_table,
-                )
-            )
-        tables = tuple(tables)
-        mappings = zarr_group.attrs["eval_map"]
-        eval_mappings = tuple(
-            EvaluationMapping(condition=emap[0], table_name=emap[1])
-            for emap in mappings
-        )
-        store.close()
-        return RamaDBFromText(tables=tables, evaluation_mappings=eval_mappings)
+    # @classmethod
+    # def binary_filename_for_path(cls, path):
+    #    return path + ".bin"
+    #
+    # @classmethod
+    # def clear_binary_rep_for_file(cls, path):
+    #    bin_fname = cls.binary_filename_for_path(path)
+    #    if os.path.isdir(bin_fname):
+    #        shutil.rmtree(bin_fname)
+    #
+    # def save_to_binary(self):
+    #    # save the tables to binary
+    #
+    #    store = zarr.storage.LMDBStore(
+    #        self.binary_filename_for_path(self.sourcefilepath)
+    #    )
+    #    zarr_group = zarr.group(store=store)
+    #    table_names = []
+    #    for table in self.tables:
+    #        table_names.append(table.name)
+    #        tgroup = zarr_group.create_group(table.name)
+    #        tgroup.attrs["phi_step"] = table.phi_step
+    #        tgroup.attrs["psi_step"] = table.psi_step
+    #        tgroup.attrs["phi_start"] = table.phi_start
+    #        tgroup.attrs["psi_start"] = table.psi_start
+    #        tgroup.array("probabilities", numpy.array(table.probabilities))
+    #        # tgroup.array("energies", numpy.array(table.energies))
+    #    zarr_group.attrs["tables"] = table_names
+    #    zarr_group.attrs["eval_map"] = [
+    #        (x.condition, x.table_name) for x in self.evaluation_mappings
+    #    ]
+    #    store.close()
+    #
+    # @classmethod
+    # def load_textrep_from_binary(cls, path):
+    #    store = zarr.storage.LMDBStore(cls.binary_filename_for_path(path))
+    #    zarr_group = zarr.group(store=store)
+    #    tables = []
+    #    evaluation_mappings = []
+    #    table_names = zarr_group.attrs["tables"]
+    #    for table_name in table_names:
+    #        tgroup = zarr_group[table_name]
+    #        phi_step = tgroup.attrs["phi_step"]
+    #        psi_step = tgroup.attrs["psi_step"]
+    #        phi_start = tgroup.attrs["phi_start"]
+    #        psi_start = tgroup.attrs["psi_start"]
+    #        prob_table = tgroup["probabilities"][:]
+    #        prob_table = torch.FloatTensor(prob_table[:])
+    #        tables.append(
+    #            RamaTable(
+    #                name=table_name,
+    #                phi_step=phi_step,
+    #                psi_step=psi_step,
+    #                phi_start=phi_start,
+    #                psi_start=psi_start,
+    #                probabilities=prob_table,
+    #            )
+    #        )
+    #    tables = tuple(tables)
+    #    mappings = zarr_group.attrs["eval_map"]
+    #    eval_mappings = tuple(
+    #        EvaluationMapping(condition=emap[0], table_name=emap[1])
+    #        for emap in mappings
+    #    )
+    #    store.close()
+    #    return RamaDBFromText(tables=tables, evaluation_mappings=eval_mappings)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
