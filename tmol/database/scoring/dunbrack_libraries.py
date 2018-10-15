@@ -150,7 +150,7 @@ class DunbrackRotamerLibrary:
 
     @classmethod
     def from_zarr_archive(cls, path):
-        store = zarr.ZipStore(path)
+        store = zarr.LMDBStore(path)
         zgroup = zarr.group(store=store)
         rotameric_group = zgroup["rotameric_tables"]
         table_name_list = rotameric_group.attrs["tables"]
