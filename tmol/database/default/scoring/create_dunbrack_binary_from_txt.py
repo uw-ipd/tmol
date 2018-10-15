@@ -227,7 +227,7 @@ def write_binary_version_of_dunbrack_rotamer_library(path_to_db_dir, out_path):
         "TYR": 2,
     }
 
-    store = zarr.LMDBStore(out_path)
+    store = zarr.ZipStore(out_path)
     zgroup = zarr.group(store=store)
 
     # Rotameric residues:

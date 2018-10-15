@@ -26,17 +26,19 @@ class RotamericDataForAA:
     @classmethod
     def from_zgroup(cls, zgroup):
         rotgrp = zgroup["rotameric_data"]
-        rotamers = torch.tensor(rotgrp["rotamers"], dtype=torch.long)
-        rot_probs = torch.tensor(rotgrp["probabilities"], dtype=torch.float)
-        rot_means = torch.tensor(rotgrp["means"], dtype=torch.float)
-        rot_stdvs = torch.tensor(rotgrp["stdvs"], dtype=torch.float)
+        rotamers = torch.tensor(rotgrp["rotamers"][...], dtype=torch.long)
+        rot_probs = torch.tensor(rotgrp["probabilities"][...], dtype=torch.float)
+        rot_means = torch.tensor(rotgrp["means"][...], dtype=torch.float)
+        rot_stdvs = torch.tensor(rotgrp["stdvs"][...], dtype=torch.float)
         prob_sorted_rot_inds = torch.tensor(
-            rotgrp["prob_sorted_rot_inds"], dtype=torch.long
+            rotgrp["prob_sorted_rot_inds"][...], dtype=torch.long
         )
         bb_dihe_start = torch.tensor(
-            rotgrp["backbone_dihedral_start"], dtype=torch.float
+            rotgrp["backbone_dihedral_start"][...], dtype=torch.float
         )
-        bb_dihe_step = torch.tensor(rotgrp["backbone_dihedral_step"], dtype=torch.float)
+        bb_dihe_step = torch.tensor(
+            rotgrp["backbone_dihedral_step"][...], dtype=torch.float
+        )
 
         assert len(rotamers.shape) == 2
         assert bb_dihe_start.shape[0] == bb_dihe_step.shape[0]
@@ -105,13 +107,13 @@ class SemiRotamericAADunbrackLibrary:
         non_rot_chi_step = semirot_group.attrs["nonrot_chi_step"]
         non_rot_chi_period = semirot_group.attrs["nonrot_chi_period"]
         rotameric_chi_rotamers = torch.tensor(
-            semirot_group["rotameric_chi_rotamers"], dtype=torch.long
+            semirot_group["rotameric_chi_rotamers"][...], dtype=torch.long
         )
         nonrotameric_chi_probabilities = torch.tensor(
-            semirot_group["nonrotameric_chi_probabilities"], dtype=torch.float
+            semirot_group["nonrotameric_chi_probabilities"][...], dtype=torch.float
         )
         rotamer_boundaries = torch.tensor(
-            semirot_group["rotamer_boundaries"], dtype=torch.long
+            semirot_group["rotamer_boundaries"][...], dtype=torch.long
         )
 
         rot_probs = rotameric_data.rotamer_probabilities
@@ -150,7 +152,7 @@ class DunbrackRotamerLibrary:
 
     @classmethod
     def from_zarr_archive(cls, path):
-        store = zarr.LMDBStore(path)
+        store = zarr.ZipStore(path)
         zgroup = zarr.group(store=store)
         rotameric_group = zgroup["rotameric_tables"]
         table_name_list = rotameric_group.attrs["tables"]

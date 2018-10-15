@@ -24,7 +24,7 @@ def test_load_dunbrack_from_binary(benchmark):
 
     # cProfile.run('DunbrackRotamerLibrary.from_zarr_archive("tmol/database/default/scoring/dunbrack.bin")')
 
-    assert db() != None
+    assert db != None
 
 
 if __name__ == "__main__":
