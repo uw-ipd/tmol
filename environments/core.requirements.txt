@@ -1,6 +1,5 @@
 pint
 attrs
-blosc
 cattrs
 frozendict
 zarr
