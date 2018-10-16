@@ -13,10 +13,11 @@ def write_lines_to_zarr(lines, isprepro, zgroup):
     curr_aa = None
     prob_table = numpy.zeros((36, 36), dtype=numpy.float)
     table_names = []
+    table_name = None
     for line in lines:
         cols = line.split()
         if cols[0] != curr_aa:
-            if curr_aa != None:
+            if curr_aa is not None:
                 write_rama_table_for_aa(table_name, prob_table, zgroup)
                 table_names.append(table_name)
                 prob_table = numpy.zeros((36, 36), dtype=numpy.float)

@@ -1,7 +1,5 @@
 import numpy
 import torch
-import zarr
-import os
 import pytest
 
 from tmol.database.scoring.rama import RamaDatabase, CompactedRamaDatabase
