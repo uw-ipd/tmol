@@ -3,5 +3,5 @@ attrs
 cattrs
 frozendict
 zarr
-
+blosc
 sparse==0.3.1

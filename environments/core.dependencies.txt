@@ -7,4 +7,4 @@ scipy=1.1.*
 requests
 toolz
 pyyaml
-blosc
+gcc
