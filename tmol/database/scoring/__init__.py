@@ -18,5 +18,5 @@ class ScoringDatabase:
         return cls(
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
-            rama=RamaDatabase.from_file(os.path.join(path, "rama.json")),
+            rama=RamaDatabase.from_files(os.path.join(path, "rama/")),
         )

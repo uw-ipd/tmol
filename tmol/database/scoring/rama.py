@@ -1,6 +1,8 @@
 import attr
 import cattr
-import json
+
+# import json
+import yaml
 import toolz.functoolz
 import zarr
 import numpy
@@ -27,9 +29,9 @@ class RamaTable:
     @classmethod
     def from_zarr(cls, zgroup, name):
         table_group = zgroup[name]
-        bb_start = torch.tensor(table_group["bb_start"][:], torch.float)
-        bb_step = torch.tensor(table_group["bb_step"][:], torch.float)
-        probs = torch.tensor(table_group["probabilities"][:], torch.float)
+        bb_start = torch.tensor(table_group["bb_start"][:], dtype=torch.float)
+        bb_step = torch.tensor(table_group["bb_step"][:], dtype=torch.float)
+        probs = torch.tensor(table_group["probabilities"][:], dtype=torch.float)
         return cls(name=name, bb_start=bb_start, bb_step=bb_step, probabilities=probs)
 
 
@@ -184,12 +186,13 @@ class RamaDatabase:
 
     @classmethod
     def from_files(cls, path):
-        store = zarr.ZipStore(path + "rama.bin")
+        store = zarr.ZipStore(path + ("" if path[-1] == "/" else "/") + "rama.bin")
         zgroup = zarr.group(store)
         table_list = zgroup.attrs["tables"]
         tables = []
         for table_name in table_list:
             tables.append(RamaTable.from_zarr(zgroup, table_name))
+        tables = tuple(tables)
 
         # load the evaluation mappings from yaml
         with open(path + "rama_mapping.yaml") as fid:
@@ -302,21 +305,12 @@ class CompactedRamaDatabase:
         )
 
         for i, tab in enumerate(ramadb.tables):
-            n_rows = int(360 // tab.psi_step)
-            n_cols = 360 // tab.phi_step
+            n_rows = int(360 // tab.bb_step[0].item())
+            n_cols = int(360 // tab.bb_step[1].item())
             assert tab.probabilities.shape[0] == n_rows
             assert tab.probabilities.shape[1] == n_cols
 
-            # effectively reshaping the matrix from the human-readable,
-            # if questionably laid out, format that resembles the
-            # X and Y axis of the Ramachandran plot (where the upper-left
-            # corner is the (phi=-180,psi=+180) coordinate), to one where
-            # [0,0] refers to phi=-180, psi=-180.
-            for j in range(tab.probabilities.shape[0]):
-                for k in range(tab.probabilities.shape[1]):
-                    phi_ind = k
-                    psi_ind = n_rows - j - 1
-                    table[i, phi_ind, psi_ind] = tab.probabilities[j, k]
+            table[i, :, :] = tab.probabilities
 
         # exp of the -energies should get back to the original probabilities
         # so we can calculate the table entropies
