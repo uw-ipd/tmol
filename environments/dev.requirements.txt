@@ -4,3 +4,5 @@ pytest-repeat
 pdbpp
 
 pre-commit
+
+altair
