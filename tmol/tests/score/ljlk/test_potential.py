@@ -1,5 +1,7 @@
 import functools
 
+import pytest
+
 import numpy
 import scipy.optimize
 import pandas
@@ -113,6 +115,9 @@ def test_lj_gradcheck():
 
 
 def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
+    if torch_device.type == "cuda":
+        pytest.xfail("cuda not supported")
+
     import tmol.score.ljlk.cpp_potential as cpp_potential
 
     @reactive_attrs
