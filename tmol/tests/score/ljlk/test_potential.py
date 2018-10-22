@@ -213,4 +213,4 @@ def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
             max_dis=params.global_params.max_dis,
         )
 
-    torch.testing.assert_allclose(torch_impl, cpp_impl)
+    torch.testing.assert_allclose(torch_impl.sum(), cpp_impl.sum())
