@@ -25,7 +25,7 @@ def _lj_intra_blocked(coords, **kwargs):
     # presumably performing a calloc-based allocation, rather than zeroing
     # for large allocs
     result = torch.from_numpy(numpy.zeros((coords.shape[0],) * 2, dtype="f4"))
-    block_table = cpu.block_interaction_table(coords, kwargs["max_dis"])
+    block_table = cpu.block_interaction_table(coords, kwargs["max_dis"], 8)
     return cpu.lj_intra_block(coords, result, block_table, **kwargs)
 
 
