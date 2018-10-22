@@ -85,7 +85,7 @@ def water_box_system():
 @pytest.fixture()
 def structures_bysize():
     return {
-        n: structure.TestStructure(d)
+        int(n.split("_")[1]): structure.TestStructure(d)
         for n, d in pdb.data.items()
         if n.startswith("BYSIZE")
     }
