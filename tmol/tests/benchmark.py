@@ -60,7 +60,7 @@ def make_fixture(
     logger=logging,
     warner=warnings,
     disabled=False,
-    use_cprofile=False,
+    use_cprofile=True,
     **extra_info,
 ):
     """Create a pytest_benchmark fixture.
@@ -180,3 +180,31 @@ def stat_frame_from_metadata(metadata):
 @stat_frame.register(list)
 def stat_frame_from_result_list(result_list):
     return pandas.concat(map(stat_frame, result_list))
+
+
+@singledispatch
+def stat_profile(stats):
+    """Cprofile function time dataframe of pstats.Stats."""
+
+    result = pandas.DataFrame.from_records(
+        pytest_benchmark.stats.get_cprofile_functions(stats)
+    )
+
+    result["fractime"] = result.tottime / result.tottime.sum()
+
+    return result.sort_values("tottime", ascending=False)
+
+
+@stat_profile.register(pytest_benchmark.stats.Metadata)
+def stat_profile_from_metadata(metadata):
+    result = stat_profile(metadata.cprofile_stats)
+    result["name"] = metadata.name
+    for ek, ev in metadata.extra_info.items():
+        result[ek] = ev
+
+    return result
+
+
+@stat_profile.register(list)
+def stat_profile_from_result_list(result_list):
+    return pandas.concat(map(stat_profile, result_list))
