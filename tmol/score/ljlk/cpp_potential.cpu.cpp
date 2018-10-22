@@ -8,19 +8,18 @@ namespace tmol {
 namespace score {
 namespace lj {
 
-const int64_t BLOCK_SIZE = 8;
-
 template <typename Real, typename Int>
-at::Tensor block_interaction_table(at::Tensor coords_t, Real max_dis) {
+at::Tensor block_interaction_table(
+    at::Tensor coords_t, Real max_dis, Int block_size) {
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
   auto coords = tmol::reinterpret_tensor<Vector, Real, 2>(coords_t);
 
   AT_ASSERTM(
-      coords_t.size(0) % BLOCK_SIZE == 0,
+      coords_t.size(0) % block_size == 0,
       "Coordinate size must be even multiple of target block size.");
-  int64_t num_blocks = coords_t.size(0) / BLOCK_SIZE;
+  int64_t num_blocks = coords_t.size(0) / block_size;
 
   auto out_t = at::zeros({num_blocks, num_blocks}, coords_t.type());
   auto out = out_t.accessor<Real, 2>();
@@ -30,9 +29,9 @@ at::Tensor block_interaction_table(at::Tensor coords_t, Real max_dis) {
   auto boxes = tmol::reinterpret_tensor<Box, Real, 2>(box_t);
 
   for (int bi = 0; bi < num_blocks; ++bi) {
-    int bsi = bi * BLOCK_SIZE;
+    int bsi = bi * block_size;
     Box block_box;
-    for (int i = bsi; i < bsi + BLOCK_SIZE; ++i) {
+    for (int i = bsi; i < bsi + block_size; ++i) {
       block_box.extend(coords[i][0]);
     }
 
@@ -71,12 +70,20 @@ at::Tensor lj_intra_block(
   LJ_PARAM_UNPACK
 
   AT_ASSERTM(
-      coords_t.size(0) % BLOCK_SIZE == 0,
-      "Coordinate size must be even multiple of target block size.");
+      block_table_t.size(0) == block_table_t.size(1),
+      "block_table must be square.");
+
+  AT_ASSERTM(
+      coords_t.size(0) % block_table_t.size(0) == 0,
+      "coords size must be even multiple block_table size.");
+
+  int64_t num_blocks = block_table_t.size(0);
+  Int block_size = coords_t.size(0) / block_table_t.size(0);
+
   AT_ASSERTM(
       out_t.size(0) == coords_t.size(0) && out_t.size(1) == coords_t.size(0),
       "Output buffer must be of correct size.");
-  int64_t num_blocks = coords_t.size(0) / BLOCK_SIZE;
+
   AT_ASSERTM(
       block_table_t.size(0) == num_blocks
           && block_table_t.size(1) == num_blocks,
@@ -84,14 +91,14 @@ at::Tensor lj_intra_block(
 
   for (int bi = 0; bi < num_blocks; ++bi) {
     for (int bj = bi; bj < num_blocks; ++bj) {
-      int bsi = bi * BLOCK_SIZE;
-      int bsj = bj * BLOCK_SIZE;
+      int bsi = bi * block_size;
+      int bsj = bj * block_size;
 
       if (!block_table[bi][bj] > 0) {
         continue;
       }
 
-      for (int i = bsi; i < bsi + BLOCK_SIZE; ++i) {
+      for (int i = bsi; i < bsi + block_size; ++i) {
         auto at = types[i];
         if (at == -1) {
           continue;
@@ -99,7 +106,7 @@ at::Tensor lj_intra_block(
 
         auto a = coords[i][0];
 
-        for (int j = bsj; j < bsj + BLOCK_SIZE; ++j) {
+        for (int j = bsj; j < bsj + block_size; ++j) {
           auto bt = types[j];
           if (bt == -1 || j < i) {
             continue;
@@ -129,7 +136,7 @@ at::Tensor lj_intra_block(
   }
 
   return out_t;
-}  // namespace lj
+}
 
 template <typename Real, typename AtomType, typename Int>
 at::Tensor lj_intra_naive(
@@ -198,7 +205,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &block_interaction_table<float, int64_t>,
       "Calculate coordinate-block interaction table.",
       "coords"_a,
-      "max_dis"_a);
+      "max_dis"_a,
+      "block_size"_a);
 
   m.def(
       "lj_intra_block",
