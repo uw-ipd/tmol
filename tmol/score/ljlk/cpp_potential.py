@@ -1,3 +1,4 @@
+import numpy
 import torch
 import os.path
 import tmol.utility.cpp_extension
@@ -18,9 +19,19 @@ if torch.cuda.is_available():
 else:
     cuda = None
 
+
+def _lj_intra_blocked(coords, **kwargs):
+    # Output allocation is _far_ faster via numpy for empty allocations,
+    # presumably performing a calloc-based allocation, rather than zeroing
+    # for large allocs
+    result = torch.from_numpy(numpy.zeros((coords.shape[0],) * 2, dtype="f4"))
+    block_table = cpu.block_interaction_table(coords, kwargs["max_dis"])
+    return cpu.lj_intra_block(coords, result, block_table, **kwargs)
+
+
 potentials = {
     "blocked": {
-        "cpu": cpu.lj_intra,
+        "cpu": _lj_intra_blocked
         # "cuda" : cuda.lj_intra,
     },
     "naive": {
@@ -53,18 +64,18 @@ def lj_intra(
 
     return kernel(
         coords,
-        atom_types,
-        bonded_path_length,
+        types=atom_types,
+        bonded_path_length=bonded_path_length,
         # Pair score parameters
-        lj_sigma,
-        lj_switch_slope,
-        lj_switch_intercept,
-        lj_coeff_sigma12,
-        lj_coeff_sigma6,
-        lj_spline_y0,
-        lj_spline_dy0,
+        lj_sigma=lj_sigma,
+        lj_switch_slope=lj_switch_slope,
+        lj_switch_intercept=lj_switch_intercept,
+        lj_coeff_sigma12=lj_coeff_sigma12,
+        lj_coeff_sigma6=lj_coeff_sigma6,
+        lj_spline_y0=lj_spline_y0,
+        lj_spline_dy0=lj_spline_dy0,
         # Global score parameters
-        lj_switch_dis2sigma,
-        spline_start,
-        max_dis,
+        lj_switch_dis2sigma=lj_switch_dis2sigma,
+        spline_start=spline_start,
+        max_dis=max_dis,
     )
