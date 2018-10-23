@@ -25,7 +25,7 @@ at::Tensor vector_magnitude_accessor(at::Tensor input_t) {
 at::Tensor vector_magnitude_eigen(at::Tensor input_t) {
   auto output_t = at::empty(input_t.type(), input_t.size(0));
 
-  auto input = tmol::reinterpret_tensor<Eigen::Vector3f, float, 2>(input_t);
+  auto input = tmol::view_tensor<Eigen::Vector3f, 2>(input_t);
   auto output = output_t.accessor<float, 1>();
 
   for (int64_t i = 0; i < input.size(0); ++i) {

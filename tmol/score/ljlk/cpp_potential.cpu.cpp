@@ -15,7 +15,7 @@ at::Tensor block_interaction_table(
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
-  auto coords = tmol::reinterpret_tensor<Vector, Real, 2>(coords_t);
+  auto coords = tmol::view_tensor<Vector, 2>(coords_t);
 
   AT_ASSERTM(
       coords_t.size(0) % block_size == 0,
@@ -23,11 +23,11 @@ at::Tensor block_interaction_table(
   int64_t num_blocks = coords_t.size(0) / block_size;
 
   auto out_t = at::empty({num_blocks, num_blocks}, coords_t.type());
-  auto out = out_t.accessor<Real, 2>();
+  auto out = tmol::view_tensor<Real, 2>(out_t);
 
   static_assert(sizeof(Box) == sizeof(Real) * 6, "");
   auto box_t = at::zeros({num_blocks, 6}, coords_t.type());
-  auto boxes = tmol::reinterpret_tensor<Box, Real, 2>(box_t);
+  auto boxes = tmol::view_tensor<Box, 2>(box_t);
 
   for (int bi = 0; bi < num_blocks; ++bi) {
     int bsi = bi * block_size;
@@ -58,7 +58,7 @@ at::Tensor block_interaction_lists(
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
-  auto coords = tmol::reinterpret_tensor<Vector, Real, 2>(coords_t);
+  auto coords = tmol::view_tensor<Vector, 2>(coords_t);
 
   AT_ASSERTM(
       coords_t.size(0) % block_size == 0,
@@ -68,17 +68,17 @@ at::Tensor block_interaction_lists(
   at::Tensor block_lists_t = at::empty(
       {num_blocks, num_blocks},
       at::TensorOptions(coords_t).dtype(at::CTypeToScalarType<Int>::to()));
-  auto block_lists = tmol::reinterpret_tensor<Int, Int, 2>(block_lists_t);
+  auto block_lists = tmol::view_tensor<Int, 2>(block_lists_t);
 
   at::Tensor block_list_lengths_t = at::zeros(
       {num_blocks + 1},
       at::TensorOptions(coords_t).dtype(at::CTypeToScalarType<Int>::to()));
   auto block_list_lengths =
-      tmol::reinterpret_tensor<Int, Int, 1>(block_list_lengths_t.slice(0, 1));
+      tmol::view_tensor<Int, 1>(block_list_lengths_t.slice(0, 1));
 
   static_assert(sizeof(Box) == sizeof(Real) * 6, "");
   auto box_t = at::zeros({num_blocks, 6}, coords_t.type());
-  auto boxes = tmol::reinterpret_tensor<Box, Real, 2>(box_t);
+  auto boxes = tmol::view_tensor<Box, 2>(box_t);
 
   for (int bi = 0; bi < num_blocks; ++bi) {
     int bsi = bi * block_size;
@@ -104,11 +104,11 @@ at::Tensor block_interaction_lists(
   }
 
   at::Tensor block_spans_t = block_list_lengths_t.cumsum(0);
-  auto block_spans = tmol::reinterpret_tensor<Int, Int, 1>(block_spans_t);
+  auto block_spans = tmol::view_tensor<Int, 1>(block_spans_t);
 
   at::Tensor result_t =
       at::empty({block_spans[num_blocks], 2}, block_spans_t.type());
-  auto result = tmol::reinterpret_tensor<Int, Int, 2>(result_t);
+  auto result = tmol::view_tensor<Int, 2>(result_t);
   for (int bi = 0; bi < num_blocks; ++bi) {
     for (int r = 0; r < block_list_lengths[bi]; ++r) {
       result[block_spans[bi] + r][0] = bi;
@@ -129,10 +129,9 @@ at::Tensor lj_intra_block(
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
-  auto coords = tmol::reinterpret_tensor<Vector, Real, 2>(coords_t);
-  auto block_interactions =
-      tmol::reinterpret_tensor<int64_t, int64_t, 2>(block_interactions_t);
-  auto types = types_t.accessor<AtomType, 1>();
+  auto coords = tmol::view_tensor<Vector, 2>(coords_t);
+  auto block_interactions = tmol::view_tensor<int64_t, 2>(block_interactions_t);
+  auto types = tmol::view_tensor<AtomType, 1>(types_t);
 
   LJ_PARAM_UNPACK
 
@@ -140,7 +139,7 @@ at::Tensor lj_intra_block(
 
   at::Tensor out_t =
       at::empty({num_blocks, block_size, block_size}, coords_t.type());
-  auto out = tmol::reinterpret_tensor<Real, Real, 3>(out_t);
+  auto out = tmol::view_tensor<Real, 3>(out_t);
 
   for (int bp = 0; bp < num_blocks; ++bp) {
     int bi = block_interactions[bp][0];
@@ -193,10 +192,10 @@ at::Tensor lj_intra_naive(
 
   auto out_t = at::zeros({coords_t.size(0), coords_t.size(0)}, coords_t.type());
 
-  auto coords = tmol::reinterpret_tensor<Vector, Real, 2>(coords_t);
-  auto types = types_t.accessor<AtomType, 1>();
+  auto coords = tmol::view_tensor<Vector, 2>(coords_t);
+  auto types = tmol::view_tensor<AtomType, 1>(types_t);
 
-  auto out = out_t.accessor<Real, 2>();
+  auto out = tmol::view_tensor<Real, 2>(out_t);
 
   LJ_PARAM_UNPACK
   for (int i = i; i < coords.size(0); ++i) {
