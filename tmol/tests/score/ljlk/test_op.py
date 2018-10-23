@@ -13,6 +13,8 @@ from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 import tmol.score.ljlk.torch_op as torch_op
 import tmol.score.ljlk.cpp_potential as cpp_potential
 
+from tmol.utility.tensor import block_tensor_to_dense
+
 
 @reactive_attrs
 class DataGraph(
@@ -49,9 +51,11 @@ def test_op_device(torch_device, ubq_system):
     cpp_op = torch_op.LJOp.from_params(params)
     assert cpp_op.device == torch_device
 
-    cpp_pscore = cpp_op.intra(coords, atom_types, bonded_path_length)
-    cpp_blocked_pscore = cpp_op.intra(coords, atom_types, bonded_path_length)
+    block_inds, block_scores = cpp_op.intra(coords, atom_types, bonded_path_length)
 
+    cpp_pscore = block_tensor_to_dense(
+        torch.sparse_coo_tensor(block_inds, block_scores)
+    )
     assert cpp_pscore.shape == (coords.shape[0], coords.shape[0])
 
     # Direct invocation of kernel potential
@@ -72,5 +76,5 @@ def test_op_device(torch_device, ubq_system):
         max_dis=params.global_params.max_dis,
     )
 
-    torch.testing.assert_allclose(cpp_pscore, kernel_result)
-    torch.testing.assert_allclose(cpp_blocked_pscore, kernel_result)
+    assert (block_inds == kernel_result._indices()).all()
+    torch.testing.assert_allclose(block_scores, kernel_result._values())

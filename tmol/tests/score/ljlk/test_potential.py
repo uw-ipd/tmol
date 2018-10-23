@@ -19,6 +19,8 @@ from tmol.score.bonded_atom import BondedAtomScoreGraph
 
 import tmol.score.ljlk.torch_potential as torch_potential
 
+from tmol.utility.tensor import block_tensor_to_dense
+
 
 def test_lj_welldepth_smoketest():
     """Check cpp potential against expected value.
@@ -213,4 +215,6 @@ def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
             max_dis=params.global_params.max_dis,
         )
 
-    torch.testing.assert_allclose(torch_impl.sum(), cpp_impl.sum())
+    cpp_result = block_tensor_to_dense(cpp_impl)
+
+    torch.testing.assert_allclose(torch_impl, cpp_result)
