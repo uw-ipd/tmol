@@ -27,7 +27,8 @@ from .torch_op import LJOp
 class JitLJIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def lj_pairwise(target) -> Tensor(float)[:, :]:
+    def lj_interactions(target) -> Tensor(float)[...]:
+        """[nblock, 8, 8] tensor of lj interatomic interactions."""
         assert target.stack_depth == 1
 
         pscores = target.lj_op.intra(
@@ -48,9 +49,9 @@ class JitLJIntraScore(IntraScore):
         # repE *= lj_lk_pair_params["weights"]
 
     @reactive_property
-    def total_lj(lj_pairwise):
+    def total_lj(lj_interactions):
         """total inter-atomic lj"""
-        return lj_pairwise.sum().reshape(1)
+        return lj_interactions.sum().reshape(1)
 
 
 @reactive_attrs(auto_attribs=True)
