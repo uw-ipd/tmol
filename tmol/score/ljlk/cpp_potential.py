@@ -18,13 +18,24 @@ if torch.cuda.is_available():
 else:
     cuda = None
 
+POTENTIAL_SET = "blocked"
+BLOCK_SIZE = 8
+
 
 def _lj_intra_blocked(coords, **kwargs):
-    # Output allocation is _far_ faster via numpy for empty allocations,
-    # presumably performing a calloc-based allocation, rather than zeroing
-    # for large allocs
-    block_pairs = cpu.block_interaction_lists(coords, kwargs["max_dis"], 8)
-    return cpu.lj_intra_block(coords, block_pairs, 8, **kwargs)
+    block_pairs = cpu.block_interaction_lists(coords, kwargs["max_dis"], BLOCK_SIZE)
+    block_scores = cpu.lj_intra_block(coords, block_pairs, BLOCK_SIZE, **kwargs)
+
+    return torch.sparse_coo_tensor(
+        block_pairs.t(),
+        block_scores,
+        (
+            coords.shape[0] // BLOCK_SIZE,
+            coords.shape[0] // BLOCK_SIZE,
+            BLOCK_SIZE,
+            BLOCK_SIZE,
+        ),
+    )
 
 
 potentials = {
@@ -37,8 +48,6 @@ potentials = {
         # "cuda" : cuda.lj_intra,
     },
 }
-
-POTENTIAL_SET = "blocked"
 
 
 def lj_intra(

@@ -15,11 +15,8 @@ class LJOp:
     device: torch.device
     params: typing.Mapping[str, typing.Any]
 
-    def intra(self, coords, types, bonded_path_length, block_distances=None):
-        if block_distances is not None:
-            return LJIntraFun(self)(coords, types, bonded_path_length, block_distances)
-        else:
-            return LJIntraFun(self)(coords, types, bonded_path_length)
+    def intra(self, coords, types, bonded_path_length):
+        return LJIntraFun(self)(coords, types, bonded_path_length)
 
     @classmethod
     def from_params(cls, param_resolver: LJLKParamResolver):
@@ -53,7 +50,7 @@ class LJIntraFun(torch.autograd.Function):
         self.op = op
         super().__init__()
 
-    def forward(ctx, coords, types, bonded_path_length, block_distances=None):
+    def forward(ctx, coords, types, bonded_path_length):
 
         assert coords.device == ctx.op.device
         assert not coords.requires_grad
@@ -64,6 +61,7 @@ class LJIntraFun(torch.autograd.Function):
         assert bonded_path_length.device == ctx.op.device
         assert not bonded_path_length.requires_grad
 
-        return cpp_potential.lj_intra(
+        blocked_interactions = cpp_potential.lj_intra(
             coords, types, bonded_path_length, **ctx.op.params
         )
+        return blocked_interactions._indices(), blocked_interactions._values()

@@ -31,13 +31,13 @@ class JitLJIntraScore(IntraScore):
         """[nblock, 8, 8] tensor of lj interatomic interactions."""
         assert target.stack_depth == 1
 
-        pscores = target.lj_op.intra(
+        binds, bscores = target.lj_op.intra(
             target.coords[0],
             target.ljlk_atom_types[0],
             target.ljlk_bonded_path_length[0],
         )
 
-        return pscores
+        return bscores
 
         # split into atr & rep
         # atrE = np.copy(ljE);
