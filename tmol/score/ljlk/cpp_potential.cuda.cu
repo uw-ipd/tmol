@@ -84,44 +84,27 @@ at::Tensor lj_intra_cuda(
     at::Tensor spline_start_t,
     at::Tensor max_dis_t) {
   auto out_t = coords_t.type().zeros({coords_t.size(0), coords_t.size(0)});
-  auto out = tmol::reinterpret_tensor<float, float, 2>(out_t);
-
-  auto coords = tmol::reinterpret_tensor<Eigen::Vector3f, float, 2>(coords_t);
-  auto types = tmol::reinterpret_tensor<int64_t, int64_t, 1>(types_t);
-  auto bonded_path_length = tmol::reinterpret_tensor<uint8_t, uint8_t, 2>(bonded_path_length_t);
-
-  auto lj_sigma = tmol::reinterpret_tensor<float, float, 2>(lj_sigma_t);
-  auto lj_switch_slope = tmol::reinterpret_tensor<float, float, 2>(lj_switch_slope_t);
-  auto lj_switch_intercept = tmol::reinterpret_tensor<float, float, 2>(lj_switch_intercept_t);
-  auto lj_coeff_sigma12 = tmol::reinterpret_tensor<float, float, 2>(lj_coeff_sigma12_t);
-  auto lj_coeff_sigma6 = tmol::reinterpret_tensor<float, float, 2>(lj_coeff_sigma6_t);
-  auto lj_spline_y0 = tmol::reinterpret_tensor<float, float, 2>(lj_spline_y0_t);
-  auto lj_spline_dy0 = tmol::reinterpret_tensor<float, float, 2>(lj_spline_dy0_t);
-
-
-  // Reshape globals into 1d, accessor cast of 0-d tensors segfaults.
-  auto lj_switch_dis2sigma = tmol::reinterpret_tensor<float, float, 1>(lj_switch_dis2sigma_t.reshape(1));
-  auto spline_start = tmol::reinterpret_tensor<float, float, 1>(spline_start_t.reshape(1));
-  auto max_dis = tmol::reinterpret_tensor<float, float, 1>(max_dis_t.reshape(1));
 
   dim3 threads(8, 8);
-  dim3 blocks(coords.size(0) / threads.x, coords.size(0) / threads.y);
+  dim3 blocks(coords_t.size(0) / threads.x, coords_t.size(0) / threads.y);
 
   lj_intra_kernel<<<blocks, threads>>>(
-     coords,
-     types,
-     bonded_path_length,
-     out,
-     lj_sigma,
-     lj_switch_slope,
-     lj_switch_intercept,
-     lj_coeff_sigma12,
-     lj_coeff_sigma6,
-     lj_spline_y0,
-     lj_spline_dy0,
-     lj_switch_dis2sigma,
-     spline_start,
-     max_dis);
+     tmol::view_tensor<Eigen::Vector3f, 2>(coords_t),
+     tmol::view_tensor<int64_t, 1>(types_t),
+     tmol::view_tensor<uint8_t, 2>(bonded_path_length_t),
+     tmol::view_tensor<float, 2>(out_t),
+     tmol::view_tensor<float, 2>(lj_sigma_t),
+     tmol::view_tensor<float, 2>(lj_switch_slope_t),
+     tmol::view_tensor<float, 2>(lj_switch_intercept_t),
+     tmol::view_tensor<float, 2>(lj_coeff_sigma12_t),
+     tmol::view_tensor<float, 2>(lj_coeff_sigma6_t),
+     tmol::view_tensor<float, 2>(lj_spline_y0_t),
+     tmol::view_tensor<float, 2>(lj_spline_dy0_t),
+     // Reshape globals into 1d, accessor cast of 0-d tensors segfaults.
+     tmol::view_tensor<float, 1>(lj_switch_dis2sigma_t.reshape(1)),
+     tmol::view_tensor<float, 1>(spline_start_t.reshape(1)),
+     tmol::view_tensor<float, 1>(max_dis_t.reshape(1))
+  );
 
   return out_t;
 }
