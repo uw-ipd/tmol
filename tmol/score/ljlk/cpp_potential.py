@@ -1,6 +1,9 @@
 import torch
 import os.path
 import tmol.utility.cpp_extension
+import logging
+
+logger = logging.getLogger(__name__)
 
 cpu = tmol.utility.cpp_extension.load(
     (__name__ + ".cpu").replace(".", "_"),
@@ -24,6 +27,9 @@ BLOCK_SIZE = 8
 
 def _lj_intra_blocked(coords, **kwargs):
     block_pairs = cpu.block_interaction_lists(coords, kwargs["max_dis"], BLOCK_SIZE)
+    logger.info(
+        f"_lj_intra_blocked coords.shape: {coords.shape} block_size: {BLOCK_SIZE} block_pairs.shape: {block_pairs.shape}"
+    )
     block_scores = cpu.lj_intra_block(coords, block_pairs, BLOCK_SIZE, **kwargs)
 
     return torch.sparse_coo_tensor(

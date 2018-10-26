@@ -116,7 +116,10 @@ def test_lj_gradcheck():
     )
 
 
-def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
+@pytest.mark.parametrize("block_size", [2, 4, 8])
+def test_cpp_torch_potential_comparison(
+    benchmark, ubq_system, torch_device, block_size
+):
     if torch_device.type == "cuda":
         pytest.xfail("cuda not supported")
 
@@ -194,6 +197,8 @@ def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
         return torch.triu(pscore, diagonal=1)
 
     torch_impl[torch.isnan(torch_impl)] = 0.0
+
+    cpp_potential.BLOCK_SIZE = block_size
 
     @subfixture(benchmark)
     @bsync
