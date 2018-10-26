@@ -22,15 +22,25 @@ else:
     cuda = None
 
 POTENTIAL_SET = "blocked"
-BLOCK_SIZE = 8
+BLOCK_SIZE = 4
 
 
 def _lj_intra_blocked(coords, **kwargs):
-    block_pairs = cpu.block_interaction_lists(coords, kwargs["max_dis"], BLOCK_SIZE)
+    blist, score = {
+        2: (cpu.block_interaction_lists_2, cpu.lj_intra_block_2),
+        4: (cpu.block_interaction_lists_4, cpu.lj_intra_block_4),
+        8: (cpu.block_interaction_lists_8, cpu.lj_intra_block_8),
+        16: (cpu.block_interaction_lists_16, cpu.lj_intra_block_16),
+    }[BLOCK_SIZE]
+
+    block_pairs = blist(coords, kwargs["max_dis"])
     logger.info(
-        f"_lj_intra_blocked coords.shape: {coords.shape} block_size: {BLOCK_SIZE} block_pairs.shape: {block_pairs.shape}"
+        f"_lj_intra_blocked coords.shape: {coords.shape} "
+        f"nops: {(BLOCK_SIZE ** 2) * block_pairs.shape[0]} "
+        f"block_size: {BLOCK_SIZE} "
+        f"block_pairs.shape: {block_pairs.shape}"
     )
-    block_scores = cpu.lj_intra_block(coords, block_pairs, BLOCK_SIZE, **kwargs)
+    block_scores = score(coords, block_pairs, **kwargs)
 
     return torch.sparse_coo_tensor(
         block_pairs.t(),

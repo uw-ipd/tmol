@@ -9,9 +9,8 @@ namespace tmol {
 namespace score {
 namespace lj {
 
-template <typename Real, typename Int>
-at::Tensor block_interaction_table(
-    at::Tensor coords_t, Real max_dis, Int block_size) {
+template <int block_size, typename Real, typename Int>
+at::Tensor block_interaction_table(at::Tensor coords_t, Real max_dis) {
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
@@ -52,9 +51,8 @@ at::Tensor block_interaction_table(
   return out_t;
 }
 
-template <typename Real, typename Int>
-at::Tensor block_interaction_lists(
-    at::Tensor coords_t, Real max_dis, Int block_size) {
+template <int block_size, typename Real, typename Int>
+at::Tensor block_interaction_lists(at::Tensor coords_t, Real max_dis) {
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
@@ -83,8 +81,8 @@ at::Tensor block_interaction_lists(
   for (int bi = 0; bi < num_blocks; ++bi) {
     int bsi = bi * block_size;
     Box block_box;
-    for (int i = bsi; i < bsi + block_size; ++i) {
-      block_box.extend(coords[i][0]);
+    for (int i = 0; i < block_size; ++i) {
+      block_box.extend(coords[bsi + i][0]);
     }
 
     boxes[bi][0] = block_box;
@@ -119,11 +117,10 @@ at::Tensor block_interaction_lists(
   return result_t;
 }
 
-template <typename Real, typename AtomType, typename Int>
+template <int block_size, typename Real, typename AtomType, typename Int>
 at::Tensor lj_intra_block(
     at::Tensor coords_t,
     at::Tensor block_interactions_t,
-    Int block_size,
     at::Tensor types_t,
     LJ_PARAM_ARGS) {
   typedef Eigen::AlignedBox<Real, 3> Box;
@@ -248,27 +245,72 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   m.def(
       "block_interaction_table",
-      &block_interaction_table<float, int64_t>,
+      &block_interaction_table<4, float, int64_t>,
       "Calculate coordinate-block interaction table.",
       "coords"_a,
-      "max_dis"_a,
-      "block_size"_a);
+      "max_dis"_a);
 
   m.def(
-      "block_interaction_lists",
-      &block_interaction_lists<float, int64_t>,
+      "block_interaction_lists_2",
+      &block_interaction_lists<2, float, int64_t>,
       "Calculate coordinate-block interaction lists.",
       "coords"_a,
-      "max_dis"_a,
-      "block_size"_a);
+      "max_dis"_a);
 
   m.def(
-      "lj_intra_block",
-      &lj_intra_block<float, int64_t, uint8_t>,
+      "block_interaction_lists_4",
+      &block_interaction_lists<4, float, int64_t>,
+      "Calculate coordinate-block interaction lists.",
+      "coords"_a,
+      "max_dis"_a);
+
+  m.def(
+      "block_interaction_lists_8",
+      &block_interaction_lists<8, float, int64_t>,
+      "Calculate coordinate-block interaction lists.",
+      "coords"_a,
+      "max_dis"_a);
+
+  m.def(
+      "block_interaction_lists_16",
+      &block_interaction_lists<16, float, int64_t>,
+      "Calculate coordinate-block interaction lists.",
+      "coords"_a,
+      "max_dis"_a);
+
+  m.def(
+      "lj_intra_block_2",
+      &lj_intra_block<2, float, int64_t, uint8_t>,
       "LJ intra-coordinate score.",
       "coords"_a,
       "block_iteractions"_a,
-      "block_size"_a,
+      "types"_a,
+      LJ_PARAM_PYARGS);
+
+  m.def(
+      "lj_intra_block_4",
+      &lj_intra_block<4, float, int64_t, uint8_t>,
+      "LJ intra-coordinate score.",
+      "coords"_a,
+      "block_iteractions"_a,
+      "types"_a,
+      LJ_PARAM_PYARGS);
+
+  m.def(
+      "lj_intra_block_8",
+      &lj_intra_block<8, float, int64_t, uint8_t>,
+      "LJ intra-coordinate score.",
+      "coords"_a,
+      "block_iteractions"_a,
+      "types"_a,
+      LJ_PARAM_PYARGS);
+
+  m.def(
+      "lj_intra_block_16",
+      &lj_intra_block<16, float, int64_t, uint8_t>,
+      "LJ intra-coordinate score.",
+      "coords"_a,
+      "block_iteractions"_a,
       "types"_a,
       LJ_PARAM_PYARGS);
 

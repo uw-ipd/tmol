@@ -116,7 +116,7 @@ def test_lj_gradcheck():
     )
 
 
-@pytest.mark.parametrize("block_size", [2, 4, 8])
+@pytest.mark.parametrize("block_size", [2, 4, 8, 16])
 def test_cpp_torch_potential_comparison(
     benchmark, ubq_system, torch_device, block_size
 ):
