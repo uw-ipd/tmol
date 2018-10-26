@@ -42,11 +42,7 @@ potentials = {
     "blocked": {
         "cpu": _lj_intra_blocked
         # "cuda" : cuda.lj_intra,
-    },
-    "naive": {
-        "cpu": cpu.lj_intra_naive,
-        # "cuda" : cuda.lj_intra,
-    },
+    }
 }
 
 

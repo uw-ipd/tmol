@@ -20,7 +20,7 @@
 
 // unpack parameter tensors into TensorAccessors
 #define LJ_PARAM_UNPACK                                                      \
-  auto bonded_path_length = tmol::view_tensor<Int, 2>(bonded_path_length_t); \
+  auto bonded_path_length = tmol::view_tensor<PathLength, 2>(bonded_path_length_t); \
                                                                              \
   auto lj_sigma = tmol::view_tensor<Real, 2>(lj_sigma_t);                    \
   auto lj_switch_slope = tmol::view_tensor<Real, 2>(lj_switch_slope_t);      \
@@ -38,10 +38,10 @@
 namespace tmol {
 namespace score {
 namespace lj {
-template <typename Real, typename Int>
+template <typename Real, typename PathLength>
 EIGEN_DEVICE_FUNC Real
 lj(Real& dist,
-   const Int& bonded_path_length,
+   const PathLength& bonded_path_length,
    const Real& lj_sigma,
    const Real& lj_switch_slope,
    const Real& lj_switch_intercept,
