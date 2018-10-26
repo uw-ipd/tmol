@@ -48,7 +48,7 @@ class PackedResidueSystem:
     connection_metadata: NDArray(connection_metadata_dtype)[:]
 
     @classmethod
-    def from_residues(cls, res: Sequence[Residue], block_size=8):
+    def from_residues(cls, res: Sequence[Residue], block_size=16):
         """Initialize a packed residue system from list of residue containers."""
 
         ### Pack residues within the coordinate system
