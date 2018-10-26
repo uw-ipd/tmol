@@ -2,6 +2,7 @@
 .conda
 # Rendered environment definitions
 environment.yml
+.conda
 
 dask-worker-space
 

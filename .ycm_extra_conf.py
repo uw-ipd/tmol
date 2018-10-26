@@ -31,6 +31,15 @@
 from distutils.sysconfig import get_python_inc
 import os
 import subprocess
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
 
 DIR_OF_THIS_SCRIPT = os.path.abspath(os.path.dirname(__file__))
 DIR_OF_THIRD_PARTY = os.path.join(DIR_OF_THIS_SCRIPT, "tmol/extern")
@@ -94,6 +103,8 @@ def file_language(filename):
 
 
 def Settings(**kwargs):
+
+    logger.info("Settings: %s" % kwargs)
     if kwargs["language"] == "cfamily":
         # If the file is a header, try to find the corresponding source file and
         # retrieve its flags from the compilation database if using one. This is
@@ -103,13 +114,16 @@ def Settings(**kwargs):
         # in the corresponding source file.
         filename = find_corresponding_source_file(kwargs["filename"])
 
-        return {
+        result = {
             "flags": flags + ["-x", file_language(filename)],
             "include_paths_relative_to_dir": DIR_OF_THIS_SCRIPT,
             "override_filename": filename,
         }
+    else:
+        result = {}
 
-    return {}
+    logger.info("Result: %s" % result)
+    return result
 
 
 if __name__ == "__main__":
