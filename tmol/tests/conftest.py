@@ -19,6 +19,7 @@ from .data import (  # noqa: F401
     ubq_rosetta_baseline,
     water_box_system,
     water_box_res,
+    structures_bysize,
 )
 
 from .torch import torch_device, torch_backward_coverage  # noqa: F401
