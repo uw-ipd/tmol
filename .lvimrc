@@ -8,5 +8,8 @@ let g:ale_linters={
       \ 'cpp' :  [],
       \ 'cuda' :  [],
       \ }
+let g:formatters_python = ['black']
+let g:formatters_cuda = ['clangformat']
+let g:formatters_cpp = ['clangformat']
 
 call add(g:ycm_extra_conf_globlist, g:localvimrc_script_dir . "/.ycm_extra_conf.py")
