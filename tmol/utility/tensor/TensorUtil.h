@@ -52,8 +52,9 @@ struct can_view_tensor<Eigen::AlignedBox<T, N>> {
 template <
     typename T,
     int N,
+    template <typename U> class PtrTraits = DefaultPtrTraits,
     typename std::enable_if<can_view_tensor<T>::value>::type* = nullptr>
-tmol::TView<T, N> view_tensor(at::Tensor input_t) {
+tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor input_t) {
   typedef typename can_view_tensor<T>::PType FromT;
 
   auto input = input_t.accessor<FromT, N>();
@@ -79,7 +80,7 @@ tmol::TView<T, N> view_tensor(at::Tensor input_t) {
   sizes[N - 1] = input.size(N - 1) / stride_factor;
   strides[N - 1] = 1;
 
-  return tmol::TView<T, N>(
+  return tmol::TView<T, N, PtrTraits>(
       reinterpret_cast<T*>(input_t.data_ptr()), sizes, strides);
 }
 
