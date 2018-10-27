@@ -40,6 +40,8 @@ def test_blocked_eval(benchmark, structures_bysize):
     @benchmark
     @bsync
     def cuda_itable():
-        return blocked.cuda.block_interaction_table(cuda_coords.cuda(), 6.0)
+        for _ in range(10):
+            r = blocked.cuda.block_interaction_table(cuda_coords.cuda(), 6.0)
+        return r
 
     assert ((cpu_itable > 1).cpu() == (cuda_itable > 1).cpu()).all()
