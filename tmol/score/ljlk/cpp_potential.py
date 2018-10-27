@@ -1,6 +1,7 @@
 import torch
 import os.path
 import tmol.utility.cpp_extension
+import typing
 
 cpu = tmol.utility.cpp_extension.load(
     (__name__ + ".cpu").replace(".", "_"),
@@ -26,32 +27,14 @@ def _lj_intra_blocked_cpu(coords, **kwargs):
     block_pairs = cpu.block_interaction_lists(coords, kwargs["max_dis"], BLOCK_SIZE)
     block_scores = cpu.lj_intra_block(coords, block_pairs, BLOCK_SIZE, **kwargs)
 
-    return torch.sparse_coo_tensor(
-        block_pairs.t(),
-        block_scores,
-        (
-            coords.shape[0] // BLOCK_SIZE,
-            coords.shape[0] // BLOCK_SIZE,
-            BLOCK_SIZE,
-            BLOCK_SIZE,
-        ),
-    )
+    return (block_pairs.t(), block_scores)
 
 
 def _lj_intra_blocked_cuda(coords, **kwargs):
     block_pairs = cuda.block_interaction_lists(coords, kwargs["max_dis"], BLOCK_SIZE)
     block_scores = cuda.lj_intra_block(coords, block_pairs, BLOCK_SIZE, **kwargs)
 
-    return torch.sparse_coo_tensor(
-        block_pairs.t(),
-        block_scores,
-        (
-            coords.shape[0] // BLOCK_SIZE,
-            coords.shape[0] // BLOCK_SIZE,
-            BLOCK_SIZE,
-            BLOCK_SIZE,
-        ),
-    )
+    return (block_pairs.t(), block_scores)
 
 
 potentials = {"blocked": {"cpu": _lj_intra_blocked_cpu, "cuda": _lj_intra_blocked_cuda}}
@@ -73,7 +56,7 @@ def lj_intra(
     lj_switch_dis2sigma,
     spline_start,
     max_dis,
-):
+) -> typing.Tuple[torch.tensor, torch.tensor]:
     kernel = potentials[POTENTIAL_SET][coords.device.type]
 
     return kernel(

@@ -61,7 +61,6 @@ class LJIntraFun(torch.autograd.Function):
         assert bonded_path_length.device == ctx.op.device
         assert not bonded_path_length.requires_grad
 
-        blocked_interactions = cpp_potential.lj_intra(
+        return cpp_potential.lj_intra(
             coords, types, bonded_path_length, **ctx.op.params
         )
-        return blocked_interactions._indices(), blocked_interactions._values()

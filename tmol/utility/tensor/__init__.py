@@ -1,3 +1,8 @@
+import torch
+from functools import singledispatch
+
+
+@singledispatch
 def block_tensor_to_dense(block_tensor):
     """Convert [i, j, bi, bj] to [i * bi, j * bj] contiguous tensor.
 
@@ -43,3 +48,9 @@ def block_tensor_to_dense(block_tensor):
             )
         )
     )
+
+
+@block_tensor_to_dense.register(tuple)
+def ind_val_blocks_to_dense(inds_vals_tuple):
+    inds, vals = inds_vals_tuple
+    return block_tensor_to_dense(torch.sparse_coo_tensor(inds, vals))
