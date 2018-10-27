@@ -22,7 +22,7 @@ POTENTIAL_SET = "blocked"
 BLOCK_SIZE = 8
 
 
-def _lj_intra_blocked(coords, **kwargs):
+def _lj_intra_blocked_cpu(coords, **kwargs):
     block_pairs = cpu.block_interaction_lists(coords, kwargs["max_dis"], BLOCK_SIZE)
     block_scores = cpu.lj_intra_block(coords, block_pairs, BLOCK_SIZE, **kwargs)
 
@@ -38,12 +38,30 @@ def _lj_intra_blocked(coords, **kwargs):
     )
 
 
-potentials = {
-    "blocked": {
-        "cpu": _lj_intra_blocked
-        # "cuda" : cuda.lj_intra,
+def _lj_intra_blocked_cuda(coords, **kwargs):
+    block_pairs = cuda.block_interaction_lists(coords, kwargs["max_dis"], BLOCK_SIZE)
+
+    kwargs = {
+        n: t.cpu() if isinstance(t, torch.Tensor) else t for n, t in kwargs.items()
     }
-}
+
+    block_scores = cpu.lj_intra_block(
+        coords.cpu(), block_pairs.cpu(), BLOCK_SIZE, **kwargs
+    )
+
+    return torch.sparse_coo_tensor(
+        block_pairs.t().cuda(),
+        block_scores.cuda(),
+        (
+            coords.shape[0] // BLOCK_SIZE,
+            coords.shape[0] // BLOCK_SIZE,
+            BLOCK_SIZE,
+            BLOCK_SIZE,
+        ),
+    )
+
+
+potentials = {"blocked": {"cpu": _lj_intra_blocked_cpu, "cuda": _lj_intra_blocked_cuda}}
 
 
 def lj_intra(
