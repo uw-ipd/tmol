@@ -86,7 +86,6 @@ at::Tensor lj_intra_block(
     Int block_size,
     at::Tensor types_t,
     LJ_PARAM_ARGS) {
-  typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
   TView<Vector, 2> coords = tmol::view_tensor<Vector, 2>(coords_t);
@@ -103,10 +102,8 @@ at::Tensor lj_intra_block(
   TView<Real, 3> out = tmol::view_tensor<Real, 3>(out_t);
 
   for (int bp = 0; bp < num_blocks; ++bp) {
-    int bi = block_interactions[bp][0];
-    int bj = block_interactions[bp][1];
-    int bsi = bi * block_size;
-    int bsj = bj * block_size;
+    int bsi = block_interactions[bp][0] * block_size;
+    int bsj = block_interactions[bp][1] * block_size;
 
     for (int i = 0; i < block_size; ++i) {
       auto aidx = i + bsi;

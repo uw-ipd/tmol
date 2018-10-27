@@ -12,7 +12,7 @@ at::Tensor block_interaction_lists(
 extern template at::Tensor block_interaction_lists<float, int64_t>(
     at::Tensor coords_t, float max_dis, int64_t block_size);
 
-template <typename Real, typename AtomType, typename Int>
+template <typename Real, typename Int, typename PathLength>
 at::Tensor lj_intra_block(
     at::Tensor coords_t,
     at::Tensor block_interactions_t,
@@ -23,9 +23,10 @@ at::Tensor lj_intra_block(
 extern template at::Tensor lj_intra_block<float, int64_t, uint8_t>(
     at::Tensor coords_t,
     at::Tensor block_interactions_t,
-    uint8_t block_size,
+    int64_t block_size,
     at::Tensor types_t,
     LJ_PARAM_ARGS);
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
@@ -36,6 +37,16 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "coords"_a,
       "max_dis"_a,
       "block_size"_a);
+
+  m.def(
+      "lj_intra_block",
+      &lj_intra_block<float, int64_t, uint8_t>,
+      "LJ intra-coordinate score.",
+      "coords"_a,
+      "block_iteractions"_a,
+      "block_size"_a,
+      "types"_a,
+      LJ_PARAM_PYARGS);
 }
 }  // namespace lj
 }  // namespace score

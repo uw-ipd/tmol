@@ -18,9 +18,21 @@
       at::Tensor lj_switch_dis2sigma_t, at::Tensor spline_start_t,    \
       at::Tensor max_dis_t
 
+// c++ level parameter tensor views
+#define LJ_PARAM_VIEW_ARGS                                                     \
+  tmol::TView<PathLength, 2> bonded_path_length,                               \
+      tmol::TView<Real, 2> lj_sigma, tmol::TView<Real, 2> lj_switch_slope,     \
+      tmol::TView<Real, 2> lj_switch_intercept,                                \
+      tmol::TView<Real, 2> lj_coeff_sigma12,                                   \
+      tmol::TView<Real, 2> lj_coeff_sigma6, tmol::TView<Real, 2> lj_spline_y0, \
+      tmol::TView<Real, 2> lj_spline_dy0,                                      \
+      tmol::TView<Real, 1> lj_switch_dis2sigma,                                \
+      tmol::TView<Real, 1> spline_start, tmol::TView<Real, 1> max_dis
+
 // unpack parameter tensors into TensorAccessors
 #define LJ_PARAM_UNPACK                                                      \
-  auto bonded_path_length = tmol::view_tensor<PathLength, 2>(bonded_path_length_t); \
+  auto bonded_path_length =                                                  \
+      tmol::view_tensor<PathLength, 2>(bonded_path_length_t);                \
                                                                              \
   auto lj_sigma = tmol::view_tensor<Real, 2>(lj_sigma_t);                    \
   auto lj_switch_slope = tmol::view_tensor<Real, 2>(lj_switch_slope_t);      \
@@ -34,6 +46,20 @@
       tmol::view_tensor<Real, 1>(lj_switch_dis2sigma_t.reshape(1));          \
   auto spline_start = tmol::view_tensor<Real, 1>(spline_start_t.reshape(1)); \
   auto max_dis = tmol::view_tensor<Real, 1>(max_dis_t.reshape(1));
+
+// unpack parameter tensors into TensorAccessors
+#define LJ_PARAM_UNPACK_ARGS                                        \
+  tmol::view_tensor<PathLength, 2>(bonded_path_length_t),           \
+      tmol::view_tensor<Real, 2>(lj_sigma_t),                       \
+      tmol::view_tensor<Real, 2>(lj_switch_slope_t),                \
+      tmol::view_tensor<Real, 2>(lj_switch_intercept_t),            \
+      tmol::view_tensor<Real, 2>(lj_coeff_sigma12_t),               \
+      tmol::view_tensor<Real, 2>(lj_coeff_sigma6_t),                \
+      tmol::view_tensor<Real, 2>(lj_spline_y0_t),                   \
+      tmol::view_tensor<Real, 2>(lj_spline_dy0_t),                  \
+      tmol::view_tensor<Real, 1>(lj_switch_dis2sigma_t.reshape(1)), \
+      tmol::view_tensor<Real, 1>(spline_start_t.reshape(1)),        \
+      tmol::view_tensor<Real, 1>(max_dis_t.reshape(1))
 
 namespace tmol {
 namespace score {

@@ -157,10 +157,103 @@ at::Tensor block_interaction_lists(
   return result_t;
 };
 
-template
-at::Tensor block_interaction_lists(
+template at::Tensor block_interaction_lists<float, int64_t>(
     at::Tensor coords_t, float max_dis, int64_t block_size);
 
+
+template <typename Real, typename Int, typename PathLength>
+__global__ void lj_intra_kernel(
+    tmol::TView<Eigen::Matrix<Real, 3, 1>, 2> coords,
+    tmol::TView<Int, 2> block_interactions,
+    Int block_size,
+    tmol::TView<Int, 1> types,
+    tmol::TView<Real, 3> out,
+    LJ_PARAM_VIEW_ARGS
+)
+{
+  typedef Eigen::Matrix<Real, 3, 1> Vector;
+
+  auto num_lines = block_interactions.size(0) * block_size;
+  auto li = grid_x();
+  unsigned int bp = li / block_size;
+  unsigned int i = li % block_size;
+
+  if (li >= num_lines){
+    return;
+  }
+
+  int bsi = block_interactions[bp][0] * block_size;
+  int bsj = block_interactions[bp][1] * block_size;
+
+  auto aidx = i + bsi;
+  auto a = coords[aidx][0];
+  auto at = types[aidx];
+
+  for (int j = 0; j < block_size; ++j) {
+    auto bidx = j + bsj;
+    auto b = coords[bidx][0];
+    auto bt = types[bidx];
+
+    if (at == -1 || bt == -1 || bidx < aidx) {
+      out[bp][i][j] = 0;
+    } else {
+      Vector delta = a - b;
+      auto dist = std::sqrt(delta.dot(delta));
+
+      out[bp][i][j] =
+          lj(dist,
+             bonded_path_length[aidx][bidx],
+             lj_sigma[at][bt],
+             lj_switch_slope[at][bt],
+             lj_switch_intercept[at][bt],
+             lj_coeff_sigma12[at][bt],
+             lj_coeff_sigma6[at][bt],
+             lj_spline_y0[at][bt],
+             lj_spline_dy0[at][bt],
+             lj_switch_dis2sigma[0],
+             spline_start[0],
+             max_dis[0]);
+    }
+}
+}
+
+
+template <typename Real, typename Int, typename PathLength>
+at::Tensor lj_intra_block(
+    at::Tensor coords_t,
+    at::Tensor block_interactions_t,
+    Int block_size,
+    at::Tensor types_t,
+    LJ_PARAM_ARGS) {
+  typedef Eigen::Matrix<Real, 3, 1> Vector;
+
+  int64_t num_lines = block_interactions_t.size(0) * block_size;
+
+  dim3 threads(128, 1);
+  dim3 blocks((num_lines / threads.x) + 1, 1);
+
+  at::Tensor out_t = at::empty({block_interactions_t.size(0), block_size, block_size}, at::TensorOptions(coords_t));
+
+  lj_intra_kernel<Real, Int, PathLength><<<blocks, threads>>>(
+      tmol::view_tensor<Vector, 2>(coords_t),
+      tmol::view_tensor<Int, 2>(block_interactions_t),
+      block_size,
+      tmol::view_tensor<Int, 1>(types_t),
+      tmol::view_tensor<Real, 3>(out_t),
+      LJ_PARAM_UNPACK_ARGS
+  );
+
+  return out_t;
+
+};
+
+template at::Tensor lj_intra_block<float, int64_t, uint8_t>(
+    at::Tensor coords_t,
+    at::Tensor block_interactions_t,
+    int64_t block_size,
+    at::Tensor types_t,
+    LJ_PARAM_ARGS);
 }
 }
 }
+
