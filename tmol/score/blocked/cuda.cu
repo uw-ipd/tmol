@@ -12,6 +12,8 @@ namespace tmol {
 namespace score {
 namespace blocked {
 
+static const int WARPS_PER_BLOCK = 4;
+
 __device__ inline auto grid_x() -> decltype(threadIdx.x) {
   return (blockIdx.x * blockDim.x) + threadIdx.x;
 }
@@ -26,21 +28,34 @@ __global__ void compute_block_table(
 
   namespace cg = cooperative_groups;
 
-  auto const bi = grid_x() / block_table.size(0);
-  auto const bj = grid_x() % block_table.size(0);
+  cg::thread_block tb = cg::this_thread_block();
 
-  Int count = 0;
-  for (auto i = bi * BLOCK_SIZE; i < (bi + 1) * BLOCK_SIZE; ++i) {
-    Box box(coords[i][0]);
-    box.extend(box.max() + Vector(max_dis, max_dis, max_dis));
-    box.extend(box.min() - Vector(max_dis, max_dis, max_dis));
+  unsigned int tile_idx =
+      (tb.group_index().x * (tb.size() / 32)) + (tb.thread_rank() / 32);
+  auto const bi = tile_idx % block_table.size(0);
+  auto const bj = tile_idx / block_table.size(0);
 
-    for (auto j = bj * BLOCK_SIZE; j < (bj + 1) * BLOCK_SIZE; ++j) {
-      count += box.contains(coords[j][0]) ? 1 : 0;
-    }
+  cg::thread_block_tile<32> tile = cg::tiled_partition<32>(tb);
+
+  auto i = (bi * BLOCK_SIZE) + (tile.thread_rank() % BLOCK_SIZE);
+  auto j = (bj * BLOCK_SIZE) + (tile.thread_rank() / BLOCK_SIZE);
+
+  Box box(coords[i][0]);
+  box.extend(box.max() + Vector(max_dis, max_dis, max_dis));
+  box.extend(box.min() - Vector(max_dis, max_dis, max_dis));
+
+  Int hit = 0;
+  if (tile.any(box.contains(coords[j][0]))) {
+    hit = 1;
+  } else if (tile.any(box.contains(coords[j + (BLOCK_SIZE / 2)][0]))) {
+    hit = 1;
+  } else {
+    hit = 0;
   }
 
-  block_table[bi][bj] = count;
+  if (tile.thread_rank() == 0) {
+    block_table[bi][bj] = hit;
+  }
 }
 
 template <typename Real, typename Int, int BLOCK_SIZE>
@@ -55,8 +70,8 @@ at::Tensor block_interaction_table(at::Tensor coords_t, Real max_dis) {
 
   static_assert(sizeof(Box) == sizeof(Real) * 6, "");
 
-  dim3 threads(128);
-  dim3 blocks((num_blocks * num_blocks) / 128 + 1);
+  dim3 threads(32 * WARPS_PER_BLOCK);
+  dim3 blocks((num_blocks * num_blocks) / WARPS_PER_BLOCK);
 
   at::Tensor block_table_t = at::empty(
       {num_blocks, num_blocks},

@@ -33,7 +33,7 @@ def test_blocked_eval(benchmark, structures_bysize):
         atom_interaction_table.reshape((nb, bs, nb, bs)).sum(dim=-1).sum(dim=-2)
     )
 
-    assert (cpu_itable > 1).sum() > 0
+    assert (cpu_itable >= 1).sum() > 0
 
     cuda_coords = test_coords.cuda()
 
@@ -44,4 +44,4 @@ def test_blocked_eval(benchmark, structures_bysize):
             r = blocked.cuda.block_interaction_table(cuda_coords.cuda(), 6.0)
         return r
 
-    assert ((cpu_itable > 1).cpu() == (cuda_itable > 1).cpu()).all()
+    assert ((cpu_itable > 0).cpu() == (cuda_itable > 0).cpu()).all()
