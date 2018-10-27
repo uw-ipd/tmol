@@ -53,7 +53,7 @@ template <
     typename T,
     int N,
     typename std::enable_if<can_view_tensor<T>::value>::type* = nullptr>
-tmol::PackedTensorAccessor<T, N> view_tensor(at::Tensor input_t) {
+tmol::TView<T, N> view_tensor(at::Tensor input_t) {
   typedef typename can_view_tensor<T>::PType FromT;
 
   auto input = input_t.accessor<FromT, N>();
@@ -79,7 +79,7 @@ tmol::PackedTensorAccessor<T, N> view_tensor(at::Tensor input_t) {
   sizes[N - 1] = input.size(N - 1) / stride_factor;
   strides[N - 1] = 1;
 
-  return tmol::PackedTensorAccessor<T, N>(
+  return tmol::TView<T, N>(
       reinterpret_cast<T*>(input_t.data_ptr()), sizes, strides);
 }
 

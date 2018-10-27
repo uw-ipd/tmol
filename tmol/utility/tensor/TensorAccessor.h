@@ -19,7 +19,7 @@
 
 namespace tmol {
 
-// The PtrTraits argument to the TensorAccessor/PackedTensorAccessor
+// The PtrTraits argument to the TensorAccessor/TView
 // is used to enable the __restrict__ keyword/modifier for the data
 // passed to cuda.
 template <typename T>
@@ -71,7 +71,7 @@ class TensorAccessorBase {
 
 // The `TensorAccessor` is typically instantiated for CPU `Tensor`s using
 // `Tensor.accessor<T, N>()`.
-// For CUDA `Tensor`s, `PackedTensorAccessor` is used on the host and only
+// For CUDA `Tensor`s, `TView` is used on the host and only
 // indexing on the device uses `TensorAccessor`s.
 template <
     typename T,
@@ -114,7 +114,7 @@ class TensorAccessor<T, 1, PtrTraits>
   }
 };
 
-// PackedTensorAccessorBase and PackedTensorAccessor are used on for CUDA
+// TViewBase and TView are used on for CUDA
 // `Tensor`s on the host and as In contrast to `TensorAccessor`s, they copy the
 // strides and sizes on instantiation (on the host) in order to transfer them on
 // the device when calling kernels. On the device, indexing of multidimensional
@@ -126,10 +126,10 @@ template <
     typename T,
     size_t N,
     template <typename U> class PtrTraits = DefaultPtrTraits>
-class PackedTensorAccessorBase {
+class TViewBase {
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
-  AT_HOST PackedTensorAccessorBase(
+  AT_HOST TViewBase(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : data_(data_) {
     std::copy(sizes_, sizes_ + N, std::begin(this->sizes_));
@@ -148,13 +148,12 @@ template <
     typename T,
     size_t N,
     template <typename U> class PtrTraits = DefaultPtrTraits>
-class PackedTensorAccessor : public PackedTensorAccessorBase<T, N, PtrTraits> {
+class TView : public TViewBase<T, N, PtrTraits> {
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
 
-  AT_HOST PackedTensorAccessor(
-      PtrType data_, const int64_t* sizes_, const int64_t* strides_)
-      : PackedTensorAccessorBase<T, N, PtrTraits>(data_, sizes_, strides_){};
+  AT_HOST TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
+      : TViewBase<T, N, PtrTraits>(data_, sizes_, strides_){};
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1> operator[](int64_t i) {
     int64_t* new_sizes = this->sizes_ + 1;
@@ -172,13 +171,11 @@ class PackedTensorAccessor : public PackedTensorAccessorBase<T, N, PtrTraits> {
 };
 
 template <typename T, template <typename U> class PtrTraits>
-class PackedTensorAccessor<T, 1, PtrTraits>
-    : public PackedTensorAccessorBase<T, 1, PtrTraits> {
+class TView<T, 1, PtrTraits> : public TViewBase<T, 1, PtrTraits> {
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
-  AT_HOST PackedTensorAccessor(
-      PtrType data_, const int64_t* sizes_, const int64_t* strides_)
-      : PackedTensorAccessorBase<T, 1, PtrTraits>(data_, sizes_, strides_){};
+  AT_HOST TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
+      : TViewBase<T, 1, PtrTraits>(data_, sizes_, strides_){};
 
   AT_HOST_DEVICE T& operator[](int64_t i) {
     return this->data_[this->strides_[0] * i];
