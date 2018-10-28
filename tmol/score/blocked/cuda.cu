@@ -64,7 +64,8 @@ __global__ void compute_block_table(
   auto bi = tile_idx % block_table.size(0);
   auto bj = tile_idx / block_table.size(0);
 
-  bool block_interacts = block_interaction_check<8>(coords, max_dis, tile, bi, bj);
+  bool block_interacts =
+      block_interaction_check<8>(coords, max_dis, tile, bi, bj);
 
   if (tile.thread_rank() == 0) {
     block_table[bi][bj] = block_interacts;
@@ -98,8 +99,74 @@ at::Tensor block_interaction_table(at::Tensor coords_t, Real max_dis) {
   return block_table_t;
 };
 
+template <typename Real, typename Int, int BLOCK_SIZE>
+__global__ void compute_block_list(
+    tmol::TView<Eigen::Matrix<Real, 3, 1>, 2, RestrictPtrTraits> coords,
+    tmol::TView<Int, 2, RestrictPtrTraits> block_table,
+    tmol::TView<Int, 1, RestrictPtrTraits> block_table_idx,
+    Real max_dis) {
+  typedef Eigen::AlignedBox<Real, 3> Box;
+  typedef Eigen::Matrix<Real, 3, 1> Vector;
+
+  namespace cg = cooperative_groups;
+
+  cg::thread_block tb = cg::this_thread_block();
+
+  cg::thread_block_tile<32> tile = cg::tiled_partition<32>(tb);
+  unsigned int num_blocks = coords.size(0) / BLOCK_SIZE;
+
+  unsigned int tile_idx =
+      (tb.group_index().x * (tb.size() / 32)) + (tb.thread_rank() / 32);
+  auto bi = tile_idx % num_blocks;
+  auto bj = tile_idx / num_blocks;
+
+  bool block_interacts =
+      block_interaction_check<8>(coords, max_dis, tile, bi, bj);
+
+  if (tile.thread_rank() == 0 && block_interacts) {
+    Int block_idx = atomicAdd(&block_table_idx[0], 1);
+    block_table[block_idx][0] = bi;
+    block_table[block_idx][1] = bj;
+  }
+}
+
+template <typename Real, typename Int, int BLOCK_SIZE>
+std::tuple<at::Tensor, at::Tensor> block_interaction_list(
+    at::Tensor coords_t, Real max_dis) {
+  typedef Eigen::AlignedBox<Real, 3> Box;
+  typedef Eigen::Matrix<Real, 3, 1> Vector;
+
+  AT_ASSERTM(
+      coords_t.size(0) % BLOCK_SIZE == 0,
+      "Coordinate size must be even multiple of target block size.");
+  int64_t num_blocks = coords_t.size(0) / BLOCK_SIZE;
+
+  static_assert(sizeof(Box) == sizeof(Real) * 6, "");
+
+  dim3 threads(32 * WARPS_PER_BLOCK);
+  dim3 blocks((num_blocks * num_blocks) / WARPS_PER_BLOCK);
+
+  at::Tensor block_table_t = at::empty(
+      {num_blocks * num_blocks, 2},
+      at::TensorOptions(coords_t).dtype(at::CTypeToScalarType<Int>::to()));
+
+  at::Tensor block_table_idx_t = at::zeros(
+      {1}, at::TensorOptions(coords_t).dtype(at::CTypeToScalarType<Int>::to()));
+
+  compute_block_list<Real, Int, BLOCK_SIZE><<<blocks, threads>>>(
+      tmol::view_tensor<Vector, 2, RestrictPtrTraits>(coords_t),
+      tmol::view_tensor<Int, 2, RestrictPtrTraits>(block_table_t),
+      tmol::view_tensor<Int, 1, RestrictPtrTraits>(block_table_idx_t),
+      max_dis);
+
+  return std::tuple<at::Tensor, at::Tensor>(block_table_t, block_table_idx_t);
+};
+
 template at::Tensor block_interaction_table<float, int32_t, 8>(
     at::Tensor coords_t, float max_dis);
+
+template std::tuple<at::Tensor, at::Tensor>
+block_interaction_list<float, int32_t, 8>(at::Tensor coords_t, float max_dis);
 
 }  // namespace blocked
 }  // namespace score

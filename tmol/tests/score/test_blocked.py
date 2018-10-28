@@ -33,15 +33,29 @@ def test_blocked_eval(benchmark, structures_bysize):
         atom_interaction_table.reshape((nb, bs, nb, bs)).sum(dim=-1).sum(dim=-2)
     )
 
-    assert (cpu_itable >= 1).sum() > 0
+    npairs = int((cpu_itable > 0).sum())
+    assert npairs > 0
 
     cuda_coords = test_coords.cuda()
 
-    @benchmark
+    @subfixture(benchmark)
     @bsync
     def cuda_itable():
         for _ in range(10):
-            r = blocked.cuda.block_interaction_table(cuda_coords.cuda(), 6.0)
+            r = blocked.cuda.block_interaction_table(cuda_coords, 6.0)
+        return r
+
+    @subfixture(benchmark)
+    @bsync
+    def cuda_ilist():
+        for _ in range(10):
+            r = blocked.cuda.block_interaction_list(cuda_coords, 6.0)
         return r
 
     assert ((cpu_itable > 0).cpu() == (cuda_itable > 0).cpu()).all()
+    assert int(cuda_ilist[1].sum()) == npairs
+
+    dense_cuda_ilist = torch.sparse_coo_tensor(
+        cuda_ilist[0][:npairs].t(), cuda_ilist[0].new_ones((npairs,)), (nb, nb)
+    ).to_dense()
+    assert ((cpu_itable > 0).cpu() == (dense_cuda_ilist > 0).cpu()).all()
