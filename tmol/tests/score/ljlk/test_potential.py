@@ -116,22 +116,24 @@ def test_lj_gradcheck():
     )
 
 
-def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
+def test_cpp_torch_potential_comparison(benchmark, structures_bysize, torch_device):
     import tmol.score.ljlk.cpp_potential as cpp_potential
+
+    target_system = structures_bysize[250].tmol_system
 
     @reactive_attrs
     class DataGraph(CartesianAtomicCoordinateProvider, BondedAtomScoreGraph):
         pass
 
-    ubq_g = DataGraph.build_for(ubq_system, device=torch_device)
+    target_graph = DataGraph.build_for(target_system, device=torch_device)
 
     params = LJLKParamResolver.from_database(
-        ParameterDatabase.get_default().scoring.ljlk, ubq_g.device
+        ParameterDatabase.get_default().scoring.ljlk, target_graph.device
     )
 
-    coords = ubq_g.coords[0].detach()
-    type_strs = ubq_g.atom_types[0]
-    bonded_path_length = torch.tensor(ubq_g.bonded_path_length[0])
+    coords = target_graph.coords[0].detach()
+    type_strs = target_graph.atom_types[0]
+    bonded_path_length = torch.tensor(target_graph.bonded_path_length[0])
 
     bonded_path_length[bonded_path_length > 6] = 255
     bonded_path_length = bonded_path_length.to(device=torch_device, dtype=torch.uint8)
