@@ -31,10 +31,10 @@ def _lj_intra_blocked_cpu(coords, **kwargs):
 
 
 def _lj_intra_blocked_cuda(coords, **kwargs):
-    block_pairs = cuda.block_interaction_lists(coords, kwargs["max_dis"], BLOCK_SIZE)
-    block_scores = cuda.lj_intra_block(coords, block_pairs, BLOCK_SIZE, **kwargs)
+    assert BLOCK_SIZE == 8
+    rsize, block_pairs, block_scores = cuda.lj_intra_block(coords, **kwargs)
 
-    return (block_pairs.t(), block_scores)
+    return (block_pairs[:rsize].t(), block_scores[:rsize])
 
 
 potentials = {"blocked": {"cpu": _lj_intra_blocked_cpu, "cuda": _lj_intra_blocked_cuda}}

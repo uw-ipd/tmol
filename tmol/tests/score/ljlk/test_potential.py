@@ -214,4 +214,6 @@ def test_cpp_torch_potential_comparison(benchmark, ubq_system, torch_device):
 
     cpp_result = block_tensor_to_dense(cpp_impl)
 
+    assert (torch_impl > 0).sum() == (cpp_result > 0).sum()
+
     torch.testing.assert_allclose(torch_impl, cpp_result)
