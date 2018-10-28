@@ -137,6 +137,8 @@ class TViewBase {
   }
   AT_HOST_DEVICE int64_t stride(int64_t i) const { return strides_[i]; }
   AT_HOST_DEVICE int64_t size(int64_t i) const { return sizes_[i]; }
+  AT_HOST_DEVICE PtrType data() { return data_; }
+  AT_HOST_DEVICE const PtrType data() const { return data_; }
 
  protected:
   PtrType data_;
