@@ -18,6 +18,33 @@ __device__ inline auto grid_x() -> decltype(threadIdx.x) {
   return (blockIdx.x * blockDim.x) + threadIdx.x;
 }
 
+template <int BLOCK_SIZE, typename Real, typename Int>
+__device__ inline bool block_interaction_check(
+    tmol::TView<Eigen::Matrix<Real, 3, 1>, 2, RestrictPtrTraits> coords,
+    Real max_dis,
+    cooperative_groups::thread_block_tile<32> tile,
+    Int bi,
+    Int bj) {
+  namespace cg = cooperative_groups;
+  auto i = (bi * BLOCK_SIZE) + (tile.thread_rank() % BLOCK_SIZE);
+  auto j = (bj * BLOCK_SIZE) + (tile.thread_rank() / BLOCK_SIZE);
+
+  typedef Eigen::AlignedBox<Real, 3> Box;
+  typedef Eigen::Matrix<Real, 3, 1> Vector;
+
+  Box box(coords[i][0]);
+  box.extend(box.max() + Vector(max_dis, max_dis, max_dis));
+  box.extend(box.min() - Vector(max_dis, max_dis, max_dis));
+
+  if (tile.any(box.contains(coords[j][0]))) {
+    return true;
+  } else if (tile.any(box.contains(coords[j + (BLOCK_SIZE / 2)][0]))) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 template <typename Real, typename Int, int BLOCK_SIZE>
 __global__ void compute_block_table(
     tmol::TView<Eigen::Matrix<Real, 3, 1>, 2, RestrictPtrTraits> coords,
@@ -30,31 +57,17 @@ __global__ void compute_block_table(
 
   cg::thread_block tb = cg::this_thread_block();
 
-  unsigned int tile_idx =
-      (tb.group_index().x * (tb.size() / 32)) + (tb.thread_rank() / 32);
-  auto const bi = tile_idx % block_table.size(0);
-  auto const bj = tile_idx / block_table.size(0);
-
   cg::thread_block_tile<32> tile = cg::tiled_partition<32>(tb);
 
-  auto i = (bi * BLOCK_SIZE) + (tile.thread_rank() % BLOCK_SIZE);
-  auto j = (bj * BLOCK_SIZE) + (tile.thread_rank() / BLOCK_SIZE);
+  unsigned int tile_idx =
+      (tb.group_index().x * (tb.size() / 32)) + (tb.thread_rank() / 32);
+  auto bi = tile_idx % block_table.size(0);
+  auto bj = tile_idx / block_table.size(0);
 
-  Box box(coords[i][0]);
-  box.extend(box.max() + Vector(max_dis, max_dis, max_dis));
-  box.extend(box.min() - Vector(max_dis, max_dis, max_dis));
-
-  Int hit = 0;
-  if (tile.any(box.contains(coords[j][0]))) {
-    hit = 1;
-  } else if (tile.any(box.contains(coords[j + (BLOCK_SIZE / 2)][0]))) {
-    hit = 1;
-  } else {
-    hit = 0;
-  }
+  bool block_interacts = block_interaction_check<8>(coords, max_dis, tile, bi, bj);
 
   if (tile.thread_rank() == 0) {
-    block_table[bi][bj] = hit;
+    block_table[bi][bj] = block_interacts;
   }
 }
 
