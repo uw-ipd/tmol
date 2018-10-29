@@ -17,6 +17,11 @@ std::tuple<at::Tensor, at::Tensor> block_interaction_list(
 extern template std::tuple<at::Tensor, at::Tensor>
 block_interaction_list<float, int32_t, 8>(at::Tensor coords_t, float max_dis);
 
+template <typename Real>
+at::Tensor calc_block_aabb(at::Tensor coords_t);
+
+extern template at::Tensor calc_block_aabb<float>(at::Tensor coords_t);
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
@@ -33,6 +38,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "Calculate coordinate-block interaction list.",
       "coords"_a,
       "max_dis"_a);
+
+  m.def(
+      "calc_block_aabb",
+      &calc_block_aabb<float>,
+      "Calculate coordinate-block aabb.",
+      "coords"_a);
 }
 }  // namespace blocked
 }  // namespace score

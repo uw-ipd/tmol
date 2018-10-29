@@ -7,6 +7,7 @@
 #include <cooperative_groups.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <Eigen/Geometry>
 
 namespace tmol {
 namespace score {
@@ -14,9 +15,75 @@ namespace blocked {
 
 static const int WARPS_PER_BLOCK = 4;
 
-__device__ inline auto grid_x() -> decltype(threadIdx.x) {
-  return (blockIdx.x * blockDim.x) + threadIdx.x;
+template <typename Real>
+__global__ void block_aabb_kernel(
+    tmol::TView<Real, 2, RestrictPtrTraits> coords,
+    tmol::TView<Real, 2, RestrictPtrTraits> box_out) {
+
+  static const int BLOCK_SIZE = 8;
+
+  namespace cg = cooperative_groups;
+
+  cg::thread_block tb = cg::this_thread_block();
+  cg::thread_block_tile<32> tile = cg::tiled_partition<32>(tb);
+
+  unsigned int block_index =
+      (tb.group_index().x * (tb.size() / 32)) + (tb.thread_rank() / 32);
+  auto bsi = block_index * BLOCK_SIZE;
+
+  if (bsi >= coords.size(0)) {
+    return;
+  }
+
+  auto coor = tile.thread_rank() % BLOCK_SIZE;
+  auto dim = tile.thread_rank() / BLOCK_SIZE;
+
+  Real min;
+  Real max;
+  if (dim < 3) {
+    max = coords[bsi + coor][dim];
+    min = max;
+  }
+
+#define FULL_MASK 0xffffffff
+  for (int offset = 4; offset > 0; offset /= 2) {
+    Real other_min = __shfl_down_sync(FULL_MASK, min, offset);
+    min = fminf(min, other_min);
+    Real other_max = __shfl_down_sync(FULL_MASK, max, offset);
+    max = fmaxf(max, other_max);
+  }
+
+  if (coor == 0 && dim < 3) {
+    box_out[block_index][dim] = min;
+    box_out[block_index][dim + 3] = max;
+  }
 }
+
+template <typename Real>
+at::Tensor calc_block_aabb(at::Tensor coords_t) {
+  static const int BLOCK_SIZE = 8;
+
+  AT_ASSERTM(
+      coords_t.size(0) % BLOCK_SIZE == 0,
+      "Coordinate size must be even multiple of target block size.");
+  int64_t num_blocks = coords_t.size(0) / BLOCK_SIZE;
+
+  dim3 threads(32 * WARPS_PER_BLOCK);
+  dim3 blocks(((num_blocks) / WARPS_PER_BLOCK) + 1);
+
+  at::Tensor aabb_t = at::empty(
+      {num_blocks, 6},
+      at::TensorOptions(coords_t).dtype(at::CTypeToScalarType<Real>::to()));
+
+  block_aabb_kernel<Real><<<blocks, threads>>>(
+      tmol::view_tensor<Real, 2, RestrictPtrTraits>(coords_t),
+      tmol::view_tensor<Real, 2, RestrictPtrTraits>(aabb_t));
+
+  return aabb_t;
+};
+
+template at::Tensor
+calc_block_aabb<float>(at::Tensor coords_t);
 
 template <int BLOCK_SIZE, typename Real, typename Int>
 __device__ inline bool block_interaction_check(
