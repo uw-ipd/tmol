@@ -119,7 +119,7 @@ def test_lj_gradcheck():
 def test_cpp_torch_potential_comparison(benchmark, structures_bysize, torch_device):
     import tmol.score.ljlk.cpp_potential as cpp_potential
 
-    target_system = structures_bysize[250].tmol_system
+    target_system = structures_bysize[500].tmol_system
 
     @reactive_attrs
     class DataGraph(CartesianAtomicCoordinateProvider, BondedAtomScoreGraph):
