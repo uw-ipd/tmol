@@ -144,20 +144,32 @@ __global__ void compute_block_table(
 }
 
 template <typename Real, typename Int, int BLOCK_SIZE>
-at::Tensor block_interaction_table(at::Tensor aabb_t, Real max_dis) {
+at::Tensor block_interaction_table(at::Tensor coords_t, Real max_dis) {
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
-  int64_t num_blocks = aabb_t.size(0);
+  AT_ASSERTM(
+      coords_t.size(0) % BLOCK_SIZE == 0,
+      "Coordinate size must be even multiple of target block size.");
+  int64_t num_blocks = coords_t.size(0) / BLOCK_SIZE;
 
   static const int WARPS_PER_BLOCK = 8;
 
   dim3 threads(32 * WARPS_PER_BLOCK);
   dim3 blocks(num_blocks);
 
+  at::Tensor aabb_t = at::empty(
+      {num_blocks, 6},
+      at::TensorOptions(coords_t).dtype(at::CTypeToScalarType<Real>::to()));
+
+
   at::Tensor block_table_t = at::empty(
       {num_blocks, num_blocks},
-      at::TensorOptions(aabb_t).dtype(at::CTypeToScalarType<Int>::to()));
+      at::TensorOptions(coords_t).dtype(at::CTypeToScalarType<Int>::to()));
+
+  block_aabb_kernel<Real><<<blocks, threads>>>(
+      tmol::view_tensor<Real, 2, RestrictPtrTraits>(coords_t),
+      tmol::view_tensor<Real, 2, RestrictPtrTraits>(aabb_t));
 
   compute_block_table<Real, Int, BLOCK_SIZE><<<blocks, threads>>>(
       tmol::view_tensor<Box, 2, RestrictPtrTraits>(aabb_t),
@@ -233,7 +245,7 @@ std::tuple<at::Tensor, at::Tensor> block_interaction_list(
 };
 
 template at::Tensor block_interaction_table<float, int32_t, 8>(
-    at::Tensor aabb_t, float max_dis);
+    at::Tensor coord_t, float max_dis);
 
 template std::tuple<at::Tensor, at::Tensor>
 block_interaction_list<float, int32_t, 8>(at::Tensor coords_t, float max_dis);

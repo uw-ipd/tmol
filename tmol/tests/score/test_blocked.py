@@ -43,8 +43,7 @@ def test_blocked_eval(benchmark, structures_bysize):
     @subfixture(benchmark)
     @bsync
     def cuda_itable():
-        aabb = blocked.cuda.calc_block_aabb(cuda_coords)
-        return blocked.cuda.block_interaction_table(aabb, 6.0)
+        return blocked.cuda.block_interaction_table(cuda_coords, 6.0)
 
     assert (cuda_itable.cpu()[(cpu_itable > 0)] > 0).all()
 
