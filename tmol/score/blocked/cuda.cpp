@@ -5,10 +5,10 @@ namespace score {
 namespace blocked {
 
 template <typename Real, typename Int, int BLOCK_SIZE>
-at::Tensor block_interaction_table(at::Tensor coords_t, Real max_dis);
+at::Tensor block_interaction_table(at::Tensor aabb_t, Real max_dis);
 
 extern template at::Tensor block_interaction_table<float, int32_t, 8>(
-    at::Tensor coords_t, float max_dis);
+    at::Tensor aabb_t, float max_dis);
 
 template <typename Real, typename Int, int BLOCK_SIZE>
 std::tuple<at::Tensor, at::Tensor> block_interaction_list(
@@ -29,7 +29,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "block_interaction_table",
       &block_interaction_table<float, int32_t, 8>,
       "Calculate coordinate-block interaction table.",
-      "coords"_a,
+      "aabb"_a,
       "max_dis"_a);
 
   m.def(
