@@ -1,17 +1,23 @@
 import attr
 import cattr
-import yaml
+import numpy
 import toolz.functoolz
+import torch
+import yaml
 import zarr
 
 from typing import Tuple
-
-import torch
 
 from frozendict import frozendict
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.numeric.bspline import BSplineInterpolation
+
+
+def safe_fetch_from_zarr(zgroup, array_name):
+    numpy_array = numpy.empty(zgroup[array_name].shape, zgroup[array_name].dtype)
+    zgroup[array_name].get_basic_selection(..., out=numpy_array)
+    return numpy_array
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -24,9 +30,15 @@ class RamaTable:
     @classmethod
     def from_zarr(cls, zgroup, name):
         table_group = zgroup[name]
-        bb_start = torch.tensor(table_group["bb_start"][:], dtype=torch.float)
-        bb_step = torch.tensor(table_group["bb_step"][:], dtype=torch.float)
-        probs = torch.tensor(table_group["probabilities"][:], dtype=torch.float)
+        bb_start = torch.tensor(
+            safe_fetch_from_zarr(table_group, "bb_start"), dtype=torch.float
+        )
+        bb_step = torch.tensor(
+            safe_fetch_from_zarr(table_group, "bb_step"), dtype=torch.float
+        )
+        probs = torch.tensor(
+            safe_fetch_from_zarr(table_group, "probabilities"), dtype=torch.float
+        )
         return cls(name=name, bb_start=bb_start, bb_step=bb_step, probabilities=probs)
 
 
@@ -181,13 +193,14 @@ class RamaDatabase:
 
     @classmethod
     def from_files(cls, path):
-        store = zarr.ZipStore(path + ("" if path[-1] == "/" else "/") + "rama.bin")
+        store = zarr.LMDBStore(path + ("" if path[-1] == "/" else "/") + "rama.bin")
         zgroup = zarr.group(store)
         table_list = zgroup.attrs["tables"]
         tables = []
         for table_name in table_list:
             tables.append(RamaTable.from_zarr(zgroup, table_name))
         tables = tuple(tables)
+        store.close()
 
         # load the evaluation mappings from yaml
         with open(path + "rama_mapping.yaml") as fid:

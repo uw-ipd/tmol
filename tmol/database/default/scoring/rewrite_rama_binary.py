@@ -33,7 +33,7 @@ def write_lines_to_zarr(lines, isprepro, zgroup):
 
 if __name__ == "__main__":
 
-    store = zarr.ZipStore("rama/rama.bin")
+    store = zarr.LMDBStore("rama/rama.bin")
     zgroup = zarr.group(store=store)
 
     names1 = write_lines_to_zarr(open("all.ramaProb").readlines(), False, zgroup)
