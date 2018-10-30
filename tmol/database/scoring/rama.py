@@ -204,7 +204,7 @@ class RamaDatabase:
 
         # load the evaluation mappings from yaml
         with open(path + "rama_mapping.yaml") as fid:
-            raw = yaml.load(fid)
+            raw = yaml.load(fid, yaml.CLoader)
         evaluation_mappings = cattr.structure(raw, EvaluationMappings)
 
         mapper = RamaMapper.from_eval_mapping_and_table_list(
