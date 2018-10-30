@@ -8,4 +8,4 @@ requests
 toolz
 pyyaml
 ipyrad::zarr
-lmdb
+python-lmdb
