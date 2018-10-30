@@ -32,6 +32,9 @@ def write_lines_to_zarr(lines, isprepro, zgroup):
 
 
 if __name__ == "__main__":
+    """
+    Write the Ramachandran binary file from the all.ramaProb and prepro.ramaProb files
+    """
 
     store = zarr.LMDBStore("rama/rama.bin")
     zgroup = zarr.group(store=store)
