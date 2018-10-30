@@ -2,5 +2,6 @@ pint
 attrs
 cattrs
 frozendict
+lmdb
 
 sparse==0.3.1
