@@ -25,7 +25,7 @@ class RamaSplines:
         """
         Construct a RamaSplines from a RamaDatabase.
 
-        Ensure only one compacted copy of the database is created for either
+        Ensure only one copy of the Ramachandran table spliens is created for either
         the CPU or the GPU by using a memoization of the device and the RamaDatabase;
         The RamaDatabase is hashed based on the name of the file that was used
         to create it.
@@ -35,15 +35,13 @@ class RamaSplines:
             (len(ramadb.tables), 36, 36), -1234, dtype=torch.float, device=device
         )
         for i, tab in enumerate(ramadb.tables):
-            for entry in tab.entries:
-                phi_i = int(entry.phi) // 10 + 18
-                psi_i = int(entry.psi) // 10 + 18
-                assert phi_i < 36 and psi_i < 36
-                assert phi_i >= 0 and psi_i >= 0
-                table[i, phi_i, psi_i] = entry.prob
+            n_rows = int(360 // tab.bb_step[0].item())
+            n_cols = int(360 // tab.bb_step[1].item())
+            assert tab.probabilities.shape[0] == n_rows
+            assert tab.probabilities.shape[1] == n_cols
 
-        # exp of the -energies should get back to the original probabilities
-        # so we can calculate the table entropies
+            table[i, :, :] = tab.probabilities
+
         entropy = (
             ((table * torch.log(table)).sum(dim=2))
             .sum(dim=1)

@@ -120,7 +120,6 @@ class RamaScoreGraph(
 
         rama_table_inds = torch.tensor(inds, dtype=torch.long, device=device)
         rama_table_inds = rama_table_inds.reshape(1, -1)
-        print(rama_table_inds.type())
 
         return dict(rama_splines=rama_splines, rama_table_inds=rama_table_inds)
 

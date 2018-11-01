@@ -8,7 +8,7 @@ from tmol.score.rama.rama_splines import RamaSplines
 
 
 def test_rama_splines(torch_device):
-    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama/rama.bin")
+    ramadb = RamaDatabase.from_files("tmol/database/default/scoring/rama/")
     rsplines = RamaSplines.from_ramadb(ramadb, torch_device)
     assert rsplines.table.shape == (40, 36, 36)
     phi_vals = (
@@ -33,6 +33,11 @@ def test_rama_splines(torch_device):
                 atol=1e-5,
                 rtol=1e-7,
             )
+
+    print(
+        "ramadb.tables[0].probabilities[0,0]",
+        ramadb.tables[0].probabilities[0, 0].item(),
+    )
 
 
 def test_load_rama_splines_once(torch_device):
