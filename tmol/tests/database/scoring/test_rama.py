@@ -15,9 +15,9 @@ def test_rama_from_json():
 def test_rama_mapper():
     ramadb = RamaDatabase.from_files("tmol/database/default/scoring/rama/")
     mapper = ramadb.mapper
-    assert len(mapper.ndots_to_consider) == 1
-    assert mapper.ndots_to_consider[0] == 3
-    assert mapper.substr_end_for_ndotted_prefix("1.2.3.4.5", 3) == 7
+    # assert len(mapper.ndots_to_consider) == 1
+    # assert mapper.ndots_to_consider[0] == 3
+    # assert mapper.substr_end_for_ndotted_prefix("1.2.3.4.5", 3) == 7
     assert (
         mapper.table_ind_for_res(["aa.alpha.l.alanine"], ["aa.alpha.l.proline"]) == 20
     )
