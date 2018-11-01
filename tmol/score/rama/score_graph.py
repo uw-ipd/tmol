@@ -7,20 +7,15 @@ from typing import List
 from ..database import ParamDB
 from ..device import TorchDevice
 
-# from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
+
+from .rama_splines import RamaSplines
 from ..factory import Factory
 from ..residue_properties import ResidueProperties
 from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 from ..torsions import AlphaAABackboneTorsionProvider
 from ..polymeric_bonds import PolymericBonds
-
 from tmol.database import ParameterDatabase
-
-# from tmol.database.chemical import AAType
-from tmol.database.scoring.rama import CompactedRamaDatabase
-
 from tmol.utility.reactive import reactive_attrs, reactive_property
-
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 
@@ -29,8 +24,8 @@ from tmol.types.torch import Tensor
 class RamaIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def rama_db(target) -> CompactedRamaDatabase:
-        return target.rama_db
+    def rama_splines(target) -> RamaSplines:
+        return target.rama_splines
 
     @reactive_property
     @validate_args
@@ -50,7 +45,7 @@ class RamaIntraScore(IntraScore):
     @reactive_property
     @validate_args
     def rama_scores(
-        rama_db: CompactedRamaDatabase,
+        rama_splines: RamaSplines,
         rama_table_inds: Tensor(torch.long)[:, :],
         phi_tor: Tensor(torch.float)[:, :],
         psi_tor: Tensor(torch.float)[:, :],
@@ -69,7 +64,7 @@ class RamaIntraScore(IntraScore):
         phi_psi = (18 / numpy.pi) * phi_psi + 18
 
         rama_inds = rama_table_inds[has_rama].reshape(-1, 1)
-        return rama_db.bspline.interpolate(phi_psi, rama_inds).unsqueeze(0)
+        return rama_splines.bspline.interpolate(phi_psi, rama_inds).unsqueeze(0)
 
     @reactive_property
     @validate_args
@@ -109,9 +104,7 @@ class RamaScoreGraph(
         parameter database. We only want a single copy of the parameter
         database to live on the CPU or on the device.
         """
-        rama_db = CompactedRamaDatabase.from_ramadb(
-            parameter_database.scoring.rama, device
-        )
+        rama_splines = RamaSplines.from_ramadb(parameter_database.scoring.rama, device)
 
         # Calculate all of the table indices on the CPU, then transfer those
         # indices to the device. Perhaps this can be made to run on the GPU?
@@ -123,15 +116,15 @@ class RamaScoreGraph(
                 continue
             i_props = residue_properties[i]
             i_next_props = residue_properties[upper_cpu[0, i]]
-            inds[i] = rama_db.mapper.table_ind_for_res(i_props, i_next_props)
+            inds[i] = rama_splines.mapper.table_ind_for_res(i_props, i_next_props)
 
         rama_table_inds = torch.tensor(inds, dtype=torch.long, device=device)
         rama_table_inds = rama_table_inds.reshape(1, -1)
         print(rama_table_inds.type())
 
-        return dict(rama_db=rama_db, rama_table_inds=rama_table_inds)
+        return dict(rama_splines=rama_splines, rama_table_inds=rama_table_inds)
 
-    rama_db: CompactedRamaDatabase = attr.ib()
+    rama_splines: RamaSplines = attr.ib()
     rama_table_inds: Tensor(torch.long)[:, :] = attr.ib()
 
     @reactive_property
