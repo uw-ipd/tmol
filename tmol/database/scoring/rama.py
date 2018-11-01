@@ -189,17 +189,13 @@ class RamaMapper:
     """
 
     mappers: Tuple[RamaSingleMapper, ...]
-    # mappers_by_centres: frozendict
-    # ndots_to_consider: Tuple[int]
 
     @validate_args
     def from_eval_mapping_and_table_list(
         evaluation_mappings: Tuple[EvaluationMapping, ...],
         tables: Tuple[RamaTable, ...],
     ):
-        # ndots_to_consider = set([])
         mappers = []
-        # mappers_by_centres = {}
         for ev_map in evaluation_mappings:
             try:
                 tab_ind = next(
@@ -213,30 +209,9 @@ class RamaMapper:
                     + ev_map.table_name
                     + " does not exist."
                 )
-            map1 = RamaSingleMapper.from_condition(ev_map.condition, tab_ind)
-            # ndots_to_consider.add(map1.cond_ndots)
-            mappers.append(map1)
-            # if map1.central_res not in mappers_by_centres:
-            #    mappers_by_centres[map1.central_res] = [map1]
-            # else:
-            #    mappers_by_centres[map1.central_res].append(map1)
-        # mappers_by_centres = frozendict(mappers_by_centres)
-        # ndots_to_consider = tuple(ndots_to_consider)
-        return RamaMapper(
-            mappers=mappers,
-            # mappers_by_centres=mappers_by_centres,
-            # ndots_to_consider=ndots_to_consider,
-        )
-
-    # def substr_end_for_ndotted_prefix(self, property: str, prefix_ndots: int) -> int:
-    #    """Return the index of the prefix_ndots+1'th dot in the given property string"""
-    #    count_dots = 0
-    #    for i in range(len(property)):
-    #        if property[i] == ".":
-    #            count_dots += 1
-    #            if count_dots > prefix_ndots:
-    #                return i
-    #    return len(property)
+            mapper = RamaSingleMapper.from_condition(ev_map.condition, tab_ind)
+            mappers.append(mapper)
+        return RamaMapper(mappers=mappers)
 
     def table_ind_for_res(
         self, cent_res_props: Tuple[str, ...], upper_res_props: Tuple[str, ...]
@@ -244,19 +219,6 @@ class RamaMapper:
         for mapper in self.mappers:
             if mapper.matches(cent_res_props, upper_res_props):
                 return mapper.which_table
-
-        ## look for mappers that use the cent_res
-        ## and then check each mapper using it
-        # for prop in cent_res_props:
-        #    for prefix_ndots in self.ndots_to_consider:
-        #        last = self.substr_end_for_ndotted_prefix(prop, prefix_ndots)
-        #        prefix = prop[:last]
-        #        if prefix not in self.mappers_by_centres:
-        #            continue
-        #        mappers = self.mappers_by_centres[prefix]
-        #        for mapper in mappers:
-        #            if mapper.matches(cent_res_props, upper_res_props):
-        #                return mapper.which_table
 
         return -1
 
