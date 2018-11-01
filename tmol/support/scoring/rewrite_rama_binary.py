@@ -31,18 +31,25 @@ def write_lines_to_zarr(lines, isprepro, zgroup):
     return table_names
 
 
-if __name__ == "__main__":
-    """
-    Write the Ramachandran binary file from the all.ramaProb and prepro.ramaProb files
-    """
+class RamaTableImport:
+    @classmethod
+    def zarr_from_db(_, r3_rama_dir, output_path):
+        """
+        Write the Ramachandran binary file from the all.ramaProb and prepro.ramaProb files
+        that should be found in the r3_rama_path directory.
+        """
 
-    store = zarr.LMDBStore("rama/rama.bin")
-    zgroup = zarr.group(store=store)
+        store = zarr.LMDBStore(output_path)
+        zgroup = zarr.group(store=store)
 
-    names1 = write_lines_to_zarr(open("all.ramaProb").readlines(), False, zgroup)
-    names2 = write_lines_to_zarr(open("prepro.ramaProb").readlines(), True, zgroup)
+        names1 = write_lines_to_zarr(
+            open(r3_rama_dir + "all.ramaProb").readlines(), False, zgroup
+        )
+        names2 = write_lines_to_zarr(
+            open(r3_rama_dir + "prepro.ramaProb").readlines(), True, zgroup
+        )
 
-    names1.extend(names2)
-    zgroup.attrs.update(tables=names1)
+        names1.extend(names2)
+        zgroup.attrs.update(tables=names1)
 
-    store.close()
+        store.close()
