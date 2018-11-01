@@ -24,7 +24,7 @@ def write_lines_to_zarr(lines, isprepro, zgroup):
             curr_aa = cols[0]
             table_name = "LAA_%s_%s" % (cols[0], ("PREPRO" if isprepro else "STANDARD"))
         phi_ind, psi_ind = (int(x) // 10 + 18 for x in cols[1:3])
-        prob_table[psi_ind, phi_ind] = float(cols[3])
+        prob_table[phi_ind, psi_ind] = float(cols[3])
 
     write_rama_table_for_aa(table_name, prob_table, zgroup)
     table_names.append(table_name)
@@ -35,8 +35,9 @@ class RamaTableImport:
     @classmethod
     def zarr_from_db(_, r3_rama_dir, output_path):
         """
-        Write the Ramachandran binary file from the all.ramaProb and prepro.ramaProb files
-        that should be found in the r3_rama_path directory.
+        Write the Ramachandran binary file from the all.ramaProb and
+        prepro.ramaProb files that should be found in the
+        r3_rama_path directory.
         """
 
         store = zarr.LMDBStore(output_path)
