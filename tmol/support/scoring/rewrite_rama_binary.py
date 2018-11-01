@@ -35,8 +35,9 @@ class RamaTableImport:
     @classmethod
     def zarr_from_db(_, r3_rama_dir, output_path):
         """
-        Write the Ramachandran binary file from the all.ramaProb and prepro.ramaProb files
-        that should be found in the r3_rama_path directory.
+        Write the Ramachandran binary file from the all.ramaProb and
+        prepro.ramaProb files that should be found in the
+        r3_rama_path directory.
         """
 
         store = zarr.LMDBStore(output_path)

@@ -1,7 +1,6 @@
 import attr
 import cattr
 import numpy
-import toolz.functoolz
 import torch
 import yaml
 import zarr
@@ -11,7 +10,6 @@ from typing import Tuple
 from frozendict import frozendict
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from tmol.numeric.bspline import BSplineInterpolation
 
 
 def safe_fetch_from_zarr(zgroup, array_name):
