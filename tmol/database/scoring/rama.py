@@ -1,31 +1,45 @@
 import attr
 import cattr
-import json
+import numpy
 import toolz.functoolz
+import torch
+import yaml
+import zarr
 
 from typing import Tuple
 
-import torch
 from frozendict import frozendict
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 from tmol.numeric.bspline import BSplineInterpolation
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
-class RamaEntry:
-    phi: float
-    psi: float
-    prob: float
-    energy: float
+def safe_fetch_from_zarr(zgroup, array_name):
+    numpy_array = numpy.empty(zgroup[array_name].shape, zgroup[array_name].dtype)
+    zgroup[array_name].get_basic_selection(..., out=numpy_array)
+    return numpy_array
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaTable:
     name: str
-    phi_step: float
-    psi_step: float
-    entries: Tuple[RamaEntry, ...]
+    bb_start: Tensor(float)[:]
+    bb_step: Tensor(float)[:]
+    probabilities: Tensor(float)
+
+    @classmethod
+    def from_zarr(cls, zgroup, name):
+        table_group = zgroup[name]
+        bb_start = torch.tensor(
+            safe_fetch_from_zarr(table_group, "bb_start"), dtype=torch.float
+        )
+        bb_step = torch.tensor(
+            safe_fetch_from_zarr(table_group, "bb_step"), dtype=torch.float
+        )
+        probs = torch.tensor(
+            safe_fetch_from_zarr(table_group, "probabilities"), dtype=torch.float
+        )
+        return cls(name=name, bb_start=bb_start, bb_step=bb_step, probabilities=probs)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -34,10 +48,9 @@ class EvaluationMapping:
     table_name: str
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True, hash=False, repr=False)
-class RamaDBFromText:
-    tables: Tuple[RamaTable, ...]
-    evaluation_mappings: Tuple[EvaluationMapping, ...]
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class EvaluationMappings:
+    mappings: Tuple[EvaluationMapping, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -169,7 +182,7 @@ class RamaMapper:
 class RamaDatabase:
     sourcefilepath: str
     tables: Tuple[RamaTable, ...]
-    evaluation_mappings: Tuple[EvaluationMapping, ...]
+    evaluation_mappings: EvaluationMappings
     mapper: RamaMapper
 
     def __hash__(self):
@@ -179,19 +192,97 @@ class RamaDatabase:
         return "RamaDatabase(%s)" % self.sourcefilepath
 
     @classmethod
-    def from_file(cls, path):
-        with open(path, "r") as infile:
-            raw = json.load(infile)
-        prelim_rep = cattr.structure(raw, RamaDBFromText)
+    def from_files(cls, path):
+        store = zarr.LMDBStore(path + ("" if path[-1] == "/" else "/") + "rama.bin")
+        zgroup = zarr.group(store)
+        table_list = zgroup.attrs["tables"]
+        tables = []
+        for table_name in table_list:
+            tables.append(RamaTable.from_zarr(zgroup, table_name))
+        tables = tuple(tables)
+        store.close()
+
+        # load the evaluation mappings from yaml
+        with open(path + "rama_mapping.yaml") as fid:
+            raw = yaml.load(fid, yaml.CLoader)
+        evaluation_mappings = cattr.structure(raw, EvaluationMappings)
+
         mapper = RamaMapper.from_eval_mapping_and_table_list(
-            prelim_rep.evaluation_mappings, prelim_rep.tables
+            evaluation_mappings.mappings, tables
         )
         return cls(
             sourcefilepath=path,
-            tables=prelim_rep.tables,
-            evaluation_mappings=prelim_rep.evaluation_mappings,
+            tables=tables,
+            evaluation_mappings=evaluation_mappings,
             mapper=mapper,
         )
+
+    # @classmethod
+    # def binary_filename_for_path(cls, path):
+    #    return path + ".bin"
+    #
+    # @classmethod
+    # def clear_binary_rep_for_file(cls, path):
+    #    bin_fname = cls.binary_filename_for_path(path)
+    #    if os.path.isdir(bin_fname):
+    #        shutil.rmtree(bin_fname)
+    #
+    # def save_to_binary(self):
+    #    # save the tables to binary
+    #
+    #    store = zarr.storage.LMDBStore(
+    #        self.binary_filename_for_path(self.sourcefilepath)
+    #    )
+    #    zarr_group = zarr.group(store=store)
+    #    table_names = []
+    #    for table in self.tables:
+    #        table_names.append(table.name)
+    #        tgroup = zarr_group.create_group(table.name)
+    #        tgroup.attrs["phi_step"] = table.phi_step
+    #        tgroup.attrs["psi_step"] = table.psi_step
+    #        tgroup.attrs["phi_start"] = table.phi_start
+    #        tgroup.attrs["psi_start"] = table.psi_start
+    #        tgroup.array("probabilities", numpy.array(table.probabilities))
+    #        # tgroup.array("energies", numpy.array(table.energies))
+    #    zarr_group.attrs["tables"] = table_names
+    #    zarr_group.attrs["eval_map"] = [
+    #        (x.condition, x.table_name) for x in self.evaluation_mappings
+    #    ]
+    #    store.close()
+    #
+    # @classmethod
+    # def load_textrep_from_binary(cls, path):
+    #    store = zarr.storage.LMDBStore(cls.binary_filename_for_path(path))
+    #    zarr_group = zarr.group(store=store)
+    #    tables = []
+    #    evaluation_mappings = []
+    #    table_names = zarr_group.attrs["tables"]
+    #    for table_name in table_names:
+    #        tgroup = zarr_group[table_name]
+    #        phi_step = tgroup.attrs["phi_step"]
+    #        psi_step = tgroup.attrs["psi_step"]
+    #        phi_start = tgroup.attrs["phi_start"]
+    #        psi_start = tgroup.attrs["psi_start"]
+    #        prob_table = tgroup["probabilities"][:]
+    #        prob_table = torch.FloatTensor(prob_table[:])
+    #        tables.append(
+    #            RamaTable(
+    #                name=table_name,
+    #                phi_step=phi_step,
+    #                psi_step=psi_step,
+    #                phi_start=phi_start,
+    #                psi_start=psi_start,
+    #                probabilities=prob_table,
+    #            )
+    #        )
+    #    tables = tuple(tables)
+    #    mappings = zarr_group.attrs["eval_map"]
+    #    eval_mappings = tuple(
+    #        EvaluationMapping(condition=emap[0], table_name=emap[1])
+    #        for emap in mappings
+    #    )
+    #    store.close()
+    #    return RamaDBFromText(tables=tables, evaluation_mappings=eval_mappings)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -220,13 +311,14 @@ class CompactedRamaDatabase:
         table = torch.full(
             (len(ramadb.tables), 36, 36), -1234, dtype=torch.float, device=device
         )
+
         for i, tab in enumerate(ramadb.tables):
-            for entry in tab.entries:
-                phi_i = int(entry.phi) // 10 + 18
-                psi_i = int(entry.psi) // 10 + 18
-                assert phi_i < 36 and psi_i < 36
-                assert phi_i >= 0 and psi_i >= 0
-                table[i, phi_i, psi_i] = entry.prob
+            n_rows = int(360 // tab.bb_step[0].item())
+            n_cols = int(360 // tab.bb_step[1].item())
+            assert tab.probabilities.shape[0] == n_rows
+            assert tab.probabilities.shape[1] == n_cols
+
+            table[i, :, :] = tab.probabilities
 
         # exp of the -energies should get back to the original probabilities
         # so we can calculate the table entropies

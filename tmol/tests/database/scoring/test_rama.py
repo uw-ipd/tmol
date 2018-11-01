@@ -1,17 +1,19 @@
 import numpy
 import torch
+import pytest
 
 from tmol.database.scoring.rama import RamaDatabase, CompactedRamaDatabase
 from tmol.database import ParameterDatabase
 
 
 def test_rama_from_json():
-    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
+    fname = "tmol/database/default/scoring/rama/"
+    ramadb = RamaDatabase.from_files(fname)
     assert len(ramadb.tables) == 40
 
 
 def test_rama_mapper():
-    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
+    ramadb = RamaDatabase.from_files("tmol/database/default/scoring/rama/")
     mapper = ramadb.mapper
     assert len(mapper.ndots_to_consider) == 1
     assert mapper.ndots_to_consider[0] == 3
@@ -29,7 +31,7 @@ def test_rama_mapper():
 
 
 def test_compacted_rama(torch_device):
-    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
+    ramadb = RamaDatabase.from_files("tmol/database/default/scoring/rama/")
     compacted = CompactedRamaDatabase.from_ramadb(ramadb, torch_device)
     assert compacted.table.shape == (40, 36, 36)
     phi_vals = (
@@ -63,35 +65,26 @@ def test_load_compacted_rama_once(torch_device):
     assert crama1 is crama2
 
 
-# @pytest.mark.skip(reason="Slow benchmark in yaml case, not functionally relevant.")
-# @pytest.mark.benchmark(group="rama_load", min_rounds=1)
-# @pytest.mark.parametrize("method", ["json", "yaml-loader", "yaml-cloader"])
-# def test_rama_load_benchmark(benchmark, method):
-#     import yaml
-#     import json
-#     import cattr
-#
-#     path = {
-#         "json": "tmol/database/default/scoring/rama.json",
-#         "yaml-loader": "tmol/database/default/scoring/rama.yaml",
-#         "yaml-cloader": "tmol/database/default/scoring/rama.yaml",
-#     }[method]
-#
-#     load = {
-#         "json": lambda infile: json.load(infile),
-#         "yaml-loader":
-#         # defaults to yaml.Loader
-#         lambda infile: yaml.load(infile),
-#         "yaml-cloader": lambda infile: yaml.load(infile, yaml.CLoader),
-#     }[method]
-#
-#     @benchmark
-#     def db():
-#         with open(path, "r") as infile:
-#             raw = load(infile)
-#         return cattr.structure(raw, RamaDatabase)
-#
-#     assert len(db.tables) == 40
+@pytest.mark.benchmark(group="rama_load", min_rounds=1)
+@pytest.mark.parametrize("method", ["binary"])
+def test_rama_load_benchmark(benchmark, method):
+    # import yaml
+
+    path = {
+        # "json": "tmol/database/default/scoring/rama.json",
+        "binary": "tmol/database/default/scoring/rama/"
+    }[method]
+
+    load = {
+        # "json": lambda infile: helper_structure_ramadbfromtext(infile),
+        "binary": lambda infile: RamaDatabase.from_files(infile)
+    }[method]
+
+    @benchmark
+    def db():
+        return load(path)
+
+    assert len(db.tables) == 40
 
 
 def test_rama_repr():
@@ -100,4 +93,4 @@ def test_rama_repr():
     parts = rama_repr.partition("(")
     assert parts[0] == "RamaDatabase"
     rama_path_parts = parts[2].partition("tmol/database/")
-    assert rama_path_parts[2] == "default/scoring/rama.json)"
+    assert rama_path_parts[2] == "default/scoring/rama/)"
