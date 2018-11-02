@@ -21,9 +21,6 @@ from ..score.polymeric_bonds import PolymericBonds
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
-# from ..database.chemical import three_letter_to_aatype
-# from tmol.chemical.aa import AAIndex
-
 
 @StackedSystem.factory_for.register(PackedResidueSystem)
 @validate_args

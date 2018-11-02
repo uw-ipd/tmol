@@ -16,12 +16,26 @@ from .factory import Factory
 
 @reactive_attrs(auto_attribs=True)
 class AlphaAABackboneTorsionProvider(Factory):
+    """Provide the named torsions "phi," "psi," and "omega"
+    to terms that require them.
+
+    The indices for the atoms that define these torsions for each residue
+    must be provided. These incides are then used to retrieve the
+    cartesian coordinates of the atoms defining these torsions.
+    Torsions are then computed from the coordinates. Torsions are computed
+    at most once as part of the reactive system.
+
+    A residue which does not define any of these torsions, for
+    whatever reason (e.g. the residue type does not name these torsions,
+    or the residue is at a chain terminus and the torsion is not defined)
+    should give an atom index of -1 at at least one position in order
+    to signify that the torsion should not be computed.
+    """
+
     @staticmethod
     @singledispatch
     def factory_for(other, device: torch.device, **_):
         """``clone``-factory, extract coords from other."""
-        # if requires_grad is None:
-        #    requires_grad = other.coords.requires_grad
 
         phi_inds = torch.tensor(other.phi_inds, dtype=torch.long, device=device)
         psi_inds = torch.tensor(other.psi_inds, dtype=torch.long, device=device)
@@ -29,9 +43,6 @@ class AlphaAABackboneTorsionProvider(Factory):
 
         return dict(phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds)
 
-    # global indices used to define the torsions
-    # an entry of -1 for any atom means the torsion is undefined
-    # and will produce a NaN in the corresponding _tor Tensor
     phi_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
     psi_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
     omega_inds: Tensor(torch.long)[:, :, 4] = attr.ib()
@@ -68,6 +79,14 @@ class AlphaAABackboneTorsionProvider(Factory):
 def measure_torsions(
     coords: Tensor(torch.double)[:, 3], inds: Tensor(torch.long)[:, 4]
 ) -> Tensor(torch.float):
+    """Compute a 1D tensor of torsions from a 2D tensor of coordinates and
+    a 2D tensor of index quadrouples.
+
+    Torsions are not computed for positions in the index list that contain one
+    or more entries of -1; the corresponding position in the returned torsion
+    tensor will be NaN.
+    """
+
     bad = torch.sum(inds == -1, 1) > 0
     tors = torch.full(
         (inds.shape[0],), numpy.nan, dtype=torch.float, device=coords.device

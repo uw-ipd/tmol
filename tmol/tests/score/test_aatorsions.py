@@ -277,14 +277,11 @@ def test_create_torsion_provider(ubq_system):
         atol=1e-4,
     )
 
-    # numpy.set_printoptions(threshold=numpy.nan)
-    # print( "gold psi" )
-    # print( (src.psi_tor * 180 / numpy.pi ).detach().numpy() )
-    #
-    # print( "gold omega" )
-    # print( (src.omega_tor * 180 / numpy.pi ).detach().numpy() )
-
 
 def test_clone_torsion_provider(ubq_system):
     src = TCartTorsions.build_for(ubq_system)
-    TCartTorsions.build_for(src)
+    copy = TCartTorsions.build_for(src)
+    numpy.testing.assert_equal(
+        src.phi_inds.detach().numpy(), copy.phi_inds.detach().numpy()
+    )
+    assert src.phi_inds.device == copy.phi_inds.device
