@@ -1,81 +1,161 @@
 mappings:
- - condition: aa.alpha.l.alanine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.alanine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_ALA_STANDARD
- - condition: aa.alpha.l.arginine,(upper:!aa.alpha.l.proline
+ - condition:
+     central_res: aa.alpha.l.arginine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_ARG_STANDARD
- - condition: aa.alpha.l.asparagine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.asparagine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_ASN_STANDARD
- - condition: aa.alpha.l.aspartate,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.aspartate
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_ASP_STANDARD
- - condition: aa.alpha.l.cysteine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.cysteine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_CYS_STANDARD
- - condition: aa.alpha.l.glutamine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.glutamine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_GLN_STANDARD
- - condition: aa.alpha.l.glutamate,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.glutamate
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_GLU_STANDARD
- - condition: aa.alpha.l.glycine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.glycine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_GLY_STANDARD
- - condition: aa.alpha.l.histidine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.histidine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_HIS_STANDARD
- - condition: aa.alpha.l.isoleucine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.isoleucine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_ILE_STANDARD
- - condition: aa.alpha.l.leucine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.leucine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_LEU_STANDARD
- - condition: aa.alpha.l.lysine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.lysine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_LYS_STANDARD
- - condition: aa.alpha.l.methionine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.methionine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_MET_STANDARD
- - condition: aa.alpha.l.phenylalanine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.phenylalanine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_PHE_STANDARD
- - condition: aa.alpha.l.proline,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.proline
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_PRO_STANDARD
- - condition: aa.alpha.l.serine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.serine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_SER_STANDARD
- - condition: aa.alpha.l.threonine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.threonine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_THR_STANDARD
- - condition: aa.alpha.l.tryptophan,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.tryptophan
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_TRP_STANDARD
- - condition: aa.alpha.l.tyrosine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.tyrosine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_TYR_STANDARD
- - condition: aa.alpha.l.valine,(upper:!aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.valine
+     upper_res: "!aa.alpha.l.proline"
    table_name: LAA_VAL_STANDARD
- - condition: aa.alpha.l.alanine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.alanine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_ALA_PREPRO
- - condition: aa.alpha.l.arginine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.arginine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_ARG_PREPRO
- - condition: aa.alpha.l.asparagine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.asparagine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_ASN_PREPRO
- - condition: aa.alpha.l.aspartate,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.aspartate
+     upper_res: aa.alpha.l.proline
    table_name: LAA_ASP_PREPRO
- - condition: aa.alpha.l.cysteine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.cysteine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_CYS_PREPRO
- - condition: aa.alpha.l.glutamine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.glutamine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_GLN_PREPRO
- - condition: aa.alpha.l.glutamate,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.glutamate
+     upper_res: aa.alpha.l.proline
    table_name: LAA_GLU_PREPRO
- - condition: aa.alpha.l.glycine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.glycine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_GLY_PREPRO
- - condition: aa.alpha.l.histidine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.histidine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_HIS_PREPRO
- - condition: aa.alpha.l.isoleucine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.isoleucine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_ILE_PREPRO
- - condition: aa.alpha.l.leucine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.leucine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_LEU_PREPRO
- - condition: aa.alpha.l.lysine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.lysine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_LYS_PREPRO
- - condition: aa.alpha.l.methionine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.methionine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_MET_PREPRO
- - condition: aa.alpha.l.phenylalanine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.phenylalanine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_PHE_PREPRO
- - condition: aa.alpha.l.proline,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.proline
+     upper_res: aa.alpha.l.proline
    table_name: LAA_PRO_PREPRO
- - condition: aa.alpha.l.serine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.serine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_SER_PREPRO
- - condition: aa.alpha.l.threonine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.threonine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_THR_PREPRO
- - condition: aa.alpha.l.tryptophan,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.tryptophan
+     upper_res: aa.alpha.l.proline
    table_name: LAA_TRP_PREPRO
- - condition: aa.alpha.l.tyrosine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.tyrosine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_TYR_PREPRO
- - condition: aa.alpha.l.valine,(upper:aa.alpha.l.proline)
+ - condition:
+     central_res: aa.alpha.l.valine
+     upper_res: aa.alpha.l.proline
    table_name: LAA_VAL_PREPRO

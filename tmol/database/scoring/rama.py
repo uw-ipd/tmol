@@ -1,6 +1,7 @@
 import attr
 import cattr
 import numpy
+import os
 import re
 import toolz.functoolz
 import torch
@@ -43,8 +44,14 @@ class RamaTable:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class EvaluationCondition:
+    central_res: str
+    upper_res: str
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class EvaluationMapping:
-    condition: str
+    condition: EvaluationCondition
     table_name: str
 
 
@@ -120,34 +127,27 @@ class RamaSingleMapper:
     central_res: str
     upper_res: str
     upper_res_pos: bool
-    cond_ndots: int
     which_table: int
     central_re: str
     upper_re: str
 
     @staticmethod
     @validate_args
-    def from_condition(condition: str, which_table: int):
+    def from_condition(condition: EvaluationCondition, which_table: int):
         """Turn the condition string in rama.json into the parts that
         decide which table to use for each residue"""
-        cond_parts = condition.partition(",")
-        cent_res = cond_parts[0]
-        upper_res_parts = cond_parts[2][1:-1].partition(":")
-        upper_res2 = upper_res_parts[2]
-        upper_res_pos = upper_res2[0] != "!"
-        upper_res = upper_res2
-        cond_ndots = len(cent_res.split(".")) - 1
+        assert (
+            condition.central_res[0] != "!"
+        ), "central residue cannot be defined by a negative"
+        upper_res_pos = condition.upper_res[0] != "!"
 
-        central_re = parse_property_pattern(cent_res)
-        upper_re = parse_property_pattern(upper_res2)
-
-        # print(central_re,upper_re)
+        central_re = parse_property_pattern(condition.central_res)
+        upper_re = parse_property_pattern(condition.upper_res)
 
         return RamaSingleMapper(
-            central_res=cent_res,
-            upper_res=upper_res,
+            central_res=condition.central_res,
+            upper_res=condition.upper_res,
             upper_res_pos=upper_res_pos,
-            cond_ndots=cond_ndots,
             which_table=which_table,
             central_re=central_re,
             upper_re=upper_re,
@@ -240,7 +240,7 @@ class RamaDatabase:
 
     @classmethod
     def from_files(cls, path):
-        store = zarr.LMDBStore(path + ("" if path[-1] == "/" else "/") + "rama.bin")
+        store = zarr.LMDBStore(os.path.join(path, "rama.bin"))
         zgroup = zarr.group(store)
         table_list = zgroup.attrs["tables"]
         tables = []

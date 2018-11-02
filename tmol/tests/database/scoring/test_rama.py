@@ -6,7 +6,7 @@ from tmol.database.scoring.rama import RamaDatabase
 from tmol.database import ParameterDatabase
 
 
-def test_rama_from_json():
+def test_rama_construction_smoke():
     fname = "tmol/database/default/scoring/rama/"
     ramadb = RamaDatabase.from_files(fname)
     assert len(ramadb.tables) == 40
@@ -30,17 +30,10 @@ def test_rama_mapper():
 @pytest.mark.benchmark(group="rama_load", min_rounds=1)
 @pytest.mark.parametrize("method", ["binary"])
 def test_rama_load_benchmark(benchmark, method):
-    # import yaml
 
-    path = {
-        # "json": "tmol/database/default/scoring/rama.json",
-        "binary": "tmol/database/default/scoring/rama/"
-    }[method]
+    path = {"binary": "tmol/database/default/scoring/rama/"}[method]
 
-    load = {
-        # "json": lambda infile: helper_structure_ramadbfromtext(infile),
-        "binary": lambda infile: RamaDatabase.from_files(infile)
-    }[method]
+    load = {"binary": lambda infile: RamaDatabase.from_files(infile)}[method]
 
     @benchmark
     def db():
