@@ -87,13 +87,15 @@ def parse_property_pattern(pat):
         pat = pat[1:]
         invert = True
 
-    allowed_chars = set(crange("a", "z") + crange("A", "Z") + crange("0", "9"))
+    allowed_chars = set(
+        crange("a", "z") + crange("A", "Z") + crange("0", "9") + ["_", "-", "[", "]"]
+    )
 
     result = []
 
     for pchar in pat:
         if pchar == "*":
-            result.append(r"[a-zA-Z0-9]*")
+            result.append(r"[a-zA-Z0-9_\-\[\]]*")
         elif pchar == ".":
             result.append(r"\.")
         elif pchar in allowed_chars:
@@ -101,7 +103,7 @@ def parse_property_pattern(pat):
         else:
             raise ValueError("Invalid pattern: %r invalid char: %r" % (pat, pchar))
 
-    result.append(r"(\.[\.a-zA-Z0-9]+)?")
+    result.append(r"(\.[\.a-zA-Z0-9_\-\[\]]+)?")
     result.append("$")
 
     result_re = "".join(result)
