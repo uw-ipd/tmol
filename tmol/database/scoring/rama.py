@@ -3,14 +3,12 @@ import cattr
 import numpy
 import os
 import re
-import toolz.functoolz
 import torch
 import yaml
 import zarr
 
 from typing import Tuple
 
-from frozendict import frozendict
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
@@ -244,7 +242,7 @@ class RamaDatabase:
         zgroup = zarr.group(store)
         table_list = zgroup.attrs["tables"]
         tables = []
-        for i, table_name in enumerate(table_list):
+        for table_name in table_list:
             tables.append(RamaTable.from_zarr(zgroup, table_name))
         tables = tuple(tables)
         store.close()

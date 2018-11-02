@@ -1,5 +1,3 @@
-import numpy
-import torch
 import pytest
 
 from tmol.database.scoring.rama import RamaDatabase
