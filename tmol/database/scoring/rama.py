@@ -251,7 +251,7 @@ class RamaDatabase:
         store.close()
 
         # load the evaluation mappings from yaml
-        with open(path + "rama_mapping.yaml") as fid:
+        with open(os.path.join(path, "rama_mapping.yaml")) as fid:
             raw = yaml.load(fid, yaml.CLoader)
         evaluation_mappings = cattr.structure(raw, EvaluationMappings)
 
