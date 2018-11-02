@@ -209,13 +209,16 @@ class RamaMapper:
                     + ev_map.table_name
                     + " does not exist."
                 )
-            mapper = RamaSingleMapper.from_condition(ev_map.condition, tab_ind)
-            mappers.append(mapper)
+            mappers.append(RamaSingleMapper.from_condition(ev_map.condition, tab_ind))
         return RamaMapper(mappers=mappers)
 
     def table_ind_for_res(
         self, cent_res_props: Tuple[str, ...], upper_res_props: Tuple[str, ...]
     ) -> int:
+        """
+        Return the index of the table to use for the central residue, or -1 if
+        there is no table which residue i matches.
+        """
         for mapper in self.mappers:
             if mapper.matches(cent_res_props, upper_res_props):
                 return mapper.which_table
@@ -239,7 +242,7 @@ class RamaDatabase:
     @classmethod
     def from_files(cls, path):
         store = zarr.LMDBStore(os.path.join(path, "rama.bin"))
-        zgroup = zarr.group(store)
+        zgroup = zarr.hierarchy.open_group(store, mode="r")
         table_list = zgroup.attrs["tables"]
         tables = []
         for table_name in table_list:
