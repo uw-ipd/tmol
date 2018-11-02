@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.numeric.dihedrals &mdash; TMol 0.0.0-95-gd03e394 documentation</title>
+  <title>tmol.numeric.dihedrals &mdash; TMol 0.0.0-96-g14d5d6b documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-95-gd03e394
+                0.0.0-96-g14d5d6b
               </div>
             
           
@@ -201,7 +201,7 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="tmol.numeric.dihedrals.coord_dihedrals">
-<code class="descclassname">tmol.numeric.dihedrals.</code><code class="descname">coord_dihedrals</code><span class="sig-paren">(</span><em>a: NDArray(dtype('float64'))[:,3], b: NDArray(dtype('float64'))[:,3], c: NDArray(dtype('float64'))[:,3], d: NDArray(dtype('float64'))[:,3]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('float64'))[:]<a class="reference internal" href="../_modules/tmol/numeric/dihedrals.html#coord_dihedrals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.dihedrals.coord_dihedrals" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">tmol.numeric.dihedrals.</code><code class="descname">coord_dihedrals</code><span class="sig-paren">(</span><em>a: Tensor(torch.float64)[:,3], b: Tensor(torch.float64)[:,3], c: Tensor(torch.float64)[:,3], d: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float32)[:]<a class="reference internal" href="../_modules/tmol/numeric/dihedrals.html#coord_dihedrals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.numeric.dihedrals.coord_dihedrals" title="Permalink to this definition">¶</a></dt>
 <dd><p>Dihedral angle in [-pi, pi] over the planes defined by {a, b, c} &amp; {b, c, d}.</p>
 <p>Calculate dihedral angle from four coordinate locations, using the
 “standard” torsion angle definition of two planes defined by the points
@@ -232,7 +232,7 @@ to rotation about the b-c bond.</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018, TMol Contributers.
+        &copy; Copyright 2018, TMol Contributers
 
     </p>
   </div>
@@ -251,21 +251,24 @@ to rotation about the b-c bond.</p>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../',
-            VERSION:'0.0.0-95-gd03e394',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../_static/jquery.js"></script>
-      <script type="text/javascript" src="../_static/underscore.js"></script>
-      <script type="text/javascript" src="../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../',
+              VERSION:'0.0.0-96-g14d5d6b',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
 
   
 

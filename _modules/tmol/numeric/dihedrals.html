@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.numeric.dihedrals &mdash; TMol 0.0.0-95-gd03e394 documentation</title>
+  <title>tmol.numeric.dihedrals &mdash; TMol 0.0.0-96-g14d5d6b documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-95-gd03e394
+                0.0.0-96-g14d5d6b
               </div>
             
           
@@ -162,18 +162,18 @@
            <div itemprop="articleBody">
             
   <h1>Source code for tmol.numeric.dihedrals</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
-<span class="kn">from</span> <span class="nn">tmol.types.array</span> <span class="k">import</span> <span class="n">NDArray</span>
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
 
-<span class="n">CoordArray</span> <span class="o">=</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]</span>
-<span class="n">Angles</span> <span class="o">=</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:]</span>
+<span class="n">Coord64Array</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">Angles</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:]</span>
 
 
 <div class="viewcode-block" id="coord_dihedrals"><a class="viewcode-back" href="../../../apidoc/tmol.numeric.dihedrals.html#tmol.numeric.dihedrals.coord_dihedrals">[docs]</a><span class="nd">@validate_args</span>
 <span class="k">def</span> <span class="nf">coord_dihedrals</span><span class="p">(</span>
-    <span class="n">a</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="n">CoordArray</span>
+    <span class="n">a</span><span class="p">:</span> <span class="n">Coord64Array</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Coord64Array</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="n">Coord64Array</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="n">Coord64Array</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Angles</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Dihedral angle in [-pi, pi] over the planes defined by {a, b, c} &amp; {b, c, d}.</span>
 
@@ -190,21 +190,21 @@
     <span class="n">bc</span> <span class="o">=</span> <span class="n">c</span> <span class="o">-</span> <span class="n">b</span>
     <span class="n">cd</span> <span class="o">=</span> <span class="n">d</span> <span class="o">-</span> <span class="n">c</span>
 
-    <span class="n">ubc</span> <span class="o">=</span> <span class="n">bc</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">bc</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">ubc</span> <span class="o">=</span> <span class="n">bc</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">bc</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># v = projection of ba onto plane perpendicular to bc</span>
     <span class="c1">#     minus component that aligns with bc</span>
     <span class="c1"># w = projection of cd onto plane perpendicular to bc</span>
     <span class="c1">#     cd minus component that aligns with bc</span>
-    <span class="n">v</span> <span class="o">=</span> <span class="n">ba</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ba</span> <span class="o">*</span> <span class="n">ubc</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">ubc</span>
-    <span class="n">w</span> <span class="o">=</span> <span class="n">cd</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cd</span> <span class="o">*</span> <span class="n">ubc</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">ubc</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">ba</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ba</span> <span class="o">*</span> <span class="n">ubc</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">ubc</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">cd</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">cd</span> <span class="o">*</span> <span class="n">ubc</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">ubc</span>
 
     <span class="c1"># angle between v and w in a plane is the torsion angle</span>
     <span class="c1"># v and w may not be normalized but that&#39;s fine since tan is y/x</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">v</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">ubc</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ij,ij-&gt;i&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;ij,ij-&gt;i&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">ubc</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">w</span><span class="p">))</span>
 
-    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
@@ -217,7 +217,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018, TMol Contributers.
+        &copy; Copyright 2018, TMol Contributers
 
     </p>
   </div>
@@ -236,21 +236,24 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'0.0.0-95-gd03e394',
-            LANGUAGE:'None',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../',
+              VERSION:'0.0.0-96-g14d5d6b',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
 
   
 
