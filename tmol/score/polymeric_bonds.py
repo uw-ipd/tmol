@@ -12,6 +12,17 @@ from .factory import Factory
 
 @reactive_attrs(auto_attribs=True)
 class PolymericBonds(Factory):
+    """Scoring mixin for representing polymeric connections.
+
+    Upper and lower residue incides are given for each residue,
+    with the sentinel value of -1 used to designate "no such
+    connection."  Most polymeric connections are to i-1 and i+1,
+    but not all (e.g. chain ends, cyclic peptides), and therefore
+    some class must provide to the scoring terms which need to
+    understand polymeric connections that actual indices of the
+    upper and lower neighbors.
+    """
+
     @staticmethod
     @singledispatch
     def factory_for(other, device: torch.device, **_):
@@ -20,10 +31,5 @@ class PolymericBonds(Factory):
         lower = torch.tensor(other.lower, dtype=torch.long, device=device)
         return dict(upper=upper, lower=lower)
 
-    # The index of the residue that residue i has as its upper-connection neighbor
-    # (often i+1), with -1 signifying that no upper connection is present
     upper: Tensor(torch.long)[:, :] = attr.ib()
-
-    # The index of the residue that residue i has as its lower-connection neighbor
-    # (often i-1), with -1 signifying that no lower connection is present
     lower: Tensor(torch.long)[:, :] = attr.ib()
