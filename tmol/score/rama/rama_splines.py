@@ -3,7 +3,6 @@ import toolz.functoolz
 import torch
 
 from tmol.types.torch import Tensor
-from tmol.types.functional import validate_args
 from tmol.numeric.bspline import BSplineInterpolation
 from tmol.database.scoring.rama import RamaDatabase, RamaMapper
 
