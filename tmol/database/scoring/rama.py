@@ -104,7 +104,7 @@ def parse_property_pattern(pat):
         elif pchar == ".":
             result.append(r"\.")
         elif pchar in allowed_chars:
-            result.append(pchar)
+            result.append(re.escape(pchar))
         else:
             raise ValueError("Invalid pattern: %r invalid char: %r" % (pat, pchar))
 
