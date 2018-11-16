@@ -12,6 +12,7 @@ tmol.support.scoring
        :maxdepth: 1
   
        tmol.support.scoring.hbond_param_import
+       tmol.support.scoring.rewrite_rama_binary
        tmol.support.scoring.rosetta
   
 

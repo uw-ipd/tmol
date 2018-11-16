@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.log &mdash; TMol 0.0.0-98-g1ba9299 documentation</title>
+  <title>tmol.support.scoring.rewrite_rama_binary &mdash; TMol 0.0.0-98-g1ba9299 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.utility.log.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.support.scoring.rewrite_rama_binary.html"/>
   
 
   
@@ -30,8 +30,8 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.utility.mixins" href="tmol.utility.mixins.html" />
-    <link rel="prev" title="tmol.utility.categorical" href="tmol.utility.categorical.html" /> 
+    <link rel="next" title="tmol.support.scoring.rosetta" href="tmol.support.scoring.rosetta.html" />
+    <link rel="prev" title="tmol.support.scoring.hbond_param_import" href="tmol.support.scoring.hbond_param_import.html" /> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -97,29 +97,23 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="tmol.utility.html">tmol.utility</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.attr.html">tmol.utility.attr</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.categorical.html">tmol.utility.categorical</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.utility.log</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.mixins.html">tmol.utility.mixins</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.numba.html">tmol.utility.numba</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.reactive.html">tmol.utility.reactive</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.units.html">tmol.utility.units</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#summary">Summary</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#reference">Reference</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.support.html">tmol.support</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tmol.support.rosetta.html">tmol.support.rosetta</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.support.scoring.html">tmol.support.scoring</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tmol.support.scoring.hbond_param_import.html">tmol.support.scoring.hbond_param_import</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.support.scoring.rewrite_rama_binary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.support.scoring.rosetta.html">tmol.support.scoring.rosetta</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
             
@@ -165,15 +159,17 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-          <li><a href="tmol.utility.html">tmol.utility</a> &raquo;</li>
+          <li><a href="tmol.support.html">tmol.support</a> &raquo;</li>
         
-      <li>tmol.utility.log</li>
+          <li><a href="tmol.support.scoring.html">tmol.support.scoring</a> &raquo;</li>
+        
+      <li>tmol.support.scoring.rewrite_rama_binary</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.utility.log.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.support.scoring.rewrite_rama_binary.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -186,8 +182,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.utility.log">
-<span id="tmol-utility-log"></span><h1>tmol.utility.log<a class="headerlink" href="#module-tmol.utility.log" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-tmol.support.scoring.rewrite_rama_binary">
+<span id="tmol-support-scoring-rewrite-rama-binary"></span><h1>tmol.support.scoring.rewrite_rama_binary<a class="headerlink" href="#module-tmol.support.scoring.rewrite_rama_binary" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="classes">
@@ -198,7 +194,7 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.log.LoggerMixin" title="tmol.utility.log.LoggerMixin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LoggerMixin</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.support.scoring.rewrite_rama_binary.RamaTableImport" title="tmol.support.scoring.rewrite_rama_binary.RamaTableImport"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamaTableImport</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -212,11 +208,11 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.log.classlogger_for" title="tmol.utility.log.classlogger_for"><code class="xref py py-obj docutils literal notranslate"><span class="pre">classlogger_for</span></code></a></td>
-<td>Get {module}.{class name} named logger for object.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.support.scoring.rewrite_rama_binary.write_lines_to_zarr" title="tmol.support.scoring.rewrite_rama_binary.write_lines_to_zarr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_lines_to_zarr</span></code></a></td>
+<td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.utility.log.logger_for_class" title="tmol.utility.log.logger_for_class"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger_for_class</span></code></a></td>
-<td>Get {module}.{name} named logger for class.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.support.scoring.rewrite_rama_binary.write_rama_table_for_aa" title="tmol.support.scoring.rewrite_rama_binary.write_rama_table_for_aa"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_rama_table_for_aa</span></code></a></td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -225,25 +221,26 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="tmol.utility.log.classlogger_for">
-<code class="descclassname">tmol.utility.log.</code><code class="descname">classlogger_for</code><span class="sig-paren">(</span><em>instance: object</em><span class="sig-paren">)</span> &#x2192; logging.Logger<a class="reference internal" href="../_modules/tmol/utility/log.html#classlogger_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.log.classlogger_for" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get {module}.{class name} named logger for object.</p>
-</dd></dl>
+<dt id="tmol.support.scoring.rewrite_rama_binary.write_rama_table_for_aa">
+<code class="descclassname">tmol.support.scoring.rewrite_rama_binary.</code><code class="descname">write_rama_table_for_aa</code><span class="sig-paren">(</span><em>name</em>, <em>prob_table</em>, <em>zgroup</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/support/scoring/rewrite_rama_binary.html#write_rama_table_for_aa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.support.scoring.rewrite_rama_binary.write_rama_table_for_aa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
-<dt id="tmol.utility.log.logger_for_class">
-<code class="descclassname">tmol.utility.log.</code><code class="descname">logger_for_class</code><span class="sig-paren">(</span><em>cls: type</em><span class="sig-paren">)</span> &#x2192; logging.Logger<a class="reference internal" href="../_modules/tmol/utility/log.html#logger_for_class"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.log.logger_for_class" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get {module}.{name} named logger for class.</p>
-</dd></dl>
+<dt id="tmol.support.scoring.rewrite_rama_binary.write_lines_to_zarr">
+<code class="descclassname">tmol.support.scoring.rewrite_rama_binary.</code><code class="descname">write_lines_to_zarr</code><span class="sig-paren">(</span><em>lines</em>, <em>isprepro</em>, <em>zgroup</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/support/scoring/rewrite_rama_binary.html#write_lines_to_zarr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.support.scoring.rewrite_rama_binary.write_lines_to_zarr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="class">
-<dt id="tmol.utility.log.LoggerMixin">
-<em class="property">class </em><code class="descclassname">tmol.utility.log.</code><code class="descname">LoggerMixin</code><a class="reference internal" href="../_modules/tmol/utility/log.html#LoggerMixin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.log.LoggerMixin" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.support.scoring.rewrite_rama_binary.RamaTableImport">
+<em class="property">class </em><code class="descclassname">tmol.support.scoring.rewrite_rama_binary.</code><code class="descname">RamaTableImport</code><a class="reference internal" href="../_modules/tmol/support/scoring/rewrite_rama_binary.html#RamaTableImport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.support.scoring.rewrite_rama_binary.RamaTableImport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.utility.log.LoggerMixin.logger">
-<code class="descname">logger</code><a class="headerlink" href="#tmol.utility.log.LoggerMixin.logger" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="classmethod">
+<dt id="tmol.support.scoring.rewrite_rama_binary.RamaTableImport.zarr_from_db">
+<em class="property">classmethod </em><code class="descname">zarr_from_db</code><span class="sig-paren">(</span><em>r3_rama_dir</em>, <em>output_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/support/scoring/rewrite_rama_binary.html#RamaTableImport.zarr_from_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.support.scoring.rewrite_rama_binary.RamaTableImport.zarr_from_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the Ramachandran binary file from the all.ramaProb and
+prepro.ramaProb files that should be found in the
+r3_rama_path directory.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -258,10 +255,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.utility.mixins.html" class="btn btn-neutral float-right" title="tmol.utility.mixins" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.support.scoring.rosetta.html" class="btn btn-neutral float-right" title="tmol.support.scoring.rosetta" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="tmol.utility.categorical.html" class="btn btn-neutral" title="tmol.utility.categorical" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tmol.support.scoring.hbond_param_import.html" class="btn btn-neutral" title="tmol.support.scoring.hbond_param_import" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

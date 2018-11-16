@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring &mdash; TMol 0.0.0-97-gd9c06af documentation</title>
+  <title>tmol.database.scoring &mdash; TMol 0.0.0-98-g1ba9299 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-97-gd9c06af
+                0.0.0-98-g1ba9299
               </div>
             
           
@@ -98,6 +98,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.database.scoring</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="tmol.database.scoring.hbond.html">tmol.database.scoring.hbond</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.database.scoring.ljlk.html">tmol.database.scoring.ljlk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.database.scoring.rama.html">tmol.database.scoring.rama</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
@@ -188,6 +189,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tmol.database.scoring.hbond.html">tmol.database.scoring.hbond</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.database.scoring.ljlk.html">tmol.database.scoring.ljlk</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.scoring.rama.html">tmol.database.scoring.rama</a></li>
 </ul>
 </div>
 <div class="section" id="summary">
@@ -211,7 +213,7 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tmol.database.scoring.ScoringDatabase">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.</code><code class="descname">ScoringDatabase</code><span class="sig-paren">(</span><em>ljlk: tmol.database.scoring.ljlk.LJLKDatabase</em>, <em>hbond: tmol.database.scoring.hbond.HBondDatabase</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring.html#ScoringDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.ScoringDatabase" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.</code><code class="descname">ScoringDatabase</code><span class="sig-paren">(</span><em>ljlk: tmol.database.scoring.ljlk.LJLKDatabase</em>, <em>hbond: tmol.database.scoring.hbond.HBondDatabase</em>, <em>rama: tmol.database.scoring.rama.RamaDatabase</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring.html#ScoringDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.ScoringDatabase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="classmethod">
 <dt id="tmol.database.scoring.ScoringDatabase.from_file">
@@ -226,6 +228,11 @@
 <dl class="attribute">
 <dt id="tmol.database.scoring.ScoringDatabase.ljlk">
 <code class="descname">ljlk</code><a class="headerlink" href="#tmol.database.scoring.ScoringDatabase.ljlk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.ScoringDatabase.rama">
+<code class="descname">rama</code><a class="headerlink" href="#tmol.database.scoring.ScoringDatabase.rama" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -277,7 +284,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-97-gd9c06af',
+              VERSION:'0.0.0-98-g1ba9299',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
