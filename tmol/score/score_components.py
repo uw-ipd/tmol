@@ -1,4 +1,4 @@
-"""Graph components managing dispatch of "intra" and "inter" layer scoring.
+r"""Graph components managing dispatch of "intra" and "inter" layer scoring.
 
 Score evaluation involves the interaction of three types:
 

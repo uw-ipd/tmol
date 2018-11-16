@@ -35,7 +35,7 @@ Stride and Contiguous Dimensions
 
 Memory layout constraints can be used to specify contiguous dimensions and
 their ordering. Dense dimensions are specified in the standard
-\[inner|c|numpy|row-major\] order or or in \[outer|fortran|col-major\] order.
+(inner|c|numpy|row-major) order or or in (outer|fortran|col-major) order.
 Any number of dimensions, starting from either ordering, can be specified as
 dense. Elements of dense dimensions are contiguous support a raveled view.
 
