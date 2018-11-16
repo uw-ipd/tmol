@@ -954,7 +954,7 @@ residues:
     - { *n:  down, phi: -150.000046 deg, theta:   58.300003 deg, d:    1.328685, *p:     N, *gp:    CA, *ggp:     C}
     - { *n:     H, phi: -179.999985 deg, theta:   60.850040 deg, d:    1.010001, *p:     N, *gp:    CA, *ggp:  down}
     hierarchies:
-    - aa.alpha.l.methoinine
+    - aa.alpha.l.methionine
   - name:  PHE
     name3: PHE
     atoms:

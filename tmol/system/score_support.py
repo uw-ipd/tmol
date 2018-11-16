@@ -2,6 +2,7 @@ import numpy
 import torch
 
 from ..types.functional import validate_args
+from ..types.torch import Tensor
 
 from ..kinematics.torch_op import KinematicOp
 from ..kinematics.metadata import DOFTypes
@@ -13,6 +14,9 @@ from ..score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
+from ..score.residue_properties import ResidueProperties
+from ..score.torsions import AlphaAABackboneTorsionProvider
+from ..score.polymeric_bonds import PolymericBonds
 
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
@@ -90,3 +94,89 @@ def system_torsion_graph_inputs(
     return dict(
         dofs=kinop.src_mobile_dofs.clone().requires_grad_(requires_grad), kinop=kinop
     )
+
+
+@AlphaAABackboneTorsionProvider.factory_for.register(PackedResidueSystem)
+@validate_args
+def system_torsions_from_coordinates(
+    system: PackedResidueSystem, device: torch.device, **_
+):
+    """Constructor for finding the alpha amino-acid backbone torsions
+
+    Each of the residues in the system is represented by the three
+    atom-index arrays, but some entries are going to be listed with
+    an index of -1. Either these atoms don't exist for a canonical
+    AA at that residue or that residue is not a canonical AA.
+    """
+
+    phi_inds = inds_for_torsion(system, device, "phi").unsqueeze(0)
+    psi_inds = inds_for_torsion(system, device, "psi").unsqueeze(0)
+    omega_inds = inds_for_torsion(system, device, "omega").unsqueeze(0)
+
+    return dict(phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds)
+
+
+@validate_args
+def inds_for_torsion(
+    system: PackedResidueSystem, device: torch.device, torsion_name: str
+) -> Tensor(torch.long)[:, 4]:
+    inds = torch.full((len(system.residues), 4), -1, dtype=torch.long, device=device)
+
+    tor_data = system.torsion_metadata[system.torsion_metadata["name"] == torsion_name]
+    tor_res = tor_data["residue_index"]
+    inds[tor_res, 0] = torch.tensor(
+        tor_data["atom_index_a"], dtype=torch.long, device=device
+    )
+    inds[tor_res, 1] = torch.tensor(
+        tor_data["atom_index_b"], dtype=torch.long, device=device
+    )
+    inds[tor_res, 2] = torch.tensor(
+        tor_data["atom_index_c"], dtype=torch.long, device=device
+    )
+    inds[tor_res, 3] = torch.tensor(
+        tor_data["atom_index_d"], dtype=torch.long, device=device
+    )
+    return inds
+
+
+@PolymericBonds.factory_for.register(PackedResidueSystem)
+@validate_args
+def system_polymeric_connections(
+    system: PackedResidueSystem, device: torch.device, **_
+):
+    """Constructor for identifying which polymeric residue is chemically bonded
+    to which other polymeric residue
+
+    The upper connection (usually i+1) for cyclic peptides, e.g., will for the
+    last residue be residue 0, and in the same cyclic peptide, the lower
+    connection for residue 0 with be the last residue. An index of -1 is given
+    to suggest that a residue does not have an upper or lower connection (perhaps
+    because it is not a polymeric residue, or perhaps because it is a chain
+    terminus)."""
+
+    upper = torch.full((len(system.residues),), -1, dtype=torch.long, device=device)
+    lower = torch.full((len(system.residues),), -1, dtype=torch.long, device=device)
+    ups = system.connection_metadata[
+        system.connection_metadata["from_connection_name"] == "up"
+    ]
+    upper[ups["from_residue_index"]] = torch.tensor(
+        ups["to_residue_index"], dtype=torch.long, device=device
+    )
+
+    downs = system.connection_metadata[
+        system.connection_metadata["from_connection_name"] == "down"
+    ]
+    lower[downs["from_residue_index"]] = torch.tensor(
+        downs["to_residue_index"], dtype=torch.long, device=device
+    )
+
+    return dict(upper=upper.unsqueeze(0), lower=lower.unsqueeze(0))
+
+
+@ResidueProperties.factory_for.register(PackedResidueSystem)
+@validate_args
+def system_residue_properties(system: PackedResidueSystem, **_):
+    residue_properties = [None] * len(system.residues)
+    for i, res in enumerate(system.residues):
+        residue_properties[i] = res.residue_type.hierarchies
+    return dict(residue_properties=residue_properties)
