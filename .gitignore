@@ -123,4 +123,4 @@ venv.bak/
 
 
 # ignore any lock files created by LMDB
-*/lock.mdb
+lock.mdb
