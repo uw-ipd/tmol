@@ -1,4 +1,4 @@
-pytest
+pytest=3.7.*
 pytest-cov
 
 flake8
