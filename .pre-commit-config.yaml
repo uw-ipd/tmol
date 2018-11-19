@@ -10,6 +10,7 @@ repos:
             (?x)^(
                 tmol/extern/.* |
                 dev/.* 
+                \.conda/.*
             )$
 
         types: []
