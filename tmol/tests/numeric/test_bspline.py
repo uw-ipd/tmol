@@ -11,8 +11,8 @@ def bspline_degree(request):
 
 def test_2d_bspline(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-    y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
@@ -27,8 +27,8 @@ def test_2d_bspline(bspline_degree, torch_device):
 
 def test_2d_bspline_off_grid(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-    y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
@@ -57,8 +57,8 @@ def test_2d_bspline_off_grid(bspline_degree, torch_device):
 
 def test_2d_bspline_off_grid_at_edges(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-    y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
@@ -94,8 +94,8 @@ def test_2d_bspline_off_grid_at_edges(bspline_degree, torch_device):
 
 def test_2d_bspline_off_grid_periodic(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-20, 20, device=torch_device).unsqueeze(1)
-    y = torch.arange(-20, 20, device=torch_device).unsqueeze(0)
+    x = torch.arange(-20, 20, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-20, 20, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = torch.sin(numpy.pi / 10 * x) + torch.cos(numpy.pi / 10 * y)
     z = z.type(torch.float)
 
@@ -125,8 +125,8 @@ def test_2d_bspline_off_grid_periodic(bspline_degree, torch_device):
 
 def test_2d_bspline_off_grid_at_edges_periodic(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-20, 20, device=torch_device).unsqueeze(1)
-    y = torch.arange(-20, 20, device=torch_device).unsqueeze(0)
+    x = torch.arange(-20, 20, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-20, 20, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = torch.sin(numpy.pi / 10 * x) + torch.cos(numpy.pi / 10 * y)
     z = z.type(torch.float)
 
@@ -155,8 +155,8 @@ def test_2d_bspline_off_grid_at_edges_periodic(bspline_degree, torch_device):
 
 
 def test_request_unsupported_bspline_degree(torch_device):
-    x = torch.arange(-20, 20, device=torch_device).unsqueeze(1)
-    y = torch.arange(-20, 20, device=torch_device).unsqueeze(0)
+    x = torch.arange(-20, 20, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-20, 20, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = torch.sin(numpy.pi / 10 * x) + torch.cos(numpy.pi / 10 * y)
     z = z.type(torch.float)
 
@@ -166,8 +166,8 @@ def test_request_unsupported_bspline_degree(torch_device):
 
 def test_2d_bspline_not_square(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-    y = torch.arange(-8, 9, device=torch_device).unsqueeze(0)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-8, 9, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
@@ -182,8 +182,8 @@ def test_2d_bspline_not_square(bspline_degree, torch_device):
 
 def test_barely_3d_bspline(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-    y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float).reshape(1, 11, 11)
 
@@ -198,8 +198,8 @@ def test_barely_3d_bspline(bspline_degree, torch_device):
 
 def test_2d_bspline_everywhere(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-    y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
@@ -230,8 +230,8 @@ def test_2d_bspline_everywhere(bspline_degree, torch_device):
 
 def test_2d_bspline_x1(bspline_degree, torch_device):
     # 2d
-    x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-    y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+    y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(0)
     z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
     z = z.type(torch.float)
 
@@ -248,8 +248,8 @@ def test_5x2d_bspline(bspline_degree, torch_device):
     # 2d
     zs = torch.full((5, 11, 11), 0, dtype=torch.float, device=torch_device)
     for i in range(5):
-        x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-        y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+        x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+        y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(0)
         z = (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y)) + i
         z = z.type(torch.float)
         zs[i, :, :] = z
@@ -268,8 +268,8 @@ def test_5x3x2d_bspline(bspline_degree, torch_device):
     zs = torch.full((5, 3, 11, 11), 0, dtype=torch.float, device=torch_device)
     for i in range(5):
         for j in range(3):
-            x = torch.arange(-5, 6, device=torch_device).unsqueeze(1)
-            y = torch.arange(-5, 6, device=torch_device).unsqueeze(0)
+            x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(1)
+            y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).unsqueeze(0)
             z = (
                 (1 - x * x - y * y) * torch.exp(-0.5 * (x * x + y * y))
                 + 0.1 * i * 3
@@ -290,9 +290,9 @@ def test_5x3x2d_bspline(bspline_degree, torch_device):
 
 def test_3d_bspline(bspline_degree, torch_device):
     # 3d
-    x = torch.arange(-5, 6, device=torch_device).reshape(11, 1, 1)
-    y = torch.arange(-5, 6, device=torch_device).reshape(1, 11, 1)
-    z = torch.arange(-5, 6, device=torch_device).reshape(1, 1, 11)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(11, 1, 1)
+    y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(1, 11, 1)
+    z = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(1, 1, 11)
     w = (1 - x * x - y * y - z * z) * torch.exp(-0.5 * (x * x + y * y + z * z))
     w = w.type(torch.float)
 
@@ -306,9 +306,9 @@ def test_3d_bspline(bspline_degree, torch_device):
 
 def test_3d_bspline_not_square(bspline_degree, torch_device):
     # 3d
-    x = torch.arange(-5, 6, device=torch_device).reshape(11, 1, 1)
-    y = torch.arange(-8, 9, device=torch_device).reshape(1, 17, 1)
-    z = torch.arange(-5, 6, device=torch_device).reshape(1, 1, 11)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(11, 1, 1)
+    y = torch.arange(-8, 9, device=torch_device, dtype=torch.float).reshape(1, 17, 1)
+    z = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(1, 1, 11)
     w = (1 - x * x - y * y - z * z) * torch.exp(-0.5 * (x * x + y * y + z * z))
     w = w.type(torch.float)
 
@@ -322,10 +322,10 @@ def test_3d_bspline_not_square(bspline_degree, torch_device):
 
 def test_4d_bspline(bspline_degree, torch_device):
     # 4d
-    x = torch.arange(-5, 6, device=torch_device).reshape(11, 1, 1, 1)
-    y = torch.arange(-5, 6, device=torch_device).reshape(1, 11, 1, 1)
-    z = torch.arange(-5, 6, device=torch_device).reshape(1, 1, 11, 1)
-    w = torch.arange(-5, 6, device=torch_device).reshape(1, 1, 1, 11)
+    x = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(11, 1, 1, 1)
+    y = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(1, 11, 1, 1)
+    z = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(1, 1, 11, 1)
+    w = torch.arange(-5, 6, device=torch_device, dtype=torch.float).reshape(1, 1, 1, 11)
     u = (1 - x * x - y * y - z * z - w * w) * torch.exp(
         -0.5 * (x * x + y * y + z * z + w * w)
     )

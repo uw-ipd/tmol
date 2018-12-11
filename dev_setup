@@ -83,7 +83,7 @@ conda_envs = json.loads(
     subprocess.check_output("conda env list --json", shell=True).decode()
 )
 envpath = [p for p in conda_envs["envs"] if os.path.basename(p) == args.name]
-if len(envpath) == 1:
+if len(envpath) >= 1:
     envpath = envpath[0]
 else:
     raise ValueError("Target env not present.")
