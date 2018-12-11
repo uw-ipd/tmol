@@ -2,6 +2,7 @@ import pytest
 
 from . import pdb
 from . import rosetta_baseline
+from . import structure
 
 
 @pytest.fixture(scope="session")
@@ -79,3 +80,12 @@ def water_box_system():
     from tmol.system.io import read_pdb
 
     return read_pdb(pdb.data["water_box"])
+
+
+@pytest.fixture()
+def structures_bysize():
+    return {
+        n: structure.TestStructure(d)
+        for n, d in pdb.data.items()
+        if n.startswith("BYSIZE")
+    }
