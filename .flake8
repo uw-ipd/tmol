@@ -1,5 +1,5 @@
 [flake8]
-exclude=tmol/extern
+exclude=tmol/extern,.conda
 
 # Black-compatible config from
 # https://github.com/ambv/black/blob/master/.flake8
