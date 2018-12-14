@@ -3,8 +3,8 @@ from pytest import approx
 import numpy
 import scipy.optimize
 
-import tmol.score.solvation.numba.lk_isotropic
-from tmol.score.solvation.numba.lk_isotropic import (
+import tmol.score.ljlk.numba.lk_isotropic
+from tmol.score.ljlk.numba.lk_isotropic import (
     # lk_pair_total,
     f_desolv,
     lk_isotropic_mutual,

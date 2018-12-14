@@ -3,8 +3,8 @@ from pytest import approx
 import numpy
 import scipy.optimize
 
-import tmol.score.vdw.numba.lj
-from tmol.score.vdw.numba.lj import lj, d_lj_d_dist, f_vdw, f_vdw_d_dist
+import tmol.score.ljlk.numba.lj
+from tmol.score.ljlk.numba.lj import lj, d_lj_d_dist, f_vdw, f_vdw_d_dist
 
 import tmol.database
 
