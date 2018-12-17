@@ -19,7 +19,11 @@ def test_cpp_extension(vector_magnitude):
     tvec = torch.arange(300, dtype=torch.float).reshape(100, 3)
     expected = tvec.norm(dim=-1)
 
-    results = {"aten": vector_magnitude.aten(tvec)}
+    results = {
+        "aten": vector_magnitude.aten(tvec),
+        "accessor": vector_magnitude.accessor(tvec),
+        "eigen": vector_magnitude.eigen(tvec),
+    }
 
     for _rn, r in results.items():
         torch.testing.assert_allclose(r, expected)
