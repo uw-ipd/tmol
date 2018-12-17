@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ATen/Error.h>
 #include <ATen/Tensor.h>
 #include "ATen/ScalarType.h"
 
@@ -7,6 +8,9 @@
 #include <Eigen/Geometry>
 
 #include "TensorAccessor.h"
+
+#include <map>
+#include <string>
 
 namespace tmol {
 
@@ -82,6 +86,42 @@ tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor input_t) {
 
   return tmol::TView<T, N, PtrTraits>(
       reinterpret_cast<T*>(input_t.data_ptr()), sizes, strides);
+}
+
+template <
+    typename T,
+    int N,
+    template <typename U> class PtrTraits = DefaultPtrTraits,
+    typename std::enable_if<can_view_tensor<T>::value>::type* = nullptr>
+tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor tensor, std::string name) {
+  try {
+    return view_tensor<T, N, PtrTraits>(tensor);
+  } catch (at::Error err) {
+    AT_ERROR(
+        "Error viewing tensor '" + name + "': " + err.what_without_backtrace());
+  }
+}
+
+template <
+    typename T,
+    int N,
+    template <typename U> class PtrTraits = DefaultPtrTraits,
+    typename std::enable_if<can_view_tensor<T>::value>::type* = nullptr>
+tmol::TView<T, N, PtrTraits> view_tensor(
+    std::map<std::string, at::Tensor> input_map, std::string member) {
+  auto member_t = input_map.find(member);
+
+  AT_ASSERTM(
+      member_t != input_map.end(),
+      "Map does not contain key: '" + member + "'");
+
+  try {
+    return view_tensor<T, N, PtrTraits>(member_t->second, member);
+  } catch (at::Error err) {
+    AT_ERROR(
+        "Error viewing tensor map member '" + member
+        + "': " + err.what_without_backtrace());
+  }
 }
 
 }  // namespace tmol
