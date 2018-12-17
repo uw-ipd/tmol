@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+AlignAfterOpenBracket: AlwaysBreak
+BinPackArguments: 'false'
+BinPackParameters: 'false'
+BreakBeforeBinaryOperators: NonAssignment
+UseTab: Never
