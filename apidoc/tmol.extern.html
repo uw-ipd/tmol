@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.cpu_operations &mdash; TMol 0.0.0-103-ge154286 documentation</title>
+  <title>tmol.extern &mdash; TMol 0.0.0-103-ge154286 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.kinematics.cpu_operations.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.extern.html"/>
   
 
   
@@ -30,8 +30,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.kinematics.cpu_operations.jit" href="tmol.kinematics.cpu_operations.jit.html" />
-    <link rel="prev" title="tmol.kinematics.torch_op" href="tmol.kinematics.torch_op.html" /> 
+    <link rel="prev" title="tmol.support.scoring.rosetta" href="tmol.support.scoring.rosetta.html" /> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -94,32 +93,21 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.kinematics.cpu_operations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="tmol.kinematics.cpu_operations.jit.html">tmol.kinematics.cpu_operations.jit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">tmol.extern</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#functions">Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
 </ul>
 
             
@@ -165,15 +153,13 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-          <li><a href="tmol.kinematics.html">tmol.kinematics</a> &raquo;</li>
-        
-      <li>tmol.kinematics.cpu_operations</li>
+      <li>tmol.extern</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.kinematics.cpu_operations.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.extern.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -186,13 +172,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.kinematics.cpu_operations">
-<span id="tmol-kinematics-cpu-operations"></span><h1>tmol.kinematics.cpu_operations<a class="headerlink" href="#module-tmol.kinematics.cpu_operations" title="Permalink to this headline">¶</a></h1>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.cpu_operations.jit.html">tmol.kinematics.cpu_operations.jit</a></li>
-</ul>
-</div>
+  <div class="section" id="module-tmol.extern">
+<span id="tmol-extern"></span><h1>tmol.extern<a class="headerlink" href="#module-tmol.extern" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="functions">
@@ -203,11 +184,8 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.cpu_operations.iterative_f1f2_summation" title="tmol.kinematics.cpu_operations.iterative_f1f2_summation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iterative_f1f2_summation</span></code></a></td>
-<td>Single-threaded interative derivative summation.</td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.cpu_operations.iterative_refold" title="tmol.kinematics.cpu_operations.iterative_refold"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iterative_refold</span></code></a></td>
-<td>Single-threaded interative HT forward propogation.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.extern.include_paths" title="tmol.extern.include_paths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">include_paths</span></code></a></td>
+<td>Get -I compatible include dirs for external modules.</td>
 </tr>
 </tbody>
 </table>
@@ -216,15 +194,9 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="tmol.kinematics.cpu_operations.iterative_f1f2_summation">
-<code class="descclassname">tmol.kinematics.cpu_operations.</code><code class="descname">iterative_f1f2_summation</code><span class="sig-paren">(</span><em>f1f2s: Tensor(torch.float64)[:,6], parent: Tensor(torch.int64)[:], inplace: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/cpu_operations.html#iterative_f1f2_summation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.cpu_operations.iterative_f1f2_summation" title="Permalink to this definition">¶</a></dt>
-<dd><p>Single-threaded interative derivative summation.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="tmol.kinematics.cpu_operations.iterative_refold">
-<code class="descclassname">tmol.kinematics.cpu_operations.</code><code class="descname">iterative_refold</code><span class="sig-paren">(</span><em>hts: Tensor(torch.float64)[:,4,4], parent: Tensor(torch.int64)[:], inplace: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/cpu_operations.html#iterative_refold"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.cpu_operations.iterative_refold" title="Permalink to this definition">¶</a></dt>
-<dd><p>Single-threaded interative HT forward propogation.</p>
+<dt id="tmol.extern.include_paths">
+<code class="descclassname">tmol.extern.</code><code class="descname">include_paths</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/extern.html#include_paths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.extern.include_paths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get -I compatible include dirs for external modules.</p>
 </dd></dl>
 
 </div>
@@ -238,10 +210,8 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.kinematics.cpu_operations.jit.html" class="btn btn-neutral float-right" title="tmol.kinematics.cpu_operations.jit" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
-      
-        <a href="tmol.kinematics.torch_op.html" class="btn btn-neutral" title="tmol.kinematics.torch_op" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tmol.support.scoring.rosetta.html" class="btn btn-neutral" title="tmol.support.scoring.rosetta" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.mixins &mdash; TMol 0.0.0-98-g1ba9299 documentation</title>
+  <title>tmol.utility.mixins &mdash; TMol 0.0.0-103-ge154286 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-98-g1ba9299
+                0.0.0-103-ge154286
               </div>
             
           
@@ -100,6 +100,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.utility.html">tmol.utility</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.attr.html">tmol.utility.attr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.categorical.html">tmol.utility.categorical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.cpp_extension.html">tmol.utility.cpp_extension</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.log.html">tmol.utility.log</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.utility.mixins</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
@@ -119,6 +120,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
 </ul>
 
             
@@ -215,13 +217,13 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="tmol.utility.mixins.qualified_name">
-<code class="descclassname">tmol.utility.mixins.</code><code class="descname">qualified_name</code><span class="sig-paren">(</span><em>obj: Union[typing.Type, typing.Callable]</em><span class="sig-paren">)</span> &#x2192; &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffa382fae8&gt;<a class="reference internal" href="../_modules/tmol/utility/mixins.html#qualified_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.mixins.qualified_name" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">tmol.utility.mixins.</code><code class="descname">qualified_name</code><span class="sig-paren">(</span><em>obj: Union[typing.Type, typing.Callable]</em><span class="sig-paren">)</span> &#x2192; &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffac3ebea0&gt;<a class="reference internal" href="../_modules/tmol/utility/mixins.html#qualified_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.mixins.qualified_name" title="Permalink to this definition">¶</a></dt>
 <dd><p>The fully qualified &lt;module&gt;.&lt;name&gt; for a class/function.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="tmol.utility.mixins.gather_superclass_properies">
-<code class="descclassname">tmol.utility.mixins.</code><code class="descname">gather_superclass_properies</code><span class="sig-paren">(</span><em>obj: Any</em>, <em>property_name: str</em><span class="sig-paren">)</span> &#x2192; Dict[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fffa382fae8&gt;, Any]<a class="reference internal" href="../_modules/tmol/utility/mixins.html#gather_superclass_properies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.mixins.gather_superclass_properies" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">tmol.utility.mixins.</code><code class="descname">gather_superclass_properies</code><span class="sig-paren">(</span><em>obj: Any</em>, <em>property_name: str</em><span class="sig-paren">)</span> &#x2192; Dict[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fffac3ebea0&gt;, Any]<a class="reference internal" href="../_modules/tmol/utility/mixins.html#gather_superclass_properies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.mixins.gather_superclass_properies" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gather property values from all base classes of an object.</p>
 <p>Traverses the object’s __mro__ searching for the given property name. The
 property fget is invoked for <em>every</em> property definition and the property
@@ -291,7 +293,7 @@ and likely ignore, unknown kwargs. (Eg. <code class="docutils literal notranslat
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-98-g1ba9299',
+              VERSION:'0.0.0-103-ge154286',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

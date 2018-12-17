@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.operations &mdash; TMol 0.0.0-98-g1ba9299 documentation</title>
+  <title>tmol.kinematics.operations &mdash; TMol 0.0.0-103-ge154286 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-98-g1ba9299
+                0.0.0-103-ge154286
               </div>
             
           
@@ -99,6 +99,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
 </ul>
 
             
@@ -162,8 +163,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for tmol.kinematics.operations</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">import</span> <span class="nn">attr</span>
+<span></span><span class="kn">import</span> <span class="nn">attr</span>
 <span class="kn">import</span> <span class="nn">numpy</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -705,16 +705,9 @@
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">HTs</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dsc_dx</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">dsc_dx</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
-        <span class="c1"># Can not render higher-order derivatives for kinematic operations,</span>
-        <span class="c1"># as is generated with backward(create_graph=True) is called.</span>
-        <span class="c1"># Ignore/nan rather than erroring to support torch gradcheck.</span>
-        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-            <span class="s2">&quot;dsc_dx.requires_grad in resolveDerivs not supported, &quot;</span>
-            <span class="s2">&quot;will return nan gradient&quot;</span>
-        <span class="p">)</span>
-        <span class="n">dsc_dx</span><span class="o">.</span><span class="n">register_hook</span><span class="p">(</span><span class="k">lambda</span> <span class="n">grad</span><span class="p">:</span> <span class="n">grad</span><span class="o">.</span><span class="n">new_full</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>
-        <span class="n">dsc_dx</span> <span class="o">=</span> <span class="n">dsc_dx</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+    <span class="c1"># Can not render higher-order derivatives for kinematic operations,</span>
+    <span class="c1"># as is generated with backward(create_graph=True) is called.</span>
+    <span class="k">assert</span> <span class="n">dsc_dx</span><span class="o">.</span><span class="n">requires_grad</span> <span class="ow">is</span> <span class="kc">False</span>
 
     <span class="c1"># 1) local f1/f2s</span>
     <span class="n">Xs</span> <span class="o">=</span> <span class="n">HTs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
@@ -796,7 +789,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-98-g1ba9299',
+              VERSION:'0.0.0-103-ge154286',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

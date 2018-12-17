@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.numeric.bspline &mdash; TMol 0.0.0-98-g1ba9299 documentation</title>
+  <title>tmol.numeric.bspline &mdash; TMol 0.0.0-103-ge154286 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-98-g1ba9299
+                0.0.0-103-ge154286
               </div>
             
           
@@ -99,6 +99,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
 </ul>
 
             
@@ -543,9 +544,9 @@
 
         <span class="c1"># calculate interpolation indices</span>
         <span class="n">baseline</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">X</span> <span class="o">-</span> <span class="p">(</span><span class="n">bspdeg</span><span class="o">.</span><span class="n">degree</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
-        <span class="n">indx_bydim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">bspdeg</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
-            <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
-        <span class="p">)</span> <span class="o">+</span> <span class="n">baseline</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interp_dims</span><span class="p">)</span>
+        <span class="n">indx_bydim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">bspdeg</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">baseline</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interp_dims</span><span class="p">)</span>
 
         <span class="c1"># construct weight matrix -- this varies depending on the degree of the</span>
         <span class="c1"># bspline, and therefore is delegated to the BSplineDegree class</span>
@@ -716,7 +717,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-98-g1ba9299',
+              VERSION:'0.0.0-103-ge154286',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

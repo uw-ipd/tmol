@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.torch_op &mdash; TMol 0.0.0-98-g1ba9299 documentation</title>
+  <title>tmol.kinematics.torch_op &mdash; TMol 0.0.0-103-ge154286 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-98-g1ba9299
+                0.0.0-103-ge154286
               </div>
             
           
@@ -118,6 +118,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
 </ul>
 
             
@@ -264,13 +265,17 @@ during the backward pass.</p>
 <code class="descname">backward</code><span class="sig-paren">(</span><em>coord_grads: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.float64)[:]<a class="reference internal" href="../_modules/tmol/kinematics/torch_op.html#KinematicFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.torch_op.KinematicFun.backward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines a formula for differentiating the operation.</p>
 <p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context ctx as the first argument, followed by as many
-outputs did <a class="reference internal" href="#tmol.kinematics.torch_op.KinematicFun.forward" title="tmol.kinematics.torch_op.KinematicFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
+<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
+as many outputs did <a class="reference internal" href="#tmol.kinematics.torch_op.KinematicFun.forward" title="tmol.kinematics.torch_op.KinematicFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
 tensors, as there were inputs to <a class="reference internal" href="#tmol.kinematics.torch_op.KinematicFun.forward" title="tmol.kinematics.torch_op.KinematicFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
 gradient w.r.t the given output, and each returned value should be the
 gradient w.r.t. the corresponding input.</p>
 <p>The context can be used to retrieve tensors saved during the forward
-pass.</p>
+pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
+of booleans representing whether each input needs gradient. E.g.,
+<a class="reference internal" href="#tmol.kinematics.torch_op.KinematicFun.backward" title="tmol.kinematics.torch_op.KinematicFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
+first input to <a class="reference internal" href="#tmol.kinematics.torch_op.KinematicFun.forward" title="tmol.kinematics.torch_op.KinematicFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
+output.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -327,7 +332,7 @@ pass.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-98-g1ba9299',
+              VERSION:'0.0.0-103-ge154286',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

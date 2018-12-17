@@ -15,6 +15,7 @@ tmol.utility
   
        tmol.utility.attr
        tmol.utility.categorical
+       tmol.utility.cpp_extension
        tmol.utility.log
        tmol.utility.mixins
        tmol.utility.numba
