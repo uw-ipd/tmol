@@ -22,6 +22,7 @@ tmol.utility
        tmol.utility.reactive
        tmol.utility.units
   
+       tmol.utility.tensor
 
 
 
