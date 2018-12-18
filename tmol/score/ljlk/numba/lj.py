@@ -52,10 +52,34 @@ minimization and scoring due to high magnitude derivative and score values.  To
 alleviate this problem the potential is linearly extrapolated for $ d_{i,j} <
 .6{\sigma}_{i,j}$.  To accomodate efficient truncated evaluation, the potential
 is defined as 0 for $d_{i,j} >= 6Å$.  Cubic polynomial interpolation
-$f_{cpoly}$ is used to smoothly transition for a final piecewise definition:
+$f_{cpoly}$ is used to smoothly transition between these regions.
+
+The final term is multiplied by a connectivity weight, $w_{i,j}^{conn}$, to
+exclude the large repulsive energetic contributions that would otherwise be
+calculated for atoms separated by fewer than four chemical bonds.  Such weights
+are common to molecular force fields that assume that covalent bonds are not
+formed or broken during a simulation. Rosetta uses four chemical bonds as the
+“crossover” separation when $w_{i,j}^{conn}$ transitions from 0 to 1 (rather
+than three chemical bonds as used by traditional force fields) to limit the
+effects of double counting due to knowledge-based torsional potentials.
 
 $$
-vdw_{i,j}\left(d_{i,j} \right) = \left\{
+w_{i,j}^{conn} = w_{j,i}^{conn} = \left\{
+\begin{array}{ll}
+  0.0 &
+    \left| n_{i,j}^{bonds} \leq 3 \right. \\
+  0.2 &
+    \left| n_{i,j}^{bonds} = 4 \right. \\
+  1.0 &
+    \left| n_{i,j}^{bonds} \geq 4 \right. \\
+\end{array}
+\right.
+$$
+
+For a final piecewise definition:
+
+$$
+vdw_{i,j}\left(d_{i,j} \right) = w_{i,j}^{conn} \cdot \left\{
 \begin{array}{ll}
   f^{\prime}_{vdw}(d_{lin}) \cdot \left(d_{i,j} - d_{lin}\right) + f_{vdw}(d_{lin})  &
       d_{i,j} \in [ 0Å, d_{lin} ) \\
@@ -99,6 +123,16 @@ def f_vdw_d_dist(dist, sigma, epsilon):
 
 
 @jit
+def connectivity_weight(bonded_path_length):
+    if bonded_path_length > 4:
+        return 1.0
+    elif bonded_path_length == 4:
+        return 0.2
+    else:
+        return 0.0
+
+
+@jit
 def lj_sigma(
     lj_radius_i,
     is_donor_i,
@@ -131,6 +165,7 @@ def lj_sigma(
 @numba.vectorize
 def lj(
     dist,
+    bonded_path_length,
     lj_radius_i,
     lj_wdepth_i,
     is_donor_i,
@@ -163,6 +198,8 @@ def lj(
         lj_hbond_hdis,
     )
 
+    weight = connectivity_weight(bonded_path_length)
+
     epsilon = math.sqrt(lj_wdepth_i * lj_wdepth_j)
 
     d_lin = sigma * 0.6
@@ -170,13 +207,14 @@ def lj(
     lj_cpoly_dmax = 6.0
 
     if dist < d_lin:
-        return f_vdw_d_dist(d_lin, sigma, epsilon) * (dist - d_lin) + f_vdw(
-            d_lin, sigma, epsilon
+        return weight * (
+            f_vdw_d_dist(d_lin, sigma, epsilon) * (dist - d_lin)
+            + f_vdw(d_lin, sigma, epsilon)
         )
     elif dist < lj_cpoly_dmin:
-        return f_vdw(dist, sigma, epsilon)
+        return weight * f_vdw(dist, sigma, epsilon)
     elif dist < lj_cpoly_dmax:
-        return interpolate_to_zero(
+        return weight * interpolate_to_zero(
             dist,
             lj_cpoly_dmin,
             f_vdw(lj_cpoly_dmin, sigma, epsilon),
@@ -190,6 +228,7 @@ def lj(
 @numba.vectorize
 def d_lj_d_dist(
     dist,
+    bonded_path_length,
     lj_radius_i,
     lj_wdepth_i,
     is_donor_i,
@@ -222,6 +261,8 @@ def d_lj_d_dist(
         lj_hbond_hdis,
     )
 
+    weight = connectivity_weight(bonded_path_length)
+
     epsilon = math.sqrt(lj_wdepth_i * lj_wdepth_j)
 
     d_lin = sigma * 0.6
@@ -229,11 +270,11 @@ def d_lj_d_dist(
     lj_cpoly_dmax = 6.0
 
     if dist < d_lin:
-        return f_vdw_d_dist(d_lin, sigma, epsilon)
+        return weight * f_vdw_d_dist(d_lin, sigma, epsilon)
     elif dist < lj_cpoly_dmin:
-        return f_vdw_d_dist(dist, sigma, epsilon)
+        return weight * f_vdw_d_dist(dist, sigma, epsilon)
     elif dist < lj_cpoly_dmax:
-        return interpolate_to_zero_dx(
+        return weight * interpolate_to_zero_dx(
             dist,
             lj_cpoly_dmin,
             f_vdw(lj_cpoly_dmin, sigma, epsilon),
