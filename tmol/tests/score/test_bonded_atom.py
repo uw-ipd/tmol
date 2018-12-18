@@ -4,6 +4,7 @@ import toolz
 import scipy.sparse.csgraph as csgraph
 
 import numpy
+import torch
 
 from tmol.score.bonded_atom import BondedAtomScoreGraph
 from tmol.system.packed import PackedResidueSystem
@@ -51,7 +52,9 @@ def test_bonded_path_length(ubq_system: PackedResidueSystem):
     src_bond_table = numpy.zeros((src.system_size, src.system_size))
     src_bond_table[src.bonds[:, 1], src.bonds[:, 2]] = 1
     bond_graph = csgraph.csgraph_from_dense(src_bond_table)
-    distance_table = csgraph.shortest_path(bond_graph, directed=False, unweighted=True)
+    distance_table = torch.from_numpy(
+        csgraph.shortest_path(bond_graph, directed=False, unweighted=True)
+    ).to(torch.float)
 
     for mlen in (None, 6, 8, 12):
         if mlen is not None:

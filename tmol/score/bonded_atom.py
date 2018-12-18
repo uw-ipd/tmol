@@ -61,7 +61,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, Factory):
         stack_depth: int,
         system_size: int,
         MAX_BONDED_PATH_LENGTH: int,
-    ) -> NDArray("f4")[:, :, :]:
+    ) -> Tensor("f4")[:, :, :]:
         """Dense inter-atomic bonded path length distance tables.
 
         Returns:
@@ -69,8 +69,10 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, Factory):
             Per-layer interatomic bonded path length entries.
         """
 
-        return bonded_path_length_stacked(
-            bonds, stack_depth, system_size, MAX_BONDED_PATH_LENGTH
+        return torch.from_numpy(
+            bonded_path_length_stacked(
+                bonds, stack_depth, system_size, MAX_BONDED_PATH_LENGTH
+            )
         )
 
 
