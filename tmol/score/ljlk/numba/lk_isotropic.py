@@ -33,11 +33,34 @@ To accomodate softened repulsive potentials, which otherwise prevent
 overlapping atomic radii, the potential is defined as a constant for $d_{i,j} <
 {\sigma}_{i,j}$. To accomodate efficient truncated evaluation, the potential is
 defined as 0 for $d_{i,j} >= 6Å$. Cubic polynomial interpolation $f_cpoly$ is
-used to smoothly transition between these regions for a final piecewise
-definition:
+used to smoothly transition between these regions.
+
+The final term is multiplied by a connectivity weight, $w_{i,j}^{conn}$, to
+exclude the large repulsive energetic contributions that would otherwise be
+calculated for atoms separated by fewer than four chemical bonds.  Such weights
+are common to molecular force fields that assume that covalent bonds are not
+formed or broken during a simulation. Rosetta uses four chemical bonds as the
+“crossover” separation when $w_{i,j}^{conn}$ transitions from 0 to 1 (rather
+than three chemical bonds as used by traditional force fields) to limit the
+effects of double counting due to knowledge-based torsional potentials.
 
 $$
-fa\_sol_{i,j}\left(d_{i,j} \right) = \left\{
+w_{i,j}^{conn} = w_{j,i}^{conn} = \left\{
+\begin{array}{ll}
+  0.0 &
+    \left| n_{i,j}^{bonds} \leq 3 \right. \\
+  0.2 &
+    \left| n_{i,j}^{bonds} = 4 \right. \\
+  1.0 &
+    \left| n_{i,j}^{bonds} \geq 4 \right. \\
+\end{array}
+\right.
+$$
+
+For a final piecewise definition:
+
+$$
+fa\_sol_{i,j}\left(d_{i,j} \right) =  w_{i,j}^{conn} \cdot \left\{
 \begin{array}{ll}
   f_{desolv}({\sigma}_{i,j}) &
       d_{i,j} \in [ 0Å, {\sigma}_{i,j} - c_0 ) \\
@@ -83,6 +106,16 @@ interpolate_to_zero_dx = jit(cubic_hermite_polynomial.interpolate_to_zero_dx)
 
 
 @jit
+def connectivity_weight(bonded_path_length):
+    if bonded_path_length > 4:
+        return 1.0
+    elif bonded_path_length == 4:
+        return 0.2
+    else:
+        return 0.0
+
+
+@jit
 def f_desolv(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
     return (
         lk_volume_j
@@ -110,7 +143,15 @@ def f_desolv_d_dist(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
 
 
 @jit
-def lk_isotropic(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lj_radius_j, lk_volume_j):
+def lk_isotropic(
+    dist,
+    bonded_path_length,
+    lj_radius_i,
+    lk_dgfree_i,
+    lk_lambda_i,
+    lj_radius_j,
+    lk_volume_j,
+):
     sigma_ij = lj_radius_i + lj_radius_j
 
     lk_cpoly_close_dmin = sigma_ij - 0.2
@@ -119,10 +160,14 @@ def lk_isotropic(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lj_radius_j, lk_vo
     lk_cpoly_far_dmin = 4.5
     lk_cpoly_far_dmax = 6.0
 
+    weight = connectivity_weight(bonded_path_length)
+
     if dist < lk_cpoly_close_dmin:
-        return f_desolv(sigma_ij, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j)
+        return weight * f_desolv(
+            sigma_ij, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j
+        )
     elif dist < lk_cpoly_close_dmax:
-        return interpolate(
+        return weight * interpolate(
             dist,
             lk_cpoly_close_dmin,
             f_desolv(sigma_ij, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
@@ -136,9 +181,11 @@ def lk_isotropic(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lj_radius_j, lk_vo
             ),
         )
     elif dist < lk_cpoly_far_dmin:
-        return f_desolv(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j)
+        return weight * f_desolv(
+            dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j
+        )
     elif dist < lk_cpoly_far_dmax:
-        return interpolate_to_zero(
+        return weight * interpolate_to_zero(
             dist,
             lk_cpoly_far_dmin,
             f_desolv(
@@ -155,7 +202,13 @@ def lk_isotropic(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lj_radius_j, lk_vo
 
 @jit
 def d_lk_isotropic_d_dist(
-    dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lj_radius_j, lk_volume_j
+    dist,
+    bonded_path_length,
+    lj_radius_i,
+    lk_dgfree_i,
+    lk_lambda_i,
+    lj_radius_j,
+    lk_volume_j,
 ):
     sigma_ij = lj_radius_i + lj_radius_j
 
@@ -165,10 +218,12 @@ def d_lk_isotropic_d_dist(
     lk_cpoly_far_dmin = 4.5
     lk_cpoly_far_dmax = 6.0
 
+    weight = connectivity_weight(bonded_path_length)
+
     if dist < lk_cpoly_close_dmin:
         return 0.0
     elif dist < lk_cpoly_close_dmax:
-        return interpolate_dx(
+        return weight * interpolate_dx(
             dist,
             lk_cpoly_close_dmin,
             f_desolv(sigma_ij, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
@@ -182,9 +237,11 @@ def d_lk_isotropic_d_dist(
             ),
         )
     elif dist < lk_cpoly_far_dmin:
-        return f_desolv_d_dist(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j)
+        return weight * f_desolv_d_dist(
+            dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j
+        )
     elif dist < lk_cpoly_far_dmax:
-        return interpolate_to_zero_dx(
+        return weight * interpolate_to_zero_dx(
             dist,
             lk_cpoly_far_dmin,
             f_desolv(
@@ -202,6 +259,7 @@ def d_lk_isotropic_d_dist(
 @numba.vectorize
 def lk_isotropic_mutual(
     dist,
+    bonded_path_length,
     lj_radius_i,
     lk_dgfree_i,
     lk_lambda_i,
@@ -212,15 +270,28 @@ def lk_isotropic_mutual(
     lk_volume_j,
 ):
     return lk_isotropic(
-        dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lj_radius_j, lk_volume_j
+        dist,
+        bonded_path_length,
+        lj_radius_i,
+        lk_dgfree_i,
+        lk_lambda_i,
+        lj_radius_j,
+        lk_volume_j,
     ) + lk_isotropic(
-        dist, lj_radius_j, lk_dgfree_j, lk_lambda_j, lj_radius_i, lk_volume_i
+        dist,
+        bonded_path_length,
+        lj_radius_j,
+        lk_dgfree_j,
+        lk_lambda_j,
+        lj_radius_i,
+        lk_volume_i,
     )
 
 
 @numba.vectorize
 def d_lk_isotropic_mutual_d_dist(
     dist,
+    bonded_path_length,
     lj_radius_i,
     lk_dgfree_i,
     lk_lambda_i,
@@ -231,7 +302,19 @@ def d_lk_isotropic_mutual_d_dist(
     lk_volume_j,
 ):
     return d_lk_isotropic_d_dist(
-        dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lj_radius_j, lk_volume_j
+        dist,
+        bonded_path_length,
+        lj_radius_i,
+        lk_dgfree_i,
+        lk_lambda_i,
+        lj_radius_j,
+        lk_volume_j,
     ) + d_lk_isotropic_d_dist(
-        dist, lj_radius_j, lk_dgfree_j, lk_lambda_j, lj_radius_i, lk_volume_i
+        dist,
+        bonded_path_length,
+        lj_radius_j,
+        lk_dgfree_j,
+        lk_lambda_j,
+        lj_radius_i,
+        lk_volume_i,
     )
