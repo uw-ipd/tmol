@@ -9,7 +9,7 @@ import numpy
 from tmol.types.functional import validate_args
 from tmol.utility.args import ignore_unused_kwargs
 
-from .lj import lj_intra, lj_intra_backward
+from .lj import lj_intra, lj_intra_backward, lj_inter, lj_inter_backward
 from ..params import LJLKDatabase, LJLKParamResolver
 
 
@@ -21,6 +21,8 @@ class LJOp:
     params: Mapping[str, Union[float, numpy.ndarray]]
     lj_intra: Callable
     lj_intra_backward: Callable
+    lj_inter: Callable
+    lj_inter_backward: Callable
 
     @classmethod
     @validate_args
@@ -33,6 +35,8 @@ class LJOp:
             ),
             lj_intra=ignore_unused_kwargs(lj_intra),
             lj_intra_backward=ignore_unused_kwargs(lj_intra_backward),
+            lj_inter=ignore_unused_kwargs(lj_inter),
+            lj_inter_backward=ignore_unused_kwargs(lj_inter_backward),
         )
 
     @classmethod
@@ -47,49 +51,135 @@ class LJOp:
 
     def intra(self, coords, atom_types, bonded_path_lengths):
         # Detach grad from output indicies, which are int-valued
-        i, v = LJIntraFun(self)(coords, atom_types, bonded_path_lengths)
+        i, v = self.LJIntraFun(self)(coords, atom_types, bonded_path_lengths)
         return (i.detach(), v)
 
-
-class LJIntraFun(torch.autograd.Function):
-    def __init__(self, op: LJOp):
-        self.op = op
-        super().__init__()
-
-    def forward(ctx, coords, atom_types, bonded_path_lengths):
-
-        assert all(
-            t.device.type == "cpu" for t in (coords, atom_types, bonded_path_lengths)
+    def inter(
+        self, coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
+    ):
+        # Detach grad from output indicies, which are int-valued
+        i, v = self.LJInterFun(self)(
+            coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
         )
+        return (i.detach(), v)
 
-        assert not atom_types.requires_grad
-        assert not bonded_path_lengths.requires_grad
+    class LJIntraFun(torch.autograd.Function):
+        def __init__(self, op):
+            self.op = op
+            super().__init__()
 
-        inds, vals = map(
-            torch.from_numpy,
-            ctx.op.lj_intra(
+        def forward(ctx, coords, atom_types, bonded_path_lengths):
+
+            assert all(
+                t.device.type == "cpu"
+                for t in (coords, atom_types, bonded_path_lengths)
+            )
+
+            assert not atom_types.requires_grad
+            assert not bonded_path_lengths.requires_grad
+
+            inds, vals = map(
+                torch.from_numpy,
+                ctx.op.lj_intra(
+                    coords.detach().numpy(),
+                    atom_types.numpy(),
+                    bonded_path_lengths.numpy(),
+                    **ctx.op.params,
+                ),
+            )
+
+            ctx.save_for_backward(inds, coords, atom_types, bonded_path_lengths)
+
+            return (inds, vals)
+
+        def backward(ctx, ind_grads, val_grads):
+
+            inds, coords, atom_types, bonded_path_lengths = ctx.saved_tensors
+
+            coord_grads = ctx.op.lj_intra_backward(
+                inds,
+                val_grads.numpy(),
                 coords.detach().numpy(),
                 atom_types.numpy(),
                 bonded_path_lengths.numpy(),
                 **ctx.op.params,
-            ),
-        )
+            )
 
-        ctx.save_for_backward(inds, coords, atom_types, bonded_path_lengths)
+            return torch.from_numpy(coord_grads), None, None
 
-        return (inds, vals)
+    class LJInterFun(torch.autograd.Function):
+        def __init__(self, op):
+            self.op = op
+            super().__init__()
 
-    def backward(ctx, ind_grads, val_grads):
+        def forward(
+            ctx, coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
+        ):
 
-        inds, coords, atom_types, bonded_path_lengths = ctx.saved_tensors
+            assert all(
+                t.device.type == "cpu"
+                for t in (
+                    coords_a,
+                    atom_types_a,
+                    coords_b,
+                    atom_types_b,
+                    bonded_path_lengths,
+                )
+            )
 
-        coord_grads = ctx.op.lj_intra_backward(
-            inds,
-            val_grads.numpy(),
-            coords.detach().numpy(),
-            atom_types.numpy(),
-            bonded_path_lengths.numpy(),
-            **ctx.op.params,
-        )
+            assert not atom_types_a.requires_grad
+            assert not atom_types_b.requires_grad
+            assert not bonded_path_lengths.requires_grad
 
-        return torch.from_numpy(coord_grads), None, None
+            inds, vals = map(
+                torch.from_numpy,
+                ctx.op.lj_inter(
+                    coords_a.detach().numpy(),
+                    atom_types_a.numpy(),
+                    coords_b.detach().numpy(),
+                    atom_types_b.numpy(),
+                    bonded_path_lengths.numpy(),
+                    **ctx.op.params,
+                ),
+            )
+
+            ctx.save_for_backward(
+                inds,
+                coords_a,
+                atom_types_a,
+                coords_b,
+                atom_types_b,
+                bonded_path_lengths,
+            )
+
+            return (inds, vals)
+
+        def backward(ctx, ind_grads, val_grads):
+
+            (
+                inds,
+                coords_a,
+                atom_types_a,
+                coords_b,
+                atom_types_b,
+                bonded_path_lengths,
+            ) = ctx.saved_tensors
+
+            coord_a_grads, coord_b_grads = ctx.op.lj_inter_backward(
+                inds,
+                val_grads.numpy(),
+                coords_a.detach().numpy(),
+                atom_types_a.numpy(),
+                coords_b.detach().numpy(),
+                atom_types_b.numpy(),
+                bonded_path_lengths.numpy(),
+                **ctx.op.params,
+            )
+
+            return (
+                torch.from_numpy(coord_a_grads),
+                None,
+                torch.from_numpy(coord_b_grads),
+                None,
+                None,
+            )
