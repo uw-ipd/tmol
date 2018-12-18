@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring &mdash; TMol 0.0.0-105-g7674b75 documentation</title>
+  <title>tmol.database.scoring &mdash; TMol 0.0.0-106-g649c2db documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-105-g7674b75
+                0.0.0-106-g649c2db
               </div>
             
           
@@ -170,7 +170,6 @@
 
 <span class="kn">from</span> <span class="nn">.hbond</span> <span class="k">import</span> <span class="n">HBondDatabase</span>
 <span class="kn">from</span> <span class="nn">.ljlk</span> <span class="k">import</span> <span class="n">LJLKDatabase</span>
-<span class="kn">from</span> <span class="nn">.rama</span> <span class="k">import</span> <span class="n">RamaDatabase</span>
 
 
 <div class="viewcode-block" id="ScoringDatabase"><a class="viewcode-back" href="../../../apidoc/tmol.database.scoring.html#tmol.database.scoring.ScoringDatabase">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -178,14 +177,12 @@
 
     <span class="n">ljlk</span><span class="p">:</span> <span class="n">LJLKDatabase</span>
     <span class="n">hbond</span><span class="p">:</span> <span class="n">HBondDatabase</span>
-    <span class="n">rama</span><span class="p">:</span> <span class="n">RamaDatabase</span>
 
 <div class="viewcode-block" id="ScoringDatabase.from_file"><a class="viewcode-back" href="../../../apidoc/tmol.database.scoring.html#tmol.database.scoring.ScoringDatabase.from_file">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)):</span>  <span class="c1"># noqa</span>
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">ljlk</span><span class="o">=</span><span class="n">LJLKDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;ljlk.yaml&quot;</span><span class="p">)),</span>
             <span class="n">hbond</span><span class="o">=</span><span class="n">HBondDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;hbond.yaml&quot;</span><span class="p">)),</span>
-            <span class="n">rama</span><span class="o">=</span><span class="n">RamaDatabase</span><span class="o">.</span><span class="n">from_files</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rama/&quot;</span><span class="p">)),</span>
         <span class="p">)</span></div></div>
 </pre></div>
 
@@ -223,7 +220,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-105-g7674b75',
+              VERSION:'0.0.0-106-g649c2db',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
