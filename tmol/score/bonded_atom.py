@@ -69,20 +69,38 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, Factory):
             Per-layer interatomic bonded path length entries.
         """
 
-        bond_graph = sparse.COO(
-            bonds.T,
-            data=numpy.full(len(bonds), True),
-            shape=(stack_depth, system_size, system_size),
-            cache=True,
+        return bonded_path_length_stacked(
+            bonds, stack_depth, system_size, MAX_BONDED_PATH_LENGTH
         )
 
-        result = numpy.empty(bond_graph.shape, dtype="f4")
-        for l in range(stack_depth):
-            result[l] = csgraph.dijkstra(
-                bond_graph[l].tocsr(),
-                directed=False,
-                unweighted=True,
-                limit=MAX_BONDED_PATH_LENGTH,
-            )
 
-        return result
+def bonded_path_length(
+    bonds: NDArray(int)[:, 2], system_size: int, limit: int
+) -> NDArray("f4")[:, :]:
+    bond_graph = sparse.COO(
+        bonds.T,
+        data=numpy.full(len(bonds), True),
+        shape=(system_size, system_size),
+        cache=True,
+    )
+
+    return csgraph.dijkstra(bond_graph, directed=False, unweighted=True, limit=limit)
+
+
+def bonded_path_length_stacked(
+    bonds: NDArray(int)[:, 3], stack_depth: int, system_size: int, limit: int
+) -> NDArray("f4")[:, :, :]:
+    bond_graph = sparse.COO(
+        bonds.T,
+        data=numpy.full(len(bonds), True),
+        shape=(stack_depth, system_size, system_size),
+        cache=True,
+    )
+
+    result = numpy.empty(bond_graph.shape, dtype="f4")
+    for l in range(stack_depth):
+        result[l] = csgraph.dijkstra(
+            bond_graph[l].tocsr(), directed=False, unweighted=True, limit=limit
+        )
+
+    return result

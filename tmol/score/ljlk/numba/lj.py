@@ -2,6 +2,7 @@
 
 import math
 import numba
+import numpy
 import toolz
 import tmol.numeric.interpolation.cubic_hermite_polynomial as cubic_hermite_polynomial
 
@@ -182,3 +183,89 @@ def d_lj_d_dist(
         )
     else:
         return 0.0
+
+
+@numba.jit
+def dist(x, y):
+    delt0 = x[0] - y[0]
+    delt1 = x[1] - y[1]
+    delt2 = x[2] - y[2]
+
+    d = math.sqrt(delt0 * delt0 + delt1 * delt1 + delt2 * delt2)
+
+    return d
+
+
+@numba.jit
+def dist_and_d_dist(x, y):
+    delt0 = x[0] - y[0]
+    delt1 = x[1] - y[1]
+    delt2 = x[2] - y[2]
+
+    d = math.sqrt(delt0 * delt0 + delt1 * delt1 + delt2 * delt2)
+    d_dist_d_xy = (
+        (delt0 / d, delt1 / d, delt2 / d),
+        (-delt0 / d, -delt1 / d, -delt2 / d),
+    )
+
+    return d, d_dist_d_xy
+
+
+@numba.jit
+def lj_intra(
+    coords,
+    atom_types,
+    bonded_path_lengths,
+    lj_radius,
+    lj_wdepth,
+    is_donor,
+    is_hydroxyl,
+    is_polarh,
+    is_acceptor,
+    lj_hbond_dis,
+    lj_hbond_OH_donor_dis,
+    lj_hbond_hdis,
+):
+    nc = coords.shape[0]
+    nout = int((nc * (nc - 1)) / 2)
+
+    oinds = numpy.empty((nout, 2), dtype="i8")
+    oval = numpy.empty((nout,), dtype="f4")
+
+    v = 0
+    for i in range(coords.shape[0]):
+        for j in range(i + 1, coords.shape[0]):
+
+            ti = atom_types[i]
+            tj = atom_types[j]
+
+            lj_ij = lj(
+                dist(coords[i], coords[j]),
+                bonded_path_lengths[i, j],
+                lj_radius[ti],
+                lj_wdepth[ti],
+                is_donor[ti],
+                is_hydroxyl[ti],
+                is_polarh[ti],
+                is_acceptor[ti],
+                lj_radius[tj],
+                lj_wdepth[tj],
+                is_donor[tj],
+                is_hydroxyl[tj],
+                is_polarh[tj],
+                is_acceptor[tj],
+                lj_hbond_dis,
+                lj_hbond_OH_donor_dis,
+                lj_hbond_hdis,
+            )
+
+            if lj_ij == 0.0:
+                continue
+
+            oinds[v, 0] = i
+            oinds[v, 1] = j
+            oval[v] = lj_ij
+
+            v += 1
+
+    return oinds[:v], oval[:v]
