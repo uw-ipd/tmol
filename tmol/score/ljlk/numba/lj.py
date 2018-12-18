@@ -269,3 +269,62 @@ def lj_intra(
             v += 1
 
     return oinds[:v], oval[:v]
+
+
+@numba.jit
+def lj_intra_backward(
+    inds,
+    d_lj,
+    coords,
+    atom_types,
+    bonded_path_lengths,
+    lj_radius,
+    lj_wdepth,
+    is_donor,
+    is_hydroxyl,
+    is_polarh,
+    is_acceptor,
+    lj_hbond_dis,
+    lj_hbond_OH_donor_dis,
+    lj_hbond_hdis,
+):
+    oval = numpy.zeros_like(coords)
+
+    for v in range(inds.shape[0]):
+        i = inds[v, 0]
+        j = inds[v, 1]
+
+        d, (d_d_d_i, d_d_d_j) = dist_and_d_dist(coords[i], coords[j])
+
+        ti = atom_types[i]
+        tj = atom_types[j]
+
+        d_lj_d_d = d_lj_d_dist(
+            d,
+            bonded_path_lengths[i, j],
+            lj_radius[ti],
+            lj_wdepth[ti],
+            is_donor[ti],
+            is_hydroxyl[ti],
+            is_polarh[ti],
+            is_acceptor[ti],
+            lj_radius[tj],
+            lj_wdepth[tj],
+            is_donor[tj],
+            is_hydroxyl[tj],
+            is_polarh[tj],
+            is_acceptor[tj],
+            lj_hbond_dis,
+            lj_hbond_OH_donor_dis,
+            lj_hbond_hdis,
+        )
+
+        oval[i, 0] += d_d_d_i[0] * d_lj_d_d * d_lj[v]
+        oval[i, 1] += d_d_d_i[1] * d_lj_d_d * d_lj[v]
+        oval[i, 2] += d_d_d_i[2] * d_lj_d_d * d_lj[v]
+
+        oval[j, 0] += d_d_d_j[0] * d_lj_d_d * d_lj[v]
+        oval[j, 1] += d_d_d_j[1] * d_lj_d_d * d_lj[v]
+        oval[j, 2] += d_d_d_j[2] * d_lj_d_d * d_lj[v]
+
+    return oval

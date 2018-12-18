@@ -9,8 +9,9 @@ import torch
 import scipy.optimize
 import sparse
 
-from tmol.score.ljlk.numba.lj import f_vdw, f_vdw_d_dist, lj_intra
+from tmol.score.ljlk.numba.lj import f_vdw, f_vdw_d_dist
 from tmol.score.ljlk.numba.vectorized import lj, d_lj_d_dist
+from tmol.score.ljlk.numba.torch_op import LJOp
 from tmol.score.bonded_atom import bonded_path_length
 
 from tmol.utility.args import ignore_unused_kwargs
@@ -138,24 +139,26 @@ def test_lj_spotcheck(default_database):
     numpy.testing.assert_allclose(eval_lj(ds, 2), 0.0)
 
 
-def test_lj_intra(default_database, ubq_system):
+def test_lj_intra_op(default_database, ubq_system):
+    """LJOp.intra returns triu entries of the dense lj score matrix."""
 
     param_resolver = tmol.score.ljlk.params.LJLKParamResolver.from_database(
         default_database.scoring.ljlk, torch.device("cpu")
     )
 
+    op = LJOp.from_param_resolver(param_resolver)
+
     atom_type_idx = param_resolver.type_idx(ubq_system.atom_metadata["atom_type"])
     atom_pair_bpl = bonded_path_length(ubq_system.bonds, ubq_system.coords.shape[0], 6)
 
-    v_inds, v_lj = ignore_unused_kwargs(lj_intra)(
-        ubq_system.coords,
-        atom_type_idx,
-        atom_pair_bpl,
-        **toolz.merge(
-            toolz.valmap(float, attr.asdict(param_resolver.global_params)),
-            toolz.valmap(torch.Tensor.numpy, attr.asdict(param_resolver.type_params)),
-        ),
+    v_inds, v_lj = op.intra(
+        torch.from_numpy(ubq_system.coords).requires_grad_(True),
+        torch.from_numpy(atom_type_idx),
+        torch.from_numpy(atom_pair_bpl),
     )
+
+    assert not v_inds.requires_grad
+    assert v_lj.requires_grad
 
     atom_pair_d = numpy.linalg.norm(
         ubq_system.coords[None, :, :] - ubq_system.coords[:, None, :], axis=-1
@@ -176,7 +179,37 @@ def test_lj_intra(default_database, ubq_system):
 
     expected_dense = numpy.triu(numpy.nan_to_num(pair_lj))
     intra_dense = sparse.COO(
-        v_inds.T, v_lj, shape=(ubq_system.system_size,) * 2
+        v_inds.numpy().T, v_lj.detach().numpy(), shape=(ubq_system.system_size,) * 2
     ).todense()
 
     numpy.testing.assert_allclose(intra_dense, expected_dense)
+
+
+def test_lj_intra_op_gradcheck(default_database, ubq_system):
+    natoms = 25
+
+    param_resolver = tmol.score.ljlk.params.LJLKParamResolver.from_database(
+        default_database.scoring.ljlk, torch.device("cpu")
+    )
+
+    op = LJOp.from_param_resolver(param_resolver)
+
+    coords = ubq_system.coords[:natoms]
+    atom_type_idx = param_resolver.type_idx(ubq_system.atom_metadata["atom_type"])[
+        :natoms
+    ]
+    atom_pair_bpl = bonded_path_length(ubq_system.bonds, ubq_system.coords.shape[0], 6)[
+        :natoms, :natoms
+    ]
+
+    def eval_intra(coords):
+
+        i, v = op.intra(
+            coords, torch.from_numpy(atom_type_idx), torch.from_numpy(atom_pair_bpl)
+        )
+
+        return v
+
+    torch.autograd.gradcheck(
+        eval_intra, (torch.from_numpy(coords).requires_grad_(True),), eps=1e-4
+    )
