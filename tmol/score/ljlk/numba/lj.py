@@ -61,7 +61,7 @@ def lj_sigma(
         return lj_radius_i + lj_radius_j
 
 
-@numba.vectorize
+@numba.jit
 def lj(
     dist,
     bonded_path_length,
@@ -124,7 +124,7 @@ def lj(
         return 0.0
 
 
-@numba.vectorize
+@numba.jit
 def d_lj_d_dist(
     dist,
     bonded_path_length,

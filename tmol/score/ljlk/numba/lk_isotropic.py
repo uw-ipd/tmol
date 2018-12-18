@@ -167,7 +167,7 @@ def d_lk_isotropic_d_dist(
         return 0.0
 
 
-@numba.vectorize
+@numba.jit
 def lk_isotropic_mutual(
     dist,
     bonded_path_length,
@@ -199,7 +199,7 @@ def lk_isotropic_mutual(
     )
 
 
-@numba.vectorize
+@numba.jit
 def d_lk_isotropic_mutual_d_dist(
     dist,
     bonded_path_length,

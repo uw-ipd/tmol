@@ -3,9 +3,10 @@ from pytest import approx
 
 import numpy
 import scipy.optimize
+import numba
 
-import tmol.score.ljlk.numba.lj
-from tmol.score.ljlk.numba.lj import lj, d_lj_d_dist, f_vdw, f_vdw_d_dist
+from tmol.score.ljlk.numba.lj import f_vdw, f_vdw_d_dist
+from tmol.score.ljlk.numba.vectorized import lj, d_lj_d_dist
 
 import tmol.database
 

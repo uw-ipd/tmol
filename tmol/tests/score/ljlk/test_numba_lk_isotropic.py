@@ -5,9 +5,8 @@ import numpy
 import scipy.optimize
 
 import tmol.score.ljlk.numba.lk_isotropic
-from tmol.score.ljlk.numba.lk_isotropic import (
-    # lk_pair_total,
-    f_desolv,
+from tmol.score.ljlk.numba.lk_isotropic import f_desolv
+from tmol.score.ljlk.numba.vectorized import (
     lk_isotropic_mutual,
     d_lk_isotropic_mutual_d_dist,
 )
