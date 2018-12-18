@@ -212,7 +212,7 @@ def test_lj_inter_op(default_database, ubq_system):
 
 
 def test_lj_inter_op_gradcheck(default_database, ubq_system):
-    natoms = 8
+    natoms = 16
 
     param_resolver = tmol.score.ljlk.params.LJLKParamResolver.from_database(
         default_database.scoring.ljlk, torch.device("cpu")
@@ -250,12 +250,12 @@ def test_lj_inter_op_gradcheck(default_database, ubq_system):
             torch.from_numpy(coords_a).requires_grad_(True),
             torch.from_numpy(coords_b).requires_grad_(True),
         ),
-        eps=1e-4,
+        eps=1e-3,
     )
 
 
 def test_lj_intra_op_gradcheck(default_database, ubq_system):
-    natoms = 25
+    natoms = 32
 
     param_resolver = tmol.score.ljlk.params.LJLKParamResolver.from_database(
         default_database.scoring.ljlk, torch.device("cpu")
@@ -280,7 +280,7 @@ def test_lj_intra_op_gradcheck(default_database, ubq_system):
         return v
 
     torch.autograd.gradcheck(
-        eval_intra, (torch.from_numpy(coords).requires_grad_(True),), eps=1e-4
+        eval_intra, (torch.from_numpy(coords).requires_grad_(True),), eps=1e-3
     )
 
 
