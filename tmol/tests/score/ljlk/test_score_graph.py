@@ -5,16 +5,13 @@ import torch
 
 from tmol.database import ParameterDatabase
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.ljlk import LJLKScoreGraph
-from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
+from tmol.score.ljlk import LJScoreGraph
 
 from tmol.utility.reactive import reactive_attrs
 
 
 @reactive_attrs
-class LJLKGraph(
-    CartesianAtomicCoordinateProvider, BlockedInteratomicDistanceGraph, LJLKScoreGraph
-):
+class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
     pass
 
 
@@ -25,60 +22,55 @@ def save_intermediate_grad(var):
     var.register_hook(store_grad)
 
 
-def test_ljlk_nan_prop(ubq_system, torch_device):
-    """LJLK graph filters nan-coords, prevening nan entries on backward prop."""
-    ljlk_graph = LJLKGraph.build_for(
-        ubq_system, requires_grad=True, device=torch_device
-    )
-    save_intermediate_grad(ljlk_graph.atom_pair_dist)
-    save_intermediate_grad(ljlk_graph.atom_pair_delta)
+def test_lj_nan_prop(ubq_system, torch_device):
+    """LJ graph filters nan-coords, prevening nan entries on backward prop."""
+    try:
+        lj_graph = LJGraph.build_for(
+            ubq_system, requires_grad=True, device=torch_device
+        )
+    except AssertionError:
+        # TODO: Reenable LJScoreGraph does not support cuda
+        if torch_device.type == "cuda":
+            pytest.xfail()
+        raise
 
-    intra_graph = ljlk_graph.intra_score()
+    intra_graph = lj_graph.intra_score()
 
-    save_intermediate_grad(intra_graph.lj)
-    save_intermediate_grad(intra_graph.lk)
+    save_intermediate_grad(intra_graph.lj[1])
+    # save_intermediate_grad(intra_graph.lk[1])
 
     intra_graph.total.backward(retain_graph=True)
 
     assert (intra_graph.total != 0).all()
 
-    lj_nan_scores = torch.nonzero(torch.isnan(intra_graph.lj))
-    lj_nan_grads = torch.nonzero(torch.isnan(intra_graph.lj.grad))
+    lj_nan_scores = torch.nonzero(torch.isnan(intra_graph.lj[1]))
+    lj_nan_grads = torch.nonzero(torch.isnan(intra_graph.lj[1].grad))
     assert len(lj_nan_scores) == 0
     assert len(lj_nan_grads) == 0
     assert (intra_graph.total_lj != 0).all()
 
-    lk_nan_scores = torch.nonzero(torch.isnan(intra_graph.lk))
-    lk_nan_grads = torch.nonzero(torch.isnan(intra_graph.lk.grad))
-    assert len(lk_nan_scores) == 0
-    assert len(lk_nan_grads) == 0
-    assert (intra_graph.total_lk != 0).all()
-
-    nonzero_dist_grads = torch.nonzero(ljlk_graph.atom_pair_dist.grad)
-    assert len(nonzero_dist_grads) != 0
-
-    nonzero_delta_grads = torch.nonzero(ljlk_graph.atom_pair_delta.grad)
-    assert len(nonzero_delta_grads) != 0
-    nan_delta_grads = torch.nonzero(torch.isnan(ljlk_graph.atom_pair_delta.grad))
-    assert len(nan_delta_grads) == 0
-
-    nan_coord_grads = torch.nonzero(torch.isnan(ljlk_graph.coords.grad))
+    nan_coord_grads = torch.nonzero(torch.isnan(lj_graph.coords.grad))
     assert len(nan_coord_grads) == 0
 
 
 @pytest.mark.benchmark(group="score_setup")
-def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
-    graph_params = LJLKGraph.init_parameters_for(
-        ubq_system, requires_grad=True, device=torch_device
-    )
+def test_lj_score_setup(benchmark, ubq_system, torch_device):
+    try:
+        graph_params = LJGraph.init_parameters_for(
+            ubq_system, requires_grad=True, device=torch_device
+        )
+    except AssertionError:
+        if torch_device.type == "cuda":
+            # TODO: Reenable LJScoreGraph does not support cuda
+            pytest.xfail()
+        raise
 
     @benchmark
     def score_graph():
-        score_graph = LJLKGraph(**graph_params)
+        score_graph = LJGraph(**graph_params)
 
-        # Non-coordinate depdendent components for scoring
-        score_graph.ljlk_atom_pair_params
-        score_graph.ljlk_interaction_weight
+        # Non-coordinate dependendent components for scoring
+        score_graph.lj_atom_types
 
         return score_graph
 
@@ -88,19 +80,19 @@ def test_ljlk_score_setup(benchmark, ubq_system, torch_device):
 def test_ljlk_database_clone_factory(ubq_system):
     clone_db = copy.copy(ParameterDatabase.get_default().scoring.ljlk)
 
-    src: LJLKGraph = LJLKGraph.build_for(ubq_system)
+    src: LJGraph = LJGraph.build_for(ubq_system)
     assert src.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
 
     # Parameter database is overridden via kwarg
-    src: LJLKGraph = LJLKGraph.build_for(ubq_system, ljlk_database=clone_db)
+    src: LJGraph = LJGraph.build_for(ubq_system, ljlk_database=clone_db)
     assert src.ljlk_database is clone_db
 
     # Parameter database is referenced on clone
-    clone: LJLKGraph = LJLKGraph.build_for(src)
+    clone: LJGraph = LJGraph.build_for(src)
     assert clone.ljlk_database is src.ljlk_database
 
     # Parameter database is overriden on clone via kwarg
-    clone: LJLKGraph = LJLKGraph.build_for(
+    clone: LJGraph = LJGraph.build_for(
         src, ljlk_database=ParameterDatabase.get_default().scoring.ljlk
     )
     assert clone.ljlk_database is not src.ljlk_database

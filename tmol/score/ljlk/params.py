@@ -1,11 +1,9 @@
-from typing import Tuple, Sequence
 import attr
 import cattr
 
 import pandas
 import torch
 
-import numpy
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
@@ -14,8 +12,6 @@ from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
 
 from tmol.database.scoring.ljlk import LJLKDatabase
-
-from . import potentials
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -42,32 +38,6 @@ class LJLKTypeParams(TensorGroup, ValidateAttrs):
     is_polarh: Tensor(bool)[...]
 
 
-@attr.s(auto_attribs=True, frozen=True, slots=True)
-class LJLKTypePairParams(TensorGroup, ValidateAttrs):
-    lj_rad1: Tensor("f")[...]
-    lj_rad2: Tensor("f")[...]
-    lj_sigma: Tensor("f")[...]
-    lj_wdepth: Tensor("f")[...]
-    lj_coeff_sigma6: Tensor("f")[...]
-    lj_coeff_sigma12: Tensor("f")[...]
-    lj_switch_intercept: Tensor("f")[...]
-    lj_switch_slope: Tensor("f")[...]
-    lj_spline_y0: Tensor("f")[...]
-    lj_spline_dy0: Tensor("f")[...]
-
-    lk_coeff1: Tensor("f")[...]
-    lk_coeff2: Tensor("f")[...]
-    lk_inv_lambda2_1: Tensor("f")[...]
-    lk_inv_lambda2_2: Tensor("f")[...]
-    lk_spline_close_x0: Tensor("f")[...]
-    lk_spline_close_x1: Tensor("f")[...]
-    lk_spline_close_y0: Tensor("f")[...]
-    lk_spline_close_y1: Tensor("f")[...]
-    lk_spline_close_dy1: Tensor("f")[...]
-    lk_spline_far_y0: Tensor("f")[...]
-    lk_spline_far_dy0: Tensor("f")[...]
-
-
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class LJLKParamResolver(ValidateAttrs):
     """Container for global/type/pair parameters, indexed by atom type name.
@@ -86,9 +56,6 @@ class LJLKParamResolver(ValidateAttrs):
     # shape [n] per-type parameters, source params used to calculate pair parameters
     type_params: LJLKTypeParams
 
-    # shape [n,n] type pair parameters
-    pair_params: LJLKTypePairParams
-
     def type_idx(self, atom_types: NDArray(object)[...]) -> NDArray("i8")[...]:
         """Convert array of atom type names to parameter indices.
 
@@ -99,23 +66,6 @@ class LJLKParamResolver(ValidateAttrs):
         return self.atom_type_index.get_indexer(atom_types.ravel()).reshape(
             atom_types.shape
         )
-
-    def __getitem__(
-        self, key: Tuple[Sequence[str], Sequence[str]]
-    ) -> LJLKTypePairParams:
-        """Resolve to/from atom types into broadcast pair params."""
-        from_type, to_type = key
-
-        i = self.type_idx(from_type)
-        assert not numpy.any(
-            (i == -1) | (i == len(self.atom_type_index))
-        ), "type not present in index"
-        j = self.type_idx(to_type)
-        assert not numpy.any(
-            (j == -1) | (j == len(self.atom_type_index))
-        ), "type not present in index"
-
-        return self.pair_params[i, j]
 
     @classmethod
     @validate_args
@@ -165,15 +115,8 @@ class LJLKParamResolver(ValidateAttrs):
             }
         )
 
-        # Broadcast N atom type parameters against itself, resolving an [N,N]
-        # type pair parameter tensor group.
-        pair_params = potentials.render_pair_parameters(
-            global_params, type_params.reshape((-1, 1)), type_params.reshape((1, -1))
-        )
-
         return cls(
             atom_type_index=atom_type_index,
             global_params=global_params,
             type_params=type_params,
-            pair_params=pair_params,
         )

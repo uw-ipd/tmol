@@ -18,9 +18,8 @@ from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
-from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 
-from tmol.score.ljlk import LJLKScoreGraph
+from tmol.score.ljlk import LJScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 
 
@@ -56,12 +55,7 @@ class HBondScore(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice
 
 
 @reactive_attrs
-class LJLKScore(
-    CartesianAtomicCoordinateProvider,
-    BlockedInteratomicDistanceGraph,
-    LJLKScoreGraph,
-    TorchDevice,
-):
+class LJScore(CartesianAtomicCoordinateProvider, LJScoreGraph, TorchDevice):
     pass
 
 
@@ -109,17 +103,23 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
 @pytest.mark.parametrize(
     "graph_class",
-    [TotalScore, DofSpaceTotal, HBondScore, LJLKScore, DofSpaceDummy],
-    ids=["total_cart", "total_torsion", "hbond", "ljlk", "kinematics"],
+    [TotalScore, DofSpaceTotal, HBondScore, LJScore, DofSpaceDummy],
+    ids=["total_cart", "total_torsion", "hbond", "lj", "kinematics"],
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 @pytest.mark.benchmark(group="score_components")
 def test_end_to_end_score_graph(
     benchmark, benchmark_pass, graph_class, ubq_system, torch_device
 ):
-    score_graph = graph_class.build_for(
-        ubq_system, requires_grad=True, device=torch_device
-    )
+    try:
+        score_graph = graph_class.build_for(
+            ubq_system, requires_grad=True, device=torch_device
+        )
+    except AssertionError:
+        # TODO: Reenable, LJScoreGraph does not support cuda
+        if issubclass(graph_class, LJScoreGraph) and torch_device.type == "cuda":
+            pytest.xfail()
+        raise
 
     run = benchmark_score_pass(benchmark, score_graph, benchmark_pass)
 

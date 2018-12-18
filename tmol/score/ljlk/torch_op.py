@@ -9,8 +9,8 @@ import numpy
 from tmol.types.functional import validate_args
 from tmol.utility.args import ignore_unused_kwargs
 
-from .lj import lj_intra, lj_intra_backward, lj_inter, lj_inter_backward
-from ..params import LJLKDatabase, LJLKParamResolver
+from .numba.lj import lj_intra, lj_intra_backward, lj_inter, lj_inter_backward
+from .params import LJLKDatabase, LJLKParamResolver
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -69,6 +69,11 @@ class LJOp:
             super().__init__()
 
         def forward(ctx, coords, atom_types, bonded_path_lengths):
+            assert coords.dim() == 2
+            assert coords.shape[1] == 3
+            assert atom_types.shape == coords.shape[:1]
+
+            assert bonded_path_lengths.shape == (coords.shape[0], coords.shape[0])
 
             assert all(
                 t.device.type == "cpu"
@@ -115,6 +120,15 @@ class LJOp:
         def forward(
             ctx, coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
         ):
+            assert coords_a.dim() == 2
+            assert coords_a.shape[1] == 3
+            assert atom_types_a.shape == coords_a.shape[:1]
+
+            assert coords_b.dim() == 2
+            assert coords_b.shape[1] == 3
+            assert atom_types_b.shape == coords_b.shape[:1]
+
+            assert bonded_path_lengths.shape == (coords_a.shape[0], coords_b.shape[0])
 
             assert all(
                 t.device.type == "cpu"

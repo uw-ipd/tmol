@@ -1,1 +1,1 @@
-from .score_graph import LJLKScoreGraph  # noqa: F401
+from .score_graph import LJScoreGraph  # noqa: F401
