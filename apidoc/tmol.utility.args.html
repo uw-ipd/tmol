@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.tensor &mdash; TMol 0.0.0-105-g7674b75 documentation</title>
+  <title>tmol.utility.args &mdash; TMol 0.0.0-105-g7674b75 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.utility.tensor.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.utility.args.html"/>
   
 
   
@@ -30,8 +30,8 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.io" href="tmol.io.html" />
-    <link rel="prev" title="tmol.utility.units" href="tmol.utility.units.html" /> 
+    <link rel="next" title="tmol.utility.attr" href="tmol.utility.attr.html" />
+    <link rel="prev" title="tmol.utility" href="tmol.utility.html" /> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -98,7 +98,14 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.utility.html">tmol.utility</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.args.html">tmol.utility.args</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.utility.args</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.attr.html">tmol.utility.attr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.categorical.html">tmol.utility.categorical</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.cpp_extension.html">tmol.utility.cpp_extension</a></li>
@@ -107,7 +114,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.numba.html">tmol.utility.numba</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.reactive.html">tmol.utility.reactive</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.units.html">tmol.utility.units</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.utility.tensor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.utility.tensor.html">tmol.utility.tensor</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#summary">Summary</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#reference">Reference</a></li>
 </ul>
@@ -163,13 +170,13 @@
         
           <li><a href="tmol.utility.html">tmol.utility</a> &raquo;</li>
         
-      <li>tmol.utility.tensor</li>
+      <li>tmol.utility.args</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.utility.tensor.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.utility.args.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -182,10 +189,67 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.utility.tensor">
-<span id="tmol-utility-tensor"></span><h1>tmol.utility.tensor<a class="headerlink" href="#module-tmol.utility.tensor" title="Permalink to this headline">¶</a></h1>
-<p>Support utils for tensor data structures.</p>
-<p>Includes c++ and python level utilities for tensor data manipulation.</p>
+  <div class="section" id="module-tmol.utility.args">
+<span id="tmol-utility-args"></span><h1>tmol.utility.args<a class="headerlink" href="#module-tmol.utility.args" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.args.ignore_unused_kwargs" title="tmol.utility.args.ignore_unused_kwargs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ignore_unused_kwargs</span></code></a></td>
+<td>Ignore kwargs not present in func signature.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tmol.utility.args._signature">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_signature</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._signature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve inspect.Signature for callable.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._wraps">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_wraps</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_wraps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._wraps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve functools.wraps for callable.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args.ignore_unused_kwargs">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">ignore_unused_kwargs</code><span class="sig-paren">(</span><em>func</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#ignore_unused_kwargs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args.ignore_unused_kwargs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ignore kwargs not present in func signature.</p>
+<p>Decorate func with wrapper dropping any kwargs not present in the func
+signature.</p>
+<p class="rubric">Example</p>
+<p>Allows function invocation with kwargs bags that are a superset
+of required args:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@ignore_unused_kwargs</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">)(</span><span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._dufunc_signature">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_dufunc_signature</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_dufunc_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._dufunc_signature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve inspect.Signature for &#64;numba.vectorize.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._dufunc_wraps">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_dufunc_wraps</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_dufunc_wraps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._dufunc_wraps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve functools.wraps for &#64;numba.vectorize.</p>
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -196,10 +260,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.io.html" class="btn btn-neutral float-right" title="tmol.io" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.utility.attr.html" class="btn btn-neutral float-right" title="tmol.utility.attr" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="tmol.utility.units.html" class="btn btn-neutral" title="tmol.utility.units" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tmol.utility.html" class="btn btn-neutral" title="tmol.utility" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

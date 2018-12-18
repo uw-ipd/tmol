@@ -13,6 +13,7 @@ tmol.utility
     .. toctree::
        :maxdepth: 1
   
+       tmol.utility.args
        tmol.utility.attr
        tmol.utility.categorical
        tmol.utility.cpp_extension
