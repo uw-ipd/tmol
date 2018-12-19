@@ -54,7 +54,7 @@ def f_desolv_d_dist(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
 
 
 @jit
-def lk_isotropic(
+def lk_isotropic_pair(
     dist,
     bonded_path_length,
     lj_radius_i,
@@ -112,7 +112,7 @@ def lk_isotropic(
 
 
 @jit
-def d_lk_isotropic_d_dist(
+def d_lk_isotropic_pair_d_dist(
     dist,
     bonded_path_length,
     lj_radius_i,
@@ -168,7 +168,7 @@ def d_lk_isotropic_d_dist(
 
 
 @numba.jit
-def lk_isotropic_mutual(
+def lk_isotropic(
     dist,
     bonded_path_length,
     lj_radius_i,
@@ -180,7 +180,7 @@ def lk_isotropic_mutual(
     lk_lambda_j,
     lk_volume_j,
 ):
-    return lk_isotropic(
+    return lk_isotropic_pair(
         dist,
         bonded_path_length,
         lj_radius_i,
@@ -188,7 +188,7 @@ def lk_isotropic_mutual(
         lk_lambda_i,
         lj_radius_j,
         lk_volume_j,
-    ) + lk_isotropic(
+    ) + lk_isotropic_pair(
         dist,
         bonded_path_length,
         lj_radius_j,
@@ -200,7 +200,7 @@ def lk_isotropic_mutual(
 
 
 @numba.jit
-def d_lk_isotropic_mutual_d_dist(
+def d_lk_isotropic_d_dist(
     dist,
     bonded_path_length,
     lj_radius_i,
@@ -212,7 +212,7 @@ def d_lk_isotropic_mutual_d_dist(
     lk_lambda_j,
     lk_volume_j,
 ):
-    return d_lk_isotropic_d_dist(
+    return d_lk_isotropic_pair_d_dist(
         dist,
         bonded_path_length,
         lj_radius_i,
@@ -220,7 +220,7 @@ def d_lk_isotropic_mutual_d_dist(
         lk_lambda_i,
         lj_radius_j,
         lk_volume_j,
-    ) + d_lk_isotropic_d_dist(
+    ) + d_lk_isotropic_pair_d_dist(
         dist,
         bonded_path_length,
         lj_radius_j,

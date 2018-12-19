@@ -6,10 +6,7 @@ import scipy.optimize
 
 import tmol.score.ljlk.numba.lk_isotropic
 from tmol.score.ljlk.numba.lk_isotropic import f_desolv
-from tmol.score.ljlk.numba.vectorized import (
-    lk_isotropic_mutual,
-    d_lk_isotropic_mutual_d_dist,
-)
+from tmol.score.ljlk.numba.vectorized import lk_isotropic, d_lk_isotropic_d_dist
 
 import tmol.database
 
@@ -26,8 +23,8 @@ def test_lk_isotropic_gradcheck(bonded_path_length):
     grad_errors = numpy.array(
         [
             scipy.optimize.check_grad(
-                lk_isotropic_mutual,
-                d_lk_isotropic_mutual_d_dist,
+                lk_isotropic,
+                d_lk_isotropic_d_dist,
                 numpy.array([d]),
                 bonded_path_length,
                 i.lj_radius,
@@ -59,8 +56,8 @@ def test_lk_isotropic_spotcheck():
             d, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume
         ) + f_desolv(d, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume)
 
-    def eval_lk_mutual(d, bonded_path_length=5):
-        return lk_isotropic_mutual(
+    def eval_lk_isotropic(d, bonded_path_length=5):
+        return lk_isotropic(
             d,
             bonded_path_length,
             i.lj_radius,
@@ -74,23 +71,25 @@ def test_lk_isotropic_spotcheck():
         )
 
     # Constant region
-    assert eval_lk_mutual(numpy.linspace(0, sigma - 0.2, 100)) == approx(
+    assert eval_lk_isotropic(numpy.linspace(0, sigma - 0.2, 100)) == approx(
         eval_f_desolv(sigma)
     )
 
     # Interpolate to f(sigma)
-    assert (eval_lk_mutual(sigma) < eval_f_desolv(sigma)) and (
-        eval_lk_mutual(sigma) > eval_f_desolv(sigma + 0.3)
+    assert (eval_lk_isotropic(sigma) < eval_f_desolv(sigma)) and (
+        eval_lk_isotropic(sigma) > eval_f_desolv(sigma + 0.3)
     )
 
     # Interpolate to 0
-    assert eval_lk_mutual(4.5) == approx(eval_f_desolv(4.5))
+    assert eval_lk_isotropic(4.5) == approx(eval_f_desolv(4.5))
 
     # Interpolate to 0
-    assert eval_lk_mutual(6.0) == approx(0.0)
-    assert eval_lk_mutual(8.0) == approx(0.0)
+    assert eval_lk_isotropic(6.0) == approx(0.0)
+    assert eval_lk_isotropic(8.0) == approx(0.0)
 
     # Bonded path length weights
     ds = numpy.linspace(0.0, 8.0, 100)
-    numpy.testing.assert_allclose(eval_lk_mutual(ds, 4), eval_lk_mutual(ds, 5) * 0.2)
-    numpy.testing.assert_allclose(eval_lk_mutual(ds, 2), 0.0)
+    numpy.testing.assert_allclose(
+        eval_lk_isotropic(ds, 4), eval_lk_isotropic(ds, 5) * 0.2
+    )
+    numpy.testing.assert_allclose(eval_lk_isotropic(ds, 2), 0.0)
