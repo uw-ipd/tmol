@@ -42,7 +42,9 @@ def _gradcheck_summary_frame(analytic, numeric, atol, rtol):
     return sframe
 
 
-def gradcheck(func, inputs, eps=1e-6, atol=1e-5, rtol=1e-3, raise_exception=True):
+def gradcheck(
+    func, inputs, eps=1e-6, atol=1e-5, rtol=1e-3, nfail=0, raise_exception=True
+):
     r"""Direct-port of pytest.autograd.gradcheck with improved error reporting.
 
     Check gradients computed via small finite differences against analytical
@@ -79,6 +81,7 @@ def gradcheck(func, inputs, eps=1e-6, atol=1e-5, rtol=1e-3, raise_exception=True
         eps (float, optional): perturbation for finite differences
         atol (float, optional): absolute tolerance
         rtol (float, optional): relative tolerance
+        nfail (int, optional): maximum number of allowed failures
         raise_exception (bool, optional): indicating whether to raise an exception if
             the check fails. The exception gives more information about the
             exact nature of the failure. This is helpful when debugging gradchecks.
@@ -134,7 +137,7 @@ def gradcheck(func, inputs, eps=1e-6, atol=1e-5, rtol=1e-3, raise_exception=True
             if a.numel() != 0 or n.numel() != 0:
                 summary_frame = _gradcheck_summary_frame(a, n, atol, rtol)
 
-                assert summary_frame.failure.sum() == 0, (
+                assert summary_frame.failure.sum() <= nfail, (
                     f"Jacobian mismatch for output {i} with respect to input {j}:\n"
                     f"{summary_frame}\n\n"
                     f"failures:\n{summary_frame.query('failure')}\n\n"
