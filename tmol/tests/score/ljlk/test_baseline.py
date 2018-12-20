@@ -1,5 +1,5 @@
 import pytest
-import numpy
+from pytest import approx
 
 from tmol.utility.reactive import reactive_attrs
 
@@ -17,9 +17,24 @@ class LKGraph(CartesianAtomicCoordinateProvider, LKScoreGraph):
     pass
 
 
-def test_lj_baseline_comparison(ubq_system, torch_device):
+comparisons = {
+    "lj_numpyros": pytest.param(
+        LJGraph, {"total_lj": -425.3 + 248.8}, marks=pytest.mark.xfail
+    ),
+    "lk_numpyros": pytest.param(LKGraph, {"total_lk": 255.8}, marks=pytest.mark.xfail),
+    "lj_regression": (LJGraph, {"total_lj": -177.1}),
+    "lk_regression": (LKGraph, {"total_lk": 248.2}),
+}
+
+
+@pytest.mark.parametrize(
+    "graph_class,expected_scores",
+    list(comparisons.values()),
+    ids=list(comparisons.keys()),
+)
+def test_baseline_comparison(ubq_system, torch_device, graph_class, expected_scores):
     try:
-        test_graph = LJGraph.build_for(
+        test_graph = graph_class.build_for(
             ubq_system,
             drop_missing_atoms=False,
             requires_grad=False,
@@ -31,29 +46,9 @@ def test_lj_baseline_comparison(ubq_system, torch_device):
             pytest.xfail()
         raise
 
-    expected_scores = {"total_lj": -425.3 + 248.8}
+    intra_container = test_graph.intra_score()
+    scores = {
+        term: float(getattr(intra_container, term).detach()) for term in expected_scores
+    }
 
-    for term, val in expected_scores.items():
-        scores = test_graph.intra_score()
-        numpy.testing.assert_allclose(getattr(scores, term).detach(), val, rtol=1e-3)
-
-
-def test_lk_baseline_comparison(ubq_system, torch_device):
-    try:
-        test_graph = LKGraph.build_for(
-            ubq_system,
-            drop_missing_atoms=False,
-            requires_grad=False,
-            device=torch_device,
-        )
-    except AssertionError:
-        # TODO: Reenable, LJScoreGraph does not support cuda
-        if torch_device.type == "cuda":
-            pytest.xfail()
-        raise
-
-    expected_scores = {"total_lk": 255.8}
-
-    for term, val in expected_scores.items():
-        scores = test_graph.intra_score()
-        numpy.testing.assert_allclose(getattr(scores, term).detach(), val, rtol=1e-3)
+    assert scores == approx(expected_scores, rel=1e-3)
