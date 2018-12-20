@@ -70,7 +70,7 @@ def test_lj_score_setup(benchmark, ubq_system, torch_device):
         score_graph = LJGraph(**graph_params)
 
         # Non-coordinate dependendent components for scoring
-        score_graph.lj_atom_types
+        score_graph.ljlk_atom_types
 
         return score_graph
 

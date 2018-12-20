@@ -19,7 +19,7 @@ from tmol.score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 
-from tmol.score.ljlk import LJScoreGraph
+from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 
 
@@ -56,6 +56,11 @@ class HBondScore(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice
 
 @reactive_attrs
 class LJScore(CartesianAtomicCoordinateProvider, LJScoreGraph, TorchDevice):
+    pass
+
+
+@reactive_attrs
+class LKScore(CartesianAtomicCoordinateProvider, LKScoreGraph, TorchDevice):
     pass
 
 
@@ -101,10 +106,14 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     return run
 
 
+# TODO: Reenable, LJScoreGraph does not support cuda
+_non_cuda_components = (LJScoreGraph, LKScoreGraph)
+
+
 @pytest.mark.parametrize(
     "graph_class",
-    [TotalScore, DofSpaceTotal, HBondScore, LJScore, DofSpaceDummy],
-    ids=["total_cart", "total_torsion", "hbond", "lj", "kinematics"],
+    [TotalScore, DofSpaceTotal, HBondScore, LJScore, LKScore, DofSpaceDummy],
+    ids=["total_cart", "total_torsion", "hbond", "lj", "lk", "kinematics"],
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 @pytest.mark.benchmark(group="score_components")
@@ -116,8 +125,10 @@ def test_end_to_end_score_graph(
             ubq_system, requires_grad=True, device=torch_device
         )
     except AssertionError:
-        # TODO: Reenable, LJScoreGraph does not support cuda
-        if issubclass(graph_class, LJScoreGraph) and torch_device.type == "cuda":
+        if (
+            issubclass(graph_class, _non_cuda_components)
+            and torch_device.type == "cuda"
+        ):
             pytest.xfail()
         raise
 

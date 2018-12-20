@@ -17,6 +17,7 @@ from . import (  # noqa: F401
 class TotalScoreGraph(
     hbond.HBondScoreGraph,
     ljlk.LJScoreGraph,
+    ljlk.LKScoreGraph,
     interatomic_distance.BlockedInteratomicDistanceGraph,
     bonded_atom.BondedAtomScoreGraph,
     device.TorchDevice,
