@@ -4,9 +4,12 @@ import math
 import numba
 import numpy
 import toolz
+
 import tmol.numeric.interpolation.cubic_hermite_polynomial as cubic_hermite_polynomial
 
-jit = toolz.curry(numba.jit)(nopython=True)
+from .common import lj_sigma, connectivity_weight, dist, dist_and_d_dist
+
+jit = toolz.curry(numba.jit)(nopython=True, nogil=True)
 
 interpolate_to_zero = jit(cubic_hermite_polynomial.interpolate_to_zero)
 interpolate_to_zero_dx = jit(cubic_hermite_polynomial.interpolate_to_zero_dx)
@@ -23,46 +26,6 @@ def f_vdw_d_dist(dist, sigma, epsilon):
 
 
 @jit
-def connectivity_weight(bonded_path_length):
-    if bonded_path_length > 4:
-        return 1.0
-    elif bonded_path_length == 4:
-        return 0.2
-    else:
-        return 0.0
-
-
-@jit
-def lj_sigma(
-    lj_radius_i,
-    is_donor_i,
-    is_hydroxyl_i,
-    is_polarh_i,
-    is_acceptor_i,
-    lj_radius_j,
-    is_donor_j,
-    is_hydroxyl_j,
-    is_polarh_j,
-    is_acceptor_j,
-    lj_hbond_dis,
-    lj_hbond_OH_donor_dis,
-    lj_hbond_hdis,
-):
-    if (is_donor_i and not is_hydroxyl_i and is_acceptor_j) or (
-        is_donor_j and not is_hydroxyl_j and is_acceptor_i
-    ):
-        return lj_hbond_dis
-    elif (is_donor_i and is_hydroxyl_i and is_acceptor_j) or (
-        is_donor_j and is_hydroxyl_j and is_acceptor_i
-    ):
-        return lj_hbond_OH_donor_dis
-    elif (is_polarh_i and is_acceptor_j) or (is_polarh_j and is_acceptor_i):
-        return lj_hbond_hdis
-    else:
-        return lj_radius_i + lj_radius_j
-
-
-@numba.jit
 def lj(
     dist,
     bonded_path_length,
@@ -125,7 +88,7 @@ def lj(
         return 0.0
 
 
-@numba.jit
+@jit
 def d_lj_d_dist(
     dist,
     bonded_path_length,
@@ -185,33 +148,7 @@ def d_lj_d_dist(
         return 0.0
 
 
-@numba.jit
-def dist(x, y):
-    delt0 = x[0] - y[0]
-    delt1 = x[1] - y[1]
-    delt2 = x[2] - y[2]
-
-    d = math.sqrt(delt0 * delt0 + delt1 * delt1 + delt2 * delt2)
-
-    return d
-
-
-@numba.jit
-def dist_and_d_dist(x, y):
-    delt0 = x[0] - y[0]
-    delt1 = x[1] - y[1]
-    delt2 = x[2] - y[2]
-
-    d = math.sqrt(delt0 * delt0 + delt1 * delt1 + delt2 * delt2)
-    d_dist_d_xy = (
-        (delt0 / d, delt1 / d, delt2 / d),
-        (-delt0 / d, -delt1 / d, -delt2 / d),
-    )
-
-    return d, d_dist_d_xy
-
-
-@numba.jit
+@jit
 def lj_intra(
     coords,
     atom_types,
@@ -229,8 +166,8 @@ def lj_intra(
     nc = coords.shape[0]
     nout = int((nc * (nc - 1)) / 2)
 
-    oinds = numpy.empty((nout, 2), dtype="i8")
-    oval = numpy.empty((nout,), dtype="f4")
+    oinds = numpy.empty((nout, 2), dtype=numpy.int64)
+    oval = numpy.empty((nout,), dtype=numpy.float32)
 
     v = 0
     for i in range(coords.shape[0]):
@@ -239,7 +176,7 @@ def lj_intra(
             ti = atom_types[i]
             tj = atom_types[j]
 
-            lj_ij = lj(
+            val_ij = lj(
                 dist(coords[i], coords[j]),
                 bonded_path_lengths[i, j],
                 lj_radius[ti],
@@ -259,22 +196,22 @@ def lj_intra(
                 lj_hbond_hdis,
             )
 
-            if lj_ij == 0.0:
+            if val_ij == 0.0:
                 continue
 
             oinds[v, 0] = i
             oinds[v, 1] = j
-            oval[v] = lj_ij
+            oval[v] = val_ij
 
             v += 1
 
     return oinds[:v], oval[:v]
 
 
-@numba.jit
+@jit
 def lj_intra_backward(
     inds,
-    d_lj,
+    d_val,
     coords,
     atom_types,
     bonded_path_lengths,
@@ -288,7 +225,7 @@ def lj_intra_backward(
     lj_hbond_OH_donor_dis,
     lj_hbond_hdis,
 ):
-    oval = numpy.zeros_like(coords)
+    oval = numpy.zeros(coords.shape, coords.dtype)
 
     for v in range(inds.shape[0]):
         i = inds[v, 0]
@@ -299,7 +236,7 @@ def lj_intra_backward(
         ti = atom_types[i]
         tj = atom_types[j]
 
-        d_lj_d_d = d_lj_d_dist(
+        d_val_d_d = d_lj_d_dist(
             d,
             bonded_path_lengths[i, j],
             lj_radius[ti],
@@ -319,18 +256,18 @@ def lj_intra_backward(
             lj_hbond_hdis,
         )
 
-        oval[i, 0] += d_d_d_i[0] * d_lj_d_d * d_lj[v]
-        oval[i, 1] += d_d_d_i[1] * d_lj_d_d * d_lj[v]
-        oval[i, 2] += d_d_d_i[2] * d_lj_d_d * d_lj[v]
+        oval[i, 0] += d_d_d_i[0] * d_val_d_d * d_val[v]
+        oval[i, 1] += d_d_d_i[1] * d_val_d_d * d_val[v]
+        oval[i, 2] += d_d_d_i[2] * d_val_d_d * d_val[v]
 
-        oval[j, 0] += d_d_d_j[0] * d_lj_d_d * d_lj[v]
-        oval[j, 1] += d_d_d_j[1] * d_lj_d_d * d_lj[v]
-        oval[j, 2] += d_d_d_j[2] * d_lj_d_d * d_lj[v]
+        oval[j, 0] += d_d_d_j[0] * d_val_d_d * d_val[v]
+        oval[j, 1] += d_d_d_j[1] * d_val_d_d * d_val[v]
+        oval[j, 2] += d_d_d_j[2] * d_val_d_d * d_val[v]
 
     return oval
 
 
-@numba.jit
+@jit
 def lj_inter(
     coords_a,
     atom_types_a,
@@ -349,8 +286,8 @@ def lj_inter(
 ):
     nout = coords_a.shape[0] * coords_b.shape[0]
 
-    oinds = numpy.empty((nout, 2), dtype="i8")
-    oval = numpy.empty((nout,), dtype="f4")
+    oinds = numpy.empty((nout, 2), dtype=numpy.int64)
+    oval = numpy.empty((nout,), dtype=coords_a.dtype)
 
     v = 0
     for i in range(coords_a.shape[0]):
@@ -359,7 +296,7 @@ def lj_inter(
             ti = atom_types_a[i]
             tj = atom_types_b[j]
 
-            lj_ij = lj(
+            val_ij = lj(
                 dist(coords_a[i], coords_b[j]),
                 bonded_path_lengths[i, j],
                 lj_radius[ti],
@@ -379,22 +316,22 @@ def lj_inter(
                 lj_hbond_hdis,
             )
 
-            if lj_ij == 0.0:
+            if val_ij == 0.0:
                 continue
 
             oinds[v, 0] = i
             oinds[v, 1] = j
-            oval[v] = lj_ij
+            oval[v] = val_ij
 
             v += 1
 
     return oinds[:v], oval[:v]
 
 
-@numba.jit
+@jit
 def lj_inter_backward(
     inds,
-    d_lj,
+    d_val,
     coords_a,
     atom_types_a,
     coords_b,
@@ -410,8 +347,8 @@ def lj_inter_backward(
     lj_hbond_OH_donor_dis,
     lj_hbond_hdis,
 ):
-    oval_a = numpy.zeros_like(coords_a)
-    oval_b = numpy.zeros_like(coords_b)
+    oval_a = numpy.zeros(coords_a.shape, coords_a.dtype)
+    oval_b = numpy.zeros(coords_b.shape, coords_b.dtype)
 
     for v in range(inds.shape[0]):
         i = inds[v, 0]
@@ -422,7 +359,7 @@ def lj_inter_backward(
         ti = atom_types_a[i]
         tj = atom_types_b[j]
 
-        d_lj_d_d = d_lj_d_dist(
+        d_val_d_d = d_lj_d_dist(
             d,
             bonded_path_lengths[i, j],
             lj_radius[ti],
@@ -442,12 +379,12 @@ def lj_inter_backward(
             lj_hbond_hdis,
         )
 
-        oval_a[i, 0] += d_d_d_i[0] * d_lj_d_d * d_lj[v]
-        oval_a[i, 1] += d_d_d_i[1] * d_lj_d_d * d_lj[v]
-        oval_a[i, 2] += d_d_d_i[2] * d_lj_d_d * d_lj[v]
+        oval_a[i, 0] += d_d_d_i[0] * d_val_d_d * d_val[v]
+        oval_a[i, 1] += d_d_d_i[1] * d_val_d_d * d_val[v]
+        oval_a[i, 2] += d_d_d_i[2] * d_val_d_d * d_val[v]
 
-        oval_b[j, 0] += d_d_d_j[0] * d_lj_d_d * d_lj[v]
-        oval_b[j, 1] += d_d_d_j[1] * d_lj_d_d * d_lj[v]
-        oval_b[j, 2] += d_d_d_j[2] * d_lj_d_d * d_lj[v]
+        oval_b[j, 0] += d_d_d_j[0] * d_val_d_d * d_val[v]
+        oval_b[j, 1] += d_d_d_j[1] * d_val_d_d * d_val[v]
+        oval_b[j, 2] += d_d_d_j[2] * d_val_d_d * d_val[v]
 
     return oval_a, oval_b
