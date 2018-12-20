@@ -1,3 +1,6 @@
+import toolz
+import attr
+
 import pytest
 from pytest import approx
 
@@ -6,50 +9,66 @@ import scipy.optimize
 
 import tmol.score.ljlk.numba.lk_isotropic
 from tmol.score.ljlk.numba.lk_isotropic import f_desolv
+from tmol.score.ljlk.numba.common import lj_sigma
 from tmol.score.ljlk.numba.vectorized import lk_isotropic, d_lk_isotropic_d_dist
+from tmol.utility.args import ignore_unused_kwargs
 
 import tmol.database
 
+# TODO add lj_sigma spot check
+parametrize_atom_pairs = pytest.mark.parametrize(
+    "iname,jname", [("CNH2", "COO"), ("Ntrp", "OOC")]  # standard, donor/acceptor
+)
+
+
+def combine_params(params_i, params_j, global_params):
+    return toolz.merge(
+        toolz.keymap(lambda k: f"{k}_i", attr.asdict(params_i)),
+        toolz.keymap(lambda k: f"{k}_j", attr.asdict(params_j)),
+        attr.asdict(global_params),
+    )
+
 
 @pytest.mark.parametrize("bonded_path_length", [2, 4, 5])
-def test_lk_isotropic_gradcheck(bonded_path_length):
+@parametrize_atom_pairs
+def test_lk_isotropic_gradcheck(iname, jname, bonded_path_length):
     params = tmol.database.ParameterDatabase.get_default().scoring.ljlk
 
-    i = params.atom_type_parameters[0]
-    j = params.atom_type_parameters[2]
+    i = {p.name: p for p in params.atom_type_parameters}[iname]
+    j = {p.name: p for p in params.atom_type_parameters}[jname]
+    g = params.global_parameters
 
     ds = numpy.linspace(0, 10, 1000)
 
+    # Bind parameter values via function for checkgrad.
+    def eval_f(d):
+        return ignore_unused_kwargs(lk_isotropic)(
+            d, bonded_path_length, **combine_params(i, j, g)
+        )
+
+    def eval_f_d_d(d):
+        return ignore_unused_kwargs(d_lk_isotropic_d_dist)(
+            d, bonded_path_length, **combine_params(i, j, g)
+        )
+
     grad_errors = numpy.array(
-        [
-            scipy.optimize.check_grad(
-                lk_isotropic,
-                d_lk_isotropic_d_dist,
-                numpy.array([d]),
-                bonded_path_length,
-                i.lj_radius,
-                i.lk_dgfree,
-                i.lk_lambda,
-                i.lj_radius,
-                j.lj_radius,
-                j.lk_dgfree,
-                j.lk_lambda,
-                j.lj_radius,
-            )
-            for d in ds
-        ]
+        [scipy.optimize.check_grad(eval_f, eval_f_d_d, numpy.array([d])) for d in ds]
     )
 
     numpy.testing.assert_allclose(grad_errors, 0, atol=1e-7)
 
 
-def test_lk_isotropic_spotcheck():
+@parametrize_atom_pairs
+def test_lk_isotropic_spotcheck(iname, jname):
     params = tmol.database.ParameterDatabase.get_default().scoring.ljlk
 
-    i = params.atom_type_parameters[0]
-    j = params.atom_type_parameters[2]
+    i = {p.name: p for p in params.atom_type_parameters}[iname]
+    j = {p.name: p for p in params.atom_type_parameters}[jname]
+    g = params.global_parameters
 
-    sigma = i.lj_radius + j.lj_radius
+    sigma = ignore_unused_kwargs(lj_sigma)(**combine_params(i, j, g))
+
+    d_min = sigma * .89
 
     def eval_f_desolv(d):
         return f_desolv(
@@ -57,27 +76,25 @@ def test_lk_isotropic_spotcheck():
         ) + f_desolv(d, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume)
 
     def eval_lk_isotropic(d, bonded_path_length=5):
-        return lk_isotropic(
-            d,
-            bonded_path_length,
-            i.lj_radius,
-            i.lk_dgfree,
-            i.lk_lambda,
-            i.lk_volume,
-            j.lj_radius,
-            j.lk_dgfree,
-            j.lk_lambda,
-            j.lk_volume,
+        return ignore_unused_kwargs(lk_isotropic)(
+            d, bonded_path_length, **combine_params(i, j, g)
         )
 
     # Constant region
-    assert eval_lk_isotropic(numpy.linspace(0, sigma - 0.2, 100)) == approx(
-        eval_f_desolv(sigma)
+    assert eval_lk_isotropic(numpy.linspace(0, d_min - 0.25, 100)) == approx(
+        eval_f_desolv(d_min)
     )
 
-    # Interpolate to f(sigma)
-    assert (eval_lk_isotropic(sigma) < eval_f_desolv(sigma)) and (
-        eval_lk_isotropic(sigma) > eval_f_desolv(sigma + 0.3)
+    def is_between(a_b, x):
+        a, b = a_b
+        if a < b:
+            return a <= x and x <= b
+        else:
+            return b <= x and x <= a
+
+    # Interpolate to f(d_min)
+    assert is_between(
+        (eval_f_desolv(d_min), eval_f_desolv(d_min + 0.25)), eval_lk_isotropic(d_min)
     )
 
     # Interpolate to 0

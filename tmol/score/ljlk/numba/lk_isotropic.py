@@ -2,13 +2,16 @@
 
 import toolz
 
+import numpy
 import numba
 from numpy import exp, pi
 
 
 import tmol.numeric.interpolation.cubic_hermite_polynomial as cubic_hermite_polynomial
 
-jit = toolz.curry(numba.jit)(nopython=True)
+from .common import connectivity_weight, dist, dist_and_d_dist, lj_sigma
+
+jit = toolz.curry(numba.jit)(nopython=True, nogil=True)
 
 interpolate = jit(cubic_hermite_polynomial.interpolate)
 interpolate_dx = jit(cubic_hermite_polynomial.interpolate_dx)
@@ -17,19 +20,9 @@ interpolate_to_zero_dx = jit(cubic_hermite_polynomial.interpolate_to_zero_dx)
 
 
 @jit
-def connectivity_weight(bonded_path_length):
-    if bonded_path_length > 4:
-        return 1.0
-    elif bonded_path_length == 4:
-        return 0.2
-    else:
-        return 0.0
-
-
-@jit
 def f_desolv(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
     return (
-        lk_volume_j
+        -lk_volume_j
         * lk_dgfree_i
         / (2 * pi ** (3 / 2) * lk_lambda_i)
         * dist ** -2
@@ -40,7 +33,7 @@ def f_desolv(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
 @jit
 def f_desolv_d_dist(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
     return (
-        lk_volume_j
+        -lk_volume_j
         * lk_dgfree_i
         / (2 * pi ** (3 / 2) * lk_lambda_i)
         * (  # (f * exp(g))' = f' * exp(g) + f g' exp(g)
@@ -57,16 +50,17 @@ def f_desolv_d_dist(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j):
 def lk_isotropic_pair(
     dist,
     bonded_path_length,
+    lj_sigma_ij,
     lj_radius_i,
     lk_dgfree_i,
     lk_lambda_i,
     lj_radius_j,
     lk_volume_j,
 ):
-    sigma_ij = lj_radius_i + lj_radius_j
+    d_min = lj_sigma_ij * .89
 
-    lk_cpoly_close_dmin = sigma_ij - 0.2
-    lk_cpoly_close_dmax = sigma_ij + 0.3
+    lk_cpoly_close_dmin = d_min - 0.25
+    lk_cpoly_close_dmax = d_min + 0.25
 
     lk_cpoly_far_dmin = 4.5
     lk_cpoly_far_dmax = 6.0
@@ -75,13 +69,13 @@ def lk_isotropic_pair(
 
     if dist < lk_cpoly_close_dmin:
         return weight * f_desolv(
-            sigma_ij, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j
+            d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j
         )
     elif dist < lk_cpoly_close_dmax:
         return weight * interpolate(
             dist,
             lk_cpoly_close_dmin,
-            f_desolv(sigma_ij, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
+            f_desolv(d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
             0,
             lk_cpoly_close_dmax,
             f_desolv(
@@ -115,16 +109,17 @@ def lk_isotropic_pair(
 def d_lk_isotropic_pair_d_dist(
     dist,
     bonded_path_length,
+    lj_sigma_ij,
     lj_radius_i,
     lk_dgfree_i,
     lk_lambda_i,
     lj_radius_j,
     lk_volume_j,
 ):
-    sigma_ij = lj_radius_i + lj_radius_j
+    d_min = lj_sigma_ij * .89
 
-    lk_cpoly_close_dmin = sigma_ij - 0.2
-    lk_cpoly_close_dmax = sigma_ij + 0.3
+    lk_cpoly_close_dmin = d_min - 0.25
+    lk_cpoly_close_dmax = d_min + 0.25
 
     lk_cpoly_far_dmin = 4.5
     lk_cpoly_far_dmax = 6.0
@@ -137,7 +132,7 @@ def d_lk_isotropic_pair_d_dist(
         return weight * interpolate_dx(
             dist,
             lk_cpoly_close_dmin,
-            f_desolv(sigma_ij, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
+            f_desolv(d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
             0,
             lk_cpoly_close_dmax,
             f_desolv(
@@ -167,7 +162,7 @@ def d_lk_isotropic_pair_d_dist(
         return 0.0
 
 
-@numba.jit
+@jit
 def lk_isotropic(
     dist,
     bonded_path_length,
@@ -175,14 +170,42 @@ def lk_isotropic(
     lk_dgfree_i,
     lk_lambda_i,
     lk_volume_i,
+    is_donor_i,
+    is_hydroxyl_i,
+    is_polarh_i,
+    is_acceptor_i,
     lj_radius_j,
     lk_dgfree_j,
     lk_lambda_j,
     lk_volume_j,
+    is_donor_j,
+    is_hydroxyl_j,
+    is_polarh_j,
+    is_acceptor_j,
+    lj_hbond_dis,
+    lj_hbond_OH_donor_dis,
+    lj_hbond_hdis,
 ):
+    lj_sigma_ij = lj_sigma(
+        lj_radius_i,
+        is_donor_i,
+        is_hydroxyl_i,
+        is_polarh_i,
+        is_acceptor_i,
+        lj_radius_j,
+        is_donor_j,
+        is_hydroxyl_j,
+        is_polarh_j,
+        is_acceptor_j,
+        lj_hbond_dis,
+        lj_hbond_OH_donor_dis,
+        lj_hbond_hdis,
+    )
+
     return lk_isotropic_pair(
         dist,
         bonded_path_length,
+        lj_sigma_ij,
         lj_radius_i,
         lk_dgfree_i,
         lk_lambda_i,
@@ -191,6 +214,7 @@ def lk_isotropic(
     ) + lk_isotropic_pair(
         dist,
         bonded_path_length,
+        lj_sigma_ij,
         lj_radius_j,
         lk_dgfree_j,
         lk_lambda_j,
@@ -199,7 +223,7 @@ def lk_isotropic(
     )
 
 
-@numba.jit
+@jit
 def d_lk_isotropic_d_dist(
     dist,
     bonded_path_length,
@@ -207,14 +231,42 @@ def d_lk_isotropic_d_dist(
     lk_dgfree_i,
     lk_lambda_i,
     lk_volume_i,
+    is_donor_i,
+    is_hydroxyl_i,
+    is_polarh_i,
+    is_acceptor_i,
     lj_radius_j,
     lk_dgfree_j,
     lk_lambda_j,
     lk_volume_j,
+    is_donor_j,
+    is_hydroxyl_j,
+    is_polarh_j,
+    is_acceptor_j,
+    lj_hbond_dis,
+    lj_hbond_OH_donor_dis,
+    lj_hbond_hdis,
 ):
+    lj_sigma_ij = lj_sigma(
+        lj_radius_i,
+        is_donor_i,
+        is_hydroxyl_i,
+        is_polarh_i,
+        is_acceptor_i,
+        lj_radius_j,
+        is_donor_j,
+        is_hydroxyl_j,
+        is_polarh_j,
+        is_acceptor_j,
+        lj_hbond_dis,
+        lj_hbond_OH_donor_dis,
+        lj_hbond_hdis,
+    )
+
     return d_lk_isotropic_pair_d_dist(
         dist,
         bonded_path_length,
+        lj_sigma_ij,
         lj_radius_i,
         lk_dgfree_i,
         lk_lambda_i,
@@ -223,6 +275,7 @@ def d_lk_isotropic_d_dist(
     ) + d_lk_isotropic_pair_d_dist(
         dist,
         bonded_path_length,
+        lj_sigma_ij,
         lj_radius_j,
         lk_dgfree_j,
         lk_lambda_j,
