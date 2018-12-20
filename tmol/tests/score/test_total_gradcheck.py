@@ -9,6 +9,7 @@ from tmol.score.coordinates import (
 )
 
 from tmol.utility.reactive import reactive_attrs
+from tmol.tests.autograd import gradcheck
 
 
 @reactive_attrs
@@ -32,9 +33,7 @@ def test_torsion_space_gradcheck(ubq_res):
         torsion_space.dofs = dofs
         return torsion_space.intra_score().total
 
-    assert torch.autograd.gradcheck(
-        total_score, (start_dofs,), eps=1e-2, rtol=2.5e-2, atol=1e-3
-    )
+    assert gradcheck(total_score, (start_dofs,), eps=1.5e-2, rtol=1e-2, atol=1e-6)
 
 
 def test_real_space_gradcheck(ubq_res):
@@ -48,6 +47,7 @@ def test_real_space_gradcheck(ubq_res):
         state_coords = real_space.coords.detach().clone()
         state_coords[coord_mask] = coords
 
+        real_space.coords = state_coords
         return real_space.intra_score().total
 
-    assert torch.autograd.gradcheck(total_score, (start_coords,))
+    assert gradcheck(total_score, (start_coords,), eps=1.5e-2, rtol=1e-2, atol=1e-6)
