@@ -8,3 +8,5 @@ pytest-faulthandler
 git+https://github.com/uw-ipd/pytest-benchmark@a14db84
 
 py3Dmol
+
+hypothesis

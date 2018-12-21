@@ -16,7 +16,8 @@ from . import (  # noqa: F401
 @reactive_attrs
 class TotalScoreGraph(
     hbond.HBondScoreGraph,
-    ljlk.LJLKScoreGraph,
+    ljlk.LJScoreGraph,
+    ljlk.LKScoreGraph,
     interatomic_distance.BlockedInteratomicDistanceGraph,
     bonded_atom.BondedAtomScoreGraph,
     device.TorchDevice,

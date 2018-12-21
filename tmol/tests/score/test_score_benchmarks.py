@@ -18,9 +18,8 @@ from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
-from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 
-from tmol.score.ljlk import LJLKScoreGraph
+from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 
 
@@ -56,12 +55,12 @@ class HBondScore(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice
 
 
 @reactive_attrs
-class LJLKScore(
-    CartesianAtomicCoordinateProvider,
-    BlockedInteratomicDistanceGraph,
-    LJLKScoreGraph,
-    TorchDevice,
-):
+class LJScore(CartesianAtomicCoordinateProvider, LJScoreGraph, TorchDevice):
+    pass
+
+
+@reactive_attrs
+class LKScore(CartesianAtomicCoordinateProvider, LKScoreGraph, TorchDevice):
     pass
 
 
@@ -107,19 +106,31 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     return run
 
 
+# TODO: Reenable, LJScoreGraph does not support cuda
+_non_cuda_components = (LJScoreGraph, LKScoreGraph)
+
+
 @pytest.mark.parametrize(
     "graph_class",
-    [TotalScore, DofSpaceTotal, HBondScore, LJLKScore, DofSpaceDummy],
-    ids=["total_cart", "total_torsion", "hbond", "ljlk", "kinematics"],
+    [TotalScore, DofSpaceTotal, HBondScore, LJScore, LKScore, DofSpaceDummy],
+    ids=["total_cart", "total_torsion", "hbond", "lj", "lk", "kinematics"],
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 @pytest.mark.benchmark(group="score_components")
 def test_end_to_end_score_graph(
     benchmark, benchmark_pass, graph_class, ubq_system, torch_device
 ):
-    score_graph = graph_class.build_for(
-        ubq_system, requires_grad=True, device=torch_device
-    )
+    try:
+        score_graph = graph_class.build_for(
+            ubq_system, requires_grad=True, device=torch_device
+        )
+    except AssertionError:
+        if (
+            issubclass(graph_class, _non_cuda_components)
+            and torch_device.type == "cuda"
+        ):
+            pytest.xfail()
+        raise
 
     run = benchmark_score_pass(benchmark, score_graph, benchmark_pass)
 
