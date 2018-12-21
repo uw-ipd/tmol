@@ -1,0 +1,779 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.score.ljlk.numba.lk_isotropic &mdash; TMol 0.0.0-108-gcbcfc33 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/score/ljlk/numba/lk_isotropic.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+
+  
+  <script src="../../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-108-gcbcfc33
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../../score.html">tmol.score</a> &raquo;</li>
+        
+      <li>tmol.score.ljlk.numba.lk_isotropic</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.score.ljlk.numba.lk_isotropic</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Baseline implicit desolvation implementation.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">toolz</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">numba</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="k">import</span> <span class="n">exp</span><span class="p">,</span> <span class="n">pi</span>
+
+
+<span class="kn">import</span> <span class="nn">tmol.numeric.interpolation.cubic_hermite_polynomial</span> <span class="k">as</span> <span class="nn">cubic_hermite_polynomial</span>
+
+<span class="kn">from</span> <span class="nn">.common</span> <span class="k">import</span> <span class="n">connectivity_weight</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">dist_and_d_dist</span><span class="p">,</span> <span class="n">lj_sigma</span>
+
+<span class="n">jit</span> <span class="o">=</span> <span class="n">toolz</span><span class="o">.</span><span class="n">curry</span><span class="p">(</span><span class="n">numba</span><span class="o">.</span><span class="n">jit</span><span class="p">)(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nogil</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">interpolate</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">cubic_hermite_polynomial</span><span class="o">.</span><span class="n">interpolate</span><span class="p">)</span>
+<span class="n">interpolate_dx</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">cubic_hermite_polynomial</span><span class="o">.</span><span class="n">interpolate_dx</span><span class="p">)</span>
+<span class="n">interpolate_to_zero</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">cubic_hermite_polynomial</span><span class="o">.</span><span class="n">interpolate_to_zero</span><span class="p">)</span>
+<span class="n">interpolate_to_zero_dx</span> <span class="o">=</span> <span class="n">jit</span><span class="p">(</span><span class="n">cubic_hermite_polynomial</span><span class="o">.</span><span class="n">interpolate_to_zero_dx</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="f_desolv"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.f_desolv">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">f_desolv</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="o">-</span><span class="n">lk_volume_j</span>
+        <span class="o">*</span> <span class="n">lk_dgfree_i</span>
+        <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">**</span> <span class="p">(</span><span class="mi">3</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">lk_lambda_i</span><span class="p">)</span>
+        <span class="o">*</span> <span class="n">dist</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span>
+        <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">dist</span> <span class="o">-</span> <span class="n">lj_radius_i</span><span class="p">)</span> <span class="o">/</span> <span class="n">lk_lambda_i</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="f_desolv_d_dist"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.f_desolv_d_dist">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">f_desolv_d_dist</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="o">-</span><span class="n">lk_volume_j</span>
+        <span class="o">*</span> <span class="n">lk_dgfree_i</span>
+        <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">**</span> <span class="p">(</span><span class="mi">3</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">lk_lambda_i</span><span class="p">)</span>
+        <span class="o">*</span> <span class="p">(</span>  <span class="c1"># (f * exp(g))&#39; = f&#39; * exp(g) + f g&#39; exp(g)</span>
+            <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">dist</span> <span class="o">**</span> <span class="o">-</span><span class="mi">3</span> <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">dist</span> <span class="o">-</span> <span class="n">lj_radius_i</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">lk_lambda_i</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="o">+</span> <span class="n">dist</span> <span class="o">**</span> <span class="o">-</span><span class="mi">2</span>
+            <span class="o">*</span> <span class="o">-</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">dist</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">lj_radius_i</span><span class="p">)</span>
+            <span class="o">/</span> <span class="n">lk_lambda_i</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="o">*</span> <span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">dist</span> <span class="o">-</span> <span class="n">lj_radius_i</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">lk_lambda_i</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="lk_isotropic_pair"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.lk_isotropic_pair">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">lk_isotropic_pair</span><span class="p">(</span>
+    <span class="n">dist</span><span class="p">,</span>
+    <span class="n">bonded_path_length</span><span class="p">,</span>
+    <span class="n">lj_sigma_ij</span><span class="p">,</span>
+    <span class="n">lj_radius_i</span><span class="p">,</span>
+    <span class="n">lk_dgfree_i</span><span class="p">,</span>
+    <span class="n">lk_lambda_i</span><span class="p">,</span>
+    <span class="n">lj_radius_j</span><span class="p">,</span>
+    <span class="n">lk_volume_j</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">d_min</span> <span class="o">=</span> <span class="n">lj_sigma_ij</span> <span class="o">*</span> <span class="o">.</span><span class="mi">89</span>
+
+    <span class="n">lk_cpoly_close_dmin</span> <span class="o">=</span> <span class="n">d_min</span> <span class="o">-</span> <span class="mf">0.25</span>
+    <span class="n">lk_cpoly_close_dmax</span> <span class="o">=</span> <span class="n">d_min</span> <span class="o">+</span> <span class="mf">0.25</span>
+
+    <span class="n">lk_cpoly_far_dmin</span> <span class="o">=</span> <span class="mf">4.5</span>
+    <span class="n">lk_cpoly_far_dmax</span> <span class="o">=</span> <span class="mf">6.0</span>
+
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">connectivity_weight</span><span class="p">(</span><span class="n">bonded_path_length</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">lk_cpoly_close_dmin</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">f_desolv</span><span class="p">(</span>
+            <span class="n">d_min</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">lk_cpoly_close_dmax</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">interpolate</span><span class="p">(</span>
+            <span class="n">dist</span><span class="p">,</span>
+            <span class="n">lk_cpoly_close_dmin</span><span class="p">,</span>
+            <span class="n">f_desolv</span><span class="p">(</span><span class="n">d_min</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span><span class="p">),</span>
+            <span class="mi">0</span><span class="p">,</span>
+            <span class="n">lk_cpoly_close_dmax</span><span class="p">,</span>
+            <span class="n">f_desolv</span><span class="p">(</span>
+                <span class="n">lk_cpoly_close_dmax</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+            <span class="p">),</span>
+            <span class="n">f_desolv_d_dist</span><span class="p">(</span>
+                <span class="n">lk_cpoly_close_dmax</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">lk_cpoly_far_dmin</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">f_desolv</span><span class="p">(</span>
+            <span class="n">dist</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">lk_cpoly_far_dmax</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">interpolate_to_zero</span><span class="p">(</span>
+            <span class="n">dist</span><span class="p">,</span>
+            <span class="n">lk_cpoly_far_dmin</span><span class="p">,</span>
+            <span class="n">f_desolv</span><span class="p">(</span>
+                <span class="n">lk_cpoly_far_dmin</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+            <span class="p">),</span>
+            <span class="n">f_desolv_d_dist</span><span class="p">(</span>
+                <span class="n">lk_cpoly_far_dmin</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+            <span class="p">),</span>
+            <span class="n">lk_cpoly_far_dmax</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.0</span></div>
+
+
+<div class="viewcode-block" id="d_lk_isotropic_pair_d_dist"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.d_lk_isotropic_pair_d_dist">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">d_lk_isotropic_pair_d_dist</span><span class="p">(</span>
+    <span class="n">dist</span><span class="p">,</span>
+    <span class="n">bonded_path_length</span><span class="p">,</span>
+    <span class="n">lj_sigma_ij</span><span class="p">,</span>
+    <span class="n">lj_radius_i</span><span class="p">,</span>
+    <span class="n">lk_dgfree_i</span><span class="p">,</span>
+    <span class="n">lk_lambda_i</span><span class="p">,</span>
+    <span class="n">lj_radius_j</span><span class="p">,</span>
+    <span class="n">lk_volume_j</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">d_min</span> <span class="o">=</span> <span class="n">lj_sigma_ij</span> <span class="o">*</span> <span class="o">.</span><span class="mi">89</span>
+
+    <span class="n">lk_cpoly_close_dmin</span> <span class="o">=</span> <span class="n">d_min</span> <span class="o">-</span> <span class="mf">0.25</span>
+    <span class="n">lk_cpoly_close_dmax</span> <span class="o">=</span> <span class="n">d_min</span> <span class="o">+</span> <span class="mf">0.25</span>
+
+    <span class="n">lk_cpoly_far_dmin</span> <span class="o">=</span> <span class="mf">4.5</span>
+    <span class="n">lk_cpoly_far_dmax</span> <span class="o">=</span> <span class="mf">6.0</span>
+
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">connectivity_weight</span><span class="p">(</span><span class="n">bonded_path_length</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">lk_cpoly_close_dmin</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">elif</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">lk_cpoly_close_dmax</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">interpolate_dx</span><span class="p">(</span>
+            <span class="n">dist</span><span class="p">,</span>
+            <span class="n">lk_cpoly_close_dmin</span><span class="p">,</span>
+            <span class="n">f_desolv</span><span class="p">(</span><span class="n">d_min</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span><span class="p">),</span>
+            <span class="mi">0</span><span class="p">,</span>
+            <span class="n">lk_cpoly_close_dmax</span><span class="p">,</span>
+            <span class="n">f_desolv</span><span class="p">(</span>
+                <span class="n">lk_cpoly_close_dmax</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+            <span class="p">),</span>
+            <span class="n">f_desolv_d_dist</span><span class="p">(</span>
+                <span class="n">lk_cpoly_close_dmax</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">lk_cpoly_far_dmin</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">f_desolv_d_dist</span><span class="p">(</span>
+            <span class="n">dist</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">dist</span> <span class="o">&lt;</span> <span class="n">lk_cpoly_far_dmax</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">interpolate_to_zero_dx</span><span class="p">(</span>
+            <span class="n">dist</span><span class="p">,</span>
+            <span class="n">lk_cpoly_far_dmin</span><span class="p">,</span>
+            <span class="n">f_desolv</span><span class="p">(</span>
+                <span class="n">lk_cpoly_far_dmin</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+            <span class="p">),</span>
+            <span class="n">f_desolv_d_dist</span><span class="p">(</span>
+                <span class="n">lk_cpoly_far_dmin</span><span class="p">,</span> <span class="n">lj_radius_i</span><span class="p">,</span> <span class="n">lk_dgfree_i</span><span class="p">,</span> <span class="n">lk_lambda_i</span><span class="p">,</span> <span class="n">lk_volume_j</span>
+            <span class="p">),</span>
+            <span class="n">lk_cpoly_far_dmax</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.0</span></div>
+
+
+<div class="viewcode-block" id="lk_isotropic"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.lk_isotropic">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">lk_isotropic</span><span class="p">(</span>
+    <span class="n">dist</span><span class="p">,</span>
+    <span class="n">bonded_path_length</span><span class="p">,</span>
+    <span class="n">lj_radius_i</span><span class="p">,</span>
+    <span class="n">lk_dgfree_i</span><span class="p">,</span>
+    <span class="n">lk_lambda_i</span><span class="p">,</span>
+    <span class="n">lk_volume_i</span><span class="p">,</span>
+    <span class="n">is_donor_i</span><span class="p">,</span>
+    <span class="n">is_hydroxyl_i</span><span class="p">,</span>
+    <span class="n">is_polarh_i</span><span class="p">,</span>
+    <span class="n">is_acceptor_i</span><span class="p">,</span>
+    <span class="n">lj_radius_j</span><span class="p">,</span>
+    <span class="n">lk_dgfree_j</span><span class="p">,</span>
+    <span class="n">lk_lambda_j</span><span class="p">,</span>
+    <span class="n">lk_volume_j</span><span class="p">,</span>
+    <span class="n">is_donor_j</span><span class="p">,</span>
+    <span class="n">is_hydroxyl_j</span><span class="p">,</span>
+    <span class="n">is_polarh_j</span><span class="p">,</span>
+    <span class="n">is_acceptor_j</span><span class="p">,</span>
+    <span class="n">lj_hbond_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">lj_sigma_ij</span> <span class="o">=</span> <span class="n">lj_sigma</span><span class="p">(</span>
+        <span class="n">lj_radius_i</span><span class="p">,</span>
+        <span class="n">is_donor_i</span><span class="p">,</span>
+        <span class="n">is_hydroxyl_i</span><span class="p">,</span>
+        <span class="n">is_polarh_i</span><span class="p">,</span>
+        <span class="n">is_acceptor_i</span><span class="p">,</span>
+        <span class="n">lj_radius_j</span><span class="p">,</span>
+        <span class="n">is_donor_j</span><span class="p">,</span>
+        <span class="n">is_hydroxyl_j</span><span class="p">,</span>
+        <span class="n">is_polarh_j</span><span class="p">,</span>
+        <span class="n">is_acceptor_j</span><span class="p">,</span>
+        <span class="n">lj_hbond_dis</span><span class="p">,</span>
+        <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+        <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">lk_isotropic_pair</span><span class="p">(</span>
+        <span class="n">dist</span><span class="p">,</span>
+        <span class="n">bonded_path_length</span><span class="p">,</span>
+        <span class="n">lj_sigma_ij</span><span class="p">,</span>
+        <span class="n">lj_radius_i</span><span class="p">,</span>
+        <span class="n">lk_dgfree_i</span><span class="p">,</span>
+        <span class="n">lk_lambda_i</span><span class="p">,</span>
+        <span class="n">lj_radius_j</span><span class="p">,</span>
+        <span class="n">lk_volume_j</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">+</span> <span class="n">lk_isotropic_pair</span><span class="p">(</span>
+        <span class="n">dist</span><span class="p">,</span>
+        <span class="n">bonded_path_length</span><span class="p">,</span>
+        <span class="n">lj_sigma_ij</span><span class="p">,</span>
+        <span class="n">lj_radius_j</span><span class="p">,</span>
+        <span class="n">lk_dgfree_j</span><span class="p">,</span>
+        <span class="n">lk_lambda_j</span><span class="p">,</span>
+        <span class="n">lj_radius_i</span><span class="p">,</span>
+        <span class="n">lk_volume_i</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="d_lk_isotropic_d_dist"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.d_lk_isotropic_d_dist">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">d_lk_isotropic_d_dist</span><span class="p">(</span>
+    <span class="n">dist</span><span class="p">,</span>
+    <span class="n">bonded_path_length</span><span class="p">,</span>
+    <span class="n">lj_radius_i</span><span class="p">,</span>
+    <span class="n">lk_dgfree_i</span><span class="p">,</span>
+    <span class="n">lk_lambda_i</span><span class="p">,</span>
+    <span class="n">lk_volume_i</span><span class="p">,</span>
+    <span class="n">is_donor_i</span><span class="p">,</span>
+    <span class="n">is_hydroxyl_i</span><span class="p">,</span>
+    <span class="n">is_polarh_i</span><span class="p">,</span>
+    <span class="n">is_acceptor_i</span><span class="p">,</span>
+    <span class="n">lj_radius_j</span><span class="p">,</span>
+    <span class="n">lk_dgfree_j</span><span class="p">,</span>
+    <span class="n">lk_lambda_j</span><span class="p">,</span>
+    <span class="n">lk_volume_j</span><span class="p">,</span>
+    <span class="n">is_donor_j</span><span class="p">,</span>
+    <span class="n">is_hydroxyl_j</span><span class="p">,</span>
+    <span class="n">is_polarh_j</span><span class="p">,</span>
+    <span class="n">is_acceptor_j</span><span class="p">,</span>
+    <span class="n">lj_hbond_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">lj_sigma_ij</span> <span class="o">=</span> <span class="n">lj_sigma</span><span class="p">(</span>
+        <span class="n">lj_radius_i</span><span class="p">,</span>
+        <span class="n">is_donor_i</span><span class="p">,</span>
+        <span class="n">is_hydroxyl_i</span><span class="p">,</span>
+        <span class="n">is_polarh_i</span><span class="p">,</span>
+        <span class="n">is_acceptor_i</span><span class="p">,</span>
+        <span class="n">lj_radius_j</span><span class="p">,</span>
+        <span class="n">is_donor_j</span><span class="p">,</span>
+        <span class="n">is_hydroxyl_j</span><span class="p">,</span>
+        <span class="n">is_polarh_j</span><span class="p">,</span>
+        <span class="n">is_acceptor_j</span><span class="p">,</span>
+        <span class="n">lj_hbond_dis</span><span class="p">,</span>
+        <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+        <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">d_lk_isotropic_pair_d_dist</span><span class="p">(</span>
+        <span class="n">dist</span><span class="p">,</span>
+        <span class="n">bonded_path_length</span><span class="p">,</span>
+        <span class="n">lj_sigma_ij</span><span class="p">,</span>
+        <span class="n">lj_radius_i</span><span class="p">,</span>
+        <span class="n">lk_dgfree_i</span><span class="p">,</span>
+        <span class="n">lk_lambda_i</span><span class="p">,</span>
+        <span class="n">lj_radius_j</span><span class="p">,</span>
+        <span class="n">lk_volume_j</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">+</span> <span class="n">d_lk_isotropic_pair_d_dist</span><span class="p">(</span>
+        <span class="n">dist</span><span class="p">,</span>
+        <span class="n">bonded_path_length</span><span class="p">,</span>
+        <span class="n">lj_sigma_ij</span><span class="p">,</span>
+        <span class="n">lj_radius_j</span><span class="p">,</span>
+        <span class="n">lk_dgfree_j</span><span class="p">,</span>
+        <span class="n">lk_lambda_j</span><span class="p">,</span>
+        <span class="n">lj_radius_i</span><span class="p">,</span>
+        <span class="n">lk_volume_i</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="lk_isotropic_intra"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.lk_isotropic_intra">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">lk_isotropic_intra</span><span class="p">(</span>
+    <span class="n">coords</span><span class="p">,</span>
+    <span class="n">atom_types</span><span class="p">,</span>
+    <span class="n">bonded_path_lengths</span><span class="p">,</span>
+    <span class="n">lj_radius</span><span class="p">,</span>
+    <span class="n">lk_dgfree</span><span class="p">,</span>
+    <span class="n">lk_lambda</span><span class="p">,</span>
+    <span class="n">lk_volume</span><span class="p">,</span>
+    <span class="n">is_donor</span><span class="p">,</span>
+    <span class="n">is_hydroxyl</span><span class="p">,</span>
+    <span class="n">is_polarh</span><span class="p">,</span>
+    <span class="n">is_acceptor</span><span class="p">,</span>
+    <span class="n">lj_hbond_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">nc</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nout</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">nc</span> <span class="o">*</span> <span class="p">(</span><span class="n">nc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">oinds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nout</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">oval</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nout</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">v</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+
+            <span class="n">ti</span> <span class="o">=</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">tj</span> <span class="o">=</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+            <span class="n">val_ij</span> <span class="o">=</span> <span class="n">lk_isotropic</span><span class="p">(</span>
+                <span class="n">dist</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">j</span><span class="p">]),</span>
+                <span class="n">bonded_path_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span>
+                <span class="n">lj_radius</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">lk_dgfree</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">lk_lambda</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">lk_volume</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">is_donor</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">is_polarh</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">is_acceptor</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">lj_radius</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">lk_dgfree</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">lk_lambda</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">lk_volume</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">is_donor</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">is_polarh</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">is_acceptor</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">lj_hbond_dis</span><span class="p">,</span>
+                <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+                <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">val_ij</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">oinds</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="n">oinds</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
+            <span class="n">oval</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">val_ij</span>
+
+            <span class="n">v</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">oinds</span><span class="p">[:</span><span class="n">v</span><span class="p">],</span> <span class="n">oval</span><span class="p">[:</span><span class="n">v</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="lk_isotropic_intra_backward"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.lk_isotropic_intra_backward">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">lk_isotropic_intra_backward</span><span class="p">(</span>
+    <span class="n">inds</span><span class="p">,</span>
+    <span class="n">d_val</span><span class="p">,</span>
+    <span class="n">coords</span><span class="p">,</span>
+    <span class="n">atom_types</span><span class="p">,</span>
+    <span class="n">bonded_path_lengths</span><span class="p">,</span>
+    <span class="n">lj_radius</span><span class="p">,</span>
+    <span class="n">lk_dgfree</span><span class="p">,</span>
+    <span class="n">lk_lambda</span><span class="p">,</span>
+    <span class="n">lk_volume</span><span class="p">,</span>
+    <span class="n">is_donor</span><span class="p">,</span>
+    <span class="n">is_hydroxyl</span><span class="p">,</span>
+    <span class="n">is_polarh</span><span class="p">,</span>
+    <span class="n">is_acceptor</span><span class="p">,</span>
+    <span class="n">lj_hbond_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">oval</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="n">d_d_d_i</span><span class="p">,</span> <span class="n">d_d_d_j</span><span class="p">)</span> <span class="o">=</span> <span class="n">dist_and_d_dist</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+        <span class="n">ti</span> <span class="o">=</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">tj</span> <span class="o">=</span> <span class="n">atom_types</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+        <span class="n">d_val_d_d</span> <span class="o">=</span> <span class="n">d_lk_isotropic_d_dist</span><span class="p">(</span>
+            <span class="n">d</span><span class="p">,</span>
+            <span class="n">bonded_path_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span>
+            <span class="n">lj_radius</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">lk_dgfree</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">lk_lambda</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">lk_volume</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">is_donor</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">is_polarh</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">is_acceptor</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">lj_radius</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">lk_dgfree</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">lk_lambda</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">lk_volume</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">is_donor</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">is_polarh</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">is_acceptor</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">lj_hbond_dis</span><span class="p">,</span>
+            <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+            <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">oval</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">oval</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">oval</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_i</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+
+        <span class="n">oval</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_j</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">oval</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">oval</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_j</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">oval</span></div>
+
+
+<div class="viewcode-block" id="lk_isotropic_inter"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.lk_isotropic_inter">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">lk_isotropic_inter</span><span class="p">(</span>
+    <span class="n">coords_a</span><span class="p">,</span>
+    <span class="n">atom_types_a</span><span class="p">,</span>
+    <span class="n">coords_b</span><span class="p">,</span>
+    <span class="n">atom_types_b</span><span class="p">,</span>
+    <span class="n">bonded_path_lengths</span><span class="p">,</span>
+    <span class="n">lj_radius</span><span class="p">,</span>
+    <span class="n">lk_dgfree</span><span class="p">,</span>
+    <span class="n">lk_lambda</span><span class="p">,</span>
+    <span class="n">lk_volume</span><span class="p">,</span>
+    <span class="n">is_donor</span><span class="p">,</span>
+    <span class="n">is_hydroxyl</span><span class="p">,</span>
+    <span class="n">is_polarh</span><span class="p">,</span>
+    <span class="n">is_acceptor</span><span class="p">,</span>
+    <span class="n">lj_hbond_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">nout</span> <span class="o">=</span> <span class="n">coords_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">coords_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">oinds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nout</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="n">oval</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nout</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">coords_a</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">v</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">coords_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">coords_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+
+            <span class="n">ti</span> <span class="o">=</span> <span class="n">atom_types_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">tj</span> <span class="o">=</span> <span class="n">atom_types_b</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+            <span class="n">val_ij</span> <span class="o">=</span> <span class="n">lk_isotropic</span><span class="p">(</span>
+                <span class="n">dist</span><span class="p">(</span><span class="n">coords_a</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">coords_b</span><span class="p">[</span><span class="n">j</span><span class="p">]),</span>
+                <span class="n">bonded_path_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span>
+                <span class="n">lj_radius</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">lk_dgfree</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">lk_lambda</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">lk_volume</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">is_donor</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">is_polarh</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">is_acceptor</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+                <span class="n">lj_radius</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">lk_dgfree</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">lk_lambda</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">lk_volume</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">is_donor</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">is_polarh</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">is_acceptor</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+                <span class="n">lj_hbond_dis</span><span class="p">,</span>
+                <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+                <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">val_ij</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">oinds</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="n">oinds</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
+            <span class="n">oval</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">val_ij</span>
+
+            <span class="n">v</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">oinds</span><span class="p">[:</span><span class="n">v</span><span class="p">],</span> <span class="n">oval</span><span class="p">[:</span><span class="n">v</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="lk_isotropic_inter_backward"><a class="viewcode-back" href="../../../../../apidoc/tmol.score.ljlk.numba.lk_isotropic.html#tmol.score.ljlk.numba.lk_isotropic.lk_isotropic_inter_backward">[docs]</a><span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">lk_isotropic_inter_backward</span><span class="p">(</span>
+    <span class="n">inds</span><span class="p">,</span>
+    <span class="n">d_val</span><span class="p">,</span>
+    <span class="n">coords_a</span><span class="p">,</span>
+    <span class="n">atom_types_a</span><span class="p">,</span>
+    <span class="n">coords_b</span><span class="p">,</span>
+    <span class="n">atom_types_b</span><span class="p">,</span>
+    <span class="n">bonded_path_lengths</span><span class="p">,</span>
+    <span class="n">lj_radius</span><span class="p">,</span>
+    <span class="n">lk_dgfree</span><span class="p">,</span>
+    <span class="n">lk_lambda</span><span class="p">,</span>
+    <span class="n">lk_volume</span><span class="p">,</span>
+    <span class="n">is_donor</span><span class="p">,</span>
+    <span class="n">is_hydroxyl</span><span class="p">,</span>
+    <span class="n">is_polarh</span><span class="p">,</span>
+    <span class="n">is_acceptor</span><span class="p">,</span>
+    <span class="n">lj_hbond_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+    <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">oval_a</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">coords_a</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">coords_a</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">oval_b</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">coords_b</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">coords_b</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">inds</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">d</span><span class="p">,</span> <span class="p">(</span><span class="n">d_d_d_i</span><span class="p">,</span> <span class="n">d_d_d_j</span><span class="p">)</span> <span class="o">=</span> <span class="n">dist_and_d_dist</span><span class="p">(</span><span class="n">coords_a</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">coords_b</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+
+        <span class="n">ti</span> <span class="o">=</span> <span class="n">atom_types_a</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">tj</span> <span class="o">=</span> <span class="n">atom_types_b</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+        <span class="n">d_val_d_d</span> <span class="o">=</span> <span class="n">d_lk_isotropic_d_dist</span><span class="p">(</span>
+            <span class="n">d</span><span class="p">,</span>
+            <span class="n">bonded_path_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">],</span>
+            <span class="n">lj_radius</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">lk_dgfree</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">lk_lambda</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">lk_volume</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">is_donor</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">is_polarh</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">is_acceptor</span><span class="p">[</span><span class="n">ti</span><span class="p">],</span>
+            <span class="n">lj_radius</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">lk_dgfree</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">lk_lambda</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">lk_volume</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">is_donor</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">is_hydroxyl</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">is_polarh</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">is_acceptor</span><span class="p">[</span><span class="n">tj</span><span class="p">],</span>
+            <span class="n">lj_hbond_dis</span><span class="p">,</span>
+            <span class="n">lj_hbond_OH_donor_dis</span><span class="p">,</span>
+            <span class="n">lj_hbond_hdis</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">oval_a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">oval_a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">oval_a</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_i</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+
+        <span class="n">oval_b</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_j</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">oval_b</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+        <span class="n">oval_b</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">+=</span> <span class="n">d_d_d_j</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">d_val_d_d</span> <span class="o">*</span> <span class="n">d_val</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">oval_a</span><span class="p">,</span> <span class="n">oval_b</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../../../',
+              VERSION:'0.0.0-108-gcbcfc33',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

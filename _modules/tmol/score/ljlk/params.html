@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-107-gd72ac64 documentation</title>
+  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-108-gcbcfc33 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-107-gd72ac64
+                0.0.0-108-gcbcfc33
               </div>
             
           
@@ -165,14 +165,12 @@
            <div itemprop="articleBody">
             
   <h1>Source code for tmol.score.ljlk.params</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Sequence</span>
-<span class="kn">import</span> <span class="nn">attr</span>
+<span></span><span class="kn">import</span> <span class="nn">attr</span>
 <span class="kn">import</span> <span class="nn">cattr</span>
 
 <span class="kn">import</span> <span class="nn">pandas</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">TensorGroup</span>
@@ -181,8 +179,6 @@
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 
 <span class="kn">from</span> <span class="nn">tmol.database.scoring.ljlk</span> <span class="k">import</span> <span class="n">LJLKDatabase</span>
-
-<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">potentials</span>
 
 
 <div class="viewcode-block" id="LJLKGlobalParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKGlobalParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -209,32 +205,6 @@
     <span class="n">is_polarh</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">bool</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="LJLKTypePairParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKTypePairParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">LJLKTypePairParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ValidateAttrs</span><span class="p">):</span>
-    <span class="n">lj_rad1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_rad2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_sigma</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_wdepth</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_coeff_sigma6</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_coeff_sigma12</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_switch_intercept</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_switch_slope</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_spline_y0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lj_spline_dy0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-
-    <span class="n">lk_coeff1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_coeff2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_inv_lambda2_1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_inv_lambda2_2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_spline_close_x0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_spline_close_x1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_spline_close_y0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_spline_close_y1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_spline_close_dy1</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_spline_far_y0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_spline_far_dy0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
-
-
 <div class="viewcode-block" id="LJLKParamResolver"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKParamResolver">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LJLKParamResolver</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Container for global/type/pair parameters, indexed by atom type name.</span>
@@ -253,9 +223,6 @@
     <span class="c1"># shape [n] per-type parameters, source params used to calculate pair parameters</span>
     <span class="n">type_params</span><span class="p">:</span> <span class="n">LJLKTypeParams</span>
 
-    <span class="c1"># shape [n,n] type pair parameters</span>
-    <span class="n">pair_params</span><span class="p">:</span> <span class="n">LJLKTypePairParams</span>
-
 <div class="viewcode-block" id="LJLKParamResolver.type_idx"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKParamResolver.type_idx">[docs]</a>    <span class="k">def</span> <span class="nf">type_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Convert array of atom type names to parameter indices.</span>
 
@@ -266,23 +233,6 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_type_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">atom_types</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">atom_types</span><span class="o">.</span><span class="n">shape</span>
         <span class="p">)</span></div>
-
-    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LJLKTypePairParams</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Resolve to/from atom types into broadcast pair params.&quot;&quot;&quot;</span>
-        <span class="n">from_type</span><span class="p">,</span> <span class="n">to_type</span> <span class="o">=</span> <span class="n">key</span>
-
-        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_idx</span><span class="p">(</span><span class="n">from_type</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_type_index</span><span class="p">))</span>
-        <span class="p">),</span> <span class="s2">&quot;type not present in index&quot;</span>
-        <span class="n">j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_idx</span><span class="p">(</span><span class="n">to_type</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">j</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_type_index</span><span class="p">))</span>
-        <span class="p">),</span> <span class="s2">&quot;type not present in index&quot;</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">pair_params</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
 
 <div class="viewcode-block" id="LJLKParamResolver.from_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKParamResolver.from_database">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
@@ -332,17 +282,10 @@
             <span class="p">}</span>
         <span class="p">)</span>
 
-        <span class="c1"># Broadcast N atom type parameters against itself, resolving an [N,N]</span>
-        <span class="c1"># type pair parameter tensor group.</span>
-        <span class="n">pair_params</span> <span class="o">=</span> <span class="n">potentials</span><span class="o">.</span><span class="n">render_pair_parameters</span><span class="p">(</span>
-            <span class="n">global_params</span><span class="p">,</span> <span class="n">type_params</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">type_params</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
-        <span class="p">)</span>
-
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">atom_type_index</span><span class="o">=</span><span class="n">atom_type_index</span><span class="p">,</span>
             <span class="n">global_params</span><span class="o">=</span><span class="n">global_params</span><span class="p">,</span>
             <span class="n">type_params</span><span class="o">=</span><span class="n">type_params</span><span class="p">,</span>
-            <span class="n">pair_params</span><span class="o">=</span><span class="n">pair_params</span><span class="p">,</span>
         <span class="p">)</span></div></div>
 </pre></div>
 
@@ -380,7 +323,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-107-gd72ac64',
+              VERSION:'0.0.0-108-gcbcfc33',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

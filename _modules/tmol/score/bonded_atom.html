@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-107-gd72ac64 documentation</title>
+  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-108-gcbcfc33 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-107-gd72ac64
+                0.0.0-108-gcbcfc33
               </div>
             
           
@@ -228,7 +228,7 @@
         <span class="n">stack_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">MAX_BONDED_PATH_LENGTH</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
         <span class="sd">&quot;&quot;&quot;Dense inter-atomic bonded path length distance tables.</span>
 
 <span class="sd">        Returns:</span>
@@ -236,23 +236,43 @@
 <span class="sd">            Per-layer interatomic bonded path length entries.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">bond_graph</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">COO</span><span class="p">(</span>
-            <span class="n">bonds</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bonds</span><span class="p">),</span> <span class="kc">True</span><span class="p">),</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">stack_depth</span><span class="p">,</span> <span class="n">system_size</span><span class="p">,</span> <span class="n">system_size</span><span class="p">),</span>
-            <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">bonded_path_length_stacked</span><span class="p">(</span>
+                <span class="n">bonds</span><span class="p">,</span> <span class="n">stack_depth</span><span class="p">,</span> <span class="n">system_size</span><span class="p">,</span> <span class="n">MAX_BONDED_PATH_LENGTH</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="bonded_path_length"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.bonded_path_length">[docs]</a><span class="k">def</span> <span class="nf">bonded_path_length</span><span class="p">(</span>
+    <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:]:</span>
+    <span class="n">bond_graph</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">COO</span><span class="p">(</span>
+        <span class="n">bonds</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bonds</span><span class="p">),</span> <span class="kc">True</span><span class="p">),</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">system_size</span><span class="p">,</span> <span class="n">system_size</span><span class="p">),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">dijkstra</span><span class="p">(</span><span class="n">bond_graph</span><span class="p">,</span> <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">unweighted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="bonded_path_length_stacked"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.bonded_path_length_stacked">[docs]</a><span class="k">def</span> <span class="nf">bonded_path_length_stacked</span><span class="p">(</span>
+    <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">stack_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+    <span class="n">bond_graph</span> <span class="o">=</span> <span class="n">sparse</span><span class="o">.</span><span class="n">COO</span><span class="p">(</span>
+        <span class="n">bonds</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bonds</span><span class="p">),</span> <span class="kc">True</span><span class="p">),</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">stack_depth</span><span class="p">,</span> <span class="n">system_size</span><span class="p">,</span> <span class="n">system_size</span><span class="p">),</span>
+        <span class="n">cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">bond_graph</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;f4&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">stack_depth</span><span class="p">):</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">dijkstra</span><span class="p">(</span>
+            <span class="n">bond_graph</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">tocsr</span><span class="p">(),</span> <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">unweighted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span>
         <span class="p">)</span>
 
-        <span class="n">result</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">bond_graph</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;f4&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">stack_depth</span><span class="p">):</span>
-            <span class="n">result</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">csgraph</span><span class="o">.</span><span class="n">dijkstra</span><span class="p">(</span>
-                <span class="n">bond_graph</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">tocsr</span><span class="p">(),</span>
-                <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">unweighted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">limit</span><span class="o">=</span><span class="n">MAX_BONDED_PATH_LENGTH</span><span class="p">,</span>
-            <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">result</span></div>
+    <span class="k">return</span> <span class="n">result</span></div>
 </pre></div>
 
            </div>
@@ -289,7 +309,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-107-gd72ac64',
+              VERSION:'0.0.0-108-gcbcfc33',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

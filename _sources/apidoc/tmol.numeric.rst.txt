@@ -14,6 +14,7 @@ tmol.numeric
        tmol.numeric.bspline
        tmol.numeric.dihedrals
   
+       tmol.numeric.interpolation
 
 
 

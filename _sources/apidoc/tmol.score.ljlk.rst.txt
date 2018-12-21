@@ -12,9 +12,10 @@ tmol.score.ljlk
        :maxdepth: 1
   
        tmol.score.ljlk.params
-       tmol.score.ljlk.potentials
        tmol.score.ljlk.score_graph
+       tmol.score.ljlk.torch_op
   
+       tmol.score.ljlk.numba
 
 
 

@@ -7,7 +7,7 @@ tmol.score.bonded_atom
 .. currentmodule:: tmol.score.bonded_atom
 
 .. automodule:: tmol.score.bonded_atom
-    :members: BondedAtomScoreGraph
+    :members: BondedAtomScoreGraph, bonded_path_length, bonded_path_length_stacked
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -22,6 +22,15 @@ tmol.score.bonded_atom
         :nosignatures:
 
         BondedAtomScoreGraph
+
+    Functions
+    ~~~~~~~~~
+    
+    .. autosummary::
+        :nosignatures:
+
+        bonded_path_length
+        bonded_path_length_stacked
 
 
 

@@ -7,7 +7,7 @@ tmol.score.ljlk.params
 .. currentmodule:: tmol.score.ljlk.params
 
 .. automodule:: tmol.score.ljlk.params
-    :members: LJLKGlobalParams, LJLKParamResolver, LJLKTypePairParams, LJLKTypeParams
+    :members: LJLKGlobalParams, LJLKParamResolver, LJLKTypeParams
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -23,7 +23,6 @@ tmol.score.ljlk.params
 
         LJLKGlobalParams
         LJLKParamResolver
-        LJLKTypePairParams
         LJLKTypeParams
 
 

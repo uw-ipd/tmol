@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-107-gd72ac64 documentation</title>
+  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-108-gcbcfc33 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.score.ljlk.potentials" href="tmol.score.ljlk.potentials.html" />
+    <link rel="next" title="tmol.score.ljlk.score_graph" href="tmol.score.ljlk.score_graph.html" />
     <link rel="prev" title="tmol.score.ljlk" href="tmol.score.ljlk.html" /> 
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-107-gd72ac64
+                0.0.0-108-gcbcfc33
               </div>
             
           
@@ -109,8 +109,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.ljlk.potentials.html">tmol.score.ljlk.potentials</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.ljlk.score_graph.html">tmol.score.ljlk.score_graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.ljlk.torch_op.html">tmol.score.ljlk.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.ljlk.numba.html">tmol.score.ljlk.numba</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.html#summary">Summary</a></li>
@@ -212,10 +213,7 @@
 <tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKParamResolver" title="tmol.score.ljlk.params.LJLKParamResolver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKParamResolver</span></code></a></td>
 <td>Container for global/type/pair parameters, indexed by atom type name.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKTypePairParams" title="tmol.score.ljlk.params.LJLKTypePairParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKTypePairParams</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKTypeParams" title="tmol.score.ljlk.params.LJLKTypeParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKTypeParams</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKTypeParams" title="tmol.score.ljlk.params.LJLKTypeParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKTypeParams</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -317,119 +315,8 @@
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.params.</code><code class="descname">LJLKTypePairParams</code><span class="sig-paren">(</span><em>lj_rad1: Tensor(torch.float32)[...], lj_rad2: Tensor(torch.float32)[...], lj_sigma: Tensor(torch.float32)[...], lj_wdepth: Tensor(torch.float32)[...], lj_coeff_sigma6: Tensor(torch.float32)[...], lj_coeff_sigma12: Tensor(torch.float32)[...], lj_switch_intercept: Tensor(torch.float32)[...], lj_switch_slope: Tensor(torch.float32)[...], lj_spline_y0: Tensor(torch.float32)[...], lj_spline_dy0: Tensor(torch.float32)[...], lk_coeff1: Tensor(torch.float32)[...], lk_coeff2: Tensor(torch.float32)[...], lk_inv_lambda2_1: Tensor(torch.float32)[...], lk_inv_lambda2_2: Tensor(torch.float32)[...], lk_spline_close_x0: Tensor(torch.float32)[...], lk_spline_close_x1: Tensor(torch.float32)[...], lk_spline_close_y0: Tensor(torch.float32)[...], lk_spline_close_y1: Tensor(torch.float32)[...], lk_spline_close_dy1: Tensor(torch.float32)[...], lk_spline_far_y0: Tensor(torch.float32)[...], lk_spline_far_dy0: Tensor(torch.float32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/params.html#LJLKTypePairParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_rad1">
-<code class="descname">lj_rad1</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_rad1" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_rad2">
-<code class="descname">lj_rad2</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_rad2" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_sigma">
-<code class="descname">lj_sigma</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_sigma" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_wdepth">
-<code class="descname">lj_wdepth</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_wdepth" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_coeff_sigma6">
-<code class="descname">lj_coeff_sigma6</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_coeff_sigma6" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_coeff_sigma12">
-<code class="descname">lj_coeff_sigma12</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_coeff_sigma12" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_switch_intercept">
-<code class="descname">lj_switch_intercept</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_switch_intercept" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_switch_slope">
-<code class="descname">lj_switch_slope</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_switch_slope" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_spline_y0">
-<code class="descname">lj_spline_y0</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_spline_y0" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lj_spline_dy0">
-<code class="descname">lj_spline_dy0</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lj_spline_dy0" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_coeff1">
-<code class="descname">lk_coeff1</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_coeff1" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_coeff2">
-<code class="descname">lk_coeff2</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_coeff2" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_inv_lambda2_1">
-<code class="descname">lk_inv_lambda2_1</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_inv_lambda2_1" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_inv_lambda2_2">
-<code class="descname">lk_inv_lambda2_2</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_inv_lambda2_2" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_x0">
-<code class="descname">lk_spline_close_x0</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_x0" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_x1">
-<code class="descname">lk_spline_close_x1</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_x1" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_y0">
-<code class="descname">lk_spline_close_y0</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_y0" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_y1">
-<code class="descname">lk_spline_close_y1</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_y1" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_dy1">
-<code class="descname">lk_spline_close_dy1</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_close_dy1" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_far_y0">
-<code class="descname">lk_spline_far_y0</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_far_y0" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_far_dy0">
-<code class="descname">lk_spline_far_dy0</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypePairParams.lk_spline_far_dy0" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="tmol.score.ljlk.params.LJLKParamResolver">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.params.</code><code class="descname">LJLKParamResolver</code><span class="sig-paren">(</span><em>atom_type_index: pandas.core.indexes.base.Index</em>, <em>global_params: tmol.score.ljlk.params.LJLKGlobalParams</em>, <em>type_params: tmol.score.ljlk.params.LJLKTypeParams</em>, <em>pair_params: tmol.score.ljlk.params.LJLKTypePairParams</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/params.html#LJLKParamResolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.params.LJLKParamResolver" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.params.</code><code class="descname">LJLKParamResolver</code><span class="sig-paren">(</span><em>atom_type_index: pandas.core.indexes.base.Index</em>, <em>global_params: tmol.score.ljlk.params.LJLKGlobalParams</em>, <em>type_params: tmol.score.ljlk.params.LJLKTypeParams</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/params.html#LJLKParamResolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.params.LJLKParamResolver" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
 <p>Container for global/type/pair parameters, indexed by atom type name.</p>
 <p>Param resolver stores pair parameters for a collection of atom types, using
@@ -448,11 +335,6 @@ index.</p>
 <dl class="attribute">
 <dt id="tmol.score.ljlk.params.LJLKParamResolver.type_params">
 <code class="descname">type_params</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKParamResolver.type_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.params.LJLKParamResolver.pair_params">
-<code class="descname">pair_params</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKParamResolver.pair_params" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -483,7 +365,7 @@ lower-dimensional views to resolver parameter indices.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.score.ljlk.potentials.html" class="btn btn-neutral float-right" title="tmol.score.ljlk.potentials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.ljlk.score_graph.html" class="btn btn-neutral float-right" title="tmol.score.ljlk.score_graph" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tmol.score.ljlk.html" class="btn btn-neutral" title="tmol.score.ljlk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -519,7 +401,7 @@ lower-dimensional views to resolver parameter indices.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-107-gd72ac64',
+              VERSION:'0.0.0-108-gcbcfc33',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
