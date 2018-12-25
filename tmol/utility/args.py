@@ -1,6 +1,14 @@
 import functools
 import inspect
 import toolz
+import copy
+
+import ast
+import types
+from itertools import zip_longest
+from inspect import Signature, Parameter
+
+import re
 
 
 @functools.singledispatch
@@ -56,3 +64,111 @@ try:
 
 except ImportError:
     pass
+
+
+@_signature.register(types.BuiltinFunctionType)
+def _builtin_signature(f):
+    """Resolve inspect.Signature for builtin types."""
+
+    if getattr(f, "__text_signature__", None):
+        return inspect.signature(f)
+    else:
+        return _pybind11_signature(f)
+
+
+def _pybind11_doc_signatures(f):
+    name = f.__name__
+
+    overloaded = (
+        re.search(r"^Overloaded function.", f.__doc__, re.MULTILINE) is not None
+    )
+
+    if overloaded:
+        doc_signatures = [
+            m.group(1)
+            for m in re.finditer(fr"^\d+\. ({name}.*)$", f.__doc__, re.MULTILINE)
+        ]
+    else:
+        doc_signatures = [
+            m.group(1) for m in re.finditer(fr"^({name}.*)$", f.__doc__, re.MULTILINE)
+        ]
+
+    signatures = [_parse_doc_signature(ds) for ds in doc_signatures]
+
+    return signatures
+
+
+def _parse_doc_signature(sig):
+    # Hack attempt to sanitize c++ type signatures into syntactically valid
+    # python type annotations. Split off the return value annotation then
+    # coerce c++ namespace and template markers into compatible syntax.
+    psig = sig.split("->")[0]
+    for c, p in (("::", "."), ("<", "["), (">", "]")):
+        psig = psig.replace(c, p)
+
+    fdef, = ast.parse(f"def {psig}: pass").body
+
+    # Just count the number of arguments w/ default values, no attempt to parse
+    # the values.
+    args_no_default = len(fdef.args.args) - len(fdef.args.defaults)
+    kwargs_no_default = len(fdef.args.kwonlyargs) - len(fdef.args.kw_defaults)
+
+    return Signature(
+        [
+            Parameter(
+                a.arg,
+                Parameter.POSITIONAL_OR_KEYWORD,
+                default=Parameter.empty if i < args_no_default else True,
+            )
+            for i, a in enumerate(fdef.args.args)
+        ]
+        + (
+            [Parameter(fdef.args.kwarg, Parameter.VAR_KEYWORD)]
+            if fdef.args.kwarg
+            else []
+        )
+        + (
+            [Parameter(fdef.args.vararg, Parameter.VAR_POSITIONAL)]
+            if fdef.args.vararg
+            else []
+        )
+        + [
+            Parameter(
+                a.arg,
+                Parameter.KEYWORD_ONLY,
+                default=Parameter.empty if i < kwargs_no_default else True,
+            )
+            for i, a in enumerate(fdef.args.kwonlyargs)
+        ]
+    )
+
+
+def _aligned_signature(sigs):
+    combined_params = []
+    param_sets = zip_longest(*(s.parameters.values() for s in sigs))
+
+    for i, ps in enumerate(param_sets):
+        p = set(filter(None, ps))
+
+        if len(p) != 1:
+            raise ValueError(
+                f"Incompatible params: {ps} index: {i} in signatures:\n{sigs}"
+            )
+
+        param = p.pop()
+
+        combined_params.append(
+            Parameter(
+                param.name,
+                param.kind,
+                # If the parameter is not present in all signatures mark as
+                # having a default value, otherwise use existing default.
+                default=param.default if None not in ps else True,
+            )
+        )
+
+    return Signature(combined_params)
+
+
+def _pybind11_signature(pybind11_f):
+    return _aligned_signature(_pybind11_doc_signatures(pybind11_f))
