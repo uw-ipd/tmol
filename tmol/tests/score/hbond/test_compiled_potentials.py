@@ -1,8 +1,15 @@
 from pytest import approx
 
+_hbond_global_params = dict(
+    hb_sp2_range_span=1.6,
+    hb_sp2_BAH180_rise=0.75,
+    hb_sp2_outer_width=0.357,
+    hb_sp3_softmax_fade=2.5,
+)
+
 
 def test_sp2_single_hbond():
-    from tmol.score.hbond.potentials.compiled import hbond_donor_sp2_score
+    from tmol.score.hbond.potentials.compiled import hbond_score, AcceptorType
 
     hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -51,13 +58,14 @@ def test_sp2_single_hbond():
     donwt = 1.45
     accwt = 1.19
 
-    energy = hbond_donor_sp2_score(
+    energy = hbond_score(
         # Input coordinates
         d=atomD,
         h=atomH,
         a=atomA,
         b=atomB,
         b0=atomB0,
+        acceptor_type=AcceptorType.sp2,
         # type pair parameters
         glob_accwt=accwt,
         glob_donwt=donwt,
@@ -71,9 +79,7 @@ def test_sp2_single_hbond():
         cosAHD_range=poly_AHD_1j_range,
         cosAHD_bound=poly_AHD_1j_bounds,
         # Global score parameters
-        hb_sp2_range_span=1.6,
-        hb_sp2_BAH180_rise=0.75,
-        hb_sp2_outer_width=0.357,
+        **_hbond_global_params,
     )
 
     # TODO Verify delta of .01 vs torch potential. Perhaps due to precision shift?
@@ -81,7 +87,7 @@ def test_sp2_single_hbond():
 
 
 def test_sp3_single_hbond():
-    from tmol.score.hbond.potentials.compiled import hbond_donor_sp3_score
+    from tmol.score.hbond.potentials.compiled import hbond_score, AcceptorType
 
     hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -141,13 +147,14 @@ def test_sp3_single_hbond():
     donwt = 1.45
     accwt = 1.15
 
-    energy = hbond_donor_sp3_score(
+    energy = hbond_score(
         # Input coordinates
         d=atomD,
         h=atomH,
         a=atomA,
         b=atomB,
         b0=atomB0,
+        acceptor_type=AcceptorType.sp3,
         # type pair parameters
         glob_accwt=accwt,
         glob_donwt=donwt,
@@ -161,14 +168,14 @@ def test_sp3_single_hbond():
         cosAHD_range=poly_AHD_1i_range,
         cosAHD_bound=poly_AHD_1i_bounds,
         # Global score parameters
-        hb_sp3_softmax_fade=2.5,
+        **_hbond_global_params,
     )
 
     assert energy == approx(-2.00, abs=0.01)
 
 
 def test_ring_single_hbond():
-    from tmol.score.hbond.potentials.compiled import hbond_donor_ring_score
+    from tmol.score.hbond.potentials.compiled import hbond_score, AcceptorType
 
     hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -227,13 +234,14 @@ def test_ring_single_hbond():
     donwt = 1.45
     accwt = 1.13
 
-    energy = hbond_donor_ring_score(
+    energy = hbond_score(
         # Input coordinates
         d=atomD,
         h=atomH,
         a=atomA,
         b=atomB,
         b0=atomB0,
+        acceptor_type=AcceptorType.ring,
         # type pair parameters
         glob_accwt=accwt,
         glob_donwt=donwt,
@@ -246,6 +254,8 @@ def test_ring_single_hbond():
         cosAHD_coeff=poly_AHD_1i,
         cosAHD_range=poly_AHD_1i_range,
         cosAHD_bound=poly_AHD_1i_bounds,
+        # Global score parameters
+        **_hbond_global_params,
     )
 
     assert energy == approx(-2.17, abs=0.01)

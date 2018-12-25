@@ -13,6 +13,12 @@ namespace potentials {
 template <int N, typename Real>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
+enum struct AcceptorType {
+  sp2,
+  sp3,
+  ring,
+};
+
 template <int PDim, typename Real>
 Real polyval(
     const Vec<PDim, Real>& coeffs,
@@ -68,7 +74,7 @@ Real sp2chi_energy(
 }
 
 template <typename Real>
-Real hbond_donor_sp2_score(
+Real hbond_score(
     // coordinates
     const Vec<3, Real>& d,
     const Vec<3, Real>& h,
@@ -77,6 +83,7 @@ Real hbond_donor_sp2_score(
     const Vec<3, Real>& b0,
 
     // type pair parameters
+    const AcceptorType& acceptor_type,
     const Real& glob_accwt,
     const Real& glob_donwt,
 
@@ -95,173 +102,74 @@ Real hbond_donor_sp2_score(
     // Global score parameters
     const Real& hb_sp2_range_span,
     const Real& hb_sp2_BAH180_rise,
-    const Real& hb_sp2_outer_width) {
-  const Real pi = EIGEN_PI;
-
-  Real acc_don_scale = glob_accwt * glob_donwt;
-
-  // Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
-  Real D = (a - h).norm();
-
-  Vec<3, Real> AHvecn = (h - a).normalized();
-  Vec<3, Real> HDvecn = (d - h).normalized();
-
-  Real xD = AHvecn.dot(HDvecn);
-  Real AHD = pi - std::acos(xD);
-
-  // in non-cos space
-
-  Vec<3, Real> BAvecn = (a - b).normalized();
-  Real xH = AHvecn.dot(BAvecn);
-  Real BAH = pi - std::acos(xH);
-
-  Vec<3, Real> BB0vecn = (b0 - b).normalized();
-  Real xchi = BB0vecn.dot(AHvecn) - (BB0vecn.dot(BAvecn) * BAvecn.dot(AHvecn));
-
-  Real ychi = BAvecn.cross(AHvecn).dot(BB0vecn);
-  Real chi = -std::atan2(ychi, xchi);
-
-  Real Pd = polyval(AHdist_coeff, AHdist_range, AHdist_bound, D);
-  Real PxH = polyval(cosBAH_coeff, cosBAH_range, cosBAH_bound, xH);
-  Real PxD = polyval(cosAHD_coeff, cosAHD_range, cosAHD_bound, AHD);
-
-  // sp2 chi part
-  Real Pchi = sp2chi_energy(
-      hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width, BAH, chi);
-
-  Real energy = acc_don_scale * (Pd + PxD + PxH + Pchi);
-
-  // fade (squish [-0.1,0.1] to [-0.1,0.0])
-  if (energy > 0.1) {
-    energy = 0.0;
-  } else if (energy > -0.1) {
-    energy = (-0.025 + 0.5 * energy - 2.5 * energy * energy);
-  }
-
-  return energy;
-}
-
-template <typename Real>
-Real hbond_donor_sp3_score(
-    // coordinates
-    const Vec<3, Real>& d,
-    const Vec<3, Real>& h,
-    const Vec<3, Real>& a,
-    const Vec<3, Real>& b,
-    const Vec<3, Real>& b0,
-
-    // type pair parameters
-    const Real& glob_accwt,
-    const Real& glob_donwt,
-
-    const Vec<11, Real>& AHdist_coeff,
-    const Vec<2, Real>& AHdist_range,
-    const Vec<2, Real>& AHdist_bound,
-
-    const Vec<11, Real>& cosBAH_coeff,
-    const Vec<2, Real>& cosBAH_range,
-    const Vec<2, Real>& cosBAH_bound,
-
-    const Vec<11, Real>& cosAHD_coeff,
-    const Vec<2, Real>& cosAHD_range,
-    const Vec<2, Real>& cosAHD_bound,
-
-    // Global score parameters
+    const Real& hb_sp2_outer_width,
     const Real& hb_sp3_softmax_fade) {
   const Real pi = EIGEN_PI;
 
-  Real acc_don_scale = glob_accwt * glob_donwt;
+  Real energy = 0.0;
 
-  // Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
-  Real D = (a - h).norm();
+  // Using R3 nomenclature... xD = cos(pi - AHD); xH = cos(pi - BAH)
 
-  Vec<3, Real> AHvecn = (h - a).normalized();
-  Vec<3, Real> HDvecn = (d - h).normalized();
+  // A-H Distance Component
+  Real AHdist = (a - h).norm();
+  Real P_AHdist = polyval(AHdist_coeff, AHdist_range, AHdist_bound, AHdist);
+  energy += P_AHdist;
 
-  Real xD = AHvecn.dot(HDvecn);
-  Real AHD = pi - std::acos(xD);
-
+  // AHD Angle Component
   // in non-cos space
+  Vec<3, Real> AH_unit_vec = (h - a).normalized();
+  Vec<3, Real> HD_unit_vec = (d - h).normalized();
 
-  Vec<3, Real> BAvecn = (a - b).normalized();
-  Real xH1 = AHvecn.dot(BAvecn);
-
-  Vec<3, Real> B0vecn = (a - b0).normalized();
-  Real xH2 = AHvecn.dot(B0vecn);
-
-  Real Pd = polyval(AHdist_coeff, AHdist_range, AHdist_bound, D);
-  Real PxD = polyval(cosAHD_coeff, cosAHD_range, cosAHD_bound, AHD);
-
-  Real PxH1 = polyval(cosBAH_coeff, cosBAH_range, cosBAH_bound, xH1);
-  Real PxH2 = polyval(cosBAH_coeff, cosBAH_range, cosBAH_bound, xH2);
-  Real PxH =
-      (1.0 / hb_sp3_softmax_fade
-       * std::log(
-             std::exp(PxH1 * hb_sp3_softmax_fade)
-             + std::exp(PxH2 * hb_sp3_softmax_fade)));
-
-  Real energy = acc_don_scale * (Pd + PxD + PxH);
-
-  // fade (squish [-0.1,0.1] to [-0.1,0.0])
-  if (energy > 0.1) {
-    energy = 0.0;
-  } else if (energy > -0.1) {
-    energy = (-0.025 + 0.5 * energy - 2.5 * energy * energy);
-  }
-
-  return energy;
-}
-
-template <typename Real>
-Real hbond_donor_ring_score(
-    // coordinates
-    const Vec<3, Real>& d,
-    const Vec<3, Real>& h,
-    const Vec<3, Real>& a,
-    const Vec<3, Real>& b,
-    const Vec<3, Real>& b0,
-
-    // type pair parameters
-    const Real& glob_accwt,
-    const Real& glob_donwt,
-
-    const Vec<11, Real>& AHdist_coeff,
-    const Vec<2, Real>& AHdist_range,
-    const Vec<2, Real>& AHdist_bound,
-
-    const Vec<11, Real>& cosBAH_coeff,
-    const Vec<2, Real>& cosBAH_range,
-    const Vec<2, Real>& cosBAH_bound,
-
-    const Vec<11, Real>& cosAHD_coeff,
-    const Vec<2, Real>& cosAHD_range,
-    const Vec<2, Real>& cosAHD_bound) {
-  const Real pi = EIGEN_PI;
-
-  Real acc_don_scale = glob_accwt * glob_donwt;
-
-  // Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
-  Real D = (a - h).norm();
-
-  Vec<3, Real> AHvecn = (h - a).normalized();
-  Vec<3, Real> HDvecn = (d - h).normalized();
-
-  Real xD = AHvecn.dot(HDvecn);
+  Real xD = AH_unit_vec.dot(HD_unit_vec);
   Real AHD = pi - std::acos(xD);
+  Real P_AHD = polyval(cosAHD_coeff, cosAHD_range, cosAHD_bound, AHD);
+  energy += P_AHD;
 
-  // in non-cos space
+  // BAH Angle Component
+  // in cos space
+  Vec<3, Real> BA_base_b =
+      (acceptor_type == AcceptorType::ring) ? 0.5 * (b + b0) : b;
+  Vec<3, Real> BA_unit_vec = (a - BA_base_b).normalized();
 
-  Vec<3, Real> BAvecn = (a - 0.5 * (b + b0)).normalized();
-  Real xH = AHvecn.dot(BAvecn);
-
-  Real Pd = polyval(AHdist_coeff, AHdist_range, AHdist_bound, D);
-  Real PxD = polyval(cosAHD_coeff, cosAHD_range, cosAHD_bound, AHD);
-
+  Real xH = AH_unit_vec.dot(BA_unit_vec);
   Real PxH = polyval(cosBAH_coeff, cosBAH_range, cosBAH_bound, xH);
 
-  Real energy = acc_don_scale * (Pd + PxD + PxH);
+  if (acceptor_type == AcceptorType::sp3) {
+    Real PxH1 = PxH;
 
-  // fade (squish [-0.1,0.1] to [-0.1,0.0])
+    Vec<3, Real> B0A_unit_vec = (a - b0).normalized();
+    Real xH2 = AH_unit_vec.dot(B0A_unit_vec);
+    Real PxH2 = polyval(cosBAH_coeff, cosBAH_range, cosBAH_bound, xH2);
+
+    PxH =
+        (1.0 / hb_sp3_softmax_fade
+         * std::log(
+               std::exp(PxH1 * hb_sp3_softmax_fade)
+               + std::exp(PxH2 * hb_sp3_softmax_fade)));
+  }
+
+  energy += PxH;
+
+  // SP-2 Chi Angle Component
+  if (acceptor_type == AcceptorType::sp2) {
+    Real BAH = pi - std::acos(xH);
+    Vec<3, Real> BB0_unit_vec = (b0 - b).normalized();
+    Real xchi =
+        BB0_unit_vec.dot(AH_unit_vec)
+        - (BB0_unit_vec.dot(BA_unit_vec) * BA_unit_vec.dot(AH_unit_vec));
+
+    Real ychi = BA_unit_vec.cross(AH_unit_vec).dot(BB0_unit_vec);
+    Real chi = -std::atan2(ychi, xchi);
+
+    Real Pchi = sp2chi_energy(
+        hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width, BAH, chi);
+    energy += Pchi;
+  }
+
+  // Donor/Acceptor Weighting
+  energy *= glob_accwt * glob_donwt;
+
+  // Truncate and Fade [-0.1,0.1] to [-0.1,0.0]
   if (energy > 0.1) {
     energy = 0.0;
   } else if (energy > -0.1) {
@@ -276,9 +184,9 @@ void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
 
   m.def(
-      "hbond_donor_sp2_score",
-      &hbond_donor_sp2_score<Real>,
-      "HBond donor sp2-acceptor score.",
+      "hbond_score",
+      &hbond_score<Real>,
+      "HBond donor-acceptor geometry score.",
 
       "d"_a,
       "h"_a,
@@ -287,6 +195,7 @@ void bind_potentials(pybind11::module& m) {
       "b0"_a,
 
       // type pair parameters
+      "acceptor_type"_a,
       "glob_accwt"_a,
       "glob_donwt"_a,
 
@@ -305,71 +214,20 @@ void bind_potentials(pybind11::module& m) {
       // Global score parameters
       "hb_sp2_range_span"_a,
       "hb_sp2_BAH180_rise"_a,
-      "hb_sp2_outer_width"_a);
-
-  m.def(
-      "hbond_donor_sp3_score",
-      &hbond_donor_sp3_score<Real>,
-      "HBond donor sp3-acceptor score.",
-
-      "d"_a,
-      "h"_a,
-      "a"_a,
-      "b"_a,
-      "b0"_a,
-
-      // type pair parameters
-      "glob_accwt"_a,
-      "glob_donwt"_a,
-
-      "AHdist_coeff"_a,
-      "AHdist_range"_a,
-      "AHdist_bound"_a,
-
-      "cosBAH_coeff"_a,
-      "cosBAH_range"_a,
-      "cosBAH_bound"_a,
-
-      "cosAHD_coeff"_a,
-      "cosAHD_range"_a,
-      "cosAHD_bound"_a,
-
-      // Global score parameters
+      "hb_sp2_outer_width"_a,
       "hb_sp3_softmax_fade"_a);
-
-  m.def(
-      "hbond_donor_ring_score",
-      &hbond_donor_ring_score<Real>,
-      "HBond donor ring-acceptor score.",
-
-      "d"_a,
-      "h"_a,
-      "a"_a,
-      "b"_a,
-      "b0"_a,
-
-      // type pair parameters
-      "glob_accwt"_a,
-      "glob_donwt"_a,
-
-      "AHdist_coeff"_a,
-      "AHdist_range"_a,
-      "AHdist_bound"_a,
-
-      "cosBAH_coeff"_a,
-      "cosBAH_range"_a,
-      "cosBAH_bound"_a,
-
-      "cosAHD_coeff"_a,
-      "cosAHD_range"_a,
-      "cosAHD_bound"_a);
-};
+}
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
   bind_potentials<float>(m);
   bind_potentials<double>(m);
+
+  py::enum_<AcceptorType>(m, "AcceptorType")
+      .value("sp2", AcceptorType::sp2)
+      .value("sp3", AcceptorType::sp3)
+      .value("ring", AcceptorType::ring);
 }
 
 }  // namespace potentials
