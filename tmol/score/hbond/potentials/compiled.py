@@ -6,3 +6,4 @@ _compiled = load("_compiled", _compiled_sources)
 
 hbond_donor_sp2_score = _compiled.hbond_donor_sp2_score
 hbond_donor_sp3_score = _compiled.hbond_donor_sp3_score
+hbond_donor_ring_score = _compiled.hbond_donor_ring_score

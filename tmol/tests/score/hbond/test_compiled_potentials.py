@@ -77,7 +77,7 @@ def test_sp2_single_hbond():
     )
 
     # TODO Verify delta of .01 vs torch potential. Perhaps due to precision shift?
-    assert energy == approx(-2.40, abs=.01)
+    assert energy == approx(-2.40, abs=0.01)
 
 
 def test_sp3_single_hbond():
@@ -165,3 +165,87 @@ def test_sp3_single_hbond():
     )
 
     assert energy == approx(-2.00, abs=0.01)
+
+
+def test_ring_single_hbond():
+    from tmol.score.hbond.potentials.compiled import hbond_donor_ring_score
+
+    hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6 = [
+        0.0,
+        -1.68095217,
+        21.31894078,
+        -107.72203494,
+        251.81021758,
+        -134.07465831,
+        -707.64527046,
+        1894.62827430,
+        -2156.85951846,
+        1216.83585872,
+        -275.48078944,
+    ]
+    hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range = [1.01629363411, 2.58523052904]
+    hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds = [1.1, 1.1]
+
+    poly_cosBAH_7 = [
+        0.0,
+        0.0,
+        -27.942923450028001,
+        136.039920253367995,
+        -268.069590567470016,
+        275.400462507918974,
+        -153.502076215948989,
+        39.741591385461000,
+        0.693861510121000,
+        -3.885952320499000,
+        1.024765090788892,
+    ]
+    poly_cosBAH_7_range = [-0.0193738506669, 1.1]
+    poly_cosBAH_7_bounds = [1.1, 1.1]
+
+    poly_AHD_1i = [
+        0.0,
+        -0.18888801,
+        3.48241679,
+        -25.65508662,
+        89.57085435,
+        -95.91708218,
+        -367.93452341,
+        1589.69047020,
+        -2662.35821350,
+        2184.40194483,
+        -723.28383545,
+    ]
+    poly_AHD_1i_range = [1.59914724347, 3.1416]
+    poly_AHD_1i_bounds = [1.1, 1.1]
+
+    atomD = [-0.624, 5.526, -2.146]
+    atomH = [-1.023, 4.664, -2.481]
+    atomA = [-1.579, 2.834, -2.817]
+    atomB = [-0.774, 1.927, -3.337]
+    atomB0 = [-2.327, 2.261, -1.817]
+
+    donwt = 1.45
+    accwt = 1.13
+
+    energy = hbond_donor_ring_score(
+        # Input coordinates
+        d=atomD,
+        h=atomH,
+        a=atomA,
+        b=atomB,
+        b0=atomB0,
+        # type pair parameters
+        glob_accwt=accwt,
+        glob_donwt=donwt,
+        AHdist_coeff=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6,
+        AHdist_range=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range,
+        AHdist_bound=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds,
+        cosBAH_coeff=poly_cosBAH_7,
+        cosBAH_range=poly_cosBAH_7_range,
+        cosBAH_bound=poly_cosBAH_7_bounds,
+        cosAHD_coeff=poly_AHD_1i,
+        cosAHD_range=poly_AHD_1i_range,
+        cosAHD_bound=poly_AHD_1i_bounds,
+    )
+
+    assert energy == approx(-2.17, abs=0.01)
