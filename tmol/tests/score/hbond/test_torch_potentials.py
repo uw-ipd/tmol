@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from tmol.score.hbond.potentials import (
+from tmol.score.hbond.potentials.torch import (
     hbond_donor_sp2_score,
     hbond_donor_sp3_score,
     hbond_donor_ring_score,

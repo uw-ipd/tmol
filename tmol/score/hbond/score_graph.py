@@ -10,7 +10,7 @@ from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
 from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 
-from .potentials import (
+from .potentials.torch import (
     hbond_donor_sp2_score,
     hbond_donor_sp3_score,
     hbond_donor_ring_score,
