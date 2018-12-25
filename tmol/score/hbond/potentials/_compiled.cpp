@@ -105,8 +105,8 @@ Real hbond_donor_sp2_score(
 
   Vec<3, Real> AHvecn = (h - a).normalized();
   Vec<3, Real> HDvecn = (d - h).normalized();
-  Real xD = AHvecn.dot(HDvecn);
 
+  Real xD = AHvecn.dot(HDvecn);
   Real AHD = pi - std::acos(xD);
 
   // in non-cos space
@@ -142,25 +142,79 @@ Real hbond_donor_sp2_score(
 }
 
 template <typename Real>
-Real dot(
+Real hbond_donor_sp3_score(
     // coordinates
     const Vec<3, Real>& d,
-    const Vec<3, Real>& h) {
-  return d.dot(h);
-}
-
-template <typename Real>
-Real tmap(
-    // coordinates
+    const Vec<3, Real>& h,
     const Vec<3, Real>& a,
-    std::map<int, Real>& amap) {
-  return 0.0;
+    const Vec<3, Real>& b,
+    const Vec<3, Real>& b0,
+
+    // type pair parameters
+    const Real& glob_accwt,
+    const Real& glob_donwt,
+
+    const Vec<11, Real>& AHdist_coeff,
+    const Vec<2, Real>& AHdist_range,
+    const Vec<2, Real>& AHdist_bound,
+
+    const Vec<11, Real>& cosBAH_coeff,
+    const Vec<2, Real>& cosBAH_range,
+    const Vec<2, Real>& cosBAH_bound,
+
+    const Vec<11, Real>& cosAHD_coeff,
+    const Vec<2, Real>& cosAHD_range,
+    const Vec<2, Real>& cosAHD_bound,
+
+    // Global score parameters
+    const Real& hb_sp3_softmax_fade) {
+  const Real pi = EIGEN_PI;
+
+  Real acc_don_scale = glob_accwt * glob_donwt;
+
+  // Using R3 nomenclature... xD = cos(180-AHD); xH = cos(180-BAH)
+  Real D = (a - h).norm();
+
+  Vec<3, Real> AHvecn = (h - a).normalized();
+  Vec<3, Real> HDvecn = (d - h).normalized();
+
+  Real xD = AHvecn.dot(HDvecn);
+  Real AHD = pi - std::acos(xD);
+
+  // in non-cos space
+
+  Vec<3, Real> BAvecn = (a - b).normalized();
+  Real xH1 = AHvecn.dot(BAvecn);
+
+  Vec<3, Real> B0vecn = (a - b0).normalized();
+  Real xH2 = AHvecn.dot(B0vecn);
+
+  Real Pd = polyval(AHdist_coeff, AHdist_range, AHdist_bound, D);
+  Real PxD = polyval(cosAHD_coeff, cosAHD_range, cosAHD_bound, AHD);
+
+  Real PxH1 = polyval(cosBAH_coeff, cosBAH_range, cosBAH_bound, xH1);
+  Real PxH2 = polyval(cosBAH_coeff, cosBAH_range, cosBAH_bound, xH2);
+  Real PxH =
+      (1.0 / hb_sp3_softmax_fade
+       * std::log(
+             std::exp(PxH1 * hb_sp3_softmax_fade)
+             + std::exp(PxH2 * hb_sp3_softmax_fade)));
+
+  Real energy = acc_don_scale * (Pd + PxD + PxH);
+
+  // fade (squish [-0.1,0.1] to [-0.1,0.0])
+  if (energy > 0.1) {
+    energy = 0.0;
+  } else if (energy > -0.1) {
+    energy = (-0.025 + 0.5 * energy - 2.5 * energy * energy);
+  }
+
+  return energy;
 }
 
 template <typename Real>
 void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
-  m.def("dot", &dot<Real>, "Vector dot product.", "d"_a, "h"_a);
 
   m.def(
       "hbond_donor_sp2_score",
@@ -193,6 +247,36 @@ void bind_potentials(pybind11::module& m) {
       "hb_sp2_range_span"_a,
       "hb_sp2_BAH180_rise"_a,
       "hb_sp2_outer_width"_a);
+
+  m.def(
+      "hbond_donor_sp3_score",
+      &hbond_donor_sp3_score<Real>,
+      "HBond donor sp3-acceptor score.",
+
+      "d"_a,
+      "h"_a,
+      "a"_a,
+      "b"_a,
+      "b0"_a,
+
+      // type pair parameters
+      "glob_accwt"_a,
+      "glob_donwt"_a,
+
+      "AHdist_coeff"_a,
+      "AHdist_range"_a,
+      "AHdist_bound"_a,
+
+      "cosBAH_coeff"_a,
+      "cosBAH_range"_a,
+      "cosBAH_bound"_a,
+
+      "cosAHD_coeff"_a,
+      "cosAHD_range"_a,
+      "cosAHD_bound"_a,
+
+      // Global score parameters
+      "hb_sp3_softmax_fade"_a);
 };
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
