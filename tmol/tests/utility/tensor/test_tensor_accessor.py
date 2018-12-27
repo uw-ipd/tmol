@@ -19,7 +19,15 @@ def test_tensor_accessors(tensor_accessor):
     tvec = torch.arange(30, dtype=torch.float).reshape(10, 3)
     expected = tvec.norm(dim=-1)
 
-    targets = ("aten", "accessor", "eigen", "eigen_squeeze")
+    targets = (
+        "aten",
+        "accessor",
+        "accessor_arg",
+        "eigen",
+        "eigen_squeeze",
+        "eigen_arg",
+        "eigen_arg_squeeze",
+    )
 
     results = {t: getattr(tensor_accessor, t)(tvec) for t in targets}
 

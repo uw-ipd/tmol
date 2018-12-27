@@ -150,3 +150,33 @@ tmol::TView<T, N, PtrTraits> view_tensor(
 }
 
 }  // namespace tmol
+
+namespace pybind11 {
+namespace detail {
+
+template <typename T, size_t N, template <typename U> class P>
+struct type_caster<tmol::TView<T, N, P>> {
+ public:
+  typedef tmol::TView<T, N, P> ViewType;
+  PYBIND11_TYPE_CASTER(ViewType, _<ViewType>());
+
+  bool load(handle src, bool convert) {
+    type_caster<at::Tensor> conv;
+
+    if (!conv.load(src, convert)) {
+      return false;
+    }
+
+    try {
+      value = tmol::view_tensor<T, N, P>(conv);
+      return true;
+    } catch (at::Error err) {
+      return false;
+    }
+  }
+
+  // C++ -> Python cast operation not supported.
+};
+
+}  // namespace detail
+}  // namespace pybind11
