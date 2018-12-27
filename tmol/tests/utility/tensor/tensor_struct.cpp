@@ -1,9 +1,10 @@
-#include <tmol/utility/tensor/TensorAccessor.h>
-#include <tmol/utility/tensor/TensorUtil.h>
 #include <torch/torch.h>
 #include <cmath>
 #include <map>
 #include <string>
+
+#include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorUtil.h>
 
 struct TData {
   tmol::TView<int64_t, 1> a;

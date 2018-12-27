@@ -6,7 +6,7 @@ import toolz
 import tmol.utility.cpp_extension as cpp_extension
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def tensor_struct():
     return cpp_extension.load(
         "tensor_struct",

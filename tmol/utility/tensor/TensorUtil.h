@@ -1,13 +1,13 @@
 #pragma once
 
 #include <ATen/Error.h>
+#include <ATen/ScalarType.h>
 #include <ATen/Tensor.h>
-#include "ATen/ScalarType.h"
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include "TensorAccessor.h"
+#include <tmol/utility/tensor/TensorAccessor.h>
 
 #include <map>
 #include <string>
