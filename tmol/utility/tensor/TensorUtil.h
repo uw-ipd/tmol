@@ -15,8 +15,8 @@
 namespace tmol {
 
 template <typename ToT>
-struct can_view_tensor {
-  static const bool value = false;
+struct enable_tensor_view {
+  static const bool enabled = false;
 };
 
 #define FORALL_SCALAR_TYPES_EXCEPT_HALF(_) \
@@ -30,41 +30,37 @@ struct can_view_tensor {
 
 #define SCALAR_VIEW(ctype, stype)                    \
   template <>                                        \
-  struct can_view_tensor<ctype> {                    \
-    static const bool value = true;                  \
+  struct enable_tensor_view<ctype> {                 \
+    static const bool enabled = true;                \
     static const at::ScalarType scalar_type = stype; \
-    typedef ctype PType;                             \
+    typedef ctype PrimitiveType;                     \
   };
 
 FORALL_SCALAR_TYPES_EXCEPT_HALF(SCALAR_VIEW)
 #undef SCALAR_VIEW
 
 template <typename T, int N>
-struct can_view_tensor<Eigen::Matrix<T, N, 1>> {
-  static const bool value = can_view_tensor<T>::value;
-  static const at::ScalarType scalar_type = can_view_tensor<T>::scalar_type;
-  typedef typename can_view_tensor<T>::PType PType;
+struct enable_tensor_view<Eigen::Matrix<T, N, 1>> {
+  static const bool enabled = enable_tensor_view<T>::enabled;
+  static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
+  typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
 template <typename T, int N>
-struct can_view_tensor<Eigen::AlignedBox<T, N>> {
-  static const bool value = can_view_tensor<T>::value;
-  static const at::ScalarType scalar_type = can_view_tensor<T>::scalar_type;
-  typedef typename can_view_tensor<T>::PType PType;
+struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
+  static const bool enabled = enable_tensor_view<T>::enabled;
+  static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
+  typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
 template <
     typename T,
     int N,
     template <typename U> class PtrTraits = DefaultPtrTraits,
-    typename std::enable_if<can_view_tensor<T>::value>::type* = nullptr>
-tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor input_t) {
-  typedef typename can_view_tensor<T>::PType FromT;
+    typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
+tmol::TView<T, N, PtrTraits> _view_tensor(at::Tensor input_t) {
+  typedef typename enable_tensor_view<T>::PrimitiveType FromT;
 
-  auto input = input_t.accessor<FromT, N>();
-
-  int64_t sizes[N];
-  int64_t strides[N];
   static_assert(
       sizeof(T) % sizeof(FromT) == 0,
       "Cast target type must be even multiple size of source type.");
@@ -72,9 +68,14 @@ tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor input_t) {
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
   AT_ASSERTM(
-      input.size(N - 1) % stride_factor == 0,
+      input_t.size(N - 1) % stride_factor == 0,
       "Low-dimension shape must be even multiple of adjusted stride.")
-  AT_ASSERTM(input.stride(N - 1) == 1, "Must be c-contiguous.")
+  AT_ASSERTM(input_t.stride(N - 1) == 1, "Must be c-contiguous.")
+
+  auto input = input_t.accessor<FromT, N>();
+
+  int64_t sizes[N];
+  int64_t strides[N];
 
   for (int d = 0; d < N - 1; ++d) {
     sizes[d] = input.size(d);
@@ -92,7 +93,31 @@ template <
     typename T,
     int N,
     template <typename U> class PtrTraits = DefaultPtrTraits,
-    typename std::enable_if<can_view_tensor<T>::value>::type* = nullptr>
+    typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
+tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor input_t) {
+  typedef typename enable_tensor_view<T>::PrimitiveType FromT;
+  int64_t stride_factor = sizeof(T) / sizeof(FromT);
+
+  if (input_t.dim() == N + 1 && input_t.size(N) == stride_factor) {
+    // Implicitly convert an input tensor of result dims [..., 1]
+    // into a dim-1 view, squeezing off the last dimension.
+    auto full_view = _view_tensor<T, N + 1, PtrTraits>(input_t);
+
+    AT_ASSERTM(
+        full_view.size(N) == 1, "Expected low-dimension result shape 1.");
+
+    return tmol::TView<T, N, PtrTraits>(
+        full_view.data(), &full_view.size(0), &full_view.stride(0));
+  } else {
+    return _view_tensor<T, N, PtrTraits>(input_t);
+  }
+};
+
+template <
+    typename T,
+    int N,
+    template <typename U> class PtrTraits = DefaultPtrTraits,
+    typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
 tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor tensor, std::string name) {
   try {
     return view_tensor<T, N, PtrTraits>(tensor);
@@ -106,7 +131,7 @@ template <
     typename T,
     int N,
     template <typename U> class PtrTraits = DefaultPtrTraits,
-    typename std::enable_if<can_view_tensor<T>::value>::type* = nullptr>
+    typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
 tmol::TView<T, N, PtrTraits> view_tensor(
     std::map<std::string, at::Tensor> input_map, std::string member) {
   auto member_t = input_map.find(member);

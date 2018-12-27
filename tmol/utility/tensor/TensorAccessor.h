@@ -129,14 +129,19 @@ template <
 class TViewBase {
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
+  AT_HOST TViewBase() : data_(NULL) {
+    std::fill(sizes_, sizes_ + N, 0);
+    std::fill(strides_, strides_ + N, 0);
+  }
+
   AT_HOST TViewBase(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : data_(data_) {
     std::copy(sizes_, sizes_ + N, std::begin(this->sizes_));
     std::copy(strides_, strides_ + N, std::begin(this->strides_));
   }
-  AT_HOST_DEVICE int64_t stride(int64_t i) const { return strides_[i]; }
-  AT_HOST_DEVICE int64_t size(int64_t i) const { return sizes_[i]; }
+  AT_HOST_DEVICE const int64_t& stride(int64_t i) const { return strides_[i]; }
+  AT_HOST_DEVICE const int64_t& size(int64_t i) const { return sizes_[i]; }
   AT_HOST_DEVICE PtrType data() { return data_; }
   AT_HOST_DEVICE const PtrType data() const { return data_; }
 
@@ -156,6 +161,8 @@ class TView : public TViewBase<T, N, PtrTraits> {
 
   AT_HOST TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : TViewBase<T, N, PtrTraits>(data_, sizes_, strides_){};
+
+  AT_HOST TView() : TViewBase<T, N, PtrTraits>(){};
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1> operator[](int64_t i) {
     int64_t* new_sizes = this->sizes_ + 1;
@@ -178,6 +185,8 @@ class TView<T, 1, PtrTraits> : public TViewBase<T, 1, PtrTraits> {
   typedef typename PtrTraits<T>::PtrType PtrType;
   AT_HOST TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : TViewBase<T, 1, PtrTraits>(data_, sizes_, strides_){};
+
+  AT_HOST TView() : TViewBase<T, 1, PtrTraits>(){};
 
   AT_HOST_DEVICE T& operator[](int64_t i) {
     return this->data_[this->strides_[0] * i];
