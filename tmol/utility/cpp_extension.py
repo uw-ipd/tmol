@@ -10,7 +10,10 @@ import torch.utils.cpp_extension
 # Add warning filter for use of c++ (rather than g++) for extension
 # compilation. c++ is provided by g++ on our platform.
 warnings.filterwarnings(
-    "ignore", message=r"(\n|.)*\(c\+\+\) may be ABI-incompatible with PyTorch"
+    "ignore",
+    message=r"(\n|.)*"
+    r"x86_64-conda_cos6-linux-gnu-c\+\+.*"
+    r"may be ABI-incompatible with PyTorch(\n|.)*",
 )
 
 _default_include_paths = tmol_include_paths() + extern_include_paths()
