@@ -1,4 +1,8 @@
+import pytest
 from pytest import approx
+
+import torch
+from tmol.tests.autograd import gradcheck, VectorizedOp
 
 _hbond_global_params = dict(
     hb_sp2_range_span=1.6,
@@ -8,8 +12,9 @@ _hbond_global_params = dict(
 )
 
 
-def test_sp2_single_hbond():
-    from tmol.score.hbond.potentials.compiled import hbond_score, AcceptorType
+@pytest.fixture
+def sp2_test_params():
+    from tmol.score.hbond.potentials.compiled import AcceptorType
 
     hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -58,7 +63,7 @@ def test_sp2_single_hbond():
     donwt = 1.45
     accwt = 1.19
 
-    energy = hbond_score(
+    return dict(
         # Input coordinates
         d=atomD,
         h=atomH,
@@ -82,12 +87,10 @@ def test_sp2_single_hbond():
         **_hbond_global_params,
     )
 
-    # TODO Verify delta of .01 vs torch potential. Perhaps due to precision shift?
-    assert energy == approx(-2.40, abs=0.01)
 
-
-def test_sp3_single_hbond():
-    from tmol.score.hbond.potentials.compiled import hbond_score, AcceptorType
+@pytest.fixture
+def sp3_test_params():
+    from tmol.score.hbond.potentials.compiled import AcceptorType
 
     hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -147,7 +150,7 @@ def test_sp3_single_hbond():
     donwt = 1.45
     accwt = 1.15
 
-    energy = hbond_score(
+    return dict(
         # Input coordinates
         d=atomD,
         h=atomH,
@@ -171,11 +174,10 @@ def test_sp3_single_hbond():
         **_hbond_global_params,
     )
 
-    assert energy == approx(-2.00, abs=0.01)
 
-
-def test_ring_single_hbond():
-    from tmol.score.hbond.potentials.compiled import hbond_score, AcceptorType
+@pytest.fixture
+def ring_test_params():
+    from tmol.score.hbond.potentials.compiled import AcceptorType
 
     hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -234,7 +236,7 @@ def test_ring_single_hbond():
     donwt = 1.45
     accwt = 1.13
 
-    energy = hbond_score(
+    return dict(
         # Input coordinates
         d=atomD,
         h=atomH,
@@ -258,4 +260,49 @@ def test_ring_single_hbond():
         **_hbond_global_params,
     )
 
+
+def test_sp2_single_hbond(sp2_test_params):
+    from tmol.score.hbond.potentials.compiled import hbond_score
+
+    energy = hbond_score(**sp2_test_params)
+
+    # TODO Verify delta of .01 vs torch potential. Perhaps due to precision shift?
+    assert energy == approx(-2.40, abs=0.01)
+
+
+def test_sp3_single_hbond(sp3_test_params):
+    from tmol.score.hbond.potentials.compiled import hbond_score
+
+    energy = hbond_score(**sp3_test_params)
+
+    assert energy == approx(-2.00, abs=0.01)
+
+
+def test_ring_single_hbond(ring_test_params):
+
+    from tmol.score.hbond.potentials.compiled import hbond_score
+
+    energy = hbond_score(**ring_test_params)
+
     assert energy == approx(-2.17, abs=0.01)
+
+
+def test_AH_dist_gradcheck(sp2_test_params):
+    from tmol.score.hbond.potentials.compiled import AH_dist_v_d
+
+    def _t(t):
+        return torch.tensor(t).to(dtype=torch.double)
+
+    A = _t([[0.1, 0.1, v] for v in torch.arange(0, 3, 0.1)])
+    H = _t([0, 0, 0])
+
+    gradcheck(
+        VectorizedOp(AH_dist_v_d),
+        (
+            A.requires_grad_(True),
+            H.requires_grad_(True),
+            _t(sp2_test_params["AHdist_coeff"]),
+            _t(sp2_test_params["AHdist_range"]),
+            _t(sp2_test_params["AHdist_bound"]),
+        ),
+    )
