@@ -2,11 +2,8 @@ from pytest import approx
 
 import torch
 
-from toolz import merge, curry
-from numpy import array, dot, arctan2, cos, sin, cross, linspace, pi
-from numpy.linalg import norm
+from numpy import array, cos, sin, linspace, pi
 from scipy.stats import special_ortho_group
-import pandas
 
 from tmol.tests.autograd import gradcheck, VectorizedOp
 
@@ -19,40 +16,60 @@ def _vecs(theta):
 def test_interior_angle_values():
     from tmol.score.common.geom import interior_angle_V_dV, interior_angle_V
 
-    def angles(vs):
-        v1, v2 = vs
-        c = cross(v1, v2)
-        return dict(
-            arctan2=2 * arctan2(dot(c, c / norm(c)), norm(v1) * norm(v2) + dot(v1, v2)),
-            compiled_V_dV=float(interior_angle_V_dV(v1, v2)[0]),
-            compiled_V=interior_angle_V(v1, v2),
-            v1=v1,
-            v2=v2,
-        )
+    thetas = linspace(0, pi, 250, endpoint=False)
+    rot = special_ortho_group.rvs(3)
 
-    @curry
-    def tentry(theta, rot):
-        return merge(angles(_vecs(theta) @ rot), dict(theta=theta))
+    for theta in thetas:
+        v1, v2 = _vecs(theta)
 
-    rframe = pandas.DataFrame.from_records(
-        map(
-            tentry(rot=special_ortho_group.rvs(3)), linspace(0, pi, 250, endpoint=False)
-        )
-    )
+        assert interior_angle_V(v1, v2) == approx(theta)
+        assert interior_angle_V_dV(v1, v2)[0] == approx(theta)
 
-    assert array(rframe.compiled_V_dV) == approx(array(rframe.theta))
-    assert array(rframe.compiled_V) == approx(array(rframe.theta))
+        assert interior_angle_V(v1 @ rot, v2 @ rot) == approx(theta)
+        assert interior_angle_V_dV(v1 @ rot, v2 @ rot)[0] == approx(theta)
 
 
 def test_interior_angle_gradcheck():
     from tmol.score.common.geom import interior_angle_V_dV
 
-    v1, v2 = zip(*map(_vecs, linspace(1e-5, pi, 100, endpoint=False)))
+    thetas = linspace(1e-5, pi, 100, endpoint=False)
+    v1, v2 = array(list(map(_vecs, thetas))).swapaxes(0, 1)
 
     def _t(t):
         return torch.tensor(t).to(dtype=torch.double)
 
     gradcheck(
         VectorizedOp(interior_angle_V_dV),
+        (_t(array(v1)).requires_grad_(True), _t(array(v2)).requires_grad_(True)),
+    )
+
+
+def test_cos_interior_angle_values():
+    from tmol.score.common.geom import cos_interior_angle_V_dV, cos_interior_angle_V
+
+    thetas = linspace(0, pi, 250, endpoint=False)
+    rot = special_ortho_group.rvs(3)
+
+    for theta in thetas:
+        v1, v2 = _vecs(theta)
+
+        assert cos_interior_angle_V(v1, v2) == approx(cos(theta))
+        assert cos_interior_angle_V_dV(v1, v2)[0] == approx(cos(theta))
+
+        assert cos_interior_angle_V(v1 @ rot, v2 @ rot) == approx(cos(theta))
+        assert cos_interior_angle_V_dV(v1 @ rot, v2 @ rot)[0] == approx(cos(theta))
+
+
+def test_cos_interior_angle_gradcheck():
+    from tmol.score.common.geom import cos_interior_angle_V_dV
+
+    thetas = linspace(1e-5, pi, 100, endpoint=False)
+    v1, v2 = array(list(map(_vecs, thetas))).swapaxes(0, 1)
+
+    def _t(t):
+        return torch.tensor(t).to(dtype=torch.double)
+
+    gradcheck(
+        VectorizedOp(cos_interior_angle_V_dV),
         (_t(array(v1)).requires_grad_(True), _t(array(v2)).requires_grad_(True)),
     )
