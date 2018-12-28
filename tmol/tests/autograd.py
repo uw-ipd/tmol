@@ -252,7 +252,7 @@ class VectorizedOp:
                 *[_prep_grad(*v) for v in zip(tensor_args, raw_dv_di)]
             )
 
-            assert v.dim() == 1
+            assert v.dim() <= 1, "Expected scalar output."
 
             return v.sum()
 
