@@ -6,14 +6,21 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <tmol/score/common/geom.hh>
 #include <tmol/score/common/polynomial.hh>
-#include <tmol/score/common/vec.hh>
 
 namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
+
 using namespace tmol::score::common;
+using std::tuple;
+
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
+
+#define Real3 Vec<Real, 3>
 
 enum struct AcceptorType {
   sp2,
@@ -21,71 +28,37 @@ enum struct AcceptorType {
   ring,
 };
 
-template <int PDim, typename Real>
-Real bound_poly_v(
-    const Real& x,
-    const Vec<PDim, Real>& coeffs,
-    const Vec<2, Real>& range,
-    const Vec<2, Real>& bound) {
-  if (x < range[0]) {
-    return bound[0];
-  } else if (x > range[1]) {
-    return bound[1];
-  } else {
-    return poly_v(x, coeffs);
-  }
-}
+template <typename Real>
+auto AH_dist_V_dV(
+    Real3 A,
+    Real3 H,
+    Vec<Real, 11> AHdist_coeff,
+    Vec<Real, 2> AHdist_range,
+    Vec<Real, 2> AHdist_bound) -> tuple<Real, Real3, Real3> {
+  auto [D, dD_dA, dD_dH] = distance_V_dV(A, H);
+  auto [V, dV_dD] =
+      bound_poly_V_dV(D, AHdist_coeff, AHdist_range, AHdist_bound);
 
-template <int PDim, typename Real>
-std::tuple<Real, Real> bound_poly_v_d(
-    const Real& x,
-    const Vec<PDim, Real>& coeffs,
-    const Vec<2, Real>& range,
-    const Vec<2, Real>& bound) {
-  if (x < range[0]) {
-    return {bound[0], 0};
-  } else if (x > range[1]) {
-    return {bound[1], 0};
-  } else {
-    return poly_v_d(x, coeffs);
-  }
+  return {V, dV_dD * dD_dA, dV_dD * dD_dH};
 }
 
 template <typename Real>
-Real AH_dist_v(
-    const Vec<3, Real>& h,
-    const Vec<3, Real>& a,
-    const Vec<11, Real>& AHdist_coeff,
-    const Vec<2, Real>& AHdist_range,
-    const Vec<2, Real>& AHdist_bound) {
-  return bound_poly_v((a - h).norm(), AHdist_coeff, AHdist_range, AHdist_bound);
+auto AHD_angle_V_dV(
+    Real3 A,
+    Real3 H,
+    Real3 D,
+    Vec<Real, 11> cosAHD_coeff,
+    Vec<Real, 2> cosAHD_range,
+    Vec<Real, 2> cosAHD_bound) -> tuple<Real, Real3, Real3, Real3> {
+  auto [AHD, dAHD_dA, dAHD_dH, dAHD_dD] = pt_interior_angle_V_dV(A, H, D);
+  auto [V, dV_dAHD] =
+      bound_poly_V_dV(AHD, cosAHD_coeff, cosAHD_range, cosAHD_bound);
+
+  return {V, dV_dAHD * dAHD_dA, dV_dAHD * dAHD_dH, dV_dAHD * dAHD_dD};
 }
 
 template <typename Real>
-std::tuple<Real, Vec<3, Real>, Vec<3, Real>> AH_dist_v_d(
-    const Vec<3, Real>& h,
-    const Vec<3, Real>& a,
-    const Vec<11, Real>& AHdist_coeff,
-    const Vec<2, Real>& AHdist_range,
-    const Vec<2, Real>& AHdist_bound) {
-  Real n = (a - h).norm();
-
-  auto [v, d_v_d_n] =
-      bound_poly_v_d(n, AHdist_coeff, AHdist_range, AHdist_bound);
-
-  Vec<3, Real> d_v_d_h = d_v_d_n * (h - a) / n;
-  Vec<3, Real> d_v_d_a = d_v_d_n * (a - h) / n;
-
-  return {v, d_v_d_h, d_v_d_a};
-}
-
-template <typename Real>
-Real sp2chi_energy(
-    const Real& d,
-    const Real& m,
-    const Real& l,
-    const Real& BAH,
-    const Real& chi) {
+Real sp2chi_energy(Real d, Real m, Real l, Real BAH, Real chi) {
   const Real pi = EIGEN_PI;
 
   Real H = 0.5 * (std::cos(2 * chi) + 1);
@@ -114,34 +87,34 @@ Real sp2chi_energy(
 template <typename Real>
 Real hbond_score(
     // coordinates
-    const Vec<3, Real>& d,
-    const Vec<3, Real>& h,
-    const Vec<3, Real>& a,
-    const Vec<3, Real>& b,
-    const Vec<3, Real>& b0,
+    Vec<Real, 3> d,
+    Vec<Real, 3> h,
+    Vec<Real, 3> a,
+    Vec<Real, 3> b,
+    Vec<Real, 3> b0,
 
     // type pair parameters
-    const AcceptorType& acceptor_type,
-    const Real& glob_accwt,
-    const Real& glob_donwt,
+    AcceptorType acceptor_type,
+    Real glob_accwt,
+    Real glob_donwt,
 
-    const Vec<11, Real>& AHdist_coeff,
-    const Vec<2, Real>& AHdist_range,
-    const Vec<2, Real>& AHdist_bound,
+    Vec<Real, 11> AHdist_coeff,
+    Vec<Real, 2> AHdist_range,
+    Vec<Real, 2> AHdist_bound,
 
-    const Vec<11, Real>& cosBAH_coeff,
-    const Vec<2, Real>& cosBAH_range,
-    const Vec<2, Real>& cosBAH_bound,
+    Vec<Real, 11> cosBAH_coeff,
+    Vec<Real, 2> cosBAH_range,
+    Vec<Real, 2> cosBAH_bound,
 
-    const Vec<11, Real>& cosAHD_coeff,
-    const Vec<2, Real>& cosAHD_range,
-    const Vec<2, Real>& cosAHD_bound,
+    Vec<Real, 11> cosAHD_coeff,
+    Vec<Real, 2> cosAHD_range,
+    Vec<Real, 2> cosAHD_bound,
 
     // Global score parameters
-    const Real& hb_sp2_range_span,
-    const Real& hb_sp2_BAH180_rise,
-    const Real& hb_sp2_outer_width,
-    const Real& hb_sp3_softmax_fade) {
+    Real hb_sp2_range_span,
+    Real hb_sp2_BAH180_rise,
+    Real hb_sp2_outer_width,
+    Real hb_sp3_softmax_fade) {
   const Real pi = EIGEN_PI;
 
   Real energy = 0.0;
@@ -149,33 +122,28 @@ Real hbond_score(
   // Using Real3 nomenclature... xD = cos(pi - AHD); xH = cos(pi - BAH)
 
   // A-H Distance Component
-  energy += AH_dist_v(a, h, AHdist_coeff, AHdist_range, AHdist_bound);
+  energy +=
+      std::get<0>(AH_dist_V_dV(a, h, AHdist_coeff, AHdist_range, AHdist_bound));
 
   // AHD Angle Component
-  // in non-cos space
-  Vec<3, Real> AH_unit_vec = (h - a).normalized();
-  Vec<3, Real> HD_unit_vec = (d - h).normalized();
-
-  Real xD = AH_unit_vec.dot(HD_unit_vec);
-  Real AHD = pi - std::acos(xD);
-  Real P_AHD = bound_poly_v(AHD, cosAHD_coeff, cosAHD_range, cosAHD_bound);
-  energy += P_AHD;
+  energy += std::get<0>(
+      AHD_angle_V_dV(a, h, d, cosAHD_coeff, cosAHD_range, cosAHD_bound));
 
   // BAH Angle Component
   // in cos space
-  Vec<3, Real> BA_base_b =
-      (acceptor_type == AcceptorType::ring) ? 0.5 * (b + b0) : b;
-  Vec<3, Real> BA_unit_vec = (a - BA_base_b).normalized();
+  Real3 AH_unit_vec = (h - a).normalized();
+  Real3 BA_base_b = (acceptor_type == AcceptorType::ring) ? 0.5 * (b + b0) : b;
+  Real3 BA_unit_vec = (a - BA_base_b).normalized();
 
   Real xH = AH_unit_vec.dot(BA_unit_vec);
-  Real PxH = bound_poly_v(xH, cosBAH_coeff, cosBAH_range, cosBAH_bound);
+  Real PxH = bound_poly_V(xH, cosBAH_coeff, cosBAH_range, cosBAH_bound);
 
   if (acceptor_type == AcceptorType::sp3) {
     Real PxH1 = PxH;
 
-    Vec<3, Real> B0A_unit_vec = (a - b0).normalized();
+    Real3 B0A_unit_vec = (a - b0).normalized();
     Real xH2 = AH_unit_vec.dot(B0A_unit_vec);
-    Real PxH2 = bound_poly_v(xH2, cosBAH_coeff, cosBAH_range, cosBAH_bound);
+    Real PxH2 = bound_poly_V(xH2, cosBAH_coeff, cosBAH_range, cosBAH_bound);
 
     PxH =
         (1.0 / hb_sp3_softmax_fade
@@ -189,7 +157,7 @@ Real hbond_score(
   // SP-2 Chi Angle Component
   if (acceptor_type == AcceptorType::sp2) {
     Real BAH = pi - std::acos(xH);
-    Vec<3, Real> BB0_unit_vec = (b0 - b).normalized();
+    Real3 BB0_unit_vec = (b0 - b).normalized();
     Real xchi =
         BB0_unit_vec.dot(AH_unit_vec)
         - (BB0_unit_vec.dot(BA_unit_vec) * BA_unit_vec.dot(AH_unit_vec));
@@ -215,6 +183,7 @@ Real hbond_score(
   return energy;
 }
 
+#undef Real3
 }  // namespace potentials
 }  // namespace hbond
 }  // namespace score

@@ -9,12 +9,12 @@ namespace tmol {
 namespace score {
 namespace common {
 
-using namespace std;
+using std::tuple;
 
-template <int N, typename Real>
+template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-#define Real3 Vec<3, Real>
+#define Real3 Vec<Real, 3>
 
 template <typename Real>
 Real distance_V(Real3 A, Real3 B) {

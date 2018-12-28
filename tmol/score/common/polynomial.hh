@@ -4,14 +4,16 @@
 
 #include <Eigen/Core>
 
-#include <tmol/score/common/vec.hh>
-
 namespace tmol {
 namespace score {
 namespace common {
 
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
+using std::tuple;
+
 template <int POrd, typename Real>
-Real poly_v(const Real& x, const Vec<POrd, Real>& coeffs) {
+Real poly_v(Real x, Vec<Real, POrd> coeffs) {
   static_assert(POrd >= 2);
   Real v = coeffs(0);
 
@@ -24,7 +26,7 @@ Real poly_v(const Real& x, const Vec<POrd, Real>& coeffs) {
 }
 
 template <int POrd, typename Real>
-std::tuple<Real, Real> poly_v_d(const Real& x, const Vec<POrd, Real>& coeffs) {
+auto poly_v_d(Real x, Vec<Real, POrd> coeffs) -> tuple<Real, Real> {
   static_assert(POrd >= 2);
   Real v = coeffs(0);
   Real d = coeffs(0);
@@ -38,6 +40,34 @@ std::tuple<Real, Real> poly_v_d(const Real& x, const Vec<POrd, Real>& coeffs) {
   v = v * x + coeffs[POrd - 1];
 
   return {v, d};
+}
+
+template <int PDim, typename Real>
+Real bound_poly_V(
+    const Real& x,
+    const Vec<Real, PDim>& coeffs,
+    const Vec<Real, 2>& range,
+    const Vec<Real, 2>& bound) {
+  if (x < range[0]) {
+    return bound[0];
+  } else if (x > range[1]) {
+    return bound[1];
+  } else {
+    return poly_v(x, coeffs);
+  }
+}
+
+template <int PDim, typename Real>
+auto bound_poly_V_dV(
+    Real x, Vec<Real, PDim> coeffs, Vec<Real, 2> range, Vec<Real, 2> bound)
+    -> tuple<Real, Real> {
+  if (x < range[0]) {
+    return {bound[0], 0};
+  } else if (x > range[1]) {
+    return {bound[1], 0};
+  } else {
+    return poly_v_d(x, coeffs);
+  }
 }
 
 }  // namespace common

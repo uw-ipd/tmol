@@ -266,8 +266,7 @@ def test_sp2_single_hbond(sp2_test_params):
 
     energy = hbond_score(**sp2_test_params)
 
-    # TODO Verify delta of .01 vs torch potential. Perhaps due to precision shift?
-    assert energy == approx(-2.40, abs=0.01)
+    assert energy == approx(-2.39, abs=0.01)
 
 
 def test_sp3_single_hbond(sp3_test_params):
@@ -288,7 +287,7 @@ def test_ring_single_hbond(ring_test_params):
 
 
 def test_AH_dist_gradcheck(sp2_test_params):
-    from tmol.score.hbond.potentials.compiled import AH_dist_v_d
+    from tmol.score.hbond.potentials.compiled import AH_dist_V_dV
 
     def _t(t):
         return torch.tensor(t).to(dtype=torch.double)
@@ -297,12 +296,31 @@ def test_AH_dist_gradcheck(sp2_test_params):
     H = _t([0, 0, 0])
 
     gradcheck(
-        VectorizedOp(AH_dist_v_d),
+        VectorizedOp(AH_dist_V_dV),
         (
             A.requires_grad_(True),
             H.requires_grad_(True),
             _t(sp2_test_params["AHdist_coeff"]),
             _t(sp2_test_params["AHdist_range"]),
             _t(sp2_test_params["AHdist_bound"]),
+        ),
+    )
+
+
+def test_AHD_angle_gradcheck(sp2_test_params):
+    from tmol.score.hbond.potentials.compiled import AHD_angle_V_dV
+
+    def _t(t):
+        return torch.tensor(t).to(dtype=torch.double)
+
+    gradcheck(
+        VectorizedOp(AHD_angle_V_dV),
+        (
+            _t(sp2_test_params["a"]).requires_grad_(True),
+            _t(sp2_test_params["h"]).requires_grad_(True),
+            _t(sp2_test_params["d"]).requires_grad_(True),
+            _t(sp2_test_params["cosAHD_coeff"]),
+            _t(sp2_test_params["cosAHD_range"]),
+            _t(sp2_test_params["cosAHD_bound"]),
         ),
     )

@@ -10,22 +10,23 @@ void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
 
   m.def(
-      "AH_dist_v",
-      &AH_dist_v<Real>,
-      "h"_a,
+      "AH_dist_V_dV",
+      &AH_dist_V_dV<Real>,
       "a"_a,
+      "h"_a,
       "AHdist_coeff"_a,
       "AHdist_range"_a,
       "AHdist_bound"_a);
 
   m.def(
-      "AH_dist_v_d",
-      &AH_dist_v_d<Real>,
-      "h"_a,
-      "a"_a,
-      "AHdist_coeff"_a,
-      "AHdist_range"_a,
-      "AHdist_bound"_a);
+      "AHD_angle_V_dV",
+      &AHD_angle_V_dV<Real>,
+      "A"_a,
+      "H"_a,
+      "D"_a,
+      "cosAHD_coeff"_a,
+      "cosAHD_range"_a,
+      "cosAHD_bound"_a);
 
   m.def(
       "hbond_score",
