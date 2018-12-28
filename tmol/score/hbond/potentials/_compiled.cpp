@@ -29,8 +29,21 @@ void bind_potentials(pybind11::module& m) {
       "cosAHD_bound"_a);
 
   m.def(
+      "BAH_angle_V_dV",
+      &BAH_angle_V_dV<Real, int>,
+      "B"_a,
+      "B0"_a,
+      "A"_a,
+      "H"_a,
+      "acceptor_type"_a,
+      "cosBAH_coeff"_a,
+      "cosBAH_range"_a,
+      "cosBAH_bound"_a,
+      "hb_sp3_softmax_fade"_a);
+
+  m.def(
       "hbond_score",
-      &hbond_score<Real>,
+      &hbond_score<Real, int>,
       "HBond donor-acceptor geometry score.",
 
       "d"_a,
@@ -68,9 +81,4 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
   bind_potentials<float>(m);
   bind_potentials<double>(m);
-
-  py::enum_<AcceptorType>(m, "AcceptorType")
-      .value("sp2", AcceptorType::sp2)
-      .value("sp3", AcceptorType::sp3)
-      .value("ring", AcceptorType::ring);
 }

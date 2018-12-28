@@ -88,14 +88,14 @@ auto cos_interior_angle_V_dV(Real3 A, Real3 B) -> tuple<Real, Real3, Real3> {
 }
 
 template <typename Real>
-Real cos_pt_interior_angle_V(Real3 A, Real3 B, Real3 C) {
+Real pt_cos_interior_angle_V(Real3 A, Real3 B, Real3 C) {
   Real3 BA = A - B;
   Real3 BC = C - B;
   return cos_interior_angle_V(BA, BC);
 }
 
 template <typename Real>
-auto cos_pt_interior_angle_V_dV(Real3 A, Real3 B, Real3 C)
+auto pt_cos_interior_angle_V_dV(Real3 A, Real3 B, Real3 C)
     -> tuple<Real, Real3, Real3, Real3> {
   Real3 BA = A - B;
   Real3 BC = C - B;

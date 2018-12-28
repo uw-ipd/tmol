@@ -13,8 +13,16 @@ _hbond_global_params = dict(
 
 
 @pytest.fixture
-def sp2_test_params():
-    from tmol.score.hbond.potentials.compiled import AcceptorType
+def compiled():
+    """Move compilation to test fixture to report compilation errors as test failure."""
+    import tmol.score.hbond.potentials.compiled
+
+    return tmol.score.hbond.potentials.compiled
+
+
+@pytest.fixture
+def sp2_params(compiled):
+    AcceptorType = compiled.AcceptorType
 
     hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -89,8 +97,8 @@ def sp2_test_params():
 
 
 @pytest.fixture
-def sp3_test_params():
-    from tmol.score.hbond.potentials.compiled import AcceptorType
+def sp3_params(compiled):
+    AcceptorType = compiled.AcceptorType
 
     hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -176,8 +184,8 @@ def sp3_test_params():
 
 
 @pytest.fixture
-def ring_test_params():
-    from tmol.score.hbond.potentials.compiled import AcceptorType
+def ring_params(compiled):
+    AcceptorType = compiled.AcceptorType
 
     hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
@@ -261,66 +269,67 @@ def ring_test_params():
     )
 
 
-def test_sp2_single_hbond(sp2_test_params):
-    from tmol.score.hbond.potentials.compiled import hbond_score
-
-    energy = hbond_score(**sp2_test_params)
-
-    assert energy == approx(-2.39, abs=0.01)
+def test_point_scores(compiled, sp2_params, sp3_params, ring_params):
+    assert compiled.hbond_score(**sp2_params) == approx(-2.39, abs=0.01)
+    assert compiled.hbond_score(**sp3_params) == approx(-2.00, abs=0.01)
+    assert compiled.hbond_score(**ring_params) == approx(-2.17, abs=0.01)
 
 
-def test_sp3_single_hbond(sp3_test_params):
-    from tmol.score.hbond.potentials.compiled import hbond_score
-
-    energy = hbond_score(**sp3_test_params)
-
-    assert energy == approx(-2.00, abs=0.01)
-
-
-def test_ring_single_hbond(ring_test_params):
-
-    from tmol.score.hbond.potentials.compiled import hbond_score
-
-    energy = hbond_score(**ring_test_params)
-
-    assert energy == approx(-2.17, abs=0.01)
-
-
-def test_AH_dist_gradcheck(sp2_test_params):
-    from tmol.score.hbond.potentials.compiled import AH_dist_V_dV
-
+def test_AH_dist_gradcheck(compiled, sp2_params, sp3_params, ring_params):
     def _t(t):
         return torch.tensor(t).to(dtype=torch.double)
 
-    A = _t([[0.1, 0.1, v] for v in torch.arange(0, 3, 0.1)])
-    H = _t([0, 0, 0])
+    for params in (sp2_params, sp3_params, ring_params):
 
-    gradcheck(
-        VectorizedOp(AH_dist_V_dV),
-        (
-            A.requires_grad_(True),
-            H.requires_grad_(True),
-            _t(sp2_test_params["AHdist_coeff"]),
-            _t(sp2_test_params["AHdist_range"]),
-            _t(sp2_test_params["AHdist_bound"]),
-        ),
-    )
+        A = _t([[0.1, 0.1, v] for v in torch.arange(0, 3, 0.1)])
+        H = _t([0, 0, 0])
+
+        gradcheck(
+            VectorizedOp(compiled.AH_dist_V_dV),
+            (
+                A.requires_grad_(True),
+                H.requires_grad_(True),
+                _t(params["AHdist_coeff"]),
+                _t(params["AHdist_range"]),
+                _t(params["AHdist_bound"]),
+            ),
+        )
 
 
-def test_AHD_angle_gradcheck(sp2_test_params):
-    from tmol.score.hbond.potentials.compiled import AHD_angle_V_dV
-
+def test_AHD_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
     def _t(t):
         return torch.tensor(t).to(dtype=torch.double)
 
-    gradcheck(
-        VectorizedOp(AHD_angle_V_dV),
-        (
-            _t(sp2_test_params["a"]).requires_grad_(True),
-            _t(sp2_test_params["h"]).requires_grad_(True),
-            _t(sp2_test_params["d"]).requires_grad_(True),
-            _t(sp2_test_params["cosAHD_coeff"]),
-            _t(sp2_test_params["cosAHD_range"]),
-            _t(sp2_test_params["cosAHD_bound"]),
-        ),
-    )
+    for params in (sp2_params, sp3_params, ring_params):
+        gradcheck(
+            VectorizedOp(compiled.AHD_angle_V_dV),
+            (
+                _t(params["a"]).requires_grad_(True),
+                _t(params["h"]).requires_grad_(True),
+                _t(params["d"]).requires_grad_(True),
+                _t(params["cosAHD_coeff"]),
+                _t(params["cosAHD_range"]),
+                _t(params["cosAHD_bound"]),
+            ),
+        )
+
+
+def test_BAH_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
+    def _t(t):
+        return torch.tensor(t).to(dtype=torch.double)
+
+    for params in (sp2_params, sp3_params, ring_params):
+        gradcheck(
+            VectorizedOp(compiled.BAH_angle_V_dV),
+            (
+                _t(params["b"]).requires_grad_(True),
+                _t(params["b0"]).requires_grad_(True),
+                _t(params["a"]).requires_grad_(True),
+                _t(params["h"]).requires_grad_(True),
+                _t(params["acceptor_type"]).to(dtype=torch.int32),
+                _t(params["cosBAH_coeff"]),
+                _t(params["cosBAH_range"]),
+                _t(params["cosBAH_bound"]),
+                _t(params["hb_sp3_softmax_fade"]),
+            ),
+        )
