@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <tuple>
+#include <utility>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -13,6 +14,21 @@ namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
+
+// Support functions for tuple value aggregation
+namespace internal {
+template <typename T, typename T2, size_t... Is>
+void add_rhs_to_lhs(T& t1, const T2& t2, std::integer_sequence<size_t, Is...>) {
+  auto l = {(std::get<Is>(t1) += std::get<Is>(t2), 0)...};
+  (void)l;
+}
+
+}  // namespace internal
+
+template <typename... T, typename... T2>
+void add(std::tuple<T&...> lhs, const std::tuple<T2...>& rhs) {
+  internal::add_rhs_to_lhs(lhs, rhs, std::index_sequence_for<T...>{});
+}
 
 using namespace tmol::score::common;
 using std::tie;
@@ -211,13 +227,13 @@ auto B0BAH_chi_V_dV(
 }
 
 template <typename Real, typename Int>
-Real hbond_score(
+auto hbond_score_V_dV(
     // coordinates
-    Vec<Real, 3> d,
-    Vec<Real, 3> h,
-    Vec<Real, 3> a,
-    Vec<Real, 3> b,
-    Vec<Real, 3> b0,
+    Real3 d,
+    Real3 h,
+    Real3 a,
+    Real3 b,
+    Real3 b0,
 
     // type pair parameters
     Int acceptor_type,
@@ -240,53 +256,77 @@ Real hbond_score(
     Real hb_sp2_range_span,
     Real hb_sp2_BAH180_rise,
     Real hb_sp2_outer_width,
-    Real hb_sp3_softmax_fade) {
+    Real hb_sp3_softmax_fade)
+    -> tuple<Real, Real3, Real3, Real3, Real3, Real3> {
   const Real pi = EIGEN_PI;
 
-  Real energy = 0.0;
+  Real E = 0.0;
+  Real3 dE_dD = {0, 0, 0};
+  Real3 dE_dH = {0, 0, 0};
+  Real3 dE_dA = {0, 0, 0};
+  Real3 dE_dB = {0, 0, 0};
+  Real3 dE_dB0 = {0, 0, 0};
 
   // A-H Distance Component
-  energy +=
-      std::get<0>(AH_dist_V_dV(a, h, AHdist_coeff, AHdist_range, AHdist_bound));
+  add(tie(E, dE_dA, dE_dH),
+      AH_dist_V_dV(a, h, AHdist_coeff, AHdist_range, AHdist_bound));
 
   // AHD Angle Component
-  energy += std::get<0>(
+  add(tie(E, dE_dA, dE_dH, dE_dD),
       AHD_angle_V_dV(a, h, d, cosAHD_coeff, cosAHD_range, cosAHD_bound));
 
   // BAH Angle Component
-  energy += std::get<0>(BAH_angle_V_dV(
-      b,
-      b0,
-      a,
-      h,
-      acceptor_type,
-      cosBAH_coeff,
-      cosBAH_range,
-      cosBAH_bound,
-      hb_sp3_softmax_fade));
+  add(tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
+      BAH_angle_V_dV(
+          b,
+          b0,
+          a,
+          h,
+          acceptor_type,
+          cosBAH_coeff,
+          cosBAH_range,
+          cosBAH_bound,
+          hb_sp3_softmax_fade));
 
   // B0BAH Chi Component
-  energy += std::get<0>(B0BAH_chi_V_dV(
-      b0,
-      b,
-      a,
-      h,
-      acceptor_type,
-      hb_sp2_BAH180_rise,
-      hb_sp2_range_span,
-      hb_sp2_outer_width));
+  add(tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
+      B0BAH_chi_V_dV(
+          b0,
+          b,
+          a,
+          h,
+          acceptor_type,
+          hb_sp2_BAH180_rise,
+          hb_sp2_range_span,
+          hb_sp2_outer_width));
 
   // Donor/Acceptor Weighting
-  energy *= glob_accwt * glob_donwt;
+  E *= glob_accwt * glob_donwt;
+  dE_dD *= glob_accwt * glob_donwt;
+  dE_dH *= glob_accwt * glob_donwt;
+  dE_dA *= glob_accwt * glob_donwt;
+  dE_dB *= glob_accwt * glob_donwt;
+  dE_dB0 *= glob_accwt * glob_donwt;
 
   // Truncate and Fade [-0.1,0.1] to [-0.1,0.0]
-  if (energy > 0.1) {
-    energy = 0.0;
-  } else if (energy > -0.1) {
-    energy = (-0.025 + 0.5 * energy - 2.5 * energy * energy);
+  if (E > 0.1) {
+    E = 0;
+    dE_dD = {0, 0, 0};
+    dE_dH = {0, 0, 0};
+    dE_dA = {0, 0, 0};
+    dE_dB = {0, 0, 0};
+    dE_dB0 = {0, 0, 0};
+
+  } else if (E > -0.1) {
+    E = (-0.025 + 0.5 * E - 2.5 * E * E);
+    dE_dD *= -5.0 * E + 0.5;
+    dE_dH *= -5.0 * E + 0.5;
+    dE_dA *= -5.0 * E + 0.5;
+    dE_dB *= -5.0 * E + 0.5;
+    dE_dB0 *= -5.0 * E + 0.5;
   }
 
-  return energy;
+  return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
 }
 
 #undef Real3

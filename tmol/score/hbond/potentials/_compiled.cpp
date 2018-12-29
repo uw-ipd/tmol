@@ -51,8 +51,8 @@ void bind_potentials(pybind11::module& m) {
       "hb_sp2_outer_width"_a);
 
   m.def(
-      "hbond_score",
-      &hbond_score<Real, int>,
+      "hbond_score_V_dV",
+      &hbond_score_V_dV<Real, int>,
       "HBond donor-acceptor geometry score.",
 
       "d"_a,

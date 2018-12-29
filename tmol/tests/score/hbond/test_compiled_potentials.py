@@ -1,9 +1,12 @@
 import pytest
 from pytest import approx
+from toolz import valmap
 
 import numpy
 import torch
 from tmol.tests.autograd import gradcheck, VectorizedOp
+from tmol.utility.args import _signature
+
 
 _hbond_global_params = dict(
     hb_sp2_range_span=1.6,
@@ -270,10 +273,37 @@ def ring_params(compiled):
     )
 
 
-def test_point_scores(compiled, sp2_params, sp3_params, ring_params):
-    assert compiled.hbond_score(**sp2_params) == approx(-2.39, abs=0.01)
-    assert compiled.hbond_score(**sp3_params) == approx(-2.00, abs=0.01)
-    assert compiled.hbond_score(**ring_params) == approx(-2.17, abs=0.01)
+def test_hbond_point_scores(compiled, sp2_params, sp3_params, ring_params):
+    assert compiled.hbond_score_V_dV(**sp2_params)[0] == approx(-2.40, abs=0.01)
+    assert compiled.hbond_score_V_dV(**sp3_params)[0] == approx(-2.00, abs=0.01)
+    assert compiled.hbond_score_V_dV(**ring_params)[0] == approx(-2.17, abs=0.01)
+
+
+def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_params):
+    def _t(t):
+        return torch.tensor(t).to(dtype=torch.double)
+
+    def targs(params):
+        args = _signature(compiled.hbond_score_V_dV).bind(**valmap(_t, params)).kwargs
+
+        args["d"] = args["d"].requires_grad_(True)
+        args["h"] = args["h"].requires_grad_(True)
+        args["a"] = args["a"].requires_grad_(True)
+        args["b"] = args["b"].requires_grad_(True)
+        args["b0"] = args["b0"].requires_grad_(True)
+        args["acceptor_type"] = args["acceptor_type"].to(dtype=torch.int32)
+        return tuple(args.values())
+
+    op = VectorizedOp(compiled.hbond_score_V_dV)
+
+    assert float(op(*targs(sp2_params))) == approx(-2.40, abs=0.01)
+    gradcheck(op, targs(sp2_params))
+
+    assert float(op(*targs(sp3_params))) == approx(-2.00, abs=0.01)
+    gradcheck(op, targs(sp3_params))
+
+    assert float(op(*targs(ring_params))) == approx(-2.17, abs=0.01)
+    gradcheck(op, targs(ring_params))
 
 
 def test_AH_dist_gradcheck(compiled, sp2_params, sp3_params, ring_params):
