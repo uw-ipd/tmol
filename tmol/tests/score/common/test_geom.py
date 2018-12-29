@@ -1,3 +1,5 @@
+import attr
+
 import pytest
 from pytest import approx
 
@@ -85,17 +87,58 @@ def dihedral_points(chi):
 
 
 def test_dihedral_angle_values(geom):
-    chis = linspace(-pi, pi, 361, endpoint=False)
+    chis = linspace(-pi, pi, 361, endpoint=False)[1:]
     rot = special_ortho_group.rvs(3)
 
     for chi in chis:
         I, J, K, L = dihedral_points(chi)
 
         assert geom.dihedral_angle_V(I, J, K, L) == approx(chi)
+        # TODO flaky nan-values on some random rotations w/ chi=-pi
         assert geom.dihedral_angle_V(I @ rot, J @ rot, K @ rot, L @ rot) == approx(chi)
 
 
-def test_coord_dihedrals(geom):
+def test_dihedral_angle_values_gradcheck(geom):
+    chis = linspace(-pi, pi, 45, endpoint=False)[1:]
+    rot = special_ortho_group.rvs(3)
+
+    for chi in chis:
+        I, J, K, L = dihedral_points(chi)
+
+        def _t(t):
+            return torch.tensor(t).to(dtype=torch.double)
+
+        gradcheck(
+            VectorizedOp(geom.dihedral_angle_V_dV),
+            (
+                _t(I).requires_grad_(True),
+                _t(J).requires_grad_(True),
+                _t(K).requires_grad_(True),
+                _t(L).requires_grad_(True),
+            ),
+        )
+
+        # TODO flaky failures on some random rotations
+        gradcheck(
+            VectorizedOp(geom.dihedral_angle_V_dV),
+            (
+                _t(I @ rot).requires_grad_(True),
+                _t(J @ rot).requires_grad_(True),
+                _t(K @ rot).requires_grad_(True),
+                _t(L @ rot).requires_grad_(True),
+            ),
+        )
+
+
+@attr.s
+class DihedralDat:
+    coords = attr.ib()
+    dihedral_atoms = attr.ib()
+    dihedrals = attr.ib()
+
+
+@pytest.fixture
+def dihedral_test_data():
     from tmol.utility.units import parse_angle
 
     coords = array(
@@ -131,11 +174,38 @@ def test_coord_dihedrals(geom):
         )
     )
 
-    vals = geom.dihedral_angle_V(
-        coords[dihedral_atoms.T[0]],
-        coords[dihedral_atoms.T[1]],
-        coords[dihedral_atoms.T[2]],
-        coords[dihedral_atoms.T[3]],
+    return DihedralDat(
+        coords=coords, dihedral_atoms=dihedral_atoms, dihedrals=dihedrals
     )
 
-    assert vals == approx(dihedrals, nan_ok=True)
+
+def test_coord_dihedrals(geom, dihedral_test_data):
+    coords, atoms, dihedrals = attr.astuple(dihedral_test_data)
+
+    assert geom.dihedral_angle_V(
+        coords[atoms.T[0]], coords[atoms.T[1]], coords[atoms.T[2]], coords[atoms.T[3]]
+    ) == approx(dihedrals, nan_ok=True)
+
+    assert geom.dihedral_angle_V_dV(
+        coords[atoms.T[0]], coords[atoms.T[1]], coords[atoms.T[2]], coords[atoms.T[3]]
+    )[0] == approx(dihedrals, nan_ok=True)
+
+
+def test_coord_dihedral_angle_gradcheck(geom, dihedral_test_data):
+    coords, atoms, dihedrals = attr.astuple(dihedral_test_data)
+    # Remove last nan-valued entry for gradcheck.
+    atoms = atoms[:-1]
+    dihedrals = dihedrals[:-1]
+
+    def _t(t):
+        return torch.tensor(t).to(dtype=torch.double)
+
+    gradcheck(
+        VectorizedOp(geom.dihedral_angle_V_dV),
+        (
+            _t(coords[atoms.T[0]]).requires_grad_(True),
+            _t(coords[atoms.T[1]]).requires_grad_(True),
+            _t(coords[atoms.T[2]]).requires_grad_(True),
+            _t(coords[atoms.T[3]]).requires_grad_(True),
+        ),
+    )

@@ -253,6 +253,9 @@ class VectorizedOp:
             )
 
             assert v.dim() <= 1, "Expected scalar output."
+            assert not torch.isnan(
+                v.sum()
+            ).any(), "Autograd test operation does not support nan-valued functions."
 
             return v.sum()
 

@@ -105,16 +105,44 @@ auto pt_cos_interior_angle_V_dV(Real3 A, Real3 B, Real3 C)
 
 template <typename Real>
 Real dihedral_angle_V(Real3 I, Real3 J, Real3 K, Real3 L) {
-  auto IJ = J - I;
-  auto KJ = J - K;
-  auto KL = L - K;
+  // Blondel A, Karplus M. New formulation for derivatives of torsion angles and
+  // improper torsion angles in molecular mechanics: Elimination of
+  // singularities. J Comput Chem. 1996;17: 1132–1141.
+  auto F = I - J;
+  auto G = J - K;
+  auto H = L - K;
 
-  auto IJxKJ = IJ.cross(KJ);
-  auto KJxKL = KJ.cross(KL);
+  auto A = F.cross(G);
+  auto B = H.cross(G);
 
-  Real sign = KJ.dot(IJxKJ.cross(KJxKL)) >=0 ? -1.0 : 1.0;
+  Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
 
-  return sign * std::acos(IJxKJ.dot(KJxKL) / (IJxKJ.norm() * KJxKL.norm()));
+  return sign * std::acos(A.dot(B) / (A.norm() * B.norm()));
+}
+
+template <typename Real>
+auto dihedral_angle_V_dV(Real3 I, Real3 J, Real3 K, Real3 L)
+    -> tuple<Real, Real3, Real3, Real3, Real3> {
+  // Blondel A, Karplus M. New formulation for derivatives of torsion angles and
+  // improper torsion angles in molecular mechanics: Elimination of
+  // singularities. J Comput Chem. 1996;17: 1132–1141.
+  auto F = I - J;
+  auto G = J - K;
+  auto H = L - K;
+
+  auto A = F.cross(G);
+  auto B = H.cross(G);
+
+  Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
+  auto V = sign * std::acos(A.dot(B) / (A.norm() * B.norm()));
+
+  return {V,
+          -(G.norm() / A.dot(A)) * A,
+          G.norm() / A.dot(A) * A + F.dot(G) / (A.dot(A) * G.norm()) * A
+              - (H.dot(G) / (B.dot(B) * G.norm())) * B,
+          -G.norm() / B.dot(B) * B - F.dot(G) / (A.dot(A) * G.norm()) * A
+              + (H.dot(G) / (B.dot(B) * G.norm())) * B,
+          G.norm() / B.dot(B) * B};
 }
 
 #undef Real3
