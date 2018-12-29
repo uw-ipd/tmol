@@ -1,6 +1,7 @@
 import pytest
 from pytest import approx
 
+import numpy
 import torch
 from tmol.tests.autograd import gradcheck, VectorizedOp
 
@@ -333,3 +334,24 @@ def test_BAH_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
                 _t(params["hb_sp3_softmax_fade"]),
             ),
         )
+
+
+def test_sp2_chi_energy_gradcheck(compiled, sp2_params):
+    from tmol.score.common.geom import dihedral_angle_V
+
+    def _t(t):
+        return torch.tensor(t).to(dtype=torch.double)
+
+    chi = dihedral_angle_V(
+        sp2_params["b0"], sp2_params["b"], sp2_params["a"], sp2_params["h"]
+    )
+
+    for ang in list(numpy.linspace(.1, numpy.pi, 16, endpoint=False)):
+        params = (
+            _t(ang).requires_grad_(True),
+            _t(chi).requires_grad_(True),
+            _t(sp2_params["hb_sp2_BAH180_rise"]),
+            _t(sp2_params["hb_sp2_range_span"]),
+            _t(sp2_params["hb_sp2_outer_width"]),
+        )
+        gradcheck(VectorizedOp(compiled.sp2chi_energy_V_dV), params, eps=1e-2)

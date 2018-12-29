@@ -42,6 +42,15 @@ void bind_potentials(pybind11::module& m) {
       "hb_sp3_softmax_fade"_a);
 
   m.def(
+      "sp2chi_energy_V_dV",
+      &sp2chi_energy_V_dV<Real>,
+      "BAH_angle"_a,
+      "B0BAH_chi"_a,
+      "hb_sp2_BAH180_rise"_a,
+      "hb_sp2_range_span"_a,
+      "hb_sp2_outer_width"_a);
+
+  m.def(
       "hbond_score",
       &hbond_score<Real, int>,
       "HBond donor-acceptor geometry score.",

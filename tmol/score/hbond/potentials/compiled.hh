@@ -135,30 +135,79 @@ auto BAH_angle_V_dV(
 }
 
 template <typename Real>
-Real sp2chi_energy(Real d, Real m, Real l, Real BAH, Real chi) {
+auto sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
+    -> tuple<Real, Real, Real> {
   const Real pi = EIGEN_PI;
 
-  Real H = 0.5 * (std::cos(2 * chi) + 1);
+  using std::cos;
+  using std::pow;
+  using std::sin;
 
-  Real F;
-  Real G;
+  Real H = 0.5 * (cos(2 * chi) + 1);
 
-  if (BAH > pi * 2.0 / 3.0) {
-    F = d / 2 * std::cos(3 * (pi - BAH)) + d / 2 - 0.5;
-    G = d - 0.5;
-  } else if (BAH >= pi * (2.0 / 3.0 - l)) {
-    Real outer_rise = std::cos(pi - (pi * 2 / 3 - BAH) / l);
+  if (ang > pi * 2.0 / 3.0) {
+    Real F = d / 2 * cos(3 * (pi - ang)) + d / 2 - 0.5;
+    Real G = d - 0.5;
+    Real E = H * F + (1 - H) * G;
 
-    F = m / 2 * outer_rise + m / 2 - 0.5;
-    G = (m - d) / 2 * outer_rise + (m - d) / 2 + d - 0.5;
+    Real dE_dang = 1.5 * d * sin(3 * ang) * cos(chi) * cos(chi);
+    Real dE_dchi = 0.5 * d * (cos(3 * ang) + 1) * sin(2 * chi);
+
+    return {E, dE_dang, dE_dchi};
+  } else if (ang >= pi * (2.0 / 3.0 - l)) {
+    Real outer_rise = cos(pi - (pi * 2 / 3 - ang) / l);
+
+    Real F = m / 2 * outer_rise + m / 2 - 0.5;
+    Real G = (m - d) / 2 * outer_rise + (m - d) / 2 + d - 0.5;
+
+    Real E = H * F + (1 - H) * G;
+
+    Real dE_dang =
+        0.5 * (-d * sin(chi) * sin(chi) + m) * sin((ang - 2 * pi / 3) / l) / l;
+    Real dE_dchi = 0.5 * d * (cos((ang - 2 * pi / 3) / l) + 1) * sin(2 * chi);
+
+    return {E, dE_dang, dE_dchi};
   } else {
-    F = m - 0.5;
-    G = m - 0.5;
+    // F = m - 0.5;
+    // G = m - 0.5;
+
+    Real E = m - 0.5;
+    Real dE_dang = 0;
+    Real dE_dchi = 0;
+
+    return {E, dE_dang, dE_dchi};
   }
+}
 
-  Real E = H * F + (1 - H) * G;
+template <typename Real, typename Int>
+auto B0BAH_chi_V_dV(
+    Real3 B0,
+    Real3 B,
+    Real3 A,
+    Real3 H,
+    Int acceptor_type,
+    Real hb_sp2_BAH180_rise,
+    Real hb_sp2_range_span,
+    Real hb_sp2_outer_width) -> tuple<Real, Real3, Real3, Real3, Real3> {
+  if (acceptor_type == AcceptorType::sp2) {
+    // SP-2 Chi Angle
+    auto [BAH, dBAH_dB, dBAH_dA, dBAH_dH] = pt_interior_angle_V_dV(B, A, H);
+    auto [B0BAH, dB0BAH_dB0, dB0BAH_dB, dB0BAH_dA, dB0BAH_dH] =
+        dihedral_angle_V_dV(B0, B, A, H);
 
-  return E;
+    auto [E, dE_dBAH, dE_dB0BAH] = sp2chi_energy_V_dV(
+        BAH, B0BAH, hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width);
+
+    return {
+        E,
+        dE_dB0BAH * dB0BAH_dB0,
+        dE_dB0BAH * dB0BAH_dB + dE_dBAH * dBAH_dB,
+        dE_dB0BAH * dB0BAH_dA + dE_dBAH * dBAH_dA,
+        dE_dB0BAH * dB0BAH_dH + dE_dBAH * dBAH_dH,
+    };
+  } else {
+    return {0, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+  }
 }
 
 template <typename Real, typename Int>
@@ -216,23 +265,16 @@ Real hbond_score(
       cosBAH_bound,
       hb_sp3_softmax_fade));
 
-  // SP-2 Chi Angle Component
-  if (acceptor_type == AcceptorType::sp2) {
-    Real BAH = pt_interior_angle_V(b, a, h);
-    Real3 BB0_unit_vec = (b0 - b).normalized();
-    Real3 AH_unit_vec = (h - a).normalized();
-    Real3 BA_unit_vec = (a - b).normalized();
-    Real xchi =
-        BB0_unit_vec.dot(AH_unit_vec)
-        - (BB0_unit_vec.dot(BA_unit_vec) * BA_unit_vec.dot(AH_unit_vec));
-
-    Real ychi = BA_unit_vec.cross(AH_unit_vec).dot(BB0_unit_vec);
-    Real chi = -std::atan2(ychi, xchi);
-
-    Real Pchi = sp2chi_energy(
-        hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width, BAH, chi);
-    energy += Pchi;
-  }
+  // B0BAH Chi Component
+  energy += std::get<0>(B0BAH_chi_V_dV(
+      b0,
+      b,
+      a,
+      h,
+      acceptor_type,
+      hb_sp2_BAH180_rise,
+      hb_sp2_range_span,
+      hb_sp2_outer_width));
 
   // Donor/Acceptor Weighting
   energy *= glob_accwt * glob_donwt;
