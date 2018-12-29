@@ -13,7 +13,7 @@ _hbond_global_params = dict(
 
 
 @pytest.fixture
-def compiled():
+def compiled(scope="session"):
     """Move compilation to test fixture to report compilation errors as test failure."""
     import tmol.score.hbond.potentials.compiled
 

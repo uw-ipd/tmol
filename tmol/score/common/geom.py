@@ -15,3 +15,7 @@ cos_interior_angle_V = numpy.vectorize(
 cos_interior_angle_V_dV = numpy.vectorize(
     _geom.cos_interior_angle_V_dV, signature="(3),(3)->(),(3),(3)"
 )
+
+dihedral_angle_V = numpy.vectorize(
+    _geom.dihedral_angle_V, signature="(3),(3),(3),(3)->()"
+)

@@ -103,6 +103,20 @@ auto pt_cos_interior_angle_V_dV(Real3 A, Real3 B, Real3 C)
   return {V, dV_dBA, -(dV_dBA + dV_dBC), dV_dBC};
 }
 
+template <typename Real>
+Real dihedral_angle_V(Real3 I, Real3 J, Real3 K, Real3 L) {
+  auto IJ = J - I;
+  auto KJ = J - K;
+  auto KL = L - K;
+
+  auto IJxKJ = IJ.cross(KJ);
+  auto KJxKL = KJ.cross(KL);
+
+  Real sign = KJ.dot(IJxKJ.cross(KJxKL)) >=0 ? -1.0 : 1.0;
+
+  return sign * std::acos(IJxKJ.dot(KJxKL) / (IJxKJ.norm() * KJxKL.norm()));
+}
+
 #undef Real3
 
 }  // namespace common

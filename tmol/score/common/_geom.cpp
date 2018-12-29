@@ -15,6 +15,9 @@ void bind(pybind11::module& m) {
   m.def("cos_interior_angle_V", &cos_interior_angle_V<Real>, "A"_a, "B"_a);
   m.def(
       "cos_interior_angle_V_dV", &cos_interior_angle_V_dV<Real>, "A"_a, "B"_a);
+
+  m.def(
+      "dihedral_angle_V", &dihedral_angle_V<Real>, "I"_a, "J"_a, "K"_a, "L"_a);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
