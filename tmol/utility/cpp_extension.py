@@ -23,7 +23,7 @@ _default_include_paths = tmol_include_paths() + extern_include_paths()
 def load(*args, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
 
-    kwargs["extra_cflags"] = kwargs.get("extra_cflags", ["-O3"])
+    kwargs["extra_cflags"] = kwargs.get("extra_cflags", ["-O3", "--std=c++14"])
     kwargs["extra_include_paths"] = (
         kwargs.get("extra_include_flags", []) + _default_include_paths
     )
@@ -35,7 +35,7 @@ def load(*args, **kwargs):
 def load_inline(*args, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
 
-    kwargs["extra_cflags"] = kwargs.get("extra_cflags", ["-O3"])
+    kwargs["extra_cflags"] = kwargs.get("extra_cflags", ["-O3", "--std=c++14"])
     kwargs["extra_include_paths"] = (
         kwargs.get("extra_include_flags", []) + _default_include_paths
     )
