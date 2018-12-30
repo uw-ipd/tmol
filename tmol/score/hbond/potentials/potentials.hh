@@ -39,7 +39,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define Real3 Vec<Real, 3>
 
-struct AcceptorType {
+struct AcceptorClass {
   static constexpr int sp2 = 0;
   static constexpr int sp3 = 1;
   static constexpr int ring = 2;
@@ -102,7 +102,7 @@ auto BAH_angle_V_dV(
     Real3 B0,
     Real3 A,
     Real3 H,
-    Int acceptor_type,
+    Int acceptor_class,
     Vec<Real, 11> cosBAH_coeff,
     Vec<Real, 2> cosBAH_range,
     Vec<Real, 2> cosBAH_bound,
@@ -110,20 +110,20 @@ auto BAH_angle_V_dV(
   using std::exp;
   using std::log;
 
-  if (acceptor_type == AcceptorType::sp2) {
+  if (acceptor_class == AcceptorClass::sp2) {
     auto [PxH, dPxH_dB, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
         B, A, H, cosBAH_coeff, cosBAH_range, cosBAH_bound);
 
     return {PxH, dPxH_dB, {0, 0, 0}, dPxH_dA, dPxH_dH};
 
-  } else if (acceptor_type == AcceptorType::ring) {
+  } else if (acceptor_class == AcceptorClass::ring) {
     Real3 Bm = (B + B0) / 2;
     auto [PxHm, dPxH_dBm, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
         Bm, A, H, cosBAH_coeff, cosBAH_range, cosBAH_bound);
 
     return {PxHm, dPxH_dBm / 2, dPxH_dBm / 2, dPxH_dA, dPxH_dH};
 
-  } else if (acceptor_type == AcceptorType::sp3) {
+  } else if (acceptor_class == AcceptorClass::sp3) {
     auto [PxH, dPxH_dB, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
         B, A, H, cosBAH_coeff, cosBAH_range, cosBAH_bound);
 
@@ -146,7 +146,7 @@ auto BAH_angle_V_dV(
             (dPxHfade_dPxH * dPxH_dA) + (dPxHfade_dPxH0 * dPxH0_dA),
             (dPxHfade_dPxH * dPxH_dH) + (dPxHfade_dPxH0 * dPxH0_dH)};
   } else {
-    AT_ERROR("Invalid acceptor_type.");
+    AT_ERROR("Invalid acceptor_class.");
   }
 }
 
@@ -201,11 +201,11 @@ auto B0BAH_chi_V_dV(
     Real3 B,
     Real3 A,
     Real3 H,
-    Int acceptor_type,
+    Int acceptor_class,
     Real hb_sp2_BAH180_rise,
     Real hb_sp2_range_span,
     Real hb_sp2_outer_width) -> tuple<Real, Real3, Real3, Real3, Real3> {
-  if (acceptor_type == AcceptorType::sp2) {
+  if (acceptor_class == AcceptorClass::sp2) {
     // SP-2 Chi Angle
     auto [BAH, dBAH_dB, dBAH_dA, dBAH_dH] = pt_interior_angle_V_dV(B, A, H);
     auto [B0BAH, dB0BAH_dB0, dB0BAH_dB, dB0BAH_dA, dB0BAH_dH] =
@@ -236,7 +236,7 @@ auto hbond_score_V_dV(
     Real3 b0,
 
     // type pair parameters
-    Int acceptor_type,
+    Int acceptor_class,
     Real glob_accwt,
     Real glob_donwt,
 
@@ -282,7 +282,7 @@ auto hbond_score_V_dV(
           b0,
           a,
           h,
-          acceptor_type,
+          acceptor_class,
           cosBAH_coeff,
           cosBAH_range,
           cosBAH_bound,
@@ -295,7 +295,7 @@ auto hbond_score_V_dV(
           b,
           a,
           h,
-          acceptor_type,
+          acceptor_class,
           hb_sp2_BAH180_rise,
           hb_sp2_range_span,
           hb_sp2_outer_width));

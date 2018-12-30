@@ -7,6 +7,8 @@ import torch
 from tmol.tests.autograd import gradcheck, VectorizedOp
 from tmol.utility.args import _signature
 
+from tmol.score.hbond.params import AcceptorClass
+
 
 _hbond_global_params = dict(
     hb_sp2_range_span=1.6,
@@ -26,8 +28,6 @@ def compiled(scope="session"):
 
 @pytest.fixture
 def sp2_params(compiled):
-    AcceptorType = compiled.AcceptorType
-
     hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
         -0.5307601,
@@ -82,7 +82,7 @@ def sp2_params(compiled):
         a=atomA,
         b=atomB,
         b0=atomB0,
-        acceptor_type=AcceptorType.sp2,
+        acceptor_class=AcceptorClass.sp2,
         # type pair parameters
         glob_accwt=accwt,
         glob_donwt=donwt,
@@ -102,8 +102,6 @@ def sp2_params(compiled):
 
 @pytest.fixture
 def sp3_params(compiled):
-    AcceptorType = compiled.AcceptorType
-
     hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
         -1.32847415,
@@ -169,7 +167,7 @@ def sp3_params(compiled):
         a=atomA,
         b=atomB,
         b0=atomB0,
-        acceptor_type=AcceptorType.sp3,
+        acceptor_class=AcceptorClass.sp3,
         # type pair parameters
         glob_accwt=accwt,
         glob_donwt=donwt,
@@ -189,8 +187,6 @@ def sp3_params(compiled):
 
 @pytest.fixture
 def ring_params(compiled):
-    AcceptorType = compiled.AcceptorType
-
     hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6 = [
         0.0,
         -1.68095217,
@@ -255,7 +251,7 @@ def ring_params(compiled):
         a=atomA,
         b=atomB,
         b0=atomB0,
-        acceptor_type=AcceptorType.ring,
+        acceptor_class=AcceptorClass.ring,
         # type pair parameters
         glob_accwt=accwt,
         glob_donwt=donwt,
@@ -291,7 +287,7 @@ def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_par
         args["a"] = args["a"].requires_grad_(True)
         args["b"] = args["b"].requires_grad_(True)
         args["b0"] = args["b0"].requires_grad_(True)
-        args["acceptor_type"] = args["acceptor_type"].to(dtype=torch.int32)
+        args["acceptor_class"] = args["acceptor_class"].to(dtype=torch.int32)
         return tuple(args.values())
 
     op = VectorizedOp(compiled.hbond_score_V_dV)
@@ -357,7 +353,7 @@ def test_BAH_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
                 _t(params["b0"]).requires_grad_(True),
                 _t(params["a"]).requires_grad_(True),
                 _t(params["h"]).requires_grad_(True),
-                _t(params["acceptor_type"]).to(dtype=torch.int32),
+                _t(params["acceptor_class"]).to(dtype=torch.int32),
                 _t(params["cosBAH_coeff"]),
                 _t(params["cosBAH_range"]),
                 _t(params["cosBAH_bound"]),

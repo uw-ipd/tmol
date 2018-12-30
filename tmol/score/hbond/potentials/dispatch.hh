@@ -36,7 +36,7 @@ struct HBondPolyParams {
 
 template <typename Real, int N>
 struct HBondPairParams {
-  TView<int32_t, N> acceptor_type;
+  TView<int32_t, N> acceptor_class;
   TView<Real, N> acceptor_weight;
   TView<Real, N> donor_weight;
   HBondPolyParams<Real, N> AHdist;
@@ -135,7 +135,7 @@ auto hbond_pair_score(
             B[ai],
             B0[ai],
 
-            type_pair_params.acceptor_type[dt][at],
+            type_pair_params.acceptor_class[dt][at],
             type_pair_params.acceptor_weight[dt][at],
             type_pair_params.donor_weight[dt][at],
 

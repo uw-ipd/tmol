@@ -3,6 +3,8 @@ import cattr
 
 from typing import Sequence, Tuple
 
+from enum import IntEnum
+
 import numpy
 import pandas
 import torch
@@ -14,6 +16,14 @@ from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
 
 from tmol.database.scoring.hbond import HBondDatabase
+
+
+class AcceptorClass(IntEnum):
+    # Integer mapping from symbolic acceptor types int flag.
+    # TODO resolve from compiled layer.
+    sp2 = 0
+    sp3 = 1
+    ring = 2
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -41,9 +51,24 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
 class HBondPairParams(TensorGroup, ValidateAttrs):
     donor_weight: Tensor("f")[...]
     acceptor_weight: Tensor("f")[...]
+    acceptor_class: Tensor("i4")[...]
     AHdist: HBondPolyParams
     cosBAH: HBondPolyParams
     cosAHD: HBondPolyParams
+
+    @classmethod
+    def full(cls, shape, fill_value):
+        shape = (shape,) if isinstance(shape, int) else tuple(shape)
+        return cls(
+            donor_weight=torch.full(shape, fill_value, dtype=torch.float),
+            acceptor_weight=torch.full(shape, fill_value, dtype=torch.float),
+            acceptor_class=torch.full(
+                shape, numpy.nan_to_num(fill_value), dtype=torch.int32
+            ),  # nan_to_num fill value for integer dtype
+            AHdist=HBondPolyParams.full(shape, fill_value),
+            cosBAH=HBondPolyParams.full(shape, fill_value),
+            cosAHD=HBondPolyParams.full(shape, fill_value),
+        )
 
 
 @attr.s(frozen=True, slots=True)
@@ -67,16 +92,21 @@ class HBondParamResolver(ValidateAttrs):
         atom_groups = hbond_database.atom_groups
 
         donors = list(set(g.donor_type for g in atom_groups.donors))
-        acceptors = list(
-            toolz.reduce(
-                set.union,
-                (
-                    set(g.acceptor_type for g in atom_groups.sp2_acceptors),
-                    set(g.acceptor_type for g in atom_groups.sp3_acceptors),
-                    set(g.acceptor_type for g in atom_groups.ring_acceptors),
-                ),
-            )
+
+        acceptor_classes = (
+            [(g.acceptor_type, AcceptorClass.sp2) for g in atom_groups.sp2_acceptors]
+            + [(g.acceptor_type, AcceptorClass.sp3) for g in atom_groups.sp3_acceptors]
+            + [
+                (g.acceptor_type, AcceptorClass.ring)
+                for g in atom_groups.ring_acceptors
+            ]
         )
+        assert len(set(acceptor_classes)) == len(
+            set(dict(acceptor_classes).keys())
+        ), "acceptor type with multiple hybridization classes defined."
+
+        acceptor_classes = dict(acceptor_classes)
+        acceptors = list(acceptor_classes.keys())
 
         donor_type_index = pandas.Index(donors)
 
@@ -137,6 +167,9 @@ class HBondParamResolver(ValidateAttrs):
             pair_params[di, ai].cosAHD[:] = poly_params[pp.cosAHD]
             pair_params[di, ai].donor_weight.reshape(1)[:] = donor_weights[di]
             pair_params[di, ai].acceptor_weight.reshape(1)[:] = acceptor_weights[ai]
+            pair_params[di, ai].acceptor_class.reshape(1)[:] = acceptor_classes[
+                pp.acc_chem_type
+            ]
 
         return cls(
             donor_type_index=donor_type_index,

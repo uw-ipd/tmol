@@ -34,9 +34,3 @@ BAH_angle_V_dV = numpy.vectorize(
 sp2chi_energy_V_dV = numpy.vectorize(
     _compiled.sp2chi_energy_V_dV, signature="(),(),(),(),()->(),(),()"
 )
-
-
-class AcceptorType(IntEnum):
-    sp2 = 0
-    sp3 = 1
-    ring = 2
