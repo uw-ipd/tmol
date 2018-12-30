@@ -91,7 +91,7 @@ template <
     int N,
     template <typename U> class PtrTraits = DefaultPtrTraits,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor input_t) {
+auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, PtrTraits> {
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
@@ -122,6 +122,20 @@ tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor tensor, std::string name) {
     AT_ERROR(
         "Error viewing tensor '" + name + "': " + err.what_without_backtrace());
   }
+}
+
+template <
+    typename T,
+    int N,
+    template <typename U> class P = DefaultPtrTraits,
+    typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
+auto new_tensor(at::IntList size)
+    -> std::tuple<at::Tensor, tmol::TView<T, N, P>> {
+  at::Tensor tensor =
+      at::empty(size, torch::CPU(enable_tensor_view<T>::scalar_type));
+  auto tensor_view = view_tensor<T, N, P>(tensor);
+
+  return {tensor, tensor_view};
 }
 
 }  // namespace tmol

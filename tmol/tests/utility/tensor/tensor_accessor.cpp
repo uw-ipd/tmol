@@ -10,10 +10,8 @@ at::Tensor vector_magnitude_aten(at::Tensor input) {
 }
 
 at::Tensor vector_magnitude_accessor(at::Tensor input_t) {
-  auto output_t = at::empty(input_t.size(0), input_t.options());
-
   auto input = input_t.accessor<float, 2>();
-  auto output = output_t.accessor<float, 1>();
+  auto [output_t, output] = tmol::new_tensor<float, 1>(input.size(0));
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     auto v = input[i];
@@ -24,8 +22,7 @@ at::Tensor vector_magnitude_accessor(at::Tensor input_t) {
 }
 
 at::Tensor vector_magnitude_accessor_arg(tmol::TView<float, 2> input) {
-  auto output_t = at::empty(input.size(0), torch::CPU(at::ScalarType::Float));
-  auto output = output_t.accessor<float, 1>();
+  auto [output_t, output] = tmol::new_tensor<float, 1>(input.size(0));
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     auto v = input[i];
@@ -49,10 +46,8 @@ at::Tensor vector_magnitude_eigen(at::Tensor input_t) {
 }
 
 at::Tensor vector_magnitude_eigen_squeeze(at::Tensor input_t) {
-  auto output_t = at::empty(input_t.size(0), input_t.options());
-
   auto input = tmol::view_tensor<Eigen::Vector3f, 1>(input_t);
-  auto output = output_t.accessor<float, 1>();
+  auto [output_t, output] = tmol::new_tensor<float, 1>(input.size(0));
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     output[i] = input[i].norm();
@@ -62,8 +57,7 @@ at::Tensor vector_magnitude_eigen_squeeze(at::Tensor input_t) {
 }
 
 at::Tensor vector_magnitude_eigen_arg(tmol::TView<Eigen::Vector3f, 2> input) {
-  auto output_t = at::empty(input.size(0), torch::CPU(at::ScalarType::Float));
-  auto output = output_t.accessor<float, 1>();
+  auto [output_t, output] = tmol::new_tensor<float, 1>(input.size(0));
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     output[i] = input[i][0].norm();
@@ -74,8 +68,7 @@ at::Tensor vector_magnitude_eigen_arg(tmol::TView<Eigen::Vector3f, 2> input) {
 
 at::Tensor vector_magnitude_eigen_arg_squeeze(
     tmol::TView<Eigen::Vector3f, 1> input) {
-  auto output_t = at::empty(input.size(0), torch::CPU(at::ScalarType::Float));
-  auto output = output_t.accessor<float, 1>();
+  auto [output_t, output] = tmol::new_tensor<float, 1>(input.size(0));
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     output[i] = input[i].norm();
