@@ -1,7 +1,8 @@
 #include <pybind11/eigen.h>
 #include <torch/torch.h>
 
-#include <tmol/score/hbond/potentials/compiled.hh>
+#include <tmol/score/hbond/potentials/dispatch.hh>
+#include <tmol/score/hbond/potentials/potentials.hh>
 
 using namespace tmol::score::hbond::potentials;
 
@@ -85,9 +86,32 @@ void bind_potentials(pybind11::module& m) {
       "hb_sp3_softmax_fade"_a);
 }
 
+template <typename Real>
+void bind_dispatch(pybind11::module& m) {
+  using namespace pybind11::literals;
+
+  m.def(
+      "hbond_pair_score",
+      &hbond_pair_score<Real, int>,
+      "D"_a,
+      "H"_a,
+      "donor_type_index"_a,
+
+      "A"_a,
+      "B"_a,
+      "B0"_a,
+      "acceptor_type_index"_a,
+
+      "type_pair_params"_a,
+      "global_params"_a);
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
   bind_potentials<float>(m);
   bind_potentials<double>(m);
+
+  bind_dispatch<float>(m);
+  bind_dispatch<double>(m);
 }
