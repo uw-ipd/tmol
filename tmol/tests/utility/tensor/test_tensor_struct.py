@@ -2,6 +2,7 @@ import pytest
 import os.path
 import torch
 import toolz
+import attr
 
 import tmol.utility.cpp_extension as cpp_extension
 
@@ -18,22 +19,36 @@ def tensor_struct():
 def test_tensor_struct(tensor_struct):
     """Struct-of-test design pattern test."""
 
-    tdata = {"a": torch.arange(100), "b": torch.arange(100, 200)}
-    asum = tdata["a"].sum()
+    for accessor in (tensor_struct.sum_a, tensor_struct.sum_a_map):
 
-    # Data structure w/ required tensor fields a, b is converted successfully.
-    tensor_struct.sum_a(tdata) == asum
+        @attr.s(auto_attribs=True)
+        class TData:
+            a: torch.Tensor
+            b: torch.Tensor
 
-    # Data structure extra fields are ignored.
-    tensor_struct.sum_a(toolz.merge(tdata, {"c": torch.full((100,), 2.998e8)})) == asum
+        tdata = TData(torch.arange(100), torch.arange(100, 200))
 
-    # Data structure w/ missing field causes an a runtime error.
-    with pytest.raises(RuntimeError):
-        tensor_struct.sum_a({"a": torch.arange(100)})
+        asum = tdata.a.sum()
 
-    # Data structure w/ invalid field type raises error.
-    with pytest.raises(RuntimeError):
-        tensor_struct.sum_a(toolz.merge(tdata, {"b": tdata["b"].to(torch.float)}))
+        # Data structure w/ required tensor fields a, b is converted successfully.
+        accessor(attr.asdict(tdata)) == asum
+
+        # Data structure extra fields are ignored.
+        accessor(
+            toolz.merge(attr.asdict(tdata), {"c": torch.full((100,), 2.998e8)})
+        ) == asum
+
+        # Direct pass of attrs-class raises type error
+        with pytest.raises(TypeError):
+            accessor(tdata)
+
+        # Data structure w/ missing field causes an a runtime error.
+        with pytest.raises((RuntimeError, TypeError)):
+            accessor({"a": torch.arange(100)})
+
+        # Data structure w/ invalid field type raises error.
+        with pytest.raises((RuntimeError, TypeError)):
+            accessor(toolz.merge(tdata, {"b": tdata["b"].to(torch.float)}))
 
 
 def test_tensor_view(tensor_struct):

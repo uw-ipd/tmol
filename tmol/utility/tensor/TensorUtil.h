@@ -9,9 +9,6 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 
-#include <map>
-#include <string>
-
 namespace tmol {
 
 template <typename ToT>
@@ -124,28 +121,6 @@ tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor tensor, std::string name) {
   } catch (at::Error err) {
     AT_ERROR(
         "Error viewing tensor '" + name + "': " + err.what_without_backtrace());
-  }
-}
-
-template <
-    typename T,
-    int N,
-    template <typename U> class PtrTraits = DefaultPtrTraits,
-    typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-tmol::TView<T, N, PtrTraits> view_tensor(
-    std::map<std::string, at::Tensor> input_map, std::string member) {
-  auto member_t = input_map.find(member);
-
-  AT_ASSERTM(
-      member_t != input_map.end(),
-      "Map does not contain key: '" + member + "'");
-
-  try {
-    return view_tensor<T, N, PtrTraits>(member_t->second, member);
-  } catch (at::Error err) {
-    AT_ERROR(
-        "Error viewing tensor map member '" + member
-        + "': " + err.what_without_backtrace());
   }
 }
 
