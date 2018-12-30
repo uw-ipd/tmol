@@ -1,9 +1,9 @@
 import functools
 import inspect
 import toolz
-import copy
 
 import ast
+import astor
 import types
 from itertools import zip_longest
 from inspect import Signature, Parameter
@@ -40,8 +40,8 @@ def ignore_unused_kwargs(func):
     sig = _signature(func)
 
     @_wraps(func)
-    def wrapper(*args, **kwargs):
-        kwargs = toolz.keyfilter(sig.parameters.__contains__, kwargs)
+    def wrapper(*args, **src_kwargs):
+        kwargs = toolz.keyfilter(sig.parameters.__contains__, src_kwargs)
         bound_args = sig.bind(*args, **kwargs)
         return func(*bound_args.args, **bound_args.kwargs)
 
@@ -65,6 +65,17 @@ try:
 except ImportError:
     pass
 
+try:
+    import numpy
+
+    @_signature.register(numpy.lib.function_base.vectorize)
+    def _numpy_vectorize_signature(f):
+        return _signature(f.pyfunc)
+
+
+except ImportError:
+    pass
+
 
 @_signature.register(types.BuiltinFunctionType)
 def _builtin_signature(f):
@@ -77,6 +88,7 @@ def _builtin_signature(f):
 
 
 def _pybind11_doc_signatures(f):
+    """Load overload signatures from pybind11 docstring."""
     name = f.__name__
 
     overloaded = (
@@ -93,20 +105,35 @@ def _pybind11_doc_signatures(f):
             m.group(1) for m in re.finditer(fr"^({name}.*)$", f.__doc__, re.MULTILINE)
         ]
 
-    signatures = [_parse_doc_signature(ds) for ds in doc_signatures]
+    return [_parse_doc_signature(ds) for ds in doc_signatures]
 
-    return signatures
+
+def _sanitize_pybind11_signature(sig):
+    """ Sanitize a typeid signature into type annotation.
+
+    Hack attempt to sanitize c++ type signatures into syntactically valid
+    python type annotations. Split off the return value annotation then
+    coerce c++ namespace and template markers into compatible syntax.
+    """
+
+    sub = toolz.curry(re.sub)
+    sanitize = toolz.compose(
+        *(
+            sub(c, p)
+            for c, p in (
+                (r"::", "."),  # namespace separators
+                (r"<", "["),  # template type parameters
+                (r">", "]"),
+                (r"(\d+)ul", r"\1"),  # Eigen ulong dimension parameters (eg 2ul)
+            )
+        )
+    )
+
+    return "->".join(map(sanitize, sig.split("->")))
 
 
 def _parse_doc_signature(sig):
-    # Hack attempt to sanitize c++ type signatures into syntactically valid
-    # python type annotations. Split off the return value annotation then
-    # coerce c++ namespace and template markers into compatible syntax.
-    psig = sig.split("->")[0]
-    for c, p in (("::", "."), ("<", "["), (">", "]")):
-        psig = psig.replace(c, p)
-
-    fdef, = ast.parse(f"def {psig}: pass").body
+    fdef, = ast.parse(f"def {_sanitize_pybind11_signature(sig)}: pass").body
 
     # Just count the number of arguments w/ default values, no attempt to parse
     # the values.
@@ -119,6 +146,7 @@ def _parse_doc_signature(sig):
                 a.arg,
                 Parameter.POSITIONAL_OR_KEYWORD,
                 default=Parameter.empty if i < args_no_default else True,
+                annotation=astor.to_source(a.annotation).strip(),
             )
             for i, a in enumerate(fdef.args.args)
         ]
@@ -137,6 +165,7 @@ def _parse_doc_signature(sig):
                 a.arg,
                 Parameter.KEYWORD_ONLY,
                 default=Parameter.empty if i < kwargs_no_default else True,
+                annotation=astor.to_source(a.annotation).strip(),
             )
             for i, a in enumerate(fdef.args.kwonlyargs)
         ]
@@ -144,8 +173,14 @@ def _parse_doc_signature(sig):
 
 
 def _aligned_signature(sigs):
+    """Align overload signatures into a single meta-sig, or raise error."""
     combined_params = []
-    param_sets = zip_longest(*(s.parameters.values() for s in sigs))
+    param_sets = zip_longest(
+        *(
+            (p.replace(annotation=Parameter.empty) for p in s.parameters.values())
+            for s in sigs
+        )
+    )
 
     for i, ps in enumerate(param_sets):
         p = set(filter(None, ps))

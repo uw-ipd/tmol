@@ -61,6 +61,26 @@ def test_ignore_unused_kwargs_numba():
         vector_foo(v, 2)
 
 
+def test_ignore_unused_kwargs_numpy():
+    """ignore_unused_kwargs support for numpy @vectorize functions"""
+
+    @ignore_unused_kwargs
+    @numpy.vectorize
+    def vector_foo(a):
+        return a
+
+    v = numpy.arange(10)
+
+    assert (vector_foo(v) == v).all()
+    assert (vector_foo(a=v) == v).all()
+
+    assert (vector_foo(a=v, b=2) == v).all()
+    assert (vector_foo(v, b=2) == v).all()
+
+    with pytest.raises(TypeError):
+        vector_foo(v, 2)
+
+
 def test_ignore_unused_kwargs_pybind11():
     test_source = """
 #include <deque>
@@ -128,7 +148,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 }
 """
 
-    c = load_inline("test_ignore_unused_kwargs_pybind11", test_source, extra_cflags=())
+    c = load_inline("test_ignore_unused_kwargs_pybind11", test_source)
 
     # Test signature extraction for various combinations of overloads, default
     # values, and type signatures.
