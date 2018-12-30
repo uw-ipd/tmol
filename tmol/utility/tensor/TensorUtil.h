@@ -3,6 +3,7 @@
 #include <ATen/Error.h>
 #include <ATen/ScalarType.h>
 #include <ATen/Tensor.h>
+#include <array>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -131,11 +132,31 @@ template <
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
 auto new_tensor(at::IntList size)
     -> std::tuple<at::Tensor, tmol::TView<T, N, P>> {
-  at::Tensor tensor =
-      at::empty(size, torch::CPU(enable_tensor_view<T>::scalar_type));
-  auto tensor_view = view_tensor<T, N, P>(tensor);
+  typedef typename enable_tensor_view<T>::PrimitiveType BaseT;
+  int64_t stride_factor = sizeof(T) / sizeof(BaseT);
 
-  return {tensor, tensor_view};
+  if (stride_factor == 1) {
+    // The target type has a primitive layout, construct size N tensor.
+    at::Tensor tensor =
+        at::empty(size, torch::CPU(enable_tensor_view<T>::scalar_type));
+    auto tensor_view = view_tensor<T, N, P>(tensor);
+
+    return {tensor, tensor_view};
+  } else {
+    // The target type is composite, construct size N + 1 tensor with implicit
+    // minor dimension for the composite type.
+    std::array<int64_t, N + 1> composite_size;
+    for (int i = 0; i < N; i++) {
+      composite_size.at(i) = size.at(i);
+    }
+    composite_size.at(N) = stride_factor;
+
+    at::Tensor tensor = at::empty(
+        composite_size, torch::CPU(enable_tensor_view<T>::scalar_type));
+    auto tensor_view = view_tensor<T, N, P>(tensor);
+
+    return {tensor, tensor_view};
+  }
 }
 
 }  // namespace tmol
@@ -160,6 +181,9 @@ struct type_caster<tmol::TView<T, N, P>> {
       value = tmol::view_tensor<T, N, P>(conv);
       return true;
     } catch (at::Error err) {
+      // TODO Log error via python logging.
+      // py::print(
+      //    "Error casting to type: ", type_id<ViewType>(), " value: ", src);
       return false;
     }
   }
