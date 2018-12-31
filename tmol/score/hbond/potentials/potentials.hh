@@ -49,12 +49,12 @@ template <typename Real>
 auto AH_dist_V_dV(
     Real3 A,
     Real3 H,
-    Vec<Real, 11> AHdist_coeff,
+    Vec<Real, 11> AHdist_coeffs,
     Vec<Real, 2> AHdist_range,
     Vec<Real, 2> AHdist_bound) -> tuple<Real, Real3, Real3> {
   auto [D, dD_dA, dD_dH] = distance_V_dV(A, H);
   auto [V, dV_dD] =
-      bound_poly_V_dV(D, AHdist_coeff, AHdist_range, AHdist_bound);
+      bound_poly_V_dV(D, AHdist_coeffs, AHdist_range, AHdist_bound);
 
   return {V, dV_dD * dD_dA, dV_dD * dD_dH};
 }
@@ -64,13 +64,13 @@ auto AHD_angle_V_dV(
     Real3 A,
     Real3 H,
     Real3 D,
-    Vec<Real, 11> cosAHD_coeff,
+    Vec<Real, 11> cosAHD_coeffs,
     Vec<Real, 2> cosAHD_range,
     Vec<Real, 2> cosAHD_bound) -> tuple<Real, Real3, Real3, Real3> {
   // In non-cos space
   auto [AHD, dAHD_dA, dAHD_dH, dAHD_dD] = pt_interior_angle_V_dV(A, H, D);
   auto [V, dV_dAHD] =
-      bound_poly_V_dV(AHD, cosAHD_coeff, cosAHD_range, cosAHD_bound);
+      bound_poly_V_dV(AHD, cosAHD_coeffs, cosAHD_range, cosAHD_bound);
 
   return {V, dV_dAHD * dAHD_dA, dV_dAHD * dAHD_dH, dV_dAHD * dAHD_dD};
 }
@@ -80,7 +80,7 @@ auto _BAH_angle_base_form_V_dV(
     Real3 B,
     Real3 A,
     Real3 H,
-    Vec<Real, 11> cosBAH_coeff,
+    Vec<Real, 11> cosBAH_coeffs,
     Vec<Real, 2> cosBAH_range,
     Vec<Real, 2> cosBAH_bound) -> tuple<Real, Real3, Real3, Real3> {
   Real3 AH = H - A;
@@ -88,7 +88,7 @@ auto _BAH_angle_base_form_V_dV(
 
   auto [cosT, d_cosT_dAH, d_cosT_dBA] = cos_interior_angle_V_dV(AH, BA);
   auto [V, dV_d_cosT] =
-      bound_poly_V_dV(cosT, cosBAH_coeff, cosBAH_range, cosBAH_bound);
+      bound_poly_V_dV(cosT, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
   return {V,
           dV_d_cosT * (-d_cosT_dBA),
@@ -103,7 +103,7 @@ auto BAH_angle_V_dV(
     Real3 A,
     Real3 H,
     Int acceptor_class,
-    Vec<Real, 11> cosBAH_coeff,
+    Vec<Real, 11> cosBAH_coeffs,
     Vec<Real, 2> cosBAH_range,
     Vec<Real, 2> cosBAH_bound,
     Real hb_sp3_softmax_fade) -> tuple<Real, Real3, Real3, Real3, Real3> {
@@ -112,23 +112,23 @@ auto BAH_angle_V_dV(
 
   if (acceptor_class == AcceptorClass::sp2) {
     auto [PxH, dPxH_dB, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
-        B, A, H, cosBAH_coeff, cosBAH_range, cosBAH_bound);
+        B, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
     return {PxH, dPxH_dB, {0, 0, 0}, dPxH_dA, dPxH_dH};
 
   } else if (acceptor_class == AcceptorClass::ring) {
     Real3 Bm = (B + B0) / 2;
     auto [PxHm, dPxH_dBm, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
-        Bm, A, H, cosBAH_coeff, cosBAH_range, cosBAH_bound);
+        Bm, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
     return {PxHm, dPxH_dBm / 2, dPxH_dBm / 2, dPxH_dA, dPxH_dH};
 
   } else if (acceptor_class == AcceptorClass::sp3) {
     auto [PxH, dPxH_dB, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
-        B, A, H, cosBAH_coeff, cosBAH_range, cosBAH_bound);
+        B, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
     auto [PxH0, dPxH0_dB0, dPxH0_dA, dPxH0_dH] = _BAH_angle_base_form_V_dV(
-        B0, A, H, cosBAH_coeff, cosBAH_range, cosBAH_bound);
+        B0, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
     Real PxHfade =
         log(exp(PxH * hb_sp3_softmax_fade) + exp(PxH0 * hb_sp3_softmax_fade))
@@ -229,26 +229,26 @@ auto B0BAH_chi_V_dV(
 template <typename Real, typename Int>
 auto hbond_score_V_dV(
     // coordinates
-    Real3 d,
-    Real3 h,
-    Real3 a,
-    Real3 b,
-    Real3 b0,
+    Real3 D,
+    Real3 H,
+    Real3 A,
+    Real3 B,
+    Real3 B0,
 
     // type pair parameters
     Int acceptor_class,
-    Real glob_accwt,
-    Real glob_donwt,
+    Real acceptor_weight,
+    Real donor_weight,
 
-    Vec<Real, 11> AHdist_coeff,
+    Vec<Real, 11> AHdist_coeffs,
     Vec<Real, 2> AHdist_range,
     Vec<Real, 2> AHdist_bound,
 
-    Vec<Real, 11> cosBAH_coeff,
+    Vec<Real, 11> cosBAH_coeffs,
     Vec<Real, 2> cosBAH_range,
     Vec<Real, 2> cosBAH_bound,
 
-    Vec<Real, 11> cosAHD_coeff,
+    Vec<Real, 11> cosAHD_coeffs,
     Vec<Real, 2> cosAHD_range,
     Vec<Real, 2> cosAHD_bound,
 
@@ -269,21 +269,21 @@ auto hbond_score_V_dV(
 
   // A-H Distance Component
   add(tie(E, dE_dA, dE_dH),
-      AH_dist_V_dV(a, h, AHdist_coeff, AHdist_range, AHdist_bound));
+      AH_dist_V_dV(A, H, AHdist_coeffs, AHdist_range, AHdist_bound));
 
   // AHD Angle Component
   add(tie(E, dE_dA, dE_dH, dE_dD),
-      AHD_angle_V_dV(a, h, d, cosAHD_coeff, cosAHD_range, cosAHD_bound));
+      AHD_angle_V_dV(A, H, D, cosAHD_coeffs, cosAHD_range, cosAHD_bound));
 
   // BAH Angle Component
   add(tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
       BAH_angle_V_dV(
-          b,
-          b0,
-          a,
-          h,
+          B,
+          B0,
+          A,
+          H,
           acceptor_class,
-          cosBAH_coeff,
+          cosBAH_coeffs,
           cosBAH_range,
           cosBAH_bound,
           hb_sp3_softmax_fade));
@@ -291,22 +291,22 @@ auto hbond_score_V_dV(
   // B0BAH Chi Component
   add(tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
       B0BAH_chi_V_dV(
-          b0,
-          b,
-          a,
-          h,
+          B0,
+          B,
+          A,
+          H,
           acceptor_class,
           hb_sp2_BAH180_rise,
           hb_sp2_range_span,
           hb_sp2_outer_width));
 
   // Donor/Acceptor Weighting
-  E *= glob_accwt * glob_donwt;
-  dE_dD *= glob_accwt * glob_donwt;
-  dE_dH *= glob_accwt * glob_donwt;
-  dE_dA *= glob_accwt * glob_donwt;
-  dE_dB *= glob_accwt * glob_donwt;
-  dE_dB0 *= glob_accwt * glob_donwt;
+  E *= acceptor_weight * donor_weight;
+  dE_dD *= acceptor_weight * donor_weight;
+  dE_dH *= acceptor_weight * donor_weight;
+  dE_dA *= acceptor_weight * donor_weight;
+  dE_dB *= acceptor_weight * donor_weight;
+  dE_dB0 *= acceptor_weight * donor_weight;
 
   // Truncate and Fade [-0.1,0.1] to [-0.1,0.0]
   if (E > 0.1) {

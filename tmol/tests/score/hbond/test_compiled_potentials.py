@@ -66,33 +66,24 @@ def sp2_params(compiled):
     poly_AHD_1j_range = [1.1435646388, 3.1416]
     poly_AHD_1j_bounds = [1.1, 1.1]
 
-    atomD = [-0.337, 3.640, -1.365]
-    atomH = [-0.045, 3.220, -0.496]
-    atomA = [0.929, 2.820, 1.149]
-    atomB = [1.369, 1.690, 1.360]
-    atomB0 = [1.060, 0.538, 0.412]
-
-    donwt = 1.45
-    accwt = 1.19
-
     return dict(
         # Input coordinates
-        d=atomD,
-        h=atomH,
-        a=atomA,
-        b=atomB,
-        b0=atomB0,
+        D=[-0.337, 3.640, -1.365],
+        H=[-0.045, 3.220, -0.496],
+        A=[0.929, 2.820, 1.149],
+        B=[1.369, 1.690, 1.360],
+        B0=[1.060, 0.538, 0.412],
         acceptor_class=AcceptorClass.sp2,
         # type pair parameters
-        glob_accwt=accwt,
-        glob_donwt=donwt,
-        AHdist_coeff=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6,
+        donor_weight=1.45,
+        acceptor_weight=1.19,
+        AHdist_coeffs=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6,
         AHdist_range=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_range,
         AHdist_bound=hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6_bounds,
-        cosBAH_coeff=poly_cosBAH_off,
+        cosBAH_coeffs=poly_cosBAH_off,
         cosBAH_range=poly_cosBAH_off_range,
         cosBAH_bound=poly_cosBAH_off_bounds,
-        cosAHD_coeff=poly_AHD_1j,
+        cosAHD_coeffs=poly_AHD_1j,
         cosAHD_range=poly_AHD_1j_range,
         cosAHD_bound=poly_AHD_1j_bounds,
         # Global score parameters
@@ -151,33 +142,24 @@ def sp3_params(compiled):
     poly_AHD_1i_range = [1.59914724347, 3.1416]
     poly_AHD_1i_bounds = [1.1, 1.1]
 
-    atomD = [-1.447, 4.942, -3.149]
-    atomH = [-1.756, 4.013, -2.912]
-    atomA = [-2.196, 2.211, -2.339]
-    atomB = [-3.156, 2.109, -1.327]
-    atomB0 = [-1.436, 1.709, -2.035]
-
-    donwt = 1.45
-    accwt = 1.15
-
     return dict(
         # Input coordinates
-        d=atomD,
-        h=atomH,
-        a=atomA,
-        b=atomB,
-        b0=atomB0,
+        D=[-1.447, 4.942, -3.149],
+        H=[-1.756, 4.013, -2.912],
+        A=[-2.196, 2.211, -2.339],
+        B=[-3.156, 2.109, -1.327],
+        B0=[-1.436, 1.709, -2.035],
         acceptor_class=AcceptorClass.sp3,
         # type pair parameters
-        glob_accwt=accwt,
-        glob_donwt=donwt,
-        AHdist_coeff=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6,
+        donor_weight=1.45,
+        acceptor_weight=1.15,
+        AHdist_coeffs=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6,
         AHdist_range=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_range,
         AHdist_bound=hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6_bounds,
-        cosBAH_coeff=poly_cosBAH_6i,
+        cosBAH_coeffs=poly_cosBAH_6i,
         cosBAH_range=poly_cosBAH_6i_range,
         cosBAH_bound=poly_cosBAH_6i_bounds,
-        cosAHD_coeff=poly_AHD_1i,
+        cosAHD_coeffs=poly_AHD_1i,
         cosAHD_range=poly_AHD_1i_range,
         cosAHD_bound=poly_AHD_1i_bounds,
         # Global score parameters
@@ -235,33 +217,24 @@ def ring_params(compiled):
     poly_AHD_1i_range = [1.59914724347, 3.1416]
     poly_AHD_1i_bounds = [1.1, 1.1]
 
-    atomD = [-0.624, 5.526, -2.146]
-    atomH = [-1.023, 4.664, -2.481]
-    atomA = [-1.579, 2.834, -2.817]
-    atomB = [-0.774, 1.927, -3.337]
-    atomB0 = [-2.327, 2.261, -1.817]
-
-    donwt = 1.45
-    accwt = 1.13
-
     return dict(
         # Input coordinates
-        d=atomD,
-        h=atomH,
-        a=atomA,
-        b=atomB,
-        b0=atomB0,
+        D=[-0.624, 5.526, -2.146],
+        H=[-1.023, 4.664, -2.481],
+        A=[-1.579, 2.834, -2.817],
+        B=[-0.774, 1.927, -3.337],
+        B0=[-2.327, 2.261, -1.817],
         acceptor_class=AcceptorClass.ring,
         # type pair parameters
-        glob_accwt=accwt,
-        glob_donwt=donwt,
-        AHdist_coeff=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6,
+        donor_weight=1.45,
+        acceptor_weight=1.13,
+        AHdist_coeffs=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6,
         AHdist_range=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_range,
         AHdist_bound=hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6_bounds,
-        cosBAH_coeff=poly_cosBAH_7,
+        cosBAH_coeffs=poly_cosBAH_7,
         cosBAH_range=poly_cosBAH_7_range,
         cosBAH_bound=poly_cosBAH_7_bounds,
-        cosAHD_coeff=poly_AHD_1i,
+        cosAHD_coeffs=poly_AHD_1i,
         cosAHD_range=poly_AHD_1i_range,
         cosAHD_bound=poly_AHD_1i_bounds,
         # Global score parameters
@@ -280,13 +253,15 @@ def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_par
         return torch.tensor(t).to(dtype=torch.double)
 
     def targs(params):
-        args = _signature(compiled.hbond_score_V_dV).bind(**valmap(_t, params)).kwargs
+        args = (
+            _signature(compiled.hbond_score_V_dV).bind(**valmap(_t, params)).arguments
+        )
 
-        args["d"] = args["d"].requires_grad_(True)
-        args["h"] = args["h"].requires_grad_(True)
-        args["a"] = args["a"].requires_grad_(True)
-        args["b"] = args["b"].requires_grad_(True)
-        args["b0"] = args["b0"].requires_grad_(True)
+        args["D"] = args["D"].requires_grad_(True)
+        args["H"] = args["H"].requires_grad_(True)
+        args["A"] = args["A"].requires_grad_(True)
+        args["B"] = args["B"].requires_grad_(True)
+        args["B0"] = args["B0"].requires_grad_(True)
         args["acceptor_class"] = args["acceptor_class"].to(dtype=torch.int32)
         return tuple(args.values())
 
@@ -316,7 +291,7 @@ def test_AH_dist_gradcheck(compiled, sp2_params, sp3_params, ring_params):
             (
                 A.requires_grad_(True),
                 H.requires_grad_(True),
-                _t(params["AHdist_coeff"]),
+                _t(params["AHdist_coeffs"]),
                 _t(params["AHdist_range"]),
                 _t(params["AHdist_bound"]),
             ),
@@ -331,10 +306,10 @@ def test_AHD_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
         gradcheck(
             VectorizedOp(compiled.AHD_angle_V_dV),
             (
-                _t(params["a"]).requires_grad_(True),
-                _t(params["h"]).requires_grad_(True),
-                _t(params["d"]).requires_grad_(True),
-                _t(params["cosAHD_coeff"]),
+                _t(params["A"]).requires_grad_(True),
+                _t(params["H"]).requires_grad_(True),
+                _t(params["D"]).requires_grad_(True),
+                _t(params["cosAHD_coeffs"]),
                 _t(params["cosAHD_range"]),
                 _t(params["cosAHD_bound"]),
             ),
@@ -349,12 +324,12 @@ def test_BAH_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
         gradcheck(
             VectorizedOp(compiled.BAH_angle_V_dV),
             (
-                _t(params["b"]).requires_grad_(True),
-                _t(params["b0"]).requires_grad_(True),
-                _t(params["a"]).requires_grad_(True),
-                _t(params["h"]).requires_grad_(True),
+                _t(params["B"]).requires_grad_(True),
+                _t(params["B0"]).requires_grad_(True),
+                _t(params["A"]).requires_grad_(True),
+                _t(params["H"]).requires_grad_(True),
                 _t(params["acceptor_class"]).to(dtype=torch.int32),
-                _t(params["cosBAH_coeff"]),
+                _t(params["cosBAH_coeffs"]),
                 _t(params["cosBAH_range"]),
                 _t(params["cosBAH_bound"]),
                 _t(params["hb_sp3_softmax_fade"]),
@@ -369,7 +344,7 @@ def test_sp2_chi_energy_gradcheck(compiled, sp2_params):
         return torch.tensor(t).to(dtype=torch.double)
 
     chi = dihedral_angle_V(
-        sp2_params["b0"], sp2_params["b"], sp2_params["a"], sp2_params["h"]
+        sp2_params["B0"], sp2_params["B"], sp2_params["A"], sp2_params["H"]
     )
 
     for ang in list(numpy.linspace(.1, numpy.pi, 16, endpoint=False)):

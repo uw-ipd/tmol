@@ -13,9 +13,9 @@ void bind_potentials(pybind11::module& m) {
   m.def(
       "AH_dist_V_dV",
       &AH_dist_V_dV<Real>,
-      "a"_a,
-      "h"_a,
-      "AHdist_coeff"_a,
+      "A"_a,
+      "H"_a,
+      "AHdist_coeffs"_a,
       "AHdist_range"_a,
       "AHdist_bound"_a);
 
@@ -25,7 +25,7 @@ void bind_potentials(pybind11::module& m) {
       "A"_a,
       "H"_a,
       "D"_a,
-      "cosAHD_coeff"_a,
+      "cosAHD_coeffs"_a,
       "cosAHD_range"_a,
       "cosAHD_bound"_a);
 
@@ -37,7 +37,7 @@ void bind_potentials(pybind11::module& m) {
       "A"_a,
       "H"_a,
       "acceptor_class"_a,
-      "cosBAH_coeff"_a,
+      "cosBAH_coeffs"_a,
       "cosBAH_range"_a,
       "cosBAH_bound"_a,
       "hb_sp3_softmax_fade"_a);
@@ -56,26 +56,26 @@ void bind_potentials(pybind11::module& m) {
       &hbond_score_V_dV<Real, int>,
       "HBond donor-acceptor geometry score.",
 
-      "d"_a,
-      "h"_a,
-      "a"_a,
-      "b"_a,
-      "b0"_a,
+      "D"_a,
+      "H"_a,
+      "A"_a,
+      "B"_a,
+      "B0"_a,
 
       // type pair parameters
       "acceptor_class"_a,
-      "glob_accwt"_a,
-      "glob_donwt"_a,
+      "acceptor_weight"_a,
+      "donor_weight"_a,
 
-      "AHdist_coeff"_a,
+      "AHdist_coeffs"_a,
       "AHdist_range"_a,
       "AHdist_bound"_a,
 
-      "cosBAH_coeff"_a,
+      "cosBAH_coeffs"_a,
       "cosBAH_range"_a,
       "cosBAH_bound"_a,
 
-      "cosAHD_coeff"_a,
+      "cosAHD_coeffs"_a,
       "cosAHD_range"_a,
       "cosAHD_bound"_a,
 
