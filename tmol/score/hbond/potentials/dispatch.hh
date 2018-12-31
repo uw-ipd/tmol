@@ -27,32 +27,6 @@ using tmol::TView;
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <typename Real, int N>
-struct HBondPolyParams {
-  TView<Vec<Real, 2>, N> range;
-  TView<Vec<Real, 2>, N> bound;
-  TView<Vec<Real, 11>, N> coeffs;
-};
-
-template <typename Real, int N>
-struct HBondPairParams {
-  TView<int32_t, N> acceptor_class;
-  TView<Real, N> acceptor_weight;
-  TView<Real, N> donor_weight;
-  HBondPolyParams<Real, N> AHdist;
-  HBondPolyParams<Real, N> cosBAH;
-  HBondPolyParams<Real, N> cosAHD;
-};
-
-template <typename Real>
-struct HBondGlobalParams {
-  Real hb_sp2_range_span;
-  Real hb_sp2_BAH180_rise;
-  Real hb_sp2_outer_width;
-  Real hb_sp3_softmax_fade;
-  Real threshold_distance;
-};
-
 template <typename Real, typename Int>
 auto hbond_pair_score(
     TView<Vec<Real, 3>, 1> D,
@@ -64,8 +38,27 @@ auto hbond_pair_score(
     TView<Vec<Real, 3>, 1> B0,
     TView<Int, 1> acceptor_type_index,
 
-    HBondPairParams<Real, 2> type_pair_params,
-    HBondGlobalParams<Real> global_params)
+    TView<Int, 2> acceptor_class,
+    TView<Real, 2> acceptor_weight,
+    TView<Real, 2> donor_weight,
+
+    TView<Vec<Real, 11>, 2> AHdist_coeffs,
+    TView<Vec<Real, 2>, 2> AHdist_range,
+    TView<Vec<Real, 2>, 2> AHdist_bound,
+
+    TView<Vec<Real, 11>, 2> cosBAH_coeffs,
+    TView<Vec<Real, 2>, 2> cosBAH_range,
+    TView<Vec<Real, 2>, 2> cosBAH_bound,
+
+    TView<Vec<Real, 11>, 2> cosAHD_coeffs,
+    TView<Vec<Real, 2>, 2> cosAHD_range,
+    TView<Vec<Real, 2>, 2> cosAHD_bound,
+
+    Real hb_sp2_range_span,
+    Real hb_sp2_BAH180_rise,
+    Real hb_sp2_outer_width,
+    Real hb_sp3_softmax_fade,
+    Real threshold_distance)
     -> tuple<
         at::Tensor,
         at::Tensor,
@@ -98,8 +91,7 @@ auto hbond_pair_score(
 
   auto [ind_t, ind] = new_tensor<int64_t, 2>({D.size(0) * A.size(0), 2});
   int nresult = 0;
-  Real squared_threshold =
-      global_params.threshold_distance * global_params.threshold_distance;
+  Real squared_threshold = threshold_distance * threshold_distance;
 
   for (auto [di, ai] : product(range(D.size(0)), range(A.size(0)))) {
     if ((H[di] - A[ai]).squaredNorm() < squared_threshold) {
@@ -135,26 +127,26 @@ auto hbond_pair_score(
             B[ai],
             B0[ai],
 
-            type_pair_params.acceptor_class[dt][at],
-            type_pair_params.acceptor_weight[dt][at],
-            type_pair_params.donor_weight[dt][at],
+            acceptor_class[dt][at],
+            acceptor_weight[dt][at],
+            donor_weight[dt][at],
 
-            type_pair_params.AHdist.coeffs[dt][at],
-            type_pair_params.AHdist.range[dt][at],
-            type_pair_params.AHdist.bound[dt][at],
+            AHdist_coeffs[dt][at],
+            AHdist_range[dt][at],
+            AHdist_bound[dt][at],
 
-            type_pair_params.cosBAH.coeffs[dt][at],
-            type_pair_params.cosBAH.range[dt][at],
-            type_pair_params.cosBAH.bound[dt][at],
+            cosBAH_coeffs[dt][at],
+            cosBAH_range[dt][at],
+            cosBAH_bound[dt][at],
 
-            type_pair_params.cosAHD.coeffs[dt][at],
-            type_pair_params.cosAHD.range[dt][at],
-            type_pair_params.cosAHD.bound[dt][at],
+            cosAHD_coeffs[dt][at],
+            cosAHD_range[dt][at],
+            cosAHD_bound[dt][at],
 
-            global_params.hb_sp2_range_span,
-            global_params.hb_sp2_BAH180_rise,
-            global_params.hb_sp2_outer_width,
-            global_params.hb_sp3_softmax_fade);
+            hb_sp2_range_span,
+            hb_sp2_BAH180_rise,
+            hb_sp2_outer_width,
+            hb_sp3_softmax_fade);
   }
 
   return {ind_t, E_t, dE_dD_t, dE_dH_t, dE_dA_t, dE_dB_t, dE_dB0_t};

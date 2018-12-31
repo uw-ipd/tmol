@@ -92,7 +92,7 @@ void bind_dispatch(pybind11::module& m) {
 
   m.def(
       "hbond_pair_score",
-      &hbond_pair_score<Real, int>,
+      &hbond_pair_score<Real, int32_t>,
       "D"_a,
       "H"_a,
       "donor_type_index"_a,
@@ -102,9 +102,29 @@ void bind_dispatch(pybind11::module& m) {
       "B0"_a,
       "acceptor_type_index"_a,
 
-      "type_pair_params"_a,
-      "global_params"_a);
-}
+      "acceptor_class"_a,
+      "acceptor_weight"_a,
+      "donor_weight"_a,
+
+      "AHdist_coeffs"_a,
+      "AHdist_range"_a,
+      "AHdist_bound"_a,
+
+      "cosBAH_coeffs"_a,
+      "cosBAH_range"_a,
+      "cosBAH_bound"_a,
+
+      "cosAHD_coeffs"_a,
+      "cosAHD_range"_a,
+      "cosAHD_bound"_a,
+
+      // Global score parameters
+      "hb_sp2_range_span"_a,
+      "hb_sp2_BAH180_rise"_a,
+      "hb_sp2_outer_width"_a,
+      "hb_sp3_softmax_fade"_a,
+      "threshold_distance"_a);
+};
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;

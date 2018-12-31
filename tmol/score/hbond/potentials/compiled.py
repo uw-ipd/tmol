@@ -34,3 +34,5 @@ BAH_angle_V_dV = numpy.vectorize(
 sp2chi_energy_V_dV = numpy.vectorize(
     _compiled.sp2chi_energy_V_dV, signature="(),(),(),(),()->(),(),()"
 )
+
+hbond_pair_score = _compiled.hbond_pair_score
