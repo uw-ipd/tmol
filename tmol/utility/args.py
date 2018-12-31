@@ -23,6 +23,17 @@ def _wraps(f):
     return functools.wraps(f)
 
 
+def bind_to_args(f, *args, **kwargs):
+    """Bind args/kwargs for function into positional arguments."""
+    sig = _signature(f)
+    bound_args = sig.bind(*args, **kwargs)
+
+    if bound_args.kwargs:
+        raise TypeError(f"func required kwargs: {f} sig: {sig}")
+
+    return tuple(bound_args.args)
+
+
 def ignore_unused_kwargs(func):
     """Ignore kwargs not present in func signature.
 

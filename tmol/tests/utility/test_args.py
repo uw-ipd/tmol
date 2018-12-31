@@ -1,13 +1,44 @@
 import pytest
 
 from tmol.utility.args import _signature
-from tmol.utility.args import ignore_unused_kwargs
+from tmol.utility.args import ignore_unused_kwargs, bind_to_args
 from tmol.utility.cpp_extension import load_inline
 
 import inspect
 
 import numba
 import numpy
+
+
+def test_bind_to_args():
+    """bind_to_args is used to bind arbitrary arguments into args tuples
+
+    Can bind post positional and keyword arguments to arg tuple.
+
+    kwonly arguments raise a TypeError, as they're not representable as
+    positional arguments.
+    """
+
+    def foo(a, b, c=1):
+        return a
+
+    assert bind_to_args(foo, 1, 2, 3) == (1, 2, 3)
+    assert bind_to_args(foo, c=3, b=2, a=1) == (1, 2, 3)
+
+    with pytest.raises(TypeError):
+        assert bind_to_args(foo, "extra_arg", c=3, b=2, a=1) == (1, 2, 3)
+
+    with pytest.raises(TypeError):
+        assert bind_to_args(foo, extra="keyword_arg", c=3, b=2, a=1) == (1, 2, 3)
+
+    def kwonly(a, b, *, c):
+        return a
+
+    with pytest.raises(TypeError):
+        bind_to_args(kwonly, 1, 2)
+
+    with pytest.raises(TypeError):
+        bind_to_args(kwonly, a=1, b=2, c=3)
 
 
 def test_ignore_unused_kwargs_func():
