@@ -16,18 +16,29 @@ warnings.filterwarnings(
     r"may be ABI-incompatible with PyTorch(\n|.)*",
 )
 
-_default_include_paths = tmol_include_paths() + extern_include_paths()
+_default_include_paths = list(tmol_include_paths() + extern_include_paths())
+
+_required_flags = ["--std=c++14"]
+# _default_flags = ["-O3"]
+_default_flags = ["-g", "-Og"]
+
+
+def _augment_kwargs(kwargs):
+    kwargs["extra_cflags"] = (
+        list(kwargs.get("extra_cflags", _default_flags)) + _required_flags
+    )
+    kwargs["extra_include_paths"] = (
+        list(kwargs.get("extra_include_flags", [])) + _default_include_paths
+    )
+
+    return kwargs
 
 
 @wraps(torch.utils.cpp_extension.load)
 def load(*args, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
 
-    kwargs["extra_cflags"] = kwargs.get("extra_cflags", ["-O3", "--std=c++14"])
-    kwargs["extra_include_paths"] = (
-        kwargs.get("extra_include_flags", []) + _default_include_paths
-    )
-
+    kwargs = _augment_kwargs(kwargs)
     return torch.utils.cpp_extension.load(*args, **kwargs)
 
 
@@ -35,9 +46,5 @@ def load(*args, **kwargs):
 def load_inline(*args, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
 
-    kwargs["extra_cflags"] = kwargs.get("extra_cflags", ["-O3", "--std=c++14"])
-    kwargs["extra_include_paths"] = (
-        kwargs.get("extra_include_flags", []) + _default_include_paths
-    )
-
+    kwargs = _augment_kwargs(kwargs)
     return torch.utils.cpp_extension.load_inline(*args, **kwargs)
