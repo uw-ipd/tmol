@@ -1,7 +1,6 @@
 import numpy
 from pathlib import Path
 from tmol.utility.cpp_extension import load
-from enum import IntEnum
 
 _compiled_sources = [str(Path(__file__).parent / s) for s in ("_compiled.cpp",)]
 _compiled = load("_compiled", _compiled_sources)

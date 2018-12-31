@@ -31,12 +31,12 @@ template <typename Real, typename Int>
 auto hbond_pair_score(
     TView<Vec<Real, 3>, 1> D,
     TView<Vec<Real, 3>, 1> H,
-    TView<Int, 1> donor_type_index,
+    TView<Int, 1> donor_type,
 
     TView<Vec<Real, 3>, 1> A,
     TView<Vec<Real, 3>, 1> B,
     TView<Vec<Real, 3>, 1> B0,
-    TView<Int, 1> acceptor_type_index,
+    TView<Int, 1> acceptor_type,
 
     TView<Int, 2> acceptor_class,
     TView<Real, 2> acceptor_weight,
@@ -73,20 +73,20 @@ auto hbond_pair_score(
   using tmol::new_tensor;
 
   AT_ASSERTM(
-      donor_type_index.size(0) == D.size(0),
+      donor_type.size(0) == D.size(0),
       "Invalid donor coordinate shapes.");
   AT_ASSERTM(
-      donor_type_index.size(0) == H.size(0),
+      donor_type.size(0) == H.size(0),
       "Invalid donor coordinate shapes.");
 
   AT_ASSERTM(
-      acceptor_type_index.size(0) == A.size(0),
+      acceptor_type.size(0) == A.size(0),
       "Invalid acceptor coordinate shapes.");
   AT_ASSERTM(
-      acceptor_type_index.size(0) == B.size(0),
+      acceptor_type.size(0) == B.size(0),
       "Invalid acceptor coordinate shapes.");
   AT_ASSERTM(
-      acceptor_type_index.size(0) == B0.size(0),
+      acceptor_type.size(0) == B0.size(0),
       "Invalid acceptor coordinate shapes.");
 
   auto [ind_t, ind] = new_tensor<int64_t, 2>({D.size(0) * A.size(0), 2});
@@ -115,8 +115,8 @@ auto hbond_pair_score(
     int di = ind[r][0];
     int ai = ind[r][1];
 
-    int dt = donor_type_index[di];
-    int at = acceptor_type_index[ai];
+    int dt = donor_type[di];
+    int at = acceptor_type[ai];
 
     tie(E[r], dE_dD[r], dE_dH[r], dE_dA[r], dE_dB[r], dE_dB0[r]) =
         hbond_score_V_dV(

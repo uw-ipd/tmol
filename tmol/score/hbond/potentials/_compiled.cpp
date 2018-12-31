@@ -95,12 +95,12 @@ void bind_dispatch(pybind11::module& m) {
       &hbond_pair_score<Real, int32_t>,
       "D"_a,
       "H"_a,
-      "donor_type_index"_a,
+      "donor_type"_a,
 
       "A"_a,
       "B"_a,
       "B0"_a,
-      "acceptor_type_index"_a,
+      "acceptor_type"_a,
 
       "acceptor_class"_a,
       "acceptor_weight"_a,
