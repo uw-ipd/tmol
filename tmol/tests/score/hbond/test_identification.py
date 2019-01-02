@@ -62,7 +62,7 @@ def test_ambig_identification(
     )
 
     identified_acceptors = (
-        pandas.DataFrame.from_records(element_analysis.sp3_acceptors)
+        pandas.DataFrame.from_records(element_analysis.acceptors)
         .sort_values(by="a")
         .reset_index(drop=True)
     )
@@ -70,9 +70,6 @@ def test_ambig_identification(
     pandas.testing.assert_frame_equal(
         expected_acceptors[["a"]].astype(int), identified_acceptors[["a"]]
     )
-
-    assert len(element_analysis.sp2_acceptors) == 0
-    assert len(element_analysis.ring_acceptors) == 0
 
 
 def test_bb_identification(bb_hbond_database, ubq_system):
@@ -117,9 +114,9 @@ def test_bb_identification(bb_hbond_database, ubq_system):
 
     pandas.testing.assert_frame_equal(
         pandas.DataFrame.from_records(
-            acceptors, columns=hbe.sp2_acceptors.dtype.names
+            acceptors, columns=hbe.acceptors.dtype.names
         ).sort_values("a"),
-        pandas.DataFrame.from_records(hbe.sp2_acceptors).sort_values("a"),
+        pandas.DataFrame.from_records(hbe.acceptors).sort_values("a"),
     )
 
 
@@ -143,11 +140,7 @@ def test_identification_by_ljlk_types(
             bonds=bonds,
         )
         identified_donors = set(hbe.donors["d"])
-        identified_acceptors = set(
-            list(hbe.sp2_acceptors["a"])
-            + list(hbe.sp3_acceptors["a"])
-            + list(hbe.ring_acceptors["a"])
-        )
+        identified_acceptors = set(hbe.acceptors["a"])
 
         for ai, at in enumerate(atom_types):
             if lj_types[at].is_donor:

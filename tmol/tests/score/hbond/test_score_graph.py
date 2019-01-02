@@ -33,7 +33,8 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
 
     intra_graph = hbond_graph.intra_score()
 
-    nan_scores = torch.nonzero(torch.isnan(intra_graph.hbond_scores))
+    ind, score = intra_graph.hbond
+    nan_scores = torch.nonzero(torch.isnan(score))
     assert len(nan_scores) == 0
     assert (intra_graph.total_hbond != 0).all()
     assert intra_graph.total.device == torch_device
@@ -54,7 +55,8 @@ def test_hbond_score_setup(benchmark, ubq_system, torch_device):
         score_graph = HBGraph(**graph_params)
 
         # Non-coordinate depdendent components for scoring
-        score_graph.hbond_pairs
+        score_graph.hbond_donor_indices
+        score_graph.hbond_acceptor_indices
 
         return score_graph
 

@@ -68,13 +68,7 @@ def test_score_op(compiled, ubq_system):
     )
 
     donors = hbond_elements.donors
-    acceptors = numpy.concatenate(
-        (
-            hbond_elements.sp2_acceptors,
-            hbond_elements.sp3_acceptors,
-            hbond_elements.ring_acceptors,
-        )
-    )
+    acceptors = hbond_elements.acceptors
 
     # setup input coordinate tensors
 
@@ -148,13 +142,7 @@ def test_score_op_gradcheck(compiled, ubq_system):
     )
 
     donors = hbond_elements.donors[:10]
-    acceptors = numpy.concatenate(
-        (
-            hbond_elements.sp2_acceptors,
-            hbond_elements.sp3_acceptors,
-            hbond_elements.ring_acceptors,
-        )
-    )[:10]
+    acceptors = hbond_elements.acceptors[:10]
 
     op = HBondOp.from_database(
         hbond_database, hbond_param_resolver, dtype=torch.float64

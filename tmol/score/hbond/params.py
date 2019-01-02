@@ -1,7 +1,7 @@
 import attr
 import cattr
 
-from typing import Sequence, Tuple
+from typing import Sequence
 
 from enum import IntEnum
 
@@ -77,15 +77,17 @@ class HBondParamResolver(ValidateAttrs):
     acceptor_type_index: pandas.Index = attr.ib()
     pair_params: HBondPairParams = attr.ib()
 
-    def __getitem__(self, key: Tuple[Sequence[str], Sequence[str]]) -> HBondPairParams:
-        donor_types, acceptor_types = key
+    def resolve_donor_type(self, donor_types: Sequence[str]) -> torch.Tensor:
+        """Resolve string donor type name into integer type index."""
+        i = self.donor_type_index.get_indexer(donor_types)
+        assert not numpy.any(i == -1), "donor type not present in index"
+        return torch.from_numpy(i).to(device=self.pair_params.acceptor_class.device)
 
-        di = self.donor_type_index.get_indexer(donor_types)
-        assert not numpy.any(di == -1), "donor type not present in index"
-        ai = self.acceptor_type_index.get_indexer(acceptor_types)
-        assert not numpy.any(ai == -1), "acceptor type not present in index"
-
-        return self.pair_params[di, ai]
+    def resolve_acceptor_type(self, acceptor_types: Sequence[str]) -> torch.Tensor:
+        """Resolve string acceptor type name into integer type index."""
+        i = self.acceptor_type_index.get_indexer(acceptor_types)
+        assert not numpy.any(i == -1), "acceptor type not present in index"
+        return torch.from_numpy(i).to(device=self.pair_params.acceptor_class.device)
 
     @classmethod
     def from_database(cls, hbond_database: HBondDatabase):

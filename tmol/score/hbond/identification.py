@@ -37,12 +37,6 @@ class HBondElementAnalysis(ValidateAttrs):
 
     Atom indicies for hbond elements, form of atom sets defining:
 
-    Donors:
-    1) hbond donors
-    2) sp2-hybridized hbond acceptors
-    3) sp3-hybridized hbond acceptors
-    4) ring-hybridized hbond acceptors
-
     Elements are identified by matching bonding pattern and atom type against
     the set of defined donor/acceptor element types in the source hbond score
     database.
@@ -56,9 +50,7 @@ class HBondElementAnalysis(ValidateAttrs):
     """
 
     donors: NDArray(donor_dtype)[:]
-    sp2_acceptors: NDArray(acceptor_dtype)[:]
-    sp3_acceptors: NDArray(acceptor_dtype)[:]
-    ring_acceptors: NDArray(acceptor_dtype)[:]
+    acceptors: NDArray(acceptor_dtype)[:]
 
     @classmethod
     @convert_args
@@ -271,7 +263,5 @@ class HBondElementAnalysis(ValidateAttrs):
 
         return cls(
             donors=donors,
-            sp2_acceptors=sp2_acceptors,
-            sp3_acceptors=sp3_acceptors,
-            ring_acceptors=ring_acceptors,
+            acceptors=numpy.concatenate((sp2_acceptors, sp3_acceptors, ring_acceptors)),
         )
