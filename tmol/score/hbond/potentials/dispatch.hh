@@ -42,17 +42,17 @@ auto hbond_pair_score(
     TView<Real, 2> acceptor_weight,
     TView<Real, 2> donor_weight,
 
-    TView<Vec<Real, 11>, 2> AHdist_coeffs,
-    TView<Vec<Real, 2>, 2> AHdist_range,
-    TView<Vec<Real, 2>, 2> AHdist_bound,
+    TView<Vec<double, 11>, 2> AHdist_coeffs,
+    TView<Vec<double, 2>, 2> AHdist_range,
+    TView<Vec<double, 2>, 2> AHdist_bound,
 
-    TView<Vec<Real, 11>, 2> cosBAH_coeffs,
-    TView<Vec<Real, 2>, 2> cosBAH_range,
-    TView<Vec<Real, 2>, 2> cosBAH_bound,
+    TView<Vec<double, 11>, 2> cosBAH_coeffs,
+    TView<Vec<double, 2>, 2> cosBAH_range,
+    TView<Vec<double, 2>, 2> cosBAH_bound,
 
-    TView<Vec<Real, 11>, 2> cosAHD_coeffs,
-    TView<Vec<Real, 2>, 2> cosAHD_range,
-    TView<Vec<Real, 2>, 2> cosAHD_bound,
+    TView<Vec<double, 11>, 2> cosAHD_coeffs,
+    TView<Vec<double, 2>, 2> cosAHD_range,
+    TView<Vec<double, 2>, 2> cosAHD_bound,
 
     Real hb_sp2_range_span,
     Real hb_sp2_BAH180_rise,

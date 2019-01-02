@@ -49,12 +49,12 @@ template <typename Real>
 auto AH_dist_V_dV(
     Real3 A,
     Real3 H,
-    Vec<Real, 11> AHdist_coeffs,
-    Vec<Real, 2> AHdist_range,
-    Vec<Real, 2> AHdist_bound) -> tuple<Real, Real3, Real3> {
+    Vec<double, 11> AHdist_coeffs,
+    Vec<double, 2> AHdist_range,
+    Vec<double, 2> AHdist_bound) -> tuple<Real, Real3, Real3> {
   auto [D, dD_dA, dD_dH] = distance_V_dV(A, H);
   auto [V, dV_dD] =
-      bound_poly_V_dV(D, AHdist_coeffs, AHdist_range, AHdist_bound);
+      bound_poly_V_dV<11, double>(D, AHdist_coeffs, AHdist_range, AHdist_bound);
 
   return {V, dV_dD * dD_dA, dV_dD * dD_dH};
 }
@@ -64,13 +64,13 @@ auto AHD_angle_V_dV(
     Real3 A,
     Real3 H,
     Real3 D,
-    Vec<Real, 11> cosAHD_coeffs,
-    Vec<Real, 2> cosAHD_range,
-    Vec<Real, 2> cosAHD_bound) -> tuple<Real, Real3, Real3, Real3> {
+    Vec<double, 11> cosAHD_coeffs,
+    Vec<double, 2> cosAHD_range,
+    Vec<double, 2> cosAHD_bound) -> tuple<Real, Real3, Real3, Real3> {
   // In non-cos space
   auto [AHD, dAHD_dA, dAHD_dH, dAHD_dD] = pt_interior_angle_V_dV(A, H, D);
   auto [V, dV_dAHD] =
-      bound_poly_V_dV(AHD, cosAHD_coeffs, cosAHD_range, cosAHD_bound);
+      bound_poly_V_dV<11, double>(AHD, cosAHD_coeffs, cosAHD_range, cosAHD_bound);
 
   return {V, dV_dAHD * dAHD_dA, dV_dAHD * dAHD_dH, dV_dAHD * dAHD_dD};
 }
@@ -80,15 +80,15 @@ auto _BAH_angle_base_form_V_dV(
     Real3 B,
     Real3 A,
     Real3 H,
-    Vec<Real, 11> cosBAH_coeffs,
-    Vec<Real, 2> cosBAH_range,
-    Vec<Real, 2> cosBAH_bound) -> tuple<Real, Real3, Real3, Real3> {
+    Vec<double, 11> cosBAH_coeffs,
+    Vec<double, 2> cosBAH_range,
+    Vec<double, 2> cosBAH_bound) -> tuple<Real, Real3, Real3, Real3> {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
   auto [cosT, d_cosT_dAH, d_cosT_dBA] = cos_interior_angle_V_dV(AH, BA);
   auto [V, dV_d_cosT] =
-      bound_poly_V_dV(cosT, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
+      bound_poly_V_dV<11, double>(cosT, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
   return {V,
           dV_d_cosT * (-d_cosT_dBA),
@@ -103,9 +103,9 @@ auto BAH_angle_V_dV(
     Real3 A,
     Real3 H,
     Int acceptor_class,
-    Vec<Real, 11> cosBAH_coeffs,
-    Vec<Real, 2> cosBAH_range,
-    Vec<Real, 2> cosBAH_bound,
+    Vec<double, 11> cosBAH_coeffs,
+    Vec<double, 2> cosBAH_range,
+    Vec<double, 2> cosBAH_bound,
     Real hb_sp3_softmax_fade) -> tuple<Real, Real3, Real3, Real3, Real3> {
   using std::exp;
   using std::log;
@@ -240,17 +240,17 @@ auto hbond_score_V_dV(
     Real acceptor_weight,
     Real donor_weight,
 
-    Vec<Real, 11> AHdist_coeffs,
-    Vec<Real, 2> AHdist_range,
-    Vec<Real, 2> AHdist_bound,
+    Vec<double, 11> AHdist_coeffs,
+    Vec<double, 2> AHdist_range,
+    Vec<double, 2> AHdist_bound,
 
-    Vec<Real, 11> cosBAH_coeffs,
-    Vec<Real, 2> cosBAH_range,
-    Vec<Real, 2> cosBAH_bound,
+    Vec<double, 11> cosBAH_coeffs,
+    Vec<double, 2> cosBAH_range,
+    Vec<double, 2> cosBAH_bound,
 
-    Vec<Real, 11> cosAHD_coeffs,
-    Vec<Real, 2> cosAHD_range,
-    Vec<Real, 2> cosAHD_bound,
+    Vec<double, 11> cosAHD_coeffs,
+    Vec<double, 2> cosAHD_range,
+    Vec<double, 2> cosAHD_bound,
 
     // Global score parameters
     Real hb_sp2_range_span,

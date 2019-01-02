@@ -7,7 +7,7 @@ from tmol.database import ParameterDatabase
 from tmol.score.hbond.identification import HBondElementAnalysis
 from tmol.score.hbond.params import HBondParamResolver
 
-from tmol.utility.dicttoolz import flat_items, merge
+from tmol.utility.dicttoolz import merge, valmap
 
 from tmol.utility.args import ignore_unused_kwargs, bind_to_args
 
@@ -46,7 +46,7 @@ def _setup_inputs(coords, params, donors, acceptors):
 
 
 def test_score_op(compiled, ubq_system):
-    """Scores generated via compiled hbond dispatch match values from explicit
+    """Scores computed via op-based dispatch match values from explicit
     evaluation."""
 
     from tmol.score.hbond.torch_op import HBondOp
@@ -77,51 +77,32 @@ def test_score_op(compiled, ubq_system):
     ### score via op
 
     op = HBondOp.from_database(hbond_database, hbond_param_resolver)
-    inds, op_scores = op.score(**inputs)
+    (dind, aind), op_scores = op.score(**inputs)
     assert (op_scores < 0).sum() > 10
 
-    ### Score via direct invoke of dispatch loop
-    def _t_params(param_set):
-        """fetch type pair parameters as flattened args"""
-        return {"_".join(k): _t(v) for k, v in flat_items(attr.asdict(param_set))}
-
-    # Load type pair parameter arrays and covert to tensor types
-    # Run score dispatch over acceptors/donors
-    pparams = _t_params(hbond_param_resolver.pair_params)
-    gparams = attr.asdict(hbond_database.global_parameters)
-
-    inds, dispatch_scores, *derivs = ignore_unused_kwargs(compiled.hbond_pair_score)(
-        **merge(inputs, pparams, gparams)
-    )
-
-    # assert that some healthy number of bonds were scored
-    assert (dispatch_scores < 0).sum() > 10
-
     # Verify scores via back comparison to explicit evaluation
-    dind, aind = inds.transpose(0, 1)
-
     batch_coords = _setup_inputs(
         coords, hbond_param_resolver, donors[dind], acceptors[aind]
     )
-    batch_params = _t_params(
-        hbond_param_resolver.pair_params[
+
+    gparams = attr.asdict(hbond_database.global_parameters)
+    batch_params = valmap(
+        lambda t: t[
             batch_coords["donor_type"].to(torch.int64),
             batch_coords["acceptor_type"].to(torch.int64),
-        ]
+        ],
+        HBondOp._setup_pair_params(hbond_param_resolver, torch.float32),
     )
 
     batch_scores, *batch_derivs = ignore_unused_kwargs(compiled.hbond_score_V_dV)(
         **merge(batch_coords, batch_params, gparams)
     )
 
-    torch.testing.assert_allclose(batch_scores, batch_scores)
-    for d, bd in zip(derivs, batch_derivs):
-        torch.testing.assert_allclose(d, bd)
+    torch.testing.assert_allclose(op_scores, batch_scores)
+    # Derivative values validated via gradcheck
 
 
 def test_score_op_gradcheck(compiled, ubq_system):
-    """Scores generated via compiled hbond dispatch match values from explicit
-    evaluation."""
 
     from tmol.score.hbond.torch_op import HBondOp
 

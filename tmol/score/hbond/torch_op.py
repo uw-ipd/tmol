@@ -19,6 +19,24 @@ class HBondOp:
 
     params: Mapping[str, Union[float, torch.Tensor]]
 
+    @staticmethod
+    def _setup_pair_params(param_resolver, dtype):
+        def _t(n, v):
+            t = torch.tensor(v)
+            if t.is_floating_point():
+                if any(dkey in n for dkey in ("range", "bound", "coeffs")):
+                    # High degree polynomial parameters stored as double precision
+                    # to allow accurate double evaluation.
+                    t = t.to(torch.float64)
+                else:
+                    t = t.to(dtype)
+            return t
+
+        return {
+            "_".join(k): _t(k, v)
+            for k, v in flat_items(attr.asdict(param_resolver.pair_params))
+        }
+
     @classmethod
     def from_database(
         cls,
@@ -26,17 +44,7 @@ class HBondOp:
         param_resolver: HBondParamResolver,
         dtype=torch.float32,
     ):
-        def _t(v):
-            t = torch.tensor(v)
-            if t.is_floating_point():
-                t = t.to(dtype)
-            return t
-
-        pair_params = {
-            "_".join(k): _t(v)
-            for k, v in flat_items(attr.asdict(param_resolver.pair_params))
-        }
-
+        pair_params = cls._setup_pair_params(param_resolver, dtype)
         global_params = attr.asdict(database.global_parameters)
 
         return cls(params=merge(pair_params, global_params))
