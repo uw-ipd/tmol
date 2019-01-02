@@ -11,12 +11,15 @@ from tmol.score.device import TorchDevice
 
 from tmol.utility.reactive import reactive_attrs
 
+from tmol.tests.torch import cuda_not_implemented
+
 
 @reactive_attrs
 class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice):
     pass
 
 
+@cuda_not_implemented
 def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     """Hbond graph filters null atoms and unused functional groups, does not
     produce nan values in backward pass.
@@ -45,6 +48,7 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
 
 
 @pytest.mark.benchmark(group="score_setup")
+@cuda_not_implemented
 def test_hbond_score_setup(benchmark, ubq_system, torch_device):
     graph_params = HBGraph.init_parameters_for(
         ubq_system, requires_grad=True, device=torch_device
@@ -54,7 +58,7 @@ def test_hbond_score_setup(benchmark, ubq_system, torch_device):
     def score_graph():
         score_graph = HBGraph(**graph_params)
 
-        # Non-coordinate depdendent components for scoring
+        # Non-coordinate dependent components for scoring
         score_graph.hbond_donor_indices
         score_graph.hbond_acceptor_indices
 

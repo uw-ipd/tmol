@@ -107,7 +107,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
 
 # TODO: Reenable, LJScoreGraph does not support cuda
-_non_cuda_components = (LJScoreGraph, LKScoreGraph)
+_non_cuda_components = (LJScoreGraph, LKScoreGraph, HBondScore)
 
 
 @pytest.mark.parametrize(
@@ -120,17 +120,14 @@ _non_cuda_components = (LJScoreGraph, LKScoreGraph)
 def test_end_to_end_score_graph(
     benchmark, benchmark_pass, graph_class, ubq_system, torch_device
 ):
-    try:
-        score_graph = graph_class.build_for(
-            ubq_system, requires_grad=True, device=torch_device
-        )
-    except AssertionError:
-        if (
-            issubclass(graph_class, _non_cuda_components)
-            and torch_device.type == "cuda"
-        ):
-            pytest.xfail()
-        raise
+    if issubclass(graph_class, _non_cuda_components) and torch_device.type == "cuda":
+        with pytest.raises(NotImplementedError):
+            graph_class.build_for(ubq_system, requires_grad=True, device=torch_device)
+        return
+
+    score_graph = graph_class.build_for(
+        ubq_system, requires_grad=True, device=torch_device
+    )
 
     run = benchmark_score_pass(benchmark, score_graph, benchmark_pass)
 
