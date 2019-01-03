@@ -7,7 +7,7 @@ tmol.utility.args
 .. currentmodule:: tmol.utility.args
 
 .. automodule:: tmol.utility.args
-    :members: ignore_unused_kwargs
+    :members: bind_to_args, ignore_unused_kwargs
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,6 +21,7 @@ tmol.utility.args
     .. autosummary::
         :nosignatures:
 
+        bind_to_args
         ignore_unused_kwargs
 
 

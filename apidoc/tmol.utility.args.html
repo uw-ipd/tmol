@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.args &mdash; TMol 0.0.0-108-gcbcfc33 documentation</title>
+  <title>tmol.utility.args &mdash; TMol 0.0.0-109-g8cef1e1 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-108-gcbcfc33
+                0.0.0-109-g8cef1e1
               </div>
             
           
@@ -201,7 +201,10 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.args.ignore_unused_kwargs" title="tmol.utility.args.ignore_unused_kwargs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ignore_unused_kwargs</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.args.bind_to_args" title="tmol.utility.args.bind_to_args"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bind_to_args</span></code></a></td>
+<td>Bind args/kwargs for function into positional arguments.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.utility.args.ignore_unused_kwargs" title="tmol.utility.args.ignore_unused_kwargs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ignore_unused_kwargs</span></code></a></td>
 <td>Ignore kwargs not present in func signature.</td>
 </tr>
 </tbody>
@@ -220,6 +223,12 @@
 <dt id="tmol.utility.args._wraps">
 <code class="descclassname">tmol.utility.args.</code><code class="descname">_wraps</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_wraps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._wraps" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolve functools.wraps for callable.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args.bind_to_args">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">bind_to_args</code><span class="sig-paren">(</span><em>f</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#bind_to_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args.bind_to_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bind args/kwargs for function into positional arguments.</p>
 </dd></dl>
 
 <dl class="function">
@@ -248,6 +257,48 @@ of required args:</p>
 <code class="descclassname">tmol.utility.args.</code><code class="descname">_dufunc_wraps</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_dufunc_wraps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._dufunc_wraps" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolve functools.wraps for &#64;numba.vectorize.</p>
 </dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._numpy_vectorize_signature">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_numpy_vectorize_signature</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_numpy_vectorize_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._numpy_vectorize_signature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._builtin_signature">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_builtin_signature</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_builtin_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._builtin_signature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve inspect.Signature for builtin types.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._pybind11_doc_signatures">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_pybind11_doc_signatures</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_pybind11_doc_signatures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._pybind11_doc_signatures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load overload signatures from pybind11 docstring.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._sanitize_pybind11_signature">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_sanitize_pybind11_signature</code><span class="sig-paren">(</span><em>sig</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_sanitize_pybind11_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._sanitize_pybind11_signature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sanitize a typeid signature into type annotation.</p>
+<p>Hack attempt to sanitize c++ type signatures into syntactically valid
+python type annotations. Split off the return value annotation then
+coerce c++ namespace and template markers into compatible syntax.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._parse_doc_signature">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_parse_doc_signature</code><span class="sig-paren">(</span><em>sig</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_parse_doc_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._parse_doc_signature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._aligned_signature">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_aligned_signature</code><span class="sig-paren">(</span><em>sigs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_aligned_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._aligned_signature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Align overload signatures into a single meta-sig, or raise error.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.utility.args._pybind11_signature">
+<code class="descclassname">tmol.utility.args.</code><code class="descname">_pybind11_signature</code><span class="sig-paren">(</span><em>pybind11_f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/args.html#_pybind11_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.args._pybind11_signature" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 </div>
@@ -296,7 +347,7 @@ of required args:</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-108-gcbcfc33',
+              VERSION:'0.0.0-109-g8cef1e1',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
