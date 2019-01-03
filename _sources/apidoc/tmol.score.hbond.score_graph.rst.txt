@@ -7,7 +7,7 @@ tmol.score.hbond.score_graph
 .. currentmodule:: tmol.score.hbond.score_graph
 
 .. automodule:: tmol.score.hbond.score_graph
-    :members: HBondIntraScore, HBondPairs, HBondScoreGraph, acceptor_dtype, donor_dtype, pair_descr_dtype
+    :members: HBondAcceptorCoords, HBondAcceptorIndices, HBondDescr, HBondDonorCoords, HBondDonorIndices, HBondIntraScore, HBondScoreGraph
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,8 +21,12 @@ tmol.score.hbond.score_graph
     .. autosummary::
         :nosignatures:
 
+        HBondAcceptorCoords
+        HBondAcceptorIndices
+        HBondDescr
+        HBondDonorCoords
+        HBondDonorIndices
         HBondIntraScore
-        HBondPairs
         HBondScoreGraph
 
 

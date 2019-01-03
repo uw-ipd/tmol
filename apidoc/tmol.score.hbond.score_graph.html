@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-115-g5508833 documentation</title>
+  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-116-g4c2c841 documentation</title>
   
 
   
@@ -30,8 +30,8 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.score.ljlk" href="tmol.score.ljlk.html" />
-    <link rel="prev" title="tmol.score.hbond.potentials" href="tmol.score.hbond.potentials.html" /> 
+    <link rel="next" title="tmol.score.hbond.torch_op" href="tmol.score.hbond.torch_op.html" />
+    <link rel="prev" title="tmol.score.hbond.params" href="tmol.score.hbond.params.html" /> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-115-g5508833
+                0.0.0-116-g4c2c841
               </div>
             
           
@@ -102,15 +102,17 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.common.html">tmol.score.common</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.identification.html">tmol.score.hbond.identification</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.params.html">tmol.score.hbond.params</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.potentials.html">tmol.score.hbond.potentials</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.hbond.score_graph</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.torch_op.html">tmol.score.hbond.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.potentials.html">tmol.score.hbond.potentials</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
@@ -207,11 +209,23 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondIntraScore" title="tmol.score.hbond.score_graph.HBondIntraScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondIntraScore</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondAcceptorCoords" title="tmol.score.hbond.score_graph.HBondAcceptorCoords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondAcceptorCoords</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondPairs" title="tmol.score.hbond.score_graph.HBondPairs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondPairs</span></code></a></td>
-<td>Atom indices of all donor/acceptor pairs in system.</td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondAcceptorIndices" title="tmol.score.hbond.score_graph.HBondAcceptorIndices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondAcceptorIndices</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondDescr" title="tmol.score.hbond.score_graph.HBondDescr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondDescr</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondDonorCoords" title="tmol.score.hbond.score_graph.HBondDonorCoords"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondDonorCoords</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondDonorIndices" title="tmol.score.hbond.score_graph.HBondDonorIndices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondDonorIndices</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondIntraScore" title="tmol.score.hbond.score_graph.HBondIntraScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondIntraScore</span></code></a></td>
+<td></td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.score_graph.HBondScoreGraph" title="tmol.score.hbond.score_graph.HBondScoreGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondScoreGraph</span></code></a></td>
 <td>Compute graph for the HBond term.</td>
@@ -223,58 +237,33 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="tmol.score.hbond.score_graph.HBondPairs">
-<em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondPairs</code><span class="sig-paren">(</span><em>donor_sp2_pairs: NDArray(dtype([('d', '&lt;i8'), ('h', '&lt;i8'), ('donor_type', 'O'), ('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:], donor_sp2_pair_params: Union[tmol.score.hbond.params.HBondPairParams, NoneType], donor_sp3_pairs: NDArray(dtype([('d', '&lt;i8'), ('h', '&lt;i8'), ('donor_type', 'O'), ('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:], donor_sp3_pair_params: Union[tmol.score.hbond.params.HBondPairParams, NoneType], donor_ring_pairs: NDArray(dtype([('d', '&lt;i8'), ('h', '&lt;i8'), ('donor_type', 'O'), ('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:], donor_ring_pair_params: Union[tmol.score.hbond.params.HBondPairParams, NoneType]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondPairs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
-<p>Atom indices of all donor/acceptor pairs in system.</p>
-<p>The combination of all donors against all acceptors, (these lists having
-been constructed by the HBondElementAnalysis class) where the acceptors are
-broken down by their functional form (sp2, sp3, and ring). For each pair,
-then copy down the set of hbond parameters that describe how to evaluate
-the energy for that pair.</p>
-<p>(Making a copy of the parameters for each perspective donor/acceptor pair
-seems like it would be pretty expensive!)</p>
-<p>This work is performed on the CPU and then copied to the device.</p>
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondPairs.donor_sp2_pairs">
-<code class="descname">donor_sp2_pairs</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs.donor_sp2_pairs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="tmol.score.hbond.score_graph.HBondDonorIndices">
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondDonorIndices</code><span class="sig-paren">(</span><em>D: Tensor(torch.int64)[...,3], H: Tensor(torch.int64)[...,3], donor_type: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondDonorIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondDonorIndices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
+</dd></dl>
 
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondPairs.donor_sp2_pair_params">
-<code class="descname">donor_sp2_pair_params</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs.donor_sp2_pair_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="class">
+<dt id="tmol.score.hbond.score_graph.HBondAcceptorIndices">
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondAcceptorIndices</code><span class="sig-paren">(</span><em>A: Tensor(torch.int64)[...,3], B: Tensor(torch.int64)[...,3], B0: Tensor(torch.int64)[...,3], acceptor_type: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondAcceptorIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondAcceptorIndices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
+</dd></dl>
 
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondPairs.donor_sp3_pairs">
-<code class="descname">donor_sp3_pairs</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs.donor_sp3_pairs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="class">
+<dt id="tmol.score.hbond.score_graph.HBondDonorCoords">
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondDonorCoords</code><span class="sig-paren">(</span><em>D: Tensor(torch.float32)[...,3], H: Tensor(torch.float32)[...,3], donor_type: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondDonorCoords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondDonorCoords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
+</dd></dl>
 
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondPairs.donor_sp3_pair_params">
-<code class="descname">donor_sp3_pair_params</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs.donor_sp3_pair_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dl class="class">
+<dt id="tmol.score.hbond.score_graph.HBondAcceptorCoords">
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondAcceptorCoords</code><span class="sig-paren">(</span><em>A: Tensor(torch.float32)[...,3], B: Tensor(torch.float32)[...,3], B0: Tensor(torch.float32)[...,3], acceptor_type: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondAcceptorCoords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondAcceptorCoords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
+</dd></dl>
 
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondPairs.donor_ring_pairs">
-<code class="descname">donor_ring_pairs</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs.donor_ring_pairs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondPairs.donor_ring_pair_params">
-<code class="descname">donor_ring_pair_params</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs.donor_ring_pair_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="staticmethod">
-<dt id="tmol.score.hbond.score_graph.HBondPairs._cross_pairs">
-<em class="property">static </em><code class="descname">_cross_pairs</code><span class="sig-paren">(</span><em>donors: NDArray(dtype([('d', '&lt;i8'), ('h', '&lt;i8'), ('donor_type', 'O')]))[:], acceptors: NDArray(dtype([('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondPairs._cross_pairs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs._cross_pairs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.score.hbond.score_graph.HBondPairs.setup">
-<em class="property">classmethod </em><code class="descname">setup</code><span class="sig-paren">(</span><em>params: tmol.score.hbond.params.HBondParamResolver</em>, <em>elems: tmol.score.hbond.identification.HBondElementAnalysis</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondPairs.setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondPairs.setup" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<dl class="class">
+<dt id="tmol.score.hbond.score_graph.HBondDescr">
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondDescr</code><span class="sig-paren">(</span><em>donor: tmol.score.hbond.score_graph.HBondDonorIndices, acceptor: tmol.score.hbond.score_graph.HBondAcceptorIndices, score: Tensor(torch.float32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondDescr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondDescr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
@@ -282,51 +271,19 @@ seems like it would be pretty expensive!)</p>
 <em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondIntraScore</code><span class="sig-paren">(</span><em>target: ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondIntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.score.score_components.html#tmol.score.score_components.IntraScore" title="tmol.score.score_components.IntraScore"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_components.IntraScore</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondIntraScore.coords">
-<code class="descname">coords</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.coords" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondIntraScore.hbond_pairs">
-<code class="descname">hbond_pairs</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.hbond_pairs" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondIntraScore.hbond_database">
-<code class="descname">hbond_database</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.hbond_database" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondIntraScore.donor_sp2_hbond">
-<code class="descname">donor_sp2_hbond</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.donor_sp2_hbond" title="Permalink to this definition">¶</a></dt>
-<dd><p>donor-sp2 hbond scores</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondIntraScore.donor_sp3_hbond">
-<code class="descname">donor_sp3_hbond</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.donor_sp3_hbond" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondIntraScore.donor_ring_hbond">
-<code class="descname">donor_ring_hbond</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.donor_ring_hbond" title="Permalink to this definition">¶</a></dt>
-<dd><p>donor-ring hbond scores</p>
-</dd></dl>
-
-<dl class="attribute">
 <dt id="tmol.score.hbond.score_graph.HBondIntraScore.total_hbond">
 <code class="descname">total_hbond</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.total_hbond" title="Permalink to this definition">¶</a></dt>
 <dd><p>total hbond score</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondIntraScore.hbond_scores">
-<code class="descname">hbond_scores</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.hbond_scores" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.hbond.score_graph.HBondIntraScore.hbond">
+<code class="descname">hbond</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.hbond" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondIntraScore.hbond_pair_metadata">
-<code class="descname">hbond_pair_metadata</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.hbond_pair_metadata" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.hbond.score_graph.HBondIntraScore.hbond_descr">
+<code class="descname">hbond_descr</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondIntraScore.hbond_descr" title="Permalink to this definition">¶</a></dt>
 <dd><p>All hbond pairs, in order of “sp2”/”sp3”/”ring”.</p>
 </dd></dl>
 
@@ -337,19 +294,8 @@ seems like it would be pretty expensive!)</p>
 <em class="property">class </em><code class="descclassname">tmol.score.hbond.score_graph.</code><code class="descname">HBondScoreGraph</code><span class="sig-paren">(</span><em>stack_depth: int, system_size: int, parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:,:], bonds: NDArray(dtype('int64'))[:,3], device: torch.device, hbond_database: tmol.database.scoring.hbond.HBondDatabase</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondScoreGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.score_components.html#tmol.score.score_components.ScoreComponent" title="tmol.score.score_components.ScoreComponent"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_components.ScoreComponent</span></code></a>, <a class="reference internal" href="tmol.score.database.html#tmol.score.database.ParamDB" title="tmol.score.database.ParamDB"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.database.ParamDB</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a>, <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
 <p>Compute graph for the HBond term.</p>
-<p>It uses the reactive system to compute the list of donors and acceptors
-(via the HBondElementAnalysis class) and then the list of donor/acceptor
-pairs (via the HBondPairs class) once, and then reuses these lists.</p>
-<p>The h-bond functional form differs for the three classes of acceptors:
-sp2-, sp3-, and ring-hybridized acceptors. For this reason, these three are
-handled separately. Different donor types and different acceptor types within
-a group of the same hybridization will have different parameters / polynomials,
-but their functional forms will be the same, and so they can be processed
-together.</p>
-<p>The code (hopefully only for now?) evaluates the hydrogen bond potential
-between all pairs of acceptors and donors, in contrast to the Lennard-Jones
-term which looks only at nearby atom pairs. Perhaps future versions of
-this code will cull distant acceptor/donor pairs.</p>
+<p>Uses the reactive system to compute the list of donors and acceptors
+(via the HBondElementAnalysis class) and then reuses these lists.</p>
 <dl class="attribute">
 <dt id="tmol.score.hbond.score_graph.HBondScoreGraph.total_score_components">
 <code class="descname">total_score_components</code><em class="property"> = [ScoreComponentClasses(name='hbond', intra_container=&lt;class 'tmol.score.hbond.score_graph.HBondIntraScore'&gt;, inter_container=None)]</em><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.total_score_components" title="Permalink to this definition">¶</a></dt>
@@ -357,16 +303,10 @@ this code will cull distant acceptor/donor pairs.</p>
 
 <dl class="staticmethod">
 <dt id="tmol.score.hbond.score_graph.HBondScoreGraph.factory_for">
-<em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>val</em>, <em>parameter_database: tmol.database.ParameterDatabase</em>, <em>hbond_database: Union[tmol.database.scoring.hbond.HBondDatabase</em>, <em>NoneType] = None</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondScoreGraph.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.factory_for" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>val</em>, <em>parameter_database: tmol.database.ParameterDatabase</em>, <em>device: torch.device</em>, <em>hbond_database: Union[tmol.database.scoring.hbond.HBondDatabase</em>, <em>NoneType] = None</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/score_graph.html#HBondScoreGraph.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.factory_for" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overridable clone-constructor.</p>
 <p>Initialize from <code class="docutils literal notranslate"><span class="pre">val.hbond_database</span></code> if possible, otherwise from
 <code class="docutils literal notranslate"><span class="pre">parameter_database.scoring.hbond</span></code>.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondScoreGraph.component_atom_pair_dist_threshold">
-<code class="descname">component_atom_pair_dist_threshold</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.component_atom_pair_dist_threshold" title="Permalink to this definition">¶</a></dt>
-<dd><p>Expose threshold distance for InteratomicDisanceGraph.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -376,15 +316,38 @@ this code will cull distant acceptor/donor pairs.</p>
 </dd></dl>
 
 <dl class="attribute">
+<dt id="tmol.score.hbond.score_graph.HBondScoreGraph.hbond_op">
+<code class="descname">hbond_op</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="tmol.score.hbond.score_graph.HBondScoreGraph.hbond_elements">
 <code class="descname">hbond_elements</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_elements" title="Permalink to this definition">¶</a></dt>
 <dd><p>hbond score elements in target graph</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.hbond.score_graph.HBondScoreGraph.hbond_pairs">
-<code class="descname">hbond_pairs</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_pairs" title="Permalink to this definition">¶</a></dt>
-<dd><p>hbond pair metadata and parameters in target graph</p>
+<dt id="tmol.score.hbond.score_graph.HBondScoreGraph.hbond_donor_indices">
+<code class="descname">hbond_donor_indices</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_donor_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>hbond donor indicies and type indicies.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.score_graph.HBondScoreGraph.hbond_acceptor_indices">
+<code class="descname">hbond_acceptor_indices</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_acceptor_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>hbond acceptor indicies and type indicies.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.score_graph.HBondScoreGraph.hbond_donor_coords">
+<code class="descname">hbond_donor_coords</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_donor_coords" title="Permalink to this definition">¶</a></dt>
+<dd><p>hbond donor coordinates and type indicies.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.score_graph.HBondScoreGraph.hbond_acceptor_coords">
+<code class="descname">hbond_acceptor_coords</code><a class="headerlink" href="#tmol.score.hbond.score_graph.HBondScoreGraph.hbond_acceptor_coords" title="Permalink to this definition">¶</a></dt>
+<dd><p>hbond acceptor coordinates and type indicies.</p>
 </dd></dl>
 
 </dd></dl>
@@ -400,10 +363,10 @@ this code will cull distant acceptor/donor pairs.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.score.ljlk.html" class="btn btn-neutral float-right" title="tmol.score.ljlk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.hbond.torch_op.html" class="btn btn-neutral float-right" title="tmol.score.hbond.torch_op" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="tmol.score.hbond.potentials.html" class="btn btn-neutral" title="tmol.score.hbond.potentials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tmol.score.hbond.params.html" class="btn btn-neutral" title="tmol.score.hbond.params" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -436,7 +399,7 @@ this code will cull distant acceptor/donor pairs.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-115-g5508833',
+              VERSION:'0.0.0-116-g4c2c841',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

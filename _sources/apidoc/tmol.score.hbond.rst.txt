@@ -13,9 +13,10 @@ tmol.score.hbond
   
        tmol.score.hbond.identification
        tmol.score.hbond.params
-       tmol.score.hbond.potentials
        tmol.score.hbond.score_graph
+       tmol.score.hbond.torch_op
   
+       tmol.score.hbond.potentials
 
 
 

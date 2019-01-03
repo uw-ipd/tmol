@@ -1,0 +1,346 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.score.hbond.torch_op &mdash; TMol 0.0.0-116-g4c2c841 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/score/hbond/torch_op.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-116-g4c2c841
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../score.html">tmol.score</a> &raquo;</li>
+        
+      <li>tmol.score.hbond.torch_op</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.score.hbond.torch_op</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">attr</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">tmol.utility.dicttoolz</span> <span class="k">import</span> <span class="n">flat_items</span><span class="p">,</span> <span class="n">merge</span>
+
+<span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">HBondDatabase</span>
+<span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">HBondParamResolver</span>
+
+
+<span class="kn">from</span> <span class="nn">.potentials.compiled</span> <span class="k">import</span> <span class="n">hbond_pair_score</span>
+
+
+<div class="viewcode-block" id="HBondOp"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.torch_op.html#tmol.score.hbond.torch_op.HBondOp">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">HBondOp</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;torch.autograd hbond baseline operator.&quot;&quot;&quot;</span>
+
+    <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span>
+
+<div class="viewcode-block" id="HBondOp._setup_pair_params"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.torch_op.html#tmol.score.hbond.torch_op.HBondOp._setup_pair_params">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_setup_pair_params</span><span class="p">(</span><span class="n">param_resolver</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">_t</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">dkey</span> <span class="ow">in</span> <span class="n">n</span> <span class="k">for</span> <span class="n">dkey</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;range&quot;</span><span class="p">,</span> <span class="s2">&quot;bound&quot;</span><span class="p">,</span> <span class="s2">&quot;coeffs&quot;</span><span class="p">)):</span>
+                    <span class="c1"># High degree polynomial parameters stored as double precision</span>
+                    <span class="c1"># to allow accurate double evaluation.</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">t</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">_t</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">flat_items</span><span class="p">(</span><span class="n">attr</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">pair_params</span><span class="p">))</span>
+        <span class="p">}</span></div>
+
+<div class="viewcode-block" id="HBondOp.from_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.torch_op.html#tmol.score.hbond.torch_op.HBondOp.from_database">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_database</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
+        <span class="n">param_resolver</span><span class="p">:</span> <span class="n">HBondParamResolver</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">pair_params</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_setup_pair_params</span><span class="p">(</span><span class="n">param_resolver</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+        <span class="n">global_params</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="n">database</span><span class="o">.</span><span class="n">global_parameters</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">merge</span><span class="p">(</span><span class="n">pair_params</span><span class="p">,</span> <span class="n">global_params</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="HBondOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.torch_op.html#tmol.score.hbond.torch_op.HBondOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">donor_type</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="p">):</span>
+        <span class="n">inds</span><span class="p">,</span> <span class="n">scores</span> <span class="o">=</span> <span class="n">HBondFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">donor_type</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">inds</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">scores</span></div></div>
+
+
+<div class="viewcode-block" id="HBondFun"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.torch_op.html#tmol.score.hbond.torch_op.HBondFun">[docs]</a><span class="k">class</span> <span class="nc">HBondFun</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">op</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="HBondFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.torch_op.html#tmol.score.hbond.torch_op.HBondFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">donor_type</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">D</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="k">assert</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">H</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">D</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">donor_type</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">donor_type</span><span class="o">.</span><span class="n">requires_grad</span>
+
+        <span class="k">assert</span> <span class="n">A</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="k">assert</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">B</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">B0</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">acceptor_type</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">acceptor_type</span><span class="o">.</span><span class="n">requires_grad</span>
+
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">donor_type</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">inds</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="o">*</span><span class="n">dE_dC</span> <span class="o">=</span> <span class="n">hbond_pair_score</span><span class="p">(</span>
+            <span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">donor_type</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span>
+        <span class="p">)</span>
+
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">inds</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">ctx</span><span class="o">.</span><span class="n">donor_shape</span> <span class="o">=</span> <span class="n">donor_type</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">acceptor_shape</span> <span class="o">=</span> <span class="n">acceptor_type</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="n">inds</span><span class="p">]</span> <span class="o">+</span> <span class="n">dE_dC</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HBondFun.backward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.torch_op.html#tmol.score.hbond.torch_op.HBondFun.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">_ind_grads</span><span class="p">,</span> <span class="n">dV_dE</span><span class="p">):</span>
+        <span class="n">ind</span><span class="p">,</span> <span class="n">dE_dD</span><span class="p">,</span> <span class="n">dE_dH</span><span class="p">,</span> <span class="n">dE_dA</span><span class="p">,</span> <span class="n">dE_dB</span><span class="p">,</span> <span class="n">dE_dB0</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+        <span class="n">donor_ind</span><span class="p">,</span> <span class="n">acceptor_ind</span> <span class="o">=</span> <span class="n">ind</span>
+
+        <span class="k">def</span> <span class="nf">_chain_donor</span><span class="p">(</span><span class="n">dE_dDonor</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
+                <span class="n">donor_ind</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dV_dE</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">dE_dDonor</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">donor_shape</span> <span class="o">+</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">_chain_acceptor</span><span class="p">(</span><span class="n">dE_dAcceptor</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
+                <span class="n">acceptor_ind</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span>
+                <span class="n">dV_dE</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">dE_dAcceptor</span><span class="p">,</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">acceptor_shape</span> <span class="o">+</span> <span class="p">(</span><span class="mi">3</span><span class="p">,),</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">_chain_donor</span><span class="p">(</span><span class="n">dE_dD</span><span class="p">),</span>
+            <span class="n">_chain_donor</span><span class="p">(</span><span class="n">dE_dH</span><span class="p">),</span>
+            <span class="kc">None</span><span class="p">,</span>
+            <span class="n">_chain_acceptor</span><span class="p">(</span><span class="n">dE_dA</span><span class="p">),</span>
+            <span class="n">_chain_acceptor</span><span class="p">(</span><span class="n">dE_dB</span><span class="p">),</span>
+            <span class="n">_chain_acceptor</span><span class="p">(</span><span class="n">dE_dB0</span><span class="p">),</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../../',
+              VERSION:'0.0.0-116-g4c2c841',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

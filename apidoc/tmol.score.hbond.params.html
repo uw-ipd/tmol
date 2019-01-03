@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.params &mdash; TMol 0.0.0-115-g5508833 documentation</title>
+  <title>tmol.score.hbond.params &mdash; TMol 0.0.0-116-g4c2c841 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.score.hbond.potentials" href="tmol.score.hbond.potentials.html" />
+    <link rel="next" title="tmol.score.hbond.score_graph" href="tmol.score.hbond.score_graph.html" />
     <link rel="prev" title="tmol.score.hbond.identification" href="tmol.score.hbond.identification.html" /> 
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-115-g5508833
+                0.0.0-116-g4c2c841
               </div>
             
           
@@ -102,6 +102,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.common.html">tmol.score.common</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.identification.html">tmol.score.hbond.identification</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.hbond.params</a><ul>
@@ -109,8 +110,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.potentials.html">tmol.score.hbond.potentials</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.score_graph.html">tmol.score.hbond.score_graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.torch_op.html">tmol.score.hbond.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.hbond.potentials.html">tmol.score.hbond.potentials</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
@@ -207,13 +209,16 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.params.HBondPairParams" title="tmol.score.hbond.params.HBondPairParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondPairParams</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.params.AcceptorClass" title="tmol.score.hbond.params.AcceptorClass"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AcceptorClass</span></code></a></td>
+<td>An enumeration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.params.HBondPairParams" title="tmol.score.hbond.params.HBondPairParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondPairParams</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.params.HBondParamResolver" title="tmol.score.hbond.params.HBondParamResolver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondParamResolver</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.params.HBondParamResolver" title="tmol.score.hbond.params.HBondParamResolver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondParamResolver</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.params.HBondPolyParams" title="tmol.score.hbond.params.HBondPolyParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondPolyParams</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.params.HBondPolyParams" title="tmol.score.hbond.params.HBondPolyParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondPolyParams</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -222,6 +227,28 @@
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tmol.score.hbond.params.AcceptorClass">
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.params.</code><code class="descname">AcceptorClass</code><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#AcceptorClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.AcceptorClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="tmol.score.hbond.params.AcceptorClass.sp2">
+<code class="descname">sp2</code><em class="property"> = 0</em><a class="headerlink" href="#tmol.score.hbond.params.AcceptorClass.sp2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.params.AcceptorClass.sp3">
+<code class="descname">sp3</code><em class="property"> = 1</em><a class="headerlink" href="#tmol.score.hbond.params.AcceptorClass.sp3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.params.AcceptorClass.ring">
+<code class="descname">ring</code><em class="property"> = 2</em><a class="headerlink" href="#tmol.score.hbond.params.AcceptorClass.ring" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="class">
 <dt id="tmol.score.hbond.params.HBondPolyParams">
 <em class="property">class </em><code class="descclassname">tmol.score.hbond.params.</code><code class="descname">HBondPolyParams</code><span class="sig-paren">(</span><em>range: Tensor(torch.float64)[...,2], bound: Tensor(torch.float64)[...,2], coeffs: Tensor(torch.float64)[...,11]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondPolyParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondPolyParams" title="Permalink to this definition">¶</a></dt>
@@ -250,7 +277,7 @@
 
 <dl class="class">
 <dt id="tmol.score.hbond.params.HBondPairParams">
-<em class="property">class </em><code class="descclassname">tmol.score.hbond.params.</code><code class="descname">HBondPairParams</code><span class="sig-paren">(</span><em>donor_weight: Tensor(torch.float32)[...], acceptor_weight: Tensor(torch.float32)[...], AHdist: tmol.score.hbond.params.HBondPolyParams, cosBAH: tmol.score.hbond.params.HBondPolyParams, cosAHD: tmol.score.hbond.params.HBondPolyParams</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondPairParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.params.</code><code class="descname">HBondPairParams</code><span class="sig-paren">(</span><em>donor_weight: Tensor(torch.float32)[...], acceptor_weight: Tensor(torch.float32)[...], acceptor_class: Tensor(torch.int32)[...], AHdist: tmol.score.hbond.params.HBondPolyParams, cosBAH: tmol.score.hbond.params.HBondPolyParams, cosAHD: tmol.score.hbond.params.HBondPolyParams</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondPairParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.score.hbond.params.HBondPairParams.donor_weight">
@@ -260,6 +287,11 @@
 <dl class="attribute">
 <dt id="tmol.score.hbond.params.HBondPairParams.acceptor_weight">
 <code class="descname">acceptor_weight</code><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams.acceptor_weight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.params.HBondPairParams.acceptor_class">
+<code class="descname">acceptor_class</code><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams.acceptor_class" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -275,6 +307,11 @@
 <dl class="attribute">
 <dt id="tmol.score.hbond.params.HBondPairParams.cosAHD">
 <code class="descname">cosAHD</code><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams.cosAHD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.hbond.params.HBondPairParams.full">
+<em class="property">classmethod </em><code class="descname">full</code><span class="sig-paren">(</span><em>shape</em>, <em>fill_value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondPairParams.full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams.full" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -298,6 +335,18 @@
 <code class="descname">pair_params</code><a class="headerlink" href="#tmol.score.hbond.params.HBondParamResolver.pair_params" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="tmol.score.hbond.params.HBondParamResolver.resolve_donor_type">
+<code class="descname">resolve_donor_type</code><span class="sig-paren">(</span><em>donor_types: Sequence[str]</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondParamResolver.resolve_donor_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondParamResolver.resolve_donor_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve string donor type name into integer type index.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.hbond.params.HBondParamResolver.resolve_acceptor_type">
+<code class="descname">resolve_acceptor_type</code><span class="sig-paren">(</span><em>acceptor_types: Sequence[str]</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondParamResolver.resolve_acceptor_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondParamResolver.resolve_acceptor_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve string acceptor type name into integer type index.</p>
+</dd></dl>
+
 <dl class="classmethod">
 <dt id="tmol.score.hbond.params.HBondParamResolver.from_database">
 <em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>hbond_database: tmol.database.scoring.hbond.HBondDatabase</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondParamResolver.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondParamResolver.from_database" title="Permalink to this definition">¶</a></dt>
@@ -316,7 +365,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.score.hbond.potentials.html" class="btn btn-neutral float-right" title="tmol.score.hbond.potentials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.hbond.score_graph.html" class="btn btn-neutral float-right" title="tmol.score.hbond.score_graph" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tmol.score.hbond.identification.html" class="btn btn-neutral" title="tmol.score.hbond.identification" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -352,7 +401,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-115-g5508833',
+              VERSION:'0.0.0-116-g4c2c841',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

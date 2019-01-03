@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-115-g5508833 documentation</title>
+  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-116-g4c2c841 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-115-g5508833
+                0.0.0-116-g4c2c841
               </div>
             
           
@@ -204,12 +204,6 @@
 
 <span class="sd">    Atom indicies for hbond elements, form of atom sets defining:</span>
 
-<span class="sd">    Donors:</span>
-<span class="sd">    1) hbond donors</span>
-<span class="sd">    2) sp2-hybridized hbond acceptors</span>
-<span class="sd">    3) sp3-hybridized hbond acceptors</span>
-<span class="sd">    4) ring-hybridized hbond acceptors</span>
-
 <span class="sd">    Elements are identified by matching bonding pattern and atom type against</span>
 <span class="sd">    the set of defined donor/acceptor element types in the source hbond score</span>
 <span class="sd">    database.</span>
@@ -223,9 +217,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">donors</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">donor_dtype</span><span class="p">)[:]</span>
-    <span class="n">sp2_acceptors</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">acceptor_dtype</span><span class="p">)[:]</span>
-    <span class="n">sp3_acceptors</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">acceptor_dtype</span><span class="p">)[:]</span>
-    <span class="n">ring_acceptors</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">acceptor_dtype</span><span class="p">)[:]</span>
+    <span class="n">acceptors</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">acceptor_dtype</span><span class="p">)[:]</span>
 
 <div class="viewcode-block" id="HBondElementAnalysis.setup"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.identification.html#tmol.score.hbond.identification.HBondElementAnalysis.setup">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@convert_args</span>
@@ -438,9 +430,7 @@
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">donors</span><span class="o">=</span><span class="n">donors</span><span class="p">,</span>
-            <span class="n">sp2_acceptors</span><span class="o">=</span><span class="n">sp2_acceptors</span><span class="p">,</span>
-            <span class="n">sp3_acceptors</span><span class="o">=</span><span class="n">sp3_acceptors</span><span class="p">,</span>
-            <span class="n">ring_acceptors</span><span class="o">=</span><span class="n">ring_acceptors</span><span class="p">,</span>
+            <span class="n">acceptors</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">sp2_acceptors</span><span class="p">,</span> <span class="n">sp3_acceptors</span><span class="p">,</span> <span class="n">ring_acceptors</span><span class="p">)),</span>
         <span class="p">)</span></div></div>
 </pre></div>
 
@@ -478,7 +468,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-115-g5508833',
+              VERSION:'0.0.0-116-g4c2c841',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
