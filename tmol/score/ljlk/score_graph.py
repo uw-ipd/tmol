@@ -89,7 +89,8 @@ class _LJLKCommonScoreGraph(
         ``parameter_database.scoring.ljlk``.
         """
         # Check for disabled tests under "TODO" when enabling cuda.
-        assert device.type == "cpu", "Component only supports cpu execution."
+        if not device.type == "cpu":
+            raise NotImplementedError("Component only supports cpu execution.")
 
         if ljlk_database is None:
             if getattr(val, "ljlk_database", None):

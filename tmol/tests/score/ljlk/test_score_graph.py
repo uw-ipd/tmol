@@ -8,6 +8,7 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJScoreGraph
 
 from tmol.utility.reactive import reactive_attrs
+from tmol.tests.torch import cuda_not_implemented
 
 
 @reactive_attrs
@@ -22,17 +23,10 @@ def save_intermediate_grad(var):
     var.register_hook(store_grad)
 
 
+@cuda_not_implemented
 def test_lj_nan_prop(ubq_system, torch_device):
     """LJ graph filters nan-coords, prevening nan entries on backward prop."""
-    try:
-        lj_graph = LJGraph.build_for(
-            ubq_system, requires_grad=True, device=torch_device
-        )
-    except AssertionError:
-        # TODO: Reenable LJScoreGraph does not support cuda
-        if torch_device.type == "cuda":
-            pytest.xfail()
-        raise
+    lj_graph = LJGraph.build_for(ubq_system, requires_grad=True, device=torch_device)
 
     intra_graph = lj_graph.intra_score()
 
@@ -54,6 +48,7 @@ def test_lj_nan_prop(ubq_system, torch_device):
 
 
 @pytest.mark.benchmark(group="score_setup")
+@cuda_not_implemented
 def test_lj_score_setup(benchmark, ubq_system, torch_device):
     try:
         graph_params = LJGraph.init_parameters_for(

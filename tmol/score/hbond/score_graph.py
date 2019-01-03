@@ -10,280 +10,91 @@ from ..bonded_atom import BondedAtomScoreGraph
 from ..factory import Factory
 from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 
-from .potentials import (
-    hbond_donor_sp2_score,
-    hbond_donor_sp3_score,
-    hbond_donor_ring_score,
-)
+from .identification import HBondElementAnalysis
+from .params import HBondParamResolver
 
-from .identification import HBondElementAnalysis, donor_dtype, acceptor_dtype
-from .params import HBondParamResolver, HBondPairParams
+from .torch_op import HBondOp
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import HBondDatabase
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
-from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
+
 from tmol.types.torch import Tensor
+from tmol.types.tensor import TensorGroup
 
-pair_descr_dtype = numpy.dtype(donor_dtype.descr + acceptor_dtype.descr)
+
+@attr.s(auto_attribs=True)
+class HBondDonorIndices(TensorGroup):
+    D: Tensor("i8")[..., 3]
+    H: Tensor("i8")[..., 3]
+    donor_type: Tensor("i4")[...]
 
 
-@attr.s(frozen=True, auto_attribs=True, slots=True)
-class HBondPairs(ValidateAttrs):
-    """Atom indices of all donor/acceptor pairs in system.
+@attr.s(auto_attribs=True)
+class HBondAcceptorIndices(TensorGroup):
+    A: Tensor("i8")[..., 3]
+    B: Tensor("i8")[..., 3]
+    B0: Tensor("i8")[..., 3]
+    acceptor_type: Tensor("i4")[...]
 
-    The combination of all donors against all acceptors, (these lists having
-    been constructed by the HBondElementAnalysis class) where the acceptors are
-    broken down by their functional form (sp2, sp3, and ring). For each pair,
-    then copy down the set of hbond parameters that describe how to evaluate
-    the energy for that pair.
 
-    (Making a copy of the parameters for each perspective donor/acceptor pair
-    seems like it would be pretty expensive!)
+@attr.s(auto_attribs=True)
+class HBondDonorCoords(TensorGroup):
+    D: Tensor("f")[..., 3]
+    H: Tensor("f")[..., 3]
+    donor_type: Tensor("i4")[...]
 
-    This work is performed on the CPU and then copied to the device.
-    """
 
-    donor_sp2_pairs: NDArray(pair_descr_dtype)[:]
-    donor_sp2_pair_params: Optional[HBondPairParams]
+@attr.s(auto_attribs=True)
+class HBondAcceptorCoords(TensorGroup):
+    A: Tensor("f")[..., 3]
+    B: Tensor("f")[..., 3]
+    B0: Tensor("f")[..., 3]
+    acceptor_type: Tensor("i4")[...]
 
-    donor_sp3_pairs: NDArray(pair_descr_dtype)[:]
-    donor_sp3_pair_params: Optional[HBondPairParams]
 
-    donor_ring_pairs: NDArray(pair_descr_dtype)[:]
-    donor_ring_pair_params: Optional[HBondPairParams]
-
-    @staticmethod
-    @validate_args
-    def _cross_pairs(
-        donors: NDArray(donor_dtype)[:], acceptors: NDArray(acceptor_dtype)[:]
-    ):
-        pairs = numpy.empty((len(donors), len(acceptors)), dtype=pair_descr_dtype)
-
-        for n in donors.dtype.names:
-            pairs[n] = donors[n].reshape((-1, 1))
-
-        for n in acceptors.dtype.names:
-            pairs[n] = acceptors[n].reshape((1, -1))
-
-        pairs = pairs.ravel()
-
-        return pairs[pairs["a"] != pairs["d"]]
-
-    @classmethod
-    @validate_args
-    def setup(
-        cls,
-        params: HBondParamResolver,
-        elems: HBondElementAnalysis,
-        device: torch.device,
-    ):
-        # Get blocks of acceptor/donor pairs for each set of identified acceptors
-        donor_sp2_pairs = cls._cross_pairs(elems.donors, elems.sp2_acceptors)
-        donor_sp2_pair_params = (
-            (
-                params[donor_sp2_pairs["donor_type"], donor_sp2_pairs["acceptor_type"]]
-            ).to(device)
-            if len(donor_sp2_pairs)
-            else None
-        )
-
-        donor_sp3_pairs = cls._cross_pairs(elems.donors, elems.sp3_acceptors)
-        donor_sp3_pair_params = (
-            (
-                params[donor_sp3_pairs["donor_type"], donor_sp3_pairs["acceptor_type"]]
-            ).to(device)
-            if len(donor_sp3_pairs)
-            else None
-        )
-
-        donor_ring_pairs = cls._cross_pairs(elems.donors, elems.ring_acceptors)
-        donor_ring_pair_params = (
-            (
-                params[
-                    donor_ring_pairs["donor_type"], donor_ring_pairs["acceptor_type"]
-                ]
-            ).to(device)
-            if len(donor_ring_pairs)
-            else None
-        )
-
-        return cls(
-            donor_sp2_pairs=donor_sp2_pairs,
-            donor_sp2_pair_params=donor_sp2_pair_params,
-            donor_sp3_pairs=donor_sp3_pairs,
-            donor_sp3_pair_params=donor_sp3_pair_params,
-            donor_ring_pairs=donor_ring_pairs,
-            donor_ring_pair_params=donor_ring_pair_params,
-        )
+@attr.s(auto_attribs=True)
+class HBondDescr(TensorGroup):
+    donor: HBondDonorIndices
+    acceptor: HBondAcceptorIndices
+    score: Tensor("f")[...]
 
 
 @reactive_attrs
 class HBondIntraScore(IntraScore):
     @reactive_property
-    def coords(target):
-        return target.coords
-
-    @reactive_property
-    def hbond_pairs(target):
-        return target.hbond_pairs
-
-    @reactive_property
-    def hbond_database(target):
-        return target.hbond_database
-
-    @reactive_property
     @validate_args
-    def donor_sp2_hbond(
-        coords: Tensor(torch.float)[:, :, 3],
-        hbond_pairs: HBondPairs,
-        hbond_database: HBondDatabase,
-    ) -> Tensor(torch.float)[:]:
-        """donor-sp2 hbond scores"""
-
-        assert len(coords) == 1, "Only single depth supported"
-        coords = coords[0]
-
-        donor_sp2_pairs = hbond_pairs.donor_sp2_pairs
-        donor_sp2_pair_params = hbond_pairs.donor_sp2_pair_params
-
-        if len(donor_sp2_pairs) == 0:
-            return coords.new(0)
-
-        return hbond_donor_sp2_score(
-            d=coords[donor_sp2_pairs["d"]],
-            h=coords[donor_sp2_pairs["h"]],
-            a=coords[donor_sp2_pairs["a"]],
-            b=coords[donor_sp2_pairs["b"]],
-            b0=coords[donor_sp2_pairs["b0"]],
-            # type pair parameters
-            glob_accwt=(donor_sp2_pair_params.acceptor_weight),
-            glob_donwt=(donor_sp2_pair_params.donor_weight),
-            AHdist_coeffs=(donor_sp2_pair_params.AHdist.coeffs),
-            AHdist_ranges=(donor_sp2_pair_params.AHdist.range),
-            AHdist_bounds=(donor_sp2_pair_params.AHdist.bound),
-            cosBAH_coeffs=(donor_sp2_pair_params.cosBAH.coeffs),
-            cosBAH_ranges=(donor_sp2_pair_params.cosBAH.range),
-            cosBAH_bounds=(donor_sp2_pair_params.cosBAH.bound),
-            cosAHD_coeffs=(donor_sp2_pair_params.cosAHD.coeffs),
-            cosAHD_ranges=(donor_sp2_pair_params.cosAHD.range),
-            cosAHD_bounds=(donor_sp2_pair_params.cosAHD.bound),
-            # global parameters
-            hb_sp2_range_span=(hbond_database.global_parameters.hb_sp2_range_span),
-            hb_sp2_BAH180_rise=(hbond_database.global_parameters.hb_sp2_BAH180_rise),
-            hb_sp2_outer_width=(hbond_database.global_parameters.hb_sp2_outer_width),
-        )
-
-    @reactive_property
-    @validate_args
-    def donor_sp3_hbond(
-        coords: Tensor(torch.float)[:, :, 3],
-        hbond_pairs: HBondPairs,
-        hbond_database: HBondDatabase,
-    ) -> Tensor(torch.float)[:]:
-        donor_sp3_pairs = hbond_pairs.donor_sp3_pairs
-        donor_sp3_pair_params = hbond_pairs.donor_sp3_pair_params
-
-        assert len(coords) == 1, "Only single depth supported"
-        coords = coords[0]
-
-        if len(donor_sp3_pairs) == 0:
-            return coords.new(0)
-
-        return hbond_donor_sp3_score(
-            d=coords[donor_sp3_pairs["d"]],
-            h=coords[donor_sp3_pairs["h"]],
-            a=coords[donor_sp3_pairs["a"]],
-            b=coords[donor_sp3_pairs["b"]],
-            b0=coords[donor_sp3_pairs["b0"]],
-            # type pair parameters
-            glob_accwt=(donor_sp3_pair_params.acceptor_weight),
-            glob_donwt=(donor_sp3_pair_params.donor_weight),
-            AHdist_coeffs=(donor_sp3_pair_params.AHdist.coeffs),
-            AHdist_ranges=(donor_sp3_pair_params.AHdist.range),
-            AHdist_bounds=(donor_sp3_pair_params.AHdist.bound),
-            cosBAH_coeffs=(donor_sp3_pair_params.cosBAH.coeffs),
-            cosBAH_ranges=(donor_sp3_pair_params.cosBAH.range),
-            cosBAH_bounds=(donor_sp3_pair_params.cosBAH.bound),
-            cosAHD_coeffs=(donor_sp3_pair_params.cosAHD.coeffs),
-            cosAHD_ranges=(donor_sp3_pair_params.cosAHD.range),
-            cosAHD_bounds=(donor_sp3_pair_params.cosAHD.bound),
-            # global parameters
-            hb_sp3_softmax_fade=(hbond_database.global_parameters.hb_sp3_softmax_fade),
-        )
-
-    @reactive_property
-    @validate_args
-    def donor_ring_hbond(
-        coords: Tensor(torch.float)[:, :, 3],
-        hbond_pairs: HBondPairs,
-        hbond_database: HBondDatabase,
-    ) -> Tensor(torch.float)[:]:
-        """donor-ring hbond scores"""
-
-        donor_ring_pairs = hbond_pairs.donor_ring_pairs
-        donor_ring_pair_params = hbond_pairs.donor_ring_pair_params
-        assert len(coords) == 1, "Only single layer supported."
-        coords = coords[0]
-
-        if len(donor_ring_pairs) == 0:
-            return coords.new(0)
-
-        return hbond_donor_ring_score(
-            d=coords[donor_ring_pairs["d"]],
-            h=coords[donor_ring_pairs["h"]],
-            a=coords[donor_ring_pairs["a"]],
-            b=coords[donor_ring_pairs["b"]],
-            b0=coords[donor_ring_pairs["b0"]],
-            # type pair parameters
-            glob_accwt=(donor_ring_pair_params.acceptor_weight),
-            glob_donwt=(donor_ring_pair_params.donor_weight),
-            AHdist_coeffs=(donor_ring_pair_params.AHdist.coeffs),
-            AHdist_ranges=(donor_ring_pair_params.AHdist.range),
-            AHdist_bounds=(donor_ring_pair_params.AHdist.bound),
-            cosBAH_coeffs=(donor_ring_pair_params.cosBAH.coeffs),
-            cosBAH_ranges=(donor_ring_pair_params.cosBAH.range),
-            cosBAH_bounds=(donor_ring_pair_params.cosBAH.bound),
-            cosAHD_coeffs=(donor_ring_pair_params.cosAHD.coeffs),
-            cosAHD_ranges=(donor_ring_pair_params.cosAHD.range),
-            cosAHD_bounds=(donor_ring_pair_params.cosAHD.bound),
-        )
-
-    @reactive_property
-    @validate_args
-    def total_hbond(
-        donor_sp2_hbond: Tensor(torch.float)[:],
-        donor_sp3_hbond: Tensor(torch.float)[:],
-        donor_ring_hbond: Tensor(torch.float)[:],
-    ) -> Tensor(torch.float)[:]:
+    def total_hbond(hbond):
         """total hbond score"""
-        return (
-            donor_sp2_hbond.sum() + donor_sp3_hbond.sum() + donor_ring_hbond.sum()
-        ).reshape((1,))
+        score_ind, score_val = hbond
+        return score_val.sum()
 
     @reactive_property
     @validate_args
-    def hbond_scores(
-        donor_sp2_hbond: Tensor(torch.float)[:],
-        donor_sp3_hbond: Tensor(torch.float)[:],
-        donor_ring_hbond: Tensor(torch.float)[:],
-    ) -> Tensor(torch.float)[:]:
-        return torch.cat((donor_sp2_hbond, donor_sp3_hbond, donor_ring_hbond))
+    def hbond(target):
+        return target.hbond_op.score(
+            target.hbond_donor_coords.D[0],
+            target.hbond_donor_coords.H[0],
+            target.hbond_donor_coords.donor_type,
+            target.hbond_acceptor_coords.A[0],
+            target.hbond_acceptor_coords.B[0],
+            target.hbond_acceptor_coords.B0[0],
+            target.hbond_acceptor_coords.acceptor_type,
+        )
 
     @reactive_property
     @validate_args
-    def hbond_pair_metadata(hbond_pairs: HBondPairs) -> NDArray(pair_descr_dtype)[:]:
+    def hbond_descr(target, hbond) -> HBondDescr:
         """All hbond pairs, in order of "sp2"/"sp3"/"ring"."""
-        return numpy.concatenate(
-            (
-                hbond_pairs.donor_sp2_pairs,
-                hbond_pairs.donor_sp3_pairs,
-                hbond_pairs.donor_ring_pairs,
-            )
+        (di, ai), score = hbond
+        return HBondDescr(
+            donor=target.hbond_donor_indices[di],
+            acceptor=target.hbond_acceptor_indices[ai],
+            score=score,
         )
 
 
@@ -293,21 +104,8 @@ class HBondScoreGraph(
 ):
     """Compute graph for the HBond term.
 
-    It uses the reactive system to compute the list of donors and acceptors
-    (via the HBondElementAnalysis class) and then the list of donor/acceptor
-    pairs (via the HBondPairs class) once, and then reuses these lists.
-
-    The h-bond functional form differs for the three classes of acceptors:
-    sp2-, sp3-, and ring-hybridized acceptors. For this reason, these three are
-    handled separately. Different donor types and different acceptor types within
-    a group of the same hybridization will have different parameters / polynomials,
-    but their functional forms will be the same, and so they can be processed
-    together.
-
-    The code (hopefully only for now?) evaluates the hydrogen bond potential
-    between all pairs of acceptors and donors, in contrast to the Lennard-Jones
-    term which looks only at nearby atom pairs. Perhaps future versions of
-    this code will cull distant acceptor/donor pairs.
+    Uses the reactive system to compute the list of donors and acceptors
+    (via the HBondElementAnalysis class) and then reuses these lists.
     """
 
     total_score_components = [
@@ -320,6 +118,7 @@ class HBondScoreGraph(
     def factory_for(
         val,
         parameter_database: ParameterDatabase,
+        device: torch.device,
         hbond_database: Optional[HBondDatabase] = None,
         **_,
     ):
@@ -328,6 +127,10 @@ class HBondScoreGraph(
         Initialize from ``val.hbond_database`` if possible, otherwise from
         ``parameter_database.scoring.hbond``.
         """
+        # Check for disabled tests under "TODO" when enabling cuda.
+        if not device.type == "cpu":
+            raise NotImplementedError("Component only supports cpu execution.")
+
         if hbond_database is None:
             if getattr(val, "hbond_database", None):
                 hbond_database = val.hbond_database
@@ -338,16 +141,18 @@ class HBondScoreGraph(
 
     hbond_database: HBondDatabase
 
-    @property
-    def component_atom_pair_dist_threshold(self):
-        """Expose threshold distance for InteratomicDisanceGraph."""
-        return self.hbond_database.global_parameters.threshold_distance
-
     @reactive_property
     @validate_args
     def hbond_param_resolver(hbond_database: HBondDatabase) -> HBondParamResolver:
         "hbond pair parameter resolver"
         return HBondParamResolver.from_database(hbond_database)
+
+    @reactive_property
+    @validate_args
+    def hbond_op(
+        hbond_database: HBondDatabase, hbond_param_resolver: HBondParamResolver
+    ) -> HBondOp:
+        return HBondOp.from_database(hbond_database, hbond_param_resolver)
 
     @reactive_property
     @validate_args
@@ -366,10 +171,64 @@ class HBondScoreGraph(
 
     @reactive_property
     @validate_args
-    def hbond_pairs(
-        hbond_param_resolver: HBondParamResolver,
-        hbond_elements: HBondElementAnalysis,
-        device: torch.device,
-    ) -> HBondPairs:
-        """hbond pair metadata and parameters in target graph"""
-        return HBondPairs.setup(hbond_param_resolver, hbond_elements, device)
+    def hbond_donor_indices(
+        hbond_elements: HBondElementAnalysis, hbond_param_resolver: HBondParamResolver
+    ) -> HBondDonorIndices:
+        """hbond donor indicies and type indicies."""
+
+        donor_type = hbond_param_resolver.resolve_donor_type(
+            hbond_elements.donors["donor_type"]
+        ).to(torch.int32)
+        D = torch.from_numpy(hbond_elements.donors["d"]).to(device=donor_type.device)
+        H = torch.from_numpy(hbond_elements.donors["h"]).to(device=donor_type.device)
+
+        return HBondDonorIndices(D=D, H=H, donor_type=donor_type)
+
+    @reactive_property
+    @validate_args
+    def hbond_acceptor_indices(
+        hbond_elements: HBondElementAnalysis, hbond_param_resolver: HBondParamResolver
+    ) -> HBondAcceptorIndices:
+        """hbond acceptor indicies and type indicies."""
+
+        acceptor_type = hbond_param_resolver.resolve_acceptor_type(
+            hbond_elements.acceptors["acceptor_type"]
+        ).to(torch.int32)
+        A = torch.from_numpy(hbond_elements.acceptors["a"]).to(
+            device=acceptor_type.device
+        )
+        B = torch.from_numpy(hbond_elements.acceptors["b"]).to(
+            device=acceptor_type.device
+        )
+        B0 = torch.from_numpy(hbond_elements.acceptors["b0"]).to(
+            device=acceptor_type.device
+        )
+
+        return HBondAcceptorIndices(A=A, B=B, B0=B0, acceptor_type=acceptor_type)
+
+    @reactive_property
+    @validate_args
+    def hbond_donor_coords(
+        coords: torch.Tensor, hbond_donor_indices: HBondDonorIndices
+    ) -> HBondDonorCoords:
+        """hbond donor coordinates and type indicies."""
+
+        i = hbond_donor_indices
+        return HBondDonorCoords(
+            donor_type=i.donor_type, D=coords[:, i.D], H=coords[:, i.H]
+        )
+
+    @reactive_property
+    @validate_args
+    def hbond_acceptor_coords(
+        coords: torch.Tensor, hbond_acceptor_indices: HBondAcceptorIndices
+    ) -> HBondAcceptorCoords:
+        """hbond acceptor coordinates and type indicies."""
+
+        i = hbond_acceptor_indices
+        return HBondAcceptorCoords(
+            acceptor_type=i.acceptor_type,
+            A=coords[:, i.A],
+            B=coords[:, i.B],
+            B0=coords[:, i.B0],
+        )

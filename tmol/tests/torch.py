@@ -28,6 +28,23 @@ def torch_device(request):
     return device
 
 
+def cuda_not_implemented(f):
+    """Parametrize 'torch_device' as an xfail via NotImplementedError."""
+    return pytest.mark.parametrize(
+        "torch_device",
+        [
+            (torch.device("cpu")),
+            pytest.param(
+                torch.device("cuda"),
+                marks=[
+                    requires_cuda,
+                    pytest.mark.xfail(strict=True, raises=NotImplementedError),
+                ],
+            ),
+        ],
+    )(f)
+
+
 @pytest.fixture
 def torch_backward_coverage(cov):
     """Torch hook to enable coverage in backward pass.
