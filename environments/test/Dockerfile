@@ -19,12 +19,19 @@ RUN wget --quiet https://repo.continuum.io/miniconda/Miniconda3-4.5.1-Linux-x86_
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
 
+# Configure a docker-entrypoint.sh to activate the base conda environment
+RUN echo "#!/bin/bash" >> /docker-entrypoint.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> /docker-entrypoint.sh && \
+    echo "conda activate base" >> /docker-entrypoint.sh && \
+    echo "exec \"\$@\"" >> /docker-entrypoint.sh  && \
+    chmod a+rx /docker-entrypoint.sh
+
 # Inlined tini version in fetch url
 ENV TINI_VERSION v0.16.1
 RUN wget --quiet -O /usr/bin/tini https://github.com/krallin/tini/releases/download/v0.16.1/tini
 RUN chmod +x /usr/bin/tini
 
-ENTRYPOINT [ "/usr/bin/tini", "--" ]
+ENTRYPOINT [ "/usr/bin/tini", "--", "/docker-entrypoint.sh" ]
 CMD [ "/bin/bash" ]
 
 ### Setup test environment

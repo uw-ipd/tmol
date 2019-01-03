@@ -38,6 +38,14 @@ services:
       - .:/tmol
     working_dir: /tmol
 
+  local-cpu:
+    extends:
+      service: test
+    volumes:
+      - .:/tmol
+    working_dir: /tmol
+    runtime: runc
+
 volumes:
   buildkite:
     external: True
