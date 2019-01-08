@@ -80,15 +80,17 @@ at::Tensor calc_block_aabb(at::Tensor coords_t) {
   return aabb_t;
 };
 
-template <int BLOCK_SIZE, typename Real, typename Int, typename PathLength>
-__global__ void blocked_lj_kernel(
+template <typename Func, int BLOCK_SIZE, typename Real, typename Int, typename PathLength>
+__global__ void blocked_kernel(
+  Func func,
     tmol::TView<int32_t, 1, RestrictPtrTraits> out_block_count,
     tmol::TView<Int, 2, RestrictPtrTraits> out_block_inds,
     tmol::TView<Real, 3, RestrictPtrTraits> out_block_lj,
-    tmol::TView<Eigen::AlignedBox<Real, 3>, 2, RestrictPtrTraits>
-        coord_block_aabb,
+    tmol::TView<Eigen::AlignedBox<Real, 3>, 2, RestrictPtrTraits> coord_block_aabb,
     tmol::TView<Eigen::Matrix<Real, 3, 1>, 2, RestrictPtrTraits> coords,
-    tmol::TView<Int, 1, RestrictPtrTraits> types, LJ_PARAM_VIEW_ARGS) {
+    tmol::TView<Int, 1, RestrictPtrTraits> types,
+    tmol::TView<Real, 1> max_dis
+){
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
@@ -135,26 +137,18 @@ __global__ void blocked_lj_kernel(
       auto at = types[i];
 
       if (at != -1 && bt != -1 && i < j) {
-        Vector delta = a - b;
-        auto dist = std::sqrt(delta.dot(delta));
-
-        out_block_lj[out_block][ti][tj] =
-            lj(dist, bonded_path_length[i][j], lj_sigma[at][bt],
-               lj_switch_slope[at][bt], lj_switch_intercept[at][bt],
-               lj_coeff_sigma12[at][bt], lj_coeff_sigma6[at][bt],
-               lj_spline_y0[at][bt], lj_spline_dy0[at][bt],
-               lj_switch_dis2sigma[0], spline_start[0], max_dis[0]);
+        out_block_lj[out_block][ti][tj] = func(i, j);
       } else {
         out_block_lj[out_block][ti][tj] = 0;
       }
     }
   }
 
-}  // namespace lj
+}
 
-template <int BLOCK_SIZE, typename Real, typename Int, typename PathLength>
-std::tuple<at::Tensor, at::Tensor, at::Tensor> lj_intra_block(
-    at::Tensor coords_t, at::Tensor types_t, LJ_PARAM_ARGS) {
+template <typename Func, int BLOCK_SIZE, typename Real, typename Int, typename PathLength>
+std::tuple<at::Tensor, at::Tensor, at::Tensor> intra_block(Func func,
+    at::Tensor coords_t, at::Tensor types_t,  tmol::TView<Real, 1> max_dis) {
   typedef Eigen::AlignedBox<Real, 3> Box;
   typedef Eigen::Matrix<Real, 3, 1> Vector;
 
@@ -186,18 +180,53 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor> lj_intra_block(
       {num_blocks * num_blocks, BLOCK_SIZE, BLOCK_SIZE},
       at::TensorOptions(coords_t).dtype(at::CTypeToScalarType<Real>::to()));
 
-  blocked_lj_kernel<BLOCK_SIZE, Real, Int, PathLength><<<blocks, threads>>>(
+  blocked_kernel<Func, BLOCK_SIZE, Real, Int, PathLength><<<blocks, threads>>>(
+      func,
       tmol::view_tensor<int32_t, 1, RestrictPtrTraits>(block_table_idx_t),
       tmol::view_tensor<Int, 2, RestrictPtrTraits>(block_index_t),
       tmol::view_tensor<Real, 3, RestrictPtrTraits>(block_result_t),
       tmol::view_tensor<Box, 2, RestrictPtrTraits>(aabb_t),
       tmol::view_tensor<Vector, 2, RestrictPtrTraits>(coords_t),
       tmol::view_tensor<Int, 1, RestrictPtrTraits>(types_t),
-      LJ_PARAM_UNPACK_ARGS);
+      max_dis);
 
   return std::tuple<at::Tensor, at::Tensor, at::Tensor>(
       block_table_idx_t, block_index_t, block_result_t);
 };
+
+
+template <int BLOCK_SIZE, typename Real, typename Int, typename PathLength>
+std::tuple<at::Tensor, at::Tensor, at::Tensor>
+lj_intra_block(
+    at::Tensor coords_t,
+    at::Tensor types_t,
+    LJ_PARAM_ARGS
+){
+  typedef Eigen::Matrix<Real, 3, 1> Vector;
+
+  auto coords = tmol::view_tensor<Vector, 2, RestrictPtrTraits>(coords_t);
+  auto types = tmol::view_tensor<Int, 1, RestrictPtrTraits>(types_t);
+  LJ_PARAM_UNPACK;
+
+  auto lambda = [=] __device__ (Int i, Int j) -> Real {
+      Int at = types[i];
+      Int bt = types[j];
+      Vector a = coords[i][(Int)0];
+      Vector b = coords[j][0];
+      Vector delta = a - b;
+      Real dist = std::sqrt(delta.dot(delta));
+      return lj(dist, bonded_path_length[i][j], lj_sigma[at][bt],
+               lj_switch_slope[at][bt], lj_switch_intercept[at][bt],
+               lj_coeff_sigma12[at][bt], lj_coeff_sigma6[at][bt],
+               lj_spline_y0[at][bt], lj_spline_dy0[at][bt],
+               lj_switch_dis2sigma[0], spline_start[0], max_dis[0]);
+   };
+
+  return intra_block<decltype(lambda), BLOCK_SIZE, Real, Int, PathLength>(
+    lambda, coords_t, types_t, max_dis);
+}
+
+
 
 template std::tuple<at::Tensor, at::Tensor, at::Tensor>
 lj_intra_block<8, float, int64_t, uint8_t>(at::Tensor coords_t,

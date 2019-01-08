@@ -41,16 +41,14 @@ struct RestrictPtrTraits {
 
 // The PtrTraits argument is only relevant to cuda to support `__restrict__`
 // pointers.
-template <
-    typename T,
-    size_t N,
-    template <typename U> class PtrTraits = DefaultPtrTraits>
+template <typename T, size_t N,
+          template <typename U> class PtrTraits = DefaultPtrTraits>
 class TensorAccessorBase {
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
 
-  AT_HOST_DEVICE TensorAccessorBase(
-      PtrType data_, const int64_t* sizes_, const int64_t* strides_)
+  AT_HOST_DEVICE TensorAccessorBase(PtrType data_, const int64_t* sizes_,
+                                    const int64_t* strides_)
       : data_(data_), sizes_(sizes_), strides_(strides_) {}
   // AT_HOST IntList sizes() const {
   //  return IntList(sizes_,N);
@@ -73,30 +71,24 @@ class TensorAccessorBase {
 // `Tensor.accessor<T, N>()`.
 // For CUDA `Tensor`s, `TView` is used on the host and only
 // indexing on the device uses `TensorAccessor`s.
-template <
-    typename T,
-    size_t N,
-    template <typename U> class PtrTraits = DefaultPtrTraits>
+template <typename T, size_t N,
+          template <typename U> class PtrTraits = DefaultPtrTraits>
 class TensorAccessor : public TensorAccessorBase<T, N, PtrTraits> {
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
 
-  AT_HOST_DEVICE TensorAccessor(
-      PtrType data_, const int64_t* sizes_, const int64_t* strides_)
+  AT_HOST_DEVICE TensorAccessor(PtrType data_, const int64_t* sizes_,
+                                const int64_t* strides_)
       : TensorAccessorBase<T, N>(data_, sizes_, strides_) {}
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1> operator[](int64_t i) {
-    return TensorAccessor<T, N - 1>(
-        this->data_ + this->strides_[0] * i,
-        this->sizes_ + 1,
-        this->strides_ + 1);
+    return TensorAccessor<T, N - 1>(this->data_ + this->strides_[0] * i,
+                                    this->sizes_ + 1, this->strides_ + 1);
   }
 
   AT_HOST_DEVICE const TensorAccessor<T, N - 1> operator[](int64_t i) const {
-    return TensorAccessor<T, N - 1>(
-        this->data_ + this->strides_[0] * i,
-        this->sizes_ + 1,
-        this->strides_ + 1);
+    return TensorAccessor<T, N - 1>(this->data_ + this->strides_[0] * i,
+                                    this->sizes_ + 1, this->strides_ + 1);
   }
 };
 
@@ -106,10 +98,13 @@ class TensorAccessor<T, 1, PtrTraits>
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
 
-  AT_HOST_DEVICE TensorAccessor(
-      PtrType data_, const int64_t* sizes_, const int64_t* strides_)
+  AT_HOST_DEVICE TensorAccessor(PtrType data_, const int64_t* sizes_,
+                                const int64_t* strides_)
       : TensorAccessorBase<T, 1, PtrTraits>(data_, sizes_, strides_) {}
   AT_HOST_DEVICE T& operator[](int64_t i) {
+    return this->data_[this->strides_[0] * i];
+  }
+  AT_HOST_DEVICE T const& operator[](int64_t i) const {
     return this->data_[this->strides_[0] * i];
   }
 };
@@ -122,15 +117,13 @@ class TensorAccessor<T, 1, PtrTraits>
 // want the tensor's data pointer to be marked as __restrict__. Instantiation
 // from data, sizes, strides is only needed on the host and std::copy isn't
 // available on the device, so those functions are host only.
-template <
-    typename T,
-    size_t N,
-    template <typename U> class PtrTraits = DefaultPtrTraits>
+template <typename T, size_t N,
+          template <typename U> class PtrTraits = DefaultPtrTraits>
 class TViewBase {
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
-  AT_HOST TViewBase(
-      PtrType data_, const int64_t* sizes_, const int64_t* strides_)
+  AT_HOST TViewBase(PtrType data_, const int64_t* sizes_,
+                    const int64_t* strides_)
       : data_(data_) {
     std::copy(sizes_, sizes_ + N, std::begin(this->sizes_));
     std::copy(strides_, strides_ + N, std::begin(this->strides_));
@@ -146,10 +139,8 @@ class TViewBase {
   int64_t strides_[N];
 };
 
-template <
-    typename T,
-    size_t N,
-    template <typename U> class PtrTraits = DefaultPtrTraits>
+template <typename T, size_t N,
+          template <typename U> class PtrTraits = DefaultPtrTraits>
 class TView : public TViewBase<T, N, PtrTraits> {
  public:
   typedef typename PtrTraits<T>::PtrType PtrType;
@@ -160,15 +151,15 @@ class TView : public TViewBase<T, N, PtrTraits> {
   AT_HOST_DEVICE TensorAccessor<T, N - 1> operator[](int64_t i) {
     int64_t* new_sizes = this->sizes_ + 1;
     int64_t* new_strides = this->strides_ + 1;
-    return TensorAccessor<T, N - 1>(
-        this->data_ + this->strides_[0] * i, new_sizes, new_strides);
+    return TensorAccessor<T, N - 1>(this->data_ + this->strides_[0] * i,
+                                    new_sizes, new_strides);
   }
 
   AT_HOST_DEVICE const TensorAccessor<T, N - 1> operator[](int64_t i) const {
-    int64_t* new_sizes = this->sizes_ + 1;
-    int64_t* new_strides = this->strides_ + 1;
-    return TensorAccessor<T, N - 1>(
-        this->data_ + this->strides_[0] * i, new_sizes, new_strides);
+    int64_t const* new_sizes = this->sizes_ + 1;
+    int64_t const* new_strides = this->strides_ + 1;
+    return TensorAccessor<T, N - 1>(this->data_ + this->strides_[0] * i,
+                                    new_sizes, new_strides);
   }
 };
 
