@@ -3,7 +3,7 @@ from pathlib import Path
 from tmol.utility.cpp_extension import load
 
 _compiled_sources = [str(Path(__file__).parent / s) for s in ("_compiled.cpp",)]
-_compiled = load("_compiled", _compiled_sources)
+_compiled = load(__name__.replace(".", "_"), _compiled_sources)
 
 
 hbond_score_V_dV = numpy.vectorize(
