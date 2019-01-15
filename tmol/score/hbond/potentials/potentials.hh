@@ -10,6 +10,8 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/polynomial.hh>
 
+#undef B0
+
 namespace tmol {
 namespace score {
 namespace hbond {

@@ -93,7 +93,9 @@ auto hbond_pair_score(
   int nresult = 0;
   Real squared_threshold = threshold_distance * threshold_distance;
 
-  for (auto [di, ai] : product(range(D.size(0)), range(A.size(0)))) {
+  int di,ai;
+  for (auto t : product(range(D.size(0)), range(A.size(0)))) {
+	std::tie(di, ai) = t;
     if ((H[di] - A[ai]).squaredNorm() < squared_threshold) {
       ind[nresult][0] = di;
       ind[nresult][1] = ai;
