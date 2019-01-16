@@ -2,12 +2,10 @@
 
 #include <cmath>
 #include <tuple>
-#include <utility>
-
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 
 #include <tmol/score/common/cubic_hermite_polynomial.hh>
+
+#include "common.hh"
 
 namespace tmol {
 namespace score {
@@ -17,54 +15,6 @@ namespace potentials {
 using namespace tmol::score::common;
 using std::tie;
 using std::tuple;
-
-template <typename Real>
-struct LJTypeParams {
-  Real lj_radius;
-  Real lj_wdepth;
-  bool is_donor;
-  bool is_hydroxyl;
-  bool is_polarh;
-  bool is_acceptor;
-};
-
-template <typename Real>
-struct LJGlobalParams {
-  Real lj_hbond_dis;
-  Real lj_hbond_OH_donor_dis;
-  Real lj_hbond_hdis;
-};
-
-template <typename Real, typename Int>
-Real connectivity_weight(Int bonded_path_length) {
-  if (bonded_path_length > 4) {
-    return 1.0;
-  } else if (bonded_path_length == 4) {
-    return 0.2;
-  } else {
-    return 0.0;
-  }
-}
-
-template <typename Real>
-Real lj_sigma(LJTypeParams<Real> i, LJTypeParams<Real> j, LJGlobalParams<Real> global) {
-  if ((i.is_donor && !i.is_hydroxyl && j.is_acceptor)
-      || (j.is_donor && !j.is_hydroxyl && i.is_acceptor)) {
-    // standard donor/acceptor pair
-    return global.lj_hbond_dis;
-  } else if (
-      (i.is_donor && i.is_hydroxyl && j.is_acceptor)
-      || (j.is_donor && j.is_hydroxyl && i.is_acceptor)) {
-    // hydroxyl donor/acceptor pair
-    return global.lj_hbond_OH_donor_dis;
-  } else if ((i.is_polarh && j.is_acceptor) || (j.is_polarh && i.is_acceptor)) {
-    // hydrogen/acceptor pair
-    return global.lj_hbond_hdis;
-  } else {
-    // standard lj
-    return i.lj_radius + j.lj_radius;
-  }
-}
 
 template <typename Real>
 auto vdw_V(Real dist, Real sigma, Real epsilon) -> Real {
@@ -93,7 +43,7 @@ auto lj_score_V(
     LJTypeParams<Real> i,
     LJTypeParams<Real> j,
     LJGlobalParams<Real> global) -> Real {
-  Real sigma = lj_sigma(i, j, global);
+  Real sigma = lj_sigma<Real>(i, j, global);
   Real weight = connectivity_weight<Real, Real>(bonded_path_length);
   Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
 
@@ -129,7 +79,7 @@ auto lj_score_V_dV(
     LJTypeParams<Real> i,
     LJTypeParams<Real> j,
     LJGlobalParams<Real> global) -> tuple<Real, Real> {
-  Real sigma = lj_sigma(i, j, global);
+  Real sigma = lj_sigma<Real>(i, j, global);
   Real weight = connectivity_weight<Real, Real>(bonded_path_length);
   Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
 

@@ -16,11 +16,17 @@ lj_score_V = numpy.vectorize(
 
 lj_score_V_dV = numpy.vectorize(
     _compiled.lj_score_V_dV,
-    signature="(),()," "(),(),(),(),(),(),"  # dist, bonded_path_length
+    signature=""
+    # dist, bonded_path_length
+    "(),(),"
     # i : lj_radius, lj_wdepth, is_donor, is_hydroxyl, is_polarh, is_acceptor
     "(),(),(),(),(),(),"
     # j : lj_radius, lj_wdepth, is_donor, is_hydroxyl, is_polarh, is_acceptor
-    "(),(),()" "->" "()," "()",  # params  # E  # dE_dD
+    "(),(),(),(),(),(),"
+    # params
+    "(),(),()"
+    # E, dE_dD
+    "->(),()",
 )
 
 vdw_V_dV = numpy.vectorize(_compiled.vdw_V_dV, signature="(),(),()->(),()")

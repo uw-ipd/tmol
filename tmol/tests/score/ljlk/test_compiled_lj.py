@@ -1,7 +1,7 @@
 import pytest
 from pytest import approx
 import attr
-from toolz import valmap, merge, keyfilter
+from toolz import valmap, merge, keyfilter, keymap
 
 import numpy
 import torch
@@ -17,18 +17,21 @@ def compiled(scope="session"):
     return tmol.score.ljlk.potentials.compiled
 
 
+def combine_params(params_i, params_j, global_params):
+    return merge(
+        keymap(lambda k: f"i_{k}", attr.asdict(params_i)),
+        keymap(lambda k: f"j_{k}", attr.asdict(params_j)),
+        attr.asdict(global_params),
+    )
+
+
 def test_lj_gradcheck(compiled, default_database):
     """Gradcheck lj_score_V_dV across range of value values."""
     params = default_database.scoring.ljlk
 
     i = params.atom_type_parameters[0]
     j = params.atom_type_parameters[2]
-
-    param_kwargs = merge(
-        {"i_" + k: v for k, v in attr.asdict(i).items()},
-        {"j_" + k: v for k, v in attr.asdict(j).items()},
-        attr.asdict(params.global_parameters),
-    )
+    g = params.global_parameters
 
     def _t(t):
         if isinstance(t, str):
@@ -51,7 +54,8 @@ def test_lj_gradcheck(compiled, default_database):
 
     op = VectorizedOp(compiled.lj_score_V_dV)
     kwargs = merge(
-        dict(dist=torch.linspace(0, 8, 250), bonded_path_length=4), param_kwargs
+        dict(dist=torch.linspace(0, 8, 250), bonded_path_length=4),
+        combine_params(i, j, g),
     )
     gradcheck(op, targs(kwargs), eps=5e-4)
 
@@ -63,31 +67,26 @@ def test_lj_spotcheck(compiled, default_database):
 
     i = params.atom_type_parameters[0]
     j = params.atom_type_parameters[2]
-
-    param_kwargs = merge(
-        {"i_" + k: v for k, v in attr.asdict(i).items()},
-        {"j_" + k: v for k, v in attr.asdict(j).items()},
-        attr.asdict(params.global_parameters),
-    )
+    g = params.global_parameters
 
     sigma = i.lj_radius + j.lj_radius
     epsilon = numpy.sqrt(i.lj_wdepth * j.lj_wdepth)
 
     def eval_lj(dist, bonded_path_length=5):
         V, dV_dD = ignore_unused_kwargs(compiled.lj_score_V_dV)(
-            dist, bonded_path_length, **param_kwargs
+            dist, bonded_path_length, **combine_params(i, j, g)
         )
 
         return V
 
     def eval_lj_alone(dist, bonded_path_length=5):
         return ignore_unused_kwargs(compiled.lj_score_V)(
-            dist, bonded_path_length, **param_kwargs
+            dist, bonded_path_length, **combine_params(i, j, g)
         )
 
     def eval_d_lj_d_dist(dist, bonded_path_length=5):
         V, dV_dD = ignore_unused_kwargs(compiled.lj_score_V_dV)(
-            dist, bonded_path_length, **param_kwargs
+            dist, bonded_path_length, **combine_params(i, j, g)
         )
 
         return dV_dD

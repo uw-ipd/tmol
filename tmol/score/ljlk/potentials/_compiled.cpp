@@ -1,7 +1,7 @@
 #include <pybind11/eigen.h>
 #include <torch/torch.h>
 
-#include "potentials.hh"
+#include "lj.hh"
 
 using namespace tmol::score::ljlk::potentials;
 
