@@ -2,33 +2,18 @@
 
 #include <cmath>
 #include <tuple>
-#include <utility>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/polynomial.hh>
+#include <tmol/score/common/tuple_operators.hh>
 
 namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
-
-// Support functions for tuple value aggregation
-namespace internal {
-template <typename T, typename T2, size_t... Is>
-void add_rhs_to_lhs(T& t1, const T2& t2, std::integer_sequence<size_t, Is...>) {
-  auto l = {(std::get<Is>(t1) += std::get<Is>(t2), 0)...};
-  (void)l;
-}
-
-}  // namespace internal
-
-template <typename... T, typename... T2>
-void add(std::tuple<T&...> lhs, const std::tuple<T2...>& rhs) {
-  internal::add_rhs_to_lhs(lhs, rhs, std::index_sequence_for<T...>{});
-}
 
 using namespace tmol::score::common;
 using std::tie;
@@ -146,7 +131,7 @@ auto BAH_angle_V_dV(
             (dPxHfade_dPxH * dPxH_dA) + (dPxHfade_dPxH0 * dPxH0_dA),
             (dPxHfade_dPxH * dPxH_dH) + (dPxHfade_dPxH0 * dPxH0_dH)};
   } else {
-    AT_ERROR("Invalid acceptor_class.");
+    throw std::runtime_error("Invalid acceptor_class.");
   }
 }
 
@@ -268,15 +253,15 @@ auto hbond_score_V_dV(
   Real3 dE_dB0 = {0, 0, 0};
 
   // A-H Distance Component
-  add(tie(E, dE_dA, dE_dH),
+  iadd(tie(E, dE_dA, dE_dH),
       AH_dist_V_dV(A, H, AHdist_coeffs, AHdist_range, AHdist_bound));
 
   // AHD Angle Component
-  add(tie(E, dE_dA, dE_dH, dE_dD),
+  iadd(tie(E, dE_dA, dE_dH, dE_dD),
       AHD_angle_V_dV(A, H, D, cosAHD_coeffs, cosAHD_range, cosAHD_bound));
 
   // BAH Angle Component
-  add(tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
+  iadd(tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
       BAH_angle_V_dV(
           B,
           B0,
@@ -289,7 +274,7 @@ auto hbond_score_V_dV(
           hb_sp3_softmax_fade));
 
   // B0BAH Chi Component
-  add(tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
+  iadd(tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
       B0BAH_chi_V_dV(
           B0,
           B,
