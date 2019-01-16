@@ -129,7 +129,6 @@ void bind_dispatch(pybind11::module& m) {
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
-  bind_potentials<float>(m);
   bind_potentials<double>(m);
 
   bind_dispatch<float>(m);
