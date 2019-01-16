@@ -57,7 +57,7 @@ def test_lj_gradcheck(compiled, default_database):
         dict(dist=torch.linspace(0, 8, 250), bonded_path_length=4),
         combine_params(i, j, g),
     )
-    gradcheck(op, targs(kwargs), eps=5e-4)
+    gradcheck(op, targs(kwargs))
 
 
 def test_lj_spotcheck(compiled, default_database):
