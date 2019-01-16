@@ -72,7 +72,7 @@ tmol_paths = subprocess.check_output(
 # compilation database set (by default, one is not set).
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = (
-    ["-fexceptions", "-DNDEBUG", "-std=c++17", "-isystem", get_python_inc()]
+    ["-fexceptions", "-DNDEBUG", "-std=c++14", "-isystem", get_python_inc()]
     + ["-I" + p for p in torch_paths]
     + ["-I" + p for p in tmol_paths]
 )
@@ -101,7 +101,7 @@ def file_language(filename):
         if extension in extensions:
             return language
 
-    return "cpp"
+    return "c++"
 
 
 def Settings(**kwargs):
