@@ -17,7 +17,7 @@ import tmol.database
 
 # TODO add lj_sigma spot check
 parametrize_atom_pairs = pytest.mark.parametrize(
-    "iname,jname", [("CNH2", "COO"), ("Ntrp", "OOC")]  # standard, donor/acceptor
+    "iname,jname", [("CH2", "OH"), ("Ntrp", "OOC")]  # standard, donor/acceptor
 )
 
 
@@ -62,28 +62,39 @@ def test_lk_isotropic_gradcheck(iname, jname, bonded_path_length):
 def test_lk_isotropic_spotcheck(iname, jname):
     params = tmol.database.ParameterDatabase.get_default().scoring.ljlk
 
-    i = {p.name: p for p in params.atom_type_parameters}[iname]
-    j = {p.name: p for p in params.atom_type_parameters}[jname]
-    g = params.global_parameters
+    params_i = {p.name: p for p in params.atom_type_parameters}[iname]
+    params_j = {p.name: p for p in params.atom_type_parameters}[jname]
+    params_g = params.global_parameters
 
-    sigma = ignore_unused_kwargs(lj_sigma)(**combine_params(i, j, g))
-
-    d_min = sigma * .89
+    sigma = ignore_unused_kwargs(lj_sigma)(
+        **combine_params(params_i, params_j, params_g)
+    )
 
     def eval_f_desolv(d):
         return f_desolv(
-            d, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume
-        ) + f_desolv(d, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume)
+            d,
+            params_i.lj_radius,
+            params_i.lk_dgfree,
+            params_i.lk_lambda,
+            params_j.lk_volume,
+        ) + f_desolv(
+            d,
+            params_j.lj_radius,
+            params_j.lk_dgfree,
+            params_j.lk_lambda,
+            params_i.lk_volume,
+        )
 
     def eval_lk_isotropic(d, bonded_path_length=5):
         return ignore_unused_kwargs(lk_isotropic)(
-            d, bonded_path_length, **combine_params(i, j, g)
+            d, bonded_path_length, **combine_params(params_i, params_j, params_g)
         )
 
     # Constant region
-    assert eval_lk_isotropic(numpy.linspace(0, d_min - 0.25, 100)) == approx(
-        eval_f_desolv(d_min)
-    )
+    d_min = sigma * .89
+    assert eval_lk_isotropic(
+        numpy.linspace(0, numpy.sqrt(d_min * d_min - 1.5), 100)
+    ) == approx(eval_f_desolv(d_min))
 
     def is_between(a_b, x):
         a, b = a_b

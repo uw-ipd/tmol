@@ -59,8 +59,12 @@ def lk_isotropic_pair(
 ):
     d_min = lj_sigma_ij * .89
 
-    lk_cpoly_close_dmin = d_min - 0.25
-    lk_cpoly_close_dmax = d_min + 0.25
+    # lk_cpoly_close_dmin = d_min - 0.25
+    # lk_cpoly_close_dmax = d_min + 0.25
+
+    # fd: this is closer (though not identical) to Rosetta3 cutoffs
+    lk_cpoly_close_dmin = numpy.sqrt(d_min * d_min - 1.45)
+    lk_cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
 
     lk_cpoly_far_dmin = 4.5
     lk_cpoly_far_dmax = 6.0
@@ -118,8 +122,12 @@ def d_lk_isotropic_pair_d_dist(
 ):
     d_min = lj_sigma_ij * .89
 
-    lk_cpoly_close_dmin = d_min - 0.25
-    lk_cpoly_close_dmax = d_min + 0.25
+    # lk_cpoly_close_dmin = d_min - 0.25
+    # lk_cpoly_close_dmax = d_min + 0.25
+
+    # fd: this is closer (though not identical) to Rosetta3 cutoffs
+    lk_cpoly_close_dmin = numpy.sqrt(d_min * d_min - 1.45)
+    lk_cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
 
     lk_cpoly_far_dmin = 4.5
     lk_cpoly_far_dmax = 6.0

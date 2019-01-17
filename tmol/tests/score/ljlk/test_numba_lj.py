@@ -56,8 +56,8 @@ def test_lj_gradcheck(default_database, bonded_path_length):
 def test_lj_spotcheck(default_database):
     params = default_database.scoring.ljlk
 
-    i = params.atom_type_parameters[0]
-    j = params.atom_type_parameters[2]
+    i = {p.name: p for p in params.atom_type_parameters}["CH2"]
+    j = {p.name: p for p in params.atom_type_parameters}["OH"]
 
     sigma = i.lj_radius + j.lj_radius
     epsilon = numpy.sqrt(i.lj_wdepth * j.lj_wdepth)
