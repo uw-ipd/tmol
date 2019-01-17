@@ -70,7 +70,7 @@ steps:
 
   - label: ':clipboard: Report'
     plugins:
-      uw-ipd/test-summary#8fa3c9a:
+      uw-ipd/test-summary#master:
         inputs:
           - label: Testing - CUDA
             artifact_path: testing.cuda.junit.xml
