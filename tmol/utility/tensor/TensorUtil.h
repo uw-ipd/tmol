@@ -37,6 +37,14 @@ struct enable_tensor_view {
 FORALL_SCALAR_TYPES_EXCEPT_HALF(SCALAR_VIEW)
 #undef SCALAR_VIEW
 
+template <>
+struct enable_tensor_view<bool> {
+  static const bool enabled = enable_tensor_view<uint8_t>::enabled;
+  static const at::ScalarType scalar_type =
+      enable_tensor_view<uint8_t>::scalar_type;
+  typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
+};
+
 template <typename T, int N>
 struct enable_tensor_view<Eigen::Matrix<T, N, 1>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
