@@ -5,9 +5,9 @@ import numpy
 import torch
 import sparse
 
-from tmol.score.ljlk.numba.vectorized import lj, lk_isotropic
 from tmol.score.ljlk.torch_op import LJOp, LKOp
 from tmol.score.bonded_atom import bonded_path_length
+from tmol.score.ljlk.potentials import compiled
 
 import tmol.database
 
@@ -311,12 +311,12 @@ def _dense_lj(coords, atom_type_idx, atom_pair_bpl, param_resolver):
         torch.Tensor.numpy, attr.asdict(param_resolver.type_params[atom_type_idx])
     )
 
-    return ignore_unused_kwargs(lj)(
+    return ignore_unused_kwargs(compiled.lj_score_V)(
         atom_pair_d,
         atom_pair_bpl,
         **toolz.merge(
-            {k + "_i": t[:, None] for k, t in atom_type_params.items()},
-            {k + "_j": t[None, :] for k, t in atom_type_params.items()},
+            {f"i_{k}": t[:, None] for k, t in atom_type_params.items()},
+            {f"j_{k}": t[None, :] for k, t in atom_type_params.items()},
             toolz.valmap(float, attr.asdict(param_resolver.global_params)),
         ),
     )
@@ -329,12 +329,12 @@ def _dense_lk(coords, atom_type_idx, atom_pair_bpl, param_resolver):
         torch.Tensor.numpy, attr.asdict(param_resolver.type_params[atom_type_idx])
     )
 
-    return ignore_unused_kwargs(lk_isotropic)(
+    return ignore_unused_kwargs(compiled.lk_isotropic_score_V)(
         atom_pair_d,
         atom_pair_bpl,
         **toolz.merge(
-            {k + "_i": t[:, None] for k, t in atom_type_params.items()},
-            {k + "_j": t[None, :] for k, t in atom_type_params.items()},
+            {f"i_{k}": t[:, None] for k, t in atom_type_params.items()},
+            {f"j_{k}": t[None, :] for k, t in atom_type_params.items()},
             toolz.valmap(float, attr.asdict(param_resolver.global_params)),
         ),
     )
