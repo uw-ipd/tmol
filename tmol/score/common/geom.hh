@@ -26,7 +26,12 @@ auto distance_V_dV(Real3 A, Real3 B) -> tuple<Real, Real3, Real3> {
   Real3 delta = (A - B);
   Real V = delta.norm();
 
-  return {V, delta / V, -delta / V};
+  if (V != 0) {
+    return {V, delta / V, -delta / V};
+  } else {
+    // Correct for nan, gradient is discontinuous across dist = 0
+    return {V, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+  }
 }
 
 template <typename Real>
