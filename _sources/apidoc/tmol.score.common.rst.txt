@@ -11,6 +11,7 @@ tmol.score.common
     .. toctree::
        :maxdepth: 1
   
+       tmol.score.common.cubic_hermite_polynomial
        tmol.score.common.geom
        tmol.score.common.polynomial
   
