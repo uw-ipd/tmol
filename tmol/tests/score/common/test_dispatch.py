@@ -3,14 +3,14 @@ import torch
 
 from scipy.spatial.distance import cdist
 
-from tmol.utility.cpp_extension import load
+from tmol.utility.cpp_extension import load, relpaths, modulename
 from tmol.tests.benchmark import subfixture, make_subfixture
 
 import sparse
 
 
 def test_cpu_dispatch(benchmark, ubq_system):
-    compiled = load(__name__.replace(".", "_"), [__file__.replace(".py", ".cpp")])
+    compiled = load(modulename(__name__), relpaths(__file__, "test_dispatch.cpp"))
 
     @subfixture(benchmark)
     def scipy_dist():

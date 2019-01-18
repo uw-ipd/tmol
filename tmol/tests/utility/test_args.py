@@ -2,7 +2,7 @@ import pytest
 
 from tmol.utility.args import _signature
 from tmol.utility.args import ignore_unused_kwargs, bind_to_args
-from tmol.utility.cpp_extension import load_inline
+from tmol.utility.cpp_extension import load_inline, modulename
 
 import inspect
 
@@ -179,7 +179,9 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 }
 """
 
-    c = load_inline("test_ignore_unused_kwargs_pybind11", test_source)
+    c = load_inline(
+        modulename(f"__name__.test_ignore_unused_kwargs_pybind11"), test_source
+    )
 
     # Test signature extraction for various combinations of overloads, default
     # values, and type signatures.

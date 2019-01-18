@@ -1,9 +1,7 @@
 import numpy
-from pathlib import Path
-from tmol.utility.cpp_extension import load
+from tmol.utility.cpp_extension import load, relpaths, modulename
 
-_compiled_sources = [str(Path(__file__).parent / s) for s in ("_compiled.cpp",)]
-_compiled = load(__name__.replace(".", "_"), _compiled_sources)
+_compiled = load(modulename(__name__), relpaths(__file__, "_compiled.cpp"))
 
 lj_sigma = _compiled.lj_sigma
 

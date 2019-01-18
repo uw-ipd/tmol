@@ -1,9 +1,7 @@
-from pathlib import Path
-from tmol.utility.cpp_extension import load
+from tmol.utility.cpp_extension import load, relpaths, modulename
 
 _cubic_hermite_polynomial = load(
-    __name__.replace(".", "_"),
-    [str(Path(__file__).parent / s) for s in ("_cubic_hermite_polynomial.cpp",)],
+    modulename(__name__), relpaths(__file__, "_cubic_hermite_polynomial.cpp")
 )
 
 interpolate = _cubic_hermite_polynomial.interpolate

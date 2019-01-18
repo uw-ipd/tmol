@@ -1,18 +1,16 @@
 import pytest
-import os.path
 import torch
 import toolz
 import attr
 
 import tmol.utility.cpp_extension as cpp_extension
+from tmol.utility.cpp_extension import relpaths, modulename
 
 
 @pytest.fixture(scope="session")
 def tensor_struct():
     return cpp_extension.load(
-        "tensor_struct",
-        [os.path.dirname(__file__) + "/tensor_struct.cpp"],
-        verbose=True,
+        modulename(__name__), relpaths(__file__, "tensor_struct.cpp"), verbose=True
     )
 
 

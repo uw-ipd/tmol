@@ -1,16 +1,14 @@
 import pytest
-import os.path
 import torch
 
 import tmol.utility.cpp_extension as cpp_extension
+from tmol.utility.cpp_extension import relpaths, modulename
 
 
 @pytest.fixture
 def tensor_accessor():
     return cpp_extension.load(
-        "tensor_accessor",
-        [os.path.dirname(__file__) + "/tensor_accessor.cpp"],
-        verbose=True,
+        modulename(__name__), relpaths(__file__, "tensor_accessor.cpp"), verbose=True
     )
 
 
