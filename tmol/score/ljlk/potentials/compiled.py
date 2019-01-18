@@ -82,3 +82,9 @@ f_desolv_V_dV = numpy.vectorize(
     _compiled.f_desolv_V_dV, signature="(),(),(),(),()->(),()"
 )
 f_desolv_V = numpy.vectorize(_compiled.f_desolv_V, signature="(),(),(),(),()->()")
+
+lk_isotropic = _compiled.lk_isotropic
+lk_isotropic_triu = _compiled.lk_isotropic_triu
+
+lj = _compiled.lj
+lj_triu = _compiled.lj_triu

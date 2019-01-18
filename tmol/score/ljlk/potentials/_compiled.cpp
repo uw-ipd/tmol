@@ -1,90 +1,11 @@
 #include <pybind11/eigen.h>
 #include <torch/torch.h>
 
+#include "dispatch.hh"
 #include "lj.hh"
 #include "lk_isotropic.hh"
 
 using namespace tmol::score::ljlk::potentials;
-
-// clang-format off
-//
-#define pyarg(v) py::arg(#v)
-
-#define GLOBAL_PARAMS()      \
-  Real lj_hbond_dis,         \
-  Real lj_hbond_OH_donor_dis,\
-  Real lj_hbond_hdis         \
-
-#define GLOBAL_PARAM_STRUCT() \
-{                        \
-  lj_hbond_dis,          \
-  lj_hbond_OH_donor_dis, \
-  lj_hbond_hdis          \
-}
-
-#define GLOBAL_PYARGS() \
-  pyarg(lj_hbond_dis),          \
-  pyarg(lj_hbond_OH_donor_dis), \
-  pyarg(lj_hbond_hdis)
-
-#define LJ_PARAMS(N)   \
-  Real N##_lj_radius,   \
-  Real N##_lj_wdepth,   \
-  bool N##_is_donor,    \
-  bool N##_is_hydroxyl, \
-  bool N##_is_polarh,   \
-  bool N##_is_acceptor
-
-#define LJ_PARAM_STRUCT(N)   \
-{               \
-  N##_lj_radius,   \
-  N##_lj_wdepth,   \
-  N##_is_donor,    \
-  N##_is_hydroxyl, \
-  N##_is_polarh,   \
-  N##_is_acceptor  \
-}
-
-#define LJ_PYARGS(N)       \
-  pyarg(N##_lj_radius),  \
-  pyarg(N##_lj_wdepth),  \
-  pyarg(N##_is_donor),   \
-  pyarg(N##_is_hydroxyl),\
-  pyarg(N##_is_polarh),  \
-  pyarg(N##_is_acceptor)
-
-#define LK_PARAMS(N)   \
-  Real N##_lj_radius,   \
-  Real N##_lk_dgfree,   \
-  Real N##_lk_lambda,   \
-  Real N##_lk_volume,   \
-  bool N##_is_donor,    \
-  bool N##_is_hydroxyl, \
-  bool N##_is_polarh,   \
-  bool N##_is_acceptor
-
-#define LK_PARAM_STRUCT(N)   \
-{                  \
-  N##_lj_radius,   \
-  N##_lk_dgfree,   \
-  N##_lk_lambda,   \
-  N##_lk_volume,   \
-  N##_is_donor,    \
-  N##_is_hydroxyl, \
-  N##_is_polarh,   \
-  N##_is_acceptor  \
-}
-
-#define LK_PYARGS(N)       \
-  pyarg(N##_lj_radius),  \
-  pyarg(N##_lk_dgfree),  \
-  pyarg(N##_lk_lambda),  \
-  pyarg(N##_lk_volume),  \
-  pyarg(N##_is_donor),   \
-  pyarg(N##_is_hydroxyl),\
-  pyarg(N##_is_polarh),  \
-  pyarg(N##_is_acceptor)
-// clang-format on
 
 template <typename Real>
 void bind_potentials(pybind11::module& m) {
@@ -92,14 +13,17 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lj_sigma",
-      py::vectorize([](LJ_PARAMS(i), LJ_PARAMS(j), GLOBAL_PARAMS()) {
+      py::vectorize([](LJTypeParams_args(i_),
+                       LJTypeParams_args(j_),
+                       LJGlobalParams_args()) {
         return lj_sigma<Real, LJTypeParams<Real>, LJGlobalParams<Real>>(
-            LJ_PARAM_STRUCT(i), LJ_PARAM_STRUCT(j), GLOBAL_PARAM_STRUCT());
+            LJTypeParams_struct(i_),
+            LJTypeParams_struct(j_),
+            LJGlobalParams_struct());
       }),
-
-      LJ_PYARGS(i),
-      LJ_PYARGS(j),
-      GLOBAL_PYARGS());
+      LJTypeParams_pyargs(i_),
+      LJTypeParams_pyargs(j_),
+      LJGlobalParams_pyargs());
 
   m.def("vdw_V_dV", &vdw_V_dV<Real>, "dist"_a, "sigma"_a, "epsilon"_a);
   m.def("vdw_V", &vdw_V<Real>, "dist"_a, "sigma"_a, "epsilon"_a);
@@ -108,41 +32,41 @@ void bind_potentials(pybind11::module& m) {
       "lj_score_V",
       [](Real dist,
          Real bonded_path_length,
-         LJ_PARAMS(i),
-         LJ_PARAMS(j),
-         GLOBAL_PARAMS()) {
+         LJTypeParams_args(i_),
+         LJTypeParams_args(j_),
+         LJGlobalParams_args()) {
         return lj_score_V(
             dist,
             bonded_path_length,
-            LJ_PARAM_STRUCT(i),
-            LJ_PARAM_STRUCT(j),
-            GLOBAL_PARAM_STRUCT());
+            LJTypeParams_struct(i_),
+            LJTypeParams_struct(j_),
+            LJGlobalParams_struct());
       },
       "dist"_a,
       "bonded_path_length"_a,
-      LJ_PYARGS(i),
-      LJ_PYARGS(j),
-      GLOBAL_PYARGS());
+      LJTypeParams_pyargs(i_),
+      LJTypeParams_pyargs(j_),
+      LJGlobalParams_pyargs());
 
   m.def(
       "lj_score_V_dV",
       [](Real dist,
          Real bonded_path_length,
-         LJ_PARAMS(i),
-         LJ_PARAMS(j),
-         GLOBAL_PARAMS()) {
+         LJTypeParams_args(i_),
+         LJTypeParams_args(j_),
+         LJGlobalParams_args()) {
         return lj_score_V_dV(
             dist,
             bonded_path_length,
-            LJ_PARAM_STRUCT(i),
-            LJ_PARAM_STRUCT(j),
-            GLOBAL_PARAM_STRUCT());
+            LJTypeParams_struct(i_),
+            LJTypeParams_struct(j_),
+            LJGlobalParams_struct());
       },
       "dist"_a,
       "bonded_path_length"_a,
-      LJ_PYARGS(i),
-      LJ_PYARGS(j),
-      GLOBAL_PYARGS());
+      LJTypeParams_pyargs(i_),
+      LJTypeParams_pyargs(j_),
+      LJGlobalParams_pyargs());
 
   m.def(
       "f_desolv_V",
@@ -166,45 +90,97 @@ void bind_potentials(pybind11::module& m) {
       "lk_isotropic_score_V",
       [](Real dist,
          Real bonded_path_length,
-         LK_PARAMS(i),
-         LK_PARAMS(j),
-         GLOBAL_PARAMS()) {
+         LKTypeParams_args(i_),
+         LKTypeParams_args(j_),
+         LJGlobalParams_args()) {
         return lk_isotropic_score_V(
             dist,
             bonded_path_length,
-            LK_PARAM_STRUCT(i),
-            LK_PARAM_STRUCT(j),
-            GLOBAL_PARAM_STRUCT());
+            LKTypeParams_struct(i_),
+            LKTypeParams_struct(j_),
+            LJGlobalParams_struct());
       },
       "dist"_a,
       "bonded_path_length"_a,
-      LK_PYARGS(i),
-      LK_PYARGS(j),
-      GLOBAL_PYARGS());
+      LKTypeParams_pyargs(i_),
+      LKTypeParams_pyargs(j_),
+      LJGlobalParams_pyargs());
 
   m.def(
       "lk_isotropic_score_V_dV",
       [](Real dist,
          Real bonded_path_length,
-         LK_PARAMS(i),
-         LK_PARAMS(j),
-         GLOBAL_PARAMS()) {
+         LKTypeParams_args(i_),
+         LKTypeParams_args(j_),
+         LJGlobalParams_args()) {
         return lk_isotropic_score_V_dV(
             dist,
             bonded_path_length,
-            LK_PARAM_STRUCT(i),
-            LK_PARAM_STRUCT(j),
-            GLOBAL_PARAM_STRUCT());
+            LKTypeParams_struct(i_),
+            LKTypeParams_struct(j_),
+            LJGlobalParams_struct());
       },
       "dist"_a,
       "bonded_path_length"_a,
-      LK_PYARGS(i),
-      LK_PYARGS(j),
-      GLOBAL_PYARGS());
+      LKTypeParams_pyargs(i_),
+      LKTypeParams_pyargs(j_),
+      LJGlobalParams_pyargs());
+}
+
+template <typename Real, typename Int>
+void bind_dispatch(pybind11::module& m) {
+  using namespace pybind11::literals;
+  using tmol::score::common::NaiveDispatch;
+
+  m.def(
+      "lk_isotropic",
+      &lk_isotropic_dispatch<NaiveDispatch, Real, Int>,
+      "coords_i"_a,
+      "atom_type_i"_a,
+      "coords_j"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      LKTypeParams_pyargs(),
+      LJGlobalParams_pyargs());
+
+  m.def(
+      "lk_isotropic_triu",
+      &lk_isotropic_dispatch<NaiveTriuDispatch, Real, Int>,
+      "coords_i"_a,
+      "atom_type_i"_a,
+      "coords_j"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      LKTypeParams_pyargs(),
+      LJGlobalParams_pyargs());
+
+  m.def(
+      "lj",
+      &lj_dispatch<NaiveDispatch, Real, Int>,
+      "coords_i"_a,
+      "atom_type_i"_a,
+      "coords_j"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      LJTypeParams_pyargs(),
+      LJGlobalParams_pyargs());
+
+  m.def(
+      "lj_triu",
+      &lj_dispatch<NaiveTriuDispatch, Real, Int>,
+      "coords_i"_a,
+      "atom_type_i"_a,
+      "coords_j"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      LJTypeParams_pyargs(),
+      LJGlobalParams_pyargs());
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  using namespace pybind11::literals;
-
   bind_potentials<double>(m);
+  bind_dispatch<float, int32_t>(m);
+  bind_dispatch<float, int64_t>(m);
+  bind_dispatch<double, int32_t>(m);
+  bind_dispatch<double, int64_t>(m);
 }

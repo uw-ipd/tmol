@@ -1,38 +1,11 @@
 #pragma once
 
+#include "params.hh"
+
 namespace tmol {
 namespace score {
 namespace ljlk {
 namespace potentials {
-
-template <typename Real>
-struct LJTypeParams {
-  Real lj_radius;
-  Real lj_wdepth;
-  bool is_donor;
-  bool is_hydroxyl;
-  bool is_polarh;
-  bool is_acceptor;
-};
-
-template <typename Real>
-struct LKTypeParams {
-  Real lj_radius;
-  Real lk_dgfree;
-  Real lk_lambda;
-  Real lk_volume;
-  bool is_donor;
-  bool is_hydroxyl;
-  bool is_polarh;
-  bool is_acceptor;
-};
-
-template <typename Real>
-struct LJGlobalParams {
-  Real lj_hbond_dis;
-  Real lj_hbond_OH_donor_dis;
-  Real lj_hbond_hdis;
-};
 
 template <typename Real, typename Int>
 Real connectivity_weight(Int bonded_path_length) {
