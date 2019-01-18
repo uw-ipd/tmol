@@ -1,9 +1,13 @@
 #pragma once
 
+#include <array>
+
 #include <ATen/Error.h>
+#include <ATen/Functions.h>
 #include <ATen/ScalarType.h>
 #include <ATen/Tensor.h>
-#include <array>
+
+#include <torch/torch.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -168,36 +172,3 @@ auto new_tensor(at::IntList size)
 }
 
 }  // namespace tmol
-
-namespace pybind11 {
-namespace detail {
-
-template <typename T, size_t N, template <typename U> class P>
-struct type_caster<tmol::TView<T, N, P>> {
- public:
-  typedef tmol::TView<T, N, P> ViewType;
-  PYBIND11_TYPE_CASTER(ViewType, _<ViewType>());
-
-  bool load(handle src, bool convert) {
-    type_caster<at::Tensor> conv;
-
-    if (!conv.load(src, convert)) {
-      return false;
-    }
-
-    try {
-      value = tmol::view_tensor<T, N, P>(conv);
-      return true;
-    } catch (at::Error err) {
-      // TODO Log error via python logging.
-      // py::print(
-      //    "Error casting to type: ", type_id<ViewType>(), " value: ", src);
-      return false;
-    }
-  }
-
-  // C++ -> Python cast operation not supported.
-};
-
-}  // namespace detail
-}  // namespace pybind11

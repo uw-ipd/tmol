@@ -7,6 +7,7 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/pybind.h>
 
 #include <tmol/score/common/dispatch.hh>
 

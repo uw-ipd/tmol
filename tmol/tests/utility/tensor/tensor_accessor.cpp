@@ -4,6 +4,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/pybind.h>
 
 at::Tensor vector_magnitude_aten(at::Tensor input) {
   return (input * input).sum(-1).sqrt();

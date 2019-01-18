@@ -1,4 +1,5 @@
 #include <pybind11/eigen.h>
+#include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
 #include "dispatch.hh"
