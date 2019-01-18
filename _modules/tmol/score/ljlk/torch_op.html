@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-119-g7025564 documentation</title>
+  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-120-g32075ab documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-119-g7025564
+                0.0.0-120-g32075ab
               </div>
             
           
@@ -176,19 +176,14 @@
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span> <span class="nn">tmol.utility.args</span> <span class="k">import</span> <span class="n">ignore_unused_kwargs</span>
 
-<span class="kn">from</span> <span class="nn">.numba.lj</span> <span class="k">import</span> <span class="n">lj_intra</span><span class="p">,</span> <span class="n">lj_intra_backward</span><span class="p">,</span> <span class="n">lj_inter</span><span class="p">,</span> <span class="n">lj_inter_backward</span>
-<span class="kn">from</span> <span class="nn">.numba.lk_isotropic</span> <span class="k">import</span> <span class="p">(</span>
-    <span class="n">lk_isotropic_intra</span><span class="p">,</span>
-    <span class="n">lk_isotropic_intra_backward</span><span class="p">,</span>
-    <span class="n">lk_isotropic_inter</span><span class="p">,</span>
-    <span class="n">lk_isotropic_inter_backward</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">compiled</span>
+
 <span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">LJLKDatabase</span><span class="p">,</span> <span class="n">LJLKParamResolver</span>
 
 
 <div class="viewcode-block" id="AtomOp"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomOp">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">AtomOp</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;torch.autograd lj baseline operator.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;torch.autograd atom pair score baseline operator.&quot;&quot;&quot;</span>
 
     <span class="n">param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span>
     <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
@@ -200,7 +195,7 @@
             <span class="n">param_resolver</span><span class="o">=</span><span class="n">param_resolver</span><span class="p">,</span>
             <span class="n">params</span><span class="o">=</span><span class="n">merge</span><span class="p">(</span>
                 <span class="n">valmap</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">asdict</span><span class="p">(</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="p">)),</span>
-                <span class="n">valmap</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="o">.</span><span class="n">numpy</span><span class="p">,</span> <span class="n">asdict</span><span class="p">(</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">type_params</span><span class="p">)),</span>
+                <span class="n">asdict</span><span class="p">(</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">type_params</span><span class="p">),</span>
             <span class="p">),</span>
         <span class="p">)</span></div>
 
@@ -214,166 +209,95 @@
             <span class="p">)</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="AtomOp.intra"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomOp.intra">[docs]</a>    <span class="k">def</span> <span class="nf">intra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">):</span>
-        <span class="c1"># Detach grad from output indicies, which are int-valued</span>
-        <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">AtomIntraFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">v</span><span class="p">)</span></div>
-
 <div class="viewcode-block" id="AtomOp.inter"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomOp.inter">[docs]</a>    <span class="k">def</span> <span class="nf">inter</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">coords_a</span><span class="p">,</span> <span class="n">atom_types_a</span><span class="p">,</span> <span class="n">coords_b</span><span class="p">,</span> <span class="n">atom_types_b</span><span class="p">,</span> <span class="n">bonded_path_lengths</span>
     <span class="p">):</span>
         <span class="c1"># Detach grad from output indicies, which are int-valued</span>
-        <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">AtomInterFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span>
+        <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">_AtomScoreFun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="p">)(</span>
             <span class="n">coords_a</span><span class="p">,</span> <span class="n">atom_types_a</span><span class="p">,</span> <span class="n">coords_b</span><span class="p">,</span> <span class="n">atom_types_b</span><span class="p">,</span> <span class="n">bonded_path_lengths</span>
         <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">v</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AtomOp.intra"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomOp.intra">[docs]</a>    <span class="k">def</span> <span class="nf">intra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">):</span>
+        <span class="c1"># Call triu score function on coords, results in idependent autograd</span>
+        <span class="c1"># paths for i and j axis</span>
+        <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">_AtomScoreFun</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">f_triu</span><span class="p">)(</span>
+            <span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">bonded_path_lengths</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Detach grad from output indicies, which are int-valued</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span> <span class="n">v</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="AtomIntraFun"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomIntraFun">[docs]</a><span class="k">class</span> <span class="nc">AtomIntraFun</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
+<div class="viewcode-block" id="_AtomScoreFun"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op._AtomScoreFun">[docs]</a><span class="k">class</span> <span class="nc">_AtomScoreFun</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">op</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="n">f</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-<div class="viewcode-block" id="AtomIntraFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomIntraFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">coords</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
-        <span class="k">assert</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
-        <span class="k">assert</span> <span class="n">atom_types</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+<div class="viewcode-block" id="_AtomScoreFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op._AtomScoreFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">atom_type_I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">atom_type_J</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">I</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">I</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="k">assert</span> <span class="n">I</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">atom_type_I</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">atom_type_I</span><span class="o">.</span><span class="n">requires_grad</span>
 
-        <span class="k">assert</span> <span class="n">bonded_path_lengths</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-
-        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span>
-            <span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">atom_types</span><span class="o">.</span><span class="n">requires_grad</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">bonded_path_lengths</span><span class="o">.</span><span class="n">requires_grad</span>
-
-        <span class="n">inds</span><span class="p">,</span> <span class="n">vals</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">,</span>
-            <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">f_intra</span><span class="p">(</span>
-                <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="n">atom_types</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="n">bonded_path_lengths</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
-            <span class="p">),</span>
-        <span class="p">)</span>
-
-        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="AtomIntraFun.backward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomIntraFun.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">ind_grads</span><span class="p">,</span> <span class="n">val_grads</span><span class="p">):</span>
-
-        <span class="n">inds</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">,</span> <span class="n">bonded_path_lengths</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
-
-        <span class="n">coord_grads</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">f_intra_backward</span><span class="p">(</span>
-            <span class="n">inds</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">val_grads</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">coords</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">atom_types</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">bonded_path_lengths</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">coord_grads</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span></div></div>
-
-
-<div class="viewcode-block" id="AtomInterFun"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomInterFun">[docs]</a><span class="k">class</span> <span class="nc">AtomInterFun</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">op</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-
-<div class="viewcode-block" id="AtomInterFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomInterFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
-        <span class="n">ctx</span><span class="p">,</span> <span class="n">coords_a</span><span class="p">,</span> <span class="n">atom_types_a</span><span class="p">,</span> <span class="n">coords_b</span><span class="p">,</span> <span class="n">atom_types_b</span><span class="p">,</span> <span class="n">bonded_path_lengths</span>
-    <span class="p">):</span>
-        <span class="k">assert</span> <span class="n">coords_a</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
-        <span class="k">assert</span> <span class="n">coords_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
-        <span class="k">assert</span> <span class="n">atom_types_a</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">coords_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
-
-        <span class="k">assert</span> <span class="n">coords_b</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
-        <span class="k">assert</span> <span class="n">coords_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
-        <span class="k">assert</span> <span class="n">atom_types_b</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">coords_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
-
-        <span class="k">assert</span> <span class="n">bonded_path_lengths</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">coords_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coords_b</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">J</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">J</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+        <span class="k">assert</span> <span class="n">J</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">atom_type_J</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">atom_type_J</span><span class="o">.</span><span class="n">requires_grad</span>
 
         <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span>
             <span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span>
-            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span>
-                <span class="n">coords_a</span><span class="p">,</span>
-                <span class="n">atom_types_a</span><span class="p">,</span>
-                <span class="n">coords_b</span><span class="p">,</span>
-                <span class="n">atom_types_b</span><span class="p">,</span>
-                <span class="n">bonded_path_lengths</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">atom_type_I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">atom_type_J</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">)</span>
         <span class="p">)</span>
 
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">atom_types_a</span><span class="o">.</span><span class="n">requires_grad</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">atom_types_b</span><span class="o">.</span><span class="n">requires_grad</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="n">bonded_path_lengths</span><span class="o">.</span><span class="n">requires_grad</span>
-
-        <span class="n">inds</span><span class="p">,</span> <span class="n">vals</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">,</span>
-            <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">f_inter</span><span class="p">(</span>
-                <span class="n">coords_a</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="n">atom_types_a</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="n">coords_b</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="n">atom_types_b</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="n">bonded_path_lengths</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
-            <span class="p">),</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">valmap</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">I</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">()</span>
+            <span class="k">else</span> <span class="n">t</span><span class="p">,</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span>
-            <span class="n">inds</span><span class="p">,</span> <span class="n">coords_a</span><span class="p">,</span> <span class="n">atom_types_a</span><span class="p">,</span> <span class="n">coords_b</span><span class="p">,</span> <span class="n">atom_types_b</span><span class="p">,</span> <span class="n">bonded_path_lengths</span>
+        <span class="n">inds</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="o">*</span><span class="n">dE_dC</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">f</span><span class="p">(</span>
+            <span class="n">I</span><span class="p">,</span> <span class="n">atom_type_I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">atom_type_J</span><span class="p">,</span> <span class="n">bonded_path_lengths</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span></div>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">inds</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-<div class="viewcode-block" id="AtomInterFun.backward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomInterFun.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">ind_grads</span><span class="p">,</span> <span class="n">val_grads</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">shape_I</span> <span class="o">=</span> <span class="n">atom_type_I</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">shape_J</span> <span class="o">=</span> <span class="n">atom_type_J</span><span class="o">.</span><span class="n">shape</span>
 
-        <span class="p">(</span>
-            <span class="n">inds</span><span class="p">,</span>
-            <span class="n">coords_a</span><span class="p">,</span>
-            <span class="n">atom_types_a</span><span class="p">,</span>
-            <span class="n">coords_b</span><span class="p">,</span>
-            <span class="n">atom_types_b</span><span class="p">,</span>
-            <span class="n">bonded_path_lengths</span><span class="p">,</span>
-        <span class="p">)</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="n">inds</span><span class="p">]</span> <span class="o">+</span> <span class="n">dE_dC</span><span class="p">))</span>
 
-        <span class="n">coord_a_grads</span><span class="p">,</span> <span class="n">coord_b_grads</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">f_inter_backward</span><span class="p">(</span>
-            <span class="n">inds</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">val_grads</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">coords_a</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">atom_types_a</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">coords_b</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">atom_types_b</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="n">bonded_path_lengths</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-            <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">E</span><span class="p">)</span></div>
 
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">coord_a_grads</span><span class="p">),</span>
-            <span class="kc">None</span><span class="p">,</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">coord_b_grads</span><span class="p">),</span>
-            <span class="kc">None</span><span class="p">,</span>
-            <span class="kc">None</span><span class="p">,</span>
-        <span class="p">)</span></div></div>
+<div class="viewcode-block" id="_AtomScoreFun.backward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op._AtomScoreFun.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">_ind_grads</span><span class="p">,</span> <span class="n">dV_dE</span><span class="p">):</span>
+        <span class="n">ind</span><span class="p">,</span> <span class="n">dE_dI</span><span class="p">,</span> <span class="n">dE_dJ</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+        <span class="n">ind_I</span><span class="p">,</span> <span class="n">ind_J</span> <span class="o">=</span> <span class="n">ind</span>
+
+        <span class="n">dV_dI</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
+            <span class="n">ind_I</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dV_dE</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">dE_dI</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">shape_I</span> <span class="o">+</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+
+        <span class="n">dV_dJ</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
+            <span class="n">ind_J</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dV_dE</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">dE_dJ</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">shape_J</span> <span class="o">+</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">dV_dI</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dV_dJ</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LJOp"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.LJOp">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LJOp</span><span class="p">(</span><span class="n">AtomOp</span><span class="p">):</span>
-    <span class="n">f_intra</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">lj_intra</span><span class="p">)</span>
-    <span class="n">f_intra_backward</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">lj_intra_backward</span><span class="p">)</span>
-    <span class="n">f_inter</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">lj_inter</span><span class="p">)</span>
-    <span class="n">f_inter_backward</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">lj_inter_backward</span><span class="p">)</span></div>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lj</span><span class="p">)</span>
+    <span class="n">f_triu</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lj_triu</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="LKOp"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.LKOp">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LKOp</span><span class="p">(</span><span class="n">AtomOp</span><span class="p">):</span>
-    <span class="n">f_intra</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">lk_isotropic_intra</span><span class="p">)</span>
-    <span class="n">f_intra_backward</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">lk_isotropic_intra_backward</span><span class="p">)</span>
-    <span class="n">f_inter</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">lk_isotropic_inter</span><span class="p">)</span>
-    <span class="n">f_inter_backward</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">lk_isotropic_inter_backward</span><span class="p">)</span></div>
+    <span class="sd">&quot;&quot;&quot;torch.autograd hbond baseline operator.&quot;&quot;&quot;</span>
+
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lk_isotropic</span><span class="p">)</span>
+    <span class="n">f_triu</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lk_isotropic_triu</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
@@ -410,7 +334,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-119-g7025564',
+              VERSION:'0.0.0-120-g32075ab',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

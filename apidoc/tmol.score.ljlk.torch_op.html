@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-119-g7025564 documentation</title>
+  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-120-g32075ab documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-119-g7025564
+                0.0.0-120-g32075ab
               </div>
             
           
@@ -208,20 +208,14 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomInterFun" title="tmol.score.ljlk.torch_op.AtomInterFun"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomInterFun</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomIntraFun" title="tmol.score.ljlk.torch_op.AtomIntraFun"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomIntraFun</span></code></a></td>
-<td></td>
-</tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomOp" title="tmol.score.ljlk.torch_op.AtomOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomOp</span></code></a></td>
-<td>torch.autograd lj baseline operator.</td>
+<td>torch.autograd atom pair score baseline operator.</td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.torch_op.LJOp" title="tmol.score.ljlk.torch_op.LJOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJOp</span></code></a></td>
 <td></td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.torch_op.LKOp" title="tmol.score.ljlk.torch_op.LKOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LKOp</span></code></a></td>
-<td></td>
+<td>torch.autograd hbond baseline operator.</td>
 </tr>
 </tbody>
 </table>
@@ -233,7 +227,7 @@
 <dt id="tmol.score.ljlk.torch_op.AtomOp">
 <em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">AtomOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomOp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>torch.autograd lj baseline operator.</p>
+<p>torch.autograd atom pair score baseline operator.</p>
 <dl class="classmethod">
 <dt id="tmol.score.ljlk.torch_op.AtomOp.from_param_resolver">
 <em class="property">classmethod </em><code class="descname">from_param_resolver</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomOp.from_param_resolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomOp.from_param_resolver" title="Permalink to this definition">¶</a></dt>
@@ -245,64 +239,24 @@
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.ljlk.torch_op.AtomOp.intra">
-<code class="descname">intra</code><span class="sig-paren">(</span><em>coords</em>, <em>atom_types</em>, <em>bonded_path_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomOp.intra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomOp.intra" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="tmol.score.ljlk.torch_op.AtomOp.inter">
 <code class="descname">inter</code><span class="sig-paren">(</span><em>coords_a</em>, <em>atom_types_a</em>, <em>coords_b</em>, <em>atom_types_b</em>, <em>bonded_path_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomOp.inter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomOp.inter" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.ljlk.torch_op.AtomIntraFun">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">AtomIntraFun</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomIntraFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomIntraFun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
 <dl class="method">
-<dt id="tmol.score.ljlk.torch_op.AtomIntraFun.forward">
-<code class="descname">forward</code><span class="sig-paren">(</span><em>coords</em>, <em>atom_types</em>, <em>bonded_path_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomIntraFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomIntraFun.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context ctx as the first argument, followed by any
-number of arguments (tensors or other types).</p>
-<p>The context can be used to store tensors that can be then retrieved
-during the backward pass.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.ljlk.torch_op.AtomIntraFun.backward">
-<code class="descname">backward</code><span class="sig-paren">(</span><em>ind_grads</em>, <em>val_grads</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomIntraFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomIntraFun.backward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines a formula for differentiating the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
-as many outputs did <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomIntraFun.forward" title="tmol.score.ljlk.torch_op.AtomIntraFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
-tensors, as there were inputs to <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomIntraFun.forward" title="tmol.score.ljlk.torch_op.AtomIntraFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
-gradient w.r.t the given output, and each returned value should be the
-gradient w.r.t. the corresponding input.</p>
-<p>The context can be used to retrieve tensors saved during the forward
-pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
-of booleans representing whether each input needs gradient. E.g.,
-<a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomIntraFun.backward" title="tmol.score.ljlk.torch_op.AtomIntraFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
-first input to <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomIntraFun.forward" title="tmol.score.ljlk.torch_op.AtomIntraFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
-output.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.ljlk.torch_op.AtomIntraFun._is_legacy">
-<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomIntraFun._is_legacy" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.ljlk.torch_op.AtomOp.intra">
+<code class="descname">intra</code><span class="sig-paren">(</span><em>coords</em>, <em>atom_types</em>, <em>bonded_path_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomOp.intra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomOp.intra" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.score.ljlk.torch_op.AtomInterFun">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">AtomInterFun</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomInterFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomInterFun" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.ljlk.torch_op._AtomScoreFun">
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">_AtomScoreFun</code><span class="sig-paren">(</span><em>op</em>, <em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#_AtomScoreFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op._AtomScoreFun" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
 <dl class="method">
-<dt id="tmol.score.ljlk.torch_op.AtomInterFun.forward">
-<code class="descname">forward</code><span class="sig-paren">(</span><em>coords_a</em>, <em>atom_types_a</em>, <em>coords_b</em>, <em>atom_types_b</em>, <em>bonded_path_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomInterFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomInterFun.forward" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.ljlk.torch_op._AtomScoreFun.forward">
+<code class="descname">forward</code><span class="sig-paren">(</span><em>I</em>, <em>atom_type_I</em>, <em>J</em>, <em>atom_type_J</em>, <em>bonded_path_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#_AtomScoreFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op._AtomScoreFun.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs the operation.</p>
 <p>This function is to be overridden by all subclasses.</p>
 <p>It must accept a context ctx as the first argument, followed by any
@@ -312,40 +266,41 @@ during the backward pass.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.ljlk.torch_op.AtomInterFun.backward">
-<code class="descname">backward</code><span class="sig-paren">(</span><em>ind_grads</em>, <em>val_grads</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#AtomInterFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomInterFun.backward" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.ljlk.torch_op._AtomScoreFun.backward">
+<code class="descname">backward</code><span class="sig-paren">(</span><em>_ind_grads</em>, <em>dV_dE</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#_AtomScoreFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op._AtomScoreFun.backward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines a formula for differentiating the operation.</p>
 <p>This function is to be overridden by all subclasses.</p>
 <p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
-as many outputs did <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomInterFun.forward" title="tmol.score.ljlk.torch_op.AtomInterFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
-tensors, as there were inputs to <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomInterFun.forward" title="tmol.score.ljlk.torch_op.AtomInterFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
+as many outputs did <a class="reference internal" href="#tmol.score.ljlk.torch_op._AtomScoreFun.forward" title="tmol.score.ljlk.torch_op._AtomScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
+tensors, as there were inputs to <a class="reference internal" href="#tmol.score.ljlk.torch_op._AtomScoreFun.forward" title="tmol.score.ljlk.torch_op._AtomScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
 gradient w.r.t the given output, and each returned value should be the
 gradient w.r.t. the corresponding input.</p>
 <p>The context can be used to retrieve tensors saved during the forward
 pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
 of booleans representing whether each input needs gradient. E.g.,
-<a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomInterFun.backward" title="tmol.score.ljlk.torch_op.AtomInterFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
-first input to <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomInterFun.forward" title="tmol.score.ljlk.torch_op.AtomInterFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
+<a class="reference internal" href="#tmol.score.ljlk.torch_op._AtomScoreFun.backward" title="tmol.score.ljlk.torch_op._AtomScoreFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
+first input to <a class="reference internal" href="#tmol.score.ljlk.torch_op._AtomScoreFun.forward" title="tmol.score.ljlk.torch_op._AtomScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
 output.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.ljlk.torch_op.AtomInterFun._is_legacy">
-<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.ljlk.torch_op.AtomInterFun._is_legacy" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.ljlk.torch_op._AtomScoreFun._is_legacy">
+<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.ljlk.torch_op._AtomScoreFun._is_legacy" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
 <dt id="tmol.score.ljlk.torch_op.LJOp">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">LJOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]], f_intra: Callable = &lt;function lj_intra&gt;, f_intra_backward: Callable = &lt;function lj_intra_backward&gt;, f_inter: Callable = &lt;function lj_inter&gt;, f_inter_backward: Callable = &lt;function lj_inter_backward&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LJOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LJOp" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">LJOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]], f: Callable = &lt;function PyCapsule.lj&gt;, f_triu: Callable = &lt;function PyCapsule.lj_triu&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LJOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LJOp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomOp" title="tmol.score.ljlk.torch_op.AtomOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ljlk.torch_op.AtomOp</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="tmol.score.ljlk.torch_op.LKOp">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">LKOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]], f_intra: Callable = &lt;function lk_isotropic_intra&gt;, f_intra_backward: Callable = &lt;function lk_isotropic_intra_backward&gt;, f_inter: Callable = &lt;function lk_isotropic_inter&gt;, f_inter_backward: Callable = &lt;function lk_isotropic_inter_backward&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LKOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LKOp" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">LKOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]], f: Callable = &lt;function PyCapsule.lk_isotropic&gt;, f_triu: Callable = &lt;function PyCapsule.lk_isotropic_triu&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LKOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LKOp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomOp" title="tmol.score.ljlk.torch_op.AtomOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ljlk.torch_op.AtomOp</span></code></a></p>
+<p>torch.autograd hbond baseline operator.</p>
 </dd></dl>
 
 </div>
@@ -395,7 +350,7 @@ output.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-119-g7025564',
+              VERSION:'0.0.0-120-g32075ab',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
