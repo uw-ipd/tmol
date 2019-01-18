@@ -20,14 +20,22 @@ struct LJTypeParams {
   bool PREFIX##is_polarh,   \
   bool PREFIX##is_acceptor
 
-#define LJTypeParams_struct(PREFIX)   \
+#define LJTypeParams_targs(NDIM)    \
+  TView<Real, NDIM> lj_radius,   \
+  TView<Real, NDIM> lj_wdepth,   \
+  TView<bool, NDIM> is_donor,    \
+  TView<bool, NDIM> is_hydroxyl, \
+  TView<bool, NDIM> is_polarh,   \
+  TView<bool, NDIM> is_acceptor
+
+#define LJTypeParams_struct(PREFIX, ...)   \
 {                  \
-  PREFIX##lj_radius,   \
-  PREFIX##lj_wdepth,   \
-  PREFIX##is_donor,    \
-  PREFIX##is_hydroxyl, \
-  PREFIX##is_polarh,   \
-  PREFIX##is_acceptor  \
+  PREFIX##lj_radius __VA_ARGS__,   \
+  PREFIX##lj_wdepth __VA_ARGS__,   \
+  PREFIX##is_donor __VA_ARGS__,    \
+  PREFIX##is_hydroxyl __VA_ARGS__, \
+  PREFIX##is_polarh __VA_ARGS__,   \
+  PREFIX##is_acceptor __VA_ARGS__  \
 }
 
 #define LJTypeParams_pyargs(PREFIX)      \
@@ -62,16 +70,26 @@ struct LKTypeParams {
   bool PREFIX##is_polarh,   \
   bool PREFIX##is_acceptor
 
-#define LKTypeParams_struct(PREFIX)   \
+#define LKTypeParams_targs(NDIM)    \
+  TView<Real, NDIM> lj_radius,   \
+  TView<Real, NDIM> lk_dgfree,   \
+  TView<Real, NDIM> lk_lambda,   \
+  TView<Real, NDIM> lk_volume,   \
+  TView<bool, NDIM> is_donor,    \
+  TView<bool, NDIM> is_hydroxyl, \
+  TView<bool, NDIM> is_polarh,   \
+  TView<bool, NDIM> is_acceptor
+
+#define LKTypeParams_struct(PREFIX, ...)   \
 {                  \
-  PREFIX##lj_radius,   \
-  PREFIX##lk_dgfree,   \
-  PREFIX##lk_lambda,   \
-  PREFIX##lk_volume,   \
-  PREFIX##is_donor,    \
-  PREFIX##is_hydroxyl, \
-  PREFIX##is_polarh,   \
-  PREFIX##is_acceptor  \
+  PREFIX##lj_radius __VA_ARGS__,   \
+  PREFIX##lk_dgfree __VA_ARGS__,   \
+  PREFIX##lk_lambda __VA_ARGS__,   \
+  PREFIX##lk_volume __VA_ARGS__,   \
+  PREFIX##is_donor __VA_ARGS__,    \
+  PREFIX##is_hydroxyl __VA_ARGS__, \
+  PREFIX##is_polarh __VA_ARGS__,   \
+  PREFIX##is_acceptor __VA_ARGS__  \
 }
 
 #define LKTypeParams_pyargs(PREFIX)     \

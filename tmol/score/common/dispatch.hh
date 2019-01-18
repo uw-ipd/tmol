@@ -92,6 +92,52 @@ struct NaiveDispatch {
   TView<int, 2> hits;
 };
 
+struct NaiveTriuDispatch {
+  NaiveTriuDispatch(float threshold_distance_, int n_i, int n_j)
+      : threshold_distance(threshold_distance_) {
+    tie(hits_t, hits) = new_tensor<int, 2>({n_i, n_j});
+  }
+
+  template <typename Real>
+  int scan(TView<Vec<Real, 3>, 1> coords_i, TView<Vec<Real, 3>, 1> coords_j) {
+    const Eigen::AlignedBox<Real, 3> tbox(
+        Vec<Real, 3>(
+            -threshold_distance, -threshold_distance, -threshold_distance),
+        Vec<Real, 3>(
+            threshold_distance, threshold_distance, threshold_distance));
+
+    int oind = 0;
+
+    for (auto i : range(hits.size(0))) {
+      for (auto j : range(i, hits.size(1))) {
+        if (tbox.contains(coords_i[i] - coords_j[j])) {
+          hits[i][j] = oind;
+          oind++;
+        } else {
+          hits[i][j] = -1;
+        }
+      }
+    }
+
+    return oind;
+  }
+
+  template <typename funct_t>
+  void score(funct_t f) {
+    for (auto i : range(hits.size(0))) {
+      for (auto j : range(i, hits.size(1))) {
+        if (hits[i][j] >= 0) {
+          f(hits[i][j], i, j);
+        }
+      }
+    }
+  }
+
+  float threshold_distance;
+  at::Tensor hits_t;
+  TView<int, 2> hits;
+};
+
 }  // namespace common
 }  // namespace score
 }  // namespace tmol

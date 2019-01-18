@@ -1,6 +1,7 @@
 #include <pybind11/eigen.h>
 #include <torch/torch.h>
 
+#include "dispatch.hh"
 #include "lj.hh"
 #include "lk_isotropic.hh"
 
@@ -126,8 +127,60 @@ void bind_potentials(pybind11::module& m) {
       LJGlobalParams_pyargs());
 }
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+template <typename Real, typename Int>
+void bind_dispatch(pybind11::module& m) {
   using namespace pybind11::literals;
+  using tmol::score::common::NaiveDispatch;
 
+  m.def(
+      "lk_isotropic",
+      &lk_isotropic_dispatch<NaiveDispatch, Real, Int>,
+      "coords_i"_a,
+      "atom_type_i"_a,
+      "coords_j"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      LKTypeParams_pyargs(),
+      LJGlobalParams_pyargs());
+
+  m.def(
+      "lk_isotropic_triu",
+      &lk_isotropic_dispatch<NaiveTriuDispatch, Real, Int>,
+      "coords_i"_a,
+      "atom_type_i"_a,
+      "coords_j"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      LKTypeParams_pyargs(),
+      LJGlobalParams_pyargs());
+
+  m.def(
+      "lj",
+      &lj_dispatch<NaiveDispatch, Real, Int>,
+      "coords_i"_a,
+      "atom_type_i"_a,
+      "coords_j"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      LJTypeParams_pyargs(),
+      LJGlobalParams_pyargs());
+
+  m.def(
+      "lj_triu",
+      &lj_dispatch<NaiveTriuDispatch, Real, Int>,
+      "coords_i"_a,
+      "atom_type_i"_a,
+      "coords_j"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      LJTypeParams_pyargs(),
+      LJGlobalParams_pyargs());
+}
+
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   bind_potentials<double>(m);
+  bind_dispatch<float, int32_t>(m);
+  bind_dispatch<float, int64_t>(m);
+  bind_dispatch<double, int32_t>(m);
+  bind_dispatch<double, int64_t>(m);
 }

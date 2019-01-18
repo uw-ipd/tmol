@@ -42,10 +42,10 @@ def test_lj_intra_op(default_database, ubq_system):
     assert v_val.requires_grad
 
     op_dense = sparse.COO(
-        v_inds.numpy().T, v_val.detach().numpy(), shape=(ubq_system.system_size,) * 2
+        v_inds.numpy(), v_val.detach().numpy(), shape=(ubq_system.system_size,) * 2
     ).todense()
 
-    numpy.testing.assert_allclose(op_dense, expected_dense)
+    numpy.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
 
 
 def test_lj_inter_op(default_database, ubq_system):
@@ -78,12 +78,12 @@ def test_lj_inter_op(default_database, ubq_system):
     assert v_val.requires_grad
 
     op_dense = sparse.COO(
-        v_inds.numpy().T,
+        v_inds.numpy(),
         v_val.detach().numpy(),
         shape=(part, ubq_system.system_size - part),
     ).todense()
 
-    numpy.testing.assert_allclose(op_dense, expected_dense)
+    numpy.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
 
 
 def test_lj_inter_op_gradcheck(default_database, ubq_system):
@@ -187,10 +187,10 @@ def test_lk_intra_op(default_database, ubq_system):
     assert v_val.requires_grad
 
     op_dense = sparse.COO(
-        v_inds.numpy().T, v_val.detach().numpy(), shape=(ubq_system.system_size,) * 2
+        v_inds.numpy(), v_val.detach().numpy(), shape=(ubq_system.system_size,) * 2
     ).todense()
 
-    numpy.testing.assert_allclose(op_dense, expected_dense)
+    numpy.testing.assert_allclose(op_dense, expected_dense, atol=1e-8)
 
 
 def test_lk_inter_op(default_database, ubq_system):
@@ -223,12 +223,12 @@ def test_lk_inter_op(default_database, ubq_system):
     assert v_vals.requires_grad
 
     op_dense = sparse.COO(
-        v_inds.numpy().T,
+        v_inds.numpy(),
         v_vals.detach().numpy(),
         shape=(part, ubq_system.system_size - part),
     ).todense()
 
-    numpy.testing.assert_allclose(op_dense, expected_dense)
+    numpy.testing.assert_allclose(op_dense, expected_dense, atol=1e-8)
 
 
 def test_lk_inter_op_gradcheck(default_database, ubq_system):
