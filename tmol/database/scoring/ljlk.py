@@ -15,6 +15,13 @@ class LJLKGlobalParameters:
     lj_hbond_hdis: float
     lj_switch_dis2sigma: float
     lk_min_dis2sigma: float
+    lkb_water_dist: float
+    lkb_water_angle_sp2: float
+    lkb_water_angle_sp3: float
+    lkb_water_angle_ring: float
+    lkb_water_tors_sp2: Tuple[float]
+    lkb_water_tors_sp3: Tuple[float]
+    lkb_water_tors_ring: Tuple[float]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -26,6 +33,7 @@ class LJLKAtomTypeParameters:
     lk_dgfree: float
     lk_lambda: float
     lk_volume: float
+    hybridization: int = 0
     is_acceptor: bool = False
     is_donor: bool = False
     is_hydroxyl: bool = False
