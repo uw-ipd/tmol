@@ -10,9 +10,14 @@ global_parameters:
   lkb_water_angle_sp2 : 134.5
   lkb_water_angle_sp3 : 109.3
   lkb_water_angle_ring : 180.0
-  lkb_water_tors_sp2 : {0.0,180.0}
-  lkb_water_tors_sp3 : {120.0,240.0}
-  lkb_water_tors_ring : {0}
+  lkb_water_tors_sp2 :
+    - 0.0
+    - 180.0
+  lkb_water_tors_sp3 :
+    - 120.0
+    - 240.0
+  lkb_water_tors_ring :
+    - 0.0
 atom_type_parameters:
   - &n name: CNH2
     &e elem: C
