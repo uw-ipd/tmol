@@ -7,20 +7,11 @@ import numba
 from numpy import exp, pi
 
 import tmol.numeric.interpolation.cubic_hermite_polynomial as cubic_hermite_polynomial
+from tmol.database.scoring.ljlk import Hyb
 
 from .common import connectivity_weight, dist, dist_and_d_dist, lj_sigma
 
 from .lk_isotropic import lk_isotropic_pair
-
-from enum import Enum
-
-
-class Hyb(Enum):
-    NONE = 0
-    SP2 = 1
-    SP3 = 2
-    RING = 3
-
 
 jit = toolz.curry(numba.jit)(nopython=True, nogil=True)
 
@@ -105,7 +96,7 @@ def d_don_water_datom(d, h, dist):
 # build acceptor waters off a polar group defined by three atoms:
 #  a: acceptor
 #  b: "base" of a
-# b0: "base" of b = "base of base" of a
+# b0: "base0" of a
 @jit
 def build_acc_waters(a, b, b0, dist, angle, tors):
     M = numpy.empty((3, 3))
@@ -124,7 +115,7 @@ def build_acc_waters(a, b, b0, dist, angle, tors):
             M[:, 2] = cross(M[:, 0], M[:, 1])
         M2norm = numpy.sqrt(numpy.dot(M[:, 2], M[:, 2]))
     M[:, 2] = M[:, 2] / M2norm
-    M[:, 1] = cross(M[:, 0], M[:, 2])
+    M[:, 1] = cross(M[:, 2], M[:, 0])
 
     # build waters
     nwats = len(tors)
@@ -156,63 +147,63 @@ def build_acc_waters(a, b, b0, dist, angle, tors):
 def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
     dWdA = numpy.zeros((3, 3, len(torsions), 3))
     for i, torsion in enumerate(torsions):
-        x101 = -B[0]
-        x102 = A[0] + x101
-        x103 = -B[1]
-        x104 = B0[1] + x103
-        x105 = x102 * x102
-        x106 = A[1] + x103
-        x107 = x106 * x106
-        x108 = -B[2]
-        x109 = A[2] + x108
-        x110 = x109 * x109
-        x111 = x105 + x107 + x110
+        x101 = -B[2]
+        x102 = A[2] + x101
+        x103 = -B[0]
+        x104 = B0[0] + x103
+        x105 = A[0] + x103
+        x106 = x105 * x105
+        x107 = -B[1]
+        x108 = A[1] + x107
+        x109 = x108 * x108
+        x110 = x102 * x102
+        x111 = x106 + x109 + x110
         x112 = 1 / numpy.sqrt(x111)
         x113 = x104 * x112
-        x114 = B0[0] + x101
+        x114 = B0[2] + x101
         x115 = x112 * x114
-        x116 = x102 * x113 - x106 * x115
-        x117 = B0[2] + x108
+        x116 = x102 * x113 - x105 * x115
+        x117 = B0[1] + x107
         x118 = x112 * x117
-        x119 = -x102 * x118 + x109 * x115
-        x120 = x106 * x118 - x109 * x113
+        x119 = x105 * x118 - x108 * x113
+        x120 = -x102 * x118 + x108 * x115
         x121 = x116 * x116 + x119 * x119 + x120 * x120
         x122 = 1 / numpy.sqrt(x121)
         x123 = x111 ** (-1.5)
         x124 = x123 * (-A[0] + B[0])
         x125 = x122 * x124
-        x126 = x106 * x125
-        x127 = x109 * x125
-        x128 = x106 * x112
-        x129 = x102 * x124
-        x130 = x104 * x129
-        x131 = x114 * x124
-        x132 = x106 * x131
-        x133 = x122 * (x113 + x130 - x132)
-        x134 = -x118
-        x135 = x109 * x131
-        x136 = x117 * x129
+        x126 = x102 * x125
+        x127 = x108 * x125
+        x128 = x108 * x112
+        x129 = x105 * x124
+        x130 = x117 * x129
+        x131 = x104 * x124
+        x132 = x108 * x131
+        x133 = x122 * (x118 + x130 - x132)
+        x134 = -x115
+        x135 = x102 * x131
+        x136 = x114 * x129
         x137 = x134 + x135 - x136
-        x138 = x109 * x112
+        x138 = x102 * x112
         x139 = x122 * x138
-        x140 = x116 * x128
+        x140 = x116 * x138
         x141 = x121 ** (-1.5)
-        x142 = x106 * x117
+        x142 = x108 * x114
         x143 = x124 * x142
-        x144 = x104 * x109
+        x144 = x102 * x117
         x145 = x124 * x144
         x146 = x120 / 2
-        x147 = 2 * x113
-        x148 = x116 / 2
-        x149 = 2 * x118
+        x147 = 2 * x118
+        x148 = x119 / 2
+        x149 = 2 * x115
         x150 = -x149
-        x151 = x119 / 2
+        x151 = x116 / 2
         x152 = x141 * (
             -x146 * (2 * x143 - 2 * x145)
             - x148 * (2 * x130 - 2 * x132 + x147)
             - x151 * (2 * x135 - 2 * x136 + x150)
         )
-        x153 = x119 * x138
+        x153 = x119 * x128
         x154 = numpy.pi * torsion / 180
         x155 = numpy.pi * (-angle / 180 + 1.0)
         x156 = dist * numpy.sin(x155)
@@ -226,56 +217,56 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
         x164 = x163 + 1
         x165 = x124 * x158
         x166 = x112 * x122
-        x167 = x116 * x166
-        x168 = -x167
-        x169 = x122 * x129
-        x170 = x102 * x112
+        x167 = x119 * x166
+        x168 = x122 * x129
+        x169 = x105 * x112
+        x170 = x119 * x169
         x171 = x120 * x138
-        x172 = x116 * x170
-        x173 = x119 * x166
+        x172 = x116 * x166
+        x173 = -x172
         x174 = x122 * x128
-        x175 = x122 * x170
-        x176 = x119 * x170
-        x177 = x120 * x128
+        x175 = x122 * x169
+        x176 = x120 * x128
+        x177 = x116 * x169
         x178 = x123 * (-A[1] + B[1])
-        x179 = x102 * x178
+        x179 = x105 * x178
         x180 = x142 * x178
         x181 = x144 * x178
-        x182 = x118 + x180 - x181
-        x183 = x117 * x179
-        x184 = x114 * x178
-        x185 = x109 * x184
-        x186 = 2 * x115
+        x182 = x115 + x180 - x181
+        x183 = x114 * x179
+        x184 = x104 * x178
+        x185 = x102 * x184
+        x186 = 2 * x113
         x187 = -x186
-        x188 = x104 * x179
-        x189 = x106 * x184
+        x188 = x117 * x179
+        x189 = x108 * x184
         x190 = x141 * (
             -x146 * (x149 + 2 * x180 - 2 * x181)
             - x148 * (x187 + 2 * x188 - 2 * x189)
             - x151 * (-2 * x183 + 2 * x185)
         )
         x191 = x160 * x190
-        x192 = x122 * x178
-        x193 = x106 * x192
-        x194 = x109 * x192
-        x195 = -x183 + x185
-        x196 = -x115
-        x197 = x188 - x189 + x196
-        x198 = x122 * x179
-        x199 = x158 * x178
-        x200 = x120 * x166
-        x201 = -x200
+        x192 = -x167
+        x193 = x122 * x178
+        x194 = x102 * x193
+        x195 = x108 * x193
+        x196 = -x183 + x185
+        x197 = -x113
+        x198 = x188 - x189 + x197
+        x199 = x122 * x179
+        x200 = x158 * x178
+        x201 = x120 * x166
         x202 = x123 * (-A[2] + B[2])
-        x203 = x102 * x202
-        x204 = -x113
+        x203 = x105 * x202
+        x204 = -x118
         x205 = x142 * x202
         x206 = x144 * x202
         x207 = x204 + x205 - x206
-        x208 = x104 * x203
-        x209 = x114 * x202
-        x210 = x106 * x209
-        x211 = x117 * x203
-        x212 = x109 * x209
+        x208 = x117 * x203
+        x209 = x104 * x202
+        x210 = x108 * x209
+        x211 = x114 * x203
+        x212 = x102 * x209
         x213 = -x147
         x214 = x141 * (
             -x146 * (2 * x205 - 2 * x206 + x213)
@@ -283,57 +274,57 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
             - x151 * (x186 - 2 * x211 + 2 * x212)
         )
         x215 = x160 * x214
-        x216 = -x173
-        x217 = x122 * x202
-        x218 = x106 * x217
-        x219 = x109 * x217
-        x220 = x208 - x210
-        x221 = x115 - x211 + x212
-        x222 = x158 * x202
+        x216 = x122 * x202
+        x217 = x102 * x216
+        x218 = x108 * x216
+        x219 = x208 - x210
+        x220 = x113 - x211 + x212
+        x221 = x158 * x202
+        x222 = -x201
         x223 = x122 * x203
         x224 = -x163
-        x225 = x105 * x123
-        x226 = x102 * x123
+        x225 = x106 * x123
+        x226 = x105 * x123
         x227 = x142 * x226
         x228 = x144 * x226
         x229 = x227 - x228
         x230 = 2 * x227
         x231 = 2 * x228
         x232 = 2 * x128
-        x233 = x104 * x225
-        x234 = x114 * x226
-        x235 = x106 * x234
+        x233 = x117 * x225
+        x234 = x104 * x226
+        x235 = x108 * x234
         x236 = 2 * x138
-        x237 = x117 * x225
-        x238 = x109 * x234
+        x237 = x114 * x225
+        x238 = x102 * x234
         x239 = x141 * (
             -x146 * (x230 - x231)
             - x148 * (x213 + x232 + 2 * x233 - 2 * x235)
             - x151 * (x149 - x236 - 2 * x237 + 2 * x238)
         )
         x240 = x160 * x239
-        x241 = x106 * x226
+        x241 = x102 * x226
         x242 = x122 * x241
         x243 = x116 * x242
-        x244 = x109 * x226
+        x244 = x108 * x226
         x245 = x122 * x244
         x246 = x119 * x245
-        x247 = x128 + x204 + x233 - x235
-        x248 = x118 - x138 - x237 + x238
-        x249 = x158 * x241
+        x247 = x115 - x138 - x237 + x238
+        x248 = x128 + x204 + x233 - x235
+        x249 = x158 * x244
         x250 = x122 * x225
-        x251 = x158 * x244
-        x252 = x107 * x123
-        x253 = x117 * x252
-        x254 = x106 * x123
+        x251 = x158 * x241
+        x252 = x109 * x123
+        x253 = x114 * x252
+        x254 = x108 * x123
         x255 = x144 * x254
         x256 = x134 + x138 + x253 - x255
-        x257 = x109 * x254
-        x258 = x114 * x257
+        x257 = x102 * x254
+        x258 = x104 * x257
         x259 = 2 * x258
-        x260 = 2 * x170
-        x261 = x114 * x252
-        x262 = x104 * x241
+        x260 = 2 * x169
+        x261 = x104 * x252
+        x262 = x117 * x244
         x263 = x141 * (
             -x146 * (x150 + x236 + 2 * x253 - 2 * x255)
             - x148 * (x186 - x260 - 2 * x261 + 2 * x262)
@@ -343,15 +334,15 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
         x265 = x122 * x252
         x266 = x122 * x257
         x267 = -x227 + x258
-        x268 = x115 - x170 - x261 + x262
+        x268 = x113 - x169 - x261 + x262
         x269 = x120 * x266
         x270 = x158 * x257
         x271 = x110 * x123
-        x272 = x104 * x271
-        x273 = x109 * x123 * x142
-        x274 = x113 - x128 - x272 + x273
-        x275 = x114 * x271
-        x276 = x117 * x244
+        x272 = x117 * x271
+        x273 = x102 * x123 * x142
+        x274 = x118 - x128 - x272 + x273
+        x275 = x104 * x271
+        x276 = x114 * x241
         x277 = x141 * (
             -x146 * (x147 - x232 - 2 * x272 + 2 * x273)
             - x148 * (x231 - x259)
@@ -360,23 +351,23 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
         x278 = x160 * x277
         x279 = x122 * x271
         x280 = x228 - x258
-        x281 = x170 + x196 + x275 - x276
-        x282 = x141 * (x140 - x153)
+        x281 = x169 + x197 + x275 - x276
+        x282 = x141 * (-x140 + x153)
         x283 = x160 * x282
         x284 = x122 / x111
-        x285 = -x107 * x284
-        x286 = -x110 * x284
+        x285 = x109 * x284
+        x286 = x110 * x284
         x287 = x139 * x160
-        x288 = x102 * x284
-        x289 = x106 * x288
+        x288 = x105 * x284
+        x289 = -x108 * x288
         x290 = x160 * x174
-        x291 = x109 * x288
-        x292 = x141 * (x171 - x172)
+        x291 = -x102 * x288
+        x292 = x141 * (-x170 + x171)
         x293 = x160 * x292
-        x294 = -x105 * x284
+        x294 = x106 * x284
         x295 = x160 * x175
-        x296 = x106 * x109 * x284
-        x297 = x141 * (x176 - x177)
+        x296 = -x102 * x108 * x284
+        x297 = x141 * (-x176 + x177)
         x298 = x160 * x297
         dWdA[0, 0, i, 0] = (
             x120 * x162
@@ -385,8 +376,8 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
             * (
                 x116 * x126
                 - x119 * x127
-                + x128 * x133
-                - x137 * x139
+                - x128 * x133
+                + x137 * x139
                 + x140 * x152
                 - x152 * x153
             )
@@ -394,32 +385,32 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
             + x164
         )
         dWdA[0, 0, i, 1] = (
-            x106 * x165
-            + x119 * x162
+            x108 * x165
+            + x116 * x162
             + x137 * x161
             + x157
             * (
-                -x116 * x169
-                + x120 * x127
-                - x133 * x170
-                + x139 * x159
-                + x152 * x171
-                - x152 * x172
-                + x168
+                x119 * x168
+                - x120 * x126
+                + x133 * x169
+                - x139 * x159
+                + x152 * x170
+                - x152 * x171
+                + x167
             )
         )
         dWdA[0, 0, i, 2] = (
-            x109 * x165
-            + x116 * x162
+            x102 * x165
+            + x119 * x162
             + x133 * x160
             + x157
             * (
-                x119 * x169
-                - x120 * x126
-                + x137 * x175
+                -x116 * x168
+                + x120 * x127
+                - x137 * x175
                 + x152 * x176
                 - x152 * x177
-                - x159 * x174
+                + x159 * x174
                 + x173
             )
         )
@@ -427,164 +418,164 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
             x120 * x191
             + x157
             * (
-                x116 * x193
-                - x119 * x194
-                - x139 * x195
+                x116 * x194
+                - x119 * x195
+                + x139 * x196
                 + x140 * x190
                 - x153 * x190
-                + x167
-                + x174 * x197
+                - x174 * x198
+                + x192
             )
             + x158 * x179
             + x161 * x182
         )
         dWdA[0, 1, i, 1] = (
-            x106 * x199
-            + x119 * x191
-            + x157
-            * (
-                -x116 * x198
-                + x120 * x194
-                + x139 * x182
-                + x171 * x190
-                - x172 * x190
-                - x175 * x197
-            )
-            + x161 * x195
-            + x164
-        )
-        dWdA[0, 1, i, 2] = (
-            x109 * x199
+            x108 * x200
             + x116 * x191
             + x157
             * (
-                x119 * x198
-                - x120 * x193
-                - x174 * x182
-                + x175 * x195
+                x119 * x199
+                - x120 * x194
+                - x139 * x182
+                + x170 * x190
+                - x171 * x190
+                + x175 * x198
+            )
+            + x161 * x196
+            + x164
+        )
+        dWdA[0, 1, i, 2] = (
+            x102 * x200
+            + x119 * x191
+            + x157
+            * (
+                -x116 * x199
+                + x120 * x195
+                + x174 * x182
+                - x175 * x196
                 + x176 * x190
                 - x177 * x190
                 + x201
             )
-            + x161 * x197
+            + x161 * x198
         )
         dWdA[0, 2, i, 0] = (
             x120 * x215
             + x157
             * (
-                x116 * x218
-                - x119 * x219
-                - x139 * x221
+                x116 * x217
+                - x119 * x218
+                + x139 * x220
                 + x140 * x214
                 - x153 * x214
-                + x174 * x220
-                + x216
+                + x172
+                - x174 * x219
             )
             + x158 * x203
             + x161 * x207
         )
         dWdA[0, 2, i, 1] = (
-            x106 * x222
-            + x119 * x215
-            + x157
-            * (
-                -x116 * x223
-                + x120 * x219
-                + x139 * x207
-                + x171 * x214
-                - x172 * x214
-                - x175 * x220
-                + x200
-            )
-            + x161 * x221
-        )
-        dWdA[0, 2, i, 2] = (
-            x109 * x222
+            x108 * x221
             + x116 * x215
             + x157
             * (
                 x119 * x223
-                - x120 * x218
-                - x174 * x207
-                + x175 * x221
+                - x120 * x217
+                - x139 * x207
+                + x170 * x214
+                - x171 * x214
+                + x175 * x219
+                + x222
+            )
+            + x161 * x220
+        )
+        dWdA[0, 2, i, 2] = (
+            x102 * x221
+            + x119 * x215
+            + x157
+            * (
+                -x116 * x223
+                + x120 * x218
+                + x174 * x207
+                - x175 * x220
                 + x176 * x214
                 - x177 * x214
             )
-            + x161 * x220
+            + x161 * x219
             + x164
         )
         dWdA[1, 0, i, 0] = (
             x120 * x240
             + x157
-            * (-x139 * x248 + x140 * x239 - x153 * x239 + x174 * x247 + x243 - x246)
+            * (x139 * x247 + x140 * x239 - x153 * x239 - x174 * x248 + x243 - x246)
             + x158 * x225
             + x161 * x229
             + x224
         )
         dWdA[1, 0, i, 1] = (
-            x119 * x240
-            + x157
-            * (
-                -x116 * x250
-                + x120 * x245
-                + x139 * x229
-                + x167
-                + x171 * x239
-                - x172 * x239
-                - x175 * x247
-            )
-            + x161 * x248
-            + x249
-        )
-        dWdA[1, 0, i, 2] = (
             x116 * x240
             + x157
             * (
                 x119 * x250
                 - x120 * x242
-                - x174 * x229
+                - x139 * x229
+                + x170 * x239
+                - x171 * x239
                 + x175 * x248
-                + x176 * x239
-                - x177 * x239
-                + x216
+                + x192
             )
             + x161 * x247
+            + x249
+        )
+        dWdA[1, 0, i, 2] = (
+            x119 * x240
+            + x157
+            * (
+                -x116 * x250
+                + x120 * x245
+                + x172
+                + x174 * x229
+                - x175 * x247
+                + x176 * x239
+                - x177 * x239
+            )
+            + x161 * x248
             + x251
         )
         dWdA[1, 1, i, 0] = (
             x120 * x264
             + x157
             * (
-                x116 * x265
-                - x119 * x266
-                - x139 * x267
+                x116 * x266
+                - x119 * x265
+                + x139 * x267
                 + x140 * x263
                 - x153 * x263
-                + x168
-                + x174 * x268
+                + x167
+                - x174 * x268
             )
             + x161 * x256
             + x249
         )
         dWdA[1, 1, i, 1] = (
-            x119 * x264
+            x116 * x264
             + x157
-            * (x139 * x256 + x171 * x263 - x172 * x263 - x175 * x268 - x243 + x269)
+            * (-x139 * x256 + x170 * x263 - x171 * x263 + x175 * x268 + x246 - x269)
             + x158 * x252
             + x161 * x267
             + x224
         )
         dWdA[1, 1, i, 2] = (
-            x116 * x264
+            x119 * x264
             + x157
             * (
-                x119 * x242
-                - x120 * x265
-                - x174 * x256
-                + x175 * x267
+                -x116 * x245
+                + x120 * x265
+                + x174 * x256
+                - x175 * x267
                 + x176 * x263
                 - x177 * x263
-                + x200
+                + x222
             )
             + x161 * x268
             + x270
@@ -593,36 +584,36 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
             x120 * x278
             + x157
             * (
-                x116 * x266
-                - x119 * x279
-                - x139 * x281
+                x116 * x279
+                - x119 * x266
+                + x139 * x281
                 + x140 * x277
                 - x153 * x277
                 + x173
-                + x174 * x280
+                - x174 * x280
             )
             + x161 * x274
             + x251
         )
         dWdA[1, 2, i, 1] = (
-            x119 * x278
+            x116 * x278
             + x157
             * (
-                -x116 * x245
-                + x120 * x279
-                + x139 * x274
-                + x171 * x277
-                - x172 * x277
-                - x175 * x280
+                x119 * x242
+                - x120 * x279
+                - x139 * x274
+                + x170 * x277
+                - x171 * x277
+                + x175 * x280
                 + x201
             )
             + x161 * x281
             + x270
         )
         dWdA[1, 2, i, 2] = (
-            x116 * x278
+            x119 * x278
             + x157
-            * (-x174 * x274 + x175 * x281 + x176 * x277 - x177 * x277 + x246 - x269)
+            * (x174 * x274 - x175 * x281 + x176 * x277 - x177 * x277 - x243 + x269)
             + x158 * x271
             + x161 * x280
             + x224
@@ -631,27 +622,27 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
             x140 * x282 - x153 * x282 + x285 + x286
         )
         dWdA[2, 0, i, 1] = (
-            x119 * x283 + x157 * (x171 * x282 - x172 * x282 + x289) + x287
+            x116 * x283 + x157 * (x170 * x282 - x171 * x282 + x289) + x287
         )
         dWdA[2, 0, i, 2] = (
-            x116 * x283 + x157 * (x176 * x282 - x177 * x282 + x291) - x290
+            x119 * x283 + x157 * (x176 * x282 - x177 * x282 + x291) - x290
         )
         dWdA[2, 1, i, 0] = (
             x120 * x293 + x157 * (x140 * x292 - x153 * x292 + x289) - x287
         )
-        dWdA[2, 1, i, 1] = x119 * x293 + x157 * (
-            x171 * x292 - x172 * x292 + x286 + x294
+        dWdA[2, 1, i, 1] = x116 * x293 + x157 * (
+            x170 * x292 - x171 * x292 + x286 + x294
         )
         dWdA[2, 1, i, 2] = (
-            x116 * x293 + x157 * (x176 * x292 - x177 * x292 + x296) + x295
+            x119 * x293 + x157 * (x176 * x292 - x177 * x292 + x296) + x295
         )
         dWdA[2, 2, i, 0] = (
             x120 * x298 + x157 * (x140 * x297 - x153 * x297 + x291) + x290
         )
         dWdA[2, 2, i, 1] = (
-            x119 * x298 + x157 * (x171 * x297 - x172 * x297 + x296) - x295
+            x116 * x298 + x157 * (x170 * x297 - x171 * x297 + x296) - x295
         )
-        dWdA[2, 2, i, 2] = x116 * x298 + x157 * (
+        dWdA[2, 2, i, 2] = x119 * x298 + x157 * (
             x176 * x297 - x177 * x297 + x285 + x294
         )
     return dWdA
@@ -709,6 +700,7 @@ def get_lkbr_fraction(
         frac = 1
     elif wted_d2_delta < overlap_width_A2:
         frac = numpy.square(1 - numpy.square(wted_d2_delta / overlap_width_A2))
+    print(wted_d2_delta, frac)
 
     # base angle
     overlap_target_len2 = 8.0 / 3.0 * numpy.square(heavyatom_water_len)
@@ -762,38 +754,35 @@ def lkball_pair(
     if dist > max_lkb_dist:
         return (0, 0, 0, 0)
 
-    # get lk energies (atom-atom)
-    lk_i_desolv_j = lk_isotropic_pair(
-        dist,
-        bonded_path_length,
-        lj_sigma_ij,
-        lj_radius_i,
-        lk_dgfree_i,
-        lk_lambda_i,
-        lj_radius_j,
-        lk_volume_j,
-    )
-
-    lk_j_desolv_i = lk_isotropic_pair(
-        dist,
-        bonded_path_length,
-        lj_sigma_ij,
-        lj_radius_j,
-        lk_dgfree_j,
-        lk_lambda_j,
-        lj_radius_i,
-        lk_volume_i,
-    )
-
-    # lkball fraction (zero if no waters)
-    frac_j_desolv_i = 0
+    # get lk energies and lkball fraction
+    lk_j_desolv_i, frac_j_desolv_i = 0, 0
     if len(lkb_waters_j) > 0:
+        lk_j_desolv_i = lk_isotropic_pair(
+            dist,
+            bonded_path_length,
+            lj_sigma_ij,
+            lj_radius_j,
+            lk_dgfree_j,
+            lk_lambda_j,
+            lj_radius_i,
+            lk_volume_i,
+        )
         frac_j_desolv_i = get_lk_fraction(
             atom_i, ramp_width_A2, lj_radius_i, lkb_waters_j
         )
 
-    frac_i_desolv_j = 0
+    lk_i_desolv_j, frac_i_desolv_j = 0, 0
     if len(lkb_waters_i) > 0:
+        lk_i_desolv_j = lk_isotropic_pair(
+            dist,
+            bonded_path_length,
+            lj_sigma_ij,
+            lj_radius_i,
+            lk_dgfree_i,
+            lk_lambda_i,
+            lj_radius_j,
+            lk_volume_j,
+        )
         frac_i_desolv_j = get_lk_fraction(
             atom_j, ramp_width_A2, lj_radius_j, lkb_waters_i
         )
@@ -813,8 +802,8 @@ def lkball_pair(
         )
 
     e_lk_ball_iso = lk_i_desolv_j + lk_j_desolv_i
-    e_lk_ball = lk_i_desolv_j * frac_i_desolv_j + lk_i_desolv_j * frac_j_desolv_i
-    e_lk_bridge = lk_i_desolv_j * lk_i_desolv_j * frac_i_j_water_overlap
+    e_lk_ball = lk_i_desolv_j * frac_i_desolv_j + lk_j_desolv_i * frac_j_desolv_i
+    e_lk_bridge = (lk_i_desolv_j + lk_i_desolv_j) * frac_i_j_water_overlap
     e_lk_bridge_uncpl = frac_i_j_water_overlap
 
     return (e_lk_ball_iso, e_lk_ball, e_lk_bridge, e_lk_bridge_uncpl)
@@ -917,27 +906,33 @@ def lkball_intra(
     oinds = numpy.empty((nout, 2), dtype=numpy.int64)
     oval = numpy.empty((nout, 4), dtype=coords.dtype)  # 4 subterms
 
-    # build waters
+    # PASS 1: build waters
     waters = numpy.full((coords.shape[0], 4, 3), numpy.nan)
     nwaters = numpy.zeros(coords.shape[0], dtype=numpy.int)
     for i in range(nc):
         ti = atom_types[i]
         if is_acceptor[ti]:
-            if hybridization[i] == Hyb.SP2:
+            # FD this block should instead query a list of bonds
+            b, b0 = base_atoms[i, :]
+            if hybridization[ti] == Hyb.SP2:
                 wat_ang = water_angle_sp2
                 wat_tors = water_tors_sp2
-            elif hybridization[i] == Hyb.SP3:
+                Xb, Xb0 = coords[b], coords[b0]
+            elif hybridization[ti] == Hyb.SP3:
                 wat_ang = water_angle_sp3
                 wat_tors = water_tors_sp3
-            elif hybridization[i] == Hyb.RING:
+                Xb, Xb0 = coords[b], coords[b0]
+            elif hybridization[ti] == Hyb.RING:
                 wat_ang = water_angle_ring
                 wat_tors = water_tors_ring
+                Xb = 0.5 * (coords[b] + coords[b0])
+                Xb0 = Xb
+            else:
+                assert False, "Unknown acceptor hybridization!"
 
-            b = base_atoms[i]
-            b0 = base_atoms[b]
             n_to_build = len(wat_tors)
             waters[i, nwaters[i] : nwaters[i] + n_to_build, :] = build_acc_waters(
-                coords[i], coords[b], coords[b0], water_dist, wat_ang, wat_tors
+                coords[i], Xb, Xb0, water_dist, wat_ang, wat_tors
             )
             nwaters[i] += n_to_build
 
@@ -947,7 +942,8 @@ def lkball_intra(
                     coords[i], coords[h], water_dist
                 )
                 nwaters[i] += 1
-    # calc energies
+
+    # PASS 2: calc energies
     v = 0
     for i in range(nc):
         for j in range(i + 1, nc):
