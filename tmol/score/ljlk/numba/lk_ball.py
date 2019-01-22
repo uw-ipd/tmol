@@ -11,7 +11,7 @@ from tmol.database.scoring.ljlk import Hyb
 
 from .common import connectivity_weight, dist, dist_and_d_dist, lj_sigma
 
-from .lk_isotropic import lk_isotropic_pair
+from .lk_isotropic import lk_isotropic_pair, d_lk_isotropic_pair_d_dist
 
 jit = toolz.curry(numba.jit)(nopython=True, nogil=True)
 
@@ -648,6 +648,62 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
     return dWdA
 
 
+# build all waters for a given conformation
+# fd: we could probably be more clever with returned data structure,
+#     it is currently inefficient
+@jit
+def build_all_waters(
+    coords,
+    atom_types,
+    is_acceptor,
+    is_donor,
+    hybridization,
+    attached_h,
+    base_atoms,
+    water_dist,
+    water_angle_sp2,
+    water_angle_sp3,
+    water_angle_ring,
+    water_tors_sp2,
+    water_tors_sp3,
+    water_tors_ring,
+    waters,
+    nwaters,
+):
+    for i in range(coords.shape[0]):
+        ti = atom_types[i]
+        if is_acceptor[ti]:
+            # FD this block should instead query a list of bonds
+            b, b0 = base_atoms[i, :]
+            if hybridization[ti] == Hyb.SP2:
+                wat_ang = water_angle_sp2
+                wat_tors = water_tors_sp2
+                Xb, Xb0 = coords[b], coords[b0]
+            elif hybridization[ti] == Hyb.SP3:
+                wat_ang = water_angle_sp3
+                wat_tors = water_tors_sp3
+                Xb, Xb0 = coords[b], coords[b0]
+            else:  # hybridization[ti] == Hyb.RING
+                wat_ang = water_angle_ring
+                wat_tors = water_tors_ring
+                Xb = 0.5 * (coords[b] + coords[b0])
+                Xb0 = Xb
+
+            n_to_build = len(wat_tors)
+            waters[i, nwaters[i] : nwaters[i] + n_to_build, :] = build_acc_waters(
+                coords[i], Xb, Xb0, water_dist, wat_ang, wat_tors
+            )
+            nwaters[i] += n_to_build
+
+        if is_donor[ti]:
+            for h in attached_h[i, :]:
+                if h > -1:
+                    waters[i, nwaters[i], :] = build_don_water(
+                        coords[i], coords[h], water_dist
+                    )
+                    nwaters[i] += 1
+
+
 # get the fraction of occlusion assigned to waters
 #   1 if perfect overlap
 #   0 if far from the water
@@ -921,10 +977,196 @@ def lkball_pair(
 
     e_lk_ball_iso = lk_i_desolv_j + lk_j_desolv_i
     e_lk_ball = lk_i_desolv_j * frac_i_desolv_j + lk_j_desolv_i * frac_j_desolv_i
-    e_lk_bridge = (lk_i_desolv_j + lk_i_desolv_j) * frac_i_j_water_overlap
+    e_lk_bridge = (lk_i_desolv_j + lk_j_desolv_i) * frac_i_j_water_overlap
     e_lk_bridge_uncpl = frac_i_j_water_overlap
 
     return (e_lk_ball_iso, e_lk_ball, e_lk_bridge, e_lk_bridge_uncpl)
+
+
+# return the derivatives of the lk energy terms w.r.t. atom and water positions
+# returns tuples:
+#    dlk/dai, dlk/daj, dlk/dwatersi, dlk/dwatersj
+# last index of each corresponds to the four subterms
+# @jit
+def dlkball_pair_dij(
+    dist,
+    bonded_path_length,
+    lj_sigma_ij,
+    atom_i,
+    lkb_waters_i,
+    lj_radius_i,
+    lk_dgfree_i,
+    lk_lambda_i,
+    lk_volume_i,
+    atom_j,
+    lkb_waters_j,
+    lj_radius_j,
+    lk_dgfree_j,
+    lk_lambda_j,
+    lk_volume_j,
+    heavyatom_water_len,
+):
+    # parameters
+    overlap_gap_A2 = 0.5
+    overlap_width_A2 = 2.6
+    ramp_width_A2 = 3.709
+
+    # return types
+    nwat_i = lkb_waters_i.shape[0]
+    nwat_j = lkb_waters_j.shape[0]
+    dlk_dai = numpy.zeros((3, 4))
+    dlk_daj = numpy.zeros((3, 4))
+    dlk_dwi = numpy.zeros((nwat_i, 3, 4))
+    dlk_dwj = numpy.zeros((nwat_j, 3, 4))
+
+    # early exit if too far apart
+    max_lkb_dist = (
+        6.0
+        + 2 * heavyatom_water_len
+        + numpy.sqrt(overlap_gap_A2 + overlap_width_A2)
+        + 0.1
+    )
+    if dist > max_lkb_dist:
+        return (dlk_dai, dlk_daj, dlk_dwi, dlk_dwj)
+
+        d_dist_d_xy = (
+            (delt0 / d, delt1 / d, delt2 / d),
+            (-delt0 / d, -delt1 / d, -delt2 / d),
+        )
+    vec_ij = atom_i - atom_j
+    d_d_d_i = vec_ij / dist
+    d_d_d_j = -vec_ij / dist
+
+    # get lk energies and lkball fraction
+    #   and derivatives of both
+    lk_j_desolv_i, frac_j_desolv_i = 0, 0
+    if len(lkb_waters_j) > 0:
+        lk_j_desolv_i = lk_isotropic_pair(
+            dist,
+            bonded_path_length,
+            lj_sigma_ij,
+            lj_radius_j,
+            lk_dgfree_j,
+            lk_lambda_j,
+            lj_radius_i,
+            lk_volume_i,
+        )
+        dlk_j_desolv_i_ddist = d_lk_isotropic_pair_d_dist(
+            dist,
+            bonded_path_length,
+            lj_sigma_ij,
+            lj_radius_j,
+            lk_dgfree_j,
+            lk_lambda_j,
+            lj_radius_i,
+            lk_volume_i,
+        )
+
+        frac_j_desolv_i = get_lk_fraction(
+            atom_i, ramp_width_A2, lj_radius_i, lkb_waters_j
+        )
+        dfrac_j_desolv_i_dai, dfrac_j_desolv_i_dwj = get_dlk_fraction_dij(
+            atom_i, ramp_width_A2, lj_radius_i, lkb_waters_j
+        )
+
+    lk_i_desolv_j, frac_i_desolv_j = 0, 0
+    if len(lkb_waters_i) > 0:
+        lk_i_desolv_j = lk_isotropic_pair(
+            dist,
+            bonded_path_length,
+            lj_sigma_ij,
+            lj_radius_i,
+            lk_dgfree_i,
+            lk_lambda_i,
+            lj_radius_j,
+            lk_volume_j,
+        )
+        dlk_i_desolv_j_ddist = d_lk_isotropic_pair_d_dist(
+            dist,
+            bonded_path_length,
+            lj_sigma_ij,
+            lj_radius_i,
+            lk_dgfree_i,
+            lk_lambda_i,
+            lj_radius_j,
+            lk_volume_j,
+        )
+
+        frac_i_desolv_j = get_lk_fraction(
+            atom_j, ramp_width_A2, lj_radius_j, lkb_waters_i
+        )
+        dfrac_i_desolv_j_daj, dfrac_i_desolv_j_dwi = get_dlk_fraction_dij(
+            atom_j, ramp_width_A2, lj_radius_j, lkb_waters_i
+        )
+
+    # lkbridge (water/water interactions)
+    frac_i_j_water_overlap = 0
+    if len(lkb_waters_i) > 0 and len(lkb_waters_j) > 0:
+        frac_i_j_water_overlap = get_lkbr_fraction(
+            atom_i,
+            atom_j,
+            overlap_gap_A2,
+            overlap_width_A2,
+            lkb_waters_i,
+            lkb_waters_j,
+            heavyatom_water_len,
+        )
+
+        (
+            dfrac_i_j_water_overlap_dai,
+            dfrac_i_j_water_overlap_daj,
+            dfrac_i_j_water_overlap_dwi,
+            dfrac_i_j_water_overlap_dwj,
+        ) = get_dlkbr_fraction_dij(
+            atom_i,
+            atom_j,
+            overlap_gap_A2,
+            overlap_width_A2,
+            lkb_waters_i,
+            lkb_waters_j,
+            heavyatom_water_len,
+        )
+
+    dlk_i_desolv_j_dai = dlk_i_desolv_j_ddist * numpy.array(d_d_d_i)
+    dlk_i_desolv_j_daj = dlk_i_desolv_j_ddist * numpy.array(d_d_d_j)
+    dlk_j_desolv_i_dai = dlk_j_desolv_i_ddist * numpy.array(d_d_d_i)
+    dlk_j_desolv_i_daj = dlk_j_desolv_i_ddist * numpy.array(d_d_d_j)
+
+    # e_lk_ball_iso = lk_i_desolv_j + lk_j_desolv_i
+    dlk_dai[:, 0] = dlk_i_desolv_j_dai + dlk_j_desolv_i_dai
+    dlk_daj[:, 0] = dlk_i_desolv_j_daj + dlk_j_desolv_i_daj
+
+    # e_lk_ball = lk_i_desolv_j * frac_i_desolv_j + lk_j_desolv_i * frac_j_desolv_i
+    dlk_dai[:, 1] = (
+        dlk_i_desolv_j_dai * frac_i_desolv_j
+        + dlk_j_desolv_i_dai * frac_j_desolv_i
+        + lk_j_desolv_i * dfrac_j_desolv_i_dai
+    )
+    dlk_daj[:, 1] = (
+        dlk_i_desolv_j_daj * frac_i_desolv_j
+        + lk_i_desolv_j * dfrac_i_desolv_j_daj
+        + dlk_j_desolv_i_daj * frac_j_desolv_i
+    )
+    dlk_dwi[:, :, 1] = lk_i_desolv_j * dfrac_i_desolv_j_dwi
+    dlk_dwj[:, :, 1] = lk_j_desolv_i * dfrac_j_desolv_i_dwj
+
+    # e_lk_bridge = (lk_i_desolv_j + lk_j_desolv_i) * frac_i_j_water_overlap
+    dlk_dai[:, 2] = (lk_i_desolv_j + lk_j_desolv_i) * dfrac_i_j_water_overlap_dai + (
+        dlk_i_desolv_j_dai + dlk_j_desolv_i_dai
+    ) * frac_i_j_water_overlap
+    dlk_daj[:, 2] = (lk_i_desolv_j + lk_j_desolv_i) * dfrac_i_j_water_overlap_daj + (
+        dlk_i_desolv_j_daj + dlk_j_desolv_i_daj
+    ) * frac_i_j_water_overlap
+    dlk_dwi[:, :, 2] = (lk_i_desolv_j + lk_j_desolv_i) * dfrac_i_j_water_overlap_dwi
+    dlk_dwj[:, :, 2] = (lk_i_desolv_j + lk_j_desolv_i) * dfrac_i_j_water_overlap_dwj
+
+    # e_lk_bridge_uncpl = frac_i_j_water_overlap
+    dlk_dai[:, 3] = dfrac_i_j_water_overlap_dai
+    dlk_daj[:, 3] = dfrac_i_j_water_overlap_daj
+    dlk_dwi[:, :, 3] = dfrac_i_j_water_overlap_dwi
+    dlk_dwj[:, :, 3] = dfrac_i_j_water_overlap_dwj
+
+    return (dlk_dai, dlk_daj, dlk_dwi, dlk_dwj)
 
 
 # @jit
@@ -992,6 +1234,71 @@ def lkball(
     )
 
 
+# @jit
+def dlkball_dij(
+    dist,
+    atom_i,
+    atom_j,
+    bonded_path_length,
+    lkb_waters_i,
+    lj_radius_i,
+    lk_dgfree_i,
+    lk_lambda_i,
+    lk_volume_i,
+    is_donor_i,
+    is_hydroxyl_i,
+    is_polarh_i,
+    is_acceptor_i,
+    lkb_waters_j,
+    lj_radius_j,
+    lk_dgfree_j,
+    lk_lambda_j,
+    lk_volume_j,
+    is_donor_j,
+    is_hydroxyl_j,
+    is_polarh_j,
+    is_acceptor_j,
+    lj_hbond_dis,
+    lj_hbond_OH_donor_dis,
+    lj_hbond_hdis,
+    heavyatom_water_len,
+):
+    lj_sigma_ij = lj_sigma(
+        lj_radius_i,
+        is_donor_i,
+        is_hydroxyl_i,
+        is_polarh_i,
+        is_acceptor_i,
+        lj_radius_j,
+        is_donor_j,
+        is_hydroxyl_j,
+        is_polarh_j,
+        is_acceptor_j,
+        lj_hbond_dis,
+        lj_hbond_OH_donor_dis,
+        lj_hbond_hdis,
+    )
+
+    return dlkball_pair_dij(
+        dist,
+        bonded_path_length,
+        lj_sigma_ij,
+        atom_i,
+        lkb_waters_i,
+        lj_radius_i,
+        lk_dgfree_i,
+        lk_lambda_i,
+        lk_volume_i,
+        atom_j,
+        lkb_waters_j,
+        lj_radius_j,
+        lk_dgfree_j,
+        lk_lambda_j,
+        lk_volume_j,
+        heavyatom_water_len,
+    )
+
+
 def lkball_intra(
     coords,
     atom_types,
@@ -1026,40 +1333,25 @@ def lkball_intra(
 
     # PASS 1: build waters
     waters = numpy.full((coords.shape[0], 4, 3), numpy.nan)
-    nwaters = numpy.zeros(coords.shape[0], dtype=numpy.int)
-    for i in range(nc):
-        ti = atom_types[i]
-        if is_acceptor[ti]:
-            # FD this block should instead query a list of bonds
-            b, b0 = base_atoms[i, :]
-            if hybridization[ti] == Hyb.SP2:
-                wat_ang = water_angle_sp2
-                wat_tors = water_tors_sp2
-                Xb, Xb0 = coords[b], coords[b0]
-            elif hybridization[ti] == Hyb.SP3:
-                wat_ang = water_angle_sp3
-                wat_tors = water_tors_sp3
-                Xb, Xb0 = coords[b], coords[b0]
-            elif hybridization[ti] == Hyb.RING:
-                wat_ang = water_angle_ring
-                wat_tors = water_tors_ring
-                Xb = 0.5 * (coords[b] + coords[b0])
-                Xb0 = Xb
-            else:
-                assert False, "Unknown acceptor hybridization!"
-
-            n_to_build = len(wat_tors)
-            waters[i, nwaters[i] : nwaters[i] + n_to_build, :] = build_acc_waters(
-                coords[i], Xb, Xb0, water_dist, wat_ang, wat_tors
-            )
-            nwaters[i] += n_to_build
-
-        if is_donor[ti]:
-            for h in attached_h[i, attached_h[i, :] >= 0]:
-                waters[i, nwaters[i] : nwaters[i] + 1, :] = build_don_water(
-                    coords[i], coords[h], water_dist
-                )
-                nwaters[i] += 1
+    nwaters = numpy.zeros((coords.shape[0]), dtype=numpy.int)
+    build_all_waters(
+        coords,
+        atom_types,
+        is_acceptor,
+        is_donor,
+        hybridization,
+        attached_h,
+        base_atoms,
+        water_dist,
+        water_angle_sp2,
+        water_angle_sp3,
+        water_angle_ring,
+        water_tors_sp2,
+        water_tors_sp3,
+        water_tors_ring,
+        waters,
+        nwaters,
+    )
 
     # PASS 2: calc energies
     v = 0

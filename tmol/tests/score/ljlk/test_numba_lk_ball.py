@@ -18,11 +18,13 @@ from tmol.score.ljlk.numba.lk_ball import (
     build_don_water,
     d_don_water_datom,
     d_acc_waters_datom,
-    lkball_intra,
     get_lk_fraction,
     get_dlk_fraction_dij,
     get_lkbr_fraction,
     get_dlkbr_fraction_dij,
+    lkball_pair,
+    dlkball_pair_dij,
+    lkball_intra,
 )
 
 
@@ -113,10 +115,10 @@ def test_lkball_deriv(default_database):
     a_j = numpy.array((0.0, 0.0, 0.0))
     b_j = numpy.array((0.0, 0.0, -1.0))
     b0_j = numpy.array((1.0, 0.0, 0.0))
-    dist = 2.65
+    heavyatom_water_len = 2.65
     angle = 109.0
     tors_j = numpy.array((0.0, 120.0, 240.0))
-    w_j = build_acc_waters(a_j, b_j, b0_j, dist, angle, tors_j)
+    w_j = build_acc_waters(a_j, b_j, b0_j, heavyatom_water_len, angle, tors_j)
 
     ramp_width_A2 = 3.709
     lj_radius_i = 1.8
@@ -158,77 +160,196 @@ def test_lkball_deriv(default_database):
     b_i = numpy.array((0.0, 3.0, 4.0))
     b0_i = numpy.array((1.0, 0.0, 0.0))
     tors_i = numpy.array((60.0, 180.0, 300.0))
-    w_i = build_acc_waters(a_i, b_i, b0_i, dist, angle, tors_i)
+    w_i = build_acc_waters(a_i, b_i, b0_i, heavyatom_water_len, angle, tors_i)
 
     overlap_gap_A2 = 0.5
     overlap_width_A2 = 2.6
 
     lkbrfrac = get_lkbr_fraction(
-        a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+        a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, heavyatom_water_len
     )
 
     # analytic
-    dlkfrac_ai_A, dlkfrac_aj_A, dlkfrac_wi_A, dlkfrac_wj_A = get_dlkbr_fraction_dij(
-        a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+    dlkfrac_dai_A, dlkfrac_daj_A, dlkfrac_dwi_A, dlkfrac_dwj_A = get_dlkbr_fraction_dij(
+        a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, heavyatom_water_len
     )
 
     # numeric
-    dlkfrac_ai_N = numpy.zeros((3))
-    dlkfrac_aj_N = numpy.zeros((3))
-    dlkfrac_wi_N = numpy.zeros((len(tors_i), 3))
-    dlkfrac_wj_N = numpy.zeros((len(tors_j), 3))
+    dlkfrac_dai_N = numpy.zeros((3))
+    dlkfrac_daj_N = numpy.zeros((3))
+    dlkfrac_dwi_N = numpy.zeros((len(tors_i), 3))
+    dlkfrac_dwj_N = numpy.zeros((len(tors_j), 3))
     gradcheck_delta = 0.0001
     for x in range(3):
         a_i[x] += gradcheck_delta
         lkp = get_lkbr_fraction(
-            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, heavyatom_water_len
         )
         a_i[x] -= 2 * gradcheck_delta
         lkm = get_lkbr_fraction(
-            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, heavyatom_water_len
         )
         a_i[x] += gradcheck_delta
-        dlkfrac_ai_N[x] = (lkp - lkm) / (2 * gradcheck_delta)
+        dlkfrac_dai_N[x] = (lkp - lkm) / (2 * gradcheck_delta)
 
         for j in range(len(tors_i)):
             w_i[j, x] += gradcheck_delta
             lkp = get_lkbr_fraction(
-                a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+                a_i,
+                a_j,
+                overlap_gap_A2,
+                overlap_width_A2,
+                w_i,
+                w_j,
+                heavyatom_water_len,
             )
             w_i[j, x] -= 2 * gradcheck_delta
             lkm = get_lkbr_fraction(
-                a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+                a_i,
+                a_j,
+                overlap_gap_A2,
+                overlap_width_A2,
+                w_i,
+                w_j,
+                heavyatom_water_len,
             )
             w_i[j, x] += gradcheck_delta
-            dlkfrac_wi_N[j, x] = (lkp - lkm) / (2 * gradcheck_delta)
+            dlkfrac_dwi_N[j, x] = (lkp - lkm) / (2 * gradcheck_delta)
 
         a_j[x] += gradcheck_delta
         lkp = get_lkbr_fraction(
-            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, heavyatom_water_len
         )
         a_j[x] -= 2 * gradcheck_delta
         lkm = get_lkbr_fraction(
-            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, heavyatom_water_len
         )
         a_j[x] += gradcheck_delta
-        dlkfrac_aj_N[x] = (lkp - lkm) / (2 * gradcheck_delta)
+        dlkfrac_daj_N[x] = (lkp - lkm) / (2 * gradcheck_delta)
 
         for j in range(len(tors_i)):
             w_j[j, x] += gradcheck_delta
             lkp = get_lkbr_fraction(
-                a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+                a_i,
+                a_j,
+                overlap_gap_A2,
+                overlap_width_A2,
+                w_i,
+                w_j,
+                heavyatom_water_len,
             )
             w_j[j, x] -= 2 * gradcheck_delta
             lkm = get_lkbr_fraction(
-                a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+                a_i,
+                a_j,
+                overlap_gap_A2,
+                overlap_width_A2,
+                w_i,
+                w_j,
+                heavyatom_water_len,
             )
             w_j[j, x] += gradcheck_delta
-            dlkfrac_wj_N[j, x] = (lkp - lkm) / (2 * gradcheck_delta)
+            dlkfrac_dwj_N[j, x] = (lkp - lkm) / (2 * gradcheck_delta)
 
-    numpy.testing.assert_allclose(dlkfrac_ai_A, dlkfrac_ai_N, atol=1e-6)
-    numpy.testing.assert_allclose(dlkfrac_aj_A, dlkfrac_aj_N, atol=1e-6)
-    numpy.testing.assert_allclose(dlkfrac_wi_A, dlkfrac_wi_N, atol=1e-6)
-    numpy.testing.assert_allclose(dlkfrac_wj_A, dlkfrac_wj_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlkfrac_dai_A, dlkfrac_dai_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlkfrac_daj_A, dlkfrac_daj_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlkfrac_dwi_A, dlkfrac_dwi_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlkfrac_dwj_A, dlkfrac_dwj_N, atol=1e-6)
+
+    ## TEST 3: dlkball_pair_dij ... COMBINING ALL DERIVS
+    bonded_path_length = 5
+    lj_sigma_ij = 3.1
+    lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_i = (1.51, -6.3, 3.5, 10.0)
+    lj_radius_j, lk_dgfree_j, lk_lambda_j, lk_volume_j = (1.48, -9.3, 3.5, 12.5)
+
+    def eval_lkball_pair(a_i, w_i, a_j, w_j):
+        a_ij = a_i - a_j
+        dist_ij = numpy.sqrt(numpy.dot(a_ij, a_ij))
+        return numpy.array(
+            lkball_pair(
+                dist_ij,
+                bonded_path_length,
+                lj_sigma_ij,
+                a_i,
+                w_i,
+                lj_radius_i,
+                lk_dgfree_i,
+                lk_lambda_i,
+                lk_volume_i,
+                a_j,
+                w_j,
+                lj_radius_j,
+                lk_dgfree_j,
+                lk_lambda_j,
+                lk_volume_j,
+                heavyatom_water_len,
+            )
+        )
+
+    def eval_dlkball_pair(a_i, w_i, a_j, w_j):
+        a_ij = a_i - a_j
+        dist_ij = numpy.sqrt(numpy.dot(a_ij, a_ij))
+        return dlkball_pair_dij(
+            dist_ij,
+            bonded_path_length,
+            lj_sigma_ij,
+            a_i,
+            w_i,
+            lj_radius_i,
+            lk_dgfree_i,
+            lk_lambda_i,
+            lk_volume_i,
+            a_j,
+            w_j,
+            lj_radius_j,
+            lk_dgfree_j,
+            lk_lambda_j,
+            lk_volume_j,
+            heavyatom_water_len,
+        )
+
+    (dlk_dai_A, dlk_daj_A, dlk_dwi_A, dlk_dwj_A) = eval_dlkball_pair(a_i, w_i, a_j, w_j)
+
+    dlk_dai_N = numpy.zeros((3, 4))
+    dlk_daj_N = numpy.zeros((3, 4))
+    dlk_dwi_N = numpy.zeros((len(tors_i), 3, 4))
+    dlk_dwj_N = numpy.zeros((len(tors_j), 3, 4))
+    gradcheck_delta = 0.0001
+    for x in range(3):
+        a_i[x] += gradcheck_delta
+        Ep = eval_lkball_pair(a_i, w_i, a_j, w_j)
+        a_i[x] -= 2 * gradcheck_delta
+        Em = eval_lkball_pair(a_i, w_i, a_j, w_j)
+        a_i[x] += gradcheck_delta
+        dlk_dai_N[x, :] = (Ep - Em) / (2 * gradcheck_delta)
+
+        for j in range(len(tors_i)):
+            w_i[j, x] += gradcheck_delta
+            Ep = eval_lkball_pair(a_i, w_i, a_j, w_j)
+            w_i[j, x] -= 2 * gradcheck_delta
+            Em = eval_lkball_pair(a_i, w_i, a_j, w_j)
+            w_i[j, x] += gradcheck_delta
+            dlk_dwi_N[j, x, :] = (Ep - Em) / (2 * gradcheck_delta)
+
+        a_j[x] += gradcheck_delta
+        Ep = eval_lkball_pair(a_i, w_i, a_j, w_j)
+        a_j[x] -= 2 * gradcheck_delta
+        Em = eval_lkball_pair(a_i, w_i, a_j, w_j)
+        a_j[x] += gradcheck_delta
+        dlk_daj_N[x, :] = (Ep - Em) / (2 * gradcheck_delta)
+
+        for j in range(len(tors_j)):
+            w_j[j, x] += gradcheck_delta
+            Ep = eval_lkball_pair(a_i, w_i, a_j, w_j)
+            w_j[j, x] -= 2 * gradcheck_delta
+            Em = eval_lkball_pair(a_i, w_i, a_j, w_j)
+            w_j[j, x] += gradcheck_delta
+            dlk_dwj_N[j, x, :] = (Ep - Em) / (2 * gradcheck_delta)
+
+    numpy.testing.assert_allclose(dlk_dai_A, dlk_dai_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlk_daj_A, dlk_daj_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlk_dwi_A, dlk_dwi_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlk_dwj_A, dlk_dwj_N, atol=1e-6)
 
 
 def test_lkball_spotcheck(default_database):
@@ -397,7 +518,7 @@ def test_lkball_spotcheck(default_database):
         [
             [0.01360676, 0.0135272, 0.0, 0.0],
             [0.00385956, 0.0001626, 0.0, 0.0],
-            [0.09018922, 0.0901892, 0.0265898, 0.4900393],
+            [0.09018922, 0.0901892, 0.0441963, 0.4900393],
             [0.00369549, 0.0028072, 0.0, 0.0],
         ]
     )
