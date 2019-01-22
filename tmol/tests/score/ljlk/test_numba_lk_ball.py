@@ -19,6 +19,10 @@ from tmol.score.ljlk.numba.lk_ball import (
     d_don_water_datom,
     d_acc_waters_datom,
     lkball_intra,
+    get_lk_fraction,
+    get_dlk_fraction_dij,
+    get_lkbr_fraction,
+    get_dlkbr_fraction_dij,
 )
 
 
@@ -104,10 +108,132 @@ def test_water_generators(default_database):
         numpy.testing.assert_allclose(dWdAn, dWdA[1, i, :], atol=1e-5)
 
 
-def test_lk_spotcheck(default_database):
+# test derivatives w.r.t water positions
+def test_lkball_deriv(default_database):
+    a_j = numpy.array((0.0, 0.0, 0.0))
+    b_j = numpy.array((0.0, 0.0, -1.0))
+    b0_j = numpy.array((1.0, 0.0, 0.0))
+    dist = 2.65
+    angle = 109.0
+    tors_j = numpy.array((0.0, 120.0, 240.0))
+    w_j = build_acc_waters(a_j, b_j, b0_j, dist, angle, tors_j)
+
+    ramp_width_A2 = 3.709
+    lj_radius_i = 1.8
+
+    ## TEST 1: LKBALL FRACTION
+    a_i = numpy.array((-2.5, 0.1, 2.5))
+    lkfrac = get_lk_fraction(a_i, ramp_width_A2, lj_radius_i, w_j)
+
+    # analytic
+    dlkfrac_i_A, dlkfrac_j_A = get_dlk_fraction_dij(
+        a_i, ramp_width_A2, lj_radius_i, w_j
+    )
+
+    # numeric
+    dlkfrac_i_N = numpy.zeros(3)
+    dlkfrac_j_N = numpy.zeros((len(tors_j), 3))
+    gradcheck_delta = 0.0001
+    for x in range(3):
+        a_i[x] += gradcheck_delta
+        lkp = get_lk_fraction(a_i, ramp_width_A2, lj_radius_i, w_j)
+        a_i[x] -= 2 * gradcheck_delta
+        lkm = get_lk_fraction(a_i, ramp_width_A2, lj_radius_i, w_j)
+        a_i[x] += gradcheck_delta
+        dlkfrac_i_N[x] = (lkp - lkm) / (2 * gradcheck_delta)
+
+        for j in range(len(tors_j)):
+            w_j[j, x] += gradcheck_delta
+            lkp = get_lk_fraction(a_i, ramp_width_A2, lj_radius_i, w_j)
+            w_j[j, x] -= 2 * gradcheck_delta
+            lkm = get_lk_fraction(a_i, ramp_width_A2, lj_radius_i, w_j)
+            w_j[j, x] += gradcheck_delta
+            dlkfrac_j_N[j, x] = (lkp - lkm) / (2 * gradcheck_delta)
+
+    numpy.testing.assert_allclose(dlkfrac_i_N, dlkfrac_i_A, atol=1e-6)
+    numpy.testing.assert_allclose(dlkfrac_j_N, dlkfrac_j_A, atol=1e-6)
+
+    ## TEST 2: LKBRIDGE FRACTION
+    a_i = numpy.array((0.0, 3.0, 3.0))
+    b_i = numpy.array((0.0, 3.0, 4.0))
+    b0_i = numpy.array((1.0, 0.0, 0.0))
+    tors_i = numpy.array((60.0, 180.0, 300.0))
+    w_i = build_acc_waters(a_i, b_i, b0_i, dist, angle, tors_i)
+
+    overlap_gap_A2 = 0.5
+    overlap_width_A2 = 2.6
+
+    lkbrfrac = get_lkbr_fraction(
+        a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+    )
+
+    # analytic
+    dlkfrac_ai_A, dlkfrac_aj_A, dlkfrac_wi_A, dlkfrac_wj_A = get_dlkbr_fraction_dij(
+        a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+    )
+
+    # numeric
+    dlkfrac_ai_N = numpy.zeros((3))
+    dlkfrac_aj_N = numpy.zeros((3))
+    dlkfrac_wi_N = numpy.zeros((len(tors_i), 3))
+    dlkfrac_wj_N = numpy.zeros((len(tors_j), 3))
+    gradcheck_delta = 0.0001
+    for x in range(3):
+        a_i[x] += gradcheck_delta
+        lkp = get_lkbr_fraction(
+            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+        )
+        a_i[x] -= 2 * gradcheck_delta
+        lkm = get_lkbr_fraction(
+            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+        )
+        a_i[x] += gradcheck_delta
+        dlkfrac_ai_N[x] = (lkp - lkm) / (2 * gradcheck_delta)
+
+        for j in range(len(tors_i)):
+            w_i[j, x] += gradcheck_delta
+            lkp = get_lkbr_fraction(
+                a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+            )
+            w_i[j, x] -= 2 * gradcheck_delta
+            lkm = get_lkbr_fraction(
+                a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+            )
+            w_i[j, x] += gradcheck_delta
+            dlkfrac_wi_N[j, x] = (lkp - lkm) / (2 * gradcheck_delta)
+
+        a_j[x] += gradcheck_delta
+        lkp = get_lkbr_fraction(
+            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+        )
+        a_j[x] -= 2 * gradcheck_delta
+        lkm = get_lkbr_fraction(
+            a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+        )
+        a_j[x] += gradcheck_delta
+        dlkfrac_aj_N[x] = (lkp - lkm) / (2 * gradcheck_delta)
+
+        for j in range(len(tors_i)):
+            w_j[j, x] += gradcheck_delta
+            lkp = get_lkbr_fraction(
+                a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+            )
+            w_j[j, x] -= 2 * gradcheck_delta
+            lkm = get_lkbr_fraction(
+                a_i, a_j, overlap_gap_A2, overlap_width_A2, w_i, w_j, dist
+            )
+            w_j[j, x] += gradcheck_delta
+            dlkfrac_wj_N[j, x] = (lkp - lkm) / (2 * gradcheck_delta)
+
+    numpy.testing.assert_allclose(dlkfrac_ai_A, dlkfrac_ai_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlkfrac_aj_A, dlkfrac_aj_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlkfrac_wi_A, dlkfrac_wi_N, atol=1e-6)
+    numpy.testing.assert_allclose(dlkfrac_wj_A, dlkfrac_wj_N, atol=1e-6)
+
+
+def test_lkball_spotcheck(default_database):
     params = default_database.scoring.ljlk
 
-    # lkball defaults (these should live in DB?)
     water_dist = params.global_parameters.lkb_water_dist
     water_angle_sp2 = params.global_parameters.lkb_water_angle_sp2
     water_angle_sp3 = params.global_parameters.lkb_water_angle_sp3
