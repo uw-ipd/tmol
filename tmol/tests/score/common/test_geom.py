@@ -11,15 +11,47 @@ from scipy.stats import special_ortho_group
 from tmol.tests.autograd import gradcheck, VectorizedOp
 
 
-def angle_vecs(theta):
-    return [[10.0, 0.0, 0.0], [2 * cos(theta), 2 * sin(theta), 0.0]]
-
-
 @pytest.fixture(scope="session")
 def geom():
     import tmol.score.common.geom
 
     return tmol.score.common.geom
+
+
+def dist_vecs(dist):
+    return [[-dist / 2, 0.0, 0.0], [dist / 2, 0.0, 0.0]]
+
+
+def test_distance_values(geom):
+    dists = linspace(0, 10, 100, endpoint=True)
+    rot = special_ortho_group.rvs(3)
+    for dist in dists:
+        v1, v2 = dist_vecs(dist)
+
+        assert geom.distance_V(v1, v2) == approx(dist)
+        assert geom.distance_V_dV(v1, v2)[0] == approx(dist)
+
+        assert geom.distance_V(v1 @ rot, v2 @ rot) == approx(dist)
+        assert geom.distance_V_dV(v1 @ rot, v2 @ rot)[0] == approx(dist)
+
+
+def test_distance_gradcheck(geom):
+
+    dists = linspace(0, 10, 100, endpoint=True)
+    v1, v2 = array(list(map(dist_vecs, dists))).swapaxes(0, 1)
+
+    def _t(t):
+        return torch.tensor(t).to(dtype=torch.double)
+
+    gradcheck(
+        VectorizedOp(geom.distance_V_dV),
+        (_t(array(v1)).requires_grad_(True), _t(array(v2)).requires_grad_(True)),
+        eps=1e-3,
+    )
+
+
+def angle_vecs(theta):
+    return [[10.0, 0.0, 0.0], [2 * cos(theta), 2 * sin(theta), 0.0]]
 
 
 # TODO Test cases for colinear and identical points.

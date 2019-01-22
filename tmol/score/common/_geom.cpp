@@ -9,6 +9,9 @@ template <typename Real>
 void bind(pybind11::module& m) {
   using namespace pybind11::literals;
 
+  m.def("distance_V", &distance_V<Real>, "A"_a, "B"_a);
+  m.def("distance_V_dV", &distance_V_dV<Real>, "A"_a, "B"_a);
+
   m.def("interior_angle_V", &interior_angle_V<Real>, "A"_a, "B"_a);
   m.def("interior_angle_V_dV", &interior_angle_V_dV<Real>, "A"_a, "B"_a);
 
@@ -30,6 +33,5 @@ void bind(pybind11::module& m) {
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
-  bind<float>(m);
   bind<double>(m);
 }

@@ -9,19 +9,14 @@ import numpy
 from tmol.types.functional import validate_args
 from tmol.utility.args import ignore_unused_kwargs
 
-from .numba.lj import lj_intra, lj_intra_backward, lj_inter, lj_inter_backward
-from .numba.lk_isotropic import (
-    lk_isotropic_intra,
-    lk_isotropic_intra_backward,
-    lk_isotropic_inter,
-    lk_isotropic_inter_backward,
-)
+from .potentials import compiled
+
 from .params import LJLKDatabase, LJLKParamResolver
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class AtomOp:
-    """torch.autograd lj baseline operator."""
+    """torch.autograd atom pair score baseline operator."""
 
     param_resolver: LJLKParamResolver
     params: Mapping[str, Union[float, numpy.ndarray]]
@@ -33,7 +28,7 @@ class AtomOp:
             param_resolver=param_resolver,
             params=merge(
                 valmap(float, asdict(param_resolver.global_params)),
-                valmap(torch.Tensor.numpy, asdict(param_resolver.type_params)),
+                asdict(param_resolver.type_params),
             ),
         )
 
@@ -47,163 +42,92 @@ class AtomOp:
             )
         )
 
-    def intra(self, coords, atom_types, bonded_path_lengths):
-        # Detach grad from output indicies, which are int-valued
-        i, v = AtomIntraFun(self)(coords, atom_types, bonded_path_lengths)
-        return (i.detach(), v)
-
     def inter(
         self, coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
     ):
         # Detach grad from output indicies, which are int-valued
-        i, v = AtomInterFun(self)(
+        i, v = _AtomScoreFun(self, self.f)(
             coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
         )
         return (i.detach(), v)
 
+    def intra(self, coords, atom_types, bonded_path_lengths):
+        # Call triu score function on coords, results in idependent autograd
+        # paths for i and j axis
+        i, v = _AtomScoreFun(self, self.f_triu)(
+            coords, atom_types, coords, atom_types, bonded_path_lengths
+        )
 
-class AtomIntraFun(torch.autograd.Function):
-    def __init__(self, op):
+        # Detach grad from output indicies, which are int-valued
+        return (i.detach(), v)
+
+
+class _AtomScoreFun(torch.autograd.Function):
+    def __init__(self, op, f):
         self.op = op
+        self.f = f
         super().__init__()
 
-    def forward(ctx, coords, atom_types, bonded_path_lengths):
-        assert coords.dim() == 2
-        assert coords.shape[1] == 3
-        assert atom_types.shape == coords.shape[:1]
+    def forward(ctx, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+        assert I.dim() == 2
+        assert I.shape[1] == 3
+        assert I.shape[:1] == atom_type_I.shape
+        assert not atom_type_I.requires_grad
 
-        assert bonded_path_lengths.shape == (coords.shape[0], coords.shape[0])
-
-        assert all(
-            t.device.type == "cpu" for t in (coords, atom_types, bonded_path_lengths)
-        )
-
-        assert not atom_types.requires_grad
-        assert not bonded_path_lengths.requires_grad
-
-        inds, vals = map(
-            torch.from_numpy,
-            ctx.op.f_intra(
-                coords.detach().numpy(),
-                atom_types.numpy(),
-                bonded_path_lengths.numpy(),
-                **ctx.op.params,
-            ),
-        )
-
-        ctx.save_for_backward(inds, coords, atom_types, bonded_path_lengths)
-
-        return (inds, vals)
-
-    def backward(ctx, ind_grads, val_grads):
-
-        inds, coords, atom_types, bonded_path_lengths = ctx.saved_tensors
-
-        coord_grads = ctx.op.f_intra_backward(
-            inds.detach().numpy(),
-            val_grads.numpy(),
-            coords.detach().numpy(),
-            atom_types.numpy(),
-            bonded_path_lengths.numpy(),
-            **ctx.op.params,
-        )
-
-        return torch.from_numpy(coord_grads), None, None
-
-
-class AtomInterFun(torch.autograd.Function):
-    def __init__(self, op):
-        self.op = op
-        super().__init__()
-
-    def forward(
-        ctx, coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
-    ):
-        assert coords_a.dim() == 2
-        assert coords_a.shape[1] == 3
-        assert atom_types_a.shape == coords_a.shape[:1]
-
-        assert coords_b.dim() == 2
-        assert coords_b.shape[1] == 3
-        assert atom_types_b.shape == coords_b.shape[:1]
-
-        assert bonded_path_lengths.shape == (coords_a.shape[0], coords_b.shape[0])
+        assert J.dim() == 2
+        assert J.shape[1] == 3
+        assert J.shape[:1] == atom_type_J.shape
+        assert not atom_type_J.requires_grad
 
         assert all(
             t.device.type == "cpu"
-            for t in (
-                coords_a,
-                atom_types_a,
-                coords_b,
-                atom_types_b,
-                bonded_path_lengths,
-            )
+            for t in (I, atom_type_I, J, atom_type_J, bonded_path_lengths)
         )
 
-        assert not atom_types_a.requires_grad
-        assert not atom_types_b.requires_grad
-        assert not bonded_path_lengths.requires_grad
-
-        inds, vals = map(
-            torch.from_numpy,
-            ctx.op.f_inter(
-                coords_a.detach().numpy(),
-                atom_types_a.numpy(),
-                coords_b.detach().numpy(),
-                atom_types_b.numpy(),
-                bonded_path_lengths.numpy(),
-                **ctx.op.params,
-            ),
+        params = valmap(
+            lambda t: t.to(I.dtype)
+            if isinstance(t, torch.Tensor) and t.is_floating_point()
+            else t,
+            ctx.op.params,
         )
 
-        ctx.save_for_backward(
-            inds, coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
+        inds, E, *dE_dC = ctx.f(
+            I, atom_type_I, J, atom_type_J, bonded_path_lengths, **params
         )
 
-        return (inds, vals)
+        inds = inds.transpose(0, 1)
 
-    def backward(ctx, ind_grads, val_grads):
+        ctx.shape_I = atom_type_I.shape
+        ctx.shape_J = atom_type_J.shape
 
-        (
-            inds,
-            coords_a,
-            atom_types_a,
-            coords_b,
-            atom_types_b,
-            bonded_path_lengths,
-        ) = ctx.saved_tensors
+        ctx.save_for_backward(*([inds] + dE_dC))
 
-        coord_a_grads, coord_b_grads = ctx.op.f_inter_backward(
-            inds.detach().numpy(),
-            val_grads.numpy(),
-            coords_a.detach().numpy(),
-            atom_types_a.numpy(),
-            coords_b.detach().numpy(),
-            atom_types_b.numpy(),
-            bonded_path_lengths.numpy(),
-            **ctx.op.params,
-        )
+        return (inds, E)
 
-        return (
-            torch.from_numpy(coord_a_grads),
-            None,
-            torch.from_numpy(coord_b_grads),
-            None,
-            None,
-        )
+    def backward(ctx, _ind_grads, dV_dE):
+        ind, dE_dI, dE_dJ = ctx.saved_tensors
+        ind_I, ind_J = ind
+
+        dV_dI = torch.sparse_coo_tensor(
+            ind_I[None, :], dV_dE[..., None] * dE_dI, ctx.shape_I + (3,)
+        ).to_dense()
+
+        dV_dJ = torch.sparse_coo_tensor(
+            ind_J[None, :], dV_dE[..., None] * dE_dJ, ctx.shape_J + (3,)
+        ).to_dense()
+
+        return (dV_dI, None, dV_dJ, None, None)
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class LJOp(AtomOp):
-    f_intra: Callable = ignore_unused_kwargs(lj_intra)
-    f_intra_backward: Callable = ignore_unused_kwargs(lj_intra_backward)
-    f_inter: Callable = ignore_unused_kwargs(lj_inter)
-    f_inter_backward: Callable = ignore_unused_kwargs(lj_inter_backward)
+    f: Callable = ignore_unused_kwargs(compiled.lj)
+    f_triu: Callable = ignore_unused_kwargs(compiled.lj_triu)
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class LKOp(AtomOp):
-    f_intra: Callable = ignore_unused_kwargs(lk_isotropic_intra)
-    f_intra_backward: Callable = ignore_unused_kwargs(lk_isotropic_intra_backward)
-    f_inter: Callable = ignore_unused_kwargs(lk_isotropic_inter)
-    f_inter_backward: Callable = ignore_unused_kwargs(lk_isotropic_inter_backward)
+    """torch.autograd hbond baseline operator."""
+
+    f: Callable = ignore_unused_kwargs(compiled.lk_isotropic)
+    f_triu: Callable = ignore_unused_kwargs(compiled.lk_isotropic_triu)
