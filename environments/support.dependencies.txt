@@ -1,1 +1,1 @@
-pyrosetta==2018.28.post.dev+445.master.f1c0b4a6ffc
+rosettacommons::pyrosetta=2018.52
