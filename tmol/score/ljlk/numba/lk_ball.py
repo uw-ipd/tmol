@@ -670,6 +670,45 @@ def get_lk_fraction(atom_i, ramp_width_A2, lj_radius_i, waters_j):
     return frac
 
 
+# derivatives of lk_fraction w.r.t. water / atom positions
+# @jit
+def get_dlk_fraction_dij(atom_i, ramp_width_A2, lj_radius_i, waters_j):
+    d2_low = max(0, numpy.square(1.4 + lj_radius_i) - ramp_width_A2)
+
+    nwat = waters_j.shape[0]
+
+    wted_d2_delta = 0
+    dwted_d2_delta_dai = numpy.zeros((3))
+    dwted_d2_delta_dwj = numpy.zeros((nwat, 3))
+
+    for i, wj in enumerate(waters_j):
+        delta_ij = atom_i - wj
+        d2_delta = numpy.dot(delta_ij, delta_ij) - d2_low
+        exp_d2_delta = numpy.exp(-d2_delta / 1.0)
+        dwted_d2_delta_dwj[i, :] = -2 * exp_d2_delta * delta_ij
+        dwted_d2_delta_dai += 2 * exp_d2_delta * delta_ij
+        wted_d2_delta += exp_d2_delta
+
+    dwted_d2_delta_dwj = dwted_d2_delta_dwj / wted_d2_delta
+    dwted_d2_delta_dai = dwted_d2_delta_dai / wted_d2_delta
+
+    wted_d2_delta = -1.0 * numpy.log(wted_d2_delta)
+
+    dfrac_dwted_d2 = 0
+    if wted_d2_delta > 0 and wted_d2_delta < ramp_width_A2:
+        dfrac_dwted_d2 = -(
+            4
+            * wted_d2_delta
+            * (numpy.square(ramp_width_A2) - numpy.square(wted_d2_delta))
+            / numpy.square(numpy.square(ramp_width_A2))
+        )
+
+    dwted_d2_delta_dwj = dfrac_dwted_d2 * dwted_d2_delta_dwj
+    dwted_d2_delta_dai = dfrac_dwted_d2 * dwted_d2_delta_dai
+
+    return (dwted_d2_delta_dai, dwted_d2_delta_dwj)
+
+
 # get the fraction of occlusion assigned to water-water overlap
 #   1 if perfect overlap
 #   0 if far
@@ -681,12 +720,11 @@ def get_lkbr_fraction(
     atom_j,
     overlap_gap_A2,
     overlap_width_A2,
-    lj_radius_i,
     waters_i,
     waters_j,
     heavyatom_water_len,
 ):
-    # water overlap distance
+    # water overlap
     wted_d2_delta = 0
     for wi in waters_i:
         for wj in waters_j:
@@ -700,7 +738,6 @@ def get_lkbr_fraction(
         frac = 1
     elif wted_d2_delta < overlap_width_A2:
         frac = numpy.square(1 - numpy.square(wted_d2_delta / overlap_width_A2))
-    print(wted_d2_delta, frac)
 
     # base angle
     overlap_target_len2 = 8.0 / 3.0 * numpy.square(heavyatom_water_len)
@@ -715,6 +752,88 @@ def get_lkbr_fraction(
         frac *= numpy.square(1 - numpy.square(base_atom_delta / angle_overlap_A2))
 
     return frac
+
+
+# derivatives of lk_bridge fraction w.r.t. water / atom positions
+def get_dlkbr_fraction_dij(
+    atom_i,
+    atom_j,
+    overlap_gap_A2,
+    overlap_width_A2,
+    waters_i,
+    waters_j,
+    heavyatom_water_len,
+):
+    nwat_i = waters_i.shape[0]
+    nwat_j = waters_j.shape[0]
+
+    wted_d2_delta = 0
+    dwted_d2_delta_dai = numpy.zeros((3))
+    dwted_d2_delta_daj = numpy.zeros((3))
+    dwted_d2_delta_dwi = numpy.zeros((nwat_i, 3))
+    dwted_d2_delta_dwj = numpy.zeros((nwat_j, 3))
+
+    # water overlap
+    for i, wi in enumerate(waters_i):
+        for j, wj in enumerate(waters_j):
+            delta_ij = wi - wj
+            d2_delta = numpy.dot(delta_ij, delta_ij) - overlap_gap_A2
+            exp_d2_delta = numpy.exp(-d2_delta / 1.0)
+            dwted_d2_delta_dwi[i, :] += 2 * exp_d2_delta * delta_ij
+            dwted_d2_delta_dwj[j, :] -= 2 * exp_d2_delta * delta_ij
+            wted_d2_delta += exp_d2_delta
+
+    dwted_d2_delta_dwi = dwted_d2_delta_dwi / wted_d2_delta
+    dwted_d2_delta_dwj = dwted_d2_delta_dwj / wted_d2_delta
+
+    wted_d2_delta = -1.0 * numpy.log(wted_d2_delta)
+
+    dfrac_dwted_d2 = 0
+    overlapfrac = 0
+    if wted_d2_delta < 0:
+        overlapfrac = 1
+    elif wted_d2_delta < overlap_width_A2:
+        overlapfrac = numpy.square(1 - numpy.square(wted_d2_delta / overlap_width_A2))
+        doverlapfrac_dwted_d2 = -(
+            4
+            * wted_d2_delta
+            * (numpy.square(overlap_width_A2) - numpy.square(wted_d2_delta))
+            / numpy.square(numpy.square(overlap_width_A2))
+        )
+
+    # base angle
+    overlap_target_len2 = 8.0 / 3.0 * numpy.square(heavyatom_water_len)
+    delta_ij = atom_i - atom_j
+    overlap_len2 = numpy.dot(delta_ij, delta_ij)
+    base_atom_delta = overlap_len2 - overlap_target_len2
+    angle_overlap_A2 = 2.8 * overlap_width_A2
+    dwted_d2_delta_dai = 2 * delta_ij
+    dwted_d2_delta_daj = -2 * delta_ij
+
+    anglefrac = 0
+    if numpy.abs(base_atom_delta) > angle_overlap_A2:
+        anglefrac = 1
+    else:
+        anglefrac = numpy.square(1 - numpy.square(base_atom_delta / angle_overlap_A2))
+        danglefrac_dbasedelta = -(
+            4
+            * base_atom_delta
+            * (numpy.square(angle_overlap_A2) - numpy.square(base_atom_delta))
+            / numpy.square(numpy.square(angle_overlap_A2))
+        )
+
+    # final scaling
+    dwted_d2_delta_dai = overlapfrac * danglefrac_dbasedelta * dwted_d2_delta_dai
+    dwted_d2_delta_daj = overlapfrac * danglefrac_dbasedelta * dwted_d2_delta_daj
+    dwted_d2_delta_dwi = anglefrac * doverlapfrac_dwted_d2 * dwted_d2_delta_dwi
+    dwted_d2_delta_dwj = anglefrac * doverlapfrac_dwted_d2 * dwted_d2_delta_dwj
+
+    return (
+        dwted_d2_delta_dai,
+        dwted_d2_delta_daj,
+        dwted_d2_delta_dwi,
+        dwted_d2_delta_dwj,
+    )
 
 
 # two-way lk-ball energy calculation (i-desolv-j and j-desolv-i)
@@ -795,7 +914,6 @@ def lkball_pair(
             atom_j,
             overlap_gap_A2,
             overlap_width_A2,
-            lj_radius_i,
             lkb_waters_i,
             lkb_waters_j,
             heavyatom_water_len,
