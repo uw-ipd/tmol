@@ -1,3 +1,4 @@
 cudatoolkit=9.0
 pytorch::cuda91
 pytorch::pytorch=0.4.1
+gxx_linux-64=7.3
