@@ -66,9 +66,9 @@ struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
 template <
     typename T,
     int N,
-    template <typename U> class PtrTraits = DefaultPtrTraits,
+    PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-tmol::TView<T, N, PtrTraits> _view_tensor(at::Tensor input_t) {
+tmol::TView<T, N, P> _view_tensor(at::Tensor input_t) {
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
 
   static_assert(
@@ -95,42 +95,42 @@ tmol::TView<T, N, PtrTraits> _view_tensor(at::Tensor input_t) {
   sizes[N - 1] = input.size(N - 1) / stride_factor;
   strides[N - 1] = 1;
 
-  return tmol::TView<T, N, PtrTraits>(
+  return tmol::TView<T, N, P>(
       reinterpret_cast<T*>(input_t.data_ptr()), sizes, strides);
 }
 
 template <
     typename T,
     int N,
-    template <typename U> class PtrTraits = DefaultPtrTraits,
+    PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, PtrTraits> {
+auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, P> {
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
   if (input_t.dim() == N + 1 && input_t.size(N) == stride_factor) {
     // Implicitly convert an input tensor of result dims [..., 1]
     // into a dim-1 view, squeezing off the last dimension.
-    auto full_view = _view_tensor<T, N + 1, PtrTraits>(input_t);
+    auto full_view = _view_tensor<T, N + 1, P>(input_t);
 
     AT_ASSERTM(
         full_view.size(N) == 1, "Expected low-dimension result shape 1.");
 
-    return tmol::TView<T, N, PtrTraits>(
+    return tmol::TView<T, N, P>(
         full_view.data(), &full_view.size(0), &full_view.stride(0));
   } else {
-    return _view_tensor<T, N, PtrTraits>(input_t);
+    return _view_tensor<T, N, P>(input_t);
   }
 };
 
 template <
     typename T,
     int N,
-    template <typename U> class PtrTraits = DefaultPtrTraits,
+    PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor tensor, std::string name) {
+tmol::TView<T, N, P> view_tensor(at::Tensor tensor, std::string name) {
   try {
-    return view_tensor<T, N, PtrTraits>(tensor);
+    return view_tensor<T, N, P>(tensor);
   } catch (at::Error err) {
     AT_ERROR(
         "Error viewing tensor '" + name + "': " + err.what_without_backtrace());
@@ -140,7 +140,7 @@ tmol::TView<T, N, PtrTraits> view_tensor(at::Tensor tensor, std::string name) {
 template <
     typename T,
     int N,
-    template <typename U> class P = DefaultPtrTraits,
+    PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
 auto new_tensor(at::IntList size)
     -> std::tuple<at::Tensor, tmol::TView<T, N, P>> {

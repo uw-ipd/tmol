@@ -10,7 +10,7 @@
 namespace pybind11 {
 namespace detail {
 
-template <typename T, size_t N, template <typename U> class P>
+template <typename T, size_t N, tmol::PtrTag P>
 struct type_caster<tmol::TView<T, N, P>> {
  public:
   typedef tmol::TView<T, N, P> ViewType;
