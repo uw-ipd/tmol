@@ -10,6 +10,8 @@
 #include <tmol/score/common/polynomial.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
+#undef B0
+
 namespace tmol {
 namespace score {
 namespace hbond {
