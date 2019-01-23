@@ -9,11 +9,12 @@ namespace tmol {
 template <
     typename T,
     int N,
+    Device D,
     PtrTag P = PtrTag::Restricted,
     typename TMap,
     typename TKey,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-auto view_tensor_item(TMap& input_map, TKey key) -> tmol::TView<T, N, P> {
+auto view_tensor_item(TMap& input_map, TKey key) -> tmol::TView<T, N, D, P> {
   auto key_t = input_map.find(key);
 
   AT_ASSERTM(
@@ -21,7 +22,7 @@ auto view_tensor_item(TMap& input_map, TKey key) -> tmol::TView<T, N, P> {
       "Map does not contain key '" + (std::string)key + "'");
 
   try {
-    return view_tensor<T, N, P>(key_t->second, key);
+    return view_tensor<T, N, D, P>(key_t->second, key);
   } catch (at::Error err) {
     AT_ERROR(
         "Error viewing tensor map key '" + (std::string)key + "': \n"

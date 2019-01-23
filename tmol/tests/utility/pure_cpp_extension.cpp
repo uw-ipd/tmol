@@ -8,8 +8,8 @@
 
 using tmol::TView;
 
-template <typename Real>
-auto sum(TView<Real, 1> t) -> Real {
+template <typename Real, tmol::Device D>
+auto sum(TView<Real, 1, D> t) -> Real {
   Real v = 0;
   using iter::range;
 
@@ -22,5 +22,5 @@ auto sum(TView<Real, 1> t) -> Real {
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
-  m.def("sum", &sum<float>, "t"_a);
+  m.def("sum", &sum<float, tmol::Device::CPU>, "t"_a);
 }

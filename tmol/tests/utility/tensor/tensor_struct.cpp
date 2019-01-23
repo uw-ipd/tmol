@@ -7,31 +7,33 @@
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 
-template <int N>
+template <int N, tmol::Device D>
 struct TData {
-  tmol::TView<int64_t, N> a;
-  tmol::TView<int64_t, N> b;
+  tmol::TView<int64_t, N, D> a;
+  tmol::TView<int64_t, N, D> b;
 
   template <typename TMap>
   static TData view_tensor_map(TMap& map) {
-    return {tmol::view_tensor_item<int64_t, N>(map, "a"),
-            tmol::view_tensor_item<int64_t, N>(map, "b")};
+    return {tmol::view_tensor_item<int64_t, N, D>(map, "a"),
+            tmol::view_tensor_item<int64_t, N, D>(map, "b")};
   }
 };
 
 namespace pybind11 {
 namespace detail {
 
-template <int N>
-struct type_caster<TData<N>> {
+template <int N, tmol::Device D>
+struct type_caster<TData<N, D>> {
  public:
-  PYBIND11_TYPE_CASTER(TData<N>, _<TData<N>>());
+  // typedef template specialization so it can be passed into macro.
+  typedef TData<N, D> TDataT;
+  PYBIND11_TYPE_CASTER(TDataT, _<TDataT>());
 
   bool load(handle src, bool convert) {
     try {
       type_caster<std::map<std::string, at::Tensor>> map_conv;
       if (map_conv.load(src, convert)) {
-        value = TData<N>::view_tensor_map(*map_conv);
+        value = TData<N, D>::view_tensor_map(*map_conv);
         return true;
       }
     } catch (at::Error err) {
@@ -45,7 +47,8 @@ struct type_caster<TData<N>> {
 }  // namespace pybind11
 
 int64_t sum_a(std::map<std::string, at::Tensor> tmap) {
-  TData<1> tdata = TData<1>::view_tensor_map(tmap);
+  TData<1, tmol::Device::CPU> tdata =
+      TData<1, tmol::Device::CPU>::view_tensor_map(tmap);
 
   int64_t v = 0;
   for (int i = 0; i < tdata.a.size(0); ++i) {
@@ -55,7 +58,7 @@ int64_t sum_a(std::map<std::string, at::Tensor> tmap) {
   return v;
 }
 
-int64_t sum_a_map(TData<1> tdata) {
+int64_t sum_a_map(TData<1, tmol::Device::CPU> tdata) {
   int64_t v = 0;
   for (int i = 0; i < tdata.a.size(0); ++i) {
     v += tdata.a[i];
@@ -64,12 +67,13 @@ int64_t sum_a_map(TData<1> tdata) {
   return v;
 }
 
-int64_t sum(at::Tensor dat_t) {
-  auto dat = tmol::view_tensor<int64_t, 1>(dat_t, "dat");
+int64_t sum(at::Tensor tensor_data_t) {
+  auto tensor_data = tmol::view_tensor<int64_t, 1, tmol::Device::CPU>(
+      tensor_data_t, "tensor_data");
 
   int64_t v = 0;
-  for (int i = 0; i < dat.size(0); ++i) {
-    v += dat[i];
+  for (int i = 0; i < tensor_data.size(0); ++i) {
+    v += tensor_data[i];
   }
 
   return v;
