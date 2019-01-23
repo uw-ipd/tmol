@@ -10,6 +10,9 @@ conda list
 echo "--- nvidia-smi"
 nvidia-smi
 
+echo "--- nvcc"
+nvcc --version
+
 echo "+++ tests"
 set -e
 pytest -v --durations=25 "$@"
