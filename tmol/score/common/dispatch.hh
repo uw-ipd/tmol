@@ -26,13 +26,17 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 struct TrivialDispatch {
+  typedef tmol::Device D;
+
   TrivialDispatch(float threshold_distance_, int n_i, int n_j)
       : threshold_distance(threshold_distance_) {
-    tie(hits_t, hits) = new_tensor<uint8_t, 2>({n_i, n_j});
+    tie(hits_t, hits) = new_tensor<uint8_t, 2, D::CPU>({n_i, n_j});
   }
 
   template <typename Real>
-  int scan(TView<Vec<Real, 3>, 1> coords_i, TView<Vec<Real, 3>, 1> coords_j) {
+  int scan(
+      TView<Vec<Real, 3>, 1, D::CPU> coords_i,
+      TView<Vec<Real, 3>, 1, D::CPU> coords_j) {
     return hits.size(0) * hits.size(1);
   }
 
@@ -47,17 +51,21 @@ struct TrivialDispatch {
 
   float threshold_distance;
   at::Tensor hits_t;
-  TView<uint8_t, 2> hits;
+  TView<uint8_t, 2, D::CPU> hits;
 };
 
 struct NaiveDispatch {
+  typedef tmol::Device D;
+
   NaiveDispatch(float threshold_distance_, int n_i, int n_j)
       : threshold_distance(threshold_distance_) {
-    tie(hits_t, hits) = new_tensor<int, 2>({n_i, n_j});
+    tie(hits_t, hits) = new_tensor<int, 2, D::CPU>({n_i, n_j});
   }
 
   template <typename Real>
-  int scan(TView<Vec<Real, 3>, 1> coords_i, TView<Vec<Real, 3>, 1> coords_j) {
+  int scan(
+      TView<Vec<Real, 3>, 1, D::CPU> coords_i,
+      TView<Vec<Real, 3>, 1, D::CPU> coords_j) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -89,17 +97,21 @@ struct NaiveDispatch {
 
   float threshold_distance;
   at::Tensor hits_t;
-  TView<int, 2> hits;
+  TView<int, 2, D::CPU> hits;
 };
 
 struct NaiveTriuDispatch {
+  typedef tmol::Device D;
+
   NaiveTriuDispatch(float threshold_distance_, int n_i, int n_j)
       : threshold_distance(threshold_distance_) {
-    tie(hits_t, hits) = new_tensor<int, 2>({n_i, n_j});
+    tie(hits_t, hits) = new_tensor<int, 2, D::CPU>({n_i, n_j});
   }
 
   template <typename Real>
-  int scan(TView<Vec<Real, 3>, 1> coords_i, TView<Vec<Real, 3>, 1> coords_j) {
+  int scan(
+      TView<Vec<Real, 3>, 1, D::CPU> coords_i,
+      TView<Vec<Real, 3>, 1, D::CPU> coords_j) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -135,7 +147,7 @@ struct NaiveTriuDispatch {
 
   float threshold_distance;
   at::Tensor hits_t;
-  TView<int, 2> hits;
+  TView<int, 2, D::CPU> hits;
 };
 
 }  // namespace common

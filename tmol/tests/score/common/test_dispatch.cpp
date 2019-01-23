@@ -13,25 +13,27 @@
 
 using std::tie;
 using std::tuple;
+using tmol::Device;
 using tmol::TView;
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <typename Dispatch, typename Real>
-auto dispatch(TView<Vec<Real, 3>, 1> coords) -> tuple<at::Tensor, at::Tensor> {
+template <typename Dispatch, Device D, typename Real>
+auto dispatch(TView<Vec<Real, 3>, 1, D> coords)
+    -> tuple<at::Tensor, at::Tensor> {
   using tmol::new_tensor;
 
   Dispatch dispatcher(6.0, coords.size(0), coords.size(0));
   auto num_scores = dispatcher.scan(coords, coords);
 
   at::Tensor ind_t;
-  TView<int64_t, 2> ind;
-  tie(ind_t, ind) = new_tensor<int64_t, 2>({num_scores, 2});
+  TView<int64_t, 2, D> ind;
+  tie(ind_t, ind) = new_tensor<int64_t, 2, D>({num_scores, 2});
 
   at::Tensor score_t;
-  TView<float, 1> score;
-  tie(score_t, score) = new_tensor<float, 1>(num_scores);
+  TView<float, 1, D> score;
+  tie(score_t, score) = new_tensor<float, 1, D>(num_scores);
 
   Real squared_threshold = 6.0 * 6.0;
 
@@ -52,8 +54,14 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
   using tmol::score::common::TrivialDispatch;
-  m.def("trivial_dispatch", &dispatch<TrivialDispatch, double>, "coords"_a);
+  m.def(
+      "trivial_dispatch",
+      &dispatch<TrivialDispatch, Device::CPU, double>,
+      "coords"_a);
 
   using tmol::score::common::NaiveDispatch;
-  m.def("naive_dispatch", &dispatch<NaiveDispatch, double>, "coords"_a);
+  m.def(
+      "naive_dispatch",
+      &dispatch<NaiveDispatch, Device::CPU, double>,
+      "coords"_a);
 }
