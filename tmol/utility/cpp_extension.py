@@ -6,6 +6,7 @@ from ..extern import include_paths as extern_include_paths
 from .. import include_paths as tmol_include_paths
 
 import torch.utils.cpp_extension
+from torch.utils.cpp_extension import _is_cuda_file
 
 
 # Add warning filter for use of c++ (rather than g++) for extension
@@ -23,11 +24,11 @@ _required_flags = ["--std=c++14"]
 # _default_flags = ["-O3"]
 _default_flags = ["-g", "-Og"]
 
-_required_cuda_flags = ["--expt-extended-lambda", "--expt-relaxed-constexpr"]
+_required_cuda_flags = ["--expt-extended-lambda"]
 _default_cuda_flags = []
 
 
-def _augment_kwargs(kwargs):
+def _augment_kwargs(name, sources, **kwargs):
     kwargs["extra_cflags"] = (
         list(kwargs.get("extra_cflags", _default_flags)) + _required_flags
     )
@@ -39,23 +40,29 @@ def _augment_kwargs(kwargs):
         list(kwargs.get("extra_include_flags", [])) + _default_include_paths
     )
 
+    if kwargs.get("with_cuda", None) is None:
+        with_cuda = any(map(_is_cuda_file, sources))
+        kwargs["with_cuda"] = with_cuda
+
+    if kwargs["with_cuda"]:
+        kwargs["extra_cflags"] += ["-DWITH_CUDA"]
+        kwargs["extra_cuda_cflags"] += ["-DWITH_CUDA"]
+
     return kwargs
 
 
 @wraps(torch.utils.cpp_extension.load)
-def load(*args, **kwargs):
+def load(name, sources, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
-
-    kwargs = _augment_kwargs(kwargs)
-    return torch.utils.cpp_extension.load(*args, **kwargs)
+    kwargs = _augment_kwargs(name, sources, **kwargs)
+    return torch.utils.cpp_extension.load(name, sources, **kwargs)
 
 
 @wraps(torch.utils.cpp_extension.load_inline)
-def load_inline(*args, **kwargs):
+def load_inline(name, sources, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
-
-    kwargs = _augment_kwargs(kwargs)
-    return torch.utils.cpp_extension.load_inline(*args, **kwargs)
+    kwargs = _augment_kwargs(name, sources, **kwargs)
+    return torch.utils.cpp_extension.load_inline(name, sources, **kwargs)
 
 
 def relpaths(src_path, paths):

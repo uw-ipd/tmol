@@ -20,13 +20,13 @@ struct LJTypeParams {
   bool PREFIX##is_polarh,   \
   bool PREFIX##is_acceptor
 
-#define LJTypeParams_targs(NDIM)    \
-  TView<Real, NDIM> lj_radius,   \
-  TView<Real, NDIM> lj_wdepth,   \
-  TView<bool, NDIM> is_donor,    \
-  TView<bool, NDIM> is_hydroxyl, \
-  TView<bool, NDIM> is_polarh,   \
-  TView<bool, NDIM> is_acceptor
+#define LJTypeParams_targs(NDIM, DEVICE)    \
+  TView<Real, NDIM, DEVICE> lj_radius,   \
+  TView<Real, NDIM, DEVICE> lj_wdepth,   \
+  TView<bool, NDIM, DEVICE> is_donor,    \
+  TView<bool, NDIM, DEVICE> is_hydroxyl, \
+  TView<bool, NDIM, DEVICE> is_polarh,   \
+  TView<bool, NDIM, DEVICE> is_acceptor
 
 #define LJTypeParams_struct(PREFIX, ...)   \
 {                  \
@@ -70,15 +70,15 @@ struct LKTypeParams {
   bool PREFIX##is_polarh,   \
   bool PREFIX##is_acceptor
 
-#define LKTypeParams_targs(NDIM)    \
-  TView<Real, NDIM> lj_radius,   \
-  TView<Real, NDIM> lk_dgfree,   \
-  TView<Real, NDIM> lk_lambda,   \
-  TView<Real, NDIM> lk_volume,   \
-  TView<bool, NDIM> is_donor,    \
-  TView<bool, NDIM> is_hydroxyl, \
-  TView<bool, NDIM> is_polarh,   \
-  TView<bool, NDIM> is_acceptor
+#define LKTypeParams_targs(NDIM, DEVICE)    \
+  TView<Real, NDIM, DEVICE> lj_radius,   \
+  TView<Real, NDIM, DEVICE> lk_dgfree,   \
+  TView<Real, NDIM, DEVICE> lk_lambda,   \
+  TView<Real, NDIM, DEVICE> lk_volume,   \
+  TView<bool, NDIM, DEVICE> is_donor,    \
+  TView<bool, NDIM, DEVICE> is_hydroxyl, \
+  TView<bool, NDIM, DEVICE> is_polarh,   \
+  TView<bool, NDIM, DEVICE> is_acceptor
 
 #define LKTypeParams_struct(PREFIX, ...)   \
 {                  \

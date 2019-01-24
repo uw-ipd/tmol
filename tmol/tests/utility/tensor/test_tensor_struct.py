@@ -1,18 +1,16 @@
 import pytest
-import os.path
 import torch
 import toolz
 import attr
 
 import tmol.utility.cpp_extension as cpp_extension
+from tmol.utility.cpp_extension import relpaths, modulename
 
 
 @pytest.fixture(scope="session")
 def tensor_struct():
     return cpp_extension.load(
-        "tensor_struct",
-        [os.path.dirname(__file__) + "/tensor_struct.cpp"],
-        verbose=True,
+        modulename(__name__), relpaths(__file__, "tensor_struct.cpp"), verbose=True
     )
 
 
@@ -50,9 +48,16 @@ def test_tensor_struct(tensor_struct):
         with pytest.raises((RuntimeError, TypeError)):
             accessor(toolz.merge(tdata, {"b": tdata["b"].to(torch.float)}))
 
+        if torch.cuda.is_available():
+            cdata = {n: t.to(device="cuda") for n, t in attr.asdict(tdata).items()}
+
+            # Data structure w/ invalid device raises an error.
+            with pytest.raises((RuntimeError, TypeError)):
+                accessor(cdata)
+
 
 def test_tensor_view(tensor_struct):
-    """Tesor view conversion."""
+    """view_tensor support function with tensor name raises informative errors."""
 
     dat = torch.arange(100)
     dsum = dat.sum()
@@ -61,9 +66,9 @@ def test_tensor_view(tensor_struct):
     tensor_struct.sum(dat) == dsum
 
     # Incorrect tensor dtype
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="tensor_data"):
         tensor_struct.sum(dat.to(torch.float))
 
     # Incorrect tensor shape
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="tensor_data"):
         tensor_struct.sum(dat[None, :])

@@ -1,4 +1,5 @@
 #include <pybind11/eigen.h>
+#include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
 #include "dispatch.hh"
@@ -134,7 +135,7 @@ void bind_dispatch(pybind11::module& m) {
 
   m.def(
       "lk_isotropic",
-      &lk_isotropic_dispatch<NaiveDispatch, Real, Int>,
+      &lk_isotropic_dispatch<NaiveDispatch, tmol::Device::CPU, Real, Int>,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -145,7 +146,7 @@ void bind_dispatch(pybind11::module& m) {
 
   m.def(
       "lk_isotropic_triu",
-      &lk_isotropic_dispatch<NaiveTriuDispatch, Real, Int>,
+      &lk_isotropic_dispatch<NaiveTriuDispatch, tmol::Device::CPU, Real, Int>,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -156,7 +157,7 @@ void bind_dispatch(pybind11::module& m) {
 
   m.def(
       "lj",
-      &lj_dispatch<NaiveDispatch, Real, Int>,
+      &lj_dispatch<NaiveDispatch, tmol::Device::CPU, Real, Int>,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -167,7 +168,7 @@ void bind_dispatch(pybind11::module& m) {
 
   m.def(
       "lj_triu",
-      &lj_dispatch<NaiveTriuDispatch, Real, Int>,
+      &lj_dispatch<NaiveTriuDispatch, tmol::Device::CPU, Real, Int>,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
