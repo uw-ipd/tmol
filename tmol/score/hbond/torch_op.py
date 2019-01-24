@@ -1,6 +1,6 @@
 import attr
 
-from typing import Mapping, Union
+from typing import Mapping, Union, Callable
 
 import torch
 
@@ -10,14 +10,18 @@ from tmol.database.scoring import HBondDatabase
 from .params import HBondParamResolver
 
 
-from .potentials.compiled import hbond_pair_score
-
-
 @attr.s(auto_attribs=True, frozen=True)
 class HBondOp:
     """torch.autograd hbond baseline operator."""
 
     params: Mapping[str, Union[float, torch.Tensor]]
+    hbond_pair_score: Callable = attr.ib()
+
+    @hbond_pair_score.default
+    def _load_hbond_pair_score(self):
+        from .potentials.compiled import hbond_pair_score
+
+        return hbond_pair_score
 
     @staticmethod
     def _setup_pair_params(param_resolver, dtype):
@@ -77,7 +81,7 @@ class HBondFun(torch.autograd.Function):
             t.device.type == "cpu" for t in (D, H, donor_type, A, B, B0, acceptor_type)
         )
 
-        inds, E, *dE_dC = hbond_pair_score(
+        inds, E, *dE_dC = ctx.op.hbond_pair_score(
             D, H, donor_type, A, B, B0, acceptor_type, **ctx.op.params
         )
 

@@ -9,8 +9,6 @@ import numpy
 from tmol.types.functional import validate_args
 from tmol.utility.args import ignore_unused_kwargs
 
-from .potentials import compiled
-
 from .params import LJLKDatabase, LJLKParamResolver
 
 
@@ -121,13 +119,37 @@ class _AtomScoreFun(torch.autograd.Function):
 
 @attr.s(auto_attribs=True, frozen=True)
 class LJOp(AtomOp):
-    f: Callable = ignore_unused_kwargs(compiled.lj)
-    f_triu: Callable = ignore_unused_kwargs(compiled.lj_triu)
+    f: Callable = attr.ib()
+    f_triu: Callable = attr.ib()
+
+    @f.default
+    def _load_f(self):
+        from .potentials import compiled
+
+        return ignore_unused_kwargs(compiled.lj)
+
+    @f_triu.default
+    def _load_f_triu(self):
+        from .potentials import compiled
+
+        return ignore_unused_kwargs(compiled.lj_triu)
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class LKOp(AtomOp):
     """torch.autograd hbond baseline operator."""
 
-    f: Callable = ignore_unused_kwargs(compiled.lk_isotropic)
-    f_triu: Callable = ignore_unused_kwargs(compiled.lk_isotropic_triu)
+    f: Callable = attr.ib()
+    f_triu: Callable = attr.ib()
+
+    @f.default
+    def _load_f(self):
+        from .potentials import compiled
+
+        return ignore_unused_kwargs(compiled.lk_isotropic)
+
+    @f_triu.default
+    def _load_f_triu(self):
+        from .potentials import compiled
+
+        return ignore_unused_kwargs(compiled.lk_isotropic_triu)
