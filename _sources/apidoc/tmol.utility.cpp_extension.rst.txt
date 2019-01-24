@@ -7,7 +7,22 @@ tmol.utility.cpp_extension
 .. currentmodule:: tmol.utility.cpp_extension
 
 .. automodule:: tmol.utility.cpp_extension
+    :members: modulename, relpaths
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
+
+    Summary
+    -------
+
+    Functions
+    ~~~~~~~~~
     
+    .. autosummary::
+        :nosignatures:
+
+        modulename
+        relpaths
 
 
 
@@ -15,3 +30,6 @@ tmol.utility.cpp_extension
 
 
 
+
+    Reference
+    ---------
