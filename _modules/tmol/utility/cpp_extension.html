@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.cpp_extension &mdash; TMol 0.0.0-124-g628b334 documentation</title>
+  <title>tmol.utility.cpp_extension &mdash; TMol 0.0.0-125-gf1839010 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-124-g628b334
+                0.0.0-125-gf1839010
               </div>
             
           
@@ -173,6 +173,7 @@
 <span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">include_paths</span> <span class="k">as</span> <span class="n">tmol_include_paths</span>
 
 <span class="kn">import</span> <span class="nn">torch.utils.cpp_extension</span>
+<span class="kn">from</span> <span class="nn">torch.utils.cpp_extension</span> <span class="k">import</span> <span class="n">_is_cuda_file</span>
 
 
 <span class="c1"># Add warning filter for use of c++ (rather than g++) for extension</span>
@@ -190,11 +191,11 @@
 <span class="c1"># _default_flags = [&quot;-O3&quot;]</span>
 <span class="n">_default_flags</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;-g&quot;</span><span class="p">,</span> <span class="s2">&quot;-Og&quot;</span><span class="p">]</span>
 
-<span class="n">_required_cuda_flags</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;--expt-extended-lambda&quot;</span><span class="p">,</span> <span class="s2">&quot;--expt-relaxed-constexpr&quot;</span><span class="p">]</span>
+<span class="n">_required_cuda_flags</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;--expt-extended-lambda&quot;</span><span class="p">]</span>
 <span class="n">_default_cuda_flags</span> <span class="o">=</span> <span class="p">[]</span>
 
 
-<div class="viewcode-block" id="_augment_kwargs"><a class="viewcode-back" href="../../../apidoc/tmol.utility.cpp_extension.html#tmol.utility.cpp_extension._augment_kwargs">[docs]</a><span class="k">def</span> <span class="nf">_augment_kwargs</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="_augment_kwargs"><a class="viewcode-back" href="../../../apidoc/tmol.utility.cpp_extension.html#tmol.utility.cpp_extension._augment_kwargs">[docs]</a><span class="k">def</span> <span class="nf">_augment_kwargs</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;extra_cflags&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
         <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extra_cflags&quot;</span><span class="p">,</span> <span class="n">_default_flags</span><span class="p">))</span> <span class="o">+</span> <span class="n">_required_flags</span>
     <span class="p">)</span>
@@ -206,23 +207,29 @@
         <span class="nb">list</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extra_include_flags&quot;</span><span class="p">,</span> <span class="p">[]))</span> <span class="o">+</span> <span class="n">_default_include_paths</span>
     <span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;with_cuda&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">with_cuda</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">_is_cuda_file</span><span class="p">,</span> <span class="n">sources</span><span class="p">))</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;with_cuda&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">with_cuda</span>
+
+    <span class="k">if</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;with_cuda&quot;</span><span class="p">]:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;extra_cflags&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;-DWITH_CUDA&quot;</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;extra_cuda_cflags&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;-DWITH_CUDA&quot;</span><span class="p">]</span>
+
     <span class="k">return</span> <span class="n">kwargs</span></div>
 
 
 <span class="nd">@wraps</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">cpp_extension</span><span class="o">.</span><span class="n">load</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Jit-compile torch cpp_extension with tmol paths.&quot;&quot;&quot;</span>
-
-    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">_augment_kwargs</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">cpp_extension</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">_augment_kwargs</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">cpp_extension</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
 <span class="nd">@wraps</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">cpp_extension</span><span class="o">.</span><span class="n">load_inline</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">load_inline</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">load_inline</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Jit-compile torch cpp_extension with tmol paths.&quot;&quot;&quot;</span>
-
-    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">_augment_kwargs</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">cpp_extension</span><span class="o">.</span><span class="n">load_inline</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="n">_augment_kwargs</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">cpp_extension</span><span class="o">.</span><span class="n">load_inline</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="relpaths"><a class="viewcode-back" href="../../../apidoc/tmol.utility.cpp_extension.html#tmol.utility.cpp_extension.relpaths">[docs]</a><span class="k">def</span> <span class="nf">relpaths</span><span class="p">(</span><span class="n">src_path</span><span class="p">,</span> <span class="n">paths</span><span class="p">):</span>
@@ -286,7 +293,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-124-g628b334',
+              VERSION:'0.0.0-125-gf1839010',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
