@@ -29,15 +29,15 @@ struct device_name<tmol::Device::CUDA> {
 
 template <typename T, int N>
 struct npy_format_descriptor_name<Eigen::Matrix<T, N, 1>> {
-  static constexpr auto name = _("Vec(") + npy_format_descriptor_name<T>::name
-                               + _(", ") + _<N>() + _(")");
+  static constexpr auto name =
+      npy_format_descriptor_name<T>::name + _("[") + _<N>() + _("]");
 };
 
 template <typename T, int N>
 struct npy_format_descriptor_name<Eigen::AlignedBox<T, N>> {
   static constexpr auto name = _("AlignedBox(")
-                               + npy_format_descriptor_name<T>::name + _(", ")
-                               + _<N * 2>() + _(")");
+                               + npy_format_descriptor_name<T>::name + _("[")
+                               + _<N * 2>() + _("])");
 };
 
 template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
@@ -59,7 +59,9 @@ struct type_caster<tmol::TView<T, N, D, P>> {
     type_caster<at::Tensor> conv;
 
     if (!conv.load(src, convert)) {
+#ifdef DEBUG
       print("Error casting to tensor: ", src);
+#endif
       return false;
     }
 
@@ -67,7 +69,9 @@ struct type_caster<tmol::TView<T, N, D, P>> {
       value = tmol::view_tensor<T, N, D, P>(conv);
       return true;
     } catch (at::Error err) {
+#ifdef DEBUG
       print("Error casting to type: ", type_id<ViewType>(), " value: ", src);
+#endif
       return false;
     }
   }
