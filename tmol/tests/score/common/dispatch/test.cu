@@ -12,3 +12,13 @@ template struct DispatchTest<
     tmol::score::common::ExhaustiveTriuDispatch,
     Device::CUDA,
     double>;
+
+template struct DispatchTest<
+    tmol::score::common::NaiveDispatch,
+    Device::CUDA,
+    double>;
+
+template struct DispatchTest<
+    tmol::score::common::NaiveTriuDispatch,
+    Device::CUDA,
+    double>;
