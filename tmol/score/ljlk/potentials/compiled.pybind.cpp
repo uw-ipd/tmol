@@ -2,8 +2,6 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
-#include <tmol/score/common/dispatch.cpu.impl.hh>
-
 #include "dispatch.hh"
 #include "lj.hh"
 #include "lk_isotropic.hh"
