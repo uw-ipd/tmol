@@ -65,7 +65,7 @@ struct LJDispatch {
     TView<Vec<Real, 3>, 1, D> dV_dJs;
     tie(dV_dJs_t, dV_dJs) = new_tensor<Vec<Real, 3>, 1, D>(num_Vs);
 
-    dispatcher.score([=](int o, int i, int j) mutable {
+    dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
       Int ati = atom_type_i[i];
       Int atj = atom_type_j[j];
 
@@ -134,7 +134,7 @@ struct LKIsotropicDispatch {
     TView<Vec<Real, 3>, 1, D> dV_dJs;
     tie(dV_dJs_t, dV_dJs) = new_tensor<Vec<Real, 3>, 1, D>(num_Vs);
 
-    dispatcher.score([=](int o, int i, int j) mutable {
+    dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
       Int ati = atom_type_i[i];
       Int atj = atom_type_j[j];
 

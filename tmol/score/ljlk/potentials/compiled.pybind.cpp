@@ -128,14 +128,14 @@ void bind_potentials(pybind11::module& m) {
       LJGlobalParams_pyargs());
 }
 
-template <typename Real, typename Int>
+template <tmol::Device D, typename Real, typename Int>
 void bind_dispatch(pybind11::module& m) {
   using namespace pybind11::literals;
   using tmol::score::common::NaiveDispatch;
 
   m.def(
       "lk_isotropic",
-      &LKIsotropicDispatch<NaiveDispatch, tmol::Device::CPU, Real, Int>::f,
+      &LKIsotropicDispatch<NaiveDispatch, D, Real, Int>::f,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -146,7 +146,7 @@ void bind_dispatch(pybind11::module& m) {
 
   m.def(
       "lk_isotropic_triu",
-      &LKIsotropicDispatch<NaiveTriuDispatch, tmol::Device::CPU, Real, Int>::f,
+      &LKIsotropicDispatch<NaiveTriuDispatch, D, Real, Int>::f,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -157,7 +157,7 @@ void bind_dispatch(pybind11::module& m) {
 
   m.def(
       "lj",
-      &LJDispatch<NaiveDispatch, tmol::Device::CPU, Real, Int>::f,
+      &LJDispatch<NaiveDispatch, D, Real, Int>::f,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -168,7 +168,7 @@ void bind_dispatch(pybind11::module& m) {
 
   m.def(
       "lj_triu",
-      &LJDispatch<NaiveTriuDispatch, tmol::Device::CPU, Real, Int>::f,
+      &LJDispatch<NaiveTriuDispatch, D, Real, Int>::f,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -180,8 +180,15 @@ void bind_dispatch(pybind11::module& m) {
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   bind_potentials<double>(m);
-  bind_dispatch<float, int32_t>(m);
-  bind_dispatch<float, int64_t>(m);
-  bind_dispatch<double, int32_t>(m);
-  bind_dispatch<double, int64_t>(m);
+  bind_dispatch<tmol::Device::CPU, float, int32_t>(m);
+  bind_dispatch<tmol::Device::CPU, float, int64_t>(m);
+  bind_dispatch<tmol::Device::CPU, double, int32_t>(m);
+  bind_dispatch<tmol::Device::CPU, double, int64_t>(m);
+
+#ifdef WITH_CUDA
+  bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
+  bind_dispatch<tmol::Device::CUDA, float, int64_t>(m);
+  bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
+  bind_dispatch<tmol::Device::CUDA, double, int64_t>(m);
+#endif
 }
