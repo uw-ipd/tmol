@@ -41,7 +41,7 @@ template<typename real_t>
 MGPU_HOST_DEVICE real_t sq(real_t x) { return x * x; }
 
 template<typename type_t>
-MGPU_HOST_DEVICE void swap(type_t& a, type_t& b) {
+MGPU_HOST_DEVICE void _swap(type_t& a, type_t& b) {
   type_t c = a; a = b; b = c;
 }
 
