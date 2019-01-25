@@ -6,23 +6,25 @@ import hypothesis.strategies
 
 
 import math
+import numba
 
-from tmol.numeric.interpolation.cubic_hermite_polynomial import (
-    interpolate_t,
-    interpolate_dt,
-    interpolate_to_zero_t,
-    interpolate_to_zero_dt,
-    interpolate,
-    interpolate_dx,
-    interpolate_to_zero,
-    interpolate_to_zero_dx,
-)
+import tmol.numeric.interpolation.cubic_hermite_polynomial as cubic_hermite_polynomial
+
+interpolate_t = numba.jit(cubic_hermite_polynomial.interpolate_t)
+interpolate_dt = numba.jit(cubic_hermite_polynomial.interpolate_dt)
+interpolate_to_zero_t = numba.jit(cubic_hermite_polynomial.interpolate_to_zero_t)
+interpolate_to_zero_dt = numba.jit(cubic_hermite_polynomial.interpolate_to_zero_dt)
+interpolate = numba.jit(cubic_hermite_polynomial.interpolate)
+interpolate_dx = numba.jit(cubic_hermite_polynomial.interpolate_dx)
+interpolate_to_zero = numba.jit(cubic_hermite_polynomial.interpolate_to_zero)
+interpolate_to_zero_dx = numba.jit(cubic_hermite_polynomial.interpolate_to_zero_dx)
 
 # Use width=16 restricting test values to "reasonable" precision (e > -8)
 real = hypothesis.strategies.floats(allow_infinity=False, width=16)
 
 
 @hypothesis.given(real, real, real, real)
+@hypothesis.settings(deadline=None, derandomize=True)
 def test_unit_interpolate(p0, dp0, p1, dp1):
     params = (p0, dp0, p1, dp1)
     if any(map(math.isnan, params)):
@@ -38,6 +40,7 @@ def test_unit_interpolate(p0, dp0, p1, dp1):
 
 
 @hypothesis.given(real, real)
+@hypothesis.settings(deadline=None, derandomize=True)
 def test_unit_interpolate_to_zero(p0, dp0):
     params = (p0, dp0)
     if any(map(math.isnan, params)):
@@ -53,6 +56,7 @@ def test_unit_interpolate_to_zero(p0, dp0):
 
 
 @hypothesis.given(real, real, real, real, real, real)
+@hypothesis.settings(deadline=None, derandomize=True)
 def test_interpolate(x0, p0, dpdx0, x1, p1, dpdx1):
     params = (x0, p0, dpdx0, x1, p1, dpdx1)
     if x0 == x1:
@@ -77,6 +81,7 @@ def test_interpolate(x0, p0, dpdx0, x1, p1, dpdx1):
 
 
 @hypothesis.given(real, real, real, real, real, real)
+@hypothesis.settings(deadline=None, derandomize=True)
 def test_interpolate_to_zero(x0, p0, dpdx0, x1, p1, dpdx1):
     params = (x0, p0, dpdx0, x1)
     if x0 == x1:
