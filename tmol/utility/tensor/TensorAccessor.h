@@ -110,7 +110,7 @@ class TensorAccessor<T, 1, D, P> : public TensorAccessorBase<T, 1, D, P> {
   AT_HOST_DEVICE TensorAccessor(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : TensorAccessorBase<T, 1, D, P>(data_, sizes_, strides_) {}
-  AT_HOST_DEVICE T& operator[](int64_t i) {
+  AT_HOST_DEVICE T& operator[](int64_t i) const {
     return this->data_[this->strides_[0] * i];
   }
 };
@@ -169,8 +169,8 @@ class TView : public TViewBase<T, N, D, P> {
 
   AT_HOST_DEVICE const TensorAccessor<T, N - 1, D, P> operator[](
       int64_t i) const {
-    int64_t* new_sizes = this->sizes_ + 1;
-    int64_t* new_strides = this->strides_ + 1;
+    const int64_t* new_sizes = this->sizes_ + 1;
+    const int64_t* new_strides = this->strides_ + 1;
     return TensorAccessor<T, N - 1, D, P>(
         this->data_ + this->strides_[0] * i, new_sizes, new_strides);
   }
@@ -189,7 +189,7 @@ class TView<T, 1, D, P> : public TViewBase<T, 1, D, P> {
   AT_HOST_DEVICE T& operator[](int64_t i) {
     return this->data_[this->strides_[0] * i];
   }
-  AT_HOST_DEVICE const T& operator[](int64_t i) const {
+  AT_HOST_DEVICE T& operator[](int64_t i) const {
     return this->data_[this->strides_[0] * i];
   }
 };
