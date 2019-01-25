@@ -2,7 +2,7 @@ import pytest
 
 import torch
 
-from tmol.utility.cpp_extension import load, relpaths, modulename
+from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
 from tmol.tests.torch import requires_cuda
 
@@ -35,8 +35,7 @@ def test_cuda():
     assert extension.sum(torch.ones(10, device="cuda")) == 10
 
 
-@requires_cuda
-def test_hybrid():
+def test_hybrid(torch_device):
     """Hybrid cpp/cuda defined in .cpp/.cu files builds combined interface.
 
     Hybrid extension loads with "cpp_extension.load" interface, compiles sum
@@ -44,11 +43,12 @@ def test_hybrid():
     """
     extension = load(
         modulename(f"{__name__}.hybrid"),
-        relpaths(__file__, ["hybrid.pybind.cpp", "hybrid.cpp", "hybrid.cu"]),
+        cuda_if_available(
+            relpaths(__file__, ["hybrid.pybind.cpp", "hybrid.cpp", "hybrid.cu"])
+        ),
     )
 
-    assert extension.sum(torch.ones(10, device="cpu")) == 10
-    assert extension.sum(torch.ones(10, device="cuda")) == 10
+    assert extension.sum(torch.ones(10, device=torch_device)) == 10
 
 
 def test_hybrid_nocuda():

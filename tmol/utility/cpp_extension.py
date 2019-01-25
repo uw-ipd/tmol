@@ -51,6 +51,14 @@ def _augment_kwargs(name, sources, **kwargs):
     return kwargs
 
 
+def cuda_if_available(sources):
+    """Filter cuda sources if cuda is not available."""
+    if torch.cuda.is_available():
+        return sources
+    else:
+        return [s for s in sources if not _is_cuda_file(s)]
+
+
 @wraps(torch.utils.cpp_extension.load)
 def load(name, sources, **kwargs):
     """Jit-compile torch cpp_extension with tmol paths."""
