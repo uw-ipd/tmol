@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-129-gd00a3d1c documentation</title>
+  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-130-g183f3cf2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-129-gd00a3d1c
+                0.0.0-130-g183f3cf2
               </div>
             
           
@@ -176,8 +176,6 @@
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span> <span class="nn">tmol.utility.args</span> <span class="k">import</span> <span class="n">ignore_unused_kwargs</span>
 
-<span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">compiled</span>
-
 <span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">LJLKDatabase</span><span class="p">,</span> <span class="n">LJLKParamResolver</span>
 
 
@@ -288,16 +286,40 @@
 
 <div class="viewcode-block" id="LJOp"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.LJOp">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LJOp</span><span class="p">(</span><span class="n">AtomOp</span><span class="p">):</span>
-    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lj</span><span class="p">)</span>
-    <span class="n">f_triu</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lj_triu</span><span class="p">)</span></div>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="n">f_triu</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="LJOp._load_f"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.LJOp._load_f">[docs]</a>    <span class="nd">@f</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_f</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">compiled</span>
+
+        <span class="k">return</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lj</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LJOp._load_f_triu"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.LJOp._load_f_triu">[docs]</a>    <span class="nd">@f_triu</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_f_triu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">compiled</span>
+
+        <span class="k">return</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lj_triu</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LKOp"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.LKOp">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LKOp</span><span class="p">(</span><span class="n">AtomOp</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;torch.autograd hbond baseline operator.&quot;&quot;&quot;</span>
 
-    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lk_isotropic</span><span class="p">)</span>
-    <span class="n">f_triu</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lk_isotropic_triu</span><span class="p">)</span></div>
+    <span class="n">f</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="n">f_triu</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
+<div class="viewcode-block" id="LKOp._load_f"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.LKOp._load_f">[docs]</a>    <span class="nd">@f</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_f</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">compiled</span>
+
+        <span class="k">return</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lk_isotropic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LKOp._load_f_triu"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.LKOp._load_f_triu">[docs]</a>    <span class="nd">@f_triu</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">def</span> <span class="nf">_load_f_triu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">compiled</span>
+
+        <span class="k">return</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">lk_isotropic_triu</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
@@ -334,7 +356,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-129-gd00a3d1c',
+              VERSION:'0.0.0-130-g183f3cf2',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

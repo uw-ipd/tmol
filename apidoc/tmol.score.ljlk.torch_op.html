@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-129-gd00a3d1c documentation</title>
+  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-130-g183f3cf2 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-129-gd00a3d1c
+                0.0.0-130-g183f3cf2
               </div>
             
           
@@ -292,15 +292,35 @@ output.</p>
 
 <dl class="class">
 <dt id="tmol.score.ljlk.torch_op.LJOp">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">LJOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]], f: Callable = &lt;function PyCapsule.lj&gt;, f_triu: Callable = &lt;function PyCapsule.lj_triu&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LJOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LJOp" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">LJOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]], f: Callable = NOTHING, f_triu: Callable = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LJOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LJOp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomOp" title="tmol.score.ljlk.torch_op.AtomOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ljlk.torch_op.AtomOp</span></code></a></p>
+<dl class="method">
+<dt id="tmol.score.ljlk.torch_op.LJOp._load_f">
+<code class="descname">_load_f</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LJOp._load_f"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LJOp._load_f" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.ljlk.torch_op.LJOp._load_f_triu">
+<code class="descname">_load_f_triu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LJOp._load_f_triu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LJOp._load_f_triu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="tmol.score.ljlk.torch_op.LKOp">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">LKOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]], f: Callable = &lt;function PyCapsule.lk_isotropic&gt;, f_triu: Callable = &lt;function PyCapsule.lk_isotropic_triu&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LKOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LKOp" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.torch_op.</code><code class="descname">LKOp</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver, params: Mapping[str, Union[float, numpy.ndarray]], f: Callable = NOTHING, f_triu: Callable = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LKOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LKOp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#tmol.score.ljlk.torch_op.AtomOp" title="tmol.score.ljlk.torch_op.AtomOp"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.ljlk.torch_op.AtomOp</span></code></a></p>
 <p>torch.autograd hbond baseline operator.</p>
+<dl class="method">
+<dt id="tmol.score.ljlk.torch_op.LKOp._load_f">
+<code class="descname">_load_f</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LKOp._load_f"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LKOp._load_f" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.ljlk.torch_op.LKOp._load_f_triu">
+<code class="descname">_load_f_triu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/torch_op.html#LKOp._load_f_triu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.torch_op.LKOp._load_f_triu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </div>
@@ -350,7 +370,7 @@ output.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-129-gd00a3d1c',
+              VERSION:'0.0.0-130-g183f3cf2',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

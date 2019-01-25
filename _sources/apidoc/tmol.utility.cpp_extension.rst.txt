@@ -7,7 +7,7 @@ tmol.utility.cpp_extension
 .. currentmodule:: tmol.utility.cpp_extension
 
 .. automodule:: tmol.utility.cpp_extension
-    :members: modulename, relpaths
+    :members: cuda_if_available, modulename, relpaths
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,6 +21,7 @@ tmol.utility.cpp_extension
     .. autosummary::
         :nosignatures:
 
+        cuda_if_available
         modulename
         relpaths
 
