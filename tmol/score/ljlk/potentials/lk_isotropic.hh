@@ -15,17 +15,21 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
+#define def                \
+  template <typename Real> \
+  auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+
 using namespace tmol::score::common;
 using std::tie;
 using std::tuple;
 
-template <typename Real>
-auto f_desolv_V(
+def f_desolv_V(
     Real dist,
     Real lj_radius_i,
     Real lk_dgfree_i,
     Real lk_lambda_i,
-    Real lk_volume_j) -> Real {
+    Real lk_volume_j)
+    ->Real {
   using std::exp;
   using std::pow;
   const Real pi = EIGEN_PI;
@@ -41,13 +45,13 @@ auto f_desolv_V(
   // clang-format on
 }
 
-template <typename Real>
-auto f_desolv_V_dV(
+def f_desolv_V_dV(
     Real dist,
     Real lj_radius_i,
     Real lk_dgfree_i,
     Real lk_lambda_i,
-    Real lk_volume_j) -> tuple<Real, Real> {
+    Real lk_volume_j)
+    ->tuple<Real, Real> {
   using std::exp;
   using std::pow;
   const Real pi = EIGEN_PI;
@@ -81,15 +85,15 @@ auto f_desolv_V_dV(
   return {desolv, d_desolv_d_dist};
 }
 
-template <typename Real>
-auto lk_isotropic_pair_V(
+def lk_isotropic_pair_V(
     Real dist,
     Real bonded_path_length,
     Real lj_sigma_ij,
     Real lj_radius_i,
     Real lk_dgfree_i,
     Real lk_lambda_i,
-    Real lk_volume_j) -> Real {
+    Real lk_volume_j)
+    ->Real {
   Real d_min = lj_sigma_ij * .89;
 
   Real cpoly_close_dmin = d_min - 0.25;
@@ -137,15 +141,15 @@ auto lk_isotropic_pair_V(
   return weight * lk;
 }
 
-template <typename Real>
-auto lk_isotropic_pair_V_dV(
+def lk_isotropic_pair_V_dV(
     Real dist,
     Real bonded_path_length,
     Real lj_sigma_ij,
     Real lj_radius_i,
     Real lk_dgfree_i,
     Real lk_lambda_i,
-    Real lk_volume_j) -> tuple<Real, Real> {
+    Real lk_volume_j)
+    ->tuple<Real, Real> {
   Real d_min = lj_sigma_ij * .89;
 
   Real cpoly_close_dmin = d_min - 0.25;
@@ -196,13 +200,13 @@ auto lk_isotropic_pair_V_dV(
   return {weight * lk, weight * d_lk_d_dist};
 }
 
-template <typename Real>
-auto lk_isotropic_score_V_dV(
+def lk_isotropic_score_V_dV(
     Real dist,
     Real bonded_path_length,
     LKTypeParams<Real> i,
     LKTypeParams<Real> j,
-    LJGlobalParams<Real> global) -> tuple<Real, Real> {
+    LJGlobalParams<Real> global)
+    ->tuple<Real, Real> {
   Real sigma = lj_sigma<Real>(i, j, global);
 
   return add(
@@ -224,13 +228,13 @@ auto lk_isotropic_score_V_dV(
           i.lk_volume));
 }
 
-template <typename Real>
-auto lk_isotropic_score_V(
+def lk_isotropic_score_V(
     Real dist,
     Real bonded_path_length,
     LKTypeParams<Real> i,
     LKTypeParams<Real> j,
-    LJGlobalParams<Real> global) -> Real {
+    LJGlobalParams<Real> global)
+    ->Real {
   Real sigma = lj_sigma<Real>(i, j, global);
 
   return lk_isotropic_pair_V(
@@ -250,6 +254,8 @@ auto lk_isotropic_score_V(
                j.lk_lambda,
                i.lk_volume);
 }
+
+#undef def
 
 }  // namespace potentials
 }  // namespace ljlk

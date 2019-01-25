@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Eigen/src/Core/util/Macros.h>
 #include <cmath>
 #include <tuple>
 
@@ -12,12 +13,15 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
+#define def                \
+  template <typename Real> \
+  auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+
 using namespace tmol::score::common;
 using std::tie;
 using std::tuple;
 
-template <typename Real>
-auto vdw_V(Real dist, Real sigma, Real epsilon) -> Real {
+def vdw_V(Real dist, Real sigma, Real epsilon)->Real {
   Real sd = (sigma / dist);
   Real sd2 = sd * sd;
   Real sd6 = sd2 * sd2 * sd2;
@@ -25,8 +29,7 @@ auto vdw_V(Real dist, Real sigma, Real epsilon) -> Real {
   return epsilon * (sd12 - 2 * sd6);
 }
 
-template <typename Real>
-auto vdw_V_dV(Real dist, Real sigma, Real epsilon) -> tuple<Real, Real> {
+def vdw_V_dV(Real dist, Real sigma, Real epsilon)->tuple<Real, Real> {
   Real sd = (sigma / dist);
   Real sd2 = sd * sd;
   Real sd6 = sd2 * sd2 * sd2;
@@ -36,13 +39,13 @@ auto vdw_V_dV(Real dist, Real sigma, Real epsilon) -> tuple<Real, Real> {
           epsilon * ((-12.0 * sd12 / dist) - (2.0 * -6.0 * sd6 / dist))};
 }
 
-template <typename Real>
-auto lj_score_V(
+def lj_score_V(
     Real dist,
     Real bonded_path_length,
     LJTypeParams<Real> i,
     LJTypeParams<Real> j,
-    LJGlobalParams<Real> global) -> Real {
+    LJGlobalParams<Real> global)
+    ->Real {
   Real sigma = lj_sigma<Real>(i, j, global);
   Real weight = connectivity_weight<Real, Real>(bonded_path_length);
   Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
@@ -65,20 +68,21 @@ auto lj_score_V(
     Real vdw, d_vdw_d_dist;
     tie(vdw, d_vdw_d_dist) = vdw_V_dV(cpoly_dmin, sigma, epsilon);
     return weight
-           * interpolate_to_zero(dist, cpoly_dmin, vdw, d_vdw_d_dist, cpoly_dmax);
+           * interpolate_to_zero(
+                 dist, cpoly_dmin, vdw, d_vdw_d_dist, cpoly_dmax);
 
   } else {
     return 0.0;
   }
 }
 
-template <typename Real>
-auto lj_score_V_dV(
+def lj_score_V_dV(
     Real dist,
     Real bonded_path_length,
     LJTypeParams<Real> i,
     LJTypeParams<Real> j,
-    LJGlobalParams<Real> global) -> tuple<Real, Real> {
+    LJGlobalParams<Real> global)
+    ->tuple<Real, Real> {
   Real sigma = lj_sigma<Real>(i, j, global);
   Real weight = connectivity_weight<Real, Real>(bonded_path_length);
   Real epsilon = std::sqrt(i.lj_wdepth * j.lj_wdepth);
@@ -103,8 +107,8 @@ auto lj_score_V_dV(
     d_lj_d_dist = d_vdw_d_dist;
   } else if (dist < cpoly_dmax) {
     tie(vdw, d_vdw_d_dist) = vdw_V_dV(cpoly_dmin, sigma, epsilon);
-    tie(lj, d_lj_d_dist) =
-        interpolate_to_zero_V_dV(dist, cpoly_dmin, vdw, d_vdw_d_dist, cpoly_dmax);
+    tie(lj, d_lj_d_dist) = interpolate_to_zero_V_dV(
+        dist, cpoly_dmin, vdw, d_vdw_d_dist, cpoly_dmax);
 
   } else {
     lj = 0.0;
@@ -113,6 +117,8 @@ auto lj_score_V_dV(
 
   return {weight * lj, weight * d_lj_d_dist};
 }
+
+#undef def
 
 }  // namespace potentials
 }  // namespace ljlk
