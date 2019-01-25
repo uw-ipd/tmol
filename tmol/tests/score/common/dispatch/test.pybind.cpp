@@ -1,5 +1,3 @@
-#include <pybind11/eigen.h>
-#include <torch/torch.h>
 
 #include <tmol/utility/tensor/pybind.h>
 
@@ -37,6 +35,8 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           double>::f,
       "coords"_a);
 
+#ifdef WITH_CUDA
+
   m.def(
       "exhaustive_dispatch",
       &DispatchTest<
@@ -66,4 +66,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           Device::CUDA,
           double>::f,
       "coords"_a);
+
+#endif
 }
