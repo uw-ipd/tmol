@@ -198,11 +198,11 @@ texinfo_documents = [
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/", None),
-    "numpy": ("http://docs.scipy.org/doc/numpy/", None),
-    "torch": ("http://pytorch.org/docs/stable/", None),
-    "numba": ("http://numba.pydata.org/numba-doc/latest/", None),
+    "numpy": ("https://docs.scipy.org/doc/numpy-1.14.5/", None),
+    "torch": ("https://pytorch.org/docs/0.4.1/", None),
+    "numba": ("http://numba.pydata.org/numba-doc/0.40.0/", None),
     "attrs": ("http://www.attrs.org/en/stable/", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "pandas": ("http://pandas.pydata.org/pandas-docs/version/0.22/", None),
     "pint": ("http://pint.readthedocs.io/en/latest/", None),
     "toolz": ("http://toolz.readthedocs.io/en/latest/", None),
 }

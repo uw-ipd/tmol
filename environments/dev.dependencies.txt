@@ -1,5 +1,4 @@
 ipykernel
-numba
 seaborn
 biopython
 line_profiler
