@@ -169,7 +169,6 @@ struct NaiveDispatch<tmol::Device::CUDA> {
     _compact.reset(new TransformCompact(_n_i * _n_j, *_context));
 
     int n_j = _n_j;
-    int n_i = _n_i;
 
     return _compact->upsweep([=] MGPU_DEVICE(int index) {
       Eigen::AlignedBox<Real, 3> tbox(
@@ -188,7 +187,6 @@ struct NaiveDispatch<tmol::Device::CUDA> {
   template <typename funct_t>
   void score(funct_t f) {
     int n_j = _n_j;
-    int n_i = _n_i;
 
     _compact->downsweep([=] MGPU_DEVICE(int dest_index, int src_index) {
       int i = src_index / n_j;
