@@ -20,13 +20,14 @@ auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
 
   Real squared_threshold = 6.0 * 6.0;
 
-  dispatcher.score([=](int o, int i, int j) mutable {
+  dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
     ind[o][0] = i;
     ind[o][1] = j;
+
     if ((coords[i] - coords[j]).squaredNorm() < squared_threshold) {
-      score[o] = 1;
+      score[o] = 1.0;
     } else {
-      score[o] = 0;
+      score[o] = 0.0;
     }
   });
 

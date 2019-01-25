@@ -36,4 +36,20 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
           Device::CPU,
           double>::f,
       "coords"_a);
+
+  m.def(
+      "exhaustive_dispatch",
+      &DispatchTest<
+          tmol::score::common::ExhaustiveDispatch,
+          Device::CUDA,
+          double>::f,
+      "coords"_a);
+
+  m.def(
+      "exhaustive_triu_dispatch",
+      &DispatchTest<
+          tmol::score::common::ExhaustiveTriuDispatch,
+          Device::CUDA,
+          double>::f,
+      "coords"_a);
 }
