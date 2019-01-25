@@ -24,7 +24,7 @@ _required_flags = ["--std=c++14"]
 # _default_flags = ["-O3"]
 _default_flags = ["-g", "-Og"]
 
-_required_cuda_flags = ["--expt-extended-lambda"]
+_required_cuda_flags = ["--expt-extended-lambda", "--expt-relaxed-constexpr"]
 _default_cuda_flags = []
 
 
