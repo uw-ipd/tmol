@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Eigen/src/Core/util/Macros.h>
+#include <Eigen/Core>
 #include <cmath>
-#include <tuple>
 
 #include <tmol/score/common/cubic_hermite_polynomial.hh>
+#include <tmol/score/common/tuple.hh>
 
 #include "common.hh"
 
@@ -18,8 +18,6 @@ namespace potentials {
   auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 using namespace tmol::score::common;
-using std::tie;
-using std::tuple;
 
 def vdw_V(Real dist, Real sigma, Real epsilon)->Real {
   Real sd = (sigma / dist);

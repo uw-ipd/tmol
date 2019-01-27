@@ -3,6 +3,7 @@
 
 #include "test.hh"
 
+namespace tmol {
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
@@ -69,3 +70,4 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
 #endif
 }
+}  // namespace tmol

@@ -3,13 +3,13 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <memory>
-#include <tuple>
-
-#include <tmol/utility/tensor/TensorAccessor.h>
-#include <tmol/utility/tensor/TensorUtil.h>
 
 #include <moderngpu/kernel_compact.hxx>
 #include <moderngpu/transform.hxx>
+
+#include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/score/common/tuple.hh>
 
 #include "dispatch.hh"
 
@@ -17,8 +17,6 @@ namespace tmol {
 namespace score {
 namespace common {
 
-using std::tie;
-using std::tuple;
 using tmol::new_tensor;
 using tmol::TView;
 
@@ -116,13 +114,8 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
       TView<Vec<Real, 3>, 1, D> coords_j) {
-    int n_hit = 0;
-
-    for (int i = 0; i < _n_i; i++) {
-      n_hit += _n_j - i;
-    }
-
-    return n_hit;
+    int i = _n_i - 1;
+    return (_n_i * _n_j) - (i * i + i) / 2;
   }
 
   template <typename funct_t>
@@ -220,10 +213,7 @@ struct NaiveTriuDispatch<tmol::Device::CUDA> {
     _context.reset(new mgpu::standard_context_t());
     _compact.reset(new TransformCompact(_n_i * _n_j, *_context));
 
-    int n_j = _n_j;
-    int n_i = _n_i;
-
-    return _compact->upsweep([=] MGPU_DEVICE(int index) {
+    return _compact->upsweep([=, n_j = _n_j] MGPU_DEVICE(int index) {
       int i = index / n_j;
       int j = index % n_j;
 
@@ -243,10 +233,7 @@ struct NaiveTriuDispatch<tmol::Device::CUDA> {
 
   template <typename funct_t>
   void score(funct_t f) {
-    int n_j = _n_j;
-    int n_i = _n_i;
-
-    _compact->downsweep([=] MGPU_DEVICE(int dest_index, int src_index) {
+    _compact->downsweep([=, n_j = _n_j] MGPU_DEVICE(int dest_index, int src_index) {
       int i = src_index / n_j;
       int j = src_index % n_j;
 

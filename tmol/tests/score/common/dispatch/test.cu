@@ -3,6 +3,7 @@
 
 #include "test.impl.hh"
 
+namespace tmol {
 template struct DispatchTest<
     tmol::score::common::ExhaustiveDispatch,
     Device::CUDA,
@@ -22,3 +23,4 @@ template struct DispatchTest<
     tmol::score::common::NaiveTriuDispatch,
     Device::CUDA,
     double>;
+}  // namespace tmol

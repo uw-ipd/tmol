@@ -1,16 +1,13 @@
 #pragma once
 
-#include <tuple>
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+
+#include <tmol/score/common/tuple.hh>
 
 namespace tmol {
 namespace score {
 namespace common {
-
-using std::tuple;
-using std::tie;
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
@@ -31,7 +28,7 @@ def distance_V_dV(Real3 A, Real3 B)->tuple<Real, Real3, Real3> {
     return {V, delta / V, -delta / V};
   } else {
     // Correct for nan, gradient is discontinuous across dist = 0
-    return {V, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+    return {V, Real3({0.0, 0.0, 0.0}), Real3({0.0, 0.0, 0.0})};
   }
 }
 

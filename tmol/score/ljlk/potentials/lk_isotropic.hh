@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cmath>
-#include <tuple>
 
 #include <Eigen/Core>
 
 #include <tmol/score/common/cubic_hermite_polynomial.hh>
+#include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
 #include "common.hh"
@@ -20,8 +20,6 @@ namespace potentials {
   auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 using namespace tmol::score::common;
-using std::tie;
-using std::tuple;
 
 def f_desolv_V(
     Real dist,

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
-#include <tuple>
+#include <tmol/score/common/tuple.hh>
 
 namespace tmol {
 namespace score {
@@ -65,7 +65,7 @@ def interpolate_dx(
 
 def interpolate_V_dV(
     Real x, Real x0, Real p0, Real dpdx0, Real x1, Real p1, Real dpdx1)
-    ->std::tuple<Real, Real> {
+    ->tuple<Real, Real> {
   // Cubic interpolation of p, dp/dx on x in [x0, x1].
   Real t = (x - x0) / (x1 - x0);
   Real dp0 = dpdx0 * (x1 - x0);
@@ -123,7 +123,7 @@ def interpolate_to_zero_dx(Real x, Real x0, Real p0, Real dpdx0, Real x1)
 }
 
 def interpolate_to_zero_V_dV(Real x, Real x0, Real p0, Real dpdx0, Real x1)
-    ->std::tuple<Real, Real> {
+    ->tuple<Real, Real> {
   // Cubic interpolation of dp/dx on x in [x0, x1] to (p1, dpdx1) == 0 at x1.
   Real t = (x - x0) / (x1 - x0);
   Real dp0 = dpdx0 * (x1 - x0);
