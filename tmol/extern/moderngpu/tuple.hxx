@@ -227,7 +227,11 @@ const tuple_leaf<i, arg_t>& get_leaf(const tuple_leaf<i, arg_t>& leaf) {
   return leaf;
 }
 
-} // namespace detail
+template <typename T, typename T2, size_t... Is>
+MGPU_HOST_DEVICE T& _assign(
+    T& t1, const T2& t2, integer_sequence<size_t, Is...>);
+
+}  // namespace detail
 
 template<typename... args_t>
 struct tuple : detail::tuple_impl<0, args_t...> { 
@@ -259,6 +263,15 @@ struct tuple : detail::tuple_impl<0, args_t...> {
     >::type
   > MGPU_HOST_DEVICE  
   tuple(const args2_t&... args) : impl_t(args...) { }
+
+  template <typename... args2_t,
+    typename = typename std::enable_if<
+      sizeof...(args2_t) == sizeof...(args_t)
+    >::type
+  > MGPU_HOST_DEVICE
+  tuple<args_t...>& operator=(const tuple<args2_t...>& other) {
+    return detail::_assign(*this, other, index_sequence_for<args2_t...>{});
+  }
 } __attribute__((aligned));
 
 namespace detail {
@@ -304,6 +317,15 @@ template<typename... args_t> MGPU_HOST_DEVICE
 tuple<args_t&&...> forward_as_tuple(args_t&&... args) {
   return tuple<args_t&&...>(std::forward<args_t>(args)...);
 }
+
+namespace detail {
+template <typename args_t, typename args2_t, size_t... Is>
+MGPU_HOST_DEVICE args_t& _assign(
+    args_t& t1, const args2_t& t2, integer_sequence<size_t, Is...>) {
+  auto l = {(get<Is>(t1) = get<Is>(t2), 0)...};
+  return t1;
+}
+}  // namespace detail
 
 ////////////
 // tuple_cat
