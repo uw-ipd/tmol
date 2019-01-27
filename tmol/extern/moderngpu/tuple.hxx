@@ -13,19 +13,22 @@ using decay_t = typename std::decay<type_t>::type;
 
 // Improved linear index_sequence from
 // http://talesofcpp.fusionfenix.com/post-22/true-story-efficient-packing
-template<size_t... int_s>
-struct index_sequence { 
+template <class T, T... int_s>
+struct integer_sequence {
   enum { size = sizeof...(int_s) };
 };
+
+template <std::size_t... Ints>
+using index_sequence = integer_sequence<std::size_t, Ints...>;
 
 namespace detail {
 template<typename seq_t>
 struct _next;
 
-template<size_t... seq_i>
-struct _next<index_sequence<seq_i...> > {
+template<class T, T... seq_i>
+struct _next<integer_sequence<T, seq_i...>> {
   // grow the sequence by one element.
-  typedef index_sequence<seq_i..., sizeof...(seq_i)> type;
+  typedef integer_sequence<T, seq_i..., sizeof...(seq_i)> type;
 };
 
 template<size_t count>
@@ -40,6 +43,9 @@ template<> struct _make_index_sequence<0> {
 template<size_t count>
 using make_index_sequence = 
   typename detail::_make_index_sequence<count>::type;
+
+template <class... T>
+using index_sequence_for = make_index_sequence<sizeof...(T)>;
 
 //////////
 // var_and
