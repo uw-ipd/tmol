@@ -16,6 +16,7 @@ from .params import LJLKDatabase, LJLKParamResolver
 class AtomOp:
     """torch.autograd atom pair score baseline operator."""
 
+    device: torch.device
     param_resolver: LJLKParamResolver
     params: Mapping[str, Union[float, numpy.ndarray]]
 
@@ -28,16 +29,15 @@ class AtomOp:
                 valmap(float, asdict(param_resolver.global_params)),
                 asdict(param_resolver.type_params),
             ),
+            device=param_resolver.device,
         )
 
     @classmethod
     @validate_args
-    def from_database(cls, ljlk_database: LJLKDatabase):
+    def from_database(cls, ljlk_database: LJLKDatabase, device: torch.device):
 
         return cls.from_param_resolver(
-            param_resolver=LJLKParamResolver.from_database(
-                ljlk_database, torch.device("cpu")
-            )
+            param_resolver=LJLKParamResolver.from_database(ljlk_database, device)
         )
 
     def inter(
@@ -47,6 +47,7 @@ class AtomOp:
         i, v = _AtomScoreFun(self, self.f)(
             coords_a, atom_types_a, coords_b, atom_types_b, bonded_path_lengths
         )
+
         return (i.detach(), v)
 
     def intra(self, coords, atom_types, bonded_path_lengths):
@@ -77,11 +78,6 @@ class _AtomScoreFun(torch.autograd.Function):
         assert J.shape[:1] == atom_type_J.shape
         assert not atom_type_J.requires_grad
 
-        assert all(
-            t.device.type == "cpu"
-            for t in (I, atom_type_I, J, atom_type_J, bonded_path_lengths)
-        )
-
         params = valmap(
             lambda t: t.to(I.dtype)
             if isinstance(t, torch.Tensor) and t.is_floating_point()
@@ -92,6 +88,12 @@ class _AtomScoreFun(torch.autograd.Function):
         inds, E, *dE_dC = ctx.f(
             I, atom_type_I, J, atom_type_J, bonded_path_lengths, **params
         )
+
+        # Assert of returned shape of indicies and scores. Seeing strange
+        # results w/ reversed ordering if mgpu::tuple converted std::tuple
+        assert inds.dim() == 2
+        assert inds.shape[1] == 2
+        assert inds.shape[0] == E.shape[0]
 
         inds = inds.transpose(0, 1)
 

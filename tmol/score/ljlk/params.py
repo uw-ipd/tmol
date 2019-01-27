@@ -56,6 +56,8 @@ class LJLKParamResolver(ValidateAttrs):
     # shape [n] per-type parameters, source params used to calculate pair parameters
     type_params: LJLKTypeParams
 
+    device: torch.device
+
     def type_idx(self, atom_types: NDArray(object)[...]) -> NDArray("i8")[...]:
         """Convert array of atom type names to parameter indices.
 
@@ -119,4 +121,5 @@ class LJLKParamResolver(ValidateAttrs):
             atom_type_index=atom_type_index,
             global_params=global_params,
             type_params=type_params,
+            device=device,
         )

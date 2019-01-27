@@ -6,8 +6,6 @@ from tmol.utility.reactive import reactive_attrs
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 
-from tmol.tests.torch import cuda_not_implemented
-
 
 @reactive_attrs
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
@@ -34,7 +32,6 @@ comparisons = {
     list(comparisons.values()),
     ids=list(comparisons.keys()),
 )
-@cuda_not_implemented
 def test_baseline_comparison(ubq_system, torch_device, graph_class, expected_scores):
     test_graph = graph_class.build_for(
         ubq_system, drop_missing_atoms=False, requires_grad=False, device=torch_device
