@@ -21,18 +21,6 @@ auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
   Real squared_threshold = 6.0 * 6.0;
 
   dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
-
-    if( i >= coords.size(0)){
-      std::cerr << "bad i" << std::endl;
-    }
-    if( j >= coords.size(0)){
-      std::cerr << "bad j" << std::endl;
-    }
-    if( o >= score.size(0) ){
-      std::cerr << "bad o" << std::endl;
-    }
-
-
     ind[o][0] = i;
     ind[o][1] = j;
 

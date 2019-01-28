@@ -14,10 +14,9 @@ import sparse
 @pytest.mark.benchmark(group="dispatch")
 @pytest.mark.parametrize("dispatch_type", [
     "exhaustive",
-    # "naive",
+    "naive",
     "exhaustive_omp",
     "aabb",
-    # "aabb_omp",
 ])
 def test_dispatch(benchmark, dispatch_type, torch_device, ubq_system):
     compiled = load(
@@ -53,8 +52,8 @@ def test_dispatch(benchmark, dispatch_type, torch_device, ubq_system):
 
 @pytest.mark.benchmark(group="dispatch")
 @pytest.mark.parametrize("dispatch_type", [
-    # "exhaustive",
-    # "naive",
+    "exhaustive",
+    "naive",
 ])
 def test_triu_dispatch(benchmark, dispatch_type, torch_device, ubq_system):
     compiled = load(

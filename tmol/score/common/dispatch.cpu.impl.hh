@@ -33,8 +33,10 @@ struct ExhaustiveDispatch<tmol::Device::CPU> {
   ExhaustiveDispatch(int n_i, int n_j) : n_i(n_i), n_j(n_j) {}
 
   template <typename Real>
-  int scan(Real threshold_distance, TView<Vec<Real, 3>, 1, D> coords_i,
-           TView<Vec<Real, 3>, 1, D> coords_j) {
+  int scan(
+      Real threshold_distance,
+      TView<Vec<Real, 3>, 1, D> coords_i,
+      TView<Vec<Real, 3>, 1, D> coords_j) {
     return n_i * n_j;
   }
 
@@ -59,8 +61,10 @@ struct ExhaustiveTriuDispatch<tmol::Device::CPU> {
   ExhaustiveTriuDispatch(int n_i, int n_j) : n_i(n_i), n_j(n_j) {}
 
   template <typename Real>
-  int scan(Real threshold_distance, TView<Vec<Real, 3>, 1, D> coords_i,
-           TView<Vec<Real, 3>, 1, D> coords_j) {
+  int scan(
+      Real threshold_distance,
+      TView<Vec<Real, 3>, 1, D> coords_i,
+      TView<Vec<Real, 3>, 1, D> coords_j) {
     int n_hit = 0;
 
     for (int i = 0; i < n_i; i++) {
@@ -93,13 +97,15 @@ struct NaiveDispatch<tmol::Device::CPU> {
   }
 
   template <typename Real>
-  int scan(Real threshold_distance, TView<Vec<Real, 3>, 1, D> coords_i,
-           TView<Vec<Real, 3>, 1, D> coords_j) {
+  int scan(
+      Real threshold_distance,
+      TView<Vec<Real, 3>, 1, D> coords_i,
+      TView<Vec<Real, 3>, 1, D> coords_j) {
     const Eigen::AlignedBox<Real, 3> tbox(
-        Vec<Real, 3>(-threshold_distance, -threshold_distance,
-                     -threshold_distance),
-        Vec<Real, 3>(threshold_distance, threshold_distance,
-                     threshold_distance));
+        Vec<Real, 3>(
+            -threshold_distance, -threshold_distance, -threshold_distance),
+        Vec<Real, 3>(
+            threshold_distance, threshold_distance, threshold_distance));
 
     n_ind = 0;
 
@@ -140,13 +146,15 @@ struct NaiveTriuDispatch<tmol::Device::CPU> {
   }
 
   template <typename Real>
-  int scan(Real threshold_distance, TView<Vec<Real, 3>, 1, D> coords_i,
-           TView<Vec<Real, 3>, 1, D> coords_j) {
+  int scan(
+      Real threshold_distance,
+      TView<Vec<Real, 3>, 1, D> coords_i,
+      TView<Vec<Real, 3>, 1, D> coords_j) {
     const Eigen::AlignedBox<Real, 3> tbox(
-        Vec<Real, 3>(-threshold_distance, -threshold_distance,
-                     -threshold_distance),
-        Vec<Real, 3>(threshold_distance, threshold_distance,
-                     threshold_distance));
+        Vec<Real, 3>(
+            -threshold_distance, -threshold_distance, -threshold_distance),
+        Vec<Real, 3>(
+            threshold_distance, threshold_distance, threshold_distance));
 
     n_ind = 0;
 
