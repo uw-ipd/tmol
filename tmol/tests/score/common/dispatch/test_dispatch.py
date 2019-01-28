@@ -12,7 +12,12 @@ import sparse
 
 
 @pytest.mark.benchmark(group="dispatch")
-@pytest.mark.parametrize("dispatch_type", ["exhaustive", "naive"])
+@pytest.mark.parametrize("dispatch_type", [
+    "exhaustive",
+    "naive",
+    "exhaustive_omp",
+    "aabb",
+])
 def test_dispatch(benchmark, dispatch_type, torch_device, ubq_system):
     compiled = load(
         modulename(__name__),
@@ -46,7 +51,10 @@ def test_dispatch(benchmark, dispatch_type, torch_device, ubq_system):
 
 
 @pytest.mark.benchmark(group="dispatch")
-@pytest.mark.parametrize("dispatch_type", ["exhaustive", "naive"])
+@pytest.mark.parametrize("dispatch_type", [
+    "exhaustive",
+    "naive",
+])
 def test_triu_dispatch(benchmark, dispatch_type, torch_device, ubq_system):
     compiled = load(
         modulename(__name__),

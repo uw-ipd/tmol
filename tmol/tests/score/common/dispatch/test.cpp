@@ -19,3 +19,11 @@ template struct DispatchTest<
     tmol::score::common::NaiveTriuDispatch,
     Device::CPU,
     double>;
+template struct DispatchTest<
+    tmol::score::common::ExhaustiveOMPDispatch,
+    Device::CPU,
+    double>;
+template struct DispatchTest<
+    tmol::score::common::AABBDispatch,
+    Device::CPU,
+    double>;
