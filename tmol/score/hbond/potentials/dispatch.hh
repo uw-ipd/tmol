@@ -6,6 +6,7 @@
 #include <Eigen/Geometry>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/score/common/tuple.hh>
@@ -68,7 +69,7 @@ auto hbond_pair_score(
   using iter::product;
   using iter::range;
 
-  using tmol::new_tensor;
+  using tmol::TPack;
 
   AT_ASSERTM(
       donor_type.size(0) == D.size(0), "Invalid donor coordinate shapes.");
@@ -85,8 +86,10 @@ auto hbond_pair_score(
       acceptor_type.size(0) == B0.size(0),
       "Invalid acceptor coordinate shapes.");
 
-  auto [ind_t, ind] =
-      new_tensor<int64_t, 2, Device::CPU>({D.size(0) * A.size(0), 2});
+  typedef TPack<int64_t, 2, Device::CPU> IndT;
+  IndT ind_t = IndT::empty({D.size(0) * A.size(0), 2});
+  auto ind = ind_t.view;
+
   int nresult = 0;
   Real squared_threshold = threshold_distance * threshold_distance;
 
@@ -100,15 +103,22 @@ auto hbond_pair_score(
     }
   }
 
-  ind_t = ind_t.slice(0, 0, nresult).clone();
-  ind = view_tensor<int64_t, 2, Device::CPU>(ind_t);
+  ind_t = IndT(ind_t.tensor.slice(0, 0, nresult).clone());
+  ind = ind_t.view;
 
-  auto [E_t, E] = new_tensor<Real, 1, Device::CPU>({nresult});
-  auto [dE_dD_t, dE_dD] = new_tensor<Vec<Real, 3>, 1, Device::CPU>({nresult});
-  auto [dE_dH_t, dE_dH] = new_tensor<Vec<Real, 3>, 1, Device::CPU>({nresult});
-  auto [dE_dA_t, dE_dA] = new_tensor<Vec<Real, 3>, 1, Device::CPU>({nresult});
-  auto [dE_dB_t, dE_dB] = new_tensor<Vec<Real, 3>, 1, Device::CPU>({nresult});
-  auto [dE_dB0_t, dE_dB0] = new_tensor<Vec<Real, 3>, 1, Device::CPU>({nresult});
+  auto E_t = TPack<Real, 1, Device::CPU>::empty({nresult});
+  auto dE_dD_t = TPack<Vec<Real, 3>, 1, Device::CPU>::empty({nresult});
+  auto dE_dH_t = TPack<Vec<Real, 3>, 1, Device::CPU>::empty({nresult});
+  auto dE_dA_t = TPack<Vec<Real, 3>, 1, Device::CPU>::empty({nresult});
+  auto dE_dB_t = TPack<Vec<Real, 3>, 1, Device::CPU>::empty({nresult});
+  auto dE_dB0_t = TPack<Vec<Real, 3>, 1, Device::CPU>::empty({nresult});
+
+  auto E = E_t.view;
+  auto dE_dD = dE_dD_t.view;
+  auto dE_dH = dE_dH_t.view;
+  auto dE_dA = dE_dA_t.view;
+  auto dE_dB = dE_dB_t.view;
+  auto dE_dB0 = dE_dB0_t.view;
 
   for (auto r : range(nresult)) {
     int di = ind[r][0];
@@ -148,7 +158,13 @@ auto hbond_pair_score(
             hb_sp3_softmax_fade);
   }
 
-  return {ind_t, E_t, dE_dD_t, dE_dH_t, dE_dA_t, dE_dB_t, dE_dB0_t};
+  return {ind_t.tensor,
+          E_t.tensor,
+          dE_dD_t.tensor,
+          dE_dH_t.tensor,
+          dE_dA_t.tensor,
+          dE_dB_t.tensor,
+          dE_dB0_t.tensor};
 }
 
 }  // namespace potentials

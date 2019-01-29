@@ -1,23 +1,20 @@
 #pragma once
 
 #include "test.hh"
+#include "tmol/utility/tensor/TensorPack.h"
 
 namespace tmol {
 template <template <Device> class Dispatch, Device D, typename Real>
 auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
-    -> std::tuple<at::Tensor, at::Tensor> {
-  using tmol::new_tensor;
-
+    -> std::tuple<TPack<int64_t, 2, D>, TPack<float, 1, D>> {
   Dispatch<D> dispatcher(coords.size(0), coords.size(0));
   auto num_scores = dispatcher.scan(6.0, coords, coords);
 
-  at::Tensor ind_t;
-  TView<int64_t, 2, D> ind;
-  std::tie(ind_t, ind) = new_tensor<int64_t, 2, D>({num_scores, 2});
+  auto ind_t = TPack<int64_t, 2, D>::empty({num_scores, 2});
+  auto score_t = TPack<float, 1, D>::empty({num_scores});
 
-  at::Tensor score_t;
-  TView<float, 1, D> score;
-  std::tie(score_t, score) = new_tensor<float, 1, D>(num_scores);
+  auto ind = ind_t.view;
+  auto score = score_t.view;
 
   Real squared_threshold = 6.0 * 6.0;
 
@@ -34,4 +31,4 @@ auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
 
   return {ind_t, score_t};
 };
-}
+}  // namespace tmol

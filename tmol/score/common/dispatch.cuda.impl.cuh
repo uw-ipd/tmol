@@ -17,7 +17,6 @@ namespace tmol {
 namespace score {
 namespace common {
 
-using tmol::new_tensor;
 using tmol::TView;
 
 template <typename Real, int N>
@@ -73,6 +72,8 @@ template <>
 struct ExhaustiveDispatch<tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
 
+  int _n_i, _n_j;
+
   ExhaustiveDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
 
   template <typename Real>
@@ -99,13 +100,13 @@ struct ExhaustiveDispatch<tmol::Device::CUDA> {
         n_i * n_j,
         context);
   }
-
-  int _n_i, _n_j;
 };
 
 template <>
 struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
+
+  int _n_i, _n_j;
 
   ExhaustiveTriuDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
 
@@ -142,14 +143,16 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
         n_i * n_j,
         context);
   }
-
-  int _n_i, _n_j;
 };
 
 template <>
 struct NaiveDispatch<tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
   typedef mgpu::stream_compact_t<mgpu::empty_t> TransformCompact;
+
+  int _n_i, _n_j;
+  std::unique_ptr<mgpu::standard_context_t> _context;
+  std::unique_ptr<TransformCompact> _compact;
 
   NaiveDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
 
@@ -188,10 +191,6 @@ struct NaiveDispatch<tmol::Device::CUDA> {
       f(dest_index, i, j);
     });
   }
-
-  int _n_i, _n_j;
-  std::unique_ptr<mgpu::standard_context_t> _context;
-  std::unique_ptr<TransformCompact> _compact;
 };
 
 template <>
@@ -233,12 +232,13 @@ struct NaiveTriuDispatch<tmol::Device::CUDA> {
 
   template <typename funct_t>
   void score(funct_t f) {
-    _compact->downsweep([=, n_j = _n_j] MGPU_DEVICE(int dest_index, int src_index) {
-      int i = src_index / n_j;
-      int j = src_index % n_j;
+    _compact->downsweep(
+        [=, n_j = _n_j] MGPU_DEVICE(int dest_index, int src_index) {
+          int i = src_index / n_j;
+          int j = src_index % n_j;
 
-      f(dest_index, i, j);
-    });
+          f(dest_index, i, j);
+        });
   }
 };
 

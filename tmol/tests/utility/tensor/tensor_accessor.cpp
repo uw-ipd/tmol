@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/tensor/pybind.h>
 
@@ -15,20 +16,23 @@ at::Tensor vector_magnitude_accessor(at::Tensor input_t) {
   AT_ASSERT(input_t.device().is_cpu());
 
   auto input = input_t.accessor<float, 2>();
-  auto [output_t, output] = tmol::new_tensor<float, 1, D>(input.size(0));
+  auto output_t = tmol::TPack<float, 1, D>::empty(input.size(0));
+  auto output = output_t.view;
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     auto v = input[i];
     output[i] = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   }
 
-  return output_t;
+  return output_t.tensor;
 }
 
-at::Tensor vector_magnitude_accessor_arg(
-    tmol::TView<float, 2, tmol::Device::CPU> input) {
-  auto [output_t, output] =
-      tmol::new_tensor<float, 1, tmol::Device::CPU>(input.size(0));
+auto vector_magnitude_accessor_arg(
+    tmol::TView<float, 2, tmol::Device::CPU> input)
+    -> tmol::TPack<float, 1, tmol::Device::CPU> {
+  auto output_t =
+      tmol::TPack<float, 1, tmol::Device::CPU>::empty(input.size(0));
+  auto output = output_t.view;
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     auto v = input[i];
@@ -59,19 +63,22 @@ at::Tensor vector_magnitude_eigen_squeeze(at::Tensor input_t) {
   AT_ASSERT(input_t.device().is_cpu());
 
   auto input = tmol::view_tensor<Eigen::Vector3f, 1, D>(input_t);
-  auto [output_t, output] = tmol::new_tensor<float, 1, D>(input.size(0));
+  auto output_t = tmol::TPack<float, 1, D>::empty(input.size(0));
+  auto output = output_t.view;
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     output[i] = input[i].norm();
   }
 
-  return output_t;
+  return output_t.tensor;
 }
 
-at::Tensor vector_magnitude_eigen_arg(
-    tmol::TView<Eigen::Vector3f, 2, tmol::Device::CPU> input) {
-  auto [output_t, output] =
-      tmol::new_tensor<float, 1, tmol::Device::CPU>(input.size(0));
+auto vector_magnitude_eigen_arg(
+    tmol::TView<Eigen::Vector3f, 2, tmol::Device::CPU> input)
+    -> tmol::TPack<float, 1, tmol::Device::CPU> {
+  auto output_t =
+      tmol::TPack<float, 1, tmol::Device::CPU>::empty(input.size(0));
+  auto output = output_t.view;
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     output[i] = input[i][0].norm();
@@ -80,10 +87,12 @@ at::Tensor vector_magnitude_eigen_arg(
   return output_t;
 }
 
-at::Tensor vector_magnitude_eigen_arg_squeeze(
-    tmol::TView<Eigen::Vector3f, 1, tmol::Device::CPU> input) {
-  auto [output_t, output] =
-      tmol::new_tensor<float, 1, tmol::Device::CPU>(input.size(0));
+auto vector_magnitude_eigen_arg_squeeze(
+    tmol::TView<Eigen::Vector3f, 1, tmol::Device::CPU> input)
+    -> tmol::TPack<float, 1, tmol::Device::CPU> {
+  auto output_t =
+      tmol::TPack<float, 1, tmol::Device::CPU>::empty(input.size(0));
+  auto output = output_t.view;
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     output[i] = input[i].norm();

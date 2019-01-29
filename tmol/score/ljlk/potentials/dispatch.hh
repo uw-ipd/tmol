@@ -4,8 +4,7 @@
 #include <Eigen/Geometry>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
-#include <tmol/utility/tensor/TensorStruct.h>
-#include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/TensorPack.h>
 
 #include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
@@ -42,7 +41,11 @@ struct LJDispatch {
 
       LJTypeParams_targs(1, D),
       LJGlobalParams_args())
-      -> tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>;
+      -> std::tuple<
+          TPack<int64_t, 2, D>,
+          TPack<Real, 1, D>,
+          TPack<Vec<Real, 3>, 1, D>,
+          TPack<Vec<Real, 3>, 1, D> >;
 };
 
 template <
@@ -63,7 +66,11 @@ struct LKIsotropicDispatch {
 
       LKTypeParams_targs(1, D),
       LJGlobalParams_args())
-      -> tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>;
+      -> std::tuple<
+          TPack<int64_t, 2, D>,
+          TPack<Real, 1, D>,
+          TPack<Vec<Real, 3>, 1, D>,
+          TPack<Vec<Real, 3>, 1, D> >;
 };
 
 }  // namespace potentials
