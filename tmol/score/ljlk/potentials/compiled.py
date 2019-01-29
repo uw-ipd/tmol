@@ -1,7 +1,10 @@
 import numpy
 from tmol.utility.cpp_extension import load, relpaths, modulename
 
-_compiled = load(modulename(__name__), relpaths(__file__, "_compiled.cpp"))
+_compiled = load(
+    modulename(__name__),
+    relpaths(__file__, ["compiled.cuda.cu", "compiled.cpu.cpp", "compiled.pybind.cpp"]),
+)
 
 lj_sigma = _compiled.lj_sigma
 

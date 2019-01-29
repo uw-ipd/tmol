@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cmath>
-#include <tuple>
-#include <utility>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -10,6 +8,7 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/score/common/tuple.hh>
 
 #include <cppitertools/product.hpp>
 #include <cppitertools/range.hpp>
@@ -20,10 +19,8 @@ namespace score {
 namespace hbond {
 namespace potentials {
 
-using std::tie;
-using std::tuple;
-using tmol::TView;
 using tmol::Device;
+using tmol::TView;
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
@@ -74,11 +71,9 @@ auto hbond_pair_score(
   using tmol::new_tensor;
 
   AT_ASSERTM(
-      donor_type.size(0) == D.size(0),
-      "Invalid donor coordinate shapes.");
+      donor_type.size(0) == D.size(0), "Invalid donor coordinate shapes.");
   AT_ASSERTM(
-      donor_type.size(0) == H.size(0),
-      "Invalid donor coordinate shapes.");
+      donor_type.size(0) == H.size(0), "Invalid donor coordinate shapes.");
 
   AT_ASSERTM(
       acceptor_type.size(0) == A.size(0),
@@ -90,13 +85,14 @@ auto hbond_pair_score(
       acceptor_type.size(0) == B0.size(0),
       "Invalid acceptor coordinate shapes.");
 
-  auto [ind_t, ind] = new_tensor<int64_t, 2, Device::CPU>({D.size(0) * A.size(0), 2});
+  auto [ind_t, ind] =
+      new_tensor<int64_t, 2, Device::CPU>({D.size(0) * A.size(0), 2});
   int nresult = 0;
   Real squared_threshold = threshold_distance * threshold_distance;
 
-  int di,ai;
+  int di, ai;
   for (auto t : product(range(D.size(0)), range(A.size(0)))) {
-	std::tie(di, ai) = t;
+    tie(di, ai) = t;
     if ((H[di] - A[ai]).squaredNorm() < squared_threshold) {
       ind[nresult][0] = di;
       ind[nresult][1] = ai;

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <tuple>
-
 #include <Eigen/Core>
+
+#include <tmol/score/common/tuple.hh>
 
 namespace tmol {
 namespace score {
@@ -10,11 +10,10 @@ namespace common {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
-using std::tuple;
 
 template <int POrd, typename Real>
 Real poly_v(Real x, Vec<Real, POrd> coeffs) {
-  static_assert(POrd >= 2);
+  static_assert(POrd >= 2, "");
   Real v = coeffs(0);
 
 #pragma unroll
@@ -27,7 +26,7 @@ Real poly_v(Real x, Vec<Real, POrd> coeffs) {
 
 template <int POrd, typename Real>
 auto poly_v_d(Real x, Vec<Real, POrd> coeffs) -> tuple<Real, Real> {
-  static_assert(POrd >= 2);
+  static_assert(POrd >= 2, "");
   Real v = coeffs(0);
   Real d = coeffs(0);
 

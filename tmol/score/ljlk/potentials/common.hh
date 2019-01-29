@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Eigen/src/Core/util/Macros.h>
 #include "params.hh"
 
 namespace tmol {
@@ -7,8 +8,10 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
+#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+
 template <typename Real, typename Int>
-Real connectivity_weight(Int bonded_path_length) {
+def connectivity_weight(Int bonded_path_length)->Real {
   if (bonded_path_length > 4) {
     return 1.0;
   } else if (bonded_path_length == 4) {
@@ -19,8 +22,7 @@ Real connectivity_weight(Int bonded_path_length) {
 }
 
 template <typename Real, typename TypeParams, typename GlobalParams>
-Real lj_sigma(
-    TypeParams i, TypeParams j, GlobalParams global) {
+def lj_sigma(TypeParams i, TypeParams j, GlobalParams global)->Real {
   if ((i.is_donor && !i.is_hydroxyl && j.is_acceptor)
       || (j.is_donor && !j.is_hydroxyl && i.is_acceptor)) {
     // standard donor/acceptor pair
@@ -38,6 +40,8 @@ Real lj_sigma(
     return i.lj_radius + j.lj_radius;
   }
 }
+
+#undef def
 
 }  // namespace potentials
 }  // namespace ljlk

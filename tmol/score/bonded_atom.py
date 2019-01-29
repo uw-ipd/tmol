@@ -15,10 +15,11 @@ from tmol.types.functional import validate_args
 from .database import ParamDB
 from .factory import Factory
 from .stacked_system import StackedSystem
+from .device import TorchDevice
 
 
 @reactive_attrs(auto_attribs=True)
-class BondedAtomScoreGraph(StackedSystem, ParamDB, Factory):
+class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice, Factory):
     """Score graph component describing a system's atom types and bonds.
 
     Attributes:
@@ -60,6 +61,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, Factory):
         bonds: NDArray(int)[:, 3],
         stack_depth: int,
         system_size: int,
+        device: torch.device,
         MAX_BONDED_PATH_LENGTH: int,
     ) -> Tensor("f4")[:, :, :]:
         """Dense inter-atomic bonded path length distance tables.
@@ -73,7 +75,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, Factory):
             bonded_path_length_stacked(
                 bonds, stack_depth, system_size, MAX_BONDED_PATH_LENGTH
             )
-        )
+        ).to(device)
 
 
 def bonded_path_length(

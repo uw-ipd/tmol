@@ -1,28 +1,26 @@
 #pragma once
 
-#include <tuple>
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+
+#include <tmol/score/common/tuple.hh>
 
 namespace tmol {
 namespace score {
 namespace common {
 
-using std::tuple;
-
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
+#define def                \
+  template <typename Real> \
+  auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+
 #define Real3 Vec<Real, 3>
 
-template <typename Real>
-Real distance_V(Real3 A, Real3 B) {
-  return (A - B).norm();
-}
+def distance_V(Real3 A, Real3 B)->Real { return (A - B).norm(); }
 
-template <typename Real>
-auto distance_V_dV(Real3 A, Real3 B) -> tuple<Real, Real3, Real3> {
+def distance_V_dV(Real3 A, Real3 B)->tuple<Real, Real3, Real3> {
   Real3 delta = (A - B);
   Real V = delta.norm();
 
@@ -30,12 +28,11 @@ auto distance_V_dV(Real3 A, Real3 B) -> tuple<Real, Real3, Real3> {
     return {V, delta / V, -delta / V};
   } else {
     // Correct for nan, gradient is discontinuous across dist = 0
-    return {V, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}};
+    return {V, Real3({0.0, 0.0, 0.0}), Real3({0.0, 0.0, 0.0})};
   }
 }
 
-template <typename Real>
-Real interior_angle_V(Real3 A, Real3 B) {
+def interior_angle_V(Real3 A, Real3 B)->Real {
   auto CR = A.cross(B);
   auto z_unit = CR.normalized();
 
@@ -45,8 +42,7 @@ Real interior_angle_V(Real3 A, Real3 B) {
   return 2 * std::atan2(CR.dot(z_unit), A_norm * B_norm + A.dot(B));
 }
 
-template <typename Real>
-auto interior_angle_V_dV(Real3 A, Real3 B) -> tuple<Real, Real3, Real3> {
+def interior_angle_V_dV(Real3 A, Real3 B)->tuple<Real, Real3, Real3> {
   auto CR = A.cross(B);
   auto z_unit = CR.normalized();
 
@@ -58,29 +54,27 @@ auto interior_angle_V_dV(Real3 A, Real3 B) -> tuple<Real, Real3, Real3> {
           -(B / B_norm).cross(z_unit) / B_norm};
 }
 
-template <typename Real>
-Real pt_interior_angle_V(Real3 A, Real3 B, Real3 C) {
+def pt_interior_angle_V(Real3 A, Real3 B, Real3 C)->Real {
   Real3 BA = A - B;
   Real3 BC = C - B;
   return interior_angle_V(BA, BC);
 }
 
-template <typename Real>
-auto pt_interior_angle_V_dV(Real3 A, Real3 B, Real3 C)
-    -> tuple<Real, Real3, Real3, Real3> {
+def pt_interior_angle_V_dV(Real3 A, Real3 B, Real3 C)
+    ->tuple<Real, Real3, Real3, Real3> {
   Real3 BA = A - B;
   Real3 BC = C - B;
-  auto [V, dV_dBA, dV_dBC] = interior_angle_V_dV(BA, BC);
+  Real V;
+  Real3 dV_dBA, dV_dBC;
+  tie(V, dV_dBA, dV_dBC) = interior_angle_V_dV(BA, BC);
   return {V, dV_dBA, -(dV_dBA + dV_dBC), dV_dBC};
 }
 
-template <typename Real>
-Real cos_interior_angle_V(Real3 A, Real3 B) {
+def cos_interior_angle_V(Real3 A, Real3 B)->Real {
   return A.dot(B) / (A.norm() * B.norm());
 }
 
-template <typename Real>
-auto cos_interior_angle_V_dV(Real3 A, Real3 B) -> tuple<Real, Real3, Real3> {
+def cos_interior_angle_V_dV(Real3 A, Real3 B)->tuple<Real, Real3, Real3> {
   auto A_norm = A.norm();
   auto B_norm = B.norm();
   auto AB_norm = A.norm() * B.norm();
@@ -92,24 +86,23 @@ auto cos_interior_angle_V_dV(Real3 A, Real3 B) -> tuple<Real, Real3, Real3> {
           -cosAB * B / (B_norm * B_norm) + A / AB_norm};
 }
 
-template <typename Real>
-Real pt_cos_interior_angle_V(Real3 A, Real3 B, Real3 C) {
+def pt_cos_interior_angle_V(Real3 A, Real3 B, Real3 C)->Real {
   Real3 BA = A - B;
   Real3 BC = C - B;
   return cos_interior_angle_V(BA, BC);
 }
 
-template <typename Real>
-auto pt_cos_interior_angle_V_dV(Real3 A, Real3 B, Real3 C)
-    -> tuple<Real, Real3, Real3, Real3> {
+def pt_cos_interior_angle_V_dV(Real3 A, Real3 B, Real3 C)
+    ->tuple<Real, Real3, Real3, Real3> {
   Real3 BA = A - B;
   Real3 BC = C - B;
-  auto [V, dV_dBA, dV_dBC] = cos_interior_angle_V_dV(BA, BC);
+  Real V;
+  Real3 dV_dBA, dV_dBC;
+  tie(V, dV_dBA, dV_dBC) = cos_interior_angle_V_dV(BA, BC);
   return {V, dV_dBA, -(dV_dBA + dV_dBC), dV_dBC};
 }
 
-template <typename Real>
-Real dihedral_angle_V(Real3 I, Real3 J, Real3 K, Real3 L) {
+def dihedral_angle_V(Real3 I, Real3 J, Real3 K, Real3 L)->Real {
   // Blondel A, Karplus M. New formulation for derivatives of torsion angles and
   // improper torsion angles in molecular mechanics: Elimination of
   // singularities. J Comput Chem. 1996;17: 1132–1141.
@@ -125,9 +118,8 @@ Real dihedral_angle_V(Real3 I, Real3 J, Real3 K, Real3 L) {
   return sign * std::acos(A.dot(B) / (A.norm() * B.norm()));
 }
 
-template <typename Real>
-auto dihedral_angle_V_dV(Real3 I, Real3 J, Real3 K, Real3 L)
-    -> tuple<Real, Real3, Real3, Real3, Real3> {
+def dihedral_angle_V_dV(Real3 I, Real3 J, Real3 K, Real3 L)
+    ->tuple<Real, Real3, Real3, Real3, Real3> {
   // Blondel A, Karplus M. New formulation for derivatives of torsion angles and
   // improper torsion angles in molecular mechanics: Elimination of
   // singularities. J Comput Chem. 1996;17: 1132–1141.
@@ -151,6 +143,7 @@ auto dihedral_angle_V_dV(Real3 I, Real3 J, Real3 K, Real3 L)
 }
 
 #undef Real3
+#undef def
 
 }  // namespace common
 }  // namespace score

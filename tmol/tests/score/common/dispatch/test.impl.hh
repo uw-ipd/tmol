@@ -2,9 +2,10 @@
 
 #include "test.hh"
 
+namespace tmol {
 template <template <Device> class Dispatch, Device D, typename Real>
 auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
-    -> tuple<at::Tensor, at::Tensor> {
+    -> std::tuple<at::Tensor, at::Tensor> {
   using tmol::new_tensor;
 
   Dispatch<D> dispatcher(coords.size(0), coords.size(0));
@@ -12,11 +13,11 @@ auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
 
   at::Tensor ind_t;
   TView<int64_t, 2, D> ind;
-  tie(ind_t, ind) = new_tensor<int64_t, 2, D>({num_scores, 2});
+  std::tie(ind_t, ind) = new_tensor<int64_t, 2, D>({num_scores, 2});
 
   at::Tensor score_t;
   TView<float, 1, D> score;
-  tie(score_t, score) = new_tensor<float, 1, D>(num_scores);
+  std::tie(score_t, score) = new_tensor<float, 1, D>(num_scores);
 
   Real squared_threshold = 6.0 * 6.0;
 
@@ -33,3 +34,4 @@ auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
 
   return {ind_t, score_t};
 };
+}

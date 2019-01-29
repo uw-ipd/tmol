@@ -88,10 +88,6 @@ class _LJLKCommonScoreGraph(
         Initialize from ``val.ljlk_database`` if possible, otherwise from
         ``parameter_database.scoring.ljlk``.
         """
-        # Check for disabled tests under "TODO" when enabling cuda.
-        if not device.type == "cpu":
-            raise NotImplementedError("Component only supports cpu execution.")
-
         if ljlk_database is None:
             if getattr(val, "ljlk_database", None):
                 ljlk_database = val.ljlk_database
@@ -118,7 +114,9 @@ class _LJLKCommonScoreGraph(
         """Pair parameter tensors for all atoms within system."""
         assert atom_types.shape[0] == 1
         atom_types = atom_types[0]
-        return torch.from_numpy(ljlk_param_resolver.type_idx(atom_types)[None, :])
+        return torch.from_numpy(ljlk_param_resolver.type_idx(atom_types)[None, :]).to(
+            ljlk_param_resolver.device
+        )
 
 
 @reactive_attrs(auto_attribs=True)

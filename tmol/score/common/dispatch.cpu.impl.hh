@@ -2,13 +2,14 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <tuple>
 
 #include <cppitertools/product.hpp>
 #include <cppitertools/range.hpp>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+
+#include <tmol/score/common/tuple.hh>
 
 #include "dispatch.hh"
 
@@ -18,8 +19,6 @@ namespace common {
 
 using iter::product;
 using iter::range;
-using std::tie;
-using std::tuple;
 using tmol::new_tensor;
 using tmol::TView;
 

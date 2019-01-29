@@ -7,11 +7,10 @@
 #include <tmol/utility/tensor/TensorUtil.h>
 
 #include <tmol/score/common/dispatch.hh>
+#include <tmol/score/common/tuple.hh>
+#include <tuple>
 
-using std::tie;
-using std::tuple;
-using tmol::Device;
-using tmol::TView;
+namespace tmol {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
@@ -19,5 +18,6 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 template <template <Device> class Dispatch, Device D, typename Real>
 struct DispatchTest {
   static auto f(TView<Vec<Real, 3>, 1, D> coords)
-      -> tuple<at::Tensor, at::Tensor>;
+      -> std::tuple<at::Tensor, at::Tensor>;
 };
+}  // namespace tmol
