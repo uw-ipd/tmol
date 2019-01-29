@@ -157,40 +157,4 @@ auto view_tensor(at::Tensor tensor, std::string name)
   }
 }
 
-template <
-    typename T,
-    int N,
-    Device D,
-    PtrTag P = PtrTag::Restricted,
-    typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-auto new_tensor(at::IntList size)
-    -> std::tuple<at::Tensor, tmol::TView<T, N, D, P>> {
-  typedef typename enable_tensor_view<T>::PrimitiveType BaseT;
-  int64_t stride_factor = sizeof(T) / sizeof(BaseT);
-
-  at::Type& target_type = (D == Device::CPU)
-                              ? torch::CPU(enable_tensor_view<T>::scalar_type)
-                              : torch::CUDA(enable_tensor_view<T>::scalar_type);
-
-  at::Tensor tensor;
-  if (stride_factor == 1) {
-    // The target type has a primitive layout, construct size N tensor.
-    tensor = at::empty(size, target_type);
-  } else {
-    // The target type is composite, construct size N + 1 tensor with implicit
-    // minor dimension for the composite type.
-    std::array<int64_t, N + 1> composite_size;
-    for (int i = 0; i < N; i++) {
-      composite_size.at(i) = size.at(i);
-    }
-    composite_size.at(N) = stride_factor;
-
-    tensor = at::empty(composite_size, target_type);
-  }
-
-  auto tensor_view = view_tensor<T, N, D, P>(tensor);
-
-  return {tensor, tensor_view};
-}
-
 }  // namespace tmol
