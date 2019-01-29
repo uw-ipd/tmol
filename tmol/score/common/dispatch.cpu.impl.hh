@@ -233,36 +233,37 @@ struct AABBDispatch<tmol::Device::CPU> {
     tie(bbox_j_t, bbox_j) = new_tensor<BBox, 1, D>(n_bb_j);
 
     #pragma omp parallel for
-    for(int i = 0; i < n_i; ++i){
-      if(i%N_BBOX==0)
-        bbox_i[i/N_BBOX] = BBox(coords_i[i], coords_i[i]);
-      else
-        bbox_i[i/N_BBOX].extend(coords_i[i]);
+    for(int ibbox = 0; ibbox < n_bb_i; ++ibbox){
+      bbox_i[ibbox] = BBox(coords_i[ibbox*N_BBOX], coords_i[ibbox*N_BBOX]);
+      for(int ofst = 1; ofst < N_BBOX; ++ofst)
+        bbox_i[ibbox].extend(coords_i[ibbox*N_BBOX+ofst]);
     }
 
     #pragma omp parallel for
-    for(int j = 0; j < n_j; ++j){
-      if(j%N_BBOX==0)
-        bbox_j[j/N_BBOX] = BBox(coords_j[j], coords_j[j]);
-      else
-        bbox_j[j/N_BBOX].extend(coords_j[j]);
+    for(int jbbox = 0; jbbox < n_bb_j; ++jbbox){
+      bbox_j[jbbox] = BBox(coords_j[jbbox*N_BBOX], coords_j[jbbox*N_BBOX]);
+      for(int ofst = 1; ofst < N_BBOX; ++ofst)
+        bbox_j[jbbox].extend(coords_j[jbbox*N_BBOX+ofst]);
     }
-
   }
 
   template <typename Real>
   int find_pairs(Real threshold_distance){
     tie(pairs_t, pairs) = new_tensor<int, 2, D>({bbox_i.size(0) * bbox_j.size(0), 2});
     int ipair = -1;
-    #pragma omp parallel for
+
+    // something about this is wrong under omp... segfaults
+    // or, if ipair is int64_t, no segfault but incorrect results
+    // #pragma omp parallel for
     for(int ibb = 0; ibb < bbox_i.size(0); ++ibb){
       for(int jbb = 0; jbb < bbox_j.size(0); ++jbb){
         auto dis = bbox_i[ibb].exteriorDistance(bbox_j[jbb]);
         if(dis <= threshold_distance){
-          #pragma omp atomic
-          ipair++;
-          pairs[ipair][0] = ibb;
-          pairs[ipair][1] = jbb;
+          // #pragma omp atomic
+            ipair++;
+            pairs[ipair][0] = ibb;
+            pairs[ipair][1] = jbb;
+
         }
       }
     }
