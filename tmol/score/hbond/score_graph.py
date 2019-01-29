@@ -143,9 +143,11 @@ class HBondScoreGraph(
 
     @reactive_property
     @validate_args
-    def hbond_param_resolver(hbond_database: HBondDatabase) -> HBondParamResolver:
+    def hbond_param_resolver(
+        hbond_database: HBondDatabase, device: torch.device
+    ) -> HBondParamResolver:
         "hbond pair parameter resolver"
-        return HBondParamResolver.from_database(hbond_database)
+        return HBondParamResolver.from_database(hbond_database, device)
 
     @reactive_property
     @validate_args
