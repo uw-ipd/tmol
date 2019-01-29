@@ -6,9 +6,7 @@
 namespace tmol {
 template <template <Device> class Dispatch, Device D, typename Real>
 auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
-    -> std::tuple<at::Tensor, at::Tensor> {
-  using tmol::TPack;
-
+    -> std::tuple<TPack<int64_t, 2, D>, TPack<float, 1, D>> {
   Dispatch<D> dispatcher(coords.size(0), coords.size(0));
   auto num_scores = dispatcher.scan(6.0, coords, coords);
 
@@ -31,6 +29,6 @@ auto DispatchTest<Dispatch, D, Real>::f(TView<Vec<Real, 3>, 1, D> coords)
     }
   });
 
-  return {ind_t.tensor, score_t.tensor};
+  return {ind_t, score_t};
 };
 }  // namespace tmol

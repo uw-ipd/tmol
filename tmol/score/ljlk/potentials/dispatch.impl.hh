@@ -41,7 +41,11 @@ struct LJDispatch {
 
       LJTypeParams_targs(1, D),
       LJGlobalParams_args())
-      -> std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> {
+      -> std::tuple<
+          TPack<int64_t, 2, D>,
+          TPack<Real, 1, D>,
+          TPack<Vec<Real, 3>, 1, D>,
+          TPack<Vec<Real, 3>, 1, D> > {
     Dispatch<D> dispatcher(coords_i.size(0), coords_j.size(0));
     Real threshold_distance = 6.0;
     auto num_Vs = dispatcher.scan(threshold_distance, coords_i, coords_j);
@@ -80,7 +84,7 @@ struct LJDispatch {
       dV_dJs[o] = dV_dDist * dDist_dJ;
     });
 
-    return {inds_t.tensor, Vs_t.tensor, dV_dIs_t.tensor, dV_dJs_t.tensor};
+    return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
   }
 };
 
@@ -102,7 +106,11 @@ struct LKIsotropicDispatch {
 
       LKTypeParams_targs(1, D),
       LJGlobalParams_args())
-      -> std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> {
+      -> std::tuple<
+          TPack<int64_t, 2, D>,
+          TPack<Real, 1, D>,
+          TPack<Vec<Real, 3>, 1, D>,
+          TPack<Vec<Real, 3>, 1, D> > {
     Dispatch<D> dispatcher(coords_i.size(0), coords_j.size(0));
     Real threshold_distance = 6.0;
     auto num_Vs = dispatcher.scan(threshold_distance, coords_i, coords_j);
@@ -141,7 +149,7 @@ struct LKIsotropicDispatch {
       dV_dJs[o] = dV_dDist * dDist_dJ;
     });
 
-    return {inds_t.tensor, Vs_t.tensor, dV_dIs_t.tensor, dV_dJs_t.tensor};
+    return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
   }
 };
 
