@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-133-g5cf6ec8e documentation</title>
+  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-134-gadd64b5e documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-133-g5cf6ec8e
+                0.0.0-134-gadd64b5e
               </div>
             
           
@@ -182,10 +182,11 @@
 <span class="kn">from</span> <span class="nn">.database</span> <span class="k">import</span> <span class="n">ParamDB</span>
 <span class="kn">from</span> <span class="nn">.factory</span> <span class="k">import</span> <span class="n">Factory</span>
 <span class="kn">from</span> <span class="nn">.stacked_system</span> <span class="k">import</span> <span class="n">StackedSystem</span>
+<span class="kn">from</span> <span class="nn">.device</span> <span class="k">import</span> <span class="n">TorchDevice</span>
 
 
 <div class="viewcode-block" id="BondedAtomScoreGraph"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">BondedAtomScoreGraph</span><span class="p">(</span><span class="n">StackedSystem</span><span class="p">,</span> <span class="n">ParamDB</span><span class="p">,</span> <span class="n">Factory</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">BondedAtomScoreGraph</span><span class="p">(</span><span class="n">StackedSystem</span><span class="p">,</span> <span class="n">ParamDB</span><span class="p">,</span> <span class="n">TorchDevice</span><span class="p">,</span> <span class="n">Factory</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Score graph component describing a system&#39;s atom types and bonds.</span>
 
 <span class="sd">    Attributes:</span>
@@ -227,6 +228,7 @@
         <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
         <span class="n">stack_depth</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
         <span class="n">MAX_BONDED_PATH_LENGTH</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
         <span class="sd">&quot;&quot;&quot;Dense inter-atomic bonded path length distance tables.</span>
@@ -240,7 +242,7 @@
             <span class="n">bonded_path_length_stacked</span><span class="p">(</span>
                 <span class="n">bonds</span><span class="p">,</span> <span class="n">stack_depth</span><span class="p">,</span> <span class="n">system_size</span><span class="p">,</span> <span class="n">MAX_BONDED_PATH_LENGTH</span>
             <span class="p">)</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="bonded_path_length"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.bonded_path_length">[docs]</a><span class="k">def</span> <span class="nf">bonded_path_length</span><span class="p">(</span>
@@ -309,7 +311,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-133-g5cf6ec8e',
+              VERSION:'0.0.0-134-gadd64b5e',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

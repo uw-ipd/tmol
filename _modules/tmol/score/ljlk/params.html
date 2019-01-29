@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-133-g5cf6ec8e documentation</title>
+  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-134-gadd64b5e documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-133-g5cf6ec8e
+                0.0.0-134-gadd64b5e
               </div>
             
           
@@ -223,6 +223,8 @@
     <span class="c1"># shape [n] per-type parameters, source params used to calculate pair parameters</span>
     <span class="n">type_params</span><span class="p">:</span> <span class="n">LJLKTypeParams</span>
 
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+
 <div class="viewcode-block" id="LJLKParamResolver.type_idx"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKParamResolver.type_idx">[docs]</a>    <span class="k">def</span> <span class="nf">type_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Convert array of atom type names to parameter indices.</span>
 
@@ -286,6 +288,7 @@
             <span class="n">atom_type_index</span><span class="o">=</span><span class="n">atom_type_index</span><span class="p">,</span>
             <span class="n">global_params</span><span class="o">=</span><span class="n">global_params</span><span class="p">,</span>
             <span class="n">type_params</span><span class="o">=</span><span class="n">type_params</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span></div></div>
 </pre></div>
 
@@ -323,7 +326,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-133-g5cf6ec8e',
+              VERSION:'0.0.0-134-gadd64b5e',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
