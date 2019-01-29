@@ -4,6 +4,7 @@
 #include <Eigen/Geometry>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 
@@ -41,27 +42,19 @@ struct LJDispatch {
       LJTypeParams_targs(1, D),
       LJGlobalParams_args())
       -> std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> {
-    using tmol::new_tensor;
-
     Dispatch<D> dispatcher(coords_i.size(0), coords_j.size(0));
     Real threshold_distance = 6.0;
     auto num_Vs = dispatcher.scan(threshold_distance, coords_i, coords_j);
 
-    at::Tensor inds_t;
-    TView<int64_t, 2, D> inds;
-    std::tie(inds_t, inds) = new_tensor<int64_t, 2, D>({num_Vs, 2});
+    auto inds_t = TPack<int64_t, 2, D>::empty({num_Vs, 2});
+    auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
+    auto dV_dIs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
+    auto dV_dJs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
 
-    at::Tensor Vs_t;
-    TView<Real, 1, D> Vs;
-    std::tie(Vs_t, Vs) = new_tensor<Real, 1, D>(num_Vs);
-
-    at::Tensor dV_dIs_t;
-    TView<Vec<Real, 3>, 1, D> dV_dIs;
-    std::tie(dV_dIs_t, dV_dIs) = new_tensor<Vec<Real, 3>, 1, D>(num_Vs);
-
-    at::Tensor dV_dJs_t;
-    TView<Vec<Real, 3>, 1, D> dV_dJs;
-    std::tie(dV_dJs_t, dV_dJs) = new_tensor<Vec<Real, 3>, 1, D>(num_Vs);
+    auto inds = inds_t.view;
+    auto Vs = Vs_t.view;
+    auto dV_dIs = dV_dIs_t.view;
+    auto dV_dJs = dV_dJs_t.view;
 
     dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
       Int ati = atom_type_i[i];
@@ -87,7 +80,7 @@ struct LJDispatch {
       dV_dJs[o] = dV_dDist * dDist_dJ;
     });
 
-    return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
+    return {inds_t.tensor, Vs_t.tensor, dV_dIs_t.tensor, dV_dJs_t.tensor};
   }
 };
 
@@ -110,27 +103,19 @@ struct LKIsotropicDispatch {
       LKTypeParams_targs(1, D),
       LJGlobalParams_args())
       -> std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> {
-    using tmol::new_tensor;
-
     Dispatch<D> dispatcher(coords_i.size(0), coords_j.size(0));
     Real threshold_distance = 6.0;
     auto num_Vs = dispatcher.scan(threshold_distance, coords_i, coords_j);
 
-    at::Tensor inds_t;
-    TView<int64_t, 2, D> inds;
-    std::tie(inds_t, inds) = new_tensor<int64_t, 2, D>({num_Vs, 2});
+    auto inds_t = TPack<int64_t, 2, D>::empty({num_Vs, 2});
+    auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
+    auto dV_dIs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
+    auto dV_dJs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
 
-    at::Tensor Vs_t;
-    TView<Real, 1, D> Vs;
-    std::tie(Vs_t, Vs) = new_tensor<Real, 1, D>(num_Vs);
-
-    at::Tensor dV_dIs_t;
-    TView<Vec<Real, 3>, 1, D> dV_dIs;
-    std::tie(dV_dIs_t, dV_dIs) = new_tensor<Vec<Real, 3>, 1, D>(num_Vs);
-
-    at::Tensor dV_dJs_t;
-    TView<Vec<Real, 3>, 1, D> dV_dJs;
-    std::tie(dV_dJs_t, dV_dJs) = new_tensor<Vec<Real, 3>, 1, D>(num_Vs);
+    auto inds = inds_t.view;
+    auto Vs = Vs_t.view;
+    auto dV_dIs = dV_dIs_t.view;
+    auto dV_dJs = dV_dJs_t.view;
 
     dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
       Int ati = atom_type_i[i];
@@ -156,7 +141,7 @@ struct LKIsotropicDispatch {
       dV_dJs[o] = dV_dDist * dDist_dJ;
     });
 
-    return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
+    return {inds_t.tensor, Vs_t.tensor, dV_dIs_t.tensor, dV_dJs_t.tensor};
   }
 };
 

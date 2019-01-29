@@ -4,6 +4,7 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/pybind.h>
 
 using tmol::TView;
@@ -16,16 +17,15 @@ struct sum<Real, tmol::Device::CPU> {
   static const tmol::Device D = tmol::Device::CPU;
 
   static auto f(TView<Real, 1, D> t) -> at::Tensor {
-    at::Tensor v_t;
-    TView<Real, 1, D> v;
-    std::tie(v_t, v) = tmol::new_tensor<Real, 1, D>({1});
+    auto v_t = tmol::TPack<Real, 1, D>::empty({1});
+    auto v = v_t.view;
 
     v[0] = 0;
     for (int i = 0; i < t.size(0); i++) {
       v[0] += t[i];
     }
 
-    return v_t;
+    return v_t.tensor;
   }
 };
 
@@ -34,9 +34,8 @@ struct sum<Real, tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
 
   static auto f(TView<Real, 1, D> t) -> at::Tensor {
-    at::Tensor v_t;
-    TView<Real, 1, D> v;
-    std::tie(v_t, v) = tmol::new_tensor<Real, 1, D>({1});
+    auto v_t = tmol::TPack<Real, 1, D>::empty({1});
+    auto v = v_t.view;
 
     mgpu::standard_context_t context;
 
@@ -47,7 +46,7 @@ struct sum<Real, tmol::Device::CUDA> {
         mgpu::plus_t<Real>(),
         context);
 
-    return v_t;
+    return v_t.tensor;
   }
 };
 

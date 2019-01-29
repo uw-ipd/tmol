@@ -1,5 +1,7 @@
 #include <moderngpu/kernel_reduce.hxx>
 
+#include <tmol/utility/tensor/TensorPack.h>
+
 #include "hybrid.hh"
 
 template <typename Real>
@@ -7,9 +9,8 @@ struct sum<Real, tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
 
   static at::Tensor f(tmol::TView<Real, 1, D> t) {
-    at::Tensor v_t;
-    tmol::TView<Real, 1, D> v;
-    std::tie(v_t, v) = tmol::new_tensor<Real, 1, D>({1});
+    auto v_t = tmol::TPack<Real, 1, D>::empty({1});
+    auto v = v_t.view;
 
     mgpu::standard_context_t context;
 
@@ -20,7 +21,7 @@ struct sum<Real, tmol::Device::CUDA> {
         mgpu::plus_t<Real>(),
         context);
 
-    return v_t;
+    return v_t.tensor;
   }
 };
 

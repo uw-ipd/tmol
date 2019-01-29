@@ -1,3 +1,4 @@
+#include <tmol/utility/tensor/TensorPack.h>
 #include <cppitertools/range.hpp>
 
 #include "hybrid.hh"
@@ -7,16 +8,15 @@ struct sum<Real, tmol::Device::CPU> {
   static const tmol::Device D = tmol::Device::CPU;
 
   static at::Tensor f(tmol::TView<Real, 1, D> t) {
-    at::Tensor v_t;
-    tmol::TView<Real, 1, D> v;
-    std::tie(v_t, v) = tmol::new_tensor<Real, 1, D>({1});
+    auto v_t = tmol::TPack<Real, 1, D>::empty({1});
+    auto v = v_t.view;
 
     v[0] = 0;
     for (int i = 0; i < t.size(0); i++) {
       v[0] += t[i];
     }
 
-    return v_t;
+    return v_t.tensor;
   }
 };
 

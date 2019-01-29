@@ -2,6 +2,7 @@
 #include <torch/torch.h>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/tensor/pybind.h>
 #include <moderngpu/transform.hxx>
@@ -27,9 +28,8 @@ void bind(pybind11::module& m) {
             " B: ",
             B.size(0));
 
-        at::Tensor V_t;
-        TView<Real, 1, D> V;
-        std::tie(V_t, V) = tmol::new_tensor<Real, 1, D>({A.size(0)});
+        auto V_t = tmol::TPack<Real, 1, D>::empty({A.size(0)});
+        auto V = V_t.view;
 
         mgpu::standard_context_t context(false);
 
@@ -38,7 +38,7 @@ void bind(pybind11::module& m) {
             A.size(0),
             context);
 
-        return V_t;
+        return V_t.tensor;
       },
       "A"_a,
       "B"_a);
@@ -53,17 +53,13 @@ void bind(pybind11::module& m) {
             " B: ",
             B.size(0));
 
-        at::Tensor V_t;
-        TView<Real, 1, D> V;
-        std::tie(V_t, V) = tmol::new_tensor<Real, 1, D>({A.size(0)});
+        auto V_t = tmol::TPack<Real, 1, D>::empty({A.size(0)});
+        auto dV_dA_t = tmol::TPack<Real3, 1, D>::empty({A.size(0)});
+        auto dV_dB_t = tmol::TPack<Real3, 1, D>::empty({B.size(0)});
 
-        at::Tensor dV_dA_t;
-        TView<Real3, 1, D> dV_dA;
-        std::tie(dV_dA_t, dV_dA) = tmol::new_tensor<Real3, 1, D>({A.size(0)});
-
-        at::Tensor dV_dB_t;
-        TView<Real3, 1, D> dV_dB;
-        std::tie(dV_dB_t, dV_dB) = tmol::new_tensor<Real3, 1, D>({B.size(0)});
+        auto V = V_t.view;
+        auto dV_dA = dV_dA_t.view;
+        auto dV_dB = dV_dB_t.view;
 
         mgpu::standard_context_t context(false);
 
@@ -75,7 +71,7 @@ void bind(pybind11::module& m) {
             A.size(0),
             context);
 
-        return std::make_tuple(V_t, dV_dA_t, dV_dB_t);
+        return std::make_tuple(V_t.tensor, dV_dA_t.tensor, dV_dB_t.tensor);
       },
       "A"_a,
       "B"_a);
