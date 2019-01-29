@@ -27,8 +27,9 @@ at::Tensor vector_magnitude_accessor(at::Tensor input_t) {
   return output_t.tensor;
 }
 
-at::Tensor vector_magnitude_accessor_arg(
-    tmol::TView<float, 2, tmol::Device::CPU> input) {
+auto vector_magnitude_accessor_arg(
+    tmol::TView<float, 2, tmol::Device::CPU> input)
+    -> tmol::TPack<float, 1, tmol::Device::CPU> {
   auto output_t =
       tmol::TPack<float, 1, tmol::Device::CPU>::empty(input.size(0));
   auto output = output_t.view;
@@ -38,7 +39,7 @@ at::Tensor vector_magnitude_accessor_arg(
     output[i] = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   }
 
-  return output_t.tensor;
+  return output_t;
 }
 
 at::Tensor vector_magnitude_eigen(at::Tensor input_t) {
@@ -72,8 +73,9 @@ at::Tensor vector_magnitude_eigen_squeeze(at::Tensor input_t) {
   return output_t.tensor;
 }
 
-at::Tensor vector_magnitude_eigen_arg(
-    tmol::TView<Eigen::Vector3f, 2, tmol::Device::CPU> input) {
+auto vector_magnitude_eigen_arg(
+    tmol::TView<Eigen::Vector3f, 2, tmol::Device::CPU> input)
+    -> tmol::TPack<float, 1, tmol::Device::CPU> {
   auto output_t =
       tmol::TPack<float, 1, tmol::Device::CPU>::empty(input.size(0));
   auto output = output_t.view;
@@ -82,11 +84,12 @@ at::Tensor vector_magnitude_eigen_arg(
     output[i] = input[i][0].norm();
   }
 
-  return output_t.tensor;
+  return output_t;
 }
 
-at::Tensor vector_magnitude_eigen_arg_squeeze(
-    tmol::TView<Eigen::Vector3f, 1, tmol::Device::CPU> input) {
+auto vector_magnitude_eigen_arg_squeeze(
+    tmol::TView<Eigen::Vector3f, 1, tmol::Device::CPU> input)
+    -> tmol::TPack<float, 1, tmol::Device::CPU> {
   auto output_t =
       tmol::TPack<float, 1, tmol::Device::CPU>::empty(input.size(0));
   auto output = output_t.view;
@@ -95,7 +98,7 @@ at::Tensor vector_magnitude_eigen_arg_squeeze(
     output[i] = input[i].norm();
   }
 
-  return output_t.tensor;
+  return output_t;
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

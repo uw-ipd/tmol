@@ -9,6 +9,7 @@
 #include <torch/csrc/utils/pybind.h>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 
 namespace pybind11 {
@@ -48,6 +49,13 @@ struct handle_type_name<tmol::TView<T, N, D, P>> {
 };
 
 template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
+struct handle_type_name<tmol::TPack<T, N, D, P>> {
+  static constexpr auto name =
+      _("torch.Tensor[") + npy_format_descriptor_name<T>::name + _(", ")
+      + _<N>() + _(", ") + device_name<D>::name + _("]");
+};
+
+template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
 struct type_caster<tmol::TView<T, N, D, P>> {
  public:
   typedef tmol::TView<T, N, D, P> ViewType;
@@ -70,10 +78,54 @@ struct type_caster<tmol::TView<T, N, D, P>> {
       return true;
     } catch (at::Error err) {
 #ifdef DEBUG
-      print("Error casting to type: ", type_id<ViewType>(), " value: ", src);
+      print(
+          "Error casting to TView type: ",
+          type_id<ViewType>(),
+          " value: ",
+          src);
 #endif
       return false;
     }
+  }
+
+  // C++ -> Python cast operation not supported.
+};
+
+template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
+struct type_caster<tmol::TPack<T, N, D, P>> {
+ public:
+  typedef tmol::TPack<T, N, D, P> PackType;
+  PYBIND11_TYPE_CASTER(PackType, handle_type_name<PackType>::name);
+
+  bool load(handle src, bool convert) {
+    using pybind11::print;
+
+    type_caster<at::Tensor> conv;
+
+    if (!conv.load(src, convert)) {
+#ifdef DEBUG
+      print("Error casting to tensor: ", src);
+#endif
+      return false;
+    }
+
+    try {
+      value = tmol::TPack<T, N, D, P>(conv);
+      return true;
+    } catch (at::Error err) {
+#ifdef DEBUG
+      print(
+          "Error casting to TPack type: ",
+          type_id<PackType>(),
+          " value: ",
+          src);
+#endif
+      return false;
+    }
+  }
+
+  static handle cast(PackType src, return_value_policy policy, handle parent) {
+    return type_caster<at::Tensor>::cast(src.tensor, policy, parent);
   }
 
   // C++ -> Python cast operation not supported.
