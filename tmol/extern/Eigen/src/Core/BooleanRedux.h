@@ -23,7 +23,7 @@ struct all_unroller
     row = (UnrollCount-1) % Traits::RowsAtCompileTime
   };
 
-  static inline bool run(const Derived &mat)
+  static EIGEN_DEVICE_FUNC inline bool run(const Derived &mat)
   {
     return all_unroller<Derived, UnrollCount-1>::run(mat) && mat.coeff(row, col);
   }
@@ -32,13 +32,13 @@ struct all_unroller
 template<typename Derived>
 struct all_unroller<Derived, 0>
 {
-  static inline bool run(const Derived &/*mat*/) { return true; }
+  static EIGEN_DEVICE_FUNC inline bool run(const Derived &/*mat*/) { return true; }
 };
 
 template<typename Derived>
 struct all_unroller<Derived, Dynamic>
 {
-  static inline bool run(const Derived &) { return false; }
+  static EIGEN_DEVICE_FUNC inline bool run(const Derived &) { return false; }
 };
 
 template<typename Derived, int UnrollCount>
@@ -59,13 +59,13 @@ struct any_unroller
 template<typename Derived>
 struct any_unroller<Derived, 0>
 {
-  static inline bool run(const Derived & /*mat*/) { return false; }
+  static EIGEN_DEVICE_FUNC inline bool run(const Derived & /*mat*/) { return false; }
 };
 
 template<typename Derived>
 struct any_unroller<Derived, Dynamic>
 {
-  static inline bool run(const Derived &) { return false; }
+  static EIGEN_DEVICE_FUNC inline bool run(const Derived &) { return false; }
 };
 
 } // end namespace internal
@@ -78,7 +78,7 @@ struct any_unroller<Derived, Dynamic>
   * \sa any(), Cwise::operator<()
   */
 template<typename Derived>
-inline bool DenseBase<Derived>::all() const
+EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::all() const
 {
   typedef internal::evaluator<Derived> Evaluator;
   enum {
@@ -102,7 +102,7 @@ inline bool DenseBase<Derived>::all() const
   * \sa all()
   */
 template<typename Derived>
-inline bool DenseBase<Derived>::any() const
+EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::any() const
 {
   typedef internal::evaluator<Derived> Evaluator;
   enum {
@@ -126,7 +126,7 @@ inline bool DenseBase<Derived>::any() const
   * \sa all(), any()
   */
 template<typename Derived>
-inline Eigen::Index DenseBase<Derived>::count() const
+EIGEN_DEVICE_FUNC inline Eigen::Index DenseBase<Derived>::count() const
 {
   return derived().template cast<bool>().template cast<Index>().sum();
 }
@@ -136,7 +136,7 @@ inline Eigen::Index DenseBase<Derived>::count() const
   * \sa allFinite()
   */
 template<typename Derived>
-inline bool DenseBase<Derived>::hasNaN() const
+EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::hasNaN() const
 {
 #if EIGEN_COMP_MSVC || (defined __FAST_MATH__)
   return derived().array().isNaN().any();
@@ -150,7 +150,7 @@ inline bool DenseBase<Derived>::hasNaN() const
   * \sa hasNaN()
   */
 template<typename Derived>
-inline bool DenseBase<Derived>::allFinite() const
+EIGEN_DEVICE_FUNC inline bool DenseBase<Derived>::allFinite() const
 {
 #if EIGEN_COMP_MSVC || (defined __FAST_MATH__)
   return derived().array().isFinite().all();
