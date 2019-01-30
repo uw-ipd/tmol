@@ -94,8 +94,8 @@ def lk_isotropic_pair_V(
     ->Real {
   Real d_min = lj_sigma_ij * .89;
 
-  Real cpoly_close_dmin = d_min - 0.25;
-  Real cpoly_close_dmax = d_min + 0.25;
+  Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
+  Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
   Real cpoly_far_dmin = 4.5;
   Real cpoly_far_dmax = 6.0;
@@ -150,8 +150,8 @@ def lk_isotropic_pair_V_dV(
     ->tuple<Real, Real> {
   Real d_min = lj_sigma_ij * .89;
 
-  Real cpoly_close_dmin = d_min - 0.25;
-  Real cpoly_close_dmax = d_min + 0.25;
+  Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
+  Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
   Real cpoly_far_dmin = 4.5;
   Real cpoly_far_dmax = 6.0;

@@ -23,7 +23,7 @@ comparisons = {
     ),
     "lk_numpyros": pytest.param(LKGraph, {"total_lk": 255.8}, marks=pytest.mark.xfail),
     "lj_regression": (LJGraph, {"total_lj": -177.1}),
-    "lk_regression": (LKGraph, {"total_lk": 248.2}),
+    "lk_regression": (LKGraph, {"total_lk": 297.3}),
 }
 
 

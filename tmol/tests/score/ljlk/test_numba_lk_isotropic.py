@@ -69,6 +69,8 @@ def test_lk_isotropic_spotcheck(iname, jname):
     sigma = ignore_unused_kwargs(lj_sigma)(**combine_params(i, j, g))
 
     d_min = sigma * .89
+    cpoly_close_dmin = numpy.sqrt(d_min * d_min - 1.45)
+    cpoly_close_dmax = numpy.sqrt(d_min * d_min + 1.05)
 
     def eval_f_desolv(d):
         return f_desolv(
@@ -81,7 +83,7 @@ def test_lk_isotropic_spotcheck(iname, jname):
         )
 
     # Constant region
-    assert eval_lk_isotropic(numpy.linspace(0, d_min - 0.25, 100)) == approx(
+    assert eval_lk_isotropic(numpy.linspace(0, cpoly_close_dmin, 100)) == approx(
         eval_f_desolv(d_min)
     )
 
@@ -94,7 +96,8 @@ def test_lk_isotropic_spotcheck(iname, jname):
 
     # Interpolate to f(d_min)
     assert is_between(
-        (eval_f_desolv(d_min), eval_f_desolv(d_min + 0.25)), eval_lk_isotropic(d_min)
+        (eval_f_desolv(d_min), eval_f_desolv(cpoly_close_dmax)),
+        eval_lk_isotropic(d_min),
     )
 
     # Interpolate to 0
