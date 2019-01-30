@@ -105,7 +105,7 @@ def test_lj_intra_op(default_database, ubq_system, torch_device):
     assert v_val.requires_grad
 
     op_dense = _todense(v_inds, v_val, (s.coords.shape[0],) * 2)
-    numpy.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
+    torch.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
 
 
 def test_lj_inter_op(default_database, torch_device, ubq_system):
@@ -135,7 +135,7 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
 
     op_dense = _todense(v_inds, v_val, shape=(part, ubq_system.system_size - part))
 
-    numpy.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
+    torch.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
 
 
 def test_lj_inter_op_gradcheck(default_database, ubq_system, torch_device):
@@ -202,7 +202,7 @@ def test_lk_intra_op(default_database, ubq_system, torch_device):
     assert v_val.requires_grad
 
     op_dense = _todense(v_inds, v_val, (s.coords.shape[0],) * 2)
-    numpy.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
+    torch.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
 
 
 def test_lk_inter_op(default_database, ubq_system, torch_device):
@@ -233,7 +233,7 @@ def test_lk_inter_op(default_database, ubq_system, torch_device):
 
     op_dense = _todense(v_inds, v_val, shape=(part, ubq_system.system_size - part))
 
-    numpy.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
+    torch.testing.assert_allclose(op_dense, expected_dense, rtol=1e-6, atol=1e-7)
 
 
 def test_lk_inter_op_gradcheck(default_database, ubq_system, torch_device):
