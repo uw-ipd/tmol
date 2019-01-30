@@ -1,7 +1,10 @@
 import numpy
 from tmol.utility.cpp_extension import load, relpaths, modulename
 
-_compiled = load(modulename(__name__), relpaths(__file__, "_compiled.cpp"))
+_compiled = load(
+    modulename(__name__),
+    relpaths(__file__, ["compiled.pybind.cpp", "compiled.cpu.cpp"]),
+)
 
 
 hbond_score_V_dV = numpy.vectorize(
