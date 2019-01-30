@@ -1,0 +1,74 @@
+#!/bin/sh
+''''exec ipython "$0" -- ${1+"$@"} # '''
+# vi: filetype=python
+# -*- coding: utf-8 -*-
+
+import tempfile
+import subprocess
+import sys
+import shlex
+import shutil
+import argparse
+
+parser = argparse.ArgumentParser(prog='compare_benchmark.ipy')
+parser.add_argument('-o', '--benchmark-outdir', help="Store benchmark results in target output directory.")
+parser.add_argument('args', nargs=argparse.REMAINDER, metavar="<pytest args> [-- <revisions>]")
+options = parser.parse_args()
+
+try:
+    splitargs = options.args.index("--")
+except ValueError:
+    splitargs = len(options.args)
+
+bargs = " ".join(map(shlex.quote, options.args[:splitargs]))
+revisions = options.args[splitargs + 1:]
+
+tree_status = !git status --short
+current_head = !git name-rev --name-only HEAD
+current_head = current_head[0]
+
+if len(revisions) == 0:
+    revisions = set(["TREE", current_head])
+elif len(revisions) == 1:
+    revisions = set(["TREE"] + revisions)
+else:
+    revisions = set(revisions)
+
+if revisions == {"TREE", current_head} and not tree_status:
+    print("working tree clean, nothing to compare")
+    exit
+
+if not options.benchmark_outdir:
+    outdir = tempfile.mkdtemp()
+else:
+    outdir = options.benchmark_outdir
+
+try:
+    revmap = {r: f"{outdir}/{r}.json" for r in revisions}
+
+    if "TREE" in revmap:
+        rev, revout = "TREE", revmap["TREE"]
+        !mkdir -p `dirname {revout}`
+        !pytest --benchmark-enable --benchmark-json={revout} {bargs}
+
+    if tree_status:
+        !git stash save -u
+
+    for rev, revout in revmap.items():
+        if rev is "TREE":
+            continue
+
+        !git checkout {shlex.quote(rev)}
+        !mkdir -p `dirname {revout}`
+        !pytest --benchmark-enable --benchmark-json={revout} {bargs}
+
+    !git checkout {current_head}
+    if tree_status:
+        !git stash pop
+
+    all_results = " ".join(map(shlex.quote, revmap.values()))
+    !pytest-benchmark compare {all_results}
+
+finally:
+    if not options.benchmark_outdir:
+        shutil.rmtree(outdir)
