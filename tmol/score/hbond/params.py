@@ -37,6 +37,11 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
         self.bound[idx] = value.bound[idx]
         self.coeffs[idx] = value.coeffs[idx]
 
+    def to(self, device: torch.device):
+        return type(self)(
+            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
+        )
+
     @classmethod
     def full(cls, shape, fill_value):
         shape = (shape,) if isinstance(shape, int) else tuple(shape)
@@ -55,6 +60,11 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
     AHdist: HBondPolyParams
     cosBAH: HBondPolyParams
     cosAHD: HBondPolyParams
+
+    def to(self, device: torch.device):
+        return type(self)(
+            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
+        )
 
     @classmethod
     def full(cls, shape, fill_value):
@@ -76,21 +86,22 @@ class HBondParamResolver(ValidateAttrs):
     donor_type_index: pandas.Index = attr.ib()
     acceptor_type_index: pandas.Index = attr.ib()
     pair_params: HBondPairParams = attr.ib()
+    device: torch.device = attr.ib()
 
     def resolve_donor_type(self, donor_types: Sequence[str]) -> torch.Tensor:
         """Resolve string donor type name into integer type index."""
         i = self.donor_type_index.get_indexer(donor_types)
         assert not numpy.any(i == -1), "donor type not present in index"
-        return torch.from_numpy(i).to(device=self.pair_params.acceptor_class.device)
+        return torch.from_numpy(i).to(device=self.device)
 
     def resolve_acceptor_type(self, acceptor_types: Sequence[str]) -> torch.Tensor:
         """Resolve string acceptor type name into integer type index."""
         i = self.acceptor_type_index.get_indexer(acceptor_types)
         assert not numpy.any(i == -1), "acceptor type not present in index"
-        return torch.from_numpy(i).to(device=self.pair_params.acceptor_class.device)
+        return torch.from_numpy(i).to(device=self.device)
 
     @classmethod
-    def from_database(cls, hbond_database: HBondDatabase):
+    def from_database(cls, hbond_database: HBondDatabase, device: torch.device):
         atom_groups = hbond_database.atom_groups
 
         donors = list(set(g.donor_type for g in atom_groups.donors))
@@ -176,5 +187,6 @@ class HBondParamResolver(ValidateAttrs):
         return cls(
             donor_type_index=donor_type_index,
             acceptor_type_index=acceptor_type_index,
-            pair_params=pair_params,
+            pair_params=pair_params.to(device),
+            device=device,
         )

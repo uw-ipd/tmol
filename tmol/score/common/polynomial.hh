@@ -8,66 +8,82 @@ namespace tmol {
 namespace score {
 namespace common {
 
+#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <int POrd, typename Real>
-Real poly_v(Real x, Vec<Real, POrd> coeffs) {
-  static_assert(POrd >= 2, "");
-  Real v = coeffs(0);
+struct poly {
+  struct V_dV_T {
+    Real V;
+    Real dV_dX;
+
+    auto astuple() { return make_tuple(V, dV_dX); }
+  };
+
+  static def V(Real X, Vec<Real, POrd> coeffs)->Real {
+    static_assert(POrd >= 2, "");
+    Real v = coeffs(0);
 
 #pragma unroll
-  for (int i = 1; i < POrd; ++i) {
-    v = v * x + coeffs[i];
+    for (int i = 1; i < POrd; ++i) {
+      v = v * X + coeffs[i];
+    }
+
+    return v;
   }
 
-  return v;
-}
-
-template <int POrd, typename Real>
-auto poly_v_d(Real x, Vec<Real, POrd> coeffs) -> tuple<Real, Real> {
-  static_assert(POrd >= 2, "");
-  Real v = coeffs(0);
-  Real d = coeffs(0);
+  static def V_dV(Real X, Vec<Real, POrd> coeffs)->V_dV_T {
+    static_assert(POrd >= 2, "");
+    Real v = coeffs(0);
+    Real d = coeffs(0);
 
 #pragma unroll
-  for (int i = 1; i < POrd - 1; ++i) {
-    v = v * x + coeffs[i];
-    d = d * x + v;
+    for (int i = 1; i < POrd - 1; ++i) {
+      v = v * X + coeffs[i];
+      d = d * X + v;
+    }
+
+    v = v * X + coeffs[POrd - 1];
+
+    return {v, d};
   }
-
-  v = v * x + coeffs[POrd - 1];
-
-  return {v, d};
-}
+};
 
 template <int PDim, typename Real>
-Real bound_poly_V(
-    const Real& x,
-    const Vec<Real, PDim>& coeffs,
-    const Vec<Real, 2>& range,
-    const Vec<Real, 2>& bound) {
-  if (x < range[0]) {
-    return bound[0];
-  } else if (x > range[1]) {
-    return bound[1];
-  } else {
-    return poly_v(x, coeffs);
-  }
-}
+struct bound_poly {
+  typedef typename poly<PDim, Real>::V_dV_T V_dV_T;
 
-template <int PDim, typename Real>
-auto bound_poly_V_dV(
-    Real x, Vec<Real, PDim> coeffs, Vec<Real, 2> range, Vec<Real, 2> bound)
-    -> tuple<Real, Real> {
-  if (x < range[0]) {
-    return {bound[0], 0};
-  } else if (x > range[1]) {
-    return {bound[1], 0};
-  } else {
-    return poly_v_d(x, coeffs);
+  static def V(
+      const Real& x,
+      const Vec<Real, PDim>& coeffs,
+      const Vec<Real, 2>& range,
+      const Vec<Real, 2>& bound)
+      ->Real {
+    if (x < range[0]) {
+      return bound[0];
+    } else if (x > range[1]) {
+      return bound[1];
+    } else {
+      return poly_v(x, coeffs);
+    }
   }
-}
+
+  static def V_dV(
+      Real x, Vec<Real, PDim> coeffs, Vec<Real, 2> range, Vec<Real, 2> bound)
+      ->V_dV_T {
+    if (x < range[0]) {
+      return {bound[0], 0};
+    } else if (x > range[1]) {
+      return {bound[1], 0};
+    } else {
+      return poly<PDim, Real>::V_dV(x, coeffs);
+    }
+  }
+};
+
+#undef def
 
 }  // namespace common
 }  // namespace score

@@ -1,5 +1,4 @@
 import torch
-import pytest
 import attr
 
 from tmol.database import ParameterDatabase
@@ -14,22 +13,15 @@ from tmol.utility.args import ignore_unused_kwargs, bind_to_args
 from tmol.tests.autograd import gradcheck
 
 
-@pytest.fixture(scope="session")
-def compiled():
-    import tmol.score.hbond.potentials.compiled
-
-    return tmol.score.hbond.potentials.compiled
-
-
-def _t(v):
-    t = torch.tensor(v)
-    if t.dtype == torch.float64:
-        t = t.to(torch.float32)
-    return t
-
-
-def _setup_inputs(coords, params, donors, acceptors):
+def _setup_inputs(coords, params, donors, acceptors, torch_device):
     """fetch coordinates as tensors"""
+
+    def _t(v):
+        t = torch.tensor(v).to(device=torch_device)
+        if t.dtype == torch.float64:
+            t = t.to(torch.float32)
+        return t
+
     return dict(
         D=_t(coords[donors["d"]]),
         H=_t(coords[donors["h"]]),
@@ -45,15 +37,18 @@ def _setup_inputs(coords, params, donors, acceptors):
     )
 
 
-def test_score_op(compiled, ubq_system):
+def test_score_op(ubq_system, torch_device):
     """Scores computed via op-based dispatch match values from explicit
     evaluation."""
 
     from tmol.score.hbond.torch_op import HBondOp
+    import tmol.tests.score.hbond.potentials.compiled as compiled
 
     system = ubq_system
     hbond_database = ParameterDatabase.get_default().scoring.hbond
-    hbond_param_resolver = HBondParamResolver.from_database(hbond_database)
+    hbond_param_resolver = HBondParamResolver.from_database(
+        hbond_database, torch_device
+    )
 
     # Load coordinates and types from standard test system
 
@@ -72,7 +67,9 @@ def test_score_op(compiled, ubq_system):
 
     # setup input coordinate tensors
 
-    inputs = _setup_inputs(coords, hbond_param_resolver, donors, acceptors)
+    inputs = _setup_inputs(
+        coords, hbond_param_resolver, donors, acceptors, torch_device
+    )
 
     ### score via op
 
@@ -81,8 +78,11 @@ def test_score_op(compiled, ubq_system):
     assert (op_scores < 0).sum() > 10
 
     # Verify scores via back comparison to explicit evaluation
+    hbond_param_resolver = HBondParamResolver.from_database(
+        hbond_database, torch.device("cpu")
+    )
     batch_coords = _setup_inputs(
-        coords, hbond_param_resolver, donors[dind], acceptors[aind]
+        coords, hbond_param_resolver, donors[dind], acceptors[aind], torch.device("cpu")
     )
 
     gparams = attr.asdict(hbond_database.global_parameters)
@@ -98,17 +98,22 @@ def test_score_op(compiled, ubq_system):
         **merge(batch_coords, batch_params, gparams)
     )
 
-    torch.testing.assert_allclose(op_scores, batch_scores)
+    torch.testing.assert_allclose(
+        op_scores,
+        torch.from_numpy(batch_scores).to(device=torch_device, dtype=torch.float),
+    )
     # Derivative values validated via gradcheck
 
 
-def test_score_op_gradcheck(compiled, ubq_system):
+def test_score_op_gradcheck(ubq_system, torch_device):
 
     from tmol.score.hbond.torch_op import HBondOp
 
     system = ubq_system
     hbond_database = ParameterDatabase.get_default().scoring.hbond
-    hbond_param_resolver = HBondParamResolver.from_database(hbond_database)
+    hbond_param_resolver = HBondParamResolver.from_database(
+        hbond_database, torch_device
+    )
 
     # Load coordinates and types from standard test system
 
@@ -133,7 +138,7 @@ def test_score_op_gradcheck(compiled, ubq_system):
     inputs = {
         n: t.to(torch.float64).requires_grad_(True) if t.is_floating_point() else t
         for n, t in _setup_inputs(
-            coords, hbond_param_resolver, donors, acceptors
+            coords, hbond_param_resolver, donors, acceptors, torch_device
         ).items()
     }
     input_args = bind_to_args(op.score, **inputs)

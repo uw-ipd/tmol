@@ -2,10 +2,12 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
-#include <tmol/score/hbond/potentials/dispatch.hh>
 #include <tmol/score/hbond/potentials/potentials.hh>
 
-using namespace tmol::score::hbond::potentials;
+namespace tmol {
+namespace score {
+namespace hbond {
+namespace potentials {
 
 template <typename Real>
 void bind_potentials(pybind11::module& m) {
@@ -87,51 +89,8 @@ void bind_potentials(pybind11::module& m) {
       "hb_sp3_softmax_fade"_a);
 }
 
-template <typename Real>
-void bind_dispatch(pybind11::module& m) {
-  using namespace pybind11::literals;
-
-  m.def(
-      "hbond_pair_score",
-      &hbond_pair_score<Real, int32_t>,
-      "D"_a,
-      "H"_a,
-      "donor_type"_a,
-
-      "A"_a,
-      "B"_a,
-      "B0"_a,
-      "acceptor_type"_a,
-
-      "acceptor_class"_a,
-      "acceptor_weight"_a,
-      "donor_weight"_a,
-
-      "AHdist_coeffs"_a,
-      "AHdist_range"_a,
-      "AHdist_bound"_a,
-
-      "cosBAH_coeffs"_a,
-      "cosBAH_range"_a,
-      "cosBAH_bound"_a,
-
-      "cosAHD_coeffs"_a,
-      "cosAHD_range"_a,
-      "cosAHD_bound"_a,
-
-      // Global score parameters
-      "hb_sp2_range_span"_a,
-      "hb_sp2_BAH180_rise"_a,
-      "hb_sp2_outer_width"_a,
-      "hb_sp3_softmax_fade"_a,
-      "threshold_distance"_a);
-};
-
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-  using namespace pybind11::literals;
-
-  bind_potentials<double>(m);
-
-  bind_dispatch<float>(m);
-  bind_dispatch<double>(m);
-}
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { bind_potentials<double>(m); }
+}  // namespace potentials
+}  // namespace hbond
+}  // namespace score
+}  // namespace tmol

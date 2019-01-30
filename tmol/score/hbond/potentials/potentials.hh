@@ -1,13 +1,13 @@
 #pragma once
 
 #include <cmath>
-#include <tuple>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/polynomial.hh>
+#include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
 #undef B0
@@ -18,8 +18,8 @@ namespace hbond {
 namespace potentials {
 
 using namespace tmol::score::common;
-using std::tie;
-using std::tuple;
+
+#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
@@ -33,58 +33,64 @@ struct AcceptorClass {
 };
 
 template <typename Real>
-auto AH_dist_V_dV(
+def AH_dist_V_dV(
     Real3 A,
     Real3 H,
     Vec<double, 11> AHdist_coeffs,
     Vec<double, 2> AHdist_range,
-    Vec<double, 2> AHdist_bound) -> tuple<Real, Real3, Real3> {
-  auto [D, dD_dA, dD_dH] = distance_V_dV(A, H);
-  auto [V, dV_dD] =
-      bound_poly_V_dV<11, double>(D, AHdist_coeffs, AHdist_range, AHdist_bound);
+    Vec<double, 2> AHdist_bound)
+    ->tuple<Real, Real3, Real3> {
+  auto dist = distance<Real>::V_dV(A, H);
+  auto poly = bound_poly<11, double>::V_dV(
+      dist.V, AHdist_coeffs, AHdist_range, AHdist_bound);
 
-  return {V, dV_dD * dD_dA, dV_dD * dD_dH};
+  return {poly.V, poly.dV_dX * dist.dV_dA, poly.dV_dX * dist.dV_dB};
 }
 
 template <typename Real>
-auto AHD_angle_V_dV(
+def AHD_angle_V_dV(
     Real3 A,
     Real3 H,
     Real3 D,
     Vec<double, 11> cosAHD_coeffs,
     Vec<double, 2> cosAHD_range,
-    Vec<double, 2> cosAHD_bound) -> tuple<Real, Real3, Real3, Real3> {
+    Vec<double, 2> cosAHD_bound)
+    ->tuple<Real, Real3, Real3, Real3> {
   // In non-cos space
-  auto [AHD, dAHD_dA, dAHD_dH, dAHD_dD] = pt_interior_angle_V_dV(A, H, D);
-  auto [V, dV_dAHD] =
-      bound_poly_V_dV<11, double>(AHD, cosAHD_coeffs, cosAHD_range, cosAHD_bound);
+  auto AHD = pt_interior_angle<Real>::V_dV(A, H, D);
+  auto poly = bound_poly<11, double>::V_dV(
+      AHD.V, cosAHD_coeffs, cosAHD_range, cosAHD_bound);
 
-  return {V, dV_dAHD * dAHD_dA, dV_dAHD * dAHD_dH, dV_dAHD * dAHD_dD};
+  return {poly.V,
+          poly.dV_dX * AHD.dV_dA,
+          poly.dV_dX * AHD.dV_dB,
+          poly.dV_dX * AHD.dV_dC};
 }
 
 template <typename Real>
-auto _BAH_angle_base_form_V_dV(
+def _BAH_angle_base_form_V_dV(
     Real3 B,
     Real3 A,
     Real3 H,
     Vec<double, 11> cosBAH_coeffs,
     Vec<double, 2> cosBAH_range,
-    Vec<double, 2> cosBAH_bound) -> tuple<Real, Real3, Real3, Real3> {
+    Vec<double, 2> cosBAH_bound)
+    ->tuple<Real, Real3, Real3, Real3> {
   Real3 AH = H - A;
   Real3 BA = A - B;
 
-  auto [cosT, d_cosT_dAH, d_cosT_dBA] = cos_interior_angle_V_dV(AH, BA);
-  auto [V, dV_d_cosT] =
-      bound_poly_V_dV<11, double>(cosT, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
+  auto cosT = cos_interior_angle<Real>::V_dV(AH, BA);
+  auto poly = bound_poly<11, double>::V_dV(
+      cosT.V, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
-  return {V,
-          dV_d_cosT * (-d_cosT_dBA),
-          dV_d_cosT * (d_cosT_dBA - d_cosT_dAH),
-          dV_d_cosT * d_cosT_dAH};
+  return {poly.V,
+          poly.dV_dX * (-cosT.dV_dB),
+          poly.dV_dX * (cosT.dV_dB - cosT.dV_dA),
+          poly.dV_dX * cosT.dV_dA};
 }
 
 template <typename Real, typename Int>
-auto BAH_angle_V_dV(
+def BAH_angle_V_dV(
     Real3 B,
     Real3 B0,
     Real3 A,
@@ -98,23 +104,31 @@ auto BAH_angle_V_dV(
   using std::log;
 
   if (acceptor_class == AcceptorClass::sp2) {
-    auto [PxH, dPxH_dB, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
+    Real PxH;
+    Real3 dPxH_dB, dPxH_dA, dPxH_dH;
+    tie(PxH, dPxH_dB, dPxH_dA, dPxH_dH) = _BAH_angle_base_form_V_dV(
         B, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
-    return {PxH, dPxH_dB, {0, 0, 0}, dPxH_dA, dPxH_dH};
+    return {PxH, dPxH_dB, Real3({0, 0, 0}), dPxH_dA, dPxH_dH};
 
   } else if (acceptor_class == AcceptorClass::ring) {
     Real3 Bm = (B + B0) / 2;
-    auto [PxHm, dPxH_dBm, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
+    Real PxHm;
+    Real3 dPxH_dBm, dPxH_dA, dPxH_dH;
+    tie(PxHm, dPxH_dBm, dPxH_dA, dPxH_dH) = _BAH_angle_base_form_V_dV(
         Bm, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
     return {PxHm, dPxH_dBm / 2, dPxH_dBm / 2, dPxH_dA, dPxH_dH};
 
   } else if (acceptor_class == AcceptorClass::sp3) {
-    auto [PxH, dPxH_dB, dPxH_dA, dPxH_dH] = _BAH_angle_base_form_V_dV(
+    Real PxH;
+    Real3 dPxH_dB, dPxH_dA, dPxH_dH;
+    tie(PxH, dPxH_dB, dPxH_dA, dPxH_dH) = _BAH_angle_base_form_V_dV(
         B, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
-    auto [PxH0, dPxH0_dB0, dPxH0_dA, dPxH0_dH] = _BAH_angle_base_form_V_dV(
+    Real PxH0;
+    Real3 dPxH0_dB0, dPxH0_dA, dPxH0_dH;
+    tie(PxH0, dPxH0_dB0, dPxH0_dA, dPxH0_dH) = _BAH_angle_base_form_V_dV(
         B0, A, H, cosBAH_coeffs, cosBAH_range, cosBAH_bound);
 
     Real PxHfade =
@@ -133,12 +147,14 @@ auto BAH_angle_V_dV(
             (dPxHfade_dPxH * dPxH_dA) + (dPxHfade_dPxH0 * dPxH0_dA),
             (dPxHfade_dPxH * dPxH_dH) + (dPxHfade_dPxH0 * dPxH0_dH)};
   } else {
+#ifndef __CUDACC__
     throw std::runtime_error("Invalid acceptor_class.");
+#endif
   }
 }
 
 template <typename Real>
-auto sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
+def sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
     -> tuple<Real, Real, Real> {
   const Real pi = EIGEN_PI;
 
@@ -183,7 +199,7 @@ auto sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
 }
 
 template <typename Real, typename Int>
-auto B0BAH_chi_V_dV(
+def B0BAH_chi_V_dV(
     Real3 B0,
     Real3 B,
     Real3 A,
@@ -194,11 +210,18 @@ auto B0BAH_chi_V_dV(
     Real hb_sp2_outer_width) -> tuple<Real, Real3, Real3, Real3, Real3> {
   if (acceptor_class == AcceptorClass::sp2) {
     // SP-2 Chi Angle
-    auto [BAH, dBAH_dB, dBAH_dA, dBAH_dH] = pt_interior_angle_V_dV(B, A, H);
-    auto [B0BAH, dB0BAH_dB0, dB0BAH_dB, dB0BAH_dA, dB0BAH_dH] =
-        dihedral_angle_V_dV(B0, B, A, H);
+    Real BAH;
+    Real3 dBAH_dB, dBAH_dA, dBAH_dH;
+    tie(BAH, dBAH_dB, dBAH_dA, dBAH_dH) =
+        pt_interior_angle<Real>::V_dV(B, A, H).astuple();
 
-    auto [E, dE_dBAH, dE_dB0BAH] = sp2chi_energy_V_dV(
+    Real B0BAH;
+    Real3 dB0BAH_dB0, dB0BAH_dB, dB0BAH_dA, dB0BAH_dH;
+    tie(B0BAH, dB0BAH_dB0, dB0BAH_dB, dB0BAH_dA, dB0BAH_dH) =
+        dihedral_angle<Real>::V_dV(B0, B, A, H).astuple();
+
+    Real E, dE_dBAH, dE_dB0BAH;
+    tie(E, dE_dBAH, dE_dB0BAH) = sp2chi_energy_V_dV(
         BAH, B0BAH, hb_sp2_BAH180_rise, hb_sp2_range_span, hb_sp2_outer_width);
 
     return {
@@ -209,12 +232,16 @@ auto B0BAH_chi_V_dV(
         dE_dB0BAH * dB0BAH_dH + dE_dBAH * dBAH_dH,
     };
   } else {
-    return {0, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
+    return {0,
+            Real3({0, 0, 0}),
+            Real3({0, 0, 0}),
+            Real3({0, 0, 0}),
+            Real3({0, 0, 0})};
   }
 }
 
 template <typename Real, typename Int>
-auto hbond_score_V_dV(
+def hbond_score_V_dV(
     // coordinates
     Real3 D,
     Real3 H,
@@ -245,7 +272,6 @@ auto hbond_score_V_dV(
     Real hb_sp2_outer_width,
     Real hb_sp3_softmax_fade)
     -> tuple<Real, Real3, Real3, Real3, Real3, Real3> {
-  const Real pi = EIGEN_PI;
 
   Real E = 0.0;
   Real3 dE_dD = {0, 0, 0};
@@ -255,15 +281,18 @@ auto hbond_score_V_dV(
   Real3 dE_dB0 = {0, 0, 0};
 
   // A-H Distance Component
-  iadd(tie(E, dE_dA, dE_dH),
+  iadd(
+      tie(E, dE_dA, dE_dH),
       AH_dist_V_dV(A, H, AHdist_coeffs, AHdist_range, AHdist_bound));
 
   // AHD Angle Component
-  iadd(tie(E, dE_dA, dE_dH, dE_dD),
+  iadd(
+      tie(E, dE_dA, dE_dH, dE_dD),
       AHD_angle_V_dV(A, H, D, cosAHD_coeffs, cosAHD_range, cosAHD_bound));
 
   // BAH Angle Component
-  iadd(tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
+  iadd(
+      tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
       BAH_angle_V_dV(
           B,
           B0,
@@ -276,7 +305,8 @@ auto hbond_score_V_dV(
           hb_sp3_softmax_fade));
 
   // B0BAH Chi Component
-  iadd(tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
+  iadd(
+      tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
       B0BAH_chi_V_dV(
           B0,
           B,
@@ -317,6 +347,7 @@ auto hbond_score_V_dV(
 }
 
 #undef Real3
+#undef def
 }  // namespace potentials
 }  // namespace hbond
 }  // namespace score

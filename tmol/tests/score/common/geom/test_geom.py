@@ -13,9 +13,9 @@ from tmol.tests.autograd import gradcheck, VectorizedOp
 
 @pytest.fixture(scope="session")
 def geom():
-    import tmol.score.common.geom
+    import tmol.tests.score.common.geom.geom as geom
 
-    return tmol.score.common.geom
+    return geom
 
 
 def dist_vecs(dist):

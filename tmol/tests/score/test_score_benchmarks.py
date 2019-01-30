@@ -106,8 +106,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     return run
 
 
-# TODO: Reenable, LJScoreGraph does not support cuda
-_non_cuda_components = (HBondScoreGraph,)
+_non_cuda_components = ()
 
 
 @pytest.mark.parametrize(

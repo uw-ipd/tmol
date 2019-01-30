@@ -11,9 +11,15 @@ template <int POrd, typename Real>
 void bind_polynomial(pybind11::module& m) {
   using namespace pybind11::literals;
 
-  m.def("poly_v", &poly_v<POrd, Real>, "x"_a, "coeffs"_a);
-  m.def("poly_v_d", &poly_v_d<POrd, Real>, "x"_a, "coeffs"_a);
-}
+  m.def("poly_v", &poly<POrd, Real>::V, "x"_a, "coeffs"_a);
+  m.def(
+      "poly_v_d",
+      [](Real x, Vec<Real, POrd> coeffs) {
+        return poly<POrd, Real>::V_dV(x, coeffs).astuple();
+      },
+      "x"_a,
+      "coeffs"_a);
+}  // namespace common
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   bind_polynomial<2, float>(m);
