@@ -13,14 +13,6 @@ from tmol.utility.args import ignore_unused_kwargs, _signature
 from tmol.tests.autograd import gradcheck, VectorizedOp
 
 
-@pytest.fixture
-def compiled(scope="session"):
-    """Move compilation to test fixture to report compilation errors as test failure."""
-    import tmol.score.ljlk.potentials.compiled
-
-    return tmol.score.ljlk.potentials.compiled
-
-
 # TODO add lj_sigma spot check
 parametrize_atom_pairs = pytest.mark.parametrize(
     "iname,jname", [("CNH2", "COO"), ("Ntrp", "OOC")]  # standard, donor/acceptor
@@ -37,9 +29,9 @@ def combine_params(params_i, params_j, global_params):
 
 @pytest.mark.parametrize("bonded_path_length", [2, 4, 5])
 @parametrize_atom_pairs
-def test_lk_isotropic_gradcheck(
-    compiled, default_database, iname, jname, bonded_path_length
-):
+def test_lk_isotropic_gradcheck(default_database, iname, jname, bonded_path_length):
+    import tmol.tests.score.ljlk.potentials.compiled as compiled
+
     params = default_database.scoring.ljlk
 
     i = params.atom_type_parameters[0]
@@ -74,7 +66,9 @@ def test_lk_isotropic_gradcheck(
 
 
 @parametrize_atom_pairs
-def test_lk_isotropic_spotcheck(compiled, default_database, iname, jname):
+def test_lk_isotropic_spotcheck(default_database, iname, jname):
+    import tmol.tests.score.ljlk.potentials.compiled as compiled
+
     params = default_database.scoring.ljlk
 
     i = {p.name: p for p in params.atom_type_parameters}[iname]

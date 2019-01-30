@@ -1,4 +1,3 @@
-import pytest
 from pytest import approx
 import attr
 from toolz import valmap, merge, keyfilter, keymap
@@ -9,14 +8,6 @@ from tmol.tests.autograd import gradcheck, VectorizedOp
 from tmol.utility.args import _signature, ignore_unused_kwargs
 
 
-@pytest.fixture
-def compiled(scope="session"):
-    """Move compilation to test fixture to report compilation errors as test failure."""
-    import tmol.score.ljlk.potentials.compiled
-
-    return tmol.score.ljlk.potentials.compiled
-
-
 def combine_params(params_i, params_j, global_params):
     return merge(
         keymap(lambda k: f"i_{k}", attr.asdict(params_i)),
@@ -25,8 +16,10 @@ def combine_params(params_i, params_j, global_params):
     )
 
 
-def test_lj_gradcheck(compiled, default_database):
+def test_lj_gradcheck(default_database):
     """Gradcheck lj_score_V_dV across range of value values."""
+    import tmol.tests.score.ljlk.potentials.compiled as compiled
+
     params = default_database.scoring.ljlk
 
     i = params.atom_type_parameters[0]
@@ -60,8 +53,10 @@ def test_lj_gradcheck(compiled, default_database):
     gradcheck(op, targs(kwargs))
 
 
-def test_lj_spotcheck(compiled, default_database):
+def test_lj_spotcheck(default_database):
     """Check boundary conditionas and invarients in lj potential."""
+
+    import tmol.tests.score.ljlk.potentials.compiled as compiled
 
     params = default_database.scoring.ljlk
 
