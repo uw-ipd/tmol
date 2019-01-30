@@ -87,17 +87,15 @@ struct pt_interior_angle {
   static def V(Real3 A, Real3 B, Real3 C)->Real {
     Real3 BA = A - B;
     Real3 BC = C - B;
+
     return interior_angle_V(BA, BC);
   }
 
   static def V_dV(Real3 A, Real3 B, Real3 C)->V_dV_T {
     Real3 BA = A - B;
     Real3 BC = C - B;
-    Real V;
-    Real3 dV_dBA, dV_dBC;
 
     auto angle = interior_angle<Real>::V_dV(BA, BC);
-
     return {angle.V, angle.dV_dA, -(angle.dV_dA + angle.dV_dB), angle.dV_dB};
   }
 };

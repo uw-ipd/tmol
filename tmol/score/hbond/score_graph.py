@@ -127,9 +127,6 @@ class HBondScoreGraph(
         Initialize from ``val.hbond_database`` if possible, otherwise from
         ``parameter_database.scoring.hbond``.
         """
-        # Check for disabled tests under "TODO" when enabling cuda.
-        if not device.type == "cpu":
-            raise NotImplementedError("Component only supports cpu execution.")
 
         if hbond_database is None:
             if getattr(val, "hbond_database", None):

@@ -58,7 +58,7 @@ struct HBondDispatch {
       Real hb_sp2_outer_width,
       Real hb_sp3_softmax_fade,
       Real threshold_distance)
-      -> tuple<
+      -> std::tuple<
           TPack<int64_t, 2, Dev>,
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,

@@ -77,9 +77,6 @@ class HBondFun(torch.autograd.Function):
         assert A.shape[:1] == acceptor_type.shape
         assert not acceptor_type.requires_grad
 
-        if not D.device.type == "cpu":
-            raise NotImplementedError("Non-cpu device not not supported.")
-
         inds, E, *dE_dC = ctx.op.hbond_pair_score(
             D, H, donor_type, A, B, B0, acceptor_type, **ctx.op.params
         )

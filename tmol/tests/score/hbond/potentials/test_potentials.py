@@ -21,9 +21,9 @@ _hbond_global_params = dict(
 @pytest.fixture
 def compiled(scope="session"):
     """Move compilation to test fixture to report compilation errors as test failure."""
-    import tmol.score.hbond.potentials.compiled
+    import tmol.tests.score.hbond.potentials.compiled as compiled
 
-    return tmol.score.hbond.potentials.compiled
+    return compiled
 
 
 @pytest.fixture
@@ -338,7 +338,7 @@ def test_BAH_angle_gradcheck(compiled, sp2_params, sp3_params, ring_params):
 
 
 def test_sp2_chi_energy_gradcheck(compiled, sp2_params):
-    from tmol.score.common.geom import dihedral_angle_V
+    from tmol.tests.score.common.geom.geom import dihedral_angle_V
 
     def _t(t):
         return torch.tensor(t).to(dtype=torch.double)

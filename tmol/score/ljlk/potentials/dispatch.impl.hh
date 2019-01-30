@@ -64,13 +64,14 @@ struct LJDispatch {
       Int ati = atom_type_i[i];
       Int atj = atom_type_j[j];
 
-      Real Dist;
-      Vec<Real, 3> dDist_dI, dDist_dJ;
-      tie(Dist, dDist_dI, dDist_dJ) = distance_V_dV(coords_i[i], coords_j[j]);
+      auto dist_r = distance<Real>::V_dV(coords_i[i], coords_j[j]);
+      auto& dist = dist_r.V;
+      auto& ddist_dI = dist_r.dV_dA;
+      auto& ddist_dJ = dist_r.dV_dB;
 
       Real V, dV_dDist;
       tie(V, dV_dDist) = lj_score_V_dV(
-          Dist,
+          dist,
           bonded_path_lengths[i][j],
           LJTypeParams_struct(, [ati]),
           LJTypeParams_struct(, [atj]),
@@ -80,8 +81,8 @@ struct LJDispatch {
       inds[o][1] = j;
 
       Vs[o] = V;
-      dV_dIs[o] = dV_dDist * dDist_dI;
-      dV_dJs[o] = dV_dDist * dDist_dJ;
+      dV_dIs[o] = dV_dDist * ddist_dI;
+      dV_dJs[o] = dV_dDist * ddist_dJ;
     });
 
     return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
@@ -129,13 +130,14 @@ struct LKIsotropicDispatch {
       Int ati = atom_type_i[i];
       Int atj = atom_type_j[j];
 
-      Real Dist;
-      Vec<Real, 3> dDist_dI, dDist_dJ;
-      tie(Dist, dDist_dI, dDist_dJ) = distance_V_dV(coords_i[i], coords_j[j]);
+      auto dist_r = distance<Real>::V_dV(coords_i[i], coords_j[j]);
+      auto& dist = dist_r.V;
+      auto& ddist_dI = dist_r.dV_dA;
+      auto& ddist_dJ = dist_r.dV_dB;
 
       Real V, dV_dDist;
       tie(V, dV_dDist) = lk_isotropic_score_V_dV(
-          Dist,
+          dist,
           bonded_path_lengths[i][j],
           LKTypeParams_struct(, [ati]),
           LKTypeParams_struct(, [atj]),
@@ -145,8 +147,8 @@ struct LKIsotropicDispatch {
       inds[o][1] = j;
 
       Vs[o] = V;
-      dV_dIs[o] = dV_dDist * dDist_dI;
-      dV_dJs[o] = dV_dDist * dDist_dJ;
+      dV_dIs[o] = dV_dDist * ddist_dI;
+      dV_dJs[o] = dV_dDist * ddist_dJ;
     });
 
     return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};

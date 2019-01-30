@@ -1,5 +1,4 @@
 import torch
-import pytest
 import attr
 
 from tmol.database import ParameterDatabase
@@ -12,15 +11,6 @@ from tmol.utility.dicttoolz import merge, valmap
 from tmol.utility.args import ignore_unused_kwargs, bind_to_args
 
 from tmol.tests.autograd import gradcheck
-
-from tmol.tests.torch import cuda_not_implemented
-
-
-@pytest.fixture(scope="session")
-def compiled():
-    import tmol.score.hbond.potentials.compiled
-
-    return tmol.score.hbond.potentials.compiled
 
 
 def _setup_inputs(coords, params, donors, acceptors, torch_device):
@@ -47,12 +37,12 @@ def _setup_inputs(coords, params, donors, acceptors, torch_device):
     )
 
 
-@cuda_not_implemented
-def test_score_op(compiled, ubq_system, torch_device):
+def test_score_op(ubq_system, torch_device):
     """Scores computed via op-based dispatch match values from explicit
     evaluation."""
 
     from tmol.score.hbond.torch_op import HBondOp
+    import tmol.tests.score.hbond.potentials.compiled as compiled
 
     system = ubq_system
     hbond_database = ParameterDatabase.get_default().scoring.hbond
@@ -108,12 +98,14 @@ def test_score_op(compiled, ubq_system, torch_device):
         **merge(batch_coords, batch_params, gparams)
     )
 
-    torch.testing.assert_allclose(op_scores, batch_scores)
+    torch.testing.assert_allclose(
+        op_scores,
+        torch.from_numpy(batch_scores).to(device=torch_device, dtype=torch.float),
+    )
     # Derivative values validated via gradcheck
 
 
-@cuda_not_implemented
-def test_score_op_gradcheck(compiled, ubq_system, torch_device):
+def test_score_op_gradcheck(ubq_system, torch_device):
 
     from tmol.score.hbond.torch_op import HBondOp
 

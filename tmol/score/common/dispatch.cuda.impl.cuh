@@ -17,8 +17,6 @@ namespace tmol {
 namespace score {
 namespace common {
 
-using tmol::TView;
-
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
