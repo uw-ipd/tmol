@@ -1,3 +1,5 @@
+.torch_extensions
+
 # Conda environment
 .conda
 # Rendered environment definitions
