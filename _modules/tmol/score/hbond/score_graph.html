@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-135-g1f1f9d10 documentation</title>
+  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-136-g2c371de9 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-135-g1f1f9d10
+                0.0.0-136-g2c371de9
               </div>
             
           
@@ -294,9 +294,6 @@
 <span class="sd">        Initialize from ``val.hbond_database`` if possible, otherwise from</span>
 <span class="sd">        ``parameter_database.scoring.hbond``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Check for disabled tests under &quot;TODO&quot; when enabling cuda.</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Component only supports cpu execution.&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">hbond_database</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s2">&quot;hbond_database&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
@@ -310,9 +307,11 @@
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">hbond_param_resolver</span><span class="p">(</span><span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondParamResolver</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">hbond_param_resolver</span><span class="p">(</span>
+        <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondParamResolver</span><span class="p">:</span>
         <span class="s2">&quot;hbond pair parameter resolver&quot;</span>
-        <span class="k">return</span> <span class="n">HBondParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">hbond_database</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">HBondParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">hbond_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
@@ -435,7 +434,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-135-g1f1f9d10',
+              VERSION:'0.0.0-136-g2c371de9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

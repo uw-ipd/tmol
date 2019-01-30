@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.torch_op &mdash; TMol 0.0.0-135-g1f1f9d10 documentation</title>
+  <title>tmol.score.hbond.torch_op &mdash; TMol 0.0.0-136-g2c371de9 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-135-g1f1f9d10
+                0.0.0-136-g2c371de9
               </div>
             
           
@@ -244,13 +244,15 @@
         <span class="k">assert</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">acceptor_type</span><span class="o">.</span><span class="n">shape</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="n">acceptor_type</span><span class="o">.</span><span class="n">requires_grad</span>
 
-        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span>
-            <span class="n">t</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">donor_type</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="p">)</span>
-        <span class="p">)</span>
-
         <span class="n">inds</span><span class="p">,</span> <span class="n">E</span><span class="p">,</span> <span class="o">*</span><span class="n">dE_dC</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">hbond_pair_score</span><span class="p">(</span>
             <span class="n">D</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">donor_type</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span>
         <span class="p">)</span>
+
+        <span class="c1"># Assert of returned shape of indicies and scores. Seeing strange</span>
+        <span class="c1"># results w/ reversed ordering if mgpu::tuple converted std::tuple</span>
+        <span class="k">assert</span> <span class="n">inds</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">E</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">inds</span> <span class="o">=</span> <span class="n">inds</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
@@ -322,7 +324,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-135-g1f1f9d10',
+              VERSION:'0.0.0-136-g2c371de9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
