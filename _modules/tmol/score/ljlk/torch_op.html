@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-140-g50073e89 documentation</title>
+  <title>tmol.score.ljlk.torch_op &mdash; TMol 0.0.0-141-ge46bbbb6 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-140-g50073e89
+                0.0.0-141-ge46bbbb6
               </div>
             
           
@@ -168,10 +168,9 @@
 <span></span><span class="kn">import</span> <span class="nn">attr</span>
 <span class="kn">from</span> <span class="nn">attr</span> <span class="k">import</span> <span class="n">asdict</span>
 <span class="kn">from</span> <span class="nn">toolz</span> <span class="k">import</span> <span class="n">merge</span><span class="p">,</span> <span class="n">valmap</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">import</span> <span class="nn">numpy</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span> <span class="nn">tmol.utility.args</span> <span class="k">import</span> <span class="n">ignore_unused_kwargs</span>
@@ -185,19 +184,22 @@
 
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
     <span class="n">param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span>
-    <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
+    <span class="n">params</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
 
 <div class="viewcode-block" id="AtomOp.from_param_resolver"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomOp.from_param_resolver">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">from_param_resolver</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">param_resolver</span><span class="o">=</span><span class="n">param_resolver</span><span class="p">,</span>
             <span class="n">params</span><span class="o">=</span><span class="n">merge</span><span class="p">(</span>
-                <span class="n">valmap</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">asdict</span><span class="p">(</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="p">)),</span>
-                <span class="n">asdict</span><span class="p">(</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">type_params</span><span class="p">),</span>
+                <span class="n">asdict</span><span class="p">(</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">global_params</span><span class="p">),</span> <span class="n">asdict</span><span class="p">(</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">type_params</span><span class="p">)</span>
             <span class="p">),</span>
             <span class="n">device</span><span class="o">=</span><span class="n">param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">t</span><span class="o">.</span><span class="n">device</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="AtomOp.from_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.torch_op.html#tmol.score.ljlk.torch_op.AtomOp.from_database">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
@@ -358,7 +360,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-140-g50073e89',
+              VERSION:'0.0.0-141-ge46bbbb6',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -13,6 +13,7 @@ tmol.score.ljlk.numba
   
        tmol.score.ljlk.numba.common
        tmol.score.ljlk.numba.lj
+       tmol.score.ljlk.numba.lk_ball
        tmol.score.ljlk.numba.lk_isotropic
        tmol.score.ljlk.numba.vectorized
   

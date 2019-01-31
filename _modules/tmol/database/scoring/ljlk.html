@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring.ljlk &mdash; TMol 0.0.0-140-g50073e89 documentation</title>
+  <title>tmol.database.scoring.ljlk &mdash; TMol 0.0.0-141-ge46bbbb6 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-140-g50073e89
+                0.0.0-141-ge46bbbb6
               </div>
             
           
@@ -172,7 +172,16 @@
 <span class="kn">import</span> <span class="nn">attr</span>
 <span class="kn">import</span> <span class="nn">cattr</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">Enum</span>
+
+
+<div class="viewcode-block" id="AcceptorHybridization"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.AcceptorHybridization">[docs]</a><span class="k">class</span> <span class="nc">AcceptorHybridization</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">none</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+    <span class="n">sp2</span> <span class="o">=</span> <span class="s2">&quot;sp2&quot;</span>
+    <span class="n">sp3</span> <span class="o">=</span> <span class="s2">&quot;sp3&quot;</span>
+    <span class="n">ring</span> <span class="o">=</span> <span class="s2">&quot;ring&quot;</span></div>
 
 
 <div class="viewcode-block" id="LJLKGlobalParameters"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKGlobalParameters">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -183,7 +192,14 @@
     <span class="n">lj_hbond_dis</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">lj_hbond_hdis</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">lj_switch_dis2sigma</span><span class="p">:</span> <span class="nb">float</span>
-    <span class="n">lk_min_dis2sigma</span><span class="p">:</span> <span class="nb">float</span></div>
+    <span class="n">lk_min_dis2sigma</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">lkb_water_dist</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">lkb_water_angle_sp2</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">lkb_water_angle_sp3</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">lkb_water_angle_ring</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">lkb_water_tors_sp2</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="n">lkb_water_tors_sp3</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="n">lkb_water_tors_ring</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="LJLKAtomTypeParameters"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKAtomTypeParameters">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -196,6 +212,7 @@
     <span class="n">lk_lambda</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">lk_volume</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">is_acceptor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">acceptor_hybridization</span><span class="p">:</span> <span class="n">AcceptorHybridization</span> <span class="o">=</span> <span class="n">AcceptorHybridization</span><span class="o">.</span><span class="n">none</span>
     <span class="n">is_donor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">is_hydroxyl</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">is_polarh</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
@@ -247,7 +264,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-140-g50073e89',
+              VERSION:'0.0.0-141-ge46bbbb6',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

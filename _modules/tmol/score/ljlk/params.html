@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-140-g50073e89 documentation</title>
+  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-141-ge46bbbb6 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-140-g50073e89
+                0.0.0-141-ge46bbbb6
               </div>
             
           
@@ -168,8 +168,11 @@
 <span></span><span class="kn">import</span> <span class="nn">attr</span>
 <span class="kn">import</span> <span class="nn">cattr</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span>
 <span class="kn">import</span> <span class="nn">pandas</span>
 <span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">IntEnum</span>
 
 
 <span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
@@ -181,6 +184,13 @@
 <span class="kn">from</span> <span class="nn">tmol.database.scoring.ljlk</span> <span class="k">import</span> <span class="n">LJLKDatabase</span>
 
 
+<div class="viewcode-block" id="AcceptorHybridization"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.AcceptorHybridization">[docs]</a><span class="k">class</span> <span class="nc">AcceptorHybridization</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="n">none</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">sp2</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">sp3</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">ring</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+
 <div class="viewcode-block" id="LJLKGlobalParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKGlobalParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LJLKGlobalParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ValidateAttrs</span><span class="p">):</span>
     <span class="n">max_dis</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
@@ -189,7 +199,15 @@
     <span class="n">lj_hbond_dis</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
     <span class="n">lj_hbond_hdis</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
     <span class="n">lj_switch_dis2sigma</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">lk_min_dis2sigma</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
+    <span class="n">lk_min_dis2sigma</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+
+    <span class="n">lkb_water_dist</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">lkb_water_angle_sp2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">lkb_water_angle_sp3</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">lkb_water_angle_ring</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">lkb_water_tors_sp2</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">lkb_water_tors_sp3</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">lkb_water_tors_ring</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:]</span></div>
 
 
 <div class="viewcode-block" id="LJLKTypeParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.params.html#tmol.score.ljlk.params.LJLKTypeParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -199,6 +217,8 @@
     <span class="n">lk_dgfree</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
     <span class="n">lk_lambda</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
     <span class="n">lk_volume</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+
+    <span class="n">acceptor_hybridization</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
     <span class="n">is_acceptor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">bool</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
     <span class="n">is_donor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">bool</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
     <span class="n">is_hydroxyl</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">bool</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
@@ -232,6 +252,8 @@
 <span class="sd">        higher-dimensional arrays, as may be produced via broadcasting, into</span>
 <span class="sd">        lower-dimensional views to resolver parameter indices.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atom_types</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">atom_types</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">atom_types</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_type_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">atom_types</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">atom_types</span><span class="o">.</span><span class="n">shape</span>
         <span class="p">)</span></div>
@@ -273,6 +295,13 @@
                 <span class="p">(</span><span class="n">param_records</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">])</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">param_records</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;u1&quot;</span><span class="p">)</span>
                 <span class="p">)</span>
+        <span class="n">param_records</span><span class="p">[</span><span class="s2">&quot;acceptor_hybridization&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">param_records</span><span class="p">[</span>
+            <span class="s2">&quot;acceptor_hybridization&quot;</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">AcceptorHybridization</span><span class="o">.</span><span class="n">__members__</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">AcceptorHybridization</span><span class="o">.</span><span class="n">none</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="c1"># Convert the param record dataframe into typed TensorGroup</span>
         <span class="n">type_params</span> <span class="o">=</span> <span class="n">LJLKTypeParams</span><span class="p">(</span>
@@ -326,7 +355,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-140-g50073e89',
+              VERSION:'0.0.0-141-ge46bbbb6',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

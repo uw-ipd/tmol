@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-140-g50073e89 documentation</title>
+  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-141-ge46bbbb6 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-140-g50073e89
+                0.0.0-141-ge46bbbb6
               </div>
             
           
@@ -208,13 +208,16 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKGlobalParams" title="tmol.score.ljlk.params.LJLKGlobalParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKGlobalParams</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.params.AcceptorHybridization" title="tmol.score.ljlk.params.AcceptorHybridization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AcceptorHybridization</span></code></a></td>
+<td>An enumeration.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKGlobalParams" title="tmol.score.ljlk.params.LJLKGlobalParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKGlobalParams</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKParamResolver" title="tmol.score.ljlk.params.LJLKParamResolver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKParamResolver</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKParamResolver" title="tmol.score.ljlk.params.LJLKParamResolver"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKParamResolver</span></code></a></td>
 <td>Container for global/type/pair parameters, indexed by atom type name.</td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKTypeParams" title="tmol.score.ljlk.params.LJLKTypeParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKTypeParams</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.ljlk.params.LJLKTypeParams" title="tmol.score.ljlk.params.LJLKTypeParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKTypeParams</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -224,8 +227,35 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
+<dt id="tmol.score.ljlk.params.AcceptorHybridization">
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.params.</code><code class="descname">AcceptorHybridization</code><a class="reference internal" href="../_modules/tmol/score/ljlk/params.html#AcceptorHybridization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.params.AcceptorHybridization" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.AcceptorHybridization.none">
+<code class="descname">none</code><em class="property"> = 0</em><a class="headerlink" href="#tmol.score.ljlk.params.AcceptorHybridization.none" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.AcceptorHybridization.sp2">
+<code class="descname">sp2</code><em class="property"> = 1</em><a class="headerlink" href="#tmol.score.ljlk.params.AcceptorHybridization.sp2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.AcceptorHybridization.sp3">
+<code class="descname">sp3</code><em class="property"> = 2</em><a class="headerlink" href="#tmol.score.ljlk.params.AcceptorHybridization.sp3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.AcceptorHybridization.ring">
+<code class="descname">ring</code><em class="property"> = 3</em><a class="headerlink" href="#tmol.score.ljlk.params.AcceptorHybridization.ring" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="tmol.score.ljlk.params.LJLKGlobalParams">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.params.</code><code class="descname">LJLKGlobalParams</code><span class="sig-paren">(</span><em>max_dis: Tensor(torch.float32)[...], spline_start: Tensor(torch.float32)[...], lj_hbond_OH_donor_dis: Tensor(torch.float32)[...], lj_hbond_dis: Tensor(torch.float32)[...], lj_hbond_hdis: Tensor(torch.float32)[...], lj_switch_dis2sigma: Tensor(torch.float32)[...], lk_min_dis2sigma: Tensor(torch.float32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/params.html#LJLKGlobalParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.params.</code><code class="descname">LJLKGlobalParams</code><span class="sig-paren">(</span><em>max_dis: Tensor(torch.float32)[...], spline_start: Tensor(torch.float32)[...], lj_hbond_OH_donor_dis: Tensor(torch.float32)[...], lj_hbond_dis: Tensor(torch.float32)[...], lj_hbond_hdis: Tensor(torch.float32)[...], lj_switch_dis2sigma: Tensor(torch.float32)[...], lk_min_dis2sigma: Tensor(torch.float32)[...], lkb_water_dist: Tensor(torch.float32)[...], lkb_water_angle_sp2: Tensor(torch.float32)[...], lkb_water_angle_sp3: Tensor(torch.float32)[...], lkb_water_angle_ring: Tensor(torch.float32)[...], lkb_water_tors_sp2: Tensor(torch.float32)[...,:], lkb_water_tors_sp3: Tensor(torch.float32)[...,:], lkb_water_tors_ring: Tensor(torch.float32)[...,:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/params.html#LJLKGlobalParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.score.ljlk.params.LJLKGlobalParams.max_dis">
@@ -262,11 +292,46 @@
 <code class="descname">lk_min_dis2sigma</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams.lk_min_dis2sigma" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_dist">
+<code class="descname">lkb_water_dist</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_dist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_angle_sp2">
+<code class="descname">lkb_water_angle_sp2</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_angle_sp2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_angle_sp3">
+<code class="descname">lkb_water_angle_sp3</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_angle_sp3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_angle_ring">
+<code class="descname">lkb_water_angle_ring</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_angle_ring" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_tors_sp2">
+<code class="descname">lkb_water_tors_sp2</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_tors_sp2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_tors_sp3">
+<code class="descname">lkb_water_tors_sp3</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_tors_sp3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_tors_ring">
+<code class="descname">lkb_water_tors_ring</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKGlobalParams.lkb_water_tors_ring" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="tmol.score.ljlk.params.LJLKTypeParams">
-<em class="property">class </em><code class="descclassname">tmol.score.ljlk.params.</code><code class="descname">LJLKTypeParams</code><span class="sig-paren">(</span><em>lj_radius: Tensor(torch.float32)[...], lj_wdepth: Tensor(torch.float32)[...], lk_dgfree: Tensor(torch.float32)[...], lk_lambda: Tensor(torch.float32)[...], lk_volume: Tensor(torch.float32)[...], is_acceptor: Tensor(torch.uint8)[...], is_donor: Tensor(torch.uint8)[...], is_hydroxyl: Tensor(torch.uint8)[...], is_polarh: Tensor(torch.uint8)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/params.html#LJLKTypeParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypeParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.ljlk.params.</code><code class="descname">LJLKTypeParams</code><span class="sig-paren">(</span><em>lj_radius: Tensor(torch.float32)[...], lj_wdepth: Tensor(torch.float32)[...], lk_dgfree: Tensor(torch.float32)[...], lk_lambda: Tensor(torch.float32)[...], lk_volume: Tensor(torch.float32)[...], acceptor_hybridization: Tensor(torch.int32)[...], is_acceptor: Tensor(torch.uint8)[...], is_donor: Tensor(torch.uint8)[...], is_hydroxyl: Tensor(torch.uint8)[...], is_polarh: Tensor(torch.uint8)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/ljlk/params.html#LJLKTypeParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypeParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.score.ljlk.params.LJLKTypeParams.lj_radius">
@@ -291,6 +356,11 @@
 <dl class="attribute">
 <dt id="tmol.score.ljlk.params.LJLKTypeParams.lk_volume">
 <code class="descname">lk_volume</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypeParams.lk_volume" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.ljlk.params.LJLKTypeParams.acceptor_hybridization">
+<code class="descname">acceptor_hybridization</code><a class="headerlink" href="#tmol.score.ljlk.params.LJLKTypeParams.acceptor_hybridization" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -407,7 +477,7 @@ lower-dimensional views to resolver parameter indices.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-140-g50073e89',
+              VERSION:'0.0.0-141-ge46bbbb6',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

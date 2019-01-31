@@ -7,7 +7,7 @@ tmol.database.scoring.ljlk
 .. currentmodule:: tmol.database.scoring.ljlk
 
 .. automodule:: tmol.database.scoring.ljlk
-    :members: LJLKAtomTypeParameters, LJLKDatabase, LJLKGlobalParameters
+    :members: AcceptorHybridization, LJLKAtomTypeParameters, LJLKDatabase, LJLKGlobalParameters
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,6 +21,7 @@ tmol.database.scoring.ljlk
     .. autosummary::
         :nosignatures:
 
+        AcceptorHybridization
         LJLKAtomTypeParameters
         LJLKDatabase
         LJLKGlobalParameters
