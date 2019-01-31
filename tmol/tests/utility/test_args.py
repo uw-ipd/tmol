@@ -180,7 +180,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 """
 
     c = load_inline(
-        modulename(f"__name__.test_ignore_unused_kwargs_pybind11"), test_source
+        modulename(f"{__name__}.test_ignore_unused_kwargs_pybind11"), test_source
     )
 
     # Test signature extraction for various combinations of overloads, default

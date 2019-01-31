@@ -6,3 +6,6 @@ cd ./$(git rev-parse --show-cdup)
 # Delete .pyc files and empty directories.
 find . -name "*.pyc" -delete
 find . -type d -empty -delete
+
+# Remove torch jit-compile cache
+rm -rf .torch_extensions
