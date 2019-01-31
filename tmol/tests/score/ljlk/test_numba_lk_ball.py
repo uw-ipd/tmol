@@ -1,6 +1,7 @@
 import toolz
 import attr
 import pytest
+from tmol.utility.units import parse_angle
 
 
 import torch
@@ -33,8 +34,8 @@ def test_water_generators(default_database):
     b = numpy.array((-5.250, -1.595, -2.543))
     b0 = numpy.array((-5.489, 0.060, -3.542))
     dist = 2.65
-    angle = 109.0
-    tors = numpy.array((120.0, 240.0))
+    angle = parse_angle("109.0 deg")
+    tors = numpy.array([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
 
     w = build_acc_waters(a, b, b0, dist, angle, tors)
     waters_ref = numpy.array(
@@ -115,8 +116,8 @@ def test_lkball_deriv(default_database):
     b_j = numpy.array((0.0, 0.0, -1.0))
     b0_j = numpy.array((1.0, 0.0, 0.0))
     heavyatom_water_len = 2.65
-    angle = 109.0
-    tors_j = numpy.array((0.0, 120.0, 240.0))
+    angle = parse_angle("109.0 deg")
+    tors_j = numpy.array([parse_angle(f"{a} deg") for a in (0.0, 120.0, 240.0)])
     w_j = build_acc_waters(a_j, b_j, b0_j, heavyatom_water_len, angle, tors_j)
 
     ramp_width_A2 = 3.709
@@ -159,7 +160,7 @@ def test_lkball_deriv(default_database):
     a_i = numpy.array((0.0, 3.0, 3.0))
     b_i = numpy.array((0.0, 3.0, 4.0))
     b0_i = numpy.array((1.0, 0.0, 0.0))
-    tors_i = numpy.array((60.0, 180.0, 300.0))
+    tors_i = numpy.array([parse_angle(f"{a} deg") for a in (60.0, 180.0, 300.0)])
     w_i = build_acc_waters(a_i, b_i, b0_i, heavyatom_water_len, angle, tors_i)
 
     overlap_gap_A2 = 0.5

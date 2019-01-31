@@ -5,6 +5,8 @@ import cattr
 
 from typing import Tuple, List
 
+from tmol.utility.units import Angle
+
 from enum import Enum
 
 
@@ -25,12 +27,12 @@ class LJLKGlobalParameters:
     lj_switch_dis2sigma: float
     lk_min_dis2sigma: float
     lkb_water_dist: float
-    lkb_water_angle_sp2: float
-    lkb_water_angle_sp3: float
-    lkb_water_angle_ring: float
-    lkb_water_tors_sp2: List[float]
-    lkb_water_tors_sp3: List[float]
-    lkb_water_tors_ring: List[float]
+    lkb_water_angle_sp2: Angle
+    lkb_water_angle_sp3: Angle
+    lkb_water_angle_ring: Angle
+    lkb_water_tors_sp2: List[Angle]
+    lkb_water_tors_sp3: List[Angle]
+    lkb_water_tors_ring: List[Angle]
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

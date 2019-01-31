@@ -7,17 +7,17 @@ global_parameters:
   lj_hbond_dis : 3.0
   lk_min_dis2sigma : 0.89
   lkb_water_dist : 2.828
-  lkb_water_angle_sp2 : 134.5
-  lkb_water_angle_sp3 : 109.3
-  lkb_water_angle_ring : 180.0
+  lkb_water_angle_sp2 : 134.5 deg
+  lkb_water_angle_sp3 : 109.3 deg
+  lkb_water_angle_ring : 180.0 deg
   lkb_water_tors_sp2 :
-    - 0.0
-    - 180.0
+    - 0.0 deg
+    - 180.0 deg
   lkb_water_tors_sp3 :
-    - 120.0
-    - 240.0
+    - 120.0 deg
+    - 240.0 deg
   lkb_water_tors_ring :
-    - 0.0
+    - 0.0 deg
 atom_type_parameters:
   - &n name: CNH2
     &e elem: C
