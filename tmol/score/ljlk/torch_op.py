@@ -1,10 +1,9 @@
 import attr
 from attr import asdict
 from toolz import merge, valmap
-from typing import Callable, Mapping, Union
+from typing import Callable, Mapping
 
 import torch
-import numpy
 
 from tmol.types.functional import validate_args
 from tmol.utility.args import ignore_unused_kwargs
@@ -18,19 +17,22 @@ class AtomOp:
 
     device: torch.device
     param_resolver: LJLKParamResolver
-    params: Mapping[str, Union[float, numpy.ndarray]]
+    params: Mapping[str, torch.Tensor]
 
     @classmethod
     @validate_args
     def from_param_resolver(cls, param_resolver: LJLKParamResolver):
-        return cls(
+        res = cls(
             param_resolver=param_resolver,
             params=merge(
-                valmap(float, asdict(param_resolver.global_params)),
-                asdict(param_resolver.type_params),
+                asdict(param_resolver.global_params), asdict(param_resolver.type_params)
             ),
             device=param_resolver.device,
         )
+
+        assert all(res.device == t.device for t in res.params.values())
+
+        return res
 
     @classmethod
     @validate_args

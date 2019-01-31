@@ -5,14 +5,14 @@ import cattr
 
 from typing import Tuple, List
 
-from enum import IntEnum
+from enum import Enum
 
 
-class Hyb(IntEnum):
-    NONE = 0
-    SP2 = 1
-    SP3 = 2
-    RING = 3
+class AcceptorHybridization(Enum):
+    none = "none"
+    sp2 = "sp2"
+    sp3 = "sp3"
+    ring = "ring"
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -42,8 +42,8 @@ class LJLKAtomTypeParameters:
     lk_dgfree: float
     lk_lambda: float
     lk_volume: float
-    hybridization: Hyb = 0
     is_acceptor: bool = False
+    acceptor_hybridization: AcceptorHybridization = AcceptorHybridization.none
     is_donor: bool = False
     is_hydroxyl: bool = False
     is_polarh: bool = False

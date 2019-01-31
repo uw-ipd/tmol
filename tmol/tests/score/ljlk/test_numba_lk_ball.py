@@ -1,17 +1,14 @@
 import toolz
 import attr
 
-import pytest
-from pytest import approx
 
+import torch
 import numpy
-import scipy.optimize
 
 from tmol.utility.args import ignore_unused_kwargs
 
-import tmol.database
 
-from tmol.database.scoring.ljlk import Hyb
+from tmol.score.ljlk.params import LJLKParamResolver
 
 from tmol.score.ljlk.numba.lk_ball import (
     build_acc_waters,
@@ -353,66 +350,43 @@ def test_lkball_deriv(default_database):
     numpy.testing.assert_allclose(dlk_dwj_A, dlk_dwj_N, atol=1e-6)
 
 
+def _get_params(param_resolver: LJLKParamResolver):
+    """Pack ljlk param tensors into numpy arrays for numba potential."""
+
+    def _t(t):
+        t = t.cpu().numpy()
+        if t.ndim == 0:
+            return t[()]
+        return t
+
+    return toolz.valmap(
+        _t,
+        toolz.merge(
+            attr.asdict(param_resolver.type_params),
+            attr.asdict(param_resolver.global_params),
+        ),
+    )
+
+
 # full backward pass
 def test_lkball_deriv_full_backward_pass(default_database):
-    params = default_database.scoring.ljlk
-
-    water_dist = params.global_parameters.lkb_water_dist
-    water_angle_sp2 = params.global_parameters.lkb_water_angle_sp2
-    water_angle_sp3 = params.global_parameters.lkb_water_angle_sp3
-    water_angle_ring = params.global_parameters.lkb_water_angle_ring
-    water_tors_sp2 = params.global_parameters.lkb_water_tors_sp2
-    water_tors_sp3 = params.global_parameters.lkb_water_tors_sp3
-    water_tors_ring = params.global_parameters.lkb_water_tors_ring
-    lj_radius = numpy.array([p.lj_radius for p in params.atom_type_parameters])
-    lk_dgfree = numpy.array([p.lk_dgfree for p in params.atom_type_parameters])
-    lk_lambda = numpy.array([p.lk_lambda for p in params.atom_type_parameters])
-    lk_volume = numpy.array([p.lk_volume for p in params.atom_type_parameters])
-    hybridization = numpy.array([p.hybridization for p in params.atom_type_parameters])
-    is_donor = numpy.array([p.is_donor for p in params.atom_type_parameters])
-    is_hydroxyl = numpy.array([p.is_hydroxyl for p in params.atom_type_parameters])
-    is_polarh = numpy.array([p.is_polarh for p in params.atom_type_parameters])
-    is_acceptor = numpy.array([p.is_acceptor for p in params.atom_type_parameters])
-    lj_hbond_dis = params.global_parameters.lj_hbond_dis
-    lj_hbond_OH_donor_dis = params.global_parameters.lj_hbond_dis
-    lj_hbond_hdis = params.global_parameters.lj_hbond_dis
-    name2index = [p.name for p in params.atom_type_parameters]
+    param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
+        default_database.scoring.ljlk, device=torch.device("cpu")
+    )
+    params = _get_params(param_resolver)
 
     def get_lkball_intra(
         coords, atom_types, bonded_path_lengths, attached_h, base_atoms
     ):
-        return lkball_intra(
-            coords,
-            atom_types,
-            bonded_path_lengths,
-            attached_h,
-            base_atoms,
-            lj_radius,
-            lk_dgfree,
-            lk_lambda,
-            lk_volume,
-            hybridization,
-            is_donor,
-            is_hydroxyl,
-            is_polarh,
-            is_acceptor,
-            lj_hbond_dis,
-            lj_hbond_OH_donor_dis,
-            lj_hbond_hdis,
-            water_dist,
-            water_angle_sp2,
-            water_angle_sp3,
-            water_angle_ring,
-            water_tors_sp2,
-            water_tors_sp3,
-            water_tors_ring,
+        return ignore_unused_kwargs(lkball_intra)(
+            coords, atom_types, bonded_path_lengths, attached_h, base_atoms, **params
         )
 
     def get_dlkball_intra(
         inds, coords, atom_types, bonded_path_lengths, attached_h, base_atoms
     ):
         d_val = numpy.ones_like(coords)
-        return lkball_intra_backward(
+        return ignore_unused_kwargs(lkball_intra_backward)(
             inds,
             d_val,
             coords,
@@ -420,25 +394,7 @@ def test_lkball_deriv_full_backward_pass(default_database):
             bonded_path_lengths,
             attached_h,
             base_atoms,
-            lj_radius,
-            lk_dgfree,
-            lk_lambda,
-            lk_volume,
-            hybridization,
-            is_donor,
-            is_hydroxyl,
-            is_polarh,
-            is_acceptor,
-            lj_hbond_dis,
-            lj_hbond_OH_donor_dis,
-            lj_hbond_hdis,
-            water_dist,
-            water_angle_sp2,
-            water_angle_sp3,
-            water_angle_ring,
-            water_tors_sp2,
-            water_tors_sp3,
-            water_tors_ring,
+            **params,
         )
 
     coords = numpy.array(
@@ -451,15 +407,8 @@ def test_lkball_deriv_full_backward_pass(default_database):
             [-10.715, 0.960, -0.319],  # HIS CE1
         ]
     )
-    atom_types = numpy.array(
-        [
-            name2index.index("CH2"),
-            name2index.index("OH"),
-            name2index.index("Hpol"),
-            name2index.index("CH0"),
-            name2index.index("NhisDDepro"),
-            name2index.index("Caro"),
-        ]
+    atom_types = param_resolver.type_idx(
+        ["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]
     )
     bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int)
     bonded_path_lengths[:3, 3:] = 5
@@ -501,57 +450,17 @@ def test_lkball_deriv_full_backward_pass(default_database):
 
 # full forward pass
 def test_lkball_spotcheck(default_database):
-    params = default_database.scoring.ljlk
+    param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
+        default_database.scoring.ljlk, device=torch.device("cpu")
+    )
 
-    water_dist = params.global_parameters.lkb_water_dist
-    water_angle_sp2 = params.global_parameters.lkb_water_angle_sp2
-    water_angle_sp3 = params.global_parameters.lkb_water_angle_sp3
-    water_angle_ring = params.global_parameters.lkb_water_angle_ring
-    water_tors_sp2 = params.global_parameters.lkb_water_tors_sp2
-    water_tors_sp3 = params.global_parameters.lkb_water_tors_sp3
-    water_tors_ring = params.global_parameters.lkb_water_tors_ring
-    lj_radius = numpy.array([p.lj_radius for p in params.atom_type_parameters])
-    lk_dgfree = numpy.array([p.lk_dgfree for p in params.atom_type_parameters])
-    lk_lambda = numpy.array([p.lk_lambda for p in params.atom_type_parameters])
-    lk_volume = numpy.array([p.lk_volume for p in params.atom_type_parameters])
-    hybridization = numpy.array([p.hybridization for p in params.atom_type_parameters])
-    is_donor = numpy.array([p.is_donor for p in params.atom_type_parameters])
-    is_hydroxyl = numpy.array([p.is_hydroxyl for p in params.atom_type_parameters])
-    is_polarh = numpy.array([p.is_polarh for p in params.atom_type_parameters])
-    is_acceptor = numpy.array([p.is_acceptor for p in params.atom_type_parameters])
-    lj_hbond_dis = params.global_parameters.lj_hbond_dis
-    lj_hbond_OH_donor_dis = params.global_parameters.lj_hbond_dis
-    lj_hbond_hdis = params.global_parameters.lj_hbond_dis
-    name2index = [p.name for p in params.atom_type_parameters]
+    params = _get_params(param_resolver)
 
     def get_lkball_intra(
         coords, atom_types, bonded_path_lengths, attached_h, base_atoms
     ):
-        return lkball_intra(
-            coords,
-            atom_types,
-            bonded_path_lengths,
-            attached_h,
-            base_atoms,
-            lj_radius,
-            lk_dgfree,
-            lk_lambda,
-            lk_volume,
-            hybridization,
-            is_donor,
-            is_hydroxyl,
-            is_polarh,
-            is_acceptor,
-            lj_hbond_dis,
-            lj_hbond_OH_donor_dis,
-            lj_hbond_hdis,
-            water_dist,
-            water_angle_sp2,
-            water_angle_sp3,
-            water_angle_ring,
-            water_tors_sp2,
-            water_tors_sp3,
-            water_tors_ring,
+        return ignore_unused_kwargs(lkball_intra)(
+            coords, atom_types, bonded_path_lengths, attached_h, base_atoms, **params
         )
 
     # test 1: donor--donor
@@ -567,17 +476,9 @@ def test_lkball_spotcheck(default_database):
             [-10.429, 5.372, -1.610],
         ]
     )
-    atom_types = numpy.array(
-        [
-            name2index.index("Nlys"),
-            name2index.index("Hpol"),
-            name2index.index("Hpol"),
-            name2index.index("Hpol"),
-            name2index.index("Nlys"),
-            name2index.index("Hpol"),
-            name2index.index("Hpol"),
-            name2index.index("Hpol"),
-        ]
+
+    atom_types = param_resolver.type_idx(
+        ["Nlys", "Hpol", "Hpol", "Hpol", "Nlys", "Hpol", "Hpol", "Hpol"]
     )
     bonded_path_lengths = numpy.ones((8, 8), dtype=numpy.int)
     bonded_path_lengths[:4, 4:] = 5
@@ -604,14 +505,7 @@ def test_lkball_spotcheck(default_database):
             [-6.932, 4.109, -5.683],
         ]
     )
-    atom_types = numpy.array(
-        [
-            name2index.index("CH2"),
-            name2index.index("COO"),
-            name2index.index("OOC"),
-            name2index.index("CH3"),
-        ]
-    )
+    atom_types = param_resolver.type_idx(["CH2", "COO", "OOC", "CH3"])
 
     bonded_path_lengths = numpy.ones((4, 4), dtype=numpy.int)
     bonded_path_lengths[:3, 3] = 5
@@ -639,15 +533,8 @@ def test_lkball_spotcheck(default_database):
             [-10.715, 0.960, -0.319],  # HIS CE1
         ]
     )
-    atom_types = numpy.array(
-        [
-            name2index.index("CH2"),
-            name2index.index("OH"),
-            name2index.index("Hpol"),
-            name2index.index("CH0"),
-            name2index.index("NhisDDepro"),
-            name2index.index("Caro"),
-        ]
+    atom_types = param_resolver.type_idx(
+        ["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]
     )
     bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int)
     bonded_path_lengths[:3, 3:] = 5

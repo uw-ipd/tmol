@@ -4,12 +4,11 @@ import toolz
 
 import numpy
 import numba
-from numpy import exp, pi
 
 import tmol.numeric.interpolation.cubic_hermite_polynomial as cubic_hermite_polynomial
-from tmol.database.scoring.ljlk import Hyb
+from tmol.score.ljlk.params import AcceptorHybridization
 
-from .common import connectivity_weight, dist, dist_and_d_dist, lj_sigma
+from .common import dist, lj_sigma
 
 from .lk_isotropic import lk_isotropic_pair, d_lk_isotropic_pair_d_dist
 
@@ -657,16 +656,16 @@ def build_all_waters(
     atom_types,
     is_acceptor,
     is_donor,
-    hybridization,
+    acceptor_hybridization,
     attached_h,
     base_atoms,
-    water_dist,
-    water_angle_sp2,
-    water_angle_sp3,
-    water_angle_ring,
-    water_tors_sp2,
-    water_tors_sp3,
-    water_tors_ring,
+    lkb_water_dist,
+    lkb_water_angle_sp2,
+    lkb_water_angle_sp3,
+    lkb_water_angle_ring,
+    lkb_water_tors_sp2,
+    lkb_water_tors_sp3,
+    lkb_water_tors_ring,
     waters,
     nwaters,
 ):
@@ -675,23 +674,23 @@ def build_all_waters(
         if is_acceptor[ti]:
             # FD this block should instead query a list of bonds
             b, b0 = base_atoms[i, :]
-            if hybridization[ti] == Hyb.SP2:
-                wat_ang = water_angle_sp2
-                wat_tors = water_tors_sp2
+            if acceptor_hybridization[ti] == AcceptorHybridization.sp2:
+                wat_ang = lkb_water_angle_sp2
+                wat_tors = lkb_water_tors_sp2
                 Xb, Xb0 = coords[b], coords[b0]
-            elif hybridization[ti] == Hyb.SP3:
-                wat_ang = water_angle_sp3
-                wat_tors = water_tors_sp3
+            elif acceptor_hybridization[ti] == AcceptorHybridization.sp3:
+                wat_ang = lkb_water_angle_sp3
+                wat_tors = lkb_water_tors_sp3
                 Xb, Xb0 = coords[b], coords[b0]
-            else:  # hybridization[ti] == Hyb.RING
-                wat_ang = water_angle_ring
-                wat_tors = water_tors_ring
+            elif acceptor_hybridization[ti] == AcceptorHybridization.ring:
+                wat_ang = lkb_water_angle_ring
+                wat_tors = lkb_water_tors_ring
                 Xb = 0.5 * (coords[b] + coords[b0])
                 Xb0 = coords[b0]
 
             n_to_build = len(wat_tors)
             waters[i, nwaters[i] : nwaters[i] + n_to_build, :] = build_acc_waters(
-                coords[i], Xb, Xb0, water_dist, wat_ang, wat_tors
+                coords[i], Xb, Xb0, lkb_water_dist, wat_ang, wat_tors
             )
             nwaters[i] += n_to_build
 
@@ -699,7 +698,7 @@ def build_all_waters(
             for h in attached_h[i, :]:
                 if h > -1:
                     waters[i, nwaters[i], :] = build_don_water(
-                        coords[i], coords[h], water_dist
+                        coords[i], coords[h], lkb_water_dist
                     )
                     nwaters[i] += 1
 
@@ -1315,7 +1314,7 @@ def lkball_intra(
     lk_dgfree,
     lk_lambda,
     lk_volume,
-    hybridization,  # new
+    acceptor_hybridization,  # new
     is_donor,
     is_hydroxyl,
     is_polarh,
@@ -1323,13 +1322,13 @@ def lkball_intra(
     lj_hbond_dis,
     lj_hbond_OH_donor_dis,
     lj_hbond_hdis,
-    water_dist,  # new
-    water_angle_sp2,  # new
-    water_angle_sp3,  # new
-    water_angle_ring,  # new
-    water_tors_sp2,  # new
-    water_tors_sp3,  # new
-    water_tors_ring,  # new
+    lkb_water_dist,  # new
+    lkb_water_angle_sp2,  # new
+    lkb_water_angle_sp3,  # new
+    lkb_water_angle_ring,  # new
+    lkb_water_tors_sp2,  # new
+    lkb_water_tors_sp3,  # new
+    lkb_water_tors_ring,  # new
 ):
     nc = coords.shape[0]
     nout = int((nc * (nc - 1)) / 2)
@@ -1339,22 +1338,22 @@ def lkball_intra(
 
     # PASS 1: build waters
     waters = numpy.full((coords.shape[0], 4, 3), numpy.nan)
-    nwaters = numpy.zeros((coords.shape[0]), dtype=numpy.int)
+    nwaters = numpy.zeros((coords.shape[0]), dtype=numpy.int64)
     build_all_waters(
         coords,
         atom_types,
         is_acceptor,
         is_donor,
-        hybridization,
+        acceptor_hybridization,
         attached_h,
         base_atoms,
-        water_dist,
-        water_angle_sp2,
-        water_angle_sp3,
-        water_angle_ring,
-        water_tors_sp2,
-        water_tors_sp3,
-        water_tors_ring,
+        lkb_water_dist,
+        lkb_water_angle_sp2,
+        lkb_water_angle_sp3,
+        lkb_water_angle_ring,
+        lkb_water_tors_sp2,
+        lkb_water_tors_sp3,
+        lkb_water_tors_ring,
         waters,
         nwaters,
     )
@@ -1394,10 +1393,10 @@ def lkball_intra(
                 lj_hbond_dis,
                 lj_hbond_OH_donor_dis,
                 lj_hbond_hdis,
-                water_dist,
+                lkb_water_dist,
             )
 
-            if all(v == 0 for v in val_ij):
+            if val_ij[0] == 0 and val_ij[1] == 0 and val_ij[2] == 0 and val_ij[3] == 0:
                 continue
 
             oinds[v, 0] = i
@@ -1421,7 +1420,7 @@ def lkball_intra_backward(
     lk_dgfree,
     lk_lambda,
     lk_volume,
-    hybridization,
+    acceptor_hybridization,
     is_donor,
     is_hydroxyl,
     is_polarh,
@@ -1429,34 +1428,34 @@ def lkball_intra_backward(
     lj_hbond_dis,
     lj_hbond_OH_donor_dis,
     lj_hbond_hdis,
-    water_dist,
-    water_angle_sp2,
-    water_angle_sp3,
-    water_angle_ring,
-    water_tors_sp2,
-    water_tors_sp3,
-    water_tors_ring,
+    lkb_water_dist,
+    lkb_water_angle_sp2,
+    lkb_water_angle_sp3,
+    lkb_water_angle_ring,
+    lkb_water_tors_sp2,
+    lkb_water_tors_sp3,
+    lkb_water_tors_ring,
 ):
     nc = coords.shape[0]
 
     # PASS 1: build waters
     waters = numpy.full((coords.shape[0], 4, 3), numpy.nan)
-    nwaters = numpy.zeros((coords.shape[0]), dtype=numpy.int)
+    nwaters = numpy.zeros((coords.shape[0]), dtype=numpy.int64)
     build_all_waters(
         coords,
         atom_types,
         is_acceptor,
         is_donor,
-        hybridization,
+        acceptor_hybridization,
         attached_h,
         base_atoms,
-        water_dist,
-        water_angle_sp2,
-        water_angle_sp3,
-        water_angle_ring,
-        water_tors_sp2,
-        water_tors_sp3,
-        water_tors_ring,
+        lkb_water_dist,
+        lkb_water_angle_sp2,
+        lkb_water_angle_sp3,
+        lkb_water_angle_ring,
+        lkb_water_tors_sp2,
+        lkb_water_tors_sp3,
+        lkb_water_tors_ring,
         waters,
         nwaters,
     )
@@ -1497,7 +1496,7 @@ def lkball_intra_backward(
             lj_hbond_dis,
             lj_hbond_OH_donor_dis,
             lj_hbond_hdis,
-            water_dist,
+            lkb_water_dist,
         )
         dE_datm[i, ...] += dlk_dai
         dE_datm[j, ...] += dlk_daj
@@ -1512,22 +1511,24 @@ def lkball_intra_backward(
             # FD this block should instead query a list of bonds
             b, b0 = base_atoms[i, :]
             bscale = 1.0
-            if hybridization[ti] == Hyb.SP2:
-                wat_ang = water_angle_sp2
-                wat_tors = water_tors_sp2
+            if acceptor_hybridization[ti] == AcceptorHybridization.sp2:
+                wat_ang = lkb_water_angle_sp2
+                wat_tors = lkb_water_tors_sp2
                 Xb, Xb0 = coords[b], coords[b0]
-            elif hybridization[ti] == Hyb.SP3:
-                wat_ang = water_angle_sp3
-                wat_tors = water_tors_sp3
+            elif acceptor_hybridization[ti] == AcceptorHybridization.sp3:
+                wat_ang = lkb_water_angle_sp3
+                wat_tors = lkb_water_tors_sp3
                 Xb, Xb0 = coords[b], coords[b0]
-            else:  # hybridization[ti] == Hyb.RING
-                wat_ang = water_angle_ring
-                wat_tors = water_tors_ring
+            elif acceptor_hybridization[ti] == AcceptorHybridization.ring:
+                wat_ang = lkb_water_angle_ring
+                wat_tors = lkb_water_tors_ring
                 Xb = 0.5 * (coords[b] + coords[b0])
                 Xb0 = coords[b0]
 
             n_to_build = len(wat_tors)
-            dWdA = d_acc_waters_datom(coords[i], Xb, Xb0, water_dist, wat_ang, wat_tors)
+            dWdA = d_acc_waters_datom(
+                coords[i], Xb, Xb0, lkb_water_dist, wat_ang, wat_tors
+            )
             for j in range(n_to_build):
                 for term in range(4):
                     dE_datm[i, :, term] += mult_matrix_vector(
@@ -1535,7 +1536,7 @@ def lkball_intra_backward(
                     )
 
                     # there is probably a cleaner way to do this...
-                    if hybridization[ti] == Hyb.RING:
+                    if acceptor_hybridization[ti] == AcceptorHybridization.ring:
                         dbb0_dwat = mult_matrix_vector(
                             dWdA[1, :, j, :], dE_dwat[i, j, :, term]
                         )
@@ -1553,7 +1554,7 @@ def lkball_intra_backward(
         if is_donor[ti]:
             for h in attached_h[i, :]:
                 if h > -1:
-                    dWdA = d_don_water_datom(coords[i], coords[h], water_dist)
+                    dWdA = d_don_water_datom(coords[i], coords[h], lkb_water_dist)
                     for term in range(4):
                         dE_datm[i, :, term] += mult_matrix_vector(
                             dWdA[0, :, :], dE_dwat[i, nwaters_i, :, term]

@@ -82,7 +82,9 @@ def _dense_potential(potential, coords, atom_type_idx, atom_pair_bpl, param_reso
         **toolz.merge(
             {k + "_i": t[:, None] for k, t in atom_type_params.items()},
             {k + "_j": t[None, :] for k, t in atom_type_params.items()},
-            toolz.valmap(float, attr.asdict(param_resolver.global_params)),
+            toolz.valmap(
+                lambda t: t.cpu().numpy(), attr.asdict(param_resolver.global_params)
+            ),
         ),
     )
 
