@@ -843,7 +843,9 @@ def get_dlkbr_fraction_dij(
 
     wted_d2_delta = -1.0 * numpy.log(wted_d2_delta)
 
-    dfrac_dwted_d2 = 0
+    # TODO unknown variable?
+    # dfrac_dwted_d2 = 0
+
     overlapfrac = 0
     if wted_d2_delta < 0:
         overlapfrac = 1
