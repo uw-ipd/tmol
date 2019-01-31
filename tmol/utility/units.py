@@ -2,9 +2,10 @@
 
 import math
 
-from typing import Union, Tuple
+from typing import Union, Tuple, NewType
 
 import pint
+import cattr
 
 ureg = pint.UnitRegistry()
 u = ureg.parse_expression
@@ -42,3 +43,23 @@ def parse_angle(
             raise ValueError(f"angle: {angle!r} outside of allowed range: {lim}")
 
     return float(val)
+
+
+def parse_bond_angle(v: Union[float, str]) -> float:
+    """Parse a bond angle on the range [0, pi) via pint."""
+    return parse_angle(v, lim=(u("0 rad"), u("pi rad")))
+
+
+def parse_dihedral_angle(v) -> float:
+    """Parse a dihedral angle on the range [-pi, pi) via pint."""
+    return parse_angle(v, lim=(u("-pi rad"), u("pi rad")))
+
+
+Angle = NewType("Angle", float)
+cattr.register_structure_hook(Angle, lambda v, t: parse_angle(v))
+
+BondAngle = NewType("BondAngle", float)
+cattr.register_structure_hook(BondAngle, lambda v, t: parse_bond_angle(v))
+
+DihedralAngle = NewType("DihedralAngle", float)
+cattr.register_structure_hook(DihedralAngle, lambda v, t: parse_dihedral_angle(v))
