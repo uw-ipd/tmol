@@ -6,6 +6,18 @@ global_parameters:
   lj_hbond_hdis : 1.75
   lj_hbond_dis : 3.0
   lk_min_dis2sigma : 0.89
+  lkb_water_dist : 2.828
+  lkb_water_angle_sp2 : 134.5
+  lkb_water_angle_sp3 : 109.3
+  lkb_water_angle_ring : 180.0
+  lkb_water_tors_sp2 :
+    - 0.0
+    - 180.0
+  lkb_water_tors_sp3 :
+    - 120.0
+    - 240.0
+  lkb_water_tors_ring :
+    - 0.0
 atom_type_parameters:
   - &n name: CNH2
     &e elem: C
@@ -14,6 +26,7 @@ atom_type_parameters:
     &lkd lk_dgfree: 3.70334
     &lkl lk_lambda: 3.500000
     &lkv lk_volume: 13.500000
+    &hyb acceptor_hybridization: none
   - { name: COO , *e: C, *ljr: 1.916661, *ljw: 0.141799, *lkd:  -2.50876, *lkl: 3.500000, *lkv: 14.653000 }
   - { name: CH0 , *e: C, *ljr: 2.011760, *ljw: 0.062642, *lkd:   1.24868, *lkl: 3.500000, *lkv:  8.998000 }
   - { name: CH1 , *e: C, *ljr: 2.011760, *ljw: 0.062642, *lkd:  -6.49218, *lkl: 3.500000, *lkv: 10.686000 }
@@ -22,28 +35,28 @@ atom_type_parameters:
   - { name: Caro, *e: C, *ljr: 2.016441, *ljw: 0.068775, *lkd:   2.22283, *lkl: 3.500000, *lkv: 16.704000 }
   - &Ntrp { name: Ntrp, *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -10.64481, *lkl: 3.500000, *lkv:  9.522100, is_donor : true }
   - &NhisE { <<: *Ntrp, name: NhisE } # Far HIS nitrogen is treated like indole
-  - { <<: *NhisE, name: NhisEDepro, is_donor : false, is_acceptor: true} # Deprotenated form in HIS
+  - { <<: *NhisE, name: NhisEDepro, *hyb: ring, is_donor : false, is_acceptor: true} # Deprotenated form in HIS
 
   - &NhisD { name: NhisD, *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -9.72534, *lkl: 3.500000, *lkv:  9.317700, is_donor: true }
-  - { <<: *NhisD, name: NhisDDepro, is_donor : false, is_acceptor: true} # Deprotenated form in HIS_D
+  - { <<: *NhisD, name: NhisDDepro, *hyb: ring, is_donor : false, is_acceptor: true} # Deprotenated form in HIS_D
 
   - { name: NtrR, *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -4.92802, *lkl: 3.500000, *lkv:  9.779200, is_donor : true }
   - { name: NH2O, *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -7.66671, *lkl: 3.500000, *lkv: 15.689000, is_donor : true }
   - { name: Nlys, *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd: -18.74326, *lkl: 3.500000, *lkv: 16.514000, is_donor : true }
   - { name: Narg, *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -8.69602, *lkl: 3.500000, *lkv: 15.717000, is_donor : true }
   - { name: Npro, *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -1.51111, *lkl: 3.500000, *lkv:  3.718100 }
-  - &OH { name: OH  , *e: O, *ljr: 1.542743, *ljw: 0.161947, *lkd:  -5.46060, *lkl: 3.500000, *lkv: 10.722000, is_donor : true, is_acceptor : true, is_hydroxyl : true }
+  - &OH { name: OH  , *e: O, *ljr: 1.542743, *ljw: 0.161947, *lkd:  -5.46060, *lkl: 3.500000, *lkv: 10.722000, *hyb: sp3, is_donor : true, is_acceptor : true, is_hydroxyl : true }
   - { <<: *OH, name: OHphenol } # Phenol hydrogen in TYR
-  - { name: Owat, *e: O, *ljr: 1.550000, *ljw: 0.159100, *lkd:  -5.46060, *lkl: 3.500000, *lkv: 10.800000, is_donor: true, is_acceptor: True }
+  - { name: Owat, *e: O, *ljr: 1.550000, *ljw: 0.159100, *lkd:  -5.46060, *lkl: 3.500000, *lkv: 10.800000, *hyb: sp3, is_donor: true, is_acceptor: True }
 
-  - { name: ONH2, *e: O, *ljr: 1.548662, *ljw: 0.182924, *lkd:  -5.03501, *lkl: 3.500000, *lkv: 10.102000, is_acceptor : true }
-  - { name: OOC , *e: O, *ljr: 1.492871, *ljw: 0.099873, *lkd:  -10.20822, *lkl: 3.500000, *lkv:  9.995600, is_acceptor : true }
+  - { name: ONH2, *e: O, *ljr: 1.548662, *ljw: 0.182924, *lkd:  -5.03501, *lkl: 3.500000, *lkv: 10.102000, *hyb: sp2, is_acceptor : true }
+  - { name: OOC , *e: O, *ljr: 1.492871, *ljw: 0.099873, *lkd:  -10.20822, *lkl: 3.500000, *lkv:  9.995600, *hyb: sp2, is_acceptor : true }
   - { name: S   , *e: S, *ljr: 1.975967, *ljw: 0.455970, *lkd:  -4.89802, *lkl: 3.500000, *lkv: 17.640000 }
   - { name: SH1 , *e: S, *ljr: 1.975967, *ljw: 0.455970, *lkd:   2.07945, *lkl: 3.500000, *lkv: 23.240000 }
   - { name: Nbb , *e: N, *ljr: 1.802452, *ljw: 0.161725, *lkd:  -12.84665, *lkl: 3.500000, *lkv: 15.992000, is_donor : true }
   - { name: CAbb, *e: C, *ljr: 2.011760, *ljw: 0.062642, *lkd:   4.44945, *lkl: 3.500000, *lkv: 12.137000 }
   - { name: CObb, *e: C, *ljr: 1.916661, *ljw: 0.141799, *lkd:   3.57899, *lkl: 3.500000, *lkv: 13.221000 }
-  - { name: OCbb, *e: O, *ljr: 1.540580, *ljw: 0.142417, *lkd:  -9.52921, *lkl: 3.500000, *lkv: 12.196000, is_acceptor : true }
+  - { name: OCbb, *e: O, *ljr: 1.540580, *ljw: 0.142417, *lkd:  -9.52921, *lkl: 3.500000, *lkv: 12.196000, *hyb: sp2, is_acceptor : true }
   - { name: Hpol, *e: H, *ljr: 0.901681, *ljw: 0.005000, *lkd:   0.000000, *lkl: 3.500000, *lkv:  0.000000, is_polarh : true }
   - { name: HS  , *e: H, *ljr: 0.363887, *ljw: 0.050836, *lkd:   0.000000, *lkl: 3.500000, *lkv:  0.000000, is_polarh : true }
   - { name: Hapo, *e: H, *ljr: 1.421272, *ljw: 0.021808, *lkd:   0.000000, *lkl: 3.500000, *lkv:  0.000000 }

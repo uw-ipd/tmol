@@ -1,8 +1,11 @@
 import attr
 import cattr
 
+import numpy
 import pandas
 import torch
+
+from enum import IntEnum
 
 
 from tmol.types.torch import Tensor
@@ -12,6 +15,13 @@ from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
 
 from tmol.database.scoring.ljlk import LJLKDatabase
+
+
+class AcceptorHybridization(IntEnum):
+    none = 0
+    sp2 = 1
+    sp3 = 2
+    ring = 3
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -24,6 +34,14 @@ class LJLKGlobalParams(TensorGroup, ValidateAttrs):
     lj_switch_dis2sigma: Tensor("f")[...]
     lk_min_dis2sigma: Tensor("f")[...]
 
+    lkb_water_dist: Tensor("f")[...]
+    lkb_water_angle_sp2: Tensor("f")[...]
+    lkb_water_angle_sp3: Tensor("f")[...]
+    lkb_water_angle_ring: Tensor("f")[...]
+    lkb_water_tors_sp2: Tensor("f")[..., :]
+    lkb_water_tors_sp3: Tensor("f")[..., :]
+    lkb_water_tors_ring: Tensor("f")[..., :]
+
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class LJLKTypeParams(TensorGroup, ValidateAttrs):
@@ -32,6 +50,8 @@ class LJLKTypeParams(TensorGroup, ValidateAttrs):
     lk_dgfree: Tensor("f")[...]
     lk_lambda: Tensor("f")[...]
     lk_volume: Tensor("f")[...]
+
+    acceptor_hybridization: Tensor("i4")[...]
     is_acceptor: Tensor(bool)[...]
     is_donor: Tensor(bool)[...]
     is_hydroxyl: Tensor(bool)[...]
@@ -65,6 +85,8 @@ class LJLKParamResolver(ValidateAttrs):
         higher-dimensional arrays, as may be produced via broadcasting, into
         lower-dimensional views to resolver parameter indices.
         """
+        if not isinstance(atom_types, numpy.ndarray):
+            atom_types = numpy.array(atom_types, dtype=object)
         return self.atom_type_index.get_indexer(atom_types.ravel()).reshape(
             atom_types.shape
         )
@@ -106,6 +128,13 @@ class LJLKParamResolver(ValidateAttrs):
                 (param_records[field.name]) = (
                     param_records[field.name].fillna(value=0).astype("u1")
                 )
+        param_records["acceptor_hybridization"] = param_records[
+            "acceptor_hybridization"
+        ].map(
+            lambda v: int(
+                AcceptorHybridization.__members__.get(v, AcceptorHybridization.none)
+            )
+        )
 
         # Convert the param record dataframe into typed TensorGroup
         type_params = LJLKTypeParams(
