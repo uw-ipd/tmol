@@ -4,6 +4,6 @@
 #include <tmol/utility/tensor/TensorUtil.h>
 
 template <typename Real, tmol::Device D>
-struct sum {
+struct sumx {
   static at::Tensor f(tmol::TView<Real, 1, D> t);
 };

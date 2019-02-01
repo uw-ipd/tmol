@@ -5,7 +5,7 @@
 #include "hybrid.hh"
 
 template <typename Real>
-struct sum<Real, tmol::Device::CUDA> {
+struct sumx<Real, tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
 
   static at::Tensor f(tmol::TView<Real, 1, D> t) {
@@ -25,5 +25,5 @@ struct sum<Real, tmol::Device::CUDA> {
   }
 };
 
-template struct sum<float, tmol::Device::CUDA>;
-template struct sum<double, tmol::Device::CUDA>;
+template struct sumx<float, tmol::Device::CUDA>;
+template struct sumx<double, tmol::Device::CUDA>;
