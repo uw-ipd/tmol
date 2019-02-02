@@ -30,6 +30,12 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice, Factory):
             Note that bonds are strictly intra-layer, and are defined by a
             single layer index for both atoms of the bond.
 
+        atom_types: [layer, atom_index] String atom name descriptors.
+
+        res_names: [layer, atom_index] String residue name descriptors.
+
+        res_indices: [layer, atom_index] Integer residue index descriptors.
+
         MAX_BONDED_PATH_LENGTH: Maximum relevant inter-atomic path length.
             Limits search depth used in ``bonded_path_length``, all longer
             paths reported as ``inf``.
@@ -42,10 +48,19 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice, Factory):
     @singledispatch
     def factory_for(other, **_):
         """`clone`-factory, extract atom types and bonds from other."""
-        return dict(atom_types=other.atom_types, bonds=other.bonds)
+        return dict(
+            atom_types=other.atom_types,
+            bonds=other.bonds,
+            atom_names=other.atom_names,
+            res_names=other.res_names,
+            res_indices=other.res_indices,
+        )
 
     atom_types: NDArray(object)[:, :]
     bonds: NDArray(int)[:, 3]
+    atom_names: NDArray(object)[:, :]
+    res_names: NDArray(object)[:, :]
+    res_indices: NDArray(int)[:, :]
 
     @reactive_property
     @validate_args

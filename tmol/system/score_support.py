@@ -34,11 +34,20 @@ def bonded_atoms_for_system(
     bonds[:, 1:] = system.bonds
 
     atom_types = system.atom_metadata["atom_type"].copy()[None, :]
+    atom_names = system.atom_metadata["atom_name"].copy()[None, :]
+    res_indices = system.atom_metadata["residue_index"].copy()[None, :]
+    res_names = system.atom_metadata["residue_name"].copy()[None, :]
 
     if drop_missing_atoms:
         atom_types[0, numpy.any(numpy.isnan(system.coords), axis=-1)] = None
 
-    return dict(bonds=bonds, atom_types=atom_types)
+    return dict(
+        bonds=bonds,
+        atom_types=atom_types,
+        atom_names=atom_names,
+        res_indices=res_indices,
+        res_names=res_names,
+    )
 
 
 @CartesianAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
