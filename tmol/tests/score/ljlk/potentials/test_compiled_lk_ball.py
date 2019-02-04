@@ -1,4 +1,5 @@
 import torch
+import torch.autograd
 from tmol.utility.units import parse_angle
 
 
@@ -23,15 +24,22 @@ def test_build_acc_waters():
 
 
 def test_build_don_water():
-    from tmol.tests.score.ljlk.potentials.lk_ball import build_don_water
+    from tmol.tests.score.ljlk.potentials.lk_ball import BuildDonorWater
 
     tensor = torch.DoubleTensor
 
     ## test 2: donor water generation + derivatives
-    d = tensor((-6.007, 4.706, -0.074))
-    h = tensor((-6.747, 4.361, 0.549))
+    D = tensor((-6.007, 4.706, -0.074))
+    H = tensor((-6.747, 4.361, 0.549))
     dist = 2.65
 
-    w = build_don_water(d, h, dist)
+    assert not any(t.requires_grad for t in (D, H))
+
+    waters = BuildDonorWater.apply(D, H, dist)
     waters_ref = tensor([-7.91642236, 3.81579633, 1.5335272])
-    torch.testing.assert_allclose(w, waters_ref)
+    torch.testing.assert_allclose(waters, waters_ref)
+
+    torch.autograd.gradcheck(
+        lambda D, H: BuildDonorWater.apply(D, H, dist),
+        (D.requires_grad_(True), H.requires_grad_(True)),
+    )

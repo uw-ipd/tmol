@@ -12,8 +12,11 @@ namespace potentials {
 template <typename Real>
 void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
+  using namespace pybind11;
 
-  m.def("build_don_water", &build_don_water<Real>::V, "d"_a, "h"_a, "dist"_a);
+  m.def("build_don_water_V", &build_don_water<Real>::V, "D"_a, "H"_a, "dist"_a);
+  m.def(
+      "build_don_water_dV", &build_don_water<Real>::dV, "D"_a, "H"_a, "dist"_a);
 
   m.def(
       "build_acc_waters",
