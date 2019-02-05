@@ -614,6 +614,94 @@ struct build_acc_water {
   }
 };
 
+template <typename Real>
+struct lkball_globals {
+  static constexpr int MAX_WATER = 2;
+
+  static constexpr Real heavyatom_water_len = 2.65;
+  static constexpr Real overlap_gap_A2 = 0.5;
+  static constexpr Real overlap_width_A2 = 2.6;
+  static constexpr Real ramp_width_A2 = 3.709;
+  static constexpr Real max_dist =
+      6.0 + 2 * heavyatom_water_len
+      + std::sqrt(overlap_gap_A2 + overlap_width_A2) + 0.1;
+};
+
+template <typename Real>
+struct lk_fraction {
+  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef Eigen::Matrix<Real, 3, 3> RealMat;
+
+  static constexpr int MAX_WATER = lkball_globals<Real>::MAX_WATER;
+  static constexpr Real ramp_width_A2 = lkball_globals<Real>::ramp_width_A2;
+
+  static def square(Real v)->Real { return v * v; }
+
+  static def
+  V(Real3 coord_i, Eigen::Matrix<Real, MAX_WATER, 3> waters_j, Real lj_radius_i)
+      ->Real {
+    Real d2_low = std::max(0.0, square(1.4 + lj_radius_i) - ramp_width_A2);
+
+    Real wted_d2_delta = 0;
+    for (int wj = 0; wj < MAX_WATER; ++wj) {
+      Real d2_delta =
+          (coord_i - waters_j.row(wj).transpose()).squaredNorm() - d2_low;
+      if (!std::isnan(d2_delta)) {
+        wted_d2_delta += std::exp(-d2_delta);
+      }
+    }
+
+    wted_d2_delta = -std::log(wted_d2_delta);
+
+    Real frac = 0;
+    if (wted_d2_delta < 0) {
+      frac = 0;
+    } else if (wted_d2_delta < ramp_width_A2) {
+      frac = square(1 - square(wted_d2_delta / ramp_width_A2));
+    }
+
+    return frac;
+  }
+
+  static def dV(
+      Real3 coord_i,
+      Eigen::Matrix<Real, MAX_WATER, 3> waters_j,
+      Real lj_radius_i)
+      ->std::tuple<Real3, Eigen::Matrix<Real, MAX_WATER, 3>> {
+    Real d2_low = std::max(0.0, square(1.4 + lj_radius_i) - ramp_width_A2);
+
+    Real wted_d2_delta = 0;
+    Real3 d_wted_d2_delta_d_coord_i;
+    Eigen::Matrix<Real, MAX_WATER, 3> d_wted_d2_delta_d_waters_j;
+
+    for (int wj = 0; wj < MAX_WATER; ++wj) {
+      Real3 delta_ij = coord_i = waters_j.row(wj).transpose();
+      Real d2_delta = delta_ij.squaredNorm();
+      Real exp_d2_delta = std::exp(-d2_delta);
+
+      d_wted_d2_delta_d_coord_i += 2 * exp_d2_delta * delta_ij;
+      d_wted_d2_delta_d_waters_j.row(wj).transpose() =
+          -2 * exp_d2_delta * delta_ij;
+      wted_d2_delta += exp_d2_delta;
+    }
+
+    d_wted_d2_delta_d_coord_i /= wted_d2_delta;
+    d_wted_d2_delta_d_waters_j /= wted_d2_delta;
+
+    wted_d2_delta = -std::log(wted_d2_delta);
+
+    Real dfrac_dwted_d2 = 0;
+    if (wted_d2_delta > 0 && wted_d2_delta < ramp_width_A2) {
+      dfrac_dwted_d2 = -4.0 * wted_d2_delta
+                       * (square(ramp_width_A2) - square(wted_d2_delta))
+                       / square(square(ramp_width_A2));
+    }
+
+    return {d_wted_d2_delta_d_coord_i * dfrac_dwted_d2,
+            d_wted_d2_delta_d_waters_j * dfrac_dwted_d2};
+  }
+};
+
 #undef def
 
 }  // namespace potentials

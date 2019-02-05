@@ -71,3 +71,29 @@ class BuildDonorWater(torch.autograd.Function):
         dW_dD, dW_dH = map(torch.from_numpy, _compiled.build_don_water_dV(*inputs))
 
         return dW_dD @ dE_dW, dW_dH @ dE_dW, None
+
+
+class GetLKFraction(torch.autograd.Function):
+    @staticmethod
+    def forward(
+        ctx,
+        coord_i: Tensor(float)[3],
+        waters_j: Tensor(float)[2, 3],
+        lj_radius_i: Tensor(float),
+    ) -> Tensor(float):
+
+        rgrad, (coord_i, waters_j) = detach_maybe_requires_grad(coord_i, waters_j)
+        inputs = (coord_i, waters_j, lj_radius_i)
+
+        if rgrad:
+            ctx.inputs = inputs
+
+        return torch.tensor(_compiled.lk_fraction_V(*inputs)).to(coord_i.dtype)
+
+    @staticmethod
+    def backward(ctx, dE_dF: Tensor(float)):
+        inputs = ctx.inputs
+
+        dF_dCI, dF_dWJ = map(torch.from_numpy, _compiled.lk_fraction_dV(*inputs))
+
+        return dF_dCI * dE_dF, dF_dWJ * dE_dF, None

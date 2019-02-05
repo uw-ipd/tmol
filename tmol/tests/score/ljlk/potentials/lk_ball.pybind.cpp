@@ -37,6 +37,20 @@ void bind_potentials(pybind11::module& m) {
       "dist"_a,
       "angle"_a,
       "torsion"_a);
+
+  m.def(
+      "lk_fraction_V",
+      &lk_fraction<Real>::V,
+      "coord_i"_a,
+      "waters_j"_a,
+      "lk_radius_i"_a);
+
+  m.def(
+      "lk_fraction_dV",
+      &lk_fraction<Real>::dV,
+      "coord_i"_a,
+      "waters_j"_a,
+      "lk_radius_i"_a);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { bind_potentials<double>(m); }
