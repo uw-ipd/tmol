@@ -97,3 +97,34 @@ class GetLKFraction(torch.autograd.Function):
         dF_dCI, dF_dWJ = map(torch.from_numpy, _compiled.lk_fraction_dV(*inputs))
 
         return dF_dCI * dE_dF, dF_dWJ * dE_dF, None
+
+
+class GetLKBridgeFraction(torch.autograd.Function):
+    @staticmethod
+    def forward(
+        ctx,
+        coord_i: Tensor(float)[3],
+        coord_j: Tensor(float)[3],
+        waters_i: Tensor(float)[2, 3],
+        waters_j: Tensor(float)[2, 3],
+    ) -> Tensor(float):
+
+        rgrad, (coord_i, coord_j, waters_i, waters_j) = detach_maybe_requires_grad(
+            coord_i, coord_j, waters_i, waters_j
+        )
+        inputs = (coord_i, coord_j, waters_i, waters_j)
+
+        if rgrad:
+            ctx.inputs = inputs
+
+        return torch.tensor(_compiled.lk_bridge_fraction_V(*inputs)).to(coord_i.dtype)
+
+    @staticmethod
+    def backward(ctx, dE_dF: Tensor(float)):
+        inputs = ctx.inputs
+
+        dF_dCI, dF_dCJ, dF_dWI, dF_dWJ = map(
+            torch.from_numpy, _compiled.lk_bridge_fraction_dV(*inputs)
+        )
+
+        return dF_dCI * dE_dF, dF_dCJ * dE_dF, dF_dWI * dE_dF, dF_dWJ * dE_dF
