@@ -8,8 +8,6 @@ from tmol.utility.cpp_extension import load, relpaths, modulename
 
 _compiled = load(modulename(__name__), relpaths(__file__, ["lk_ball.pybind.cpp"]))
 
-build_acc_waters = _compiled.build_acc_waters
-
 
 def detach_maybe_requires_grad(
     *inputs: torch.tensor
@@ -22,6 +20,36 @@ def detach_maybe_requires_grad(
         return requires_grad, inputs
 
 
+class BuildAcceptorWater(torch.autograd.Function):
+    @staticmethod
+    def forward(
+        ctx,
+        A: Tensor(float)[:, 3],
+        B: Tensor(float)[:, 3],
+        B0: Tensor(float)[:, 3],
+        dist: float,
+        angle: float,
+        torsion: float,
+    ) -> Tensor(float)[:, 3]:
+
+        rgrad, (A, B, B0) = detach_maybe_requires_grad(A, B, B0)
+        inputs = (A, B, B0, dist, angle, torsion)
+
+        if rgrad:
+            ctx.inputs = inputs
+
+        return torch.from_numpy(_compiled.build_acc_water_V(*inputs))
+
+    @staticmethod
+    def backward(ctx, dE_dW: Tensor(float)[:, 3]):
+        inputs = ctx.inputs
+        dW_dA, dW_dB, dW_dB0 = map(
+            torch.from_numpy, _compiled.build_acc_water_dV(*inputs)
+        )
+
+        return dW_dA @ dE_dW, dW_dB @ dE_dW, dW_dB0 @ dE_dW, None, None, None
+
+
 class BuildDonorWater(torch.autograd.Function):
     @staticmethod
     def forward(
@@ -29,14 +57,17 @@ class BuildDonorWater(torch.autograd.Function):
     ) -> Tensor(float)[:, 3]:
 
         rgrad, (D, H) = detach_maybe_requires_grad(D, H)
-        if rgrad:
-            ctx.inputs = (D, H, dist)
+        inputs = (D, H, dist)
 
-        return torch.from_numpy(_compiled.build_don_water_V(D, H, dist))
+        if rgrad:
+            ctx.inputs = inputs
+
+        return torch.from_numpy(_compiled.build_don_water_V(*inputs))
 
     @staticmethod
-    def backward(ctx, dE_dV: Tensor(float)[:, 3]):
-        D, H, dist = ctx.inputs
-        dV_dD, dV_dH = map(torch.from_numpy, _compiled.build_don_water_dV(D, H, dist))
+    def backward(ctx, dE_dW: Tensor(float)[:, 3]):
+        inputs = ctx.inputs
 
-        return dV_dD @ dE_dV, dV_dH @ dE_dV, None
+        dW_dD, dW_dH = map(torch.from_numpy, _compiled.build_don_water_dV(*inputs))
+
+        return dW_dD @ dE_dW, dW_dH @ dE_dW, None
