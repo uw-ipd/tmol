@@ -50,25 +50,40 @@ class ElecParamResolver(ValidateAttrs):
     ) -> NDArray("f")[...]:
         """Convert array of atom type names to partial charges.
         """
-        if not isinstance(atom_names, numpy.ndarray):
-            atom_names = numpy.array(atom_names, dtype=object)
         pcs = numpy.vectorize(lambda a, b: self.partial_charges[(a, b)])(
             res_names, atom_names
         )
         return torch.from_numpy(pcs).to(device=self.device)
 
-    # def countpair_reps(self, res_names: NDArray(object)[...], atom_names: NDArray(object)[...]) -> NDArray(object)[...]:
-    #    """Convert array of atom type names to partial charges.
-    #    """
-    #    if not isinstance(atom_names, numpy.ndarray):
-    #        atom_names = numpy.array(atom_names, dtype=object)
-    #    return numpy.vectorize(lambda a,b: cp_reps[(a,b)])(res_names,atom_names)
+    def remap_bonded_path_lengths(
+        self,
+        bonded_path_lengths: NDArray(object)[...],
+        res_names: NDArray(object)[...],
+        res_indices: NDArray(object)[...],
+        atom_names: NDArray(object)[...],
+    ) -> NDArray(object)[...]:
+        """remap bonded path length to use representative atoms
+        """
+        mapped_atoms = numpy.vectorize(
+            lambda a, b: self.cp_reps[(a, b)] if (a, b) in self.cp_reps else b
+        )(res_names, atom_names)
+
+        def remap(a, b):
+            if numpy.isnan(a):
+                return -1
+            return numpy.where((res_indices == a) & (atom_names == b))[0][0]
+
+        mapped_indices = numpy.vectorize(remap)(res_indices, mapped_atoms)
+
+        remap_bonded_path_lengths = bonded_path_lengths.copy()
+        remap_bonded_path_lengths[mapped_indices, :] = remap_bonded_path_lengths
+        remap_bonded_path_lengths[:, mapped_indices] = remap_bonded_path_lengths
+        return torch.from_numpy(remap_bonded_path_lengths).to(device=self.device)
 
     @classmethod
     @validate_args
     def from_database(cls, elec_database: ElecDatabase, device: torch.device):
         """Initialize param resolver for all atoms defined in database."""
-
         # Load global params, coerce to 1D Tensors
         global_params = ElecGlobalParams(
             **{
@@ -78,10 +93,7 @@ class ElecParamResolver(ValidateAttrs):
         )
 
         # Read countpair reps
-        # Note
-        #    1) cp_flip=False (not default) reverses inner & outer
-        #    2) R3 is smart about checking atom existance here with patched residues
-        #       -- we are not currently
+        # Note: cp_flip=False (not default) flips inner & outer atoms
         cp_reps = {
             (x.res, x.atm_outer): x.atm_inner
             for x in elec_database.atom_cp_reps_parameters

@@ -75,7 +75,7 @@ def elec_delec_ddist(
 
   Real elecE = 0, delec_ddist = 0;
   if (dist < low_poly_start) {
-	// linear part
+	// flat part
     Real min_dis_score = C1 / (min_dis*eps(min_dis,D,D0,S)) - C2;
 	elecE = eiej * min_dis_score;
 	delec_ddist = 0;

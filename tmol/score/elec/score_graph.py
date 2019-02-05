@@ -23,7 +23,6 @@ from .params import ElecParamResolver
 @reactive_attrs
 class ElecIntraScore(IntraScore):
     @reactive_property
-    @validate_args
     def elec(target):
         assert target.coords.dim() == 3
         assert target.coords.shape[0] == 1
@@ -31,14 +30,19 @@ class ElecIntraScore(IntraScore):
         assert target.elec_partial_charges.dim() == 2
         assert target.elec_partial_charges.shape[0] == 1
 
-        assert target.bonded_path_length.dim() == 3
-        assert target.bonded_path_length.shape[0] == 1
+        assert target.repatm_bonded_path_length.dim() == 3
+        assert target.repatm_bonded_path_length.shape[0] == 1
 
         return target.elec_op.intra(
             target.coords[0],
             target.elec_partial_charges[0],
-            target.bonded_path_length[0],
+            target.repatm_bonded_path_length[0],
         )
+
+    @reactive_property
+    def total_elec(elec):
+        inds, vals = elec
+        return vals.sum()
 
 
 @reactive_attrs(auto_attribs=True)
@@ -67,8 +71,22 @@ class ElecScoreGraph(
 
     elec_database: ElecDatabase
 
+    # bonded path lengths using 'representative atoms'
     @reactive_property
-    @validate_args
+    def repatm_bonded_path_length(
+        bonded_path_length: NDArray(object)[...],
+        res_names: NDArray(object)[...],
+        res_indices: NDArray(object)[...],
+        atom_names: NDArray(object)[...],
+        elec_param_resolver: ElecParamResolver,
+    ) -> Tensor(torch.float32)[:, :]:
+        return torch.from_numpy(
+            elec_param_resolver.remap_bonded_path_lengths(
+                bonded_path_length, res_names, res_indices, atom_names
+            )[None, :]
+        ).to(elec_param_resolver.device)
+
+    @reactive_property
     def elec_partial_charges(
         res_names: NDArray(object)[...],
         atom_names: NDArray(object)[...],

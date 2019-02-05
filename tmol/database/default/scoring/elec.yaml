@@ -75,6 +75,13 @@ atom_cp_reps_parameters:
   - { *r: HIS ,*ai: N, *ao: 3H }
   - { *r: HIS ,*ai: ND1, *ao: HD1 }
   - { *r: HIS ,*ai: NE2, *ao: HE2 }
+  - { *r: HIS_D ,*ai: N, *ao: H }
+  - { *r: HIS_D ,*ai: C, *ao: O }
+  - { *r: HIS_D ,*ai: N, *ao: 1H }
+  - { *r: HIS_D ,*ai: N, *ao: 2H }
+  - { *r: HIS_D ,*ai: N, *ao: 3H }
+  - { *r: HIS_D ,*ai: ND1, *ao: HD1 }
+  - { *r: HIS_D ,*ai: NE2, *ao: HE2 }
   - { *r: ILE ,*ai: N, *ao: H }
   - { *r: ILE ,*ai: C, *ao: O }
   - { *r: ILE ,*ai: N, *ao: 1H }
