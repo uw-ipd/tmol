@@ -19,7 +19,7 @@ def test_pure():
 
     if torch.cuda.is_available():
         with pytest.raises(TypeError):
-            extension.sumx(torch.ones(10, device="cuda"))
+            extension.sum(torch.ones(10, device="cuda"))
 
 
 @requires_cuda
@@ -31,8 +31,8 @@ def test_cuda():
     """
     extension = load(modulename(f"{__name__}.cuda"), relpaths(__file__, "cuda.cu"))
 
-    assert extension.sumx(torch.ones(10, device="cpu")) == 10
-    assert extension.sumx(torch.ones(10, device="cuda")) == 10
+    assert extension.sum(torch.ones(10, device="cpu")) == 10
+    assert extension.sum(torch.ones(10, device="cuda")) == 10
 
 
 def test_hybrid(torch_device):
@@ -48,7 +48,7 @@ def test_hybrid(torch_device):
         ),
     )
 
-    assert extension.sumx(torch.ones(10, device=torch_device)) == 10
+    assert extension.sum(torch.ones(10, device=torch_device)) == 10
 
 
 def test_hybrid_nocuda():
@@ -64,7 +64,7 @@ def test_hybrid_nocuda():
         relpaths(__file__, ["hybrid.pybind.cpp", "hybrid.cpp"]),
     )
 
-    assert extension_nocuda.sumx(torch.ones(10, device="cpu")) == 10
+    assert extension_nocuda.sum(torch.ones(10, device="cpu")) == 10
     if torch.cuda.is_available():
         with pytest.raises(TypeError):
-            extension_nocuda.sumx(torch.ones(10, device="cuda"))
+            extension_nocuda.sum(torch.ones(10, device="cuda"))
