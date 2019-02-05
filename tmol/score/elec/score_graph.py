@@ -18,6 +18,7 @@ from ..factory import Factory
 from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
 
 from .params import ElecParamResolver
+from .torch_op import ElecOp
 
 
 @reactive_attrs
@@ -49,6 +50,12 @@ class ElecIntraScore(IntraScore):
 class ElecScoreGraph(
     BondedAtomScoreGraph, ScoreComponent, ParamDB, TorchDevice, Factory
 ):
+    total_score_components = [
+        ScoreComponentClasses(
+            "elec", intra_container=ElecIntraScore, inter_container=None
+        )
+    ]
+
     @staticmethod
     def factory_for(
         val,
@@ -71,6 +78,17 @@ class ElecScoreGraph(
 
     elec_database: ElecDatabase
 
+    @reactive_property
+    def elec_op(elec_param_resolver: ElecParamResolver) -> ElecOp:
+        """elec evaluation op."""
+        return ElecOp.from_param_resolver(elec_param_resolver)
+
+    @reactive_property
+    def elec_param_resolver(
+        elec_database: ElecDatabase, device: torch.device
+    ) -> ElecParamResolver:
+        return ElecParamResolver.from_database(elec_database, device)
+
     # bonded path lengths using 'representative atoms'
     @reactive_property
     def repatm_bonded_path_length(
@@ -82,8 +100,8 @@ class ElecScoreGraph(
     ) -> Tensor(torch.float32)[:, :]:
         return torch.from_numpy(
             elec_param_resolver.remap_bonded_path_lengths(
-                bonded_path_length, res_names, res_indices, atom_names
-            )[None, :]
+                bonded_path_length.numpy(), res_names, res_indices, atom_names
+            )
         ).to(elec_param_resolver.device)
 
     @reactive_property
@@ -93,8 +111,6 @@ class ElecScoreGraph(
         elec_param_resolver: ElecParamResolver,
     ) -> Tensor(torch.float32)[:, :]:
         """Pair parameter tensors for all atoms within system."""
-        assert atom_types.shape[0] == 1
-        atom_types = atom_types[0]
         return torch.from_numpy(
-            elec_param_resolver.resolve_partial_charge(res_names, atom_names)[None, :]
+            elec_param_resolver.resolve_partial_charge(res_names, atom_names)
         ).to(elec_param_resolver.device)
