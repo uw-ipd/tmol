@@ -1,6 +1,6 @@
 import attr
 from attr import asdict
-from toolz import merge, valmap
+from toolz import valmap
 from typing import Callable, Mapping
 
 import torch

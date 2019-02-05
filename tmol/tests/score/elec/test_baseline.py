@@ -1,4 +1,3 @@
-import pytest
 from pytest import approx
 
 from tmol.utility.reactive import reactive_attrs

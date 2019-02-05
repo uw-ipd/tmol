@@ -1,33 +1,26 @@
-import toolz
 import attr
 
 import numpy
 import torch
-import sparse
 
 from tmol.score.elec.torch_op import ElecOp
 from tmol.score.elec.params import ElecParamResolver
 from tmol.score.bonded_atom import bonded_path_length
 
-import tmol.database
-
-from tmol.utility.args import ignore_unused_kwargs
-
 
 @attr.s(auto_attribs=True)
 class ScoreSetup:
-    param_resolver: tmol.score.elec.params.ElecParamResolver
+    param_resolver: ElecParamResolver
     tcoords: torch.Tensor
     trbpl: torch.Tensor
     tpcs: torch.Tensor
 
     @classmethod
     def from_fixture(cls, database, system, torch_device) -> "ScoreSetup":
-        param_resolver = tmol.score.elec.params.ElecParamResolver.from_database(
+        param_resolver = ElecParamResolver.from_database(
             database.scoring.elec, torch_device
         )
 
-        coords = system.coords
         atom_names = system.atom_metadata["atom_name"].copy()
         res_names = system.atom_metadata["residue_name"].copy()
         res_indices = system.atom_metadata["residue_index"].copy()

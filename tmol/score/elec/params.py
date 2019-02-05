@@ -2,11 +2,7 @@ import attr
 import cattr
 
 import numpy
-import pandas
 import torch
-
-from enum import IntEnum
-
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
@@ -75,12 +71,6 @@ class ElecParamResolver(ValidateAttrs):
         nstacks = bonded_path_lengths.shape[0]
         remap_bonded_path_lengths = bonded_path_lengths.copy()
         for i in range(nstacks):
-
-            def remap(a, b, c):
-                if numpy.isnan(a):
-                    return c
-                return numpy.where((res_indices == a) & (atom_names == b))[0][0]
-
             natms = len(res_names[i, ...])
             mapped_indices = numpy.vectorize(
                 lambda a, b, c: c
@@ -92,12 +82,12 @@ class ElecParamResolver(ValidateAttrs):
                 )
             )(res_indices[i, ...], mapped_atoms[i, ...], numpy.arange(natms))
 
-            remap_bonded_path_lengths[i, mapped_indices, :] = remap_bonded_path_lengths[
-                i, ...
-            ]
-            remap_bonded_path_lengths[i, :, mapped_indices] = remap_bonded_path_lengths[
-                i, ...
-            ]
+            # fmt: off
+            remap_bonded_path_lengths[i, mapped_indices, :] = (
+                remap_bonded_path_lengths[i, ...])
+            remap_bonded_path_lengths[i, :, mapped_indices] = (
+                remap_bonded_path_lengths[i, ...])
+            # fmt: on
 
         return remap_bonded_path_lengths
 
