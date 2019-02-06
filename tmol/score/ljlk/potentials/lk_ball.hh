@@ -4,6 +4,9 @@
 #include <Eigen/Geometry>
 #include <cmath>
 
+#include <tmol/score/common/geom.hh>
+#include "lk_isotropic.hh"
+
 namespace tmol {
 namespace score {
 namespace ljlk {
@@ -616,18 +619,15 @@ struct build_acc_water {
 
 template <typename Real>
 struct lkball_globals {
-  static constexpr Real heavyatom_water_len = 2.65;
   static constexpr Real overlap_gap_A2 = 0.5;
   static constexpr Real overlap_width_A2 = 2.6;
   static constexpr Real angle_overlap_A2 = 2.8 * overlap_width_A2;
   static constexpr Real ramp_width_A2 = 3.709;
-  static constexpr Real max_dist =
-      6.0 + 2 * heavyatom_water_len
-      + std::sqrt(overlap_gap_A2 + overlap_width_A2) + 0.1;
 };
 
 template <typename Real, int MAX_WATER>
 struct lk_fraction {
+  // TODO Reorder params to waters_i, coord_j, lj_radius_j
   typedef Eigen::Matrix<Real, 3, 1> Real3;
   typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
 
@@ -651,7 +651,7 @@ struct lk_fraction {
 
     Real frac = 0;
     if (wted_d2_delta < 0) {
-      frac = 0;
+      frac = 1;
     } else if (wted_d2_delta < ramp_width_A2) {
       frac = square(1 - square(wted_d2_delta / ramp_width_A2));
     }
@@ -664,7 +664,7 @@ struct lk_fraction {
     Real d2_low = std::max(0.0, square(1.4 + lj_radius_i) - ramp_width_A2);
 
     Real wted_d2_delta = 0;
-    Real3 d_wted_d2_delta_d_coord_i = Real3::Zeros();
+    Real3 d_wted_d2_delta_d_coord_i = Real3::Zero();
     WatersMat d_wted_d2_delta_d_waters_j;
 
     for (int wj = 0; wj < MAX_WATER; ++wj) {
@@ -706,13 +706,15 @@ struct lk_bridge_fraction {
       lkball_globals<Real>::overlap_width_A2;
   static constexpr Real angle_overlap_A2 =
       lkball_globals<Real>::angle_overlap_A2;
-  static constexpr Real heavyatom_water_len =
-      lkball_globals<Real>::heavyatom_water_len;
 
   static def square(Real v)->Real { return v * v; }
 
   static def V(
-      Real3 coord_i, Real3 coord_j, WatersMat waters_i, WatersMat waters_j)
+      Real3 coord_i,
+      Real3 coord_j,
+      WatersMat waters_i,
+      WatersMat waters_j,
+      Real lkb_water_dist)
       ->Real {
     // water overlap
     Real wted_d2_delta = 0;
@@ -729,13 +731,13 @@ struct lk_bridge_fraction {
 
     Real frac = 0;
     if (wted_d2_delta < 0) {
-      frac = 0;
+      frac = 1;
     } else if (wted_d2_delta < overlap_width_A2) {
       frac = square(1 - square(wted_d2_delta / overlap_width_A2));
     }
 
     // base angle
-    Real overlap_target_len2 = 8.0 / 3.0 * square(heavyatom_water_len);
+    Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
     Real overlap_len2 = (coord_i - coord_j).squaredNorm();
     Real base_atom_delta = std::abs(overlap_len2 - overlap_target_len2);
 
@@ -749,7 +751,11 @@ struct lk_bridge_fraction {
   }
 
   static def dV(
-      Real3 coord_i, Real3 coord_j, WatersMat waters_i, WatersMat waters_j)
+      Real3 coord_i,
+      Real3 coord_j,
+      WatersMat waters_i,
+      WatersMat waters_j,
+      Real lkb_water_dist)
       ->std::tuple<Real3, Real3, WatersMat, WatersMat> {
     Real wted_d2_delta = 0;
 
@@ -792,7 +798,7 @@ struct lk_bridge_fraction {
     }
 
     // base angle
-    Real overlap_target_len2 = 8.0 / 3.0 * square(heavyatom_water_len);
+    Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
     Real3 delta_ij = coord_i - coord_j;
     Real overlap_len2 = delta_ij.squaredNorm();
     // TODO no abs here?
@@ -826,6 +832,66 @@ struct lk_bridge_fraction {
             d_frac_d_coord_j,
             d_frac_d_waters_i,
             d_frac_d_waters_j};
+  }
+};
+
+template <typename Real, int MAX_WATER>
+struct lk_ball_score {
+  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+
+  struct V_t {
+    Real lkball_iso;
+    Real lkball;
+    Real lkbridge;
+    Real lkbridge_uncpl;
+
+    auto astuple() {
+      return make_tuple(lkball_iso, lkball, lkbridge, lkbridge_uncpl);
+    }
+  };
+
+  static def V(
+      Real3 coord_i,
+      Real3 coord_j,
+      WatersMat waters_i,
+      WatersMat waters_j,
+      Real bonded_path_length,
+      Real lkb_water_dist,
+      LKTypeParams<Real> i,
+      LKTypeParams<Real> j,
+      LJGlobalParams<Real> global)
+      ->V_t {
+    Real sigma = lj_sigma<Real>(i, j, global);
+
+    Real dist = distance<Real>::V(coord_i, coord_j);
+
+    bool has_waters_j = j.is_donor || j.is_acceptor;
+
+    Real lk_j_desolv_i = lk_isotropic_pair_V<Real>(
+        dist,
+        bonded_path_length,
+        sigma,
+        i.lj_radius,
+        i.lk_dgfree,
+        i.lk_lambda,
+        j.lk_volume);
+
+    Real frac_j_desolv_i =
+        lk_fraction<Real, MAX_WATER>::V(coord_j, waters_i, j.lj_radius);
+
+    Real frac_i_j_water_overlap = 0.0;
+    if (has_waters_j) {
+      frac_i_j_water_overlap = lk_bridge_fraction<Real, MAX_WATER>::V(
+          coord_i, coord_j, waters_i, waters_j, lkb_water_dist);
+    }
+
+    return V_t{
+        lk_j_desolv_i,
+        lk_j_desolv_i * frac_j_desolv_i,
+        lk_j_desolv_i * frac_i_j_water_overlap,
+        frac_i_j_water_overlap / 2,
+    };
   }
 };
 

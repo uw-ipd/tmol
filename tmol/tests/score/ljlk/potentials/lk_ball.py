@@ -1,8 +1,13 @@
 from typing import Tuple
 
+import attr
+import torch
+from toolz import merge, keymap
+
 from tmol.types.torch import Tensor
 
-import torch
+from tmol.utility.args import ignore_unused_kwargs
+from tmol.score.ljlk.params import LJLKDatabase
 
 from tmol.utility.cpp_extension import load, relpaths, modulename
 
@@ -73,7 +78,7 @@ class BuildDonorWater(torch.autograd.Function):
         return dW_dD @ dE_dW, dW_dH @ dE_dW, None
 
 
-class GetLKFraction(torch.autograd.Function):
+class LKFraction(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
@@ -99,7 +104,7 @@ class GetLKFraction(torch.autograd.Function):
         return dF_dCI * dE_dF, dF_dWJ * dE_dF, None
 
 
-class GetLKBridgeFraction(torch.autograd.Function):
+class LKBridgeFraction(torch.autograd.Function):
     @staticmethod
     def forward(
         ctx,
@@ -107,12 +112,13 @@ class GetLKBridgeFraction(torch.autograd.Function):
         coord_j: Tensor(float)[3],
         waters_i: Tensor(float)[2, 3],
         waters_j: Tensor(float)[2, 3],
+        lkb_water_dist: Tensor(float),
     ) -> Tensor(float):
 
         rgrad, (coord_i, coord_j, waters_i, waters_j) = detach_maybe_requires_grad(
             coord_i, coord_j, waters_i, waters_j
         )
-        inputs = (coord_i, coord_j, waters_i, waters_j)
+        inputs = (coord_i, coord_j, waters_i, waters_j, lkb_water_dist)
 
         if rgrad:
             ctx.inputs = inputs
@@ -127,4 +133,65 @@ class GetLKBridgeFraction(torch.autograd.Function):
             torch.from_numpy, _compiled.lk_bridge_fraction_dV(*inputs)
         )
 
-        return dF_dCI * dE_dF, dF_dCJ * dE_dF, dF_dWI * dE_dF, dF_dWJ * dE_dF
+        return dF_dCI * dE_dF, dF_dCJ * dE_dF, dF_dWI * dE_dF, dF_dWJ * dE_dF, None
+
+
+@attr.s(auto_attribs=True, frozen=True)
+class LKBallScore:
+
+    ljlk_database: LJLKDatabase
+
+    def apply(
+        self,
+        coord_i,
+        coord_j,
+        waters_i,
+        waters_j,
+        bonded_path_length,
+        atom_type_i,
+        atom_type_j,
+    ):
+        params_i = {p.name: p for p in self.ljlk_database.atom_type_parameters}[
+            atom_type_i
+        ]
+        params_j = {p.name: p for p in self.ljlk_database.atom_type_parameters}[
+            atom_type_j
+        ]
+
+        params = merge(
+            keymap(lambda k: f"i_{k}", attr.asdict(params_i)),
+            keymap(lambda k: f"j_{k}", attr.asdict(params_j)),
+            attr.asdict(self.ljlk_database.global_parameters),
+        )
+
+        return LKBallScoreFun(params)(
+            coord_i, coord_j, waters_i, waters_j, bonded_path_length
+        )
+
+
+class LKBallScoreFun(torch.autograd.Function):
+    def __init__(self, params):
+        self.params = params
+        self.lk_ball_score_V = ignore_unused_kwargs(_compiled.lk_ball_score_V)
+        super().__init__()
+
+    def forward(
+        ctx,
+        coord_i: Tensor(float)[3],
+        coord_j: Tensor(float)[3],
+        waters_i: Tensor(float)[2, 3],
+        waters_j: Tensor(float)[2, 3],
+        bonded_path_length: Tensor(float)[1],
+    ) -> Tensor(float):
+
+        rgrad, (coord_i, coord_j, waters_i, waters_j) = detach_maybe_requires_grad(
+            coord_i, coord_j, waters_i, waters_j
+        )
+        inputs = (coord_i, coord_j, waters_i, waters_j, bonded_path_length)
+
+        if rgrad:
+            ctx.inputs = inputs
+
+        return torch.tensor(ctx.lk_ball_score_V(*inputs, **ctx.params)).to(
+            coord_i.dtype
+        )

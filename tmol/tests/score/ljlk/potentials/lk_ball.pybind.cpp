@@ -10,7 +10,7 @@ namespace ljlk {
 namespace potentials {
 
 template <typename Real>
-void bind_potentials(pybind11::module& m) {
+void bind_build_waters(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace pybind11;
 
@@ -37,39 +37,84 @@ void bind_potentials(pybind11::module& m) {
       "dist"_a,
       "angle"_a,
       "torsion"_a);
+}
+
+template <typename Real, int MAX_WATER>
+void bind_potentials(pybind11::module& m) {
+  using namespace pybind11::literals;
+  using namespace pybind11;
 
   m.def(
       "lk_fraction_V",
-      &lk_fraction<Real, 2>::V,
+      &lk_fraction<Real, MAX_WATER>::V,
       "coord_i"_a,
       "waters_j"_a,
       "lk_radius_i"_a);
 
   m.def(
       "lk_fraction_dV",
-      &lk_fraction<Real, 2>::dV,
+      &lk_fraction<Real, MAX_WATER>::dV,
       "coord_i"_a,
       "waters_j"_a,
       "lk_radius_i"_a);
 
   m.def(
       "lk_bridge_fraction_V",
-      &lk_bridge_fraction<Real, 2>::V,
+      &lk_bridge_fraction<Real, MAX_WATER>::V,
       "coord_i"_a,
       "coord_j"_a,
       "waters_i"_a,
-      "waters_j"_a);
+      "waters_j"_a,
+      "lkb_water_dist"_a);
 
   m.def(
       "lk_bridge_fraction_dV",
-      &lk_bridge_fraction<Real, 2>::dV,
+      &lk_bridge_fraction<Real, MAX_WATER>::dV,
       "coord_i"_a,
       "coord_j"_a,
       "waters_i"_a,
-      "waters_j"_a);
+      "waters_j"_a,
+      "lkb_water_dist"_a);
+
+  m.def(
+      "lk_ball_score_V",
+      [](Eigen::Matrix<Real, 3, 1> coord_i,
+         Eigen::Matrix<Real, 3, 1> coord_j,
+         Eigen::Matrix<Real, MAX_WATER, 3> waters_i,
+         Eigen::Matrix<Real, MAX_WATER, 3> waters_j,
+         Real bonded_path_length,
+         Real lkb_water_dist,
+         LKTypeParams_args(i_),
+         LKTypeParams_args(j_),
+         LJGlobalParams_args()) {
+        return lk_ball_score<Real, MAX_WATER>::V(
+                   coord_i,
+                   coord_j,
+                   waters_i,
+                   waters_j,
+                   bonded_path_length,
+                   lkb_water_dist,
+                   LKTypeParams_struct(i_),
+                   LKTypeParams_struct(j_),
+                   LJGlobalParams_struct())
+            .astuple();
+      },
+      "coord_i"_a,
+      "coord_j"_a,
+      "waters_i"_a,
+      "waters_j"_a,
+      "bonded_path_length"_a,
+      "lkb_water_dist"_a,
+      LKTypeParams_pyargs(i_),
+      LKTypeParams_pyargs(j_),
+      LJGlobalParams_pyargs());
 }
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { bind_potentials<double>(m); }
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  bind_build_waters<double>(m);
+  bind_potentials<double, 2>(m);
+  bind_potentials<double, 3>(m);
+}
 
 }  // namespace potentials
 }  // namespace ljlk

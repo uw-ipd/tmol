@@ -500,6 +500,21 @@ def test_lkball_spotcheck(default_database):
     score_ref = numpy.array([[0.335514, 0., 0.264926, 0.789612]])
     numpy.testing.assert_allclose(score, score_ref, atol=1e-5)
 
+
+def test_lkball_spotcheck_sp2_nonpolar(default_database):
+    param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
+        default_database.scoring.ljlk, device=torch.device("cpu")
+    )
+
+    params = _get_params(param_resolver)
+
+    def get_lkball_intra(
+        coords, atom_types, bonded_path_lengths, attached_h, base_atoms
+    ):
+        return ignore_unused_kwargs(lkball_intra)(
+            coords, atom_types, bonded_path_lengths, attached_h, base_atoms, **params
+        )
+
     # test 2: sp2 acceptor--nonpolar
     coords = numpy.array(
         [
@@ -525,6 +540,21 @@ def test_lkball_spotcheck(default_database):
     numpy.testing.assert_array_equal(pairs, pairs_ref)
     score_ref = numpy.array([[0.14107985, 0.04765878, 0., 0.]])
     numpy.testing.assert_allclose(score, score_ref, atol=1e-5)
+
+
+def test_lkball_spotcheck_sp3_ring(default_database):
+    param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
+        default_database.scoring.ljlk, device=torch.device("cpu")
+    )
+
+    params = _get_params(param_resolver)
+
+    def get_lkball_intra(
+        coords, atom_types, bonded_path_lengths, attached_h, base_atoms
+    ):
+        return ignore_unused_kwargs(lkball_intra)(
+            coords, atom_types, bonded_path_lengths, attached_h, base_atoms, **params
+        )
 
     # test 3: ring acceptor--sp3 acceptor
     coords = numpy.array(
