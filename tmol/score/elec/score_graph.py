@@ -10,6 +10,8 @@ from tmol.types.array import NDArray
 from tmol.database import ParameterDatabase
 from tmol.database.scoring.elec import ElecDatabase
 
+from tmol.types.functional import validate_args
+
 from ..database import ParamDB
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
@@ -90,20 +92,23 @@ class ElecScoreGraph(
 
     # bonded path lengths using 'representative atoms'
     @reactive_property
+    # @validate_args
     def repatm_bonded_path_length(
-        bonded_path_length: NDArray(object)[...],
+        bonded_path_length: Tensor("f4")[...],
         res_names: NDArray(object)[...],
-        res_indices: NDArray(object)[...],
+        res_indices: NDArray(float)[...],
         atom_names: NDArray(object)[...],
         elec_param_resolver: ElecParamResolver,
     ) -> Tensor(torch.float32)[:, :]:
+        bpl = bonded_path_length.cpu().numpy()
         return torch.from_numpy(
             elec_param_resolver.remap_bonded_path_lengths(
-                bonded_path_length.numpy(), res_names, res_indices, atom_names
+                bpl, res_names, res_indices, atom_names
             )
         ).to(elec_param_resolver.device)
 
     @reactive_property
+    @validate_args
     def elec_partial_charges(
         res_names: NDArray(object)[...],
         atom_names: NDArray(object)[...],
