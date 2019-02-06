@@ -134,6 +134,46 @@ def test_elec_sweep(default_database, torch_device):
     numpy.testing.assert_allclose(scores, scores_expected, atol=1e-4)
 
 
+# sweep fa_elec in 0.1A intervals from 0 to 6A
+# check numeric v analytic gradients
+def test_elec_sweep_gradcheck(default_database, torch_device):
+    coords = numpy.zeros((2, 3))
+    bpl = numpy.array([[0.0, 6.0], [6.0, 0.0]])
+    pcs = numpy.array([1.0, 1.0])
+
+    tcoords = torch.from_numpy(coords).to(torch_device).requires_grad_(True)
+    tbpl = torch.from_numpy(bpl).to(torch_device, tcoords.dtype)
+    tpcs = torch.from_numpy(pcs).to(torch_device, tcoords.dtype)
+
+    min_dis, max_dis, D, D0, S = 1.6, 5.5, 79.931, 6.648, 0.441546
+
+    def eval_intra(coords):
+        import tmol.score.elec.potentials.compiled as compiled
+
+        pairs, scores, derivs_i, derivs_j = compiled.elec_triu(
+            tcoords, tpcs, tcoords, tpcs, tbpl, D, D0, S, min_dis, max_dis
+        )
+        return (scores[1], derivs_i[1])
+
+    dscores_A = numpy.zeros((60, 3))
+    dscores_N = numpy.zeros((60, 3))
+    for i in range(60):
+        eps = 1e-5
+        tcoords[1, 2] = i / 10.0
+        _, dscores_A[i, :] = eval_intra(tcoords)
+        for j in range(3):
+            tcoords[0, j] = eps
+            score_p, _ = eval_intra(tcoords)
+            tcoords[0, j] = -eps
+            score_m, _ = eval_intra(tcoords)
+            tcoords[0, j] = 0
+            dscores_N[i, j] = (score_p - score_m) / (2 * eps)
+
+        print(dscores_A[i], dscores_N[i])
+
+    numpy.testing.assert_allclose(dscores_A, dscores_N, atol=1e-5)
+
+
 # torch forward op
 def test_elec_intra(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
