@@ -726,7 +726,7 @@ struct lk_bridge_fraction {
       Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
       ->Real {
     // water overlap
-    Real wted_d2_delta = 0;
+    Real wted_d2_delta = 0.0;
     for (int wi = 0; wi < MAX_WATER; wi++) {
       for (int wj = 0; wj < MAX_WATER; wj++) {
         Real d2_delta =
@@ -738,31 +738,34 @@ struct lk_bridge_fraction {
     }
     wted_d2_delta = -std::log(wted_d2_delta);
 
-    Real frac = 0;
-    if (wted_d2_delta < 0) {
-      frac = 1;
-    } else if (wted_d2_delta < overlap_width_A2) {
-      frac = square(1 - square(wted_d2_delta / overlap_width_A2));
+    Real overlapfrac;
+    if (wted_d2_delta > overlap_width_A2) {
+      overlapfrac = 0;
+    } else {
+      // square-square -> 1 as x -> 0
+      overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
     }
 
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
     Real overlap_len2 = (I - J).squaredNorm();
-    Real Bdelta = std::abs(overlap_len2 - overlap_target_len2);
+    Real base_delta = std::abs(overlap_len2 - overlap_target_len2);
 
-    if (Bdelta > angle_overlap_A2) {
-      frac = 0;
+    Real anglefrac;
+    if (base_delta > angle_overlap_A2) {
+      anglefrac = 0;
     } else {
-      frac *= square(1 - square(Bdelta / angle_overlap_A2));
+      // square-square -> 1 as x -> 0
+      anglefrac = square(1 - square(base_delta / angle_overlap_A2));
     }
 
-    return frac;
+    return overlapfrac * anglefrac;
   }
 
   static def dV(
       Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
       ->dV_t {
-    Real wted_d2_delta = 0;
+    Real wted_d2_delta = 0.0;
 
     WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
     WatersMat d_wted_d2_delta_d_WJ = WatersMat::Zero();
@@ -771,9 +774,10 @@ struct lk_bridge_fraction {
       for (int wj = 0; wj < MAX_WATER; wj++) {
         Real3 delta_ij = WI.row(wi) - WJ.row(wj);
         Real d2_delta = delta_ij.squaredNorm() - overlap_gap_A2;
-        Real exp_d2_delta = std::exp(-d2_delta);
 
         if (!std::isnan(d2_delta)) {
+          Real exp_d2_delta = std::exp(-d2_delta);
+
           d_wted_d2_delta_d_WI.row(wi).transpose() +=
               2 * exp_d2_delta * delta_ij;
           d_wted_d2_delta_d_WJ.row(wj).transpose() -=
@@ -784,48 +788,57 @@ struct lk_bridge_fraction {
       }
     }
 
-    d_wted_d2_delta_d_WI /= wted_d2_delta;
-    d_wted_d2_delta_d_WJ /= wted_d2_delta;
+    if (wted_d2_delta != 0) {
+      d_wted_d2_delta_d_WI /= wted_d2_delta;
+      d_wted_d2_delta_d_WJ /= wted_d2_delta;
+    }
 
     wted_d2_delta = -std::log(wted_d2_delta);
 
-    Real overlapfrac = 0;
-    Real d_overlapfrac_d_wted_d2 = 0;
+    Real overlapfrac;
+    Real d_overlapfrac_d_wted_d2;
 
-    if (wted_d2_delta < 0) {
-      overlapfrac = 1;
-    } else if (wted_d2_delta < overlap_width_A2) {
+    if (wted_d2_delta > overlap_width_A2) {
+      overlapfrac = 0.0;
+      d_overlapfrac_d_wted_d2 = 0.0;
+    } else if (wted_d2_delta > 0) {
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
       d_overlapfrac_d_wted_d2 =
           -4.0 * wted_d2_delta
           * (square(overlap_width_A2) - square(wted_d2_delta))
           / square(square(overlap_width_A2));
+    } else {
+      overlapfrac = 1.0;
+      d_overlapfrac_d_wted_d2 = 0.0;
     }
 
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
     Real3 delta_ij = I - J;
     Real overlap_len2 = delta_ij.squaredNorm();
-    // TODO no abs here?
-    Real Bdelta = overlap_len2 - overlap_target_len2;
+    Real base_delta = overlap_len2 - overlap_target_len2;
     Real3 d_wted_d2_delta_d_I = 2.0 * delta_ij;
     Real3 d_wted_d2_delta_d_J = -2.0 * delta_ij;
 
-    Real anglefrac = 0;
-    Real d_anglefrac_d_Bdelta = 0;
-    if (std::abs(Bdelta) > angle_overlap_A2) {
-      anglefrac = 1;
+    Real anglefrac;
+    Real d_anglefrac_d_base_delta;
+    if (std::abs(base_delta) > angle_overlap_A2) {
+      anglefrac = 0.0;
+      d_anglefrac_d_base_delta = 0.0;
+    } else if (std::abs(base_delta) > 0.0) {
+      anglefrac = square(1 - square(base_delta / angle_overlap_A2));
+      d_anglefrac_d_base_delta =
+          -4.0 * base_delta * (square(angle_overlap_A2) - square(base_delta))
+          / square(square(angle_overlap_A2));
     } else {
-      anglefrac = square(1 - square(Bdelta / angle_overlap_A2));
-      d_anglefrac_d_Bdelta = -4.0 * Bdelta
-                             * (square(angle_overlap_A2) - square(Bdelta))
-                             / square(square(angle_overlap_A2));
+      anglefrac = 1.0;
+      d_anglefrac_d_base_delta = 0.0;
     }
 
     // final scaling
     return dV_t{
-        overlapfrac * d_anglefrac_d_Bdelta * d_wted_d2_delta_d_I,
-        overlapfrac * d_anglefrac_d_Bdelta * d_wted_d2_delta_d_J,
+        overlapfrac * d_anglefrac_d_base_delta * d_wted_d2_delta_d_I,
+        overlapfrac * d_anglefrac_d_base_delta * d_wted_d2_delta_d_J,
         anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WI,
         anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WJ,
     };

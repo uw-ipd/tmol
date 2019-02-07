@@ -865,7 +865,10 @@ def get_dlkbr_fraction_dij(
 
     anglefrac = 0
     if numpy.abs(base_atom_delta) > angle_overlap_A2:
+        anglefrac = danglefrac = 0
+    elif numpy.abs(base_angle_delta) <= 0:
         anglefrac = 1
+        danglefrac = 0
     else:
         anglefrac = numpy.square(1 - numpy.square(base_atom_delta / angle_overlap_A2))
         danglefrac_dbasedelta = -(

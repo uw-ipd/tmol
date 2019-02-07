@@ -130,7 +130,7 @@ def test_lk_bridge_fraction():
     lkbr_frac = LKBridgeFraction.apply(I["A"], J["A"], WI, WJ, dist)
     assert float(lkbr_frac) == pytest.approx(.025, abs=.001)
 
-    torch.autograd.gradcheck(
+    gradcheck(
         lambda I, J, WI, WJ: LKBridgeFraction.apply(I, J, WI, WJ, dist),
         (
             I["A"].requires_grad_(True),
@@ -158,21 +158,21 @@ def lkball_score_and_gradcheck(database, I, J, WI, WJ, bonded_path_length, at_i,
     gradcheck(
         lambda WI, J: LKFraction.apply(WI, J, atom_type_params[at_j].lj_radius),
         (WI.requires_grad_(True), J.requires_grad_(True)),
-        eps=1e-4,
+        eps=1e-3,
     )
 
-    # gradcheck(
-    #     lambda I, J, WI, WJ: LKBridgeFraction.apply(
-    #         I, J, WI, WJ, database.scoring.ljlk.global_parameters.lkb_water_dist
-    #     ),
-    #     (
-    #         I.requires_grad_(True),
-    #         J.requires_grad_(True),
-    #         WI.requires_grad_(True),
-    #         WJ.requires_grad_(True),
-    #     ),
-    #     eps=1e-4,
-    # )
+    gradcheck(
+        lambda I, J, WI, WJ: LKBridgeFraction.apply(
+            I, J, WI, WJ, database.scoring.ljlk.global_parameters.lkb_water_dist
+        ),
+        (
+            I.requires_grad_(True),
+            J.requires_grad_(True),
+            WI.requires_grad_(True),
+            WJ.requires_grad_(True),
+        ),
+        eps=1e-3,
+    )
 
     # gradcheck(
     #     lambda I, J, WI, WJ: op.apply(I, J, WI, WJ, bonded_path_length, at_i, at_j)[3],
