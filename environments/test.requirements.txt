@@ -1,5 +1,6 @@
 codecov
 black==18.6b4
+pre-commit
 
 flake8-bugbear
 
