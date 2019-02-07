@@ -44,19 +44,24 @@ void bind_potentials(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace pybind11;
 
+  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
+
   m.def(
       "lk_fraction_V",
       &lk_fraction<Real, MAX_WATER>::V,
-      "coord_i"_a,
-      "waters_j"_a,
-      "lk_radius_i"_a);
+      "WI"_a,
+      "J"_a,
+      "lk_radius_j"_a);
 
   m.def(
       "lk_fraction_dV",
-      &lk_fraction<Real, MAX_WATER>::dV,
-      "coord_i"_a,
-      "waters_j"_a,
-      "lk_radius_i"_a);
+      [](WatersMat WI, Real3 J, Real lj_radius_j) {
+        return lk_fraction<Real, MAX_WATER>::dV(WI, J, lj_radius_j).astuple();
+      },
+      "WI"_a,
+      "J"_a,
+      "lk_radius_j"_a);
 
   m.def(
       "lk_bridge_fraction_V",

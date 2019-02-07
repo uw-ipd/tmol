@@ -61,32 +61,31 @@ def test_lk_fraction():
     from tmol.tests.score.ljlk.potentials.lk_ball import LKFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
-    j = dict(
+    I = dict(  # noqa
         A=tensor((0.0, 0.0, 0.0)),
         B=tensor((0.0, 0.0, -1.0)),
         B0=tensor((1.0, 0.0, 0.0)),
     )
-
     dist = tensor([2.65]).reshape(())
     angle = tensor([parse_angle("109.0 deg")]).reshape(())
     torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
 
-    waters_j = torch.stack(
+    WI = torch.stack(
         [
-            BuildAcceptorWater.apply(j["A"], j["B"], j["B0"], dist, angle, torsion)
+            BuildAcceptorWater.apply(I["A"], I["B"], I["B0"], dist, angle, torsion)
             for torsion in torsions
         ]
     )
 
-    i = dict(A=tensor((-2.5, 0.1, 2.5)))
-    lj_radius_i = tensor([1.8]).reshape(())
-    lkfrac = LKFraction.apply(i["A"], waters_j, lj_radius_i)
+    J = tensor((-2.5, 0.1, 2.5))
+    lj_radius_j = tensor([1.8]).reshape(())
+    lkfrac = LKFraction.apply(WI, J, lj_radius_j)
 
     assert float(lkfrac) == pytest.approx(.65, abs=.01)
 
     torch.autograd.gradcheck(
-        lambda CI, WJ: LKFraction.apply(CI, WJ, dist),
-        (i["A"].requires_grad_(True), waters_j.requires_grad_(True)),
+        lambda WI, J: LKFraction.apply(WI, J, dist),
+        (WI.requires_grad_(True), J.requires_grad_(True)),
     )
 
 

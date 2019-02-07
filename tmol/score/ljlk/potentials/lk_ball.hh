@@ -631,17 +631,23 @@ struct lk_fraction {
   typedef Eigen::Matrix<Real, 3, 1> Real3;
   typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
 
+  struct dV_t {
+    WatersMat dWI;
+    Real3 dJ;
+    def astuple() { return make_tuple(dWI, dJ); }
+  };
+
   static constexpr Real ramp_width_A2 = lkball_globals<Real>::ramp_width_A2;
 
   static def square(Real v)->Real { return v * v; }
 
-  static def V(Real3 coord_i, WatersMat waters_j, Real lj_radius_i)->Real {
-    Real d2_low = std::max(0.0, square(1.4 + lj_radius_i) - ramp_width_A2);
+  static def V(WatersMat WI, Real3 J, Real lj_radius_j)->Real {
+    Real d2_low = std::max(0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
 
     Real wted_d2_delta = 0;
-    for (int wj = 0; wj < MAX_WATER; ++wj) {
+    for (int w = 0; w < MAX_WATER; ++w) {
       Real d2_delta =
-          (coord_i - waters_j.row(wj).transpose()).squaredNorm() - d2_low;
+          (J - WI.row(w).transpose()).squaredNorm() - d2_low;
       if (!std::isnan(d2_delta)) {
         wted_d2_delta += std::exp(-d2_delta);
       }
@@ -659,27 +665,29 @@ struct lk_fraction {
     return frac;
   }
 
-  static def dV(Real3 coord_i, WatersMat waters_j, Real lj_radius_i)
-      ->std::tuple<Real3, WatersMat> {
-    Real d2_low = std::max(0.0, square(1.4 + lj_radius_i) - ramp_width_A2);
+  static def dV(WatersMat WI, Real3 J, Real lj_radius_j)->dV_t {
+    Real d2_low = std::max(0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
 
     Real wted_d2_delta = 0;
-    Real3 d_wted_d2_delta_d_coord_i = Real3::Zero();
-    WatersMat d_wted_d2_delta_d_waters_j;
+    Real3 d_wted_d2_delta_d_J = Real3::Zero();
+    WatersMat d_wted_d2_delta_d_WI;
 
-    for (int wj = 0; wj < MAX_WATER; ++wj) {
-      Real3 delta_ij = coord_i = waters_j.row(wj).transpose();
-      Real d2_delta = delta_ij.squaredNorm();
-      Real exp_d2_delta = std::exp(-d2_delta);
+    for (int w = 0; w < MAX_WATER; ++w) {
+      Real3 delta_Jw = J - WI.row(w).transpose();
+      Real d2_delta = delta_Jw.squaredNorm();
 
-      d_wted_d2_delta_d_coord_i += 2 * exp_d2_delta * delta_ij;
-      d_wted_d2_delta_d_waters_j.row(wj).transpose() =
-          -2 * exp_d2_delta * delta_ij;
-      wted_d2_delta += exp_d2_delta;
+      if (!std::isnan(d2_delta)) {
+        Real exp_d2_delta = std::exp(-d2_delta);
+
+        d_wted_d2_delta_d_J += 2 * exp_d2_delta * delta_Jw;
+        d_wted_d2_delta_d_WI.row(w).transpose() =
+            -2 * exp_d2_delta * delta_Jw;
+        wted_d2_delta += exp_d2_delta;
+      }
     }
 
-    d_wted_d2_delta_d_coord_i /= wted_d2_delta;
-    d_wted_d2_delta_d_waters_j /= wted_d2_delta;
+    d_wted_d2_delta_d_J /= wted_d2_delta;
+    d_wted_d2_delta_d_WI /= wted_d2_delta;
 
     wted_d2_delta = -std::log(wted_d2_delta);
 
@@ -690,8 +698,8 @@ struct lk_fraction {
                        / square(square(ramp_width_A2));
     }
 
-    return {d_wted_d2_delta_d_coord_i * dfrac_dwted_d2,
-            d_wted_d2_delta_d_waters_j * dfrac_dwted_d2};
+    return dV_t{d_wted_d2_delta_d_WI * dfrac_dwted_d2,
+                d_wted_d2_delta_d_J * dfrac_dwted_d2};
   }
 };
 
@@ -878,7 +886,7 @@ struct lk_ball_score {
         j.lk_volume);
 
     Real frac_j_desolv_i =
-        lk_fraction<Real, MAX_WATER>::V(coord_j, waters_i, j.lj_radius);
+        lk_fraction<Real, MAX_WATER>::V(waters_i, coord_j, j.lj_radius);
 
     Real frac_i_j_water_overlap = 0.0;
     if (has_waters_j) {
