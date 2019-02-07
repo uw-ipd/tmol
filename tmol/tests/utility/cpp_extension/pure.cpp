@@ -6,6 +6,11 @@
 
 #include <cppitertools/range.hpp>
 
+namespace tmol {
+namespace tests {
+namespace utility {
+namespace cpp_extension {
+
 using tmol::TView;
 
 template <typename Real, tmol::Device D>
@@ -30,4 +35,8 @@ struct sum<Real, tmol::Device::CPU> {
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
   m.def("sum", &sum<float, tmol::Device::CPU>::f, "t"_a);
+}
+}
+}
+}
 }

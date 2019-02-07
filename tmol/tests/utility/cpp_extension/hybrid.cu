@@ -4,8 +4,13 @@
 
 #include "hybrid.hh"
 
+namespace tmol {
+namespace tests {
+namespace utility {
+namespace cpp_extension {
+
 template <typename Real>
-struct sum<Real, tmol::Device::CUDA> {
+struct sum_tensor<Real, tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
 
   static at::Tensor f(tmol::TView<Real, 1, D> t) {
@@ -25,5 +30,10 @@ struct sum<Real, tmol::Device::CUDA> {
   }
 };
 
-template struct sum<float, tmol::Device::CUDA>;
-template struct sum<double, tmol::Device::CUDA>;
+template struct sum_tensor<float, tmol::Device::CUDA>;
+template struct sum_tensor<double, tmol::Device::CUDA>;
+
+}  // namespace cpp_extension
+}  // namespace utility
+}  // namespace tests
+}  // namespace tmol

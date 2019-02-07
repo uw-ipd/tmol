@@ -9,8 +9,5 @@ _compiled = load(
     ),
 )
 
-lk_isotropic = _compiled.lk_isotropic
-lk_isotropic_triu = _compiled.lk_isotropic_triu
-
-lj = _compiled.lj
-lj_triu = _compiled.lj_triu
+elec = _compiled.elec
+elec_triu = _compiled.elec_triu

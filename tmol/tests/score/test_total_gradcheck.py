@@ -44,9 +44,7 @@ def test_torsion_space_gradcheck(ubq_res):
     # (25, 0)  0.047311  0.046337   0.000975   0.020816     True
     # (43, 0) -0.000932 -0.000906   0.000026   0.018197     True
 
-    assert gradcheck(
-        total_score, (start_dofs,), eps=2e-2, rtol=1e-2, atol=1e-5, nfail=6
-    )
+    assert gradcheck(total_score, (start_dofs,), eps=1e-3, atol=5e-3, nfail=0)
 
 
 def test_real_space_gradcheck(ubq_res):
@@ -79,6 +77,4 @@ def test_real_space_gradcheck(ubq_res):
     #   (315, 0) -0.004810 -0.004705   0.000106   0.020323     True
     #   (326, 0)  0.000250  0.000286   0.000036   0.090136     True
 
-    assert gradcheck(
-        total_score, (start_coords,), eps=1.5e-2, rtol=1e-2, atol=1e-5, nfail=11
-    )
+    assert gradcheck(total_score, (start_coords,), eps=1e-3, atol=5e-3, nfail=0)

@@ -6,6 +6,8 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
+#undef B0
+
 namespace tmol {
 namespace score {
 namespace hbond {
