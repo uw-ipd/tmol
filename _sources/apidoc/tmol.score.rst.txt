@@ -24,6 +24,7 @@ tmol.score
        tmol.score.viewer
   
        tmol.score.common
+       tmol.score.elec
        tmol.score.hbond
        tmol.score.ljlk
 

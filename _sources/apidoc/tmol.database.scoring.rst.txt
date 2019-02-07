@@ -13,6 +13,7 @@ tmol.database.scoring
     .. toctree::
        :maxdepth: 1
   
+       tmol.database.scoring.elec
        tmol.database.scoring.hbond
        tmol.database.scoring.ljlk
   
