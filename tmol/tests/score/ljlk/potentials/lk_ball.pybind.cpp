@@ -13,10 +13,17 @@ template <typename Real>
 void bind_build_waters(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace pybind11;
+  typedef Eigen::Matrix<Real, 3, 1> Real3;
 
   m.def("build_don_water_V", &build_don_water<Real>::V, "D"_a, "H"_a, "dist"_a);
   m.def(
-      "build_don_water_dV", &build_don_water<Real>::dV, "D"_a, "H"_a, "dist"_a);
+      "build_don_water_dV",
+      [](Real3 D, Real3 H, Real dist) {
+        return build_don_water<Real>::dV(D, H, dist).astuple();
+      },
+      "D"_a,
+      "H"_a,
+      "dist"_a);
 
   m.def(
       "build_acc_water_V",
@@ -30,7 +37,10 @@ void bind_build_waters(pybind11::module& m) {
 
   m.def(
       "build_acc_water_dV",
-      &build_acc_water<Real>::dV,
+      [](Real3 A, Real3 B, Real3 B0, Real dist, Real angle, Real torsion) {
+        return build_acc_water<Real>::dV(A, B, B0, dist, angle, torsion)
+            .astuple();
+      },
       "A"_a,
       "B"_a,
       "B0"_a,

@@ -19,11 +19,20 @@ struct build_don_water {
   typedef Eigen::Matrix<Real, 3, 1> Real3;
   typedef Eigen::Matrix<Real, 3, 3> RealMat;
 
+  struct dV_t {
+    RealMat dD;
+    RealMat dH;
+
+    def astuple() { return make_tuple(dD, dH); }
+
+    static def Zero()->dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
+  };
+
   static def V(Real3 D, Real3 H, Real dist)->Real3 {
     return D + dist * (H - D).normalized();
   }
 
-  static def dV(Real3 D, Real3 H, Real dist)->std::tuple<RealMat, RealMat> {
+  static def dV(Real3 D, Real3 H, Real dist)->dV_t {
     Real dhx = -D[0] + H[0];
     Real dhx2 = dhx * dhx;
     Real dhy = -D[1] + H[1];
@@ -65,6 +74,18 @@ struct build_acc_water {
   typedef Eigen::Matrix<Real, 3, 1> Real3;
   typedef Eigen::Matrix<Real, 3, 3> RealMat;
 
+  struct dV_t {
+    RealMat dA;
+    RealMat dB;
+    RealMat dB0;
+
+    def astuple() { return make_tuple(dA, dB, dB0); }
+
+    static def Zero()->dV_t {
+      return {RealMat::Zero(), RealMat::Zero(), RealMat::Zero()};
+    }
+  };
+
   static def V(Real3 A, Real3 B, Real3 B0, Real dist, Real angle, Real torsion)
       ->Real3 {
     const Real pi = EIGEN_PI;
@@ -101,7 +122,7 @@ struct build_acc_water {
   }
 
   static def dV(Real3 A, Real3 B, Real3 B0, Real dist, Real angle, Real torsion)
-      ->std::tuple<RealMat, RealMat, RealMat> {
+      ->dV_t {
     const Real pi = EIGEN_PI;
 
     // clang-format off
@@ -328,9 +349,9 @@ struct build_acc_water {
     Real x297 = x141 * (-x176 + x177);
     Real x298 = x160 * x297;
 
-    RealMat dW_dA;
+    dV_t dW;
 
-    dW_dA(0, 0) = (
+    dW.dA(0, 0) = (
         x120 * x162
         + x129 * x158
         + x157
@@ -345,7 +366,7 @@ struct build_acc_water {
         + x159 * x161
         + x164
     );
-    dW_dA(0, 1) = (
+    dW.dA(0, 1) = (
         x108 * x165
         + x116 * x162
         + x137 * x161
@@ -360,7 +381,7 @@ struct build_acc_water {
             + x167
         )
     );
-    dW_dA(0, 2) = (
+    dW.dA(0, 2) = (
         x102 * x165
         + x119 * x162
         + x133 * x160
@@ -375,7 +396,7 @@ struct build_acc_water {
             + x173
         )
     );
-    dW_dA(1, 0) = (
+    dW.dA(1, 0) = (
         x120 * x191
         + x157
         * (
@@ -390,7 +411,7 @@ struct build_acc_water {
         + x158 * x179
         + x161 * x182
     );
-    dW_dA(1, 1) = (
+    dW.dA(1, 1) = (
         x108 * x200
         + x116 * x191
         + x157
@@ -405,7 +426,7 @@ struct build_acc_water {
         + x161 * x196
         + x164
     );
-    dW_dA(1, 2) = (
+    dW.dA(1, 2) = (
         x102 * x200
         + x119 * x191
         + x157
@@ -420,7 +441,7 @@ struct build_acc_water {
         )
         + x161 * x198
     );
-    dW_dA(2, 0) = (
+    dW.dA(2, 0) = (
         x120 * x215
         + x157
         * (
@@ -435,7 +456,7 @@ struct build_acc_water {
         + x158 * x203
         + x161 * x207
     );
-    dW_dA(2, 1) = (
+    dW.dA(2, 1) = (
         x108 * x221
         + x116 * x215
         + x157
@@ -450,7 +471,7 @@ struct build_acc_water {
         )
         + x161 * x220
     );
-    dW_dA(2, 2) = (
+    dW.dA(2, 2) = (
         x102 * x221
         + x119 * x215
         + x157
@@ -466,9 +487,7 @@ struct build_acc_water {
         + x164
     );
 
-    RealMat dW_dB;
-
-    dW_dB(0, 0) = (
+    dW.dB(0, 0) = (
         x120 * x240
         + x157
         * (x139 * x247 + x140 * x239 - x153 * x239 - x174 * x248 + x243 - x246)
@@ -476,7 +495,7 @@ struct build_acc_water {
         + x161 * x229
         + x224
     );
-    dW_dB(0, 1) = (
+    dW.dB(0, 1) = (
         x116 * x240
         + x157
         * (
@@ -491,7 +510,7 @@ struct build_acc_water {
         + x161 * x247
         + x249
     );
-    dW_dB(0, 2) = (
+    dW.dB(0, 2) = (
         x119 * x240
         + x157
         * (
@@ -506,7 +525,7 @@ struct build_acc_water {
         + x161 * x248
         + x251
     );
-    dW_dB(1, 0) = (
+    dW.dB(1, 0) = (
         x120 * x264
         + x157
         * (
@@ -521,7 +540,7 @@ struct build_acc_water {
         + x161 * x256
         + x249
     );
-    dW_dB(1, 1) = (
+    dW.dB(1, 1) = (
         x116 * x264
         + x157
         * (-x139 * x256 + x170 * x263 - x171 * x263 + x175 * x268 + x246 - x269)
@@ -529,7 +548,7 @@ struct build_acc_water {
         + x161 * x267
         + x224
     );
-    dW_dB(1, 2) = (
+    dW.dB(1, 2) = (
         x119 * x264
         + x157
         * (
@@ -544,7 +563,7 @@ struct build_acc_water {
         + x161 * x268
         + x270
     );
-    dW_dB(2, 0) = (
+    dW.dB(2, 0) = (
         x120 * x278
         + x157
         * (
@@ -559,7 +578,7 @@ struct build_acc_water {
         + x161 * x274
         + x251
     );
-    dW_dB(2, 1) = (
+    dW.dB(2, 1) = (
         x116 * x278
         + x157
         * (
@@ -574,7 +593,7 @@ struct build_acc_water {
         + x161 * x281
         + x270
     );
-    dW_dB(2, 2) = (
+    dW.dB(2, 2) = (
         x119 * x278
         + x157
         * (x174 * x274 - x175 * x281 + x176 * x277 - x177 * x277 - x243 + x269)
@@ -583,37 +602,36 @@ struct build_acc_water {
         + x224
     );
 
-    RealMat dW_dB0;
-    dW_dB0(0, 0) = x120 * x283 + x157 * (
+    dW.dB0(0, 0) = x120 * x283 + x157 * (
         x140 * x282 - x153 * x282 + x285 + x286
     );
-    dW_dB0(0, 1) = (
+    dW.dB0(0, 1) = (
         x116 * x283 + x157 * (x170 * x282 - x171 * x282 + x289) + x287
     );
-    dW_dB0(0, 2) = (
+    dW.dB0(0, 2) = (
         x119 * x283 + x157 * (x176 * x282 - x177 * x282 + x291) - x290
     );
-    dW_dB0(1, 0) = (
+    dW.dB0(1, 0) = (
         x120 * x293 + x157 * (x140 * x292 - x153 * x292 + x289) - x287
     );
-    dW_dB0(1, 1) = x116 * x293 + x157 * (
+    dW.dB0(1, 1) = x116 * x293 + x157 * (
         x170 * x292 - x171 * x292 + x286 + x294
     );
-    dW_dB0(1, 2) = (
+    dW.dB0(1, 2) = (
         x119 * x293 + x157 * (x176 * x292 - x177 * x292 + x296) + x295
     );
-    dW_dB0(2, 0) = (
+    dW.dB0(2, 0) = (
         x120 * x298 + x157 * (x140 * x297 - x153 * x297 + x291) + x290
     );
-    dW_dB0(2, 1) = (
+    dW.dB0(2, 1) = (
         x116 * x298 + x157 * (x170 * x297 - x171 * x297 + x296) - x295
     );
-    dW_dB0(2, 2) = x119 * x298 + x157 * (
+    dW.dB0(2, 2) = x119 * x298 + x157 * (
         x176 * x297 - x177 * x297 + x285 + x294
     );
     // clang-format on
 
-    return {dW_dA, dW_dB, dW_dB0};
+    return dW;
   }
 };
 
@@ -947,7 +965,6 @@ struct lk_ball_score {
         j.lk_volume);
 
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
-
 
     Real frac_IJ_water_overlap;
     if (j.is_donor || j.is_acceptor) {
