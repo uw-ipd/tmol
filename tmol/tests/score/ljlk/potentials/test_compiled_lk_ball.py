@@ -99,43 +99,43 @@ def test_lk_bridge_fraction():
 
     dist = tensor([2.65]).reshape(())
     angle = tensor([parse_angle("109.0 deg")]).reshape(())
-    torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
 
-    j = dict(
+    I = dict(  # noqa
+        A=tensor((0.0, 3.0, 3.0)), B=tensor((0.0, 3.0, 4.0)), B0=tensor((1.0, 0.0, 0.0))
+    )
+
+    torsions = tensor([parse_angle(f"{a} deg") for a in (60.0, 300.0)])
+    WI = torch.stack(
+        [
+            BuildAcceptorWater.apply(I["A"], I["B"], I["B0"], dist, angle, torsion)
+            for torsion in torsions
+        ]
+    )
+
+    J = dict(
         A=tensor((0.0, 0.0, 0.0)),
         B=tensor((0.0, 0.0, -1.0)),
         B0=tensor((1.0, 0.0, 0.0)),
     )
 
-    waters_j = torch.stack(
+    torsions = tensor([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
+    WJ = torch.stack(
         [
-            BuildAcceptorWater.apply(j["A"], j["B"], j["B0"], dist, angle, torsion)
+            BuildAcceptorWater.apply(J["A"], J["B"], J["B0"], dist, angle, torsion)
             for torsion in torsions
         ]
     )
 
-    i = dict(
-        A=tensor((0.0, 3.0, 3.0)), B=tensor((0.0, 3.0, 4.0)), B0=tensor((1.0, 0.0, 0.0))
-    )
-
-    torsions = tensor([parse_angle(f"{a} deg") for a in (60.0, 300.0)])
-    waters_i = torch.stack(
-        [
-            BuildAcceptorWater.apply(i["A"], i["B"], i["B0"], dist, angle, torsion)
-            for torsion in torsions
-        ]
-    )
-
-    lkbr_frac = LKBridgeFraction.apply(i["A"], j["A"], waters_i, waters_j, dist)
+    lkbr_frac = LKBridgeFraction.apply(I["A"], J["A"], WI, WJ, dist)
     assert float(lkbr_frac) == pytest.approx(.025, abs=.001)
 
     torch.autograd.gradcheck(
-        lambda CI, CJ, WI, WJ: LKBridgeFraction.apply(CI, CJ, WI, WJ, dist),
+        lambda I, J, WI, WJ: LKBridgeFraction.apply(I, J, WI, WJ, dist),
         (
-            i["A"].requires_grad_(True),
-            j["A"].requires_grad_(True),
-            waters_i.requires_grad_(True),
-            waters_j.requires_grad_(True),
+            I["A"].requires_grad_(True),
+            J["A"].requires_grad_(True),
+            WI.requires_grad_(True),
+            WJ.requires_grad_(True),
         ),
         eps=1e-4,
     )

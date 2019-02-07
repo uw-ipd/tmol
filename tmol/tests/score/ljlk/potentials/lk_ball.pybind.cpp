@@ -74,7 +74,15 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lk_bridge_fraction_dV",
-      &lk_bridge_fraction<Real, MAX_WATER>::dV,
+      [](Real3 coord_i,
+         Real3 coord_j,
+         WatersMat waters_i,
+         WatersMat waters_j,
+         Real lkb_water_dist) {
+        return lk_bridge_fraction<Real, MAX_WATER>::dV(
+                   coord_i, coord_j, waters_i, waters_j, lkb_water_dist)
+            .astuple();
+      },
       "coord_i"_a,
       "coord_j"_a,
       "waters_i"_a,

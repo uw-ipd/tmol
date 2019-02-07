@@ -99,34 +99,21 @@ class LKFraction(torch.autograd.Function):
 
 class LKBridgeFraction(torch.autograd.Function):
     @staticmethod
-    def forward(
-        ctx,
-        coord_i: Tensor(float)[3],
-        coord_j: Tensor(float)[3],
-        waters_i: Tensor(float)[2, 3],
-        waters_j: Tensor(float)[2, 3],
-        lkb_water_dist: Tensor(float),
-    ) -> Tensor(float):
-
-        rgrad, (coord_i, coord_j, waters_i, waters_j) = detach_maybe_requires_grad(
-            coord_i, coord_j, waters_i, waters_j
-        )
-        inputs = (coord_i, coord_j, waters_i, waters_j, lkb_water_dist)
+    def forward(ctx, *args):
+        args = list(args)
+        rgrad, args[:4] = detach_maybe_requires_grad(*args[:4])
 
         if rgrad:
-            ctx.inputs = inputs
+            ctx.args = args
 
-        return torch.tensor(_compiled.lk_bridge_fraction_V(*inputs)).to(coord_i.dtype)
+        return torch.tensor(_compiled.lk_bridge_fraction_V(*args)).to(args[0].dtype)
 
     @staticmethod
     def backward(ctx, dE_dF: Tensor(float)):
-        inputs = ctx.inputs
+        args = ctx.args
+        d_grad_args = map(torch.from_numpy, _compiled.lk_bridge_fraction_dV(*args))
 
-        dF_dCI, dF_dCJ, dF_dWI, dF_dWJ = map(
-            torch.from_numpy, _compiled.lk_bridge_fraction_dV(*inputs)
-        )
-
-        return dF_dCI * dE_dF, dF_dCJ * dE_dF, dF_dWI * dE_dF, dF_dWJ * dE_dF, None
+        return tuple(a * dE_dF for a in d_grad_args) + tuple(None for a in args[4:])
 
 
 @attr.s(auto_attribs=True, frozen=True)

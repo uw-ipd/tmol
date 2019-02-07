@@ -646,8 +646,7 @@ struct lk_fraction {
 
     Real wted_d2_delta = 0;
     for (int w = 0; w < MAX_WATER; ++w) {
-      Real d2_delta =
-          (J - WI.row(w).transpose()).squaredNorm() - d2_low;
+      Real d2_delta = (J - WI.row(w).transpose()).squaredNorm() - d2_low;
       if (!std::isnan(d2_delta)) {
         wted_d2_delta += std::exp(-d2_delta);
       }
@@ -680,8 +679,7 @@ struct lk_fraction {
         Real exp_d2_delta = std::exp(-d2_delta);
 
         d_wted_d2_delta_d_J += 2 * exp_d2_delta * delta_Jw;
-        d_wted_d2_delta_d_WI.row(w).transpose() =
-            -2 * exp_d2_delta * delta_Jw;
+        d_wted_d2_delta_d_WI.row(w).transpose() = -2 * exp_d2_delta * delta_Jw;
         wted_d2_delta += exp_d2_delta;
       }
     }
@@ -708,6 +706,14 @@ struct lk_bridge_fraction {
   typedef Eigen::Matrix<Real, 3, 1> Real3;
   typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
 
+  struct dV_t {
+    Real3 dI;
+    Real3 dJ;
+    WatersMat dWI;
+    WatersMat dWJ;
+    def astuple() { return make_tuple(dI, dJ, dWI, dWJ); }
+  };
+
   static constexpr Real ramp_width_A2 = lkball_globals<Real>::ramp_width_A2;
   static constexpr Real overlap_gap_A2 = lkball_globals<Real>::overlap_gap_A2;
   static constexpr Real overlap_width_A2 =
@@ -718,18 +724,14 @@ struct lk_bridge_fraction {
   static def square(Real v)->Real { return v * v; }
 
   static def V(
-      Real3 coord_i,
-      Real3 coord_j,
-      WatersMat waters_i,
-      WatersMat waters_j,
-      Real lkb_water_dist)
+      Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
       ->Real {
     // water overlap
     Real wted_d2_delta = 0;
     for (int wi = 0; wi < MAX_WATER; wi++) {
       for (int wj = 0; wj < MAX_WATER; wj++) {
-        Real d2_delta = (waters_i.row(wi) - waters_j.row(wj)).squaredNorm()
-                        - overlap_gap_A2;
+        Real d2_delta =
+            (WI.row(wi) - WJ.row(wj)).squaredNorm() - overlap_gap_A2;
         if (!std::isnan(d2_delta)) {
           wted_d2_delta += std::exp(-d2_delta);
         }
@@ -746,40 +748,36 @@ struct lk_bridge_fraction {
 
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
-    Real overlap_len2 = (coord_i - coord_j).squaredNorm();
-    Real base_atom_delta = std::abs(overlap_len2 - overlap_target_len2);
+    Real overlap_len2 = (I - J).squaredNorm();
+    Real Bdelta = std::abs(overlap_len2 - overlap_target_len2);
 
-    if (base_atom_delta > angle_overlap_A2) {
+    if (Bdelta > angle_overlap_A2) {
       frac = 0;
     } else {
-      frac *= square(1 - square(base_atom_delta / angle_overlap_A2));
+      frac *= square(1 - square(Bdelta / angle_overlap_A2));
     }
 
     return frac;
   }
 
   static def dV(
-      Real3 coord_i,
-      Real3 coord_j,
-      WatersMat waters_i,
-      WatersMat waters_j,
-      Real lkb_water_dist)
-      ->std::tuple<Real3, Real3, WatersMat, WatersMat> {
+      Real3 I, Real3 J, WatersMat WI, WatersMat WJ, Real lkb_water_dist)
+      ->dV_t {
     Real wted_d2_delta = 0;
 
-    WatersMat d_wted_d2_delta_d_waters_i = WatersMat::Zero();
-    WatersMat d_wted_d2_delta_d_waters_j = WatersMat::Zero();
+    WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
+    WatersMat d_wted_d2_delta_d_WJ = WatersMat::Zero();
 
     for (int wi = 0; wi < MAX_WATER; wi++) {
       for (int wj = 0; wj < MAX_WATER; wj++) {
-        Real3 delta_ij = waters_i.row(wi) - waters_j.row(wj);
+        Real3 delta_ij = WI.row(wi) - WJ.row(wj);
         Real d2_delta = delta_ij.squaredNorm() - overlap_gap_A2;
         Real exp_d2_delta = std::exp(-d2_delta);
 
         if (!std::isnan(d2_delta)) {
-          d_wted_d2_delta_d_waters_i.row(wi).transpose() +=
+          d_wted_d2_delta_d_WI.row(wi).transpose() +=
               2 * exp_d2_delta * delta_ij;
-          d_wted_d2_delta_d_waters_j.row(wj).transpose() -=
+          d_wted_d2_delta_d_WJ.row(wj).transpose() -=
               2 * exp_d2_delta * delta_ij;
 
           wted_d2_delta += std::exp(-d2_delta);
@@ -787,8 +785,8 @@ struct lk_bridge_fraction {
       }
     }
 
-    d_wted_d2_delta_d_waters_i /= wted_d2_delta;
-    d_wted_d2_delta_d_waters_j /= wted_d2_delta;
+    d_wted_d2_delta_d_WI /= wted_d2_delta;
+    d_wted_d2_delta_d_WJ /= wted_d2_delta;
 
     wted_d2_delta = -std::log(wted_d2_delta);
 
@@ -807,39 +805,31 @@ struct lk_bridge_fraction {
 
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
-    Real3 delta_ij = coord_i - coord_j;
+    Real3 delta_ij = I - J;
     Real overlap_len2 = delta_ij.squaredNorm();
     // TODO no abs here?
-    Real base_atom_delta = overlap_len2 - overlap_target_len2;
-    Real3 d_wted_d2_delta_d_coord_i = 2.0 * delta_ij;
-    Real3 d_wted_d2_delta_d_coord_j = -2.0 * delta_ij;
+    Real Bdelta = overlap_len2 - overlap_target_len2;
+    Real3 d_wted_d2_delta_d_I = 2.0 * delta_ij;
+    Real3 d_wted_d2_delta_d_J = -2.0 * delta_ij;
 
     Real anglefrac = 0;
-    Real d_anglefrac_d_base_atom_delta = 0;
-    if (std::abs(base_atom_delta) > angle_overlap_A2) {
+    Real d_anglefrac_d_Bdelta = 0;
+    if (std::abs(Bdelta) > angle_overlap_A2) {
       anglefrac = 1;
     } else {
-      anglefrac = square(1 - square(base_atom_delta / angle_overlap_A2));
-      d_anglefrac_d_base_atom_delta =
-          -4.0 * base_atom_delta
-          * (square(angle_overlap_A2) - square(base_atom_delta))
-          / square(square(angle_overlap_A2));
+      anglefrac = square(1 - square(Bdelta / angle_overlap_A2));
+      d_anglefrac_d_Bdelta = -4.0 * Bdelta
+                             * (square(angle_overlap_A2) - square(Bdelta))
+                             / square(square(angle_overlap_A2));
     }
 
     // final scaling
-    Real3 d_frac_d_coord_i =
-        overlapfrac * d_anglefrac_d_base_atom_delta * d_wted_d2_delta_d_coord_i;
-    Real3 d_frac_d_coord_j =
-        overlapfrac * d_anglefrac_d_base_atom_delta * d_wted_d2_delta_d_coord_j;
-    WatersMat d_frac_d_waters_i =
-        anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_waters_i;
-    WatersMat d_frac_d_waters_j =
-        anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_waters_j;
-
-    return {d_frac_d_coord_i,
-            d_frac_d_coord_j,
-            d_frac_d_waters_i,
-            d_frac_d_waters_j};
+    return dV_t{
+        overlapfrac * d_anglefrac_d_Bdelta * d_wted_d2_delta_d_I,
+        overlapfrac * d_anglefrac_d_Bdelta * d_wted_d2_delta_d_J,
+        anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WI,
+        anglefrac * d_overlapfrac_d_wted_d2 * d_wted_d2_delta_d_WJ,
+    };
   }
 };
 
