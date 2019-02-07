@@ -9,7 +9,8 @@ set +e
 
 error=0
 
-black --check .
+pre-commit install
+pre-commit run --all --show-diff-on-failure
 (( error |= $? ))
 
 flake8 

@@ -103,9 +103,9 @@ def default_hbond_database():
 
 @pytest.fixture(params=["default", "bb_only"])
 def test_hbond_database(request):
-    if request.param is "default":
+    if request.param == "default":
         return default_hbond_database()
-    elif request.param is "bb_only":
+    elif request.param == "bb_only":
         return bb_hbond_database()
     else:
         raise NotImplementedError
