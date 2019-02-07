@@ -13,7 +13,7 @@ struct sum_tensor {
   static at::Tensor f(tmol::TView<Real, 1, D> t);
 };
 
-}
-}
-}
-}
+}  // namespace cpp_extension
+}  // namespace utility
+}  // namespace tests
+}  // namespace tmol

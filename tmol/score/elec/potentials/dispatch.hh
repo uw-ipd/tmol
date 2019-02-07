@@ -22,17 +22,17 @@ template <
     typename Int>
 struct ElecDispatch {
   static auto f(
-    TView<Vec<Real, 3>, 1, Dev> x_i,
-    TView<Real, 1, Dev> e_i,
-    TView<Vec<Real, 3>, 1, Dev> x_j,
-    TView<Real, 1, Dev> e_j,
-    TView<Real, 2, Dev> bonded_path_lengths,
-    Real D,
-    Real D0,
-    Real S,
-    Real min_dis,
-    Real max_dis)
-    -> std::tuple<
+      TView<Vec<Real, 3>, 1, Dev> x_i,
+      TView<Real, 1, Dev> e_i,
+      TView<Vec<Real, 3>, 1, Dev> x_j,
+      TView<Real, 1, Dev> e_j,
+      TView<Real, 2, Dev> bonded_path_lengths,
+      Real D,
+      Real D0,
+      Real S,
+      Real min_dis,
+      Real max_dis)
+      -> std::tuple<
           TPack<int64_t, 2, Dev>,
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,
