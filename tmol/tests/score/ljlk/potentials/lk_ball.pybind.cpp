@@ -121,6 +121,39 @@ void bind_potentials(pybind11::module& m) {
       LKTypeParams_pyargs(i_),
       LKTypeParams_pyargs(j_),
       LJGlobalParams_pyargs());
+
+  m.def(
+      "lk_ball_score_dV",
+      [](Eigen::Matrix<Real, 3, 1> coord_i,
+         Eigen::Matrix<Real, 3, 1> coord_j,
+         Eigen::Matrix<Real, MAX_WATER, 3> waters_i,
+         Eigen::Matrix<Real, MAX_WATER, 3> waters_j,
+         Real bonded_path_length,
+         Real lkb_water_dist,
+         LKTypeParams_args(i_),
+         LKTypeParams_args(j_),
+         LJGlobalParams_args()) {
+        return lk_ball_score<Real, MAX_WATER>::dV(
+                   coord_i,
+                   coord_j,
+                   waters_i,
+                   waters_j,
+                   bonded_path_length,
+                   lkb_water_dist,
+                   LKTypeParams_struct(i_),
+                   LKTypeParams_struct(j_),
+                   LJGlobalParams_struct())
+            .astuple();
+      },
+      "coord_i"_a,
+      "coord_j"_a,
+      "waters_i"_a,
+      "waters_j"_a,
+      "bonded_path_length"_a,
+      "lkb_water_dist"_a,
+      LKTypeParams_pyargs(i_),
+      LKTypeParams_pyargs(j_),
+      LJGlobalParams_pyargs());
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

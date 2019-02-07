@@ -174,16 +174,16 @@ def lkball_score_and_gradcheck(database, I, J, WI, WJ, bonded_path_length, at_i,
         eps=1e-3,
     )
 
-    # gradcheck(
-    #     lambda I, J, WI, WJ: op.apply(I, J, WI, WJ, bonded_path_length, at_i, at_j)[3],
-    #     (
-    #         I.requires_grad_(True),
-    #         J.requires_grad_(False),
-    #         WI.requires_grad_(False),
-    #         WJ.requires_grad_(False),
-    #     ),
-    #     eps=1e-4,
-    # )
+    gradcheck(
+        lambda I, J, WI, WJ: op.apply(I, J, WI, WJ, bonded_path_length, at_i, at_j),
+        (
+            I.requires_grad_(True),
+            J.requires_grad_(False),
+            WI.requires_grad_(False),
+            WJ.requires_grad_(False),
+        ),
+        eps=1e-4,
+    )
 
     return score
 

@@ -863,13 +863,12 @@ def get_dlkbr_fraction_dij(
     dwted_d2_delta_dai = 2 * delta_ij
     dwted_d2_delta_daj = -2 * delta_ij
 
-    anglefrac = 0
+    anglefrac = 0.0
+    danglefrac_dbasedelta = 0.0
     if numpy.abs(base_atom_delta) > angle_overlap_A2:
-        anglefrac = danglefrac = 0
-    elif numpy.abs(base_angle_delta) <= 0:
-        anglefrac = 1
-        danglefrac = 0
-    else:
+        anglefrac = 0
+        danglefrac_dbasedelta = 0
+    elif numpy.abs(base_atom_delta) > 0:
         anglefrac = numpy.square(1 - numpy.square(base_atom_delta / angle_overlap_A2))
         danglefrac_dbasedelta = -(
             4
@@ -877,6 +876,9 @@ def get_dlkbr_fraction_dij(
             * (numpy.square(angle_overlap_A2) - numpy.square(base_atom_delta))
             / numpy.square(numpy.square(angle_overlap_A2))
         )
+    else:
+        anglefrac = 1
+        danglefrac_dbasedelta = 0
 
     # final scaling
     dwted_d2_delta_dai = overlapfrac * danglefrac_dbasedelta * dwted_d2_delta_dai

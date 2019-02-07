@@ -153,25 +153,27 @@ class LKBallScoreFun(torch.autograd.Function):
     def __init__(self, params):
         self.params = params
         self.lk_ball_score_V = ignore_unused_kwargs(_compiled.lk_ball_score_V)
+        self.lk_ball_score_dV = ignore_unused_kwargs(_compiled.lk_ball_score_dV)
         super().__init__()
 
-    def forward(
-        ctx,
-        coord_i: Tensor(float)[3],
-        coord_j: Tensor(float)[3],
-        waters_i: Tensor(float)[2, 3],
-        waters_j: Tensor(float)[2, 3],
-        bonded_path_length: Tensor(float)[1],
-    ) -> Tensor(float):
+    def forward(ctx, *args) -> Tensor(float):
 
-        rgrad, (coord_i, coord_j, waters_i, waters_j) = detach_maybe_requires_grad(
-            coord_i, coord_j, waters_i, waters_j
-        )
-        inputs = (coord_i, coord_j, waters_i, waters_j, bonded_path_length)
+        args = list(args)
+        rgrad, args[:4] = detach_maybe_requires_grad(*args[:4])
 
         if rgrad:
-            ctx.inputs = inputs
+            ctx.args = args
 
-        return torch.tensor(ctx.lk_ball_score_V(*inputs, **ctx.params)).to(
-            coord_i.dtype
+        return torch.tensor(ctx.lk_ball_score_V(*args, **ctx.params)).to(args[0].dtype)
+
+    def backward(ctx, dE_dV: Tensor(float)):
+        args = ctx.args
+
+        # Output grads [arg_index, out_shape, ...arg_shape] Unpack into
+        # tuple-by-arg-index, then transpose into [...arg_shape, out_shape] to
+        # allow broadcast mult and reduce.
+        dargs = map(torch.tensor, ctx.lk_ball_score_dV(*args, **ctx.params))
+
+        return tuple((d.transpose(0, -1) * dE_dV).sum(dim=-1) for d in dargs) + tuple(
+            None for _ in args[4:]
         )
