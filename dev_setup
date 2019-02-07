@@ -7,32 +7,23 @@ import logging
 import argparse
 import platform
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(message)s",
-)
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
-parser = argparse.ArgumentParser(
-    description='Setup tmol development environment.'
-)
+parser = argparse.ArgumentParser(description="Setup tmol development environment.")
 parser.add_argument(
-    '--env_type',
+    "--env_type",
     choices=["cuda", "cpu", "infer"],
     default="infer",
-    help="Setup cuda or cpu environment, default to cuda if `nvcc` is available."
+    help="Setup cuda or cpu environment, default to cuda if `nvcc` is available.",
 )
 parser.add_argument(
-    '-n',
-    '--name',
-    type=str,
-    default="tmol",
-    help="Name of target conda environment."
+    "-n", "--name", type=str, default="tmol", help="Name of target conda environment."
 )
 parser.add_argument(
-    '--dry-run',
+    "--dry-run",
     default=False,
     action="store_true",
-    help="Only display what setup commands would have been executed."
+    help="Only display what setup commands would have been executed.",
 )
 args = parser.parse_args()
 
@@ -70,8 +61,7 @@ def resolve_env_type(env_type):
 
 check_call("echo name: %s > environment.yml" % args.name)
 check_call(
-    "environments/render %s dev >> environment.yml" %
-    resolve_env_type(args.env_type)
+    "environments/render %s dev >> environment.yml" % resolve_env_type(args.env_type)
 )
 
 # Requires an active root conda installation see:

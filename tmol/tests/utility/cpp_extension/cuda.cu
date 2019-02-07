@@ -3,8 +3,8 @@
 #include <moderngpu/kernel_reduce.hxx>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
-#include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/tensor/pybind.h>
 
 namespace tmol {

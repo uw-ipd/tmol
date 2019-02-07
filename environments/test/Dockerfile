@@ -1,14 +1,15 @@
 FROM nvidia/cuda:10.0-devel-ubuntu18.04
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+
+### Install basic packages
+RUN apt-get update --fix-missing && \
+    apt-get install -y wget bzip2 ca-certificates curl git software-properties-common && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ### Install Conda
 # Installation steps from https://hub.docker.com/r/continuumio/miniconda3/~/dockerfile/
-ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV PATH /opt/conda/bin:$PATH
-
-RUN apt-get update --fix-missing && \
-    apt-get install -y wget bzip2 ca-certificates curl git && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
 
 # Updated to miniconda 4.5.1
 RUN wget --quiet https://repo.continuum.io/miniconda/Miniconda3-4.5.1-Linux-x86_64.sh -O ~/miniconda.sh && \
@@ -33,6 +34,15 @@ RUN chmod +x /usr/bin/tini
 
 ENTRYPOINT [ "/usr/bin/tini", "--", "/docker-entrypoint.sh" ]
 CMD [ "/bin/bash" ]
+
+### Add clang-format for formatting checks
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
+    apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main" && \
+    apt-get update --fix-missing && \
+    apt-get install -y clang-format-7 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-7 0
 
 ### Setup test environment
 # Layering setup to allow partial caching of conda packages

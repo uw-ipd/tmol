@@ -74,7 +74,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     # Score once to prep graph
     total = score_graph.intra_score().total
 
-    if benchmark_pass is "full":
+    if benchmark_pass == "full":
 
         @benchmark
         def run():
@@ -87,7 +87,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
             return total
 
-    elif benchmark_pass is "forward":
+    elif benchmark_pass == "forward":
 
         @benchmark
         def run():
@@ -99,7 +99,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
             return total
 
-    elif benchmark_pass is "backward":
+    elif benchmark_pass == "backward":
 
         @benchmark
         def run():

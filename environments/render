@@ -16,9 +16,7 @@ def render(components):
             if os.path.exists(p):
                 fields[f].append("# %s" % c)
                 fields[f].extend(
-                    "- %s" % l.strip()
-                    for l in open(p, "r").readlines()
-                    if l.strip()
+                    "- %s" % l.strip() for l in open(p, "r").readlines() if l.strip()
                 )
 
     env = io.StringIO()

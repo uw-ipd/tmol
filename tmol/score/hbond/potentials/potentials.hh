@@ -99,7 +99,8 @@ def BAH_angle_V_dV(
     Vec<double, 11> cosBAH_coeffs,
     Vec<double, 2> cosBAH_range,
     Vec<double, 2> cosBAH_bound,
-    Real hb_sp3_softmax_fade) -> tuple<Real, Real3, Real3, Real3, Real3> {
+    Real hb_sp3_softmax_fade)
+    ->tuple<Real, Real3, Real3, Real3, Real3> {
   using std::exp;
   using std::log;
 
@@ -155,7 +156,7 @@ def BAH_angle_V_dV(
 
 template <typename Real>
 def sp2chi_energy_V_dV(Real ang, Real chi, Real d, Real m, Real l)
-    -> tuple<Real, Real, Real> {
+    ->tuple<Real, Real, Real> {
   const Real pi = EIGEN_PI;
 
   using std::cos;
@@ -207,7 +208,8 @@ def B0BAH_chi_V_dV(
     Int acceptor_class,
     Real hb_sp2_BAH180_rise,
     Real hb_sp2_range_span,
-    Real hb_sp2_outer_width) -> tuple<Real, Real3, Real3, Real3, Real3> {
+    Real hb_sp2_outer_width)
+    ->tuple<Real, Real3, Real3, Real3, Real3> {
   if (acceptor_class == AcceptorClass::sp2) {
     // SP-2 Chi Angle
     Real BAH;
@@ -271,8 +273,7 @@ def hbond_score_V_dV(
     Real hb_sp2_BAH180_rise,
     Real hb_sp2_outer_width,
     Real hb_sp3_softmax_fade)
-    -> tuple<Real, Real3, Real3, Real3, Real3, Real3> {
-
+    ->tuple<Real, Real3, Real3, Real3, Real3, Real3> {
   Real E = 0.0;
   Real3 dE_dD = {0, 0, 0};
   Real3 dE_dH = {0, 0, 0};
