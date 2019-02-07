@@ -627,7 +627,6 @@ struct lkball_globals {
 
 template <typename Real, int MAX_WATER>
 struct lk_fraction {
-  // TODO Reorder params to waters_i, coord_j, lj_radius_j
   typedef Eigen::Matrix<Real, 3, 1> Real3;
   typedef Eigen::Matrix<Real, MAX_WATER, 3> WatersMat;
 
@@ -667,20 +666,20 @@ struct lk_fraction {
   static def dV(WatersMat WI, Real3 J, Real lj_radius_j)->dV_t {
     Real d2_low = std::max(0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
 
-    Real wted_d2_delta = 0;
+    Real wted_d2_delta = 0.0;
     Real3 d_wted_d2_delta_d_J = Real3::Zero();
-    WatersMat d_wted_d2_delta_d_WI;
+    WatersMat d_wted_d2_delta_d_WI = WatersMat::Zero();
 
     for (int w = 0; w < MAX_WATER; ++w) {
       Real3 delta_Jw = J - WI.row(w).transpose();
-      Real d2_delta = delta_Jw.squaredNorm();
+      Real d2_delta = delta_Jw.squaredNorm() - d2_low;
 
       if (!std::isnan(d2_delta)) {
         Real exp_d2_delta = std::exp(-d2_delta);
 
+        wted_d2_delta += exp_d2_delta;
         d_wted_d2_delta_d_J += 2 * exp_d2_delta * delta_Jw;
         d_wted_d2_delta_d_WI.row(w).transpose() = -2 * exp_d2_delta * delta_Jw;
-        wted_d2_delta += exp_d2_delta;
       }
     }
 
