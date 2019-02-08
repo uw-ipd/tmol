@@ -27,6 +27,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 #define Real3 Vec<Real, 3>
 
 struct AcceptorClass {
+  static constexpr int none = -1;
   static constexpr int sp2 = 0;
   static constexpr int sp3 = 1;
   static constexpr int ring = 2;
