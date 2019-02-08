@@ -5,6 +5,7 @@ atom_metadata_dtype = numpy.dtype(
         ("residue_name", object),
         ("atom_name", object),
         ("atom_type", object),
+        ("atom_element", object),
         ("atom_index", object),
         ("residue_index", float),
     ]

@@ -26,15 +26,18 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice, Factory):
         atom_types: [layer, atom_index] String atom type descriptors.
             Type descriptions defined in :py:mod:`tmol.database.chemical`.
 
-        bonds:[layer, atom_index, atom_index] Inter-atomic bond indices.
-            Note that bonds are strictly intra-layer, and are defined by a
-            single layer index for both atoms of the bond.
+        atom_elements: [layer, atom_index] String atom element.
 
-        atom_types: [layer, atom_index] String atom name descriptors.
+        atom_names: [layer, atom_index] String residue-specific atom name.
 
         res_names: [layer, atom_index] String residue name descriptors.
 
         res_indices: [layer, atom_index] Integer residue index descriptors.
+
+        bonds:[layer, atom_index, atom_index] Inter-atomic bond indices.
+            Note that bonds are strictly intra-layer, and are defined by a
+            single layer index for both atoms of the bond.
+
 
         MAX_BONDED_PATH_LENGTH: Maximum relevant inter-atomic path length.
             Limits search depth used in ``bonded_path_length``, all longer
@@ -50,17 +53,19 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice, Factory):
         """`clone`-factory, extract atom types and bonds from other."""
         return dict(
             atom_types=other.atom_types,
-            bonds=other.bonds,
+            atom_elements=other.atom_elements,
             atom_names=other.atom_names,
             res_names=other.res_names,
             res_indices=other.res_indices,
+            bonds=other.bonds,
         )
 
     atom_types: NDArray(object)[:, :]
-    bonds: NDArray(int)[:, 3]
+    atom_elements: NDArray(object)[:, :]
     atom_names: NDArray(object)[:, :]
     res_names: NDArray(object)[:, :]
     res_indices: NDArray(int)[:, :]
+    bonds: NDArray(int)[:, 3]
 
     @reactive_property
     @validate_args
