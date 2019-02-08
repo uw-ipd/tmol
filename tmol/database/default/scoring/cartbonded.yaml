@@ -1,0 +1,1287 @@
+# vim: nowrap ts=2 sw=2 expandtab
+length_parameters:
+  - {res: _, atm1: C, atm2: N, x0: 1.328680, K: 369.445 }
+  - {res: _, atm1: C, atm2: OXT, x0: 1.230000, K: 525.0 }
+  - {res: _, atm1: N, atm2: 1H, x0: 1.010000, K: 403.0 }
+  - {res: _, atm1: N, atm2: 2H, x0: 1.010000, K: 403.0 }
+  - {res: _, atm1: N, atm2: 3H, x0: 1.010000, K: 403.0 }
+  - {res: CYS, atm1: SG, atm2: SG, x0: 0, K: 0 }
+  - {res: ALA, atm1: C, atm2: O, x0: 1.231010, K: 563.084 }
+  - {res: ALA, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: ALA, atm1: CA, atm2: CB, x0: 1.521740, K: 260.414 }
+  - {res: ALA, atm1: CA, atm2: HA, x0: 1.090080, K: 306.735 }
+  - {res: ALA, atm1: CB, atm2: 1HB, x0: 1.090040, K: 122.8108 }
+  - {res: ALA, atm1: CB, atm2: 2HB, x0: 1.090070, K: 122.8108 }
+  - {res: ALA, atm1: CB, atm2: 3HB, x0: 1.088800, K: 122.8108 }
+  - {res: ALA, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: ALA, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: ARG, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: ARG, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: ARG, atm1: CA, atm2: CB, x0: 1.521570, K: 260.414 }
+  - {res: ARG, atm1: CA, atm2: HA, x0: 1.090420, K: 306.735 }
+  - {res: ARG, atm1: CB, atm2: 1HB, x0: 1.089030, K: 117.8526 }
+  - {res: ARG, atm1: CB, atm2: 2HB, x0: 1.090070, K: 117.8526 }
+  - {res: ARG, atm1: CB, atm2: CG, x0: 1.520440, K: 84.8615 }
+  - {res: ARG, atm1: CD, atm2: 1HD, x0: 1.089560, K: 117.8526 }
+  - {res: ARG, atm1: CD, atm2: 2HD, x0: 1.089360, K: 117.8526 }
+  - {res: ARG, atm1: CD, atm2: NE, x0: 1.454070, K: 99.5454 }
+  - {res: ARG, atm1: CG, atm2: 1HG, x0: 1.090240, K: 117.8526 }
+  - {res: ARG, atm1: CG, atm2: 2HG, x0: 1.090620, K: 117.8526 }
+  - {res: ARG, atm1: CG, atm2: CD, x0: 1.485370, K: 84.8615 }
+  - {res: ARG, atm1: CZ, atm2: NH1, x0: 1.314620, K: 176.5882 }
+  - {res: ARG, atm1: CZ, atm2: NH2, x0: 1.321630, K: 176.5882 }
+  - {res: ARG, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: ARG, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: ARG, atm1: NE, atm2: CZ, x0: 1.347290, K: 176.5882 }
+  - {res: ARG, atm1: NE, atm2: HE, x0: 1.011360, K: 173.537 }
+  - {res: ARG, atm1: NH1, atm2: 1HH1, x0: 1.010260, K: 173.537 }
+  - {res: ARG, atm1: NH1, atm2: 2HH1, x0: 1.009680, K: 173.537 }
+  - {res: ARG, atm1: NH2, atm2: 1HH2, x0: 1.010910, K: 173.537 }
+  - {res: ARG, atm1: NH2, atm2: 2HH2, x0: 1.009120, K: 173.537 }
+  - {res: ASN, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: ASN, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: ASN, atm1: CA, atm2: CB, x0: 1.517680, K: 260.414 }
+  - {res: ASN, atm1: CA, atm2: HA, x0: 1.091160, K: 306.735 }
+  - {res: ASN, atm1: CB, atm2: 1HB, x0: 1.090800, K: 117.8526 }
+  - {res: ASN, atm1: CB, atm2: 2HB, x0: 1.090090, K: 117.8526 }
+  - {res: ASN, atm1: CB, atm2: CG, x0: 1.503510, K: 76.28 }
+  - {res: ASN, atm1: CG, atm2: ND2, x0: 1.308640, K: 164.002 }
+  - {res: ASN, atm1: CG, atm2: OD1, x0: 1.236400, K: 247.91 }
+  - {res: ASN, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: ASN, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: ASN, atm1: ND2, atm2: 1HD2, x0: 1.000470, K: 183.072 }
+  - {res: ASN, atm1: ND2, atm2: 2HD2, x0: 0.999495, K: 183.072 }
+  - {res: ASP, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: ASP, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: ASP, atm1: CA, atm2: CB, x0: 1.530650, K: 260.414 }
+  - {res: ASP, atm1: CA, atm2: HA, x0: 1.090380, K: 306.735 }
+  - {res: ASP, atm1: CB, atm2: 1HB, x0: 1.090240, K: 117.8526 }
+  - {res: ASP, atm1: CB, atm2: 2HB, x0: 1.090390, K: 117.8526 }
+  - {res: ASP, atm1: CB, atm2: CG, x0: 1.522790, K: 76.28 }
+  - {res: ASP, atm1: CG, atm2: OD1, x0: 1.208250, K: 200.235 }
+  - {res: ASP, atm1: CG, atm2: OD2, x0: 1.207760, K: 200.235 }
+  - {res: ASP, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: ASP, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: CYS, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: CYS, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: CYS, atm1: CA, atm2: CB, x0: 1.528860, K: 260.414 }
+  - {res: CYS, atm1: CA, atm2: HA, x0: 1.090060, K: 306.735 }
+  - {res: CYS, atm1: CB, atm2: 1HB, x0: 1.090250, K: 117.8526 }
+  - {res: CYS, atm1: CB, atm2: 2HB, x0: 1.089820, K: 117.8526 }
+  - {res: CYS, atm1: CB, atm2: SG, x0: 1.808800, K: 75.5172 }
+  - {res: CYS, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: CYS, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: CYS, atm1: SG, atm2: HG, x0: 1.329370, K: 104.885 }
+  - {res: GLN, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: GLN, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: GLN, atm1: CA, atm2: CB, x0: 1.531070, K: 260.414 }
+  - {res: GLN, atm1: CA, atm2: HA, x0: 1.089870, K: 306.735 }
+  - {res: GLN, atm1: CB, atm2: 1HB, x0: 1.09, K: 117.8526 }
+  - {res: GLN, atm1: CB, atm2: 2HB, x0: 1.09, K: 117.8526 }
+  - {res: GLN, atm1: CB, atm2: CG, x0: 1.519110, K: 84.8615 }
+  - {res: GLN, atm1: CD, atm2: NE2, x0: 1.328110, K: 164.002 }
+  - {res: GLN, atm1: CD, atm2: OE1, x0: 1.234160, K: 247.91 }
+  - {res: GLN, atm1: CG, atm2: 1HG, x0: 1.089710, K: 117.8526 }
+  - {res: GLN, atm1: CG, atm2: 2HG, x0: 1.09, K: 117.8526 }
+  - {res: GLN, atm1: CG, atm2: CD, x0: 1.516880, K: 76.28 }
+  - {res: GLN, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: GLN, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: GLN, atm1: NE2, atm2: 1HE2, x0: 1.000960, K: 183.072 }
+  - {res: GLN, atm1: NE2, atm2: 2HE2, x0: 1.000080, K: 183.072 }
+  - {res: GLU, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: GLU, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: GLU, atm1: CA, atm2: CB, x0: 1.530320, K: 260.414 }
+  - {res: GLU, atm1: CA, atm2: HA, x0: 1.090510, K: 306.735 }
+  - {res: GLU, atm1: CB, atm2: 1HB, x0: 1.090150, K: 117.8526 }
+  - {res: GLU, atm1: CB, atm2: 2HB, x0: 1.090060, K: 117.8526 }
+  - {res: GLU, atm1: CB, atm2: CG, x0: 1.522110, K: 84.8615 }
+  - {res: GLU, atm1: CD, atm2: OE1, x0: 1.207580, K: 200.235 }
+  - {res: GLU, atm1: CD, atm2: OE2, x0: 1.208540, K: 200.235 }
+  - {res: GLU, atm1: CG, atm2: 1HG, x0: 1.089690, K: 117.8526 }
+  - {res: GLU, atm1: CG, atm2: 2HG, x0: 1.089110, K: 117.8526 }
+  - {res: GLU, atm1: CG, atm2: CD, x0: 1.503360, K: 76.28 }
+  - {res: GLU, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: GLU, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: GLY, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: GLY, atm1: CA, atm2: 1HA, x0: 1.090170, K: 330.0 }
+  - {res: GLY, atm1: CA, atm2: 2HA, x0: 1.089350, K: 330.0 }
+  - {res: GLY, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: GLY, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: GLY, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: HIS, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: HIS, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: HIS, atm1: CA, atm2: CB, x0: 1.532120, K: 260.414 }
+  - {res: HIS, atm1: CA, atm2: HA, x0: 1.089620, K: 306.735 }
+  - {res: HIS, atm1: CB, atm2: 1HB, x0: 1.090580, K: 117.8526 }
+  - {res: HIS, atm1: CB, atm2: 2HB, x0: 1.089660, K: 117.8526 }
+  - {res: HIS, atm1: CB, atm2: CG, x0: 1.497160, K: 87.56944 }
+  - {res: HIS, atm1: CD2, atm2: HD2, x0: 1.090340, K: 139.211 }
+  - {res: HIS, atm1: CD2, atm2: NE2, x0: 1.373210, K: 152.56 }
+  - {res: HIS, atm1: CE1, atm2: HE1, x0: 1.089790, K: 129.676 }
+  - {res: HIS, atm1: CE1, atm2: NE2, x0: 1.320380, K: 152.56 }
+  - {res: HIS, atm1: CG, atm2: CD2, x0: 1.353650, K: 156.374 }
+  - {res: HIS, atm1: CG, atm2: ND1, x0: 1.379160, K: 152.56 }
+  - {res: HIS, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: HIS, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: HIS, atm1: ND1, atm2: CE1, x0: 1.321930, K: 152.56 }
+  - {res: HIS, atm1: ND1, atm2: HD1, x0: 1.00024, K: 177.7324 }
+  - {res: HIS, atm1: NE2, atm2: HE2, x0: 1.010080, K: 177.7324 }
+  - {res: HIS_D, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: HIS_D, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: HIS_D, atm1: CA, atm2: CB, x0: 1.532120, K: 260.414 }
+  - {res: HIS_D, atm1: CA, atm2: HA, x0: 1.089620, K: 306.735 }
+  - {res: HIS_D, atm1: CB, atm2: 1HB, x0: 1.090580, K: 117.8526 }
+  - {res: HIS_D, atm1: CB, atm2: 2HB, x0: 1.089660, K: 117.8526 }
+  - {res: HIS_D, atm1: CB, atm2: CG, x0: 1.497160, K: 87.56944 }
+  - {res: HIS_D, atm1: CD2, atm2: HD2, x0: 1.090340, K: 139.211 }
+  - {res: HIS_D, atm1: CD2, atm2: NE2, x0: 1.373210, K: 152.56 }
+  - {res: HIS_D, atm1: CE1, atm2: HE1, x0: 1.089790, K: 129.676 }
+  - {res: HIS_D, atm1: CE1, atm2: NE2, x0: 1.320380, K: 152.56 }
+  - {res: HIS_D, atm1: CG, atm2: CD2, x0: 1.353650, K: 156.374 }
+  - {res: HIS_D, atm1: CG, atm2: ND1, x0: 1.379160, K: 152.56 }
+  - {res: HIS_D, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: HIS_D, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: HIS_D, atm1: ND1, atm2: CE1, x0: 1.321930, K: 152.56 }
+  - {res: HIS_D, atm1: ND1, atm2: HD1, x0: 1.00024, K: 177.7324 }
+  - {res: HIS_D, atm1: NE2, atm2: HE2, x0: 1.010080, K: 177.7324 }
+  - {res: ILE, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: ILE, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: ILE, atm1: CA, atm2: CB, x0: 1.539630, K: 260.414 }
+  - {res: ILE, atm1: CA, atm2: HA, x0: 1.089330, K: 306.735 }
+  - {res: ILE, atm1: CB, atm2: CG1, x0: 1.530900, K: 84.8615 }
+  - {res: ILE, atm1: CB, atm2: CG2, x0: 1.520910, K: 84.8615 }
+  - {res: ILE, atm1: CB, atm2: HB, x0: 1.089550, K: 117.8526 }
+  - {res: ILE, atm1: CD1, atm2: 1HD1, x0: 1.090290, K: 122.8108 }
+  - {res: ILE, atm1: CD1, atm2: 2HD1, x0: 1.090580, K: 122.8108 }
+  - {res: ILE, atm1: CD1, atm2: 3HD1, x0: 1.089060, K: 122.8108 }
+  - {res: ILE, atm1: CG1, atm2: 1HG1, x0: 1.089470, K: 117.8526 }
+  - {res: ILE, atm1: CG1, atm2: 2HG1, x0: 1.090340, K: 117.8526 }
+  - {res: ILE, atm1: CG1, atm2: CD1, x0: 1.511680, K: 84.8615 }
+  - {res: ILE, atm1: CG2, atm2: 1HG2, x0: 1.089760, K: 122.8108 }
+  - {res: ILE, atm1: CG2, atm2: 2HG2, x0: 1.089150, K: 122.8108 }
+  - {res: ILE, atm1: CG2, atm2: 3HG2, x0: 1.090150, K: 122.8108 }
+  - {res: ILE, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: ILE, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: LEU, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: LEU, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: LEU, atm1: CA, atm2: CB, x0: 1.533850, K: 260.414 }
+  - {res: LEU, atm1: CA, atm2: HA, x0: 1.089440, K: 306.735 }
+  - {res: LEU, atm1: CB, atm2: 1HB, x0: 1.088800, K: 117.8526 }
+  - {res: LEU, atm1: CB, atm2: 2HB, x0: 1.089920, K: 117.8526 }
+  - {res: LEU, atm1: CB, atm2: CG, x0: 1.534030, K: 84.8615 }
+  - {res: LEU, atm1: CD1, atm2: 1HD1, x0: 1.090100, K: 122.8108 }
+  - {res: LEU, atm1: CD1, atm2: 2HD1, x0: 1.090080, K: 122.8108 }
+  - {res: LEU, atm1: CD1, atm2: 3HD1, x0: 1.089370, K: 122.8108 }
+  - {res: LEU, atm1: CD2, atm2: 1HD2, x0: 1.090470, K: 122.8108 }
+  - {res: LEU, atm1: CD2, atm2: 2HD2, x0: 1.090210, K: 122.8108 }
+  - {res: LEU, atm1: CD2, atm2: 3HD2, x0: 1.090100, K: 122.8108 }
+  - {res: LEU, atm1: CG, atm2: CD1, x0: 1.522670, K: 84.8615 }
+  - {res: LEU, atm1: CG, atm2: CD2, x0: 1.521430, K: 84.8615 }
+  - {res: LEU, atm1: CG, atm2: HG, x0: 1.090330, K: 117.8526 }
+  - {res: LEU, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: LEU, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: LYS, atm1: C, atm2: O, x0: 1.231010, K: 563.084 }
+  - {res: LYS, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: LYS, atm1: CA, atm2: CB, x0: 1.529510, K: 260.414 }
+  - {res: LYS, atm1: CA, atm2: HA, x0: 1.090530, K: 306.735 }
+  - {res: LYS, atm1: CB, atm2: 1HB, x0: 1.090330, K: 117.8526 }
+  - {res: LYS, atm1: CB, atm2: 2HB, x0: 1.090210, K: 117.8526 }
+  - {res: LYS, atm1: CB, atm2: CG, x0: 1.522930, K: 84.8615 }
+  - {res: LYS, atm1: CD, atm2: 1HD, x0: 1.090860, K: 117.8526 }
+  - {res: LYS, atm1: CD, atm2: 2HD, x0: 1.089960, K: 117.8526 }
+  - {res: LYS, atm1: CD, atm2: CE, x0: 1.521580, K: 84.8615 }
+  - {res: LYS, atm1: CE, atm2: 1HE, x0: 1.088990, K: 117.8526 }
+  - {res: LYS, atm1: CE, atm2: 2HE, x0: 1.089930, K: 117.8526 }
+  - {res: LYS, atm1: CE, atm2: NZ, x0: 1.488110, K: 76.28 }
+  - {res: LYS, atm1: CG, atm2: 1HG, x0: 1.090650, K: 117.8526 }
+  - {res: LYS, atm1: CG, atm2: 2HG, x0: 1.089540, K: 117.8526 }
+  - {res: LYS, atm1: CG, atm2: CD, x0: 1.521350, K: 84.8615 }
+  - {res: LYS, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: LYS, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: LYS, atm1: NZ, atm2: 1HZ, x0: 1.010220, K: 153.7042 }
+  - {res: LYS, atm1: NZ, atm2: 2HZ, x0: 1.010510, K: 153.7042 }
+  - {res: LYS, atm1: NZ, atm2: 3HZ, x0: 1.009910, K: 153.7042 }
+  - {res: MET, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: MET, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: MET, atm1: CA, atm2: CB, x0: 1.527390, K: 260.414 }
+  - {res: MET, atm1: CA, atm2: HA, x0: 1.089820, K: 306.735 }
+  - {res: MET, atm1: CB, atm2: 1HB, x0: 1.089030, K: 117.8526 }
+  - {res: MET, atm1: CB, atm2: 2HB, x0: 1.090750, K: 117.8526 }
+  - {res: MET, atm1: CB, atm2: CG, x0: 1.522200, K: 84.8615 }
+  - {res: MET, atm1: CE, atm2: 1HE, x0: 1.090270, K: 122.8108 }
+  - {res: MET, atm1: CE, atm2: 2HE, x0: 1.090850, K: 122.8108 }
+  - {res: MET, atm1: CE, atm2: 3HE, x0: 1.090570, K: 122.8108 }
+  - {res: MET, atm1: CG, atm2: 1HG, x0: 1.089470, K: 117.8526 }
+  - {res: MET, atm1: CG, atm2: 2HG, x0: 1.089810, K: 117.8526 }
+  - {res: MET, atm1: CG, atm2: SD, x0: 1.803840, K: 75.5172 }
+  - {res: MET, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: MET, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: MET, atm1: SD, atm2: CE, x0: 1.790390, K: 91.536 }
+  - {res: PHE, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: PHE, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: PHE, atm1: CA, atm2: CB, x0: 1.529800, K: 260.414 }
+  - {res: PHE, atm1: CA, atm2: HA, x0: 1.090900, K: 306.735 }
+  - {res: PHE, atm1: CB, atm2: 1HB, x0: 1.089220, K: 117.8526 }
+  - {res: PHE, atm1: CB, atm2: 2HB, x0: 1.089190, K: 117.8526 }
+  - {res: PHE, atm1: CB, atm2: CG, x0: 1.502230, K: 87.722 }
+  - {res: PHE, atm1: CD1, atm2: CE1, x0: 1.382180, K: 116.327 }
+  - {res: PHE, atm1: CD1, atm2: HD1, x0: 1.090330, K: 129.676 }
+  - {res: PHE, atm1: CD2, atm2: CE2, x0: 1.381280, K: 116.327 }
+  - {res: PHE, atm1: CD2, atm2: HD2, x0: 1.090600, K: 129.676 }
+  - {res: PHE, atm1: CE1, atm2: CZ, x0: 1.378580, K: 116.327 }
+  - {res: PHE, atm1: CE1, atm2: HE1, x0: 1.089720, K: 129.676 }
+  - {res: PHE, atm1: CE2, atm2: CZ, x0: 1.380490, K: 116.327 }
+  - {res: PHE, atm1: CE2, atm2: HE2, x0: 1.089830, K: 129.676 }
+  - {res: PHE, atm1: CG, atm2: CD1, x0: 1.386960, K: 116.327 }
+  - {res: PHE, atm1: CG, atm2: CD2, x0: 1.386600, K: 116.327 }
+  - {res: PHE, atm1: CZ, atm2: HZ, x0: 1.089080, K: 129.676 }
+  - {res: PHE, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: PHE, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: PRO, atm1: C, atm2: O, x0: 1.231010, K: 563.084 }
+  - {res: PRO, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: PRO, atm1: CA, atm2: CB, x0: 1.532000, K: 260.414 }
+  - {res: PRO, atm1: CA, atm2: HA, x0: 1.100000, K: 306.735 }
+  - {res: PRO, atm1: CB, atm2: 1HB, x0: 1.100000, K: 117.8526 }
+  - {res: PRO, atm1: CB, atm2: 2HB, x0: 1.100000, K: 117.8526 }
+  - {res: PRO, atm1: CB, atm2: CG, x0: 1.490600, K: 84.8615 }
+  - {res: PRO, atm1: CD, atm2: 1HD, x0: 1.100000, K: 117.8526 }
+  - {res: PRO, atm1: CD, atm2: 2HD, x0: 1.100000, K: 117.8526 }
+  - {res: PRO, atm1: CD, atm2: NV, x0: 1.475400, K: 0.0 }
+  - {res: PRO, atm1: CG, atm2: 1HG, x0: 1.100000, K: 117.8526 }
+  - {res: PRO, atm1: CG, atm2: 2HG, x0: 1.100000, K: 117.8526 }
+  - {res: PRO, atm1: CG, atm2: CD, x0: 1.505500, K: 84.8615 }
+  - {res: PRO, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: PRO, atm1: N, atm2: CD, x0: 1.473000, K: 122.048 }
+  - {res: SER, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: SER, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: SER, atm1: CA, atm2: CB, x0: 1.516260, K: 260.414 }
+  - {res: SER, atm1: CA, atm2: HA, x0: 1.090920, K: 306.735 }
+  - {res: SER, atm1: CB, atm2: 1HB, x0: 1.089690, K: 117.8526 }
+  - {res: SER, atm1: CB, atm2: 2HB, x0: 1.089180, K: 117.8526 }
+  - {res: SER, atm1: CB, atm2: OG, x0: 1.401190, K: 163.2392 }
+  - {res: SER, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: SER, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: SER, atm1: OG, atm2: HG, x0: 0.960175, K: 207.863 }
+  - {res: THR, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: THR, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: THR, atm1: CA, atm2: CB, x0: 1.539920, K: 260.414 }
+  - {res: THR, atm1: CA, atm2: HA, x0: 1.090260, K: 306.735 }
+  - {res: THR, atm1: CB, atm2: CG2, x0: 1.520990, K: 84.8615 }
+  - {res: THR, atm1: CB, atm2: HB, x0: 1.089820, K: 117.8526 }
+  - {res: THR, atm1: CB, atm2: OG1, x0: 1.433550, K: 163.2392 }
+  - {res: THR, atm1: CG2, atm2: 1HG2, x0: 1.089830, K: 122.8108 }
+  - {res: THR, atm1: CG2, atm2: 2HG2, x0: 1.089860, K: 122.8108 }
+  - {res: THR, atm1: CG2, atm2: 3HG2, x0: 1.089240, K: 122.8108 }
+  - {res: THR, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: THR, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: THR, atm1: OG1, atm2: HG1, x0: 0.960297, K: 207.863 }
+  - {res: TRP, atm1: C, atm2: O, x0: 1.231010, K: 563.084 }
+  - {res: TRP, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: TRP, atm1: CA, atm2: CB, x0: 1.529820, K: 260.414 }
+  - {res: TRP, atm1: CA, atm2: HA, x0: 1.089880, K: 306.735 }
+  - {res: TRP, atm1: CB, atm2: 1HB, x0: 1.090170, K: 117.8526 }
+  - {res: TRP, atm1: CB, atm2: 2HB, x0: 1.089790, K: 117.8526 }
+  - {res: TRP, atm1: CB, atm2: CG, x0: 1.498750, K: 87.722 }
+  - {res: TRP, atm1: CD1, atm2: HD1, x0: 1.088520, K: 129.676 }
+  - {res: TRP, atm1: CD1, atm2: NE1, x0: 1.372940, K: 102.978 }
+  - {res: TRP, atm1: CD2, atm2: CE2, x0: 1.39734, K: 137.304 }
+  - {res: TRP, atm1: CD2, atm2: CE3, x0: 1.400380, K: 116.327 }
+  - {res: TRP, atm1: CE2, atm2: CZ2, x0: 1.385950, K: 116.327 }
+  - {res: TRP, atm1: CE3, atm2: CZ3, x0: 1.389850, K: 116.327 }
+  - {res: TRP, atm1: CE3, atm2: HE3, x0: 1.089540, K: 129.676 }
+  - {res: TRP, atm1: CG, atm2: CD1, x0: 1.362720, K: 133.49 }
+  - {res: TRP, atm1: CG, atm2: CD2, x0: 1.44821, K: 133.49 }
+  - {res: TRP, atm1: CH2, atm2: HH2, x0: 1.090290, K: 129.676 }
+  - {res: TRP, atm1: CZ2, atm2: CH2, x0: 1.395020, K: 116.327 }
+  - {res: TRP, atm1: CZ2, atm2: HZ2, x0: 1.090240, K: 129.676 }
+  - {res: TRP, atm1: CZ3, atm2: CH2, x0: 1.372110, K: 116.327 }
+  - {res: TRP, atm1: CZ3, atm2: HZ3, x0: 1.090290, K: 129.676 }
+  - {res: TRP, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: TRP, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: TRP, atm1: NE1, atm2: CE2, x0: 1.372130, K: 102.978 }
+  - {res: TRP, atm1: NE1, atm2: HE1, x0: 1.009890, K: 177.351 }
+  - {res: TYR, atm1: C, atm2: O, x0: 1.231010, K: 563.084 }
+  - {res: TYR, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: TYR, atm1: CA, atm2: CB, x0: 1.530350, K: 260.414 }
+  - {res: TYR, atm1: CA, atm2: HA, x0: 1.090320, K: 306.735 }
+  - {res: TYR, atm1: CB, atm2: 1HB, x0: 1.090970, K: 117.8526 }
+  - {res: TYR, atm1: CB, atm2: 2HB, x0: 1.089570, K: 117.8526 }
+  - {res: TYR, atm1: CB, atm2: CG, x0: 1.512660, K: 87.722 }
+  - {res: TYR, atm1: CD1, atm2: CE1, x0: 1.381550, K: 116.327 }
+  - {res: TYR, atm1: CD1, atm2: HD1, x0: 1.090230, K: 129.676 }
+  - {res: TYR, atm1: CD2, atm2: CE2, x0: 1.381360, K: 116.327 }
+  - {res: TYR, atm1: CD2, atm2: HD2, x0: 1.090020, K: 129.676 }
+  - {res: TYR, atm1: CE1, atm2: CZ, x0: 1.39041, K: 116.327 }
+  - {res: TYR, atm1: CE1, atm2: HE1, x0: 1.089660, K: 129.676 }
+  - {res: TYR, atm1: CE2, atm2: CZ, x0: 1.379990, K: 116.327 }
+  - {res: TYR, atm1: CE2, atm2: HE2, x0: 1.090290, K: 129.676 }
+  - {res: TYR, atm1: CG, atm2: CD1, x0: 1.387190, K: 116.327 }
+  - {res: TYR, atm1: CG, atm2: CD2, x0: 1.386890, K: 116.327 }
+  - {res: TYR, atm1: CZ, atm2: OH, x0: 1.375960, K: 127.50202 }
+  - {res: TYR, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: TYR, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+  - {res: TYR, atm1: OH, atm2: HH, x0: 0.960239, K: 207.863 }
+  - {res: VAL, atm1: C, atm2: O, x0: 1.231020, K: 563.084 }
+  - {res: VAL, atm1: CA, atm2: C, x0: 1.523260, K: 301.675 }
+  - {res: VAL, atm1: CA, atm2: CB, x0: 1.540250, K: 260.414 }
+  - {res: VAL, atm1: CA, atm2: HA, x0: 1.090650, K: 306.735 }
+  - {res: VAL, atm1: CB, atm2: CG1, x0: 1.521420, K: 84.8615 }
+  - {res: VAL, atm1: CB, atm2: CG2, x0: 1.521060, K: 84.8615 }
+  - {res: VAL, atm1: CB, atm2: HB, x0: 1.090110, K: 117.8526 }
+  - {res: VAL, atm1: CG1, atm2: 1HG1, x0: 1.090350, K: 122.8108 }
+  - {res: VAL, atm1: CG1, atm2: 2HG1, x0: 1.089820, K: 122.8108 }
+  - {res: VAL, atm1: CG1, atm2: 3HG1, x0: 1.089810, K: 122.8108 }
+  - {res: VAL, atm1: CG2, atm2: 1HG2, x0: 1.089610, K: 122.8108 }
+  - {res: VAL, atm1: CG2, atm2: 2HG2, x0: 1.090180, K: 122.8108 }
+  - {res: VAL, atm1: CG2, atm2: 3HG2, x0: 1.090170, K: 122.8108 }
+  - {res: VAL, atm1: N, atm2: CA, x0: 1.458000, K: 361.504 }
+  - {res: VAL, atm1: N, atm2: H, x0: 1.010000, K: 458.304 }
+angle_parameters:
+  - {res: _, atm1: 1H, atm2: N, atm3: 2H, x0: 1.91013, K: 1.91013 }
+  - {res: _, atm1: 1H, atm2: N, atm3: 3H, x0: 1.91013, K: 1.91013 }
+  - {res: _, atm1: 2H, atm2: N, atm3: 3H, x0: 1.91013, K: 1.91013 }
+  - {res: _, atm1: CA, atm2: C, atm3: OXT, x0: 2.0944, K: 2.0944 }
+  - {res: _, atm1: CA, atm2: N, atm3: 1H, x0: 1.91114, K: 1.91114 }
+  - {res: _, atm1: CA, atm2: N, atm3: 2H, x0: 1.91114, K: 1.91114 }
+  - {res: _, atm1: CA, atm2: N, atm3: 3H, x0: 1.91114, K: 1.91114 }
+  - {res: _, atm1: O, atm2: C, atm3: OXT, x0: 2.0944, K: 2.0944 }
+  - {res: CYS, atm1: CB, atm2: SG, atm3: SG, x0: 0, K: 0 }
+  - {res: ALA, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.91013, K: 1.91013 }
+  - {res: ALA, atm1: 1HB, atm2: CB, atm3: 3HB, x0: 1.91013, K: 1.91013 }
+  - {res: ALA, atm1: 2HB, atm2: CB, atm3: 3HB, x0: 1.91013, K: 1.91013 }
+  - {res: ALA, atm1: C, atm2: CA, atm3: CB, x0: 1.92575, K: 1.92575 }
+  - {res: ALA, atm1: C, atm2: CA, atm3: HA, x0: 1.88223, K: 1.88223 }
+  - {res: ALA, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: ALA, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: ALA, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: ALA, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: ALA, atm1: CA, atm2: CB, atm3: 3HB, x0: 1.91114, K: 1.91114 }
+  - {res: ALA, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: ALA, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: ALA, atm1: CB, atm2: CA, atm3: HA, x0: 1.90057, K: 1.90057 }
+  - {res: ALA, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: ALA, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: ALA, atm1: N, atm2: CA, atm3: CB, x0: 1.9264, K: 1.9264 }
+  - {res: ALA, atm1: N, atm2: CA, atm3: HA, x0: 1.8867, K: 1.8867 }
+  - {res: ALA, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: ARG, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: ARG, atm1: 1HD, atm2: CD, atm3: 2HD, x0: 1.91013, K: 1.91013 }
+  - {res: ARG, atm1: 1HG, atm2: CG, atm3: 2HG, x0: 1.91013, K: 1.91013 }
+  - {res: ARG, atm1: 1HH1, atm2: NH1, atm3: 2HH1, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: 1HH2, atm2: NH2, atm3: 2HH2, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: C, atm2: CA, atm3: CB, x0: 1.90853, K: 1.90853 }
+  - {res: ARG, atm1: C, atm2: CA, atm3: HA, x0: 1.89435, K: 1.89435 }
+  - {res: ARG, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: ARG, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: ARG, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: ARG, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: ARG, atm1: CA, atm2: CB, atm3: CG, x0: 2.00495, K: 2.00495 }
+  - {res: ARG, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: ARG, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: ARG, atm1: CB, atm2: CA, atm3: HA, x0: 1.89517, K: 1.89517 }
+  - {res: ARG, atm1: CB, atm2: CG, atm3: 1HG, x0: 1.91114, K: 1.91114 }
+  - {res: ARG, atm1: CB, atm2: CG, atm3: 2HG, x0: 1.91114, K: 1.91114 }
+  - {res: ARG, atm1: CB, atm2: CG, atm3: CD, x0: 1.94953, K: 1.94953 }
+  - {res: ARG, atm1: CD, atm2: CG, atm3: 1HG, x0: 1.89072, K: 1.89072 }
+  - {res: ARG, atm1: CD, atm2: CG, atm3: 2HG, x0: 1.89072, K: 1.89072 }
+  - {res: ARG, atm1: CD, atm2: NE, atm3: CZ, x0: 2.17468, K: 2.17468 }
+  - {res: ARG, atm1: CD, atm2: NE, atm3: HE, x0: 2.05425, K: 2.05425 }
+  - {res: ARG, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.87822, K: 1.87822 }
+  - {res: ARG, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.87822, K: 1.87822 }
+  - {res: ARG, atm1: CG, atm2: CD, atm3: 1HD, x0: 1.91114, K: 1.91114 }
+  - {res: ARG, atm1: CG, atm2: CD, atm3: 2HD, x0: 1.91114, K: 1.91114 }
+  - {res: ARG, atm1: CG, atm2: CD, atm3: NE, x0: 1.95302, K: 1.95302 }
+  - {res: ARG, atm1: CZ, atm2: NE, atm3: HE, x0: 2.05425, K: 2.05425 }
+  - {res: ARG, atm1: CZ, atm2: NH1, atm3: 1HH1, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: CZ, atm2: NH1, atm3: 2HH1, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: CZ, atm2: NH2, atm3: 1HH2, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: CZ, atm2: NH2, atm3: 2HH2, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: ARG, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: ARG, atm1: N, atm2: CA, atm3: CB, x0: 1.93033, K: 1.93033 }
+  - {res: ARG, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: ARG, atm1: NE, atm2: CD, atm3: 1HD, x0: 1.88894, K: 1.88894 }
+  - {res: ARG, atm1: NE, atm2: CD, atm3: 2HD, x0: 1.88894, K: 1.88894 }
+  - {res: ARG, atm1: NE, atm2: CZ, atm3: NH1, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: NE, atm2: CZ, atm3: NH2, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: NH1, atm2: CZ, atm3: NH2, x0: 2.0944, K: 2.0944 }
+  - {res: ARG, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: ASN, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: ASN, atm1: 1HD2, atm2: ND2, atm3: 2HD2, x0: 2.0944, K: 2.0944 }
+  - {res: ASN, atm1: C, atm2: CA, atm3: CB, x0: 1.9304, K: 1.9304 }
+  - {res: ASN, atm1: C, atm2: CA, atm3: HA, x0: 1.87155, K: 1.87155 }
+  - {res: ASN, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: ASN, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: ASN, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: ASN, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: ASN, atm1: CA, atm2: CB, atm3: CG, x0: 1.96524, K: 1.96524 }
+  - {res: ASN, atm1: CA, atm2: N, atm3: C, x0: 2.12406, K: 2.12406 }
+  - {res: ASN, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: ASN, atm1: CB, atm2: CA, atm3: HA, x0: 1.89517, K: 1.89517 }
+  - {res: ASN, atm1: CB, atm2: CG, atm3: ND2, x0: 2.03331, K: 2.03331 }
+  - {res: ASN, atm1: CB, atm2: CG, atm3: OD1, x0: 2.10836, K: 2.10836 }
+  - {res: ASN, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.8992, K: 1.8992 }
+  - {res: ASN, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.8992, K: 1.8992 }
+  - {res: ASN, atm1: CG, atm2: ND2, atm3: 1HD2, x0: 2.0944, K: 2.0944 }
+  - {res: ASN, atm1: CG, atm2: ND2, atm3: 2HD2, x0: 2.0944, K: 2.0944 }
+  - {res: ASN, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: ASN, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: ASN, atm1: N, atm2: CA, atm3: CB, x0: 1.93033, K: 1.93033 }
+  - {res: ASN, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: ASN, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: ASN, atm1: OD1, atm2: CG, atm3: ND2, x0: 2.14152, K: 2.14152 }
+  - {res: ASP, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: ASP, atm1: C, atm2: CA, atm3: CB, x0: 1.91479, K: 1.91479 }
+  - {res: ASP, atm1: C, atm2: CA, atm3: HA, x0: 1.88867, K: 1.88867 }
+  - {res: ASP, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: ASP, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: ASP, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: ASP, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: ASP, atm1: CA, atm2: CB, atm3: CG, x0: 1.97048, K: 1.97048 }
+  - {res: ASP, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: ASP, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: ASP, atm1: CB, atm2: CA, atm3: HA, x0: 1.89586, K: 1.89586 }
+  - {res: ASP, atm1: CB, atm2: CG, atm3: OD1, x0: 2.06637, K: 2.06637 }
+  - {res: ASP, atm1: CB, atm2: CG, atm3: OD2, x0: 2.06591, K: 2.06591 }
+  - {res: ASP, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.89646, K: 1.89646 }
+  - {res: ASP, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.89646, K: 1.89646 }
+  - {res: ASP, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: ASP, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: ASP, atm1: N, atm2: CA, atm3: CB, x0: 1.92892, K: 1.92892 }
+  - {res: ASP, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: ASP, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: ASP, atm1: OD1, atm2: CG, atm3: OD2, x0: 2.1509, K: 2.1509 }
+  - {res: CYS, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: CYS, atm1: C, atm2: CA, atm3: CB, x0: 1.90716, K: 1.90716 }
+  - {res: CYS, atm1: C, atm2: CA, atm3: HA, x0: 1.89577, K: 1.89577 }
+  - {res: CYS, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: CYS, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: CYS, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: CYS, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: CYS, atm1: CA, atm2: CB, atm3: SG, x0: 1.99142, K: 1.99142 }
+  - {res: CYS, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: CYS, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: CYS, atm1: CB, atm2: CA, atm3: HA, x0: 1.89517, K: 1.89517 }
+  - {res: CYS, atm1: CB, atm2: SG, atm3: HG, x0: 1.67531, K: 1.67531 }
+  - {res: CYS, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: CYS, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: CYS, atm1: N, atm2: CA, atm3: CB, x0: 1.93033, K: 1.93033 }
+  - {res: CYS, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: CYS, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: CYS, atm1: SG, atm2: CB, atm3: 1HB, x0: 1.88541, K: 1.88541 }
+  - {res: CYS, atm1: SG, atm2: CB, atm3: 2HB, x0: 1.88541, K: 1.88541 }
+  - {res: GLN, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: GLN, atm1: 1HE2, atm2: NE2, atm3: 2HE2, x0: 2.09341, K: 2.09341 }
+  - {res: GLN, atm1: 1HG, atm2: CG, atm3: 2HG, x0: 1.9205, K: 1.9205 }
+  - {res: GLN, atm1: C, atm2: CA, atm3: CB, x0: 1.91915, K: 1.91915 }
+  - {res: GLN, atm1: C, atm2: CA, atm3: HA, x0: 1.8844, K: 1.8844 }
+  - {res: GLN, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: GLN, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: GLN, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: GLN, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: GLN, atm1: CA, atm2: CB, atm3: CG, x0: 1.99298, K: 1.99298 }
+  - {res: GLN, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: GLN, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: GLN, atm1: CB, atm2: CA, atm3: HA, x0: 1.89608, K: 1.89608 }
+  - {res: GLN, atm1: CB, atm2: CG, atm3: 1HG, x0: 1.90066, K: 1.90066 }
+  - {res: GLN, atm1: CB, atm2: CG, atm3: 2HG, x0: 1.90066, K: 1.90066 }
+  - {res: GLN, atm1: CB, atm2: CG, atm3: CD, x0: 1.96227, K: 1.96227 }
+  - {res: GLN, atm1: CD, atm2: CG, atm3: 1HG, x0: 1.88985, K: 1.88985 }
+  - {res: GLN, atm1: CD, atm2: CG, atm3: 2HG, x0: 1.88985, K: 1.88985 }
+  - {res: GLN, atm1: CD, atm2: NE2, atm3: 1HE2, x0: 2.09481, K: 2.09481 }
+  - {res: GLN, atm1: CD, atm2: NE2, atm3: 2HE2, x0: 2.09497, K: 2.09497 }
+  - {res: GLN, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.88458, K: 1.88458 }
+  - {res: GLN, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.88458, K: 1.88458 }
+  - {res: GLN, atm1: CG, atm2: CD, atm3: NE2, x0: 2.03179, K: 2.03179 }
+  - {res: GLN, atm1: CG, atm2: CD, atm3: OE1, x0: 2.11099, K: 2.11099 }
+  - {res: GLN, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: GLN, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: GLN, atm1: N, atm2: CA, atm3: CB, x0: 1.92846, K: 1.92846 }
+  - {res: GLN, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: GLN, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: GLN, atm1: OE1, atm2: CD, atm3: NE2, x0: 2.1404, K: 2.1404 }
+  - {res: GLU, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: GLU, atm1: 1HG, atm2: CG, atm3: 2HG, x0: 1.88428, K: 1.88428 }
+  - {res: GLU, atm1: C, atm2: CA, atm3: CB, x0: 1.91729, K: 1.91729 }
+  - {res: GLU, atm1: C, atm2: CA, atm3: HA, x0: 1.88725, K: 1.88725 }
+  - {res: GLU, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: GLU, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: GLU, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: GLU, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: GLU, atm1: CA, atm2: CB, atm3: CG, x0: 1.9966, K: 1.9966 }
+  - {res: GLU, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: GLU, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: GLU, atm1: CB, atm2: CA, atm3: HA, x0: 1.89686, K: 1.89686 }
+  - {res: GLU, atm1: CB, atm2: CG, atm3: 1HG, x0: 1.90066, K: 1.90066 }
+  - {res: GLU, atm1: CB, atm2: CG, atm3: 2HG, x0: 1.90066, K: 1.90066 }
+  - {res: GLU, atm1: CB, atm2: CG, atm3: CD, x0: 1.97048, K: 1.97048 }
+  - {res: GLU, atm1: CD, atm2: CG, atm3: 1HG, x0: 1.89951, K: 1.89951 }
+  - {res: GLU, atm1: CD, atm2: CG, atm3: 2HG, x0: 1.90638, K: 1.90638 }
+  - {res: GLU, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.88266, K: 1.88266 }
+  - {res: GLU, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.88266, K: 1.88266 }
+  - {res: GLU, atm1: CG, atm2: CD, atm3: OE1, x0: 2.06728, K: 2.06728 }
+  - {res: GLU, atm1: CG, atm2: CD, atm3: OE2, x0: 2.06581, K: 2.06581 }
+  - {res: GLU, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: GLU, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: GLU, atm1: N, atm2: CA, atm3: CB, x0: 1.92684, K: 1.92684 }
+  - {res: GLU, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: GLU, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: GLU, atm1: OE1, atm2: CD, atm3: OE2, x0: 2.15009, K: 2.15009 }
+  - {res: GLY, atm1: 1HA, atm2: CA, atm3: 2HA, x0: 1.86998, K: 1.86998 }
+  - {res: GLY, atm1: C, atm2: CA, atm3: 1HA, x0: 1.91471, K: 1.91471 }
+  - {res: GLY, atm1: C, atm2: CA, atm3: 2HA, x0: 1.91471, K: 1.91471 }
+  - {res: GLY, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: GLY, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: GLY, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: GLY, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: GLY, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: GLY, atm1: N, atm2: CA, atm3: 1HA, x0: 1.91114, K: 1.91114 }
+  - {res: GLY, atm1: N, atm2: CA, atm3: 2HA, x0: 1.91114, K: 1.91114 }
+  - {res: GLY, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: GLY, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: HIS, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: HIS, atm1: C, atm2: CA, atm3: CB, x0: 1.91454, K: 1.91454 }
+  - {res: HIS, atm1: C, atm2: CA, atm3: HA, x0: 1.87829, K: 1.87829 }
+  - {res: HIS, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: HIS, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: HIS, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: HIS, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: HIS, atm1: CA, atm2: CB, atm3: CG, x0: 1.98427, K: 1.98427 }
+  - {res: HIS, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: HIS, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: HIS, atm1: CB, atm2: CA, atm3: HA, x0: 1.88557, K: 1.88557 }
+  - {res: HIS, atm1: CB, atm2: CG, atm3: CD2, x0: 2.29001, K: 2.29001 }
+  - {res: HIS, atm1: CB, atm2: CG, atm3: ND1, x0: 2.1403, K: 2.1403 }
+  - {res: HIS, atm1: CD2, atm2: NE2, atm3: CE1, x0: 1.9025, K: 1.9025 }
+  - {res: HIS, atm1: CD2, atm2: NE2, atm3: HE2, x0: 2.18506, K: 2.18506 }
+  - {res: HIS, atm1: CE1, atm2: NE2, atm3: HE2, x0: 2.19562, K: 2.19562 }
+  - {res: HIS, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.88919, K: 1.88919 }
+  - {res: HIS, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.88919, K: 1.88919 }
+  - {res: HIS, atm1: CG, atm2: CD2, atm3: HD2, x0: 2.20671, K: 2.20671 }
+  - {res: HIS, atm1: CG, atm2: CD2, atm3: NE2, x0: 1.87038, K: 1.87038 }
+  - {res: HIS, atm1: CG, atm2: ND1, atm3: CE1, x0: 1.90739, K: 1.90739 }
+  - {res: HIS, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: HIS, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: HIS, atm1: N, atm2: CA, atm3: CB, x0: 1.93189, K: 1.93189 }
+  - {res: HIS, atm1: N, atm2: CA, atm3: HA, x0: 1.91114, K: 1.91114 }
+  - {res: HIS, atm1: ND1, atm2: CE1, atm3: HE1, x0: 2.19562, K: 2.19562 }
+  - {res: HIS, atm1: ND1, atm2: CE1, atm3: NE2, x0: 1.89164, K: 1.89164 }
+  - {res: HIS, atm1: ND1, atm2: CG, atm3: CD2, x0: 1.85288, K: 1.85288 }
+  - {res: HIS, atm1: NE2, atm2: CD2, atm3: HD2, x0: 2.2061, K: 2.2061 }
+  - {res: HIS, atm1: NE2, atm2: CE1, atm3: HE1, x0: 2.19593, K: 2.19593 }
+  - {res: HIS, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: HIS_D, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: HIS_D, atm1: C, atm2: CA, atm3: CB, x0: 1.91454, K: 1.91454 }
+  - {res: HIS_D, atm1: C, atm2: CA, atm3: HA, x0: 1.8783, K: 1.8783 }
+  - {res: HIS_D, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: HIS_D, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: HIS_D, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: HIS_D, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: HIS_D, atm1: CA, atm2: CB, atm3: CG, x0: 1.98427, K: 1.98427 }
+  - {res: HIS_D, atm1: CA, atm2: N, atm3: C, x0: 2.12406, K: 2.12406 }
+  - {res: HIS_D, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: HIS_D, atm1: CB, atm2: CA, atm3: HA, x0: 1.88557, K: 1.88557 }
+  - {res: HIS_D, atm1: CB, atm2: CG, atm3: CD2, x0: 2.29002, K: 2.29002 }
+  - {res: HIS_D, atm1: CB, atm2: CG, atm3: ND1, x0: 2.14029, K: 2.14029 }
+  - {res: HIS_D, atm1: CD2, atm2: NE2, atm3: CE1, x0: 1.90251, K: 1.90251 }
+  - {res: HIS_D, atm1: CE1, atm2: ND1, atm3: HD1, x0: 2.16847, K: 2.16847 }
+  - {res: HIS_D, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.88919, K: 1.88919 }
+  - {res: HIS_D, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.88919, K: 1.88919 }
+  - {res: HIS_D, atm1: CG, atm2: CD2, atm3: HD2, x0: 2.31752, K: 2.31752 }
+  - {res: HIS_D, atm1: CG, atm2: CD2, atm3: NE2, x0: 1.87037, K: 1.87037 }
+  - {res: HIS_D, atm1: CG, atm2: ND1, atm3: CE1, x0: 1.90738, K: 1.90738 }
+  - {res: HIS_D, atm1: CG, atm2: ND1, atm3: HD1, x0: 2.20336, K: 2.20336 }
+  - {res: HIS_D, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: HIS_D, atm1: N, atm2: CA, atm3: C, x0: 1.9408, K: 1.9408 }
+  - {res: HIS_D, atm1: N, atm2: CA, atm3: CB, x0: 1.93189, K: 1.93189 }
+  - {res: HIS_D, atm1: N, atm2: CA, atm3: HA, x0: 1.91114, K: 1.91114 }
+  - {res: HIS_D, atm1: ND1, atm2: CE1, atm3: HE1, x0: 2.10501, K: 2.10501 }
+  - {res: HIS_D, atm1: ND1, atm2: CE1, atm3: NE2, x0: 1.89163, K: 1.89163 }
+  - {res: HIS_D, atm1: ND1, atm2: CG, atm3: CD2, x0: 1.85288, K: 1.85288 }
+  - {res: HIS_D, atm1: NE2, atm2: CD2, atm3: HD2, x0: 2.09529, K: 2.09529 }
+  - {res: HIS_D, atm1: NE2, atm2: CE1, atm3: HE1, x0: 2.28654, K: 2.28654 }
+  - {res: HIS_D, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: ILE, atm1: 1HD1, atm2: CD1, atm3: 2HD1, x0: 1.90998, K: 1.90998 }
+  - {res: ILE, atm1: 1HD1, atm2: CD1, atm3: 3HD1, x0: 1.90964, K: 1.90964 }
+  - {res: ILE, atm1: 1HG1, atm2: CG1, atm3: 2HG1, x0: 1.8743, K: 1.8743 }
+  - {res: ILE, atm1: 1HG2, atm2: CG2, atm3: 2HG2, x0: 1.91024, K: 1.91024 }
+  - {res: ILE, atm1: 1HG2, atm2: CG2, atm3: 3HG2, x0: 1.91002, K: 1.91002 }
+  - {res: ILE, atm1: 2HD1, atm2: CD1, atm3: 3HD1, x0: 1.91077, K: 1.91077 }
+  - {res: ILE, atm1: 2HG2, atm2: CG2, atm3: 3HG2, x0: 1.91013, K: 1.91013 }
+  - {res: ILE, atm1: C, atm2: CA, atm3: CB, x0: 1.91116, K: 1.91116 }
+  - {res: ILE, atm1: C, atm2: CA, atm3: HA, x0: 1.88867, K: 1.88867 }
+  - {res: ILE, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: ILE, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: ILE, atm1: CA, atm2: CB, atm3: CG1, x0: 1.92703, K: 1.92703 }
+  - {res: ILE, atm1: CA, atm2: CB, atm3: CG2, x0: 1.92804, K: 1.92804 }
+  - {res: ILE, atm1: CA, atm2: CB, atm3: HB, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: ILE, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: ILE, atm1: CB, atm2: CA, atm3: HA, x0: 1.89264, K: 1.89264 }
+  - {res: ILE, atm1: CB, atm2: CG1, atm3: 1HG1, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CB, atm2: CG1, atm3: 2HG1, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CB, atm2: CG1, atm3: CD1, x0: 1.98662, K: 1.98662 }
+  - {res: ILE, atm1: CB, atm2: CG2, atm3: 1HG2, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CB, atm2: CG2, atm3: 2HG2, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CB, atm2: CG2, atm3: 3HG2, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CD1, atm2: CG1, atm3: 1HG1, x0: 1.8895, K: 1.8895 }
+  - {res: ILE, atm1: CD1, atm2: CG1, atm3: 2HG1, x0: 1.88775, K: 1.88775 }
+  - {res: ILE, atm1: CG1, atm2: CB, atm3: CG2, x0: 1.9306, K: 1.9306 }
+  - {res: ILE, atm1: CG1, atm2: CB, atm3: HB, x0: 1.8641, K: 1.8641 }
+  - {res: ILE, atm1: CG1, atm2: CD1, atm3: 1HD1, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CG1, atm2: CD1, atm3: 2HD1, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CG1, atm2: CD1, atm3: 3HD1, x0: 1.91114, K: 1.91114 }
+  - {res: ILE, atm1: CG2, atm2: CB, atm3: HB, x0: 1.90163, K: 1.90163 }
+  - {res: ILE, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: ILE, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: ILE, atm1: N, atm2: CA, atm3: CB, x0: 1.93557, K: 1.93557 }
+  - {res: ILE, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: ILE, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: LEU, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.89065, K: 1.89065 }
+  - {res: LEU, atm1: 1HD1, atm2: CD1, atm3: 2HD1, x0: 1.90928, K: 1.90928 }
+  - {res: LEU, atm1: 1HD1, atm2: CD1, atm3: 3HD1, x0: 1.91003, K: 1.91003 }
+  - {res: LEU, atm1: 1HD2, atm2: CD2, atm3: 2HD2, x0: 1.91013, K: 1.91013 }
+  - {res: LEU, atm1: 1HD2, atm2: CD2, atm3: 3HD2, x0: 1.91013, K: 1.91013 }
+  - {res: LEU, atm1: 2HD1, atm2: CD1, atm3: 3HD1, x0: 1.91109, K: 1.91109 }
+  - {res: LEU, atm1: 2HD2, atm2: CD2, atm3: 3HD2, x0: 1.91013, K: 1.91013 }
+  - {res: LEU, atm1: C, atm2: CA, atm3: CB, x0: 1.91492, K: 1.91492 }
+  - {res: LEU, atm1: C, atm2: CA, atm3: HA, x0: 1.89151, K: 1.89151 }
+  - {res: LEU, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: LEU, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: LEU, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.89543, K: 1.89543 }
+  - {res: LEU, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.89543, K: 1.89543 }
+  - {res: LEU, atm1: CA, atm2: CB, atm3: CG, x0: 2.01935, K: 2.01935 }
+  - {res: LEU, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: LEU, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: LEU, atm1: CB, atm2: CA, atm3: HA, x0: 1.89842, K: 1.89842 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: CD1, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: CD2, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: HG, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: CD1, atm2: CG, atm3: CD2, x0: 1.93845, K: 1.93845 }
+  - {res: LEU, atm1: CD1, atm2: CG, atm3: HG, x0: 1.88153, K: 1.88153 }
+  - {res: LEU, atm1: CD2, atm2: CG, atm3: HG, x0: 1.91013, K: 1.91013 }
+  - {res: LEU, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.87977, K: 1.87977 }
+  - {res: LEU, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.87977, K: 1.87977 }
+  - {res: LEU, atm1: CG, atm2: CD1, atm3: 1HD1, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: CG, atm2: CD1, atm3: 2HD1, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: CG, atm2: CD1, atm3: 3HD1, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: CG, atm2: CD2, atm3: 1HD2, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: CG, atm2: CD2, atm3: 2HD2, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: CG, atm2: CD2, atm3: 3HD2, x0: 1.91114, K: 1.91114 }
+  - {res: LEU, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: LEU, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: LEU, atm1: N, atm2: CA, atm3: CB, x0: 1.92361, K: 1.92361 }
+  - {res: LEU, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: LEU, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: LYS, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: LYS, atm1: 1HD, atm2: CD, atm3: 2HD, x0: 1.89356, K: 1.89356 }
+  - {res: LYS, atm1: 1HE, atm2: CE, atm3: 2HE, x0: 1.88918, K: 1.88918 }
+  - {res: LYS, atm1: 1HG, atm2: CG, atm3: 2HG, x0: 1.89349, K: 1.89349 }
+  - {res: LYS, atm1: 1HZ, atm2: NZ, atm3: 2HZ, x0: 1.91021, K: 1.91021 }
+  - {res: LYS, atm1: 1HZ, atm2: NZ, atm3: 3HZ, x0: 1.91002, K: 1.91002 }
+  - {res: LYS, atm1: 2HZ, atm2: NZ, atm3: 3HZ, x0: 1.91016, K: 1.91016 }
+  - {res: LYS, atm1: C, atm2: CA, atm3: CB, x0: 1.92181, K: 1.92181 }
+  - {res: LYS, atm1: C, atm2: CA, atm3: HA, x0: 1.88155, K: 1.88155 }
+  - {res: LYS, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: LYS, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: LYS, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CA, atm2: CB, atm3: CG, x0: 1.99661, K: 1.99661 }
+  - {res: LYS, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: LYS, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: LYS, atm1: CB, atm2: CA, atm3: HA, x0: 1.89601, K: 1.89601 }
+  - {res: LYS, atm1: CB, atm2: CG, atm3: 1HG, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CB, atm2: CG, atm3: 2HG, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CB, atm2: CG, atm3: CD, x0: 1.94255, K: 1.94255 }
+  - {res: LYS, atm1: CD, atm2: CE, atm3: 1HE, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CD, atm2: CE, atm3: 2HE, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CD, atm2: CE, atm3: NZ, x0: 1.95413, K: 1.95413 }
+  - {res: LYS, atm1: CD, atm2: CG, atm3: 1HG, x0: 1.90229, K: 1.90229 }
+  - {res: LYS, atm1: CD, atm2: CG, atm3: 2HG, x0: 1.90254, K: 1.90254 }
+  - {res: LYS, atm1: CE, atm2: CD, atm3: 1HD, x0: 1.90247, K: 1.90247 }
+  - {res: LYS, atm1: CE, atm2: CD, atm3: 2HD, x0: 1.90109, K: 1.90109 }
+  - {res: LYS, atm1: CE, atm2: NZ, atm3: 1HZ, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CE, atm2: NZ, atm3: 2HZ, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CE, atm2: NZ, atm3: 3HZ, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.88265, K: 1.88265 }
+  - {res: LYS, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.88265, K: 1.88265 }
+  - {res: LYS, atm1: CG, atm2: CD, atm3: 1HD, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CG, atm2: CD, atm3: 2HD, x0: 1.91114, K: 1.91114 }
+  - {res: LYS, atm1: CG, atm2: CD, atm3: CE, x0: 1.94373, K: 1.94373 }
+  - {res: LYS, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: LYS, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: LYS, atm1: N, atm2: CA, atm3: CB, x0: 1.92861, K: 1.92861 }
+  - {res: LYS, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: LYS, atm1: NZ, atm2: CE, atm3: 1HE, x0: 1.89906, K: 1.89906 }
+  - {res: LYS, atm1: NZ, atm2: CE, atm3: 2HE, x0: 1.89802, K: 1.89802 }
+  - {res: LYS, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: MET, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: MET, atm1: 1HE, atm2: CE, atm3: 2HE, x0: 1.91081, K: 1.91081 }
+  - {res: MET, atm1: 1HE, atm2: CE, atm3: 3HE, x0: 1.90982, K: 1.90982 }
+  - {res: MET, atm1: 1HG, atm2: CG, atm3: 2HG, x0: 1.88852, K: 1.88852 }
+  - {res: MET, atm1: 2HE, atm2: CE, atm3: 3HE, x0: 1.90976, K: 1.90976 }
+  - {res: MET, atm1: C, atm2: CA, atm3: CB, x0: 1.92732, K: 1.92732 }
+  - {res: MET, atm1: C, atm2: CA, atm3: HA, x0: 1.8787, K: 1.8787 }
+  - {res: MET, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: MET, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: MET, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: MET, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: MET, atm1: CA, atm2: CB, atm3: CG, x0: 1.99733, K: 1.99733 }
+  - {res: MET, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: MET, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: MET, atm1: CB, atm2: CA, atm3: HA, x0: 1.89845, K: 1.89845 }
+  - {res: MET, atm1: CB, atm2: CG, atm3: 1HG, x0: 1.91114, K: 1.91114 }
+  - {res: MET, atm1: CB, atm2: CG, atm3: 2HG, x0: 1.91114, K: 1.91114 }
+  - {res: MET, atm1: CB, atm2: CG, atm3: SD, x0: 1.96649, K: 1.96649 }
+  - {res: MET, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.88227, K: 1.88227 }
+  - {res: MET, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.88227, K: 1.88227 }
+  - {res: MET, atm1: CG, atm2: SD, atm3: CE, x0: 1.76091, K: 1.76091 }
+  - {res: MET, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: MET, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: MET, atm1: N, atm2: CA, atm3: CB, x0: 1.92354, K: 1.92354 }
+  - {res: MET, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: MET, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: MET, atm1: SD, atm2: CE, atm3: 1HE, x0: 1.91114, K: 1.91114 }
+  - {res: MET, atm1: SD, atm2: CE, atm3: 2HE, x0: 1.91114, K: 1.91114 }
+  - {res: MET, atm1: SD, atm2: CE, atm3: 3HE, x0: 1.91114, K: 1.91114 }
+  - {res: MET, atm1: SD, atm2: CG, atm3: 1HG, x0: 1.89281, K: 1.89281 }
+  - {res: MET, atm1: SD, atm2: CG, atm3: 2HG, x0: 1.89208, K: 1.89208 }
+  - {res: PHE, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: PHE, atm1: C, atm2: CA, atm3: CB, x0: 1.91412, K: 1.91412 }
+  - {res: PHE, atm1: C, atm2: CA, atm3: HA, x0: 1.89009, K: 1.89009 }
+  - {res: PHE, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: PHE, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: PHE, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: PHE, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: PHE, atm1: CA, atm2: CB, atm3: CG, x0: 1.98604, K: 1.98604 }
+  - {res: PHE, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: PHE, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: PHE, atm1: CB, atm2: CA, atm3: HA, x0: 1.89648, K: 1.89648 }
+  - {res: PHE, atm1: CB, atm2: CG, atm3: CD1, x0: 2.10636, K: 2.10636 }
+  - {res: PHE, atm1: CB, atm2: CG, atm3: CD2, x0: 2.107, K: 2.107 }
+  - {res: PHE, atm1: CD1, atm2: CE1, atm3: CZ, x0: 2.09493, K: 2.09493 }
+  - {res: PHE, atm1: CD1, atm2: CE1, atm3: HE1, x0: 2.09383, K: 2.09383 }
+  - {res: PHE, atm1: CD1, atm2: CG, atm3: CD2, x0: 2.06983, K: 2.06983 }
+  - {res: PHE, atm1: CD2, atm2: CE2, atm3: CZ, x0: 2.09386, K: 2.09386 }
+  - {res: PHE, atm1: CD2, atm2: CE2, atm3: HE2, x0: 2.0956, K: 2.0956 }
+  - {res: PHE, atm1: CE1, atm2: CD1, atm3: HD1, x0: 2.09495, K: 2.09495 }
+  - {res: PHE, atm1: CE1, atm2: CZ, atm3: CE2, x0: 2.09214, K: 2.09214 }
+  - {res: PHE, atm1: CE1, atm2: CZ, atm3: HZ, x0: 2.09582, K: 2.09582 }
+  - {res: PHE, atm1: CE2, atm2: CD2, atm3: HD2, x0: 2.09398, K: 2.09398 }
+  - {res: PHE, atm1: CE2, atm2: CZ, atm3: HZ, x0: 2.09522, K: 2.09522 }
+  - {res: PHE, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.88826, K: 1.88826 }
+  - {res: PHE, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.88826, K: 1.88826 }
+  - {res: PHE, atm1: CG, atm2: CD1, atm3: CE1, x0: 2.10722, K: 2.10722 }
+  - {res: PHE, atm1: CG, atm2: CD1, atm3: HD1, x0: 2.08102, K: 2.08102 }
+  - {res: PHE, atm1: CG, atm2: CD2, atm3: CE2, x0: 2.10839, K: 2.10839 }
+  - {res: PHE, atm1: CG, atm2: CD2, atm3: HD2, x0: 2.08081, K: 2.08081 }
+  - {res: PHE, atm1: CZ, atm2: CE1, atm3: HE1, x0: 2.09443, K: 2.09443 }
+  - {res: PHE, atm1: CZ, atm2: CE2, atm3: HE2, x0: 2.09372, K: 2.09372 }
+  - {res: PHE, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: PHE, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: PHE, atm1: N, atm2: CA, atm3: CB, x0: 1.92762, K: 1.92762 }
+  - {res: PHE, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: PHE, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: PRO, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.86724, K: 1.86724 }
+  - {res: PRO, atm1: 1HD, atm2: CD, atm3: 2HD, x0: 1.93141, K: 1.93141 }
+  - {res: PRO, atm1: 1HD, atm2: CD, atm3: NV, x0: 1.95243, K: 1.95243 }
+  - {res: PRO, atm1: 1HG, atm2: CG, atm3: 2HG, x0: 1.8638, K: 1.8638 }
+  - {res: PRO, atm1: 2HD, atm2: CD, atm3: NV, x0: 1.95998, K: 1.95998 }
+  - {res: PRO, atm1: C, atm2: CA, atm3: CB, x0: 1.94845, K: 1.94845 }
+  - {res: PRO, atm1: C, atm2: CA, atm3: HA, x0: 1.93002, K: 1.93002 }
+  - {res: PRO, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: PRO, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: PRO, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91986, K: 1.91986 }
+  - {res: PRO, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91986, K: 1.91986 }
+  - {res: PRO, atm1: CA, atm2: CB, atm3: CG, x0: 1.81863, K: 1.81863 }
+  - {res: PRO, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: PRO, atm1: CA, atm2: N, atm3: CD, x0: 1.9584, K: 1.9584 }
+  - {res: PRO, atm1: CB, atm2: CA, atm3: HA, x0: 1.93694, K: 1.93694 }
+  - {res: PRO, atm1: CB, atm2: CG, atm3: 1HG, x0: 1.92335, K: 1.92335 }
+  - {res: PRO, atm1: CB, atm2: CG, atm3: 2HG, x0: 1.92335, K: 1.92335 }
+  - {res: PRO, atm1: CB, atm2: CG, atm3: CD, x0: 1.82212, K: 1.82212 }
+  - {res: PRO, atm1: CD, atm2: CG, atm3: 1HG, x0: 1.96602, K: 1.96602 }
+  - {res: PRO, atm1: CD, atm2: CG, atm3: 2HG, x0: 1.96602, K: 1.96602 }
+  - {res: PRO, atm1: CD, atm2: N, atm3: C, x0: 1.9548, K: 1.9548 }
+  - {res: PRO, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.96927, K: 1.96927 }
+  - {res: PRO, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.96927, K: 1.96927 }
+  - {res: PRO, atm1: CG, atm2: CD, atm3: 1HD, x0: 1.91114, K: 1.91114 }
+  - {res: PRO, atm1: CG, atm2: CD, atm3: 2HD, x0: 1.91114, K: 1.91114 }
+  - {res: PRO, atm1: CG, atm2: CD, atm3: NV, x0: 1.79245, K: 1.79245 }
+  - {res: PRO, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: PRO, atm1: N, atm2: CA, atm3: CB, x0: 1.79769, K: 1.79769 }
+  - {res: PRO, atm1: N, atm2: CA, atm3: HA, x0: 1.9059, K: 1.9059 }
+  - {res: PRO, atm1: N, atm2: CD, atm3: 1HD, x0: 1.9024, K: 1.9024 }
+  - {res: PRO, atm1: N, atm2: CD, atm3: 2HD, x0: 1.9024, K: 1.9024 }
+  - {res: PRO, atm1: N, atm2: CD, atm3: CG, x0: 1.8012, K: 1.8012 }
+  - {res: PRO, atm1: N, atm2: CD, atm3: NV, x0: 0, K: 0 }
+  - {res: PRO, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: SER, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: SER, atm1: C, atm2: CA, atm3: CB, x0: 1.91703, K: 1.91703 }
+  - {res: SER, atm1: C, atm2: CA, atm3: HA, x0: 1.89009, K: 1.89009 }
+  - {res: SER, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: SER, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: SER, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: SER, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: SER, atm1: CA, atm2: CB, atm3: OG, x0: 1.93732, K: 1.93732 }
+  - {res: SER, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: SER, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: SER, atm1: CB, atm2: CA, atm3: HA, x0: 1.89908, K: 1.89908 }
+  - {res: SER, atm1: CB, atm2: OG, atm3: HG, x0: 1.85005, K: 1.85005 }
+  - {res: SER, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: SER, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: SER, atm1: N, atm2: CA, atm3: CB, x0: 1.92225, K: 1.92225 }
+  - {res: SER, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: SER, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: SER, atm1: OG, atm2: CB, atm3: 1HB, x0: 1.91373, K: 1.91373 }
+  - {res: SER, atm1: OG, atm2: CB, atm3: 2HB, x0: 1.91373, K: 1.91373 }
+  - {res: THR, atm1: 1HG2, atm2: CG2, atm3: 2HG2, x0: 1.91059, K: 1.91059 }
+  - {res: THR, atm1: 1HG2, atm2: CG2, atm3: 3HG2, x0: 1.90984, K: 1.90984 }
+  - {res: THR, atm1: 2HG2, atm2: CG2, atm3: 3HG2, x0: 1.90996, K: 1.90996 }
+  - {res: THR, atm1: C, atm2: CA, atm3: CB, x0: 1.91334, K: 1.91334 }
+  - {res: THR, atm1: C, atm2: CA, atm3: HA, x0: 1.8844, K: 1.8844 }
+  - {res: THR, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: THR, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: THR, atm1: CA, atm2: CB, atm3: CG2, x0: 1.92913, K: 1.92913 }
+  - {res: THR, atm1: CA, atm2: CB, atm3: HB, x0: 1.91114, K: 1.91114 }
+  - {res: THR, atm1: CA, atm2: CB, atm3: OG1, x0: 1.91255, K: 1.91255 }
+  - {res: THR, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: THR, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: THR, atm1: CB, atm2: CA, atm3: HA, x0: 1.89094, K: 1.89094 }
+  - {res: THR, atm1: CB, atm2: CG2, atm3: 1HG2, x0: 1.91114, K: 1.91114 }
+  - {res: THR, atm1: CB, atm2: CG2, atm3: 2HG2, x0: 1.91114, K: 1.91114 }
+  - {res: THR, atm1: CB, atm2: CG2, atm3: 3HG2, x0: 1.91114, K: 1.91114 }
+  - {res: THR, atm1: CB, atm2: OG1, atm3: HG1, x0: 1.90986, K: 1.90986 }
+  - {res: THR, atm1: CG2, atm2: CB, atm3: HB, x0: 1.90521, K: 1.90521 }
+  - {res: THR, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: THR, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: THR, atm1: N, atm2: CA, atm3: CB, x0: 1.93906, K: 1.93906 }
+  - {res: THR, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: THR, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: THR, atm1: OG1, atm2: CB, atm3: CG2, x0: 1.90802, K: 1.90802 }
+  - {res: THR, atm1: OG1, atm2: CB, atm3: HB, x0: 1.89749, K: 1.89749 }
+  - {res: TRP, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: TRP, atm1: C, atm2: CA, atm3: CB, x0: 1.91317, K: 1.91317 }
+  - {res: TRP, atm1: C, atm2: CA, atm3: HA, x0: 1.89151, K: 1.89151 }
+  - {res: TRP, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: TRP, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: TRP, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: TRP, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: TRP, atm1: CA, atm2: CB, atm3: CG, x0: 1.98154, K: 1.98154 }
+  - {res: TRP, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: TRP, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: TRP, atm1: CB, atm2: CA, atm3: HA, x0: 1.89686, K: 1.89686 }
+  - {res: TRP, atm1: CB, atm2: CG, atm3: CD1, x0: 2.21197, K: 2.21197 }
+  - {res: TRP, atm1: CB, atm2: CG, atm3: CD2, x0: 2.21981, K: 2.21981 }
+  - {res: TRP, atm1: CD1, atm2: CG, atm3: CD2, x0: 1.8514, K: 1.8514 }
+  - {res: TRP, atm1: CD1, atm2: NE1, atm3: CE2, x0: 1.90066, K: 1.90066 }
+  - {res: TRP, atm1: CD1, atm2: NE1, atm3: HE1, x0: 2.19273, K: 2.19273 }
+  - {res: TRP, atm1: CD2, atm2: CE2, atm3: CZ2, x0: 2.12856, K: 2.12856 }
+  - {res: TRP, atm1: CD2, atm2: CE2, atm3: NE1, x0: 1.88329, K: 1.88329 }
+  - {res: TRP, atm1: CD2, atm2: CE3, atm3: CZ3, x0: 2.07225, K: 2.07225 }
+  - {res: TRP, atm1: CD2, atm2: CE3, atm3: HE3, x0: 2.10432, K: 2.10432 }
+  - {res: TRP, atm1: CE2, atm2: CD2, atm3: CE3, x0: 2.08238, K: 2.08238 }
+  - {res: TRP, atm1: CE2, atm2: CZ2, atm3: CH2, x0: 2.05076, K: 2.05076 }
+  - {res: TRP, atm1: CE2, atm2: CZ2, atm3: HZ2, x0: 2.13105, K: 2.13105 }
+  - {res: TRP, atm1: CE2, atm2: NE1, atm3: HE1, x0: 2.18979, K: 2.18979 }
+  - {res: TRP, atm1: CE3, atm2: CZ3, atm3: CH2, x0: 2.11185, K: 2.11185 }
+  - {res: TRP, atm1: CE3, atm2: CZ3, atm3: HZ3, x0: 2.06422, K: 2.06422 }
+  - {res: TRP, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.89063, K: 1.89063 }
+  - {res: TRP, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.89063, K: 1.89063 }
+  - {res: TRP, atm1: CG, atm2: CD1, atm3: HD1, x0: 2.17992, K: 2.17992 }
+  - {res: TRP, atm1: CG, atm2: CD1, atm3: NE1, x0: 1.92259, K: 1.92259 }
+  - {res: TRP, atm1: CG, atm2: CD2, atm3: CE2, x0: 1.86683, K: 1.86683 }
+  - {res: TRP, atm1: CG, atm2: CD2, atm3: CE3, x0: 2.33398, K: 2.33398 }
+  - {res: TRP, atm1: CH2, atm2: CZ2, atm3: HZ2, x0: 2.10137, K: 2.10137 }
+  - {res: TRP, atm1: CH2, atm2: CZ3, atm3: HZ3, x0: 2.10711, K: 2.10711 }
+  - {res: TRP, atm1: CZ2, atm2: CH2, atm3: CZ3, x0: 2.12058, K: 2.12058 }
+  - {res: TRP, atm1: CZ2, atm2: CH2, atm3: HH2, x0: 2.08408, K: 2.08408 }
+  - {res: TRP, atm1: CZ3, atm2: CE3, atm3: HE3, x0: 2.10661, K: 2.10661 }
+  - {res: TRP, atm1: CZ3, atm2: CH2, atm3: HH2, x0: 2.07853, K: 2.07853 }
+  - {res: TRP, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: TRP, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: TRP, atm1: N, atm2: CA, atm3: CB, x0: 1.92684, K: 1.92684 }
+  - {res: TRP, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: TRP, atm1: NE1, atm2: CD1, atm3: HD1, x0: 2.18068, K: 2.18068 }
+  - {res: TRP, atm1: NE1, atm2: CE2, atm3: CZ2, x0: 2.27134, K: 2.27134 }
+  - {res: TRP, atm1: O, atm2: C, atm3: N, x0: 2.14675, K: 2.14675 }
+  - {res: TYR, atm1: 1HB, atm2: CB, atm3: 2HB, x0: 1.87575, K: 1.87575 }
+  - {res: TYR, atm1: C, atm2: CA, atm3: CB, x0: 1.92479, K: 1.92479 }
+  - {res: TYR, atm1: C, atm2: CA, atm3: HA, x0: 1.8787, K: 1.8787 }
+  - {res: TYR, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: TYR, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: TYR, atm1: CA, atm2: CB, atm3: 1HB, x0: 1.91114, K: 1.91114 }
+  - {res: TYR, atm1: CA, atm2: CB, atm3: 2HB, x0: 1.91114, K: 1.91114 }
+  - {res: TYR, atm1: CA, atm2: CB, atm3: CG, x0: 1.98618, K: 1.98618 }
+  - {res: TYR, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: TYR, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: TYR, atm1: CB, atm2: CA, atm3: HA, x0: 1.89623, K: 1.89623 }
+  - {res: TYR, atm1: CB, atm2: CG, atm3: CD1, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CB, atm2: CG, atm3: CD2, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CD1, atm2: CE1, atm3: CZ, x0: 2.08979, K: 2.08979 }
+  - {res: TYR, atm1: CD1, atm2: CE1, atm3: HE1, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CD1, atm2: CG, atm3: CD2, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CD2, atm2: CE2, atm3: CZ, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CD2, atm2: CE2, atm3: HE2, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CE1, atm2: CD1, atm3: HD1, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CE1, atm2: CZ, atm3: CE2, x0: 2.099, K: 2.099 }
+  - {res: TYR, atm1: CE1, atm2: CZ, atm3: OH, x0: 2.08979, K: 2.08979 }
+  - {res: TYR, atm1: CE2, atm2: CD2, atm3: HD2, x0: 2.09439, K: 2.09439 }
+  - {res: TYR, atm1: CE2, atm2: CZ, atm3: OH, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CG, atm2: CB, atm3: 1HB, x0: 1.88818, K: 1.88818 }
+  - {res: TYR, atm1: CG, atm2: CB, atm3: 2HB, x0: 1.88818, K: 1.88818 }
+  - {res: TYR, atm1: CG, atm2: CD1, atm3: CE1, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CG, atm2: CD1, atm3: HD1, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CG, atm2: CD2, atm3: CE2, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CG, atm2: CD2, atm3: HD2, x0: 2.0944, K: 2.0944 }
+  - {res: TYR, atm1: CZ, atm2: CE1, atm3: HE1, x0: 2.099, K: 2.099 }
+  - {res: TYR, atm1: CZ, atm2: CE2, atm3: HE2, x0: 2.09439, K: 2.09439 }
+  - {res: TYR, atm1: CZ, atm2: OH, atm3: HH, x0: 1.90939, K: 1.90939 }
+  - {res: TYR, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: TYR, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: TYR, atm1: N, atm2: CA, atm3: CB, x0: 1.92815, K: 1.92815 }
+  - {res: TYR, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: TYR, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+  - {res: VAL, atm1: 1HG1, atm2: CG1, atm3: 2HG1, x0: 1.90965, K: 1.90965 }
+  - {res: VAL, atm1: 1HG1, atm2: CG1, atm3: 3HG1, x0: 1.90936, K: 1.90936 }
+  - {res: VAL, atm1: 1HG2, atm2: CG2, atm3: 2HG2, x0: 1.91055, K: 1.91055 }
+  - {res: VAL, atm1: 1HG2, atm2: CG2, atm3: 3HG2, x0: 1.90981, K: 1.90981 }
+  - {res: VAL, atm1: 2HG1, atm2: CG1, atm3: 3HG1, x0: 1.91138, K: 1.91138 }
+  - {res: VAL, atm1: 2HG2, atm2: CG2, atm3: 3HG2, x0: 1.91003, K: 1.91003 }
+  - {res: VAL, atm1: C, atm2: CA, atm3: CB, x0: 1.90861, K: 1.90861 }
+  - {res: VAL, atm1: C, atm2: CA, atm3: HA, x0: 1.89719, K: 1.89719 }
+  - {res: VAL, atm1: CA, atm2: C, atm3: N, x0: 2.02807, K: 2.02807 }
+  - {res: VAL, atm1: CA, atm2: C, atm3: O, x0: 2.10836, K: 2.10836 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: CG1, x0: 1.92842, K: 1.92842 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: CG2, x0: 1.91812, K: 1.91812 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: HB, x0: 1.90167, K: 1.90167 }
+  - {res: VAL, atm1: CA, atm2: N, atm3: C, x0: 2.12407, K: 2.12407 }
+  - {res: VAL, atm1: CA, atm2: N, atm3: H, x0: 2.07956, K: 2.07956 }
+  - {res: VAL, atm1: CB, atm2: CA, atm3: HA, x0: 1.8977, K: 1.8977 }
+  - {res: VAL, atm1: CB, atm2: CG1, atm3: 1HG1, x0: 1.91114, K: 1.91114 }
+  - {res: VAL, atm1: CB, atm2: CG1, atm3: 2HG1, x0: 1.91114, K: 1.91114 }
+  - {res: VAL, atm1: CB, atm2: CG1, atm3: 3HG1, x0: 1.91114, K: 1.91114 }
+  - {res: VAL, atm1: CB, atm2: CG2, atm3: 1HG2, x0: 1.91114, K: 1.91114 }
+  - {res: VAL, atm1: CB, atm2: CG2, atm3: 2HG2, x0: 1.91114, K: 1.91114 }
+  - {res: VAL, atm1: CB, atm2: CG2, atm3: 3HG2, x0: 1.91114, K: 1.91114 }
+  - {res: VAL, atm1: CG1, atm2: CB, atm3: CG2, x0: 1.93332, K: 1.93332 }
+  - {res: VAL, atm1: CG1, atm2: CB, atm3: HB, x0: 1.87003, K: 1.87003 }
+  - {res: VAL, atm1: CG2, atm2: CB, atm3: HB, x0: 1.91141, K: 1.91141 }
+  - {res: VAL, atm1: H, atm2: N, atm3: C, x0: 2.07956, K: 2.07956 }
+  - {res: VAL, atm1: N, atm2: CA, atm3: C, x0: 1.94081, K: 1.94081 }
+  - {res: VAL, atm1: N, atm2: CA, atm3: CB, x0: 1.9251, K: 1.9251 }
+  - {res: VAL, atm1: N, atm2: CA, atm3: HA, x0: 1.89368, K: 1.89368 }
+  - {res: VAL, atm1: O, atm2: C, atm3: N, x0: 2.14676, K: 2.14676 }
+torsion_parameters:
+  - {res: _, atm1: CA, atm2: C, atm3: N, atm4: H, x0: 3.141592654, K: 41.832, ncyc: 2 }
+  - {res: _, atm1: CA, atm2: N, atm3: C, atm4: O, x0: 0, K: 38.668, ncyc: 2 }
+  - {res: _, atm1: CD, atm2: C, atm3: N, atm4: CA, x0: 0, K: 46.136, ncyc: 2 }
+  - {res: _, atm1: O, atm2: C, atm3: N, atm4: H, x0: 3.141592654, K: 43.968, ncyc: 2 }
+  - {res: _, atm1: O, atm2: C, atm3: N, atm4: CN, x0: 3.141592654, K: 80, ncyc: 2 }
+  - {res: _, atm1: CA, atm2: C, atm3: N, atm4: CN, x0: 3.141592654, K: 80, ncyc: 2 }
+  - {res: ALA, atm1: C, atm2: CA, atm3: CB, atm4: 1HB, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ALA, atm1: C, atm2: CA, atm3: CB, atm4: 2HB, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: ALA, atm1: C, atm2: CA, atm3: CB, atm4: 3HB, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ALA, atm1: HA, atm2: CA, atm3: CB, atm4: 1HB, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ALA, atm1: HA, atm2: CA, atm3: CB, atm4: 2HB, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ALA, atm1: HA, atm2: CA, atm3: CB, atm4: 3HB, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: ALA, atm1: N, atm2: CA, atm3: CB, atm4: 1HB, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: ALA, atm1: N, atm2: CA, atm3: CB, atm4: 2HB, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ALA, atm1: N, atm2: CA, atm3: CB, atm4: 3HB, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ARG, atm1: CD, atm2: NE, atm3: CZ, atm4: NH1, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: ARG, atm1: CD, atm2: NE, atm3: CZ, atm4: NH2, x0: 3.141592654, K: 43.352, ncyc: 2 }
+  - {res: ARG, atm1: HE, atm2: NE, atm3: CZ, atm4: NH1, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: HE, atm2: NE, atm3: CZ, atm4: NH2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: NE, atm2: CZ, atm3: NH1, atm4: 1HH1, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: NE, atm2: CZ, atm3: NH1, atm4: 2HH1, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: NE, atm2: CZ, atm3: NH2, atm4: 1HH2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: NE, atm2: CZ, atm3: NH2, atm4: 2HH2, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: NH1, atm2: CZ, atm3: NH2, atm4: 1HH2, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: NH1, atm2: CZ, atm3: NH2, atm4: 2HH2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: NH2, atm2: CZ, atm3: NH1, atm4: 1HH1, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: ARG, atm1: NH2, atm2: CZ, atm3: NH1, atm4: 2HH1, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: ASN, atm1: CB, atm2: CG, atm3: ND2, atm4: 1HD2, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: ASN, atm1: CB, atm2: CG, atm3: ND2, atm4: 2HD2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: ASN, atm1: CB, atm2: CG, atm3: OD1, atm4: ND2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: ASN, atm1: OD1, atm2: CG, atm3: ND2, atm4: 1HD2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: ASN, atm1: OD1, atm2: CG, atm3: ND2, atm4: 2HD2, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: ASP, atm1: CB, atm2: CG, atm3: OD1, atm4: OD2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: CYS, atm1: 1HB, atm2: CB, atm3: SG, atm4: HG, x0: 1.047197551, K: 1, ncyc: 3 }
+  - {res: CYS, atm1: 2HB, atm2: CB, atm3: SG, atm4: HG, x0: 1.047197551, K: 1, ncyc: 3 }
+  - {res: CYS, atm1: CA, atm2: CB, atm3: SG, atm4: HG, x0: 1.047197551, K: 1, ncyc: 3 }
+  - {res: GLN, atm1: CG, atm2: CD, atm3: NE2, atm4: 1HE2, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: GLN, atm1: CG, atm2: CD, atm3: NE2, atm4: 2HE2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: GLN, atm1: CG, atm2: CD, atm3: OE1, atm4: NE2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: GLN, atm1: OE1, atm2: CD, atm3: NE2, atm4: 1HE2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: GLN, atm1: OE1, atm2: CD, atm3: NE2, atm4: 2HE2, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: GLU, atm1: CG, atm2: CD, atm3: OE1, atm4: OE2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS, atm1: CB, atm2: CG, atm3: CD2, atm4: HD2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: HIS, atm1: CB, atm2: CG, atm3: CD2, atm4: NE2, x0: 3.141592654, K: 43.352, ncyc: 2 }
+  - {res: HIS, atm1: CB, atm2: CG, atm3: ND1, atm4: CE1, x0: 3.141592654, K: 43.352, ncyc: 2 }
+  - {res: HIS, atm1: CD2, atm2: CG, atm3: ND1, atm4: CE1, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS, atm1: CG, atm2: CD2, atm3: NE2, atm4: CE1, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS, atm1: CG, atm2: CD2, atm3: NE2, atm4: HE2, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS, atm1: CG, atm2: ND1, atm3: CE1, atm4: HE1, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS, atm1: CG, atm2: ND1, atm3: CE1, atm4: NE2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS, atm1: HD2, atm2: CD2, atm3: NE2, atm4: CE1, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS, atm1: HD2, atm2: CD2, atm3: NE2, atm4: HE2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: HIS, atm1: HE1, atm2: CE1, atm3: NE2, atm4: CD2, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS, atm1: HE1, atm2: CE1, atm3: NE2, atm4: HE2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: HIS, atm1: ND1, atm2: CE1, atm3: NE2, atm4: CD2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS, atm1: ND1, atm2: CE1, atm3: NE2, atm4: HE2, x0: 3.141592654, K: 43.352, ncyc: 2 }
+  - {res: HIS, atm1: ND1, atm2: CG, atm3: CD2, atm4: HD2, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS, atm1: ND1, atm2: CG, atm3: CD2, atm4: NE2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS_D, atm1: CB, atm2: CG, atm3: CD2, atm4: HD2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: HIS_D, atm1: CB, atm2: CG, atm3: CD2, atm4: NE2, x0: 3.141592654, K: 43.352, ncyc: 2 }
+  - {res: HIS_D, atm1: CB, atm2: CG, atm3: ND1, atm4: CE1, x0: 3.141592654, K: 43.352, ncyc: 2 }
+  - {res: HIS_D, atm1: CD2, atm2: CG, atm3: ND1, atm4: CE1, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS_D, atm1: CG, atm2: CD2, atm3: NE2, atm4: CE1, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS_D, atm1: CG, atm2: CD2, atm3: NE2, atm4: HE2, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS_D, atm1: CG, atm2: ND1, atm3: CE1, atm4: HE1, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS_D, atm1: CG, atm2: ND1, atm3: CE1, atm4: NE2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS_D, atm1: HD2, atm2: CD2, atm3: NE2, atm4: CE1, x0: 3.141592654, K: 43.352, ncyc: 2 }
+  - {res: HIS_D, atm1: HD2, atm2: CD2, atm3: NE2, atm4: HE2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: HIS_D, atm1: HE1, atm2: CE1, atm3: NE2, atm4: CD2, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS_D, atm1: HE1, atm2: CE1, atm3: NE2, atm4: HE2, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: HIS_D, atm1: ND1, atm2: CE1, atm3: NE2, atm4: CD2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: HIS_D, atm1: ND1, atm2: CE1, atm3: NE2, atm4: HE2, x0: 3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS_D, atm1: ND1, atm2: CG, atm3: CD2, atm4: HD2, x0: -3.141592654, K: 34.552, ncyc: 2 }
+  - {res: HIS_D, atm1: ND1, atm2: CG, atm3: CD2, atm4: NE2, x0: 0, K: 43.352, ncyc: 2 }
+  - {res: ILE, atm1: 1HG1, atm2: CG1, atm3: CD1, atm4: 1HD1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: 1HG1, atm2: CG1, atm3: CD1, atm4: 2HD1, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: 1HG1, atm2: CG1, atm3: CD1, atm4: 3HD1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: 2HG1, atm2: CG1, atm3: CD1, atm4: 1HD1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: 2HG1, atm2: CG1, atm3: CD1, atm4: 2HD1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: 2HG1, atm2: CG1, atm3: CD1, atm4: 3HD1, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CA, atm2: CB, atm3: CG2, atm4: 1HG2, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CA, atm2: CB, atm3: CG2, atm4: 2HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CA, atm2: CB, atm3: CG2, atm4: 3HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CB, atm2: CG1, atm3: CD1, atm4: 1HD1, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CB, atm2: CG1, atm3: CD1, atm4: 2HD1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CB, atm2: CG1, atm3: CD1, atm4: 3HD1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CG1, atm2: CB, atm3: CG2, atm4: 1HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CG1, atm2: CB, atm3: CG2, atm4: 2HG2, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: CG1, atm2: CB, atm3: CG2, atm4: 3HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: HB, atm2: CB, atm3: CG2, atm4: 1HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: HB, atm2: CB, atm3: CG2, atm4: 2HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: ILE, atm1: HB, atm2: CB, atm3: CG2, atm4: 3HG2, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: CD1, atm4: 1HD1, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: CD1, atm4: 2HD1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: CD1, atm4: 3HD1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: CD2, atm4: 1HD2, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: CD2, atm4: 2HD2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CB, atm2: CG, atm3: CD2, atm4: 3HD2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CD1, atm2: CG, atm3: CD2, atm4: 1HD2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CD1, atm2: CG, atm3: CD2, atm4: 2HD2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CD1, atm2: CG, atm3: CD2, atm4: 3HD2, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CD2, atm2: CG, atm3: CD1, atm4: 1HD1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CD2, atm2: CG, atm3: CD1, atm4: 2HD1, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: CD2, atm2: CG, atm3: CD1, atm4: 3HD1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: HG, atm2: CG, atm3: CD1, atm4: 1HD1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: HG, atm2: CG, atm3: CD1, atm4: 2HD1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: HG, atm2: CG, atm3: CD1, atm4: 3HD1, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: HG, atm2: CG, atm3: CD2, atm4: 1HD2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: HG, atm2: CG, atm3: CD2, atm4: 2HD2, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LEU, atm1: HG, atm2: CG, atm3: CD2, atm4: 3HD2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: 1HE, atm2: CE, atm3: NZ, atm4: 1HZ, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: 1HE, atm2: CE, atm3: NZ, atm4: 2HZ, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: 1HE, atm2: CE, atm3: NZ, atm4: 3HZ, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: 2HE, atm2: CE, atm3: NZ, atm4: 1HZ, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: 2HE, atm2: CE, atm3: NZ, atm4: 2HZ, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: 2HE, atm2: CE, atm3: NZ, atm4: 3HZ, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: CD, atm2: CE, atm3: NZ, atm4: 1HZ, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: CD, atm2: CE, atm3: NZ, atm4: 2HZ, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: LYS, atm1: CD, atm2: CE, atm3: NZ, atm4: 3HZ, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: MET, atm1: CG, atm2: SD, atm3: CE, atm4: 1HE, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: MET, atm1: CG, atm2: SD, atm3: CE, atm4: 2HE, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: MET, atm1: CG, atm2: SD, atm3: CE, atm4: 3HE, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: PHE, atm1: CB, atm2: CG, atm3: CD1, atm4: CE1, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: PHE, atm1: CB, atm2: CG, atm3: CD1, atm4: HD1, x0: 0, K: 29.8460176, ncyc: 1 }
+  - {res: PHE, atm1: CB, atm2: CG, atm3: CD2, atm4: CE2, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: PHE, atm1: CB, atm2: CG, atm3: CD2, atm4: HD2, x0: 0, K: 29.8460176, ncyc: 1 }
+  - {res: PHE, atm1: CD1, atm2: CE1, atm3: CZ, atm4: CE2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: PHE, atm1: CD1, atm2: CE1, atm3: CZ, atm4: HZ, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: CD1, atm2: CG, atm3: CD2, atm4: CE2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: PHE, atm1: CD1, atm2: CG, atm3: CD2, atm4: HD2, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: CD2, atm2: CE2, atm3: CZ, atm4: CE1, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: PHE, atm1: CD2, atm2: CE2, atm3: CZ, atm4: HZ, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: CD2, atm2: CG, atm3: CD1, atm4: CE1, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: PHE, atm1: CD2, atm2: CG, atm3: CD1, atm4: HD1, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: CG, atm2: CD1, atm3: CE1, atm4: CZ, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: PHE, atm1: CG, atm2: CD1, atm3: CE1, atm4: HE1, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: CG, atm2: CD2, atm3: CE2, atm4: CZ, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: PHE, atm1: CG, atm2: CD2, atm3: CE2, atm4: HE2, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: HD1, atm2: CD1, atm3: CE1, atm4: CZ, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: HD1, atm2: CD1, atm3: CE1, atm4: HE1, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: HD2, atm2: CD2, atm3: CE2, atm4: CZ, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: HD2, atm2: CD2, atm3: CE2, atm4: HE2, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: HE1, atm2: CE1, atm3: CZ, atm4: CE2, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: HE1, atm2: CE1, atm3: CZ, atm4: HZ, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: HE2, atm2: CE2, atm3: CZ, atm4: CE1, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: PHE, atm1: HE2, atm2: CE2, atm3: CZ, atm4: HZ, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: SER, atm1: 1HB, atm2: CB, atm3: OG, atm4: HG, x0: 1.047197551, K: 1.2086, ncyc: 3 }
+  - {res: SER, atm1: 2HB, atm2: CB, atm3: OG, atm4: HG, x0: 1.047197551, K: 1.2086, ncyc: 3 }
+  - {res: SER, atm1: CA, atm2: CB, atm3: OG, atm4: HG, x0: 1.047197551, K: 1.2086, ncyc: 3 }
+  - {res: THR, atm1: CA, atm2: CB, atm3: CG2, atm4: 1HG2, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: THR, atm1: CA, atm2: CB, atm3: CG2, atm4: 2HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: THR, atm1: CA, atm2: CB, atm3: CG2, atm4: 3HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: THR, atm1: CA, atm2: CB, atm3: OG1, atm4: HG1, x0: 1.047197551, K: 1.2086, ncyc: 3 }
+  - {res: THR, atm1: CG2, atm2: CB, atm3: OG1, atm4: HG1, x0: 1.047197551, K: 1.2086, ncyc: 3 }
+  - {res: THR, atm1: HB, atm2: CB, atm3: CG2, atm4: 1HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: THR, atm1: HB, atm2: CB, atm3: CG2, atm4: 2HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: THR, atm1: HB, atm2: CB, atm3: CG2, atm4: 3HG2, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: THR, atm1: HB, atm2: CB, atm3: OG1, atm4: HG1, x0: 1.047197551, K: 1.2086, ncyc: 3 }
+  - {res: THR, atm1: OG1, atm2: CB, atm3: CG2, atm4: 1HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: THR, atm1: OG1, atm2: CB, atm3: CG2, atm4: 2HG2, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: THR, atm1: OG1, atm2: CB, atm3: CG2, atm4: 3HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: TRP, atm1: CB, atm2: CG, atm3: CD1, atm4: HD1, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: CB, atm2: CG, atm3: CD1, atm4: NE1, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CB, atm2: CG, atm3: CD2, atm4: CE2, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CB, atm2: CG, atm3: CD2, atm4: CE3, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CD1, atm2: CG, atm3: CD2, atm4: CE2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CD1, atm2: CG, atm3: CD2, atm4: CE3, x0: 3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CD1, atm2: NE1, atm3: CE2, atm4: CD2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CD1, atm2: NE1, atm3: CE2, atm4: CZ2, x0: 3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CD2, atm2: CE2, atm3: CZ2, atm4: CH2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CD2, atm2: CE2, atm3: CZ2, atm4: HZ2, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: CD2, atm2: CE3, atm3: CZ3, atm4: CH2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CD2, atm2: CE3, atm3: CZ3, atm4: HZ3, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: CD2, atm2: CG, atm3: CD1, atm4: HD1, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: CD2, atm2: CG, atm3: CD1, atm4: NE1, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CE2, atm2: CD2, atm3: CE3, atm4: CZ3, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CE2, atm2: CD2, atm3: CE3, atm4: HE3, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: CE2, atm2: CZ2, atm3: CH2, atm4: CZ3, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CE2, atm2: CZ2, atm3: CH2, atm4: HH2, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: CE3, atm2: CD2, atm3: CE2, atm4: CZ2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CE3, atm2: CD2, atm3: CE2, atm4: NE1, x0: 3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CE3, atm2: CZ3, atm3: CH2, atm4: CZ2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CE3, atm2: CZ3, atm3: CH2, atm4: HH2, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: CG, atm2: CD1, atm3: NE1, atm4: CE2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CG, atm2: CD1, atm3: NE1, atm4: HE1, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: CG, atm2: CD2, atm3: CE2, atm4: CZ2, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CG, atm2: CD2, atm3: CE2, atm4: NE1, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CG, atm2: CD2, atm3: CE3, atm4: CZ3, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: CG, atm2: CD2, atm3: CE3, atm4: HE3, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HD1, atm2: CD1, atm3: NE1, atm4: CE2, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HD1, atm2: CD1, atm3: NE1, atm4: HE1, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HE1, atm2: NE1, atm3: CE2, atm4: CD2, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HE1, atm2: NE1, atm3: CE2, atm4: CZ2, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HE3, atm2: CE3, atm3: CZ3, atm4: CH2, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HE3, atm2: CE3, atm3: CZ3, atm4: HZ3, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HZ2, atm2: CZ2, atm3: CH2, atm4: CZ3, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HZ2, atm2: CZ2, atm3: CH2, atm4: HH2, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HZ3, atm2: CZ3, atm3: CH2, atm4: CZ2, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: HZ3, atm2: CZ3, atm3: CH2, atm4: HH2, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TRP, atm1: NE1, atm2: CE2, atm3: CZ2, atm4: CH2, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TRP, atm1: NE1, atm2: CE2, atm3: CZ2, atm4: HZ2, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: CB, atm2: CG, atm3: CD1, atm4: CE1, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CB, atm2: CG, atm3: CD1, atm4: HD1, x0: 0, K: 29.8460176, ncyc: 1 }
+  - {res: TYR, atm1: CB, atm2: CG, atm3: CD2, atm4: CE2, x0: -3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CB, atm2: CG, atm3: CD2, atm4: HD2, x0: 0, K: 29.8460176, ncyc: 1 }
+  - {res: TYR, atm1: CD1, atm2: CE1, atm3: CZ, atm4: CE2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CD1, atm2: CE1, atm3: CZ, atm4: OH, x0: -3.141592654, K: 43.352, ncyc: 2 }
+  - {res: TYR, atm1: CD1, atm2: CG, atm3: CD2, atm4: CE2, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CD1, atm2: CG, atm3: CD2, atm4: HD2, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: CD2, atm2: CE2, atm3: CZ, atm4: CE1, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CD2, atm2: CE2, atm3: CZ, atm4: OH, x0: 3.141592654, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CD2, atm2: CG, atm3: CD1, atm4: CE1, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CD2, atm2: CG, atm3: CD1, atm4: HD1, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: CE1, atm2: CZ, atm3: OH, atm4: HH, x0: 0, K: 1.2086, ncyc: 2 }
+  - {res: TYR, atm1: CE2, atm2: CZ, atm3: OH, atm4: HH, x0: 0, K: 1.2086, ncyc: 2 }
+  - {res: TYR, atm1: CG, atm2: CD1, atm3: CE1, atm4: CZ, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CG, atm2: CD1, atm3: CE1, atm4: HE1, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: CG, atm2: CD2, atm3: CE2, atm4: CZ, x0: 0, K: 43.352, ncyc: 1 }
+  - {res: TYR, atm1: CG, atm2: CD2, atm3: CE2, atm4: HE2, x0: -3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: HD1, atm2: CD1, atm3: CE1, atm4: CZ, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: HD1, atm2: CD1, atm3: CE1, atm4: HE1, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: HD2, atm2: CD2, atm3: CE2, atm4: CZ, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: HD2, atm2: CD2, atm3: CE2, atm4: HE2, x0: 0, K: 34.552, ncyc: 1 }
+  #- {res: TYR, atm1: HE1, atm2: CE1, atm3: CD1, atm4: HD1, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: HE1, atm2: CE1, atm3: CZ, atm4: CE2, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: HE1, atm2: CE1, atm3: CZ, atm4: OH, x0: 0, K: 34.552, ncyc: 2 }
+  #- {res: TYR, atm1: HE2, atm2: CE2, atm3: CD2, atm4: HD2, x0: 0, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: HE2, atm2: CE2, atm3: CZ, atm4: CE1, x0: 3.141592654, K: 34.552, ncyc: 1 }
+  - {res: TYR, atm1: HE2, atm2: CE2, atm3: CZ, atm4: OH, x0: 0, K: 34.552, ncyc: 2 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: CG1, atm4: 1HG1, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: CG1, atm4: 2HG1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: CG1, atm4: 3HG1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: CG2, atm4: 1HG2, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: CG2, atm4: 2HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CA, atm2: CB, atm3: CG2, atm4: 3HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CG1, atm2: CB, atm3: CG2, atm4: 1HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CG1, atm2: CB, atm3: CG2, atm4: 2HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CG1, atm2: CB, atm3: CG2, atm4: 3HG2, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CG2, atm2: CB, atm3: CG1, atm4: 1HG1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CG2, atm2: CB, atm3: CG1, atm4: 2HG1, x0: 3.141592654, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: CG2, atm2: CB, atm3: CG1, atm4: 3HG1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: HB, atm2: CB, atm3: CG1, atm4: 1HG1, x0: -1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: HB, atm2: CB, atm3: CG1, atm4: 2HG1, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: HB, atm2: CB, atm3: CG1, atm4: 3HG1, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: HB, atm2: CB, atm3: CG2, atm4: 1HG2, x0: 1.047197551, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: HB, atm2: CB, atm3: CG2, atm4: 2HG2, x0: -3.141592654, K: 24.336, ncyc: 3 }
+  - {res: VAL, atm1: HB, atm2: CB, atm3: CG2, atm4: 3HG2, x0: -1.047197551, K: 24.336, ncyc: 3 }
+improper_parameters:
+  - {res: ALA, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1445, K: 45.8703 }
+  - {res: ALA, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1402, K: 47.5692 }
+  - {res: ALA, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.06684, K: 39.904 }
+  - {res: ARG, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1462, K: 27.7487 }
+  - {res: ARG, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1411, K: 32.8454 }
+  - {res: ARG, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.08116, K: 39.904 }
+  - {res: ASN, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1343, K: 23.2183 }
+  - {res: ASN, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1497, K: 24.3509 }
+  - {res: ASN, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.06748, K: 39.904 }
+  - {res: ASP, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1413, K: 23.2183 }
+  - {res: ASP, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1454, K: 23.7846 }
+  - {res: ASP, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07852, K: 39.904 }
+  - {res: CYS, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1558, K: 24.9172 }
+  - {res: CYS, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1332, K: 29.4476 }
+  - {res: CYS, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.0829, K: 39.904 }
+  - {res: GLN, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1488, K: 27.7487 }
+  - {res: GLN, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1398, K: 31.7128 }
+  - {res: GLN, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07464, K: 39.904 }
+  - {res: GLU, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1466, K: 28.8813 }
+  - {res: GLU, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1398, K: 31.7128 }
+  - {res: GLU, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07654, K: 39.904 }
+  - {res: HIS, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1507, K: 23.7846 }
+  - {res: HIS, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1339, K: 25.4835 }
+  - {res: HIS, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.09335, K: 39.904 }
+  - {res: HIS_D, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1507, K: 23.7846 }
+  - {res: HIS_D, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1339, K: 25.4835 }
+  - {res: HIS_D, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.09335, K: 39.904 }
+  - {res: ILE, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1456, K: 23.7846 }
+  - {res: ILE, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1473, K: 27.7487 }
+  - {res: ILE, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.0785, K: 39.904 }
+  - {res: LEU, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1565, K: 28.8813 }
+  - {res: LEU, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1322, K: 32.2791 }
+  - {res: LEU, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07936, K: 39.904 }
+  - {res: LYS, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1479, K: 28.315 }
+  - {res: LYS, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1400, K: 32.2791 }
+  - {res: LYS, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07474, K: 39.904 }
+  - {res: MET, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1497, K: 22.0857 }
+  - {res: MET, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1398, K: 26.0498 }
+  - {res: MET, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07171, K: 39.904 }
+  - {res: PHE, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1502, K: 22.652 }
+  - {res: PHE, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1378, K: 26.6161 }
+  - {res: PHE, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07838, K: 39.904 }
+  - {res: PRO, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.2002, K: 41.3399 }
+  - {res: PRO, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.0058, K: 48.1355 }
+  - {res: SER, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1530, K: 23.7846 }
+  - {res: SER, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1381, K: 25.4835 }
+  - {res: SER, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07875, K: 39.904 }
+  - {res: THR, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1555, K: 26.0498 }
+  - {res: THR, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1439, K: 30.0139 }
+  - {res: THR, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.0753, K: 39.904 }
+  - {res: TRP, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1530, K: 23.7846 }
+  - {res: TRP, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1358, K: 26.0498 }
+  - {res: TRP, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.0801, K: 39.904 }
+  - {res: TYR, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1522, K: 24.9172 }
+  - {res: TYR, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1358, K: 28.8813 }
+  - {res: TYR, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.07132, K: 39.904 }
+  - {res: VAL, atm1: C, atm2: N, atm3: CA, atm4: CB, x0: 4.1464, K: 26.6161 }
+  - {res: VAL, atm1: N, atm2: C, atm3: CA, atm4: CB, x0: 2.1466, K: 29.4476 }
+  - {res: VAL, atm1: N, atm2: C, atm3: CA, atm4: HA, x0: -2.08278, K: 39.904 }
+hxltorsion_parameters:
+  - {res: SER, atm1: HG, atm2: OG, atm3: CB, atm4: CA, k1: 1.30, k2: 0.30, k3: 0.42 }
+  - {res: THR, atm1: HG1, atm2: OG1, atm3: CB, atm4: CA, k1: 1.33, k2: 0.18, k3: 0.32 }
+  - {res: THR, atm1: HG1, atm2: OG1, atm3: CB, atm4: CG2, k1: 1.33, k2: 0.18, k3: 0.32 }
+  - {res: TYR, atm1: CE2, atm2: CZ, atm3: OH, atm4: HH, k2: 0.50, phi2: 3.141592 }
