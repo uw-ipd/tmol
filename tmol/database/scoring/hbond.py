@@ -2,7 +2,20 @@ import attr
 import cattr
 import yaml
 
-from typing import Tuple
+from typing import Tuple, NewType
+
+AcceptorHybridization = NewType("AcceptorHybridization", str)
+_acceptor_hybridizations = {"sp2", "sp3", "ring"}
+
+
+def _parse_acceptor_hybridization(v, t):
+    if v in _acceptor_hybridizations:
+        return v
+    else:
+        raise ValueError(f"Invalid AcceptorHybridization value: {v}")
+
+
+cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -15,32 +28,28 @@ class GlobalParams:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class DonorAtoms:
+class DonorAtomType:
     d: str
-    h: str
     donor_type: str
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class AcceptorAtoms:
+class AcceptorAtomType:
     a: str
-    b: str
-    b0: str
     acceptor_type: str
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class AtomGroups:
-    donors: Tuple[DonorAtoms, ...]
-    sp2_acceptors: Tuple[AcceptorAtoms, ...]
-    sp3_acceptors: Tuple[AcceptorAtoms, ...]
-    ring_acceptors: Tuple[AcceptorAtoms, ...]
+class DonorTypeParam:
+    name: str
+    weight: float
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class HbondWeights:
+class AcceptorTypeParam:
     name: str
     weight: float
+    hybridization: AcceptorHybridization
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -67,8 +76,8 @@ class PolynomialParameters:
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PairParameters:
-    don_chem_type: str
-    acc_chem_type: str
+    donor_type: str
+    acceptor_type: str
     AHdist: str
     cosBAH: str
     cosAHD: str
@@ -77,11 +86,14 @@ class PairParameters:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondDatabase:
     global_parameters: GlobalParams
-    atom_groups: AtomGroups
-    don_weights: Tuple[HbondWeights, ...]
-    acc_weights: Tuple[HbondWeights, ...]
-    polynomial_parameters: Tuple[PolynomialParameters, ...]
+    donor_atom_types: Tuple[DonorAtomType, ...]
+    donor_type_params: Tuple[DonorTypeParam, ...]
+
+    acceptor_atom_types: Tuple[AcceptorAtomType, ...]
+    acceptor_type_params: Tuple[AcceptorTypeParam, ...]
+
     pair_parameters: Tuple[PairParameters, ...]
+    polynomial_parameters: Tuple[PolynomialParameters, ...]
 
     @classmethod
     def from_file(cls, path):
