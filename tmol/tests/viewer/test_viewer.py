@@ -50,9 +50,10 @@ def test_score_graph_viewer_smoke(ubq_system):
             device=ubq_graph.device,
             coords=ubq_graph.coords.expand(5, -1, -1),
             atom_types=ubq_graph.atom_types.repeat(5, 0),
-            atom_names=ubq_graph.atom_types.repeat(5, 0),
-            res_names=ubq_graph.atom_types.repeat(5, 0),
-            res_indices=ubq_graph.atom_types.repeat(5, 0),
+            atom_elements=ubq_graph.atom_elements.repeat(5, 0),
+            atom_names=ubq_graph.atom_names.repeat(5, 0),
+            res_names=ubq_graph.res_names.repeat(5, 0),
+            res_indices=ubq_graph.res_indices.repeat(5, 0),
             bonds=stacked_bonds,
         )
     )
