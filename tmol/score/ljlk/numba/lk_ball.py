@@ -122,13 +122,9 @@ def build_acc_waters(a, b, b0, dist, angle, tors):
     for i in range(nwats):
         waters[i, :] = numpy.array(
             [
-                dist * numpy.cos(numpy.radians(180.0 - angle)),
-                dist
-                * numpy.sin(numpy.radians(180.0 - angle))
-                * numpy.cos(numpy.radians(tors[i])),
-                dist
-                * numpy.sin(numpy.radians(180.0 - angle))
-                * numpy.sin(numpy.radians(tors[i])),
+                dist * numpy.cos(numpy.pi - angle),
+                dist * numpy.sin(numpy.pi - angle) * numpy.cos(tors[i]),
+                dist * numpy.sin(numpy.pi - angle) * numpy.sin(tors[i]),
             ]
         )
         waters[i, :] = mult_matrix_vector(M, waters[i, :]) + a
@@ -203,8 +199,8 @@ def d_acc_waters_datom(A, B, B0, dist, angle, torsions):
             - x151 * (2 * x135 - 2 * x136 + x150)
         )
         x153 = x119 * x128
-        x154 = numpy.pi * torsion / 180
-        x155 = numpy.pi * (-angle / 180 + 1.0)
+        x154 = torsion
+        x155 = numpy.pi - angle
         x156 = dist * numpy.sin(x155)
         x157 = x156 * numpy.cos(x154)
         x158 = dist * numpy.cos(x155)
@@ -867,10 +863,12 @@ def get_dlkbr_fraction_dij(
     dwted_d2_delta_dai = 2 * delta_ij
     dwted_d2_delta_daj = -2 * delta_ij
 
-    anglefrac = 0
+    anglefrac = 0.0
+    danglefrac_dbasedelta = 0.0
     if numpy.abs(base_atom_delta) > angle_overlap_A2:
-        anglefrac = 1
-    else:
+        anglefrac = 0
+        danglefrac_dbasedelta = 0
+    elif numpy.abs(base_atom_delta) > 0:
         anglefrac = numpy.square(1 - numpy.square(base_atom_delta / angle_overlap_A2))
         danglefrac_dbasedelta = -(
             4
@@ -878,6 +876,9 @@ def get_dlkbr_fraction_dij(
             * (numpy.square(angle_overlap_A2) - numpy.square(base_atom_delta))
             / numpy.square(numpy.square(angle_overlap_A2))
         )
+    else:
+        anglefrac = 1
+        danglefrac_dbasedelta = 0
 
     # final scaling
     dwted_d2_delta_dai = overlapfrac * danglefrac_dbasedelta * dwted_d2_delta_dai

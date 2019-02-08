@@ -1,6 +1,5 @@
-from typing import Tuple, Optional, NewType
-from tmol.utility.units import parse_angle, u
-from toolz import curry
+from typing import Tuple, Optional
+from tmol.utility.units import BondAngle, DihedralAngle
 
 import attr
 import cattr
@@ -15,28 +14,15 @@ class Atom:
     atom_type: str
 
 
-PhiAngle = NewType("PhiAngle", float)
-ThetaAngle = NewType("ThetaAngle", float)
-
-
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Icoor:
     name: str
-    phi: PhiAngle
-    theta: ThetaAngle
+    phi: DihedralAngle
+    theta: BondAngle
     d: float
     parent: str
     grand_parent: str
     great_grand_parent: str
-
-
-parse_angle = curry(parse_angle)
-
-parse_phi = parse_angle(lim=(u("-pi rad"), u("pi rad")))
-cattr.register_structure_hook(PhiAngle, lambda v, t: parse_phi(v))
-
-parse_theta = parse_angle(lim=(u("0 rad"), u("pi rad")))
-cattr.register_structure_hook(ThetaAngle, lambda v, t: parse_theta(v))
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

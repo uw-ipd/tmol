@@ -1,6 +1,7 @@
 import toolz
 import attr
 import pytest
+from tmol.utility.units import parse_angle
 
 
 import torch
@@ -33,8 +34,8 @@ def test_water_generators(default_database):
     b = numpy.array((-5.250, -1.595, -2.543))
     b0 = numpy.array((-5.489, 0.060, -3.542))
     dist = 2.65
-    angle = 109.0
-    tors = numpy.array((120.0, 240.0))
+    angle = parse_angle("109.0 deg")
+    tors = numpy.array([parse_angle(f"{a} deg") for a in (120.0, 240.0)])
 
     w = build_acc_waters(a, b, b0, dist, angle, tors)
     waters_ref = numpy.array(
@@ -115,8 +116,8 @@ def test_lkball_deriv(default_database):
     b_j = numpy.array((0.0, 0.0, -1.0))
     b0_j = numpy.array((1.0, 0.0, 0.0))
     heavyatom_water_len = 2.65
-    angle = 109.0
-    tors_j = numpy.array((0.0, 120.0, 240.0))
+    angle = parse_angle("109.0 deg")
+    tors_j = numpy.array([parse_angle(f"{a} deg") for a in (0.0, 120.0, 240.0)])
     w_j = build_acc_waters(a_j, b_j, b0_j, heavyatom_water_len, angle, tors_j)
 
     ramp_width_A2 = 3.709
@@ -159,7 +160,7 @@ def test_lkball_deriv(default_database):
     a_i = numpy.array((0.0, 3.0, 3.0))
     b_i = numpy.array((0.0, 3.0, 4.0))
     b0_i = numpy.array((1.0, 0.0, 0.0))
-    tors_i = numpy.array((60.0, 180.0, 300.0))
+    tors_i = numpy.array([parse_angle(f"{a} deg") for a in (60.0, 180.0, 300.0)])
     w_i = build_acc_waters(a_i, b_i, b0_i, heavyatom_water_len, angle, tors_i)
 
     overlap_gap_A2 = 0.5
@@ -499,6 +500,21 @@ def test_lkball_spotcheck(default_database):
     score_ref = numpy.array([[0.335514, 0., 0.264926, 0.789612]])
     numpy.testing.assert_allclose(score, score_ref, atol=1e-5)
 
+
+def test_lkball_spotcheck_sp2_nonpolar(default_database):
+    param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
+        default_database.scoring.ljlk, device=torch.device("cpu")
+    )
+
+    params = _get_params(param_resolver)
+
+    def get_lkball_intra(
+        coords, atom_types, bonded_path_lengths, attached_h, base_atoms
+    ):
+        return ignore_unused_kwargs(lkball_intra)(
+            coords, atom_types, bonded_path_lengths, attached_h, base_atoms, **params
+        )
+
     # test 2: sp2 acceptor--nonpolar
     coords = numpy.array(
         [
@@ -524,6 +540,21 @@ def test_lkball_spotcheck(default_database):
     numpy.testing.assert_array_equal(pairs, pairs_ref)
     score_ref = numpy.array([[0.14107985, 0.04765878, 0., 0.]])
     numpy.testing.assert_allclose(score, score_ref, atol=1e-5)
+
+
+def test_lkball_spotcheck_sp3_ring(default_database):
+    param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
+        default_database.scoring.ljlk, device=torch.device("cpu")
+    )
+
+    params = _get_params(param_resolver)
+
+    def get_lkball_intra(
+        coords, atom_types, bonded_path_lengths, attached_h, base_atoms
+    ):
+        return ignore_unused_kwargs(lkball_intra)(
+            coords, atom_types, bonded_path_lengths, attached_h, base_atoms, **params
+        )
 
     # test 3: ring acceptor--sp3 acceptor
     coords = numpy.array(
