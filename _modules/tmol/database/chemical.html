@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.chemical &mdash; TMol 0.0.0-143-g53377fc4 documentation</title>
+  <title>tmol.database.chemical &mdash; TMol 0.0.0-144-g5ef1585e documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-143-g53377fc4
+                0.0.0-144-g5ef1585e
               </div>
             
           
@@ -165,9 +165,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for tmol.database.chemical</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">NewType</span>
-<span class="kn">from</span> <span class="nn">tmol.utility.units</span> <span class="k">import</span> <span class="n">parse_angle</span><span class="p">,</span> <span class="n">u</span>
-<span class="kn">from</span> <span class="nn">toolz</span> <span class="k">import</span> <span class="n">curry</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">tmol.utility.units</span> <span class="k">import</span> <span class="n">BondAngle</span><span class="p">,</span> <span class="n">DihedralAngle</span>
 
 <span class="kn">import</span> <span class="nn">attr</span>
 <span class="kn">import</span> <span class="nn">cattr</span>
@@ -182,28 +181,15 @@
     <span class="n">atom_type</span><span class="p">:</span> <span class="nb">str</span></div>
 
 
-<span class="n">PhiAngle</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;PhiAngle&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
-<span class="n">ThetaAngle</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;ThetaAngle&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
-
-
 <div class="viewcode-block" id="Icoor"><a class="viewcode-back" href="../../../apidoc/tmol.database.chemical.html#tmol.database.chemical.Icoor">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">Icoor</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">phi</span><span class="p">:</span> <span class="n">PhiAngle</span>
-    <span class="n">theta</span><span class="p">:</span> <span class="n">ThetaAngle</span>
+    <span class="n">phi</span><span class="p">:</span> <span class="n">DihedralAngle</span>
+    <span class="n">theta</span><span class="p">:</span> <span class="n">BondAngle</span>
     <span class="n">d</span><span class="p">:</span> <span class="nb">float</span>
     <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">grand_parent</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">great_grand_parent</span><span class="p">:</span> <span class="nb">str</span></div>
-
-
-<span class="n">parse_angle</span> <span class="o">=</span> <span class="n">curry</span><span class="p">(</span><span class="n">parse_angle</span><span class="p">)</span>
-
-<span class="n">parse_phi</span> <span class="o">=</span> <span class="n">parse_angle</span><span class="p">(</span><span class="n">lim</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="p">(</span><span class="s2">&quot;-pi rad&quot;</span><span class="p">),</span> <span class="n">u</span><span class="p">(</span><span class="s2">&quot;pi rad&quot;</span><span class="p">)))</span>
-<span class="n">cattr</span><span class="o">.</span><span class="n">register_structure_hook</span><span class="p">(</span><span class="n">PhiAngle</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">parse_phi</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-
-<span class="n">parse_theta</span> <span class="o">=</span> <span class="n">parse_angle</span><span class="p">(</span><span class="n">lim</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="p">(</span><span class="s2">&quot;0 rad&quot;</span><span class="p">),</span> <span class="n">u</span><span class="p">(</span><span class="s2">&quot;pi rad&quot;</span><span class="p">)))</span>
-<span class="n">cattr</span><span class="o">.</span><span class="n">register_structure_hook</span><span class="p">(</span><span class="n">ThetaAngle</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">parse_theta</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="Connection"><a class="viewcode-back" href="../../../apidoc/tmol.database.chemical.html#tmol.database.chemical.Connection">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -287,7 +273,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-143-g53377fc4',
+              VERSION:'0.0.0-144-g5ef1585e',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.units &mdash; TMol 0.0.0-143-g53377fc4 documentation</title>
+  <title>tmol.utility.units &mdash; TMol 0.0.0-144-g5ef1585e documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-143-g53377fc4
+                0.0.0-144-g5ef1585e
               </div>
             
           
@@ -169,9 +169,10 @@
 
 <span class="kn">import</span> <span class="nn">math</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">NewType</span>
 
 <span class="kn">import</span> <span class="nn">pint</span>
+<span class="kn">import</span> <span class="nn">cattr</span>
 
 <span class="n">ureg</span> <span class="o">=</span> <span class="n">pint</span><span class="o">.</span><span class="n">UnitRegistry</span><span class="p">()</span>
 <span class="n">u</span> <span class="o">=</span> <span class="n">ureg</span><span class="o">.</span><span class="n">parse_expression</span>
@@ -209,6 +210,26 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;angle: </span><span class="si">{angle!r}</span><span class="s2"> outside of allowed range: </span><span class="si">{lim}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">val</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parse_bond_angle"><a class="viewcode-back" href="../../../apidoc/tmol.utility.units.html#tmol.utility.units.parse_bond_angle">[docs]</a><span class="k">def</span> <span class="nf">parse_bond_angle</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Parse a bond angle on the range [0, pi) via pint.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">parse_angle</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">lim</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="p">(</span><span class="s2">&quot;0 rad&quot;</span><span class="p">),</span> <span class="n">u</span><span class="p">(</span><span class="s2">&quot;pi rad&quot;</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="parse_dihedral_angle"><a class="viewcode-back" href="../../../apidoc/tmol.utility.units.html#tmol.utility.units.parse_dihedral_angle">[docs]</a><span class="k">def</span> <span class="nf">parse_dihedral_angle</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Parse a dihedral angle on the range [-pi, pi) via pint.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">parse_angle</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">lim</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="p">(</span><span class="s2">&quot;-pi rad&quot;</span><span class="p">),</span> <span class="n">u</span><span class="p">(</span><span class="s2">&quot;pi rad&quot;</span><span class="p">)))</span></div>
+
+
+<span class="n">Angle</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;Angle&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+<span class="n">cattr</span><span class="o">.</span><span class="n">register_structure_hook</span><span class="p">(</span><span class="n">Angle</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">parse_angle</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+<span class="n">BondAngle</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;BondAngle&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+<span class="n">cattr</span><span class="o">.</span><span class="n">register_structure_hook</span><span class="p">(</span><span class="n">BondAngle</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">parse_bond_angle</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+<span class="n">DihedralAngle</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;DihedralAngle&quot;</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+<span class="n">cattr</span><span class="o">.</span><span class="n">register_structure_hook</span><span class="p">(</span><span class="n">DihedralAngle</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="n">parse_dihedral_angle</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
 </pre></div>
 
            </div>
@@ -245,7 +266,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-143-g53377fc4',
+              VERSION:'0.0.0-144-g5ef1585e',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

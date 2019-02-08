@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.numba.lk_ball &mdash; TMol 0.0.0-143-g53377fc4 documentation</title>
+  <title>tmol.score.ljlk.numba.lk_ball &mdash; TMol 0.0.0-144-g5ef1585e documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-143-g53377fc4
+                0.0.0-144-g5ef1585e
               </div>
             
           
@@ -289,13 +289,9 @@
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nwats</span><span class="p">):</span>
         <span class="n">waters</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mf">180.0</span> <span class="o">-</span> <span class="n">angle</span><span class="p">)),</span>
-                <span class="n">dist</span>
-                <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mf">180.0</span> <span class="o">-</span> <span class="n">angle</span><span class="p">))</span>
-                <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">tors</span><span class="p">[</span><span class="n">i</span><span class="p">])),</span>
-                <span class="n">dist</span>
-                <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="mf">180.0</span> <span class="o">-</span> <span class="n">angle</span><span class="p">))</span>
-                <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">tors</span><span class="p">[</span><span class="n">i</span><span class="p">])),</span>
+                <span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">angle</span><span class="p">),</span>
+                <span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">angle</span><span class="p">)</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">tors</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                <span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">angle</span><span class="p">)</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">tors</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
             <span class="p">]</span>
         <span class="p">)</span>
         <span class="n">waters</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">mult_matrix_vector</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">waters</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:])</span> <span class="o">+</span> <span class="n">a</span>
@@ -370,8 +366,8 @@
             <span class="o">-</span> <span class="n">x151</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">x135</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x136</span> <span class="o">+</span> <span class="n">x150</span><span class="p">)</span>
         <span class="p">)</span>
         <span class="n">x153</span> <span class="o">=</span> <span class="n">x119</span> <span class="o">*</span> <span class="n">x128</span>
-        <span class="n">x154</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">torsion</span> <span class="o">/</span> <span class="mi">180</span>
-        <span class="n">x155</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">angle</span> <span class="o">/</span> <span class="mi">180</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">x154</span> <span class="o">=</span> <span class="n">torsion</span>
+        <span class="n">x155</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">angle</span>
         <span class="n">x156</span> <span class="o">=</span> <span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x155</span><span class="p">)</span>
         <span class="n">x157</span> <span class="o">=</span> <span class="n">x156</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x154</span><span class="p">)</span>
         <span class="n">x158</span> <span class="o">=</span> <span class="n">dist</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x155</span><span class="p">)</span>
@@ -1034,10 +1030,12 @@
     <span class="n">dwted_d2_delta_dai</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">delta_ij</span>
     <span class="n">dwted_d2_delta_daj</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">delta_ij</span>
 
-    <span class="n">anglefrac</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">anglefrac</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">danglefrac_dbasedelta</span> <span class="o">=</span> <span class="mf">0.0</span>
     <span class="k">if</span> <span class="n">numpy</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">base_atom_delta</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">angle_overlap_A2</span><span class="p">:</span>
-        <span class="n">anglefrac</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="k">else</span><span class="p">:</span>
+        <span class="n">anglefrac</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">danglefrac_dbasedelta</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">elif</span> <span class="n">numpy</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">base_atom_delta</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">anglefrac</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">base_atom_delta</span> <span class="o">/</span> <span class="n">angle_overlap_A2</span><span class="p">))</span>
         <span class="n">danglefrac_dbasedelta</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span>
             <span class="mi">4</span>
@@ -1045,6 +1043,9 @@
             <span class="o">*</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">angle_overlap_A2</span><span class="p">)</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">base_atom_delta</span><span class="p">))</span>
             <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">angle_overlap_A2</span><span class="p">))</span>
         <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">anglefrac</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">danglefrac_dbasedelta</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="c1"># final scaling</span>
     <span class="n">dwted_d2_delta_dai</span> <span class="o">=</span> <span class="n">overlapfrac</span> <span class="o">*</span> <span class="n">danglefrac_dbasedelta</span> <span class="o">*</span> <span class="n">dwted_d2_delta_dai</span>
@@ -1771,7 +1772,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../../',
-              VERSION:'0.0.0-143-g53377fc4',
+              VERSION:'0.0.0-144-g5ef1585e',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

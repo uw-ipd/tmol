@@ -7,7 +7,7 @@ tmol.utility.units
 .. currentmodule:: tmol.utility.units
 
 .. automodule:: tmol.utility.units
-    :members: parse_angle
+    :members: parse_angle, parse_bond_angle, parse_dihedral_angle
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -22,6 +22,8 @@ tmol.utility.units
         :nosignatures:
 
         parse_angle
+        parse_bond_angle
+        parse_dihedral_angle
 
 
 
