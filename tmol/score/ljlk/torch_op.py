@@ -36,10 +36,13 @@ class AtomOp:
 
     @classmethod
     @validate_args
-    def from_database(cls, ljlk_database: LJLKDatabase, device: torch.device):
-
+    def from_database(
+        cls, chemical_database, ljlk_database: LJLKDatabase, device: torch.device
+    ):
         return cls.from_param_resolver(
-            param_resolver=LJLKParamResolver.from_database(ljlk_database, device)
+            param_resolver=LJLKParamResolver.from_database(
+                chemical_database, ljlk_database, device
+            )
         )
 
     def inter(

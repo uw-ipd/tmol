@@ -28,7 +28,7 @@ class ScoreSetup:
     @classmethod
     def from_fixture(cls, database, system, torch_device) -> "ScoreSetup":
         param_resolver = tmol.score.ljlk.params.LJLKParamResolver.from_database(
-            database.scoring.ljlk, torch_device
+            database.chemical, database.scoring.ljlk, torch_device
         )
 
         coords = system.coords
