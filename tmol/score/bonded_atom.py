@@ -6,20 +6,20 @@ import numpy
 import sparse
 import scipy.sparse.csgraph as csgraph
 
-from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.reactive import reactive_property
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
 
+from .score_graph import score_graph
 from .database import ParamDB
-from .factory import Factory
 from .stacked_system import StackedSystem
 from .device import TorchDevice
 
 
-@reactive_attrs(auto_attribs=True)
-class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice, Factory):
+@score_graph
+class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     """Score graph component describing a system's atom types and bonds.
 
     Attributes:

@@ -7,8 +7,8 @@ import numpy
 from ..database import ParamDB
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
-from ..factory import Factory
-from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
+from ..score_components import ScoreComponentClasses, IntraScore
+from ..score_graph import score_graph
 
 from .identification import HBondElementAnalysis
 from .params import HBondParamResolver
@@ -98,10 +98,8 @@ class HBondIntraScore(IntraScore):
         )
 
 
-@reactive_attrs(auto_attribs=True)
-class HBondScoreGraph(
-    BondedAtomScoreGraph, ScoreComponent, ParamDB, TorchDevice, Factory
-):
+@score_graph
+class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     """Compute graph for the HBond term.
 
     Uses the reactive system to compute the list of donors and acceptors

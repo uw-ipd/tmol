@@ -15,8 +15,8 @@ from tmol.types.functional import validate_args
 from ..database import ParamDB
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
-from ..factory import Factory
-from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
+from ..score_components import ScoreComponentClasses, IntraScore
+from ..score_graph import score_graph
 
 from .params import ElecParamResolver
 from .torch_op import ElecOp
@@ -47,10 +47,8 @@ class ElecIntraScore(IntraScore):
         return vals.sum()
 
 
-@reactive_attrs(auto_attribs=True)
-class ElecScoreGraph(
-    BondedAtomScoreGraph, ScoreComponent, ParamDB, TorchDevice, Factory
-):
+@score_graph
+class ElecScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     total_score_components = [
         ScoreComponentClasses(
             "elec", intra_container=ElecIntraScore, inter_container=None

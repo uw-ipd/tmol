@@ -1,18 +1,18 @@
 import pytest
 from pytest import approx
 
-from tmol.utility.reactive import reactive_attrs
+from tmol.score.score_graph import score_graph
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 
 
-@reactive_attrs
+@score_graph
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
     pass
 
 
-@reactive_attrs
+@score_graph
 class LKGraph(CartesianAtomicCoordinateProvider, LKScoreGraph):
     pass
 

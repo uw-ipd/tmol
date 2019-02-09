@@ -4,7 +4,7 @@ import attr
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
 from tmol.score.score_components import (
-    ScoreComponent,
+    _ScoreComponent,
     ScoreComponentClasses,
     IntraScore,
     InterScore,
@@ -26,7 +26,8 @@ class InterFoo(InterScore):
 
 
 @attr.s
-class Foo(ScoreComponent):
+@_ScoreComponent.mixin
+class Foo:
     total_score_components = ScoreComponentClasses(
         name="foo", intra_container=IntraFoo, inter_container=InterFoo
     )
@@ -35,7 +36,8 @@ class Foo(ScoreComponent):
 
 
 @attr.s
-class JustInterFoo(ScoreComponent):
+@_ScoreComponent.mixin
+class JustInterFoo:
     total_score_components = ScoreComponentClasses(
         name="foo", intra_container=None, inter_container=InterFoo
     )
@@ -44,7 +46,8 @@ class JustInterFoo(ScoreComponent):
 
 
 @attr.s
-class JustIntraFoo(ScoreComponent):
+@_ScoreComponent.mixin
+class JustIntraFoo:
     total_score_components = ScoreComponentClasses(
         name="foo", intra_container=IntraFoo, inter_container=None
     )
@@ -67,7 +70,8 @@ class InterBar(InterScore):
 
 
 @attr.s
-class Bar(ScoreComponent):
+@_ScoreComponent.mixin
+class Bar:
     total_score_components = ScoreComponentClasses(
         name="bar", intra_container=IntraBar, inter_container=InterBar
     )

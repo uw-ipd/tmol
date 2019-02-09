@@ -1,12 +1,10 @@
 from functools import singledispatch
 
-from tmol.utility.reactive import reactive_attrs
-
-from .factory import Factory
+from .score_graph import score_graph
 
 
-@reactive_attrs(auto_attribs=True)
-class StackedSystem(Factory):
+@score_graph
+class StackedSystem:
     """Score graph component describing stacked system's "depth" and "size".
 
     A score graph is defined over a set of independent system layers. The

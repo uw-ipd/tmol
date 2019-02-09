@@ -1,12 +1,12 @@
 from pytest import approx
 
-from tmol.utility.reactive import reactive_attrs
 
+from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.elec import ElecScoreGraph
 
 
-@reactive_attrs
+@score_graph
 class ElecGraph(CartesianAtomicCoordinateProvider, ElecScoreGraph):
     pass
 

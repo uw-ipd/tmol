@@ -1,14 +1,12 @@
 from typing import Optional
 
-from tmol.utility.reactive import reactive_attrs
-
 from tmol.database import ParameterDatabase
 
-from .factory import Factory
+from .score_graph import score_graph
 
 
-@reactive_attrs(auto_attribs=True)
-class ParamDB(Factory):
+@score_graph
+class ParamDB:
     """Graph component containing the common database.
 
     Attributes:
