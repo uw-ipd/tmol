@@ -4,6 +4,7 @@
 
 #include <tmol/score/ljlk/potentials/lj.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
+#include <tmol/score/ljlk/potentials/params.pybind.hh>
 
 namespace tmol {
 namespace score {
@@ -16,60 +17,31 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lj_sigma",
-      py::vectorize([](LJTypeParams_args(i_),
-                       LJTypeParams_args(j_),
-                       LJGlobalParams_args()) {
-        return lj_sigma<Real, LJTypeParams<Real>, LJGlobalParams<Real>>(
-            LJTypeParams_struct(i_),
-            LJTypeParams_struct(j_),
-            LJGlobalParams_struct());
-      }),
-      LJTypeParams_pyargs(i_),
-      LJTypeParams_pyargs(j_),
-      LJGlobalParams_pyargs());
+      &lj_sigma<Real, LJTypeParams<Real>, LJGlobalParams<Real>>,
+      "i_params"_a,
+      "j_params"_a,
+      "global_params"_a);
 
   m.def("vdw_V_dV", &vdw_V_dV<Real>, "dist"_a, "sigma"_a, "epsilon"_a);
   m.def("vdw_V", &vdw_V<Real>, "dist"_a, "sigma"_a, "epsilon"_a);
 
   m.def(
       "lj_score_V",
-      [](Real dist,
-         Real bonded_path_length,
-         LJTypeParams_args(i_),
-         LJTypeParams_args(j_),
-         LJGlobalParams_args()) {
-        return lj_score_V(
-            dist,
-            bonded_path_length,
-            LJTypeParams_struct(i_),
-            LJTypeParams_struct(j_),
-            LJGlobalParams_struct());
-      },
+      &lj_score_V<Real>,
       "dist"_a,
       "bonded_path_length"_a,
-      LJTypeParams_pyargs(i_),
-      LJTypeParams_pyargs(j_),
-      LJGlobalParams_pyargs());
+      "i_params"_a,
+      "j_params"_a,
+      "global_params"_a);
 
   m.def(
       "lj_score_V_dV",
-      [](Real dist,
-         Real bonded_path_length,
-         LJTypeParams_args(i_),
-         LJTypeParams_args(j_),
-         LJGlobalParams_args()) {
-        return lj_score_V_dV(
-            dist,
-            bonded_path_length,
-            LJTypeParams_struct(i_),
-            LJTypeParams_struct(j_),
-            LJGlobalParams_struct());
-      },
+      &lj_score_V_dV<Real>,
       "dist"_a,
       "bonded_path_length"_a,
-      LJTypeParams_pyargs(i_),
-      LJTypeParams_pyargs(j_),
-      LJGlobalParams_pyargs());
+      "i_params"_a,
+      "j_params"_a,
+      "global_params"_a);
 
   m.def(
       "f_desolv_V",
@@ -91,43 +63,21 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lk_isotropic_score_V",
-      [](Real dist,
-         Real bonded_path_length,
-         LKTypeParams_args(i_),
-         LKTypeParams_args(j_),
-         LJGlobalParams_args()) {
-        return lk_isotropic_score_V(
-            dist,
-            bonded_path_length,
-            LKTypeParams_struct(i_),
-            LKTypeParams_struct(j_),
-            LJGlobalParams_struct());
-      },
+      &lk_isotropic_score_V<Real>,
       "dist"_a,
       "bonded_path_length"_a,
-      LKTypeParams_pyargs(i_),
-      LKTypeParams_pyargs(j_),
-      LJGlobalParams_pyargs());
+      "i"_a,
+      "j"_a,
+      "global"_a);
 
   m.def(
       "lk_isotropic_score_V_dV",
-      [](Real dist,
-         Real bonded_path_length,
-         LKTypeParams_args(i_),
-         LKTypeParams_args(j_),
-         LJGlobalParams_args()) {
-        return lk_isotropic_score_V_dV(
-            dist,
-            bonded_path_length,
-            LKTypeParams_struct(i_),
-            LKTypeParams_struct(j_),
-            LJGlobalParams_struct());
-      },
+      &lk_isotropic_score_V_dV<Real>,
       "dist"_a,
       "bonded_path_length"_a,
-      LKTypeParams_pyargs(i_),
-      LKTypeParams_pyargs(j_),
-      LJGlobalParams_pyargs());
+      "i"_a,
+      "j"_a,
+      "global"_a);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { bind_potentials<double>(m); }
