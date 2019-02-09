@@ -1,0 +1,43 @@
+#include <pybind11/eigen.h>
+#include <tmol/utility/tensor/pybind.h>
+#include <torch/torch.h>
+
+#include "compiled.hh"
+
+namespace tmol {
+namespace score {
+namespace cartbonded {
+namespace potentials {
+
+template <tmol::Device Dev, typename Real, typename Int>
+void bind_dispatch(pybind11::module& m) {
+  using namespace pybind11::literals;
+
+#define CARTBONDED_PYARGS()                                                  \
+  "atom_pair_indices"_a, "parameter_indices"_a, "coords"_a, "K"_a, "x0"_a 
+
+  m.def(
+      "cartbonded_length",
+      &CartBondedLengthDispatch<Dev, Real, Int>::f,
+      CARTBONDED_PYARGS());
+};
+
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  using namespace pybind11::literals;
+
+  bind_dispatch<tmol::Device::CPU, float, int32_t>(m);
+  bind_dispatch<tmol::Device::CPU, float, int64_t>(m);
+  bind_dispatch<tmol::Device::CPU, double, int32_t>(m);
+  bind_dispatch<tmol::Device::CPU, double, int64_t>(m);
+
+#ifdef WITH_CUDA
+  bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
+  bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
+#endif
+
+
+}
+}  // namespace potentials
+}  // namespace hbond
+}  // namespace score
+}  // namespace tmol
