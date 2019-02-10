@@ -132,16 +132,18 @@ def test_bb_identification(bb_hbond_database, ubq_system, analysis_class):
     assert {r["a"]: r for r in hbe_acceptors} == {r["a"]: r for r in acceptors}
 
 
-def test_identification_by_ljlk_types(
+def test_identification_by_chemical_types(
     default_database: tmol.database.ParameterDatabase,
     analysis_class: HBondElementAnalysis,
 ):
+    """Hbond donor/acceptor identification covers all donors and accceptor atom
+    types in the chemical database."""
     db_res = default_database.chemical.residues
     types = [
         cattr.structure(cattr.unstructure(r), restypes.ResidueType) for r in db_res
     ]
 
-    lj_types = {t.name: t for t in default_database.scoring.ljlk.atom_type_parameters}
+    atom_types = {t.name: t for t in default_database.chemical.atom_types}
 
     for t in types:
         atom_types = numpy.array([a.atom_type for a in t.atoms])
@@ -159,11 +161,11 @@ def test_identification_by_ljlk_types(
         identified_acceptors = set(hbe.acceptors["a"])
 
         for ai, at in enumerate(atom_types):
-            if lj_types[at].is_donor:
+            if atom_types[at].is_donor:
                 assert (
                     ai in identified_donors
                 ), f"Unidentified donor. res: {t.name} atom:{t.atoms[ai]}"
-            if lj_types[at].is_acceptor:
+            if atom_types[at].is_acceptor:
                 assert (
                     ai in identified_acceptors
                 ), f"Unidentified acceptor. res: {t.name} atom:{t.atoms[ai]}"
