@@ -7,7 +7,7 @@ tmol.score.hbond.params
 .. currentmodule:: tmol.score.hbond.params
 
 .. automodule:: tmol.score.hbond.params
-    :members: AcceptorClass, HBondPairParams, HBondParamResolver, HBondPolyParams
+    :members: HBondPairParams, HBondParamResolver, HBondPolyParams
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,7 +21,6 @@ tmol.score.hbond.params
     .. autosummary::
         :nosignatures:
 
-        AcceptorClass
         HBondPairParams
         HBondParamResolver
         HBondPolyParams

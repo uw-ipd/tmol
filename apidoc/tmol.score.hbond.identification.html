@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-144-g5ef1585e documentation</title>
+  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-144-g5ef1585e
+                0.0.0-145-ge03dd9bf
               </div>
             
           
@@ -210,24 +210,10 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.identification.HBondElementAnalysis" title="tmol.score.hbond.identification.HBondElementAnalysis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondElementAnalysis</span></code></a></td>
-<td>Atom indicies for hbond donors and acceptors within system.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.identification.AHyb" title="tmol.score.hbond.identification.AHyb"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AHyb</span></code></a></td>
+<td>An enumeration.</td>
 </tr>
-</tbody>
-</table>
-</div>
-<div class="section" id="functions">
-<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
-<table border="1" class="longtable docutils">
-<colgroup>
-<col width="10%" />
-<col width="90%" />
-</colgroup>
-<tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.hbond.identification.df_to_struct" title="tmol.score.hbond.identification.df_to_struct"><code class="xref py py-obj docutils literal notranslate"><span class="pre">df_to_struct</span></code></a></td>
-<td>Convert a subset of columns into a structured array.</td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.identification.merge_tables" title="tmol.score.hbond.identification.merge_tables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merge_tables</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.hbond.identification.HBondElementAnalysis" title="tmol.score.hbond.identification.HBondElementAnalysis"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondElementAnalysis</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -236,31 +222,107 @@
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="tmol.score.hbond.identification.merge_tables">
-<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">merge_tables</code><span class="sig-paren">(</span><em>*tables</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#merge_tables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.merge_tables" title="Permalink to this definition">¶</a></dt>
+<dl class="class">
+<dt id="tmol.score.hbond.identification.AHyb">
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">AHyb</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#AHyb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.AHyb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="tmol.score.hbond.identification.AHyb.sp2">
+<code class="descname">sp2</code><em class="property"> = 0</em><a class="headerlink" href="#tmol.score.hbond.identification.AHyb.sp2" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
-<dt id="tmol.score.hbond.identification.df_to_struct">
-<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">df_to_struct</code><span class="sig-paren">(</span><em>df</em>, <em>column_mapping</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#df_to_struct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.df_to_struct" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert a subset of columns into a structured array.</p>
+<dl class="attribute">
+<dt id="tmol.score.hbond.identification.AHyb.sp3">
+<code class="descname">sp3</code><em class="property"> = 1</em><a class="headerlink" href="#tmol.score.hbond.identification.AHyb.sp3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.identification.AHyb.ring">
+<code class="descname">ring</code><em class="property"> = 2</em><a class="headerlink" href="#tmol.score.hbond.identification.AHyb.ring" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.identification.sp2_acceptor_base">
+<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">sp2_acceptor_base</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#sp2_acceptor_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.sp2_acceptor_base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify acceptor bases for sp2 acceptors.</p>
+<dl class="docutils">
+<dt>A = sp2 acceptor =&gt;</dt>
+<dd>B = bonded to A, not H
+B0 = bonded to B, not A</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(A, B, B0) Index Tuple</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.identification.sp3_acceptor_base">
+<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">sp3_acceptor_base</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#sp3_acceptor_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.sp3_acceptor_base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify acceptor bases for sp3 acceptors.</p>
+<dl class="docutils">
+<dt>A = sp3 acceptor =&gt;</dt>
+<dd>B0 = bonded to A, is H
+B = bonded to A, not B0</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(A, B, B0) Index Tuple</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.identification.ring_acceptor_base">
+<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">ring_acceptor_base</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#ring_acceptor_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.ring_acceptor_base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify acceptor bases for ring acceptors.</p>
+<dl class="docutils">
+<dt>A = ring acceptor =&gt;</dt>
+<dd>B = bonded to A, not H
+B0 = bonded to A, not H, not B</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(A, B, B0) Index Tuple</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.hbond.identification.id_acceptor_bases">
+<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">id_acceptor_bases</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#id_acceptor_bases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.id_acceptor_bases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given A_idx and bond graph metadata, calculate B, B0 idx.</p>
+<dl class="docutils">
+<dt>Params:</dt>
+<dd>A_idx: int[N] Populated Aatom index.
+B_idx: int[N] Empty B atom index.
+B0_idx: int[N] Empty B0 atom index.
+A_hyb: int[N] Acceptor hybridization class.
+bonds: int[nbond, 2] (i,j) sorted, symmetric bond tuples.
+atom_bond_span: int[natom, 2] [start,end) bond index i span.
+atom_is_hydrogen: bool[natom] Flag is atom is hydrogen.</dd>
+</dl>
+<p>Populates A_idx, B_idx, B0_idx with identified atom indices, B, B0 = -1 if
+no valid acceptor bond pattern found.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="tmol.score.hbond.identification.HBondElementAnalysis">
 <em class="property">class </em><code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">HBondElementAnalysis</code><span class="sig-paren">(</span><em>donors: NDArray(dtype([('d', '&lt;i8'), ('h', '&lt;i8'), ('donor_type', 'O')]))[:], acceptors: NDArray(dtype([('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#HBondElementAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.HBondElementAnalysis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
-<p>Atom indicies for hbond donors and acceptors within system.</p>
-<p>Atom indicies for hbond elements, form of atom sets defining:</p>
-<p>Elements are identified by matching bonding pattern and atom type against
-the set of defined donor/acceptor element types in the source hbond score
-database.</p>
-<p>Bond graph matching uses sql-like joins provided by the pandas package in
-order to do graph matching: e.g.,</p>
-<p>“I have atoms a, b, and c that are bonded in a pattern
-of a-b and b-c and I know their chemical types as ta, tb, and tc; do these three
-atoms match any of the known sets of sp2 hybridized acceptors?”</p>
 <dl class="attribute">
 <dt id="tmol.score.hbond.identification.HBondElementAnalysis.donors">
 <code class="descname">donors</code><a class="headerlink" href="#tmol.score.hbond.identification.HBondElementAnalysis.donors" title="Permalink to this definition">¶</a></dt>
@@ -273,22 +335,8 @@ atoms match any of the known sets of sp2 hybridized acceptors?”</p>
 
 <dl class="classmethod">
 <dt id="tmol.score.hbond.identification.HBondElementAnalysis.setup">
-<em class="property">classmethod </em><code class="descname">setup</code><span class="sig-paren">(</span><em>hbond_database: tmol.database.scoring.hbond.HBondDatabase, atom_types: NDArray(dtype('O'))[:], bonds: NDArray(dtype('int64'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#HBondElementAnalysis.setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.HBondElementAnalysis.setup" title="Permalink to this definition">¶</a></dt>
-<dd><p>Perform element analysis over the given bonded atom types.</p>
-<p><code class="docutils literal notranslate"><span class="pre">atom_types</span></code> includes string atom types for atoms in the system
-<code class="docutils literal notranslate"><span class="pre">bonds</span></code> includes atom type indices (in atom_types) for bonds in the system</p>
-<p>Bond graph matching proceeds in two phases:</p>
-<p>1) The bond graph is processed to a generate frames of bonded atom
-pairs/triples, without pruning by atom type, generating a table of
-<em>every</em> pair/triple in the structure.</p>
-<p>2) The source HBondDatabase is unstructured and converted into frames
-of bonded-atom-type pairs/triples, tagged with the element type of the
-atom type pair/triple, generating a table of every known hbond element
-type and it’s corresponding atom types.</p>
-<p>3) The bonded-atom pairs/triples are inner joined against the element
-pairs/triples by atom type, generating a table of pairs/triples for
-which an hbond element type is defined.</p>
-</dd></dl>
+<em class="property">classmethod </em><code class="descname">setup</code><span class="sig-paren">(</span><em>hbond_database: tmol.database.scoring.hbond.HBondDatabase, atom_types: NDArray(dtype('O'))[:], atom_is_hydrogen: NDArray(dtype('bool'))[:], bonds: NDArray(dtype('int64'))[:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#HBondElementAnalysis.setup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.HBondElementAnalysis.setup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -339,7 +387,7 @@ which an hbond element type is defined.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-144-g5ef1585e',
+              VERSION:'0.0.0-145-ge03dd9bf',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.params &mdash; TMol 0.0.0-144-g5ef1585e documentation</title>
+  <title>tmol.score.hbond.params &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-144-g5ef1585e
+                0.0.0-145-ge03dd9bf
               </div>
             
           
@@ -166,11 +166,8 @@
             
   <h1>Source code for tmol.score.hbond.params</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">attr</span>
-<span class="kn">import</span> <span class="nn">cattr</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Sequence</span>
-
-<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">IntEnum</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span>
 <span class="kn">import</span> <span class="nn">pandas</span>
@@ -185,12 +182,8 @@
 <span class="kn">from</span> <span class="nn">tmol.database.scoring.hbond</span> <span class="k">import</span> <span class="n">HBondDatabase</span>
 
 
-<div class="viewcode-block" id="AcceptorClass"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.AcceptorClass">[docs]</a><span class="k">class</span> <span class="nc">AcceptorClass</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
-    <span class="c1"># Integer mapping from symbolic acceptor types int flag.</span>
-    <span class="c1"># TODO resolve from compiled layer.</span>
-    <span class="n">sp2</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">sp3</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">ring</span> <span class="o">=</span> <span class="mi">2</span></div>
+<span class="c1"># static mapping to equivalent index in compiled potentials.</span>
+<span class="n">acceptor_class_index</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="s2">&quot;sp2&quot;</span><span class="p">,</span> <span class="s2">&quot;sp3&quot;</span><span class="p">,</span> <span class="s2">&quot;ring&quot;</span><span class="p">])</span>
 
 
 <div class="viewcode-block" id="HBondPolyParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondPolyParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -252,6 +245,7 @@
 <span class="k">class</span> <span class="nc">HBondParamResolver</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
     <span class="n">donor_type_index</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="n">acceptor_type_index</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+
     <span class="n">pair_params</span><span class="p">:</span> <span class="n">HBondPairParams</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
 
@@ -269,51 +263,28 @@
 
 <div class="viewcode-block" id="HBondParamResolver.from_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondParamResolver.from_database">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-        <span class="n">atom_groups</span> <span class="o">=</span> <span class="n">hbond_database</span><span class="o">.</span><span class="n">atom_groups</span>
 
-        <span class="n">donors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">donor_type</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">atom_groups</span><span class="o">.</span><span class="n">donors</span><span class="p">))</span>
+        <span class="n">donors</span> <span class="o">=</span> <span class="p">{</span><span class="n">g</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">g</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">hbond_database</span><span class="o">.</span><span class="n">donor_type_params</span><span class="p">}</span>
+        <span class="n">donor_type_index</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">donors</span><span class="p">))</span>
 
-        <span class="n">acceptor_classes</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">[(</span><span class="n">g</span><span class="o">.</span><span class="n">acceptor_type</span><span class="p">,</span> <span class="n">AcceptorClass</span><span class="o">.</span><span class="n">sp2</span><span class="p">)</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">atom_groups</span><span class="o">.</span><span class="n">sp2_acceptors</span><span class="p">]</span>
-            <span class="o">+</span> <span class="p">[(</span><span class="n">g</span><span class="o">.</span><span class="n">acceptor_type</span><span class="p">,</span> <span class="n">AcceptorClass</span><span class="o">.</span><span class="n">sp3</span><span class="p">)</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">atom_groups</span><span class="o">.</span><span class="n">sp3_acceptors</span><span class="p">]</span>
-            <span class="o">+</span> <span class="p">[</span>
-                <span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">acceptor_type</span><span class="p">,</span> <span class="n">AcceptorClass</span><span class="o">.</span><span class="n">ring</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">atom_groups</span><span class="o">.</span><span class="n">ring_acceptors</span>
-            <span class="p">]</span>
-        <span class="p">)</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">acceptor_classes</span><span class="p">))</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span>
-            <span class="nb">set</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">acceptor_classes</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="p">),</span> <span class="s2">&quot;acceptor type with multiple hybridization classes defined.&quot;</span>
+        <span class="n">acceptors</span> <span class="o">=</span> <span class="p">{</span><span class="n">g</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">g</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">hbond_database</span><span class="o">.</span><span class="n">acceptor_type_params</span><span class="p">}</span>
+        <span class="n">acceptor_type_index</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">acceptors</span><span class="p">))</span>
 
-        <span class="n">acceptor_classes</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">acceptor_classes</span><span class="p">)</span>
-        <span class="n">acceptors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">acceptor_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">pair_params</span> <span class="o">=</span> <span class="n">HBondPairParams</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">donors</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">acceptors</span><span class="p">)),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
 
-        <span class="n">donor_type_index</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">donors</span><span class="p">)</span>
+        <span class="c1"># Denormalize donor/acceptor weight and class into pair parameter table</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">donors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">i</span><span class="p">,</span> <span class="o">=</span> <span class="n">donor_type_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">name</span><span class="p">])</span>
+            <span class="n">pair_params</span><span class="o">.</span><span class="n">donor_weight</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">weight</span>
 
-        <span class="n">donor_weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span>
-            <span class="p">(</span>
-                <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
-                    <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">hbond_database</span><span class="o">.</span><span class="n">don_weights</span><span class="p">)</span>
-                <span class="p">)</span>
-                <span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span>
-                <span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">donor_type_index</span><span class="p">)</span>
-                <span class="o">.</span><span class="n">values</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">acceptors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">i</span><span class="p">,</span> <span class="o">=</span> <span class="n">acceptor_type_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">name</span><span class="p">])</span>
+            <span class="n">pair_params</span><span class="o">.</span><span class="n">acceptor_weight</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">weight</span>
+            <span class="n">pair_params</span><span class="o">.</span><span class="n">acceptor_class</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">acceptor_class_index</span><span class="o">.</span><span class="n">get_indexer_for</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">hybridization</span><span class="p">])</span>
             <span class="p">)</span>
-        <span class="p">)</span>
 
-        <span class="n">acceptor_type_index</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">acceptors</span><span class="p">)</span>
-
-        <span class="n">acceptor_weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">(</span>
-            <span class="p">(</span>
-                <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
-                    <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">hbond_database</span><span class="o">.</span><span class="n">acc_weights</span><span class="p">)</span>
-                <span class="p">)</span>
-                <span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span>
-                <span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">acceptor_type_index</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Get polynomial parameters index by polynomial name</span>
+        <span class="c1"># Get polynomial parameters indexed by polynomial name</span>
         <span class="n">poly_params</span> <span class="o">=</span> <span class="n">HBondPolyParams</span><span class="p">(</span>
             <span class="o">**</span><span class="n">toolz</span><span class="o">.</span><span class="n">merge_with</span><span class="p">(</span>
                 <span class="n">numpy</span><span class="o">.</span><span class="n">vstack</span><span class="p">,</span>
@@ -333,23 +304,17 @@
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">hbond_database</span><span class="o">.</span><span class="n">polynomial_parameters</span><span class="p">)</span>
         <span class="p">}</span>
 
-        <span class="n">pair_params</span> <span class="o">=</span> <span class="n">HBondPairParams</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">donors</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">acceptors</span><span class="p">)),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-
+        <span class="c1"># Denormalize polynomial parameters into pair parameter table</span>
         <span class="k">for</span> <span class="n">pp</span> <span class="ow">in</span> <span class="n">hbond_database</span><span class="o">.</span><span class="n">pair_parameters</span><span class="p">:</span>
-            <span class="n">di</span><span class="p">,</span> <span class="o">=</span> <span class="n">donor_type_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">pp</span><span class="o">.</span><span class="n">don_chem_type</span><span class="p">])</span>
+            <span class="n">di</span><span class="p">,</span> <span class="o">=</span> <span class="n">donor_type_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">pp</span><span class="o">.</span><span class="n">donor_type</span><span class="p">])</span>
             <span class="k">assert</span> <span class="n">di</span> <span class="o">&gt;=</span> <span class="mi">0</span>
 
-            <span class="n">ai</span><span class="p">,</span> <span class="o">=</span> <span class="n">acceptor_type_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">pp</span><span class="o">.</span><span class="n">acc_chem_type</span><span class="p">])</span>
+            <span class="n">ai</span><span class="p">,</span> <span class="o">=</span> <span class="n">acceptor_type_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">pp</span><span class="o">.</span><span class="n">acceptor_type</span><span class="p">])</span>
             <span class="k">assert</span> <span class="n">ai</span> <span class="o">&gt;=</span> <span class="mi">0</span>
 
             <span class="n">pair_params</span><span class="p">[</span><span class="n">di</span><span class="p">,</span> <span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">AHdist</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">poly_params</span><span class="p">[</span><span class="n">pp</span><span class="o">.</span><span class="n">AHdist</span><span class="p">]</span>
             <span class="n">pair_params</span><span class="p">[</span><span class="n">di</span><span class="p">,</span> <span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">cosBAH</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">poly_params</span><span class="p">[</span><span class="n">pp</span><span class="o">.</span><span class="n">cosBAH</span><span class="p">]</span>
             <span class="n">pair_params</span><span class="p">[</span><span class="n">di</span><span class="p">,</span> <span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">cosAHD</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">poly_params</span><span class="p">[</span><span class="n">pp</span><span class="o">.</span><span class="n">cosAHD</span><span class="p">]</span>
-            <span class="n">pair_params</span><span class="p">[</span><span class="n">di</span><span class="p">,</span> <span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">donor_weight</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">donor_weights</span><span class="p">[</span><span class="n">di</span><span class="p">]</span>
-            <span class="n">pair_params</span><span class="p">[</span><span class="n">di</span><span class="p">,</span> <span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">acceptor_weight</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">acceptor_weights</span><span class="p">[</span><span class="n">ai</span><span class="p">]</span>
-            <span class="n">pair_params</span><span class="p">[</span><span class="n">di</span><span class="p">,</span> <span class="n">ai</span><span class="p">]</span><span class="o">.</span><span class="n">acceptor_class</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">acceptor_classes</span><span class="p">[</span>
-                <span class="n">pp</span><span class="o">.</span><span class="n">acc_chem_type</span>
-            <span class="p">]</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
             <span class="n">donor_type_index</span><span class="o">=</span><span class="n">donor_type_index</span><span class="p">,</span>
@@ -393,7 +358,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-144-g5ef1585e',
+              VERSION:'0.0.0-145-ge03dd9bf',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

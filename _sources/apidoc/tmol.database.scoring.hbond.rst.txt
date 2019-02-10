@@ -7,7 +7,7 @@ tmol.database.scoring.hbond
 .. currentmodule:: tmol.database.scoring.hbond
 
 .. automodule:: tmol.database.scoring.hbond
-    :members: AcceptorAtoms, AtomGroups, DonorAtoms, GlobalParams, HBondDatabase, HbondWeights, PairParameters, PolynomialParameters
+    :members: AcceptorAtomType, AcceptorTypeParam, DonorAtomType, DonorTypeParam, GlobalParams, HBondDatabase, PairParameters, PolynomialParameters
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,12 +21,12 @@ tmol.database.scoring.hbond
     .. autosummary::
         :nosignatures:
 
-        AcceptorAtoms
-        AtomGroups
-        DonorAtoms
+        AcceptorAtomType
+        AcceptorTypeParam
+        DonorAtomType
+        DonorTypeParam
         GlobalParams
         HBondDatabase
-        HbondWeights
         PairParameters
         PolynomialParameters
 

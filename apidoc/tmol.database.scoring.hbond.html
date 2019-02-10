@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring.hbond &mdash; TMol 0.0.0-144-g5ef1585e documentation</title>
+  <title>tmol.database.scoring.hbond &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-144-g5ef1585e
+                0.0.0-145-ge03dd9bf
               </div>
             
           
@@ -199,22 +199,22 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.AcceptorAtoms" title="tmol.database.scoring.hbond.AcceptorAtoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AcceptorAtoms</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.AcceptorAtomType" title="tmol.database.scoring.hbond.AcceptorAtomType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AcceptorAtomType</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.AtomGroups" title="tmol.database.scoring.hbond.AtomGroups"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AtomGroups</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.AcceptorTypeParam" title="tmol.database.scoring.hbond.AcceptorTypeParam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AcceptorTypeParam</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.DonorAtoms" title="tmol.database.scoring.hbond.DonorAtoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DonorAtoms</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.DonorAtomType" title="tmol.database.scoring.hbond.DonorAtomType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DonorAtomType</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.GlobalParams" title="tmol.database.scoring.hbond.GlobalParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GlobalParams</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.DonorTypeParam" title="tmol.database.scoring.hbond.DonorTypeParam"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DonorTypeParam</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.HBondDatabase" title="tmol.database.scoring.hbond.HBondDatabase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondDatabase</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.GlobalParams" title="tmol.database.scoring.hbond.GlobalParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GlobalParams</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.HbondWeights" title="tmol.database.scoring.hbond.HbondWeights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HbondWeights</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.HBondDatabase" title="tmol.database.scoring.hbond.HBondDatabase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondDatabase</span></code></a></td>
 <td></td>
 </tr>
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.PairParameters" title="tmol.database.scoring.hbond.PairParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PairParameters</span></code></a></td>
@@ -229,6 +229,11 @@
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tmol.database.scoring.hbond._parse_acceptor_hybridization">
+<code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">_parse_acceptor_hybridization</code><span class="sig-paren">(</span><em>v</em>, <em>t</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#_parse_acceptor_hybridization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond._parse_acceptor_hybridization" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="class">
 <dt id="tmol.database.scoring.hbond.GlobalParams">
 <em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">GlobalParams</code><span class="sig-paren">(</span><em>hb_sp2_range_span: float</em>, <em>hb_sp2_BAH180_rise: float</em>, <em>hb_sp2_outer_width: float</em>, <em>hb_sp3_softmax_fade: float</em>, <em>threshold_distance: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#GlobalParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.GlobalParams" title="Permalink to this definition">¶</a></dt>
@@ -261,90 +266,70 @@
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.database.scoring.hbond.DonorAtoms">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">DonorAtoms</code><span class="sig-paren">(</span><em>d: str</em>, <em>h: str</em>, <em>donor_type: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#DonorAtoms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.DonorAtoms" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.DonorAtomType">
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">DonorAtomType</code><span class="sig-paren">(</span><em>d: str</em>, <em>donor_type: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#DonorAtomType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.DonorAtomType" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.DonorAtoms.d">
-<code class="descname">d</code><a class="headerlink" href="#tmol.database.scoring.hbond.DonorAtoms.d" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.DonorAtomType.d">
+<code class="descname">d</code><a class="headerlink" href="#tmol.database.scoring.hbond.DonorAtomType.d" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.DonorAtoms.h">
-<code class="descname">h</code><a class="headerlink" href="#tmol.database.scoring.hbond.DonorAtoms.h" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.hbond.DonorAtoms.donor_type">
-<code class="descname">donor_type</code><a class="headerlink" href="#tmol.database.scoring.hbond.DonorAtoms.donor_type" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.DonorAtomType.donor_type">
+<code class="descname">donor_type</code><a class="headerlink" href="#tmol.database.scoring.hbond.DonorAtomType.donor_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.database.scoring.hbond.AcceptorAtoms">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">AcceptorAtoms</code><span class="sig-paren">(</span><em>a: str</em>, <em>b: str</em>, <em>b0: str</em>, <em>acceptor_type: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#AcceptorAtoms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorAtoms" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.AcceptorAtomType">
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">AcceptorAtomType</code><span class="sig-paren">(</span><em>a: str</em>, <em>acceptor_type: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#AcceptorAtomType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorAtomType" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.AcceptorAtoms.a">
-<code class="descname">a</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorAtoms.a" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.AcceptorAtomType.a">
+<code class="descname">a</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorAtomType.a" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.AcceptorAtoms.b">
-<code class="descname">b</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorAtoms.b" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.hbond.AcceptorAtoms.b0">
-<code class="descname">b0</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorAtoms.b0" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.hbond.AcceptorAtoms.acceptor_type">
-<code class="descname">acceptor_type</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorAtoms.acceptor_type" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.AcceptorAtomType.acceptor_type">
+<code class="descname">acceptor_type</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorAtomType.acceptor_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.database.scoring.hbond.AtomGroups">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">AtomGroups</code><span class="sig-paren">(</span><em>donors: Tuple[tmol.database.scoring.hbond.DonorAtoms, ...], sp2_acceptors: Tuple[tmol.database.scoring.hbond.AcceptorAtoms, ...], sp3_acceptors: Tuple[tmol.database.scoring.hbond.AcceptorAtoms, ...], ring_acceptors: Tuple[tmol.database.scoring.hbond.AcceptorAtoms, ...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#AtomGroups"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.AtomGroups" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.DonorTypeParam">
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">DonorTypeParam</code><span class="sig-paren">(</span><em>name: str</em>, <em>weight: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#DonorTypeParam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.DonorTypeParam" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.AtomGroups.donors">
-<code class="descname">donors</code><a class="headerlink" href="#tmol.database.scoring.hbond.AtomGroups.donors" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.DonorTypeParam.name">
+<code class="descname">name</code><a class="headerlink" href="#tmol.database.scoring.hbond.DonorTypeParam.name" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.AtomGroups.sp2_acceptors">
-<code class="descname">sp2_acceptors</code><a class="headerlink" href="#tmol.database.scoring.hbond.AtomGroups.sp2_acceptors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.hbond.AtomGroups.sp3_acceptors">
-<code class="descname">sp3_acceptors</code><a class="headerlink" href="#tmol.database.scoring.hbond.AtomGroups.sp3_acceptors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.hbond.AtomGroups.ring_acceptors">
-<code class="descname">ring_acceptors</code><a class="headerlink" href="#tmol.database.scoring.hbond.AtomGroups.ring_acceptors" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.DonorTypeParam.weight">
+<code class="descname">weight</code><a class="headerlink" href="#tmol.database.scoring.hbond.DonorTypeParam.weight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.database.scoring.hbond.HbondWeights">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">HbondWeights</code><span class="sig-paren">(</span><em>name: str</em>, <em>weight: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#HbondWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.HbondWeights" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.AcceptorTypeParam">
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">AcceptorTypeParam</code><span class="sig-paren">(</span><em>name: str</em>, <em>weight: float</em>, <em>hybridization: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1606d90&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#AcceptorTypeParam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorTypeParam" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.HbondWeights.name">
-<code class="descname">name</code><a class="headerlink" href="#tmol.database.scoring.hbond.HbondWeights.name" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.AcceptorTypeParam.name">
+<code class="descname">name</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorTypeParam.name" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.HbondWeights.weight">
-<code class="descname">weight</code><a class="headerlink" href="#tmol.database.scoring.hbond.HbondWeights.weight" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.AcceptorTypeParam.weight">
+<code class="descname">weight</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorTypeParam.weight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.AcceptorTypeParam.hybridization">
+<code class="descname">hybridization</code><a class="headerlink" href="#tmol.database.scoring.hbond.AcceptorTypeParam.hybridization" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -447,16 +432,16 @@
 
 <dl class="class">
 <dt id="tmol.database.scoring.hbond.PairParameters">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">PairParameters</code><span class="sig-paren">(</span><em>don_chem_type: str</em>, <em>acc_chem_type: str</em>, <em>AHdist: str</em>, <em>cosBAH: str</em>, <em>cosAHD: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#PairParameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.PairParameters" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">PairParameters</code><span class="sig-paren">(</span><em>donor_type: str</em>, <em>acceptor_type: str</em>, <em>AHdist: str</em>, <em>cosBAH: str</em>, <em>cosAHD: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#PairParameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.PairParameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.PairParameters.don_chem_type">
-<code class="descname">don_chem_type</code><a class="headerlink" href="#tmol.database.scoring.hbond.PairParameters.don_chem_type" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.PairParameters.donor_type">
+<code class="descname">donor_type</code><a class="headerlink" href="#tmol.database.scoring.hbond.PairParameters.donor_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.PairParameters.acc_chem_type">
-<code class="descname">acc_chem_type</code><a class="headerlink" href="#tmol.database.scoring.hbond.PairParameters.acc_chem_type" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.PairParameters.acceptor_type">
+<code class="descname">acceptor_type</code><a class="headerlink" href="#tmol.database.scoring.hbond.PairParameters.acceptor_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -478,7 +463,7 @@
 
 <dl class="class">
 <dt id="tmol.database.scoring.hbond.HBondDatabase">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">HBondDatabase</code><span class="sig-paren">(</span><em>global_parameters: tmol.database.scoring.hbond.GlobalParams, atom_groups: tmol.database.scoring.hbond.AtomGroups, don_weights: Tuple[tmol.database.scoring.hbond.HbondWeights, ...], acc_weights: Tuple[tmol.database.scoring.hbond.HbondWeights, ...], polynomial_parameters: Tuple[tmol.database.scoring.hbond.PolynomialParameters, ...], pair_parameters: Tuple[tmol.database.scoring.hbond.PairParameters, ...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#HBondDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">HBondDatabase</code><span class="sig-paren">(</span><em>global_parameters: tmol.database.scoring.hbond.GlobalParams, donor_atom_types: Tuple[tmol.database.scoring.hbond.DonorAtomType, ...], donor_type_params: Tuple[tmol.database.scoring.hbond.DonorTypeParam, ...], acceptor_atom_types: Tuple[tmol.database.scoring.hbond.AcceptorAtomType, ...], acceptor_type_params: Tuple[tmol.database.scoring.hbond.AcceptorTypeParam, ...], pair_parameters: Tuple[tmol.database.scoring.hbond.PairParameters, ...], polynomial_parameters: Tuple[tmol.database.scoring.hbond.PolynomialParameters, ...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#HBondDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.database.scoring.hbond.HBondDatabase.global_parameters">
@@ -486,28 +471,33 @@
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.HBondDatabase.atom_groups">
-<code class="descname">atom_groups</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.atom_groups" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.HBondDatabase.donor_atom_types">
+<code class="descname">donor_atom_types</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.donor_atom_types" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.HBondDatabase.don_weights">
-<code class="descname">don_weights</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.don_weights" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.HBondDatabase.donor_type_params">
+<code class="descname">donor_type_params</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.donor_type_params" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.HBondDatabase.acc_weights">
-<code class="descname">acc_weights</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.acc_weights" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.HBondDatabase.acceptor_atom_types">
+<code class="descname">acceptor_atom_types</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.acceptor_atom_types" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.database.scoring.hbond.HBondDatabase.polynomial_parameters">
-<code class="descname">polynomial_parameters</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.polynomial_parameters" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.database.scoring.hbond.HBondDatabase.acceptor_type_params">
+<code class="descname">acceptor_type_params</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.acceptor_type_params" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.database.scoring.hbond.HBondDatabase.pair_parameters">
 <code class="descname">pair_parameters</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.pair_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabase.polynomial_parameters">
+<code class="descname">polynomial_parameters</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.polynomial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
@@ -564,7 +554,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-144-g5ef1585e',
+              VERSION:'0.0.0-145-ge03dd9bf',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

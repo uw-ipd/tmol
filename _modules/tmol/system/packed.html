@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.packed &mdash; TMol 0.0.0-144-g5ef1585e documentation</title>
+  <title>tmol.system.packed &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-144-g5ef1585e
+                0.0.0-145-ge03dd9bf
               </div>
             
           
@@ -257,6 +257,8 @@
             <span class="n">residue_block</span><span class="p">[</span><span class="s2">&quot;residue_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rt</span><span class="o">.</span><span class="n">name</span>
             <span class="n">residue_block</span><span class="p">[</span><span class="s2">&quot;atom_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">]</span>
             <span class="n">residue_block</span><span class="p">[</span><span class="s2">&quot;atom_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">atom_type</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">]</span>
+            <span class="c1"># TODO Rewrite chemical database with explict element tag.</span>
+            <span class="n">residue_block</span><span class="p">[</span><span class="s2">&quot;atom_element&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">atom_type</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">rt</span><span class="o">.</span><span class="n">atoms</span><span class="p">]</span>
             <span class="n">residue_block</span><span class="p">[</span><span class="s2">&quot;residue_index&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ri</span>
 
         <span class="c1">### Index residue connectivity</span>
@@ -533,7 +535,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-144-g5ef1585e',
+              VERSION:'0.0.0-145-ge03dd9bf',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

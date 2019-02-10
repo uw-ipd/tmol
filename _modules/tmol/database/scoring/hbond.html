@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring.hbond &mdash; TMol 0.0.0-144-g5ef1585e documentation</title>
+  <title>tmol.database.scoring.hbond &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-144-g5ef1585e
+                0.0.0-145-ge03dd9bf
               </div>
             
           
@@ -171,7 +171,20 @@
 <span class="kn">import</span> <span class="nn">cattr</span>
 <span class="kn">import</span> <span class="nn">yaml</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">NewType</span>
+
+<span class="n">AcceptorHybridization</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;AcceptorHybridization&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+<span class="n">_acceptor_hybridizations</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;sp2&quot;</span><span class="p">,</span> <span class="s2">&quot;sp3&quot;</span><span class="p">,</span> <span class="s2">&quot;ring&quot;</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="_parse_acceptor_hybridization"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond._parse_acceptor_hybridization">[docs]</a><span class="k">def</span> <span class="nf">_parse_acceptor_hybridization</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_acceptor_hybridizations</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Invalid AcceptorHybridization value: </span><span class="si">{v}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<span class="n">cattr</span><span class="o">.</span><span class="n">register_structure_hook</span><span class="p">(</span><span class="n">AcceptorHybridization</span><span class="p">,</span> <span class="n">_parse_acceptor_hybridization</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="GlobalParams"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.GlobalParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -183,33 +196,29 @@
     <span class="n">threshold_distance</span><span class="p">:</span> <span class="nb">float</span></div>
 
 
-<div class="viewcode-block" id="DonorAtoms"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.DonorAtoms">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">DonorAtoms</span><span class="p">:</span>
+<div class="viewcode-block" id="DonorAtomType"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.DonorAtomType">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DonorAtomType</span><span class="p">:</span>
     <span class="n">d</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">h</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">donor_type</span><span class="p">:</span> <span class="nb">str</span></div>
 
 
-<div class="viewcode-block" id="AcceptorAtoms"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.AcceptorAtoms">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">AcceptorAtoms</span><span class="p">:</span>
+<div class="viewcode-block" id="AcceptorAtomType"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.AcceptorAtomType">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">AcceptorAtomType</span><span class="p">:</span>
     <span class="n">a</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">b</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">b0</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">acceptor_type</span><span class="p">:</span> <span class="nb">str</span></div>
 
 
-<div class="viewcode-block" id="AtomGroups"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.AtomGroups">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">AtomGroups</span><span class="p">:</span>
-    <span class="n">donors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DonorAtoms</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-    <span class="n">sp2_acceptors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorAtoms</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-    <span class="n">sp3_acceptors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorAtoms</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-    <span class="n">ring_acceptors</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorAtoms</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></div>
-
-
-<div class="viewcode-block" id="HbondWeights"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HbondWeights">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">HbondWeights</span><span class="p">:</span>
+<div class="viewcode-block" id="DonorTypeParam"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.DonorTypeParam">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DonorTypeParam</span><span class="p">:</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+<div class="viewcode-block" id="AcceptorTypeParam"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.AcceptorTypeParam">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">AcceptorTypeParam</span><span class="p">:</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">weight</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">hybridization</span><span class="p">:</span> <span class="n">AcceptorHybridization</span></div>
 
 
 <div class="viewcode-block" id="PolynomialParameters"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.PolynomialParameters">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -236,8 +245,8 @@
 
 <div class="viewcode-block" id="PairParameters"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.PairParameters">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">PairParameters</span><span class="p">:</span>
-    <span class="n">don_chem_type</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">acc_chem_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">donor_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">acceptor_type</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">AHdist</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">cosBAH</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">cosAHD</span><span class="p">:</span> <span class="nb">str</span></div>
@@ -246,11 +255,14 @@
 <div class="viewcode-block" id="HBondDatabase"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">HBondDatabase</span><span class="p">:</span>
     <span class="n">global_parameters</span><span class="p">:</span> <span class="n">GlobalParams</span>
-    <span class="n">atom_groups</span><span class="p">:</span> <span class="n">AtomGroups</span>
-    <span class="n">don_weights</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">HbondWeights</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-    <span class="n">acc_weights</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">HbondWeights</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
-    <span class="n">polynomial_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PolynomialParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">donor_atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DonorAtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">donor_type_params</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DonorTypeParam</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+    <span class="n">acceptor_atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorAtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">acceptor_type_params</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorTypeParam</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
     <span class="n">pair_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PairParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">polynomial_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PolynomialParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="HBondDatabase.from_file"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.from_file">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
@@ -293,7 +305,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-144-g5ef1585e',
+              VERSION:'0.0.0-145-ge03dd9bf',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
