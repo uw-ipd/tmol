@@ -5,32 +5,21 @@ global_parameters:
   hb_sp2_outer_width: 0.357
   hb_sp3_softmax_fade: 2.5
   threshold_distance: 6.0
-atom_groups:
-  donors:
-    - { d: Nbb,      h: HNbb, donor_type: hbdon_PBA } #ex: protein backbone Nbb--HNbb
-    - { d: Ntrp,     h: Hpol, donor_type: hbdon_IND } #ex: Trp NE1--HE1 
-    - { d: NhisD,    h: Hpol, donor_type: hbdon_IMD } #ex: His(HIS_D res_type) ND1--HE2 -- tautomer state with hydrogen on nitrogen closer to backbone
-    - { d: NhisE,    h: Hpol, donor_type: hbdon_IME } #ex: His(HIS res_type) NE2--HE2 -- tautomer state with hydrogen on nitrogen farther from backbone
-    - { d: NtrR,     h: Hpol, donor_type: hbdon_GDE } #ex: Arg NE--HE
-    - { d: Narg,     h: Hpol, donor_type: hbdon_GDH } #ex: Arg NH{1 2}--{1 2}HH{1 2} 
-    - { d: NH2O,     h: Hpol, donor_type: hbdon_CXA } #ex: Asn ND2--{1 2}HD2; Gln NE2--{1 2}HE2 
-    - { d: Nlys,     h: Hpol, donor_type: hbdon_AMO } #ex: Lys NZ--{1 2 3}HZ
-    - { d: OH,       h: Hpol, donor_type: hbdon_HXL } #ex: Ser OG--HG; Thr OG1--HG1
-    - { d: OHphenol, h: Hpol, donor_type: hbdon_AHX } #ex: Tyr OH--HH
-    - { d: Owat,     h: Hwat, donor_type: hbdon_H2O } #ex: water O--H
-  sp2_acceptors:
-    - { a: OCbb, b: CObb, b0: CAbb, acceptor_type: hbacc_PBA } #ex: protein backbone OCbb
-    - { a: ONH2, b: CNH2, b0: NH2O, acceptor_type: hbacc_CXA } #ex: Asn OD1; Gln OE1
-    - { a: OOC,  b: COO,  b0: CH2,  acceptor_type: hbacc_CXL } #ex: Asp OD{1 2}; Glu OE{1 2}
-  sp3_acceptors:
-    - { a: OH,       b: CH2,  b0: Hpol, acceptor_type: hbacc_HXL } #ex: Ser OG; Thr OG1
-    - { a: OH,       b: CH1,  b0: Hpol, acceptor_type: hbacc_HXL } #ex: Ser OG; Thr OG1
-    - { a: OHphenol, b: CH0,  b0: Hpol, acceptor_type: hbacc_AHX } #ex: Tyr OH
-    - { a: Owat,     b: Hwat, b0: Hwat, acceptor_type: hbacc_H2O } #ex: water O--H
-  ring_acceptors:
-    - { a: NhisDDepro, b: Caro, b0: CH0,  acceptor_type: hbacc_IMD } #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
-    - { a: NhisEDepro, b: Caro, b0: Caro, acceptor_type: hbacc_IME } #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
-don_weights:
+
+donor_atom_types:
+  - { d: Nbb,      donor_type: hbdon_PBA } #ex: protein backbone Nbb--HNbb
+  - { d: Ntrp,     donor_type: hbdon_IND } #ex: Trp NE1--HE1 
+  - { d: NhisD,    donor_type: hbdon_IMD } #ex: His(HIS_D res_type) ND1--HE2 -- tautomer state with hydrogen on nitrogen closer to backbone
+  - { d: NhisE,    donor_type: hbdon_IME } #ex: His(HIS res_type) NE2--HE2 -- tautomer state with hydrogen on nitrogen farther from backbone
+  - { d: NtrR,     donor_type: hbdon_GDE } #ex: Arg NE--HE
+  - { d: Narg,     donor_type: hbdon_GDH } #ex: Arg NH{1 2}--{1 2}HH{1 2} 
+  - { d: NH2O,     donor_type: hbdon_CXA } #ex: Asn ND2--{1 2}HD2; Gln NE2--{1 2}HE2 
+  - { d: Nlys,     donor_type: hbdon_AMO } #ex: Lys NZ--{1 2 3}HZ
+  - { d: OH,       donor_type: hbdon_HXL } #ex: Ser OG--HG; Thr OG1--HG1
+  - { d: OHphenol, donor_type: hbdon_AHX } #ex: Tyr OH--HH
+  - { d: Owat,     donor_type: hbdon_H2O } #ex: water O--H
+
+donor_type_params:
   - {name: hbdon_IND, weight: 1.15}
   - {name: hbdon_CXA, weight: 1.29}
   - {name: hbdon_AMO, weight: 1.17}
@@ -42,15 +31,30 @@ don_weights:
   - {name: hbdon_AHX, weight: 1.00}
   - {name: hbdon_PBA, weight: 1.45}
   - {name: hbdon_H2O, weight: 1.15}
-acc_weights:
-  - {name: hbacc_IMD, weight: 1.13}
-  - {name: hbacc_PBA, weight: 1.19}
-  - {name: hbacc_CXA, weight: 1.21}
-  - {name: hbacc_AHX, weight: 1.15}
-  - {name: hbacc_IME, weight: 1.17}
-  - {name: hbacc_CXL, weight: 1.10}
-  - {name: hbacc_HXL, weight: 1.15}
-  - {name: hbacc_H2O, weight: 1.15}
+
+acceptor_atom_types:
+  # sp2 acceptors
+  - { a: OCbb,       acceptor_type: hbacc_PBA } #ex: protein backbone OCbb
+  - { a: ONH2,       acceptor_type: hbacc_CXA } #ex: Asn OD1; Gln OE1
+  - { a: OOC,        acceptor_type: hbacc_CXL } #ex: Asp OD{1 2}; Glu OE{1 2}
+  # sp2 acceptors
+  - { a: OH,         acceptor_type: hbacc_HXL } #ex: Ser OG; Thr OG1
+  - { a: OHphenol,   acceptor_type: hbacc_AHX } #ex: Tyr OH
+  - { a: Owat,       acceptor_type: hbacc_H2O } #ex: water O--H
+  # ring acceptors
+  - { a: NhisDDepro, acceptor_type: hbacc_IMD } #ex: His(HIS res_type) ND1 -- tautomer state with hydrogen on nitrogen closer to backbone
+  - { a: NhisEDepro, acceptor_type: hbacc_IME } #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
+
+acceptor_type_params:
+  - {name: hbacc_PBA, weight: 1.19, hybridization: sp2 }
+  - {name: hbacc_CXA, weight: 1.21, hybridization: sp2 }
+  - {name: hbacc_CXL, weight: 1.10, hybridization: sp2 }
+  - {name: hbacc_AHX, weight: 1.15, hybridization: sp3 }
+  - {name: hbacc_HXL, weight: 1.15, hybridization: sp3 }
+  - {name: hbacc_H2O, weight: 1.15, hybridization: sp3 }
+  - {name: hbacc_IMD, weight: 1.13, hybridization: ring }
+  - {name: hbacc_IME, weight: 1.17, hybridization: ring }
+
 polynomial_parameters: # Parameters imported from rosetta sp2_elec_params @v2017.48-dev59886
   - {name: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7019094761929999,    xmax: 2.86820307153,      min_val: 1.1, max_val: 1.1, degree: 10, c_a: 0.0, c_b: 0.58376113,       c_c: -9.29345473,      c_d: 64.86270904,      c_e: -260.3946711,     c_f: 661.43138077,      c_g: -1098.01378958,    c_h: 1183.58371466,      c_i: -790.82929582,   c_j: 291.33125475,      c_k: -43.01629727,     }
   - {name: hbpoly_ahdist_aASN_dASN_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.625841094801,        xmax: 2.75107708444,      min_val: 1.1, max_val: 1.1, degree: 10, c_a: 0.0, c_b: -1.31243015,      c_c: 18.6745072,       c_d: -112.63858313,    c_e: 373.32878091,     c_f: -734.99145504,     c_g: 861.38324861,      c_h: -556.21026097,      c_i: 143.5626977,     c_j: 20.03238394,       c_k: -11.52167705,     }
@@ -108,92 +112,93 @@ polynomial_parameters: # Parameters imported from rosetta sp2_elec_params @v2017
   - {name: poly_cosBAH_off,                              dimension: hbgd_cosBAH, xmin: -1234.0,               xmax: 1.1,                min_val: 1.1, max_val: 1.1, degree: 1,  c_a: 0.0, c_b: 0.0,              c_c: 0.0,              c_d: 0.0,              c_e: 0.0,              c_f: 0.0,               c_g: 0.0,               c_h: 0.0,                c_i: 0.0,             c_j: 0.0,               c_k: 0.0,              }
   - {name: poly_cosBAH_6i,                               dimension: hbgd_cosBAH, xmin: -0.23538144897100002,  xmax: 1.1,                min_val: 1.1, max_val: 1.1, degree: 10, c_a: 0.0, c_b: -0.822093,        c_c: -3.75364636,      c_d: 46.88852157,      c_e: -129.5440564,     c_f: 146.69151428,      c_g: -67.60598792,      c_h: 2.91683129,         c_i: 9.26673173,      c_j: -3.84488178,       c_k: 0.05706659,       }
   - {name: poly_cosBAH_7,                                dimension: hbgd_cosBAH, xmin: -0.019373850666900002, xmax: 1.1,                min_val: 1.1, max_val: 1.1, degree: 9,  c_a: 0.0, c_b: 0.0,              c_c: -27.942923450028, c_d: 136.039920253368, c_e: -268.06959056747, c_f: 275.400462507919,  c_g: -153.502076215949, c_h: 39.741591385461,    c_i: 0.693861510121,  c_j: -3.885952320499,   c_k: 1.024765090788892 }
+
 pair_parameters:
-  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
-  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
-  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
-  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
-  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
-  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
-  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
-  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
-  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
-  - {don_chem_type: hbdon_PBA, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_CXA, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_IMD, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_IME, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_IND, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_AMO, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_GDE, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_GDH, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_AHX, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_HXL, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
-  - {don_chem_type: hbdon_H2O, acc_chem_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_PBA, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {donor_type: hbdon_CXA, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {donor_type: hbdon_IMD, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {donor_type: hbdon_IME, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {donor_type: hbdon_IND, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {donor_type: hbdon_AMO, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDE, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {donor_type: hbdon_GDH, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1j}
+  - {donor_type: hbdon_AHX, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_HXL, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_H2O, acceptor_type: hbacc_PBA, AHdist: hbpoly_ahdist_aGLY_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_PBA, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_CXA, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_IMD, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_IME, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_IND, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_AMO, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDE, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_GDH, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_AHX, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_HXL, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_H2O, acceptor_type: hbacc_CXA, AHdist: hbpoly_ahdist_aASN_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_PBA, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_CXA, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_IMD, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_IME, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_IND, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_AMO, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDE, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_GDH, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_AHX, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_HXL, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_H2O, acceptor_type: hbacc_CXL, AHdist: hbpoly_ahdist_aASP_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_off,  cosAHD: poly_AHD_1k}
+  - {donor_type: hbdon_PBA, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_CXA, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_IMD, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IME, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IND, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AMO, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_GDE, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDH, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AHX, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_HXL, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_H2O, acceptor_type: hbacc_IMD, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_PBA, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_CXA, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_IMD, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IME, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IND, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AMO, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_GDE, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDH, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AHX, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_HXL, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_H2O, acceptor_type: hbacc_IME, AHdist: hbpoly_ahdist_aHIS_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_7,    cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_PBA, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_CXA, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_IMD, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_IME, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_IND, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AMO, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_GDE, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_GDH, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_AHX, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_HXL, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_H2O, acceptor_type: hbacc_AHX, AHdist: hbpoly_ahdist_aTYR_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_PBA, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_CXA, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_IMD, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_IME, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_IND, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AMO, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_GDE, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_GDH, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_AHX, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_HXL, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_H2O, acceptor_type: hbacc_HXL, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1i}
+  - {donor_type: hbdon_PBA, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dGLY_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_CXA, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dASN_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IMD, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IME, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dHIS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_IND, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dTRP_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AMO, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dLYS_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDE, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_GDH, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dARG_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_AHX, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dTYR_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_HXL, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}
+  - {donor_type: hbdon_H2O, acceptor_type: hbacc_H2O, AHdist: hbpoly_ahdist_aSER_dSER_9gt3_hesmooth_min1p6, cosBAH: poly_cosBAH_6i,   cosAHD: poly_AHD_1h}

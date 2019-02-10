@@ -1,3 +1,4 @@
+import pytest
 import cattr
 
 import numpy
@@ -12,10 +13,18 @@ from tmol.system.score_support import bonded_atoms_for_system
 import tmol.database
 from tmol.score.hbond.identification import HBondElementAnalysis
 
+_analysis_class = {"graph_traversal_elements": HBondElementAnalysis}
+
+
+@pytest.fixture(params=_analysis_class)
+def analysis_class(request):
+    return _analysis_class[request.param]
+
 
 def test_ambig_identification(
     default_database: tmol.database.ParameterDatabase,
     water_box_system: PackedResidueSystem,
+    analysis_class: HBondElementAnalysis,
 ):
     """Tests identification in cases with 'ambiguous' acceptor bases."""
 
@@ -45,9 +54,10 @@ def test_ambig_identification(
     )
     assert len(expected_acceptors) == len(water_box_system.residues)
 
-    element_analysis: HBondElementAnalysis = HBondElementAnalysis.setup(
+    element_analysis = analysis_class.setup(
         hbond_database=default_database.scoring.hbond,
         atom_types=water_box_system.atom_metadata["atom_type"],
+        atom_is_hydrogen=water_box_system.atom_metadata["atom_element"] == "H",
         bonds=water_box_system.bonds,
     )
 
@@ -72,7 +82,7 @@ def test_ambig_identification(
     )
 
 
-def test_bb_identification(bb_hbond_database, ubq_system):
+def test_bb_identification(bb_hbond_database, ubq_system, analysis_class):
     tsys = ubq_system
 
     donors = []
@@ -99,29 +109,32 @@ def test_bb_identification(bb_hbond_database, ubq_system):
 
     test_params = bonded_atoms_for_system(tsys)
 
-    hbe = HBondElementAnalysis.setup(
+    hbe = analysis_class.setup(
         hbond_database=bb_hbond_database,
         atom_types=test_params["atom_types"][0],
+        atom_is_hydrogen=test_params["atom_elements"][0] == "H",
         bonds=test_params["bonds"][:, 1:],
     )
 
-    pandas.testing.assert_frame_equal(
-        pandas.DataFrame.from_records(
-            donors, columns=hbe.donors.dtype.names
-        ).sort_values("d"),
-        pandas.DataFrame.from_records(hbe.donors).sort_values("d"),
-    )
+    def _t(d):
+        return tuple(tuple(r.items()) for r in d)
 
-    pandas.testing.assert_frame_equal(
-        pandas.DataFrame.from_records(
-            acceptors, columns=hbe.acceptors.dtype.names
-        ).sort_values("a"),
-        pandas.DataFrame.from_records(hbe.acceptors).sort_values("a"),
+    hbe_donors = pandas.DataFrame.from_records(hbe.donors).to_dict(orient="records")
+    assert len(_t(hbe_donors)) == len(set(_t(hbe_donors)))
+    assert {(r["d"], r["h"]): r for r in hbe_donors} == {
+        (r["d"], r["h"]): r for r in donors
+    }
+
+    hbe_acceptors = pandas.DataFrame.from_records(hbe.acceptors).to_dict(
+        orient="records"
     )
+    assert len(_t(hbe_acceptors)) == len(set(_t(hbe_acceptors)))
+    assert {r["a"]: r for r in hbe_acceptors} == {r["a"]: r for r in acceptors}
 
 
 def test_identification_by_ljlk_types(
-    default_database: tmol.database.ParameterDatabase
+    default_database: tmol.database.ParameterDatabase,
+    analysis_class: HBondElementAnalysis,
 ):
     db_res = default_database.chemical.residues
     types = [
@@ -134,9 +147,12 @@ def test_identification_by_ljlk_types(
         atom_types = numpy.array([a.atom_type for a in t.atoms])
         bonds = t.bond_indicies
 
-        hbe = HBondElementAnalysis.setup(
+        hbe = analysis_class.setup(
             hbond_database=default_database.scoring.hbond,
             atom_types=atom_types.astype(object),
+            atom_is_hydrogen=numpy.array(
+                [t[0] == "H" for t in atom_types.astype(object)]
+            ),
             bonds=bonds,
         )
         identified_donors = set(hbe.donors["d"])

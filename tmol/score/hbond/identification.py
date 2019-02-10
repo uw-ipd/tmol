@@ -1,15 +1,23 @@
 import attr
-import cattr
-import toolz
+
+import numba
 
 from tmol.types.functional import convert_args
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
 
 import numpy
-import pandas
 
 from tmol.database.scoring import HBondDatabase
+
+from enum import IntEnum
+
+
+class AHyb(IntEnum):
+    sp2 = 0
+    sp3 = 1
+    ring = 2
+
 
 acceptor_dtype = numpy.dtype(
     [("a", int), ("b", int), ("b0", int), ("acceptor_type", object)]
@@ -18,37 +26,151 @@ acceptor_dtype = numpy.dtype(
 donor_dtype = numpy.dtype([("d", int), ("h", int), ("donor_type", object)])
 
 
-def merge_tables(*tables, **kwargs):
-    assert len(tables) >= 2
-    return toolz.reduce(toolz.curry(pandas.merge, **kwargs), tables)
+@numba.jit(nopython=True)
+def sp2_acceptor_base(A, bonds, atom_bond_span, atom_is_hydrogen):
+    """ Identify acceptor bases for sp2 acceptors.
+
+        A = sp2 acceptor =>
+            B = bonded to A, not H
+            B0 = bonded to B, not A
+
+        Returns:
+            (A, B, B0) Index Tuple
+    """
+    B = -1
+    B0 = -1
+
+    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
+        other_atom = bonds[bidx][1]
+        if not atom_is_hydrogen[other_atom]:
+            B = other_atom
+            break
+
+    if B == -1:
+        return (A, -1, -1)
+
+    for bidx in range(atom_bond_span[B][0], atom_bond_span[B][1]):
+        other_atom = bonds[bidx][1]
+        if not other_atom == A:
+            B0 = other_atom
+            break
+
+    if B0 == -1:
+        return (A, -1, -1)
+
+    return (A, B, B0)
 
 
-def df_to_struct(df, column_mapping):
-    """Convert a subset of columns into a structured array."""
-    df_subset = df[list(column_mapping.keys())].rename(columns=column_mapping)
+@numba.jit(nopython=True)
+def sp3_acceptor_base(A, bonds, atom_bond_span, atom_is_hydrogen):
+    """ Identify acceptor bases for sp3 acceptors.
 
-    numpy_record_table = df_subset.to_records(index=False)
-    return numpy_record_table.view(numpy_record_table.dtype.fields)
+        A = sp3 acceptor =>
+            B0 = bonded to A, is H
+            B = bonded to A, not B0
+
+        Returns:
+            (A, B, B0) Index Tuple
+    """
+    B = -1
+    B0 = -1
+
+    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
+        other_atom = bonds[bidx][1]
+        if atom_is_hydrogen[other_atom]:
+            B0 = other_atom
+            break
+
+    if B0 == -1:
+        return (A, -1, -1)
+
+    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
+        other_atom = bonds[bidx][1]
+        if not other_atom == B0:
+            B = other_atom
+            break
+
+    if B == -1:
+        return (A, -1, -1)
+
+    return (A, B, B0)
+
+
+@numba.jit(nopython=True)
+def ring_acceptor_base(A, bonds, atom_bond_span, atom_is_hydrogen):
+    """ Identify acceptor bases for ring acceptors.
+
+        A = ring acceptor =>
+            B = bonded to A, not H
+            B0 = bonded to A, not H, not B
+
+        Returns:
+            (A, B, B0) Index Tuple
+    """
+    B = -1
+    B0 = -1
+
+    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
+        other_atom = bonds[bidx][1]
+        if not atom_is_hydrogen[other_atom]:
+            B = other_atom
+            break
+
+    if B == -1:
+        return (A, -1, -1)
+
+    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
+        other_atom = bonds[bidx][1]
+        if not atom_is_hydrogen[other_atom] and other_atom != B:
+            B0 = other_atom
+            break
+
+    if B0 == -1:
+        return (A, -1, -1)
+
+    return (A, B, B0)
+
+
+@numba.jit
+def id_acceptor_bases(
+    A_idx, B_idx, B0_idx, A_hyb, bonds, atom_bond_span, atom_is_hydrogen
+):
+    """Given A_idx and bond graph metadata, calculate B, B0 idx.
+
+    Params:
+        A_idx: int[N] Populated Aatom index.
+        B_idx: int[N] Empty B atom index.
+        B0_idx: int[N] Empty B0 atom index.
+        A_hyb: int[N] Acceptor hybridization class.
+        bonds: int[nbond, 2] (i,j) sorted, symmetric bond tuples.
+        atom_bond_span: int[natom, 2] [start,end) bond index i span.
+        atom_is_hydrogen: bool[natom] Flag is atom is hydrogen.
+
+    Populates A_idx, B_idx, B0_idx with identified atom indices, B, B0 = -1 if
+    no valid acceptor bond pattern found.
+    """
+
+    for ai in range(A_idx.shape[0]):
+        if A_hyb[ai] == AHyb.sp2:
+            A_idx[ai], B_idx[ai], B0_idx[ai] = sp2_acceptor_base(
+                A_idx[ai], bonds, atom_bond_span, atom_is_hydrogen
+            )
+        elif A_hyb[ai] == AHyb.sp3:
+            A_idx[ai], B_idx[ai], B0_idx[ai] = sp3_acceptor_base(
+                A_idx[ai], bonds, atom_bond_span, atom_is_hydrogen
+            )
+        elif A_hyb[ai] == AHyb.ring:
+            A_idx[ai], B_idx[ai], B0_idx[ai] = ring_acceptor_base(
+                A_idx[ai], bonds, atom_bond_span, atom_is_hydrogen
+            )
+        else:
+            A_idx[ai], B_idx[ai], B0_idx[ai] = A_idx[ai], -1, -1
+
+    return A_idx, B_idx, B0_idx
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class HBondElementAnalysis(ValidateAttrs):
-    """Atom indicies for hbond donors and acceptors within system.
-
-    Atom indicies for hbond elements, form of atom sets defining:
-
-    Elements are identified by matching bonding pattern and atom type against
-    the set of defined donor/acceptor element types in the source hbond score
-    database.
-
-    Bond graph matching uses sql-like joins provided by the pandas package in
-    order to do graph matching: e.g.,
-
-    "I have atoms a, b, and c that are bonded in a pattern
-    of a-b and b-c and I know their chemical types as ta, tb, and tc; do these three
-    atoms match any of the known sets of sp2 hybridized acceptors?"
-    """
-
     donors: NDArray(donor_dtype)[:]
     acceptors: NDArray(acceptor_dtype)[:]
 
@@ -58,210 +180,77 @@ class HBondElementAnalysis(ValidateAttrs):
         cls,
         hbond_database: HBondDatabase,
         atom_types: NDArray(object)[:],
+        atom_is_hydrogen: NDArray(bool)[:],
         bonds: NDArray(int)[:, 2],
     ):
-        """Perform element analysis over the given bonded atom types.
+        # Sort (i,j) bond indicies in ascending order.
+        bonds = bonds[numpy.lexsort((bonds[:, 1], bonds[:, 0]))]
 
-        ``atom_types`` includes string atom types for atoms in the system
-        ``bonds`` includes atom type indices (in atom_types) for bonds in the system
+        # Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]
+        # blocks in the sorted bond table indexed by i
+        num_bonds = numpy.cumsum(numpy.bincount(bonds[:, 0], minlength=len(atom_types)))
 
-        Bond graph matching proceeds in two phases:
+        atom_bond_span = numpy.empty((len(num_bonds), 2))
+        atom_bond_span[0, 0] = 0
+        atom_bond_span[1:, 0] = num_bonds[:-1]
+        atom_bond_span[:, 1] = num_bonds
 
-        1) The bond graph is processed to a generate frames of bonded atom
-        pairs/triples, without pruning by atom type, generating a table of
-        *every* pair/triple in the structure.
+        # Map atom->atom_type->acceptor_type->hybridization
+        hyb_map = {m: int(v) for m, v in AHyb.__members__.items()}
 
-        2) The source HBondDatabase is unstructured and converted into frames
-        of bonded-atom-type pairs/triples, tagged with the element type of the
-        atom type pair/triple, generating a table of every known hbond element
-        type and it's corresponding atom types.
+        acceptor_type_hyb = {
+            p.name: hyb_map[p.hybridization]
+            for p in hbond_database.acceptor_type_params
+        }
+        atom_type_hyb = {
+            p.a: acceptor_type_hyb[p.acceptor_type]
+            for p in hbond_database.acceptor_atom_types
+        }
+        atom_type_acceptor_type = {
+            p.a: p.acceptor_type for p in hbond_database.acceptor_atom_types
+        }
 
-        3) The bonded-atom pairs/triples are inner joined against the element
-        pairs/triples by atom type, generating a table of pairs/triples for
-        which an hbond element type is defined.
-        """
+        # Flag as nonzero if this atom type is not an acceptor
+        atom_hyb = numpy.array([atom_type_hyb.get(at, -1) for at in atom_types])
 
-        atom_types = pandas.Categorical(atom_types)
+        # Get the acceptor indicies and allocate base idx buffers
+        A_idx = numpy.flatnonzero(atom_hyb != -1)
+        B_idx = numpy.empty_like(A_idx)
+        B0_idx = numpy.empty_like(A_idx)
+        A_hyb = atom_hyb[A_idx]
 
-        # Generate bond arrangement tables containing:
-        #   atom_index '*_a'
-        #   atom_type  '*_t'
-        #   # of bonds '*_nbond'
-        #
-        # with column names i, j [and later k]
-
-        # Bonded-atom-triples (e.g. i-j-k, or k-i-j) are generated by
-        # self-joining the pair-table after relabeling via `inc_cols`.  Varying
-        # `inc-cols` invocations are used to generate the i-j, j-k, and i-k
-        # bond pairs, which are then joined into property index bonded triples.
-
-        def inc_cols(table, *cols):
-            order = {"i": "j", "j": "k"}
-            res = []
-            for n in cols:
-                nn = order[n]
-                res.append((n + "_a", nn + "_a"))
-                res.append((n + "_t", nn + "_t"))
-                res.append((n + "_nbond", nn + "_nbond"))
-            return table.rename(columns=dict(res))
-
-        bond_table = pandas.DataFrame.from_dict(
-            {
-                "i_a": bonds[:, 0],
-                "i_t": atom_types[bonds[:, 0]],
-                "j_a": bonds[:, 1],
-                "j_t": atom_types[bonds[:, 1]],
-            }
+        # Yeeeehaw
+        id_acceptor_bases(
+            A_idx, B_idx, B0_idx, A_hyb, bonds, atom_bond_span, atom_is_hydrogen
         )
 
-        # Calculate bond counts for each atom then merge by the atom index
-        bond_table = merge_tables(
-            bond_table,
-            bond_table["i_a"]
-            .value_counts()
-            .to_frame("i_nbond")
-            .rename_axis("i_a")
-            .reset_index(),
-            bond_table["j_a"]
-            .value_counts()
-            .to_frame("j_nbond")
-            .rename_axis("j_a")
-            .reset_index(),
+        assert not numpy.any(B_idx == -1), "Invalid acceptor atom type."
+
+        acceptors = numpy.empty(A_idx.shape, dtype=acceptor_dtype)
+        acceptors["a"] = A_idx
+        acceptors["b"] = B_idx
+        acceptors["b0"] = B0_idx
+        acceptors["acceptor_type"] = [
+            atom_type_acceptor_type[t] for t in atom_types[A_idx]
+        ]
+
+        # Identify donor groups via donor-hydrogen bonds.
+        atom_type_donor_type = {
+            p.d: p.donor_type for p in hbond_database.donor_atom_types
+        }
+
+        donor_type = numpy.array(
+            [atom_type_donor_type.get(at, None) for at in atom_types]
         )
+        atom_is_donor = donor_type.astype(bool)  # None/"" to False
 
-        # Index of bond arragments of the form:
-        #
-        #    i---j
-        #
-        bond_pair_table = bond_table
+        donor_pair_idx = bonds[
+            atom_is_donor[bonds[:, 0]] & atom_is_hydrogen[bonds[:, 1]]
+        ]
 
-        # Index of all bonded arrangments of the form:
-        #
-        #   i---j
-        #    \
-        #     k
-        #
-        # pruned by unique atom types on j & k
-        bond_sibling_table = (
-            merge_tables(bond_table.query("i_nbond == 2"), inc_cols(bond_table, "j"))
-            .query("j_a != k_a")
-            .drop_duplicates(("i_a", "j_t", "k_t"))
-        )
+        donors = numpy.empty(donor_pair_idx.shape[0], dtype=donor_dtype)
+        donors["d"] = donor_pair_idx[:, 0]
+        donors["h"] = donor_pair_idx[:, 1]
+        donors["donor_type"] = donor_type[donors["d"]]
 
-        # Index of all arrangments of the form:
-        #
-        #   i---j---?
-        #        \
-        #         k
-        #
-        # pruned by unique atom types on k
-        bond_parent_table = (
-            merge_tables(
-                bond_table.query("i_nbond == 1"), inc_cols(bond_table, "i", "j")
-            )
-            .query("i_a != k_a")
-            .drop_duplicates(("i_a", "k_t"))
-        )
-
-        if hbond_database.atom_groups.donors:
-            # Identify donors by donor-hydrogen bonds:
-            #
-            #   d---h
-            #
-            # by matching atom types.
-
-            donor_types = pandas.DataFrame.from_records(
-                cattr.unstructure(hbond_database.atom_groups.donors)
-            )[["d", "h", "donor_type"]]
-            donor_table = pandas.merge(
-                donor_types,
-                bond_pair_table,
-                how="inner",
-                left_on=["d", "h"],
-                right_on=["i_t", "j_t"],
-            )
-            donors = df_to_struct(
-                donor_table, {"i_a": "d", "j_a": "h", "donor_type": "donor_type"}
-            )
-        else:
-            donors = numpy.empty(0, donor_dtype)
-
-        if hbond_database.atom_groups.sp2_acceptors:
-            # Identify sp2 by acceptor-base-base0
-            #
-            #   a---b---?
-            #        \
-            #         b0
-            #
-            # by matching atom types.
-            sp2_acceptor_types = pandas.DataFrame.from_records(
-                cattr.unstructure(hbond_database.atom_groups.sp2_acceptors)
-            )
-            sp2_acceptor_table = pandas.merge(
-                sp2_acceptor_types,
-                bond_parent_table,
-                how="inner",
-                left_on=["a", "b", "b0"],
-                right_on=["i_t", "j_t", "k_t"],
-            )
-            sp2_acceptors = df_to_struct(
-                sp2_acceptor_table,
-                {"i_a": "a", "j_a": "b", "k_a": "b0", "acceptor_type": "acceptor_type"},
-            )
-        else:
-            sp2_acceptors = numpy.empty(0, acceptor_dtype)
-
-        if hbond_database.atom_groups.sp3_acceptors:
-            # Identify sp3 by acceptor-base-base0
-            #
-            #   a---b
-            #    \
-            #     b0
-            #
-            # by matching atom types.
-            sp3_acceptor_types = pandas.DataFrame.from_records(
-                cattr.unstructure(hbond_database.atom_groups.sp3_acceptors)
-            )
-            sp3_acceptor_table = pandas.merge(
-                sp3_acceptor_types,
-                bond_sibling_table,
-                how="inner",
-                left_on=["a", "b", "b0"],
-                right_on=["i_t", "j_t", "k_t"],
-            )
-            sp3_acceptors = df_to_struct(
-                sp3_acceptor_table,
-                {"i_a": "a", "j_a": "b", "k_a": "b0", "acceptor_type": "acceptor_type"},
-            )
-        else:
-            sp3_acceptors = numpy.empty(0, acceptor_dtype)
-
-        if hbond_database.atom_groups.ring_acceptors:
-            # Identify ring by acceptor-base-base0
-            #
-            #   a---b
-            #    \
-            #     b0
-            #
-            # by matching atom types.
-            ring_acceptor_types = pandas.DataFrame.from_records(
-                cattr.unstructure(hbond_database.atom_groups.ring_acceptors)
-            )
-            ring_acceptor_table = pandas.merge(
-                ring_acceptor_types,
-                bond_sibling_table,
-                how="inner",
-                left_on=["a", "b", "b0"],
-                right_on=["i_t", "j_t", "k_t"],
-            )
-            ring_acceptors = df_to_struct(
-                ring_acceptor_table,
-                {"i_a": "a", "j_a": "b", "k_a": "b0", "acceptor_type": "acceptor_type"},
-            )
-        else:
-            ring_acceptors = numpy.empty(0, acceptor_dtype)
-
-        return cls(
-            donors=donors,
-            acceptors=numpy.concatenate((sp2_acceptors, sp3_acceptors, ring_acceptors)),
-        )
+        return cls(donors=donors, acceptors=acceptors)

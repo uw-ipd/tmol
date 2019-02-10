@@ -7,7 +7,7 @@ import torch
 from tmol.tests.autograd import gradcheck, VectorizedOp
 from tmol.utility.args import _signature
 
-from tmol.score.hbond.params import AcceptorClass
+from tmol.score.hbond.params import acceptor_class_index
 
 
 _hbond_global_params = dict(
@@ -73,7 +73,7 @@ def sp2_params(compiled):
         A=[0.929, 2.820, 1.149],
         B=[1.369, 1.690, 1.360],
         B0=[1.060, 0.538, 0.412],
-        acceptor_class=AcceptorClass.sp2,
+        acceptor_class=acceptor_class_index.get_indexer_for(["sp2"]),
         # type pair parameters
         donor_weight=1.45,
         acceptor_weight=1.19,
@@ -149,7 +149,7 @@ def sp3_params(compiled):
         A=[-2.196, 2.211, -2.339],
         B=[-3.156, 2.109, -1.327],
         B0=[-1.436, 1.709, -2.035],
-        acceptor_class=AcceptorClass.sp3,
+        acceptor_class=acceptor_class_index.get_indexer_for(["sp3"]),
         # type pair parameters
         donor_weight=1.45,
         acceptor_weight=1.15,
@@ -224,7 +224,7 @@ def ring_params(compiled):
         A=[-1.579, 2.834, -2.817],
         B=[-0.774, 1.927, -3.337],
         B0=[-2.327, 2.261, -1.817],
-        acceptor_class=AcceptorClass.ring,
+        acceptor_class=acceptor_class_index.get_indexer_for(["ring"]),
         # type pair parameters
         donor_weight=1.45,
         acceptor_weight=1.13,

@@ -53,13 +53,17 @@ def test_score_op(ubq_system, torch_device):
     # Load coordinates and types from standard test system
 
     atom_types = system.atom_metadata["atom_type"].copy()
+    atom_elements = system.atom_metadata["atom_element"].copy()
     bonds = system.bonds.copy()
     coords = system.coords.copy()
 
     # Run donor/acceptor identification over system
 
     hbond_elements = HBondElementAnalysis.setup(
-        hbond_database=hbond_database, atom_types=atom_types, bonds=bonds
+        hbond_database=hbond_database,
+        atom_types=atom_types,
+        atom_is_hydrogen=atom_elements == "H",
+        bonds=bonds,
     )
 
     donors = hbond_elements.donors
@@ -118,13 +122,17 @@ def test_score_op_gradcheck(ubq_system, torch_device):
     # Load coordinates and types from standard test system
 
     atom_types = system.atom_metadata["atom_type"].copy()
+    atom_elements = system.atom_metadata["atom_element"].copy()
     bonds = system.bonds.copy()
     coords = system.coords.copy()
 
     # Run donor/acceptor identification over system
 
     hbond_elements = HBondElementAnalysis.setup(
-        hbond_database=hbond_database, atom_types=atom_types, bonds=bonds
+        hbond_database=hbond_database,
+        atom_types=atom_types,
+        atom_is_hydrogen=atom_elements == "H",
+        bonds=bonds,
     )
 
     donors = hbond_elements.donors[:10]
