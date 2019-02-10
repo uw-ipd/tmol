@@ -2,12 +2,10 @@ from typing import Tuple
 
 import attr
 import torch
-from toolz import merge, keymap
 
 from tmol.types.torch import Tensor
 
-from tmol.utility.args import ignore_unused_kwargs
-from tmol.score.ljlk.params import LJLKDatabase
+from tmol.score.ljlk.params import LJLKParamResolver
 
 from tmol.utility.cpp_extension import load, relpaths, modulename
 
@@ -119,7 +117,7 @@ class LKBridgeFraction(torch.autograd.Function):
 @attr.s(auto_attribs=True, frozen=True)
 class LKBallScore:
 
-    ljlk_database: LJLKDatabase
+    param_resolver: LJLKParamResolver
 
     def apply(
         self,
@@ -131,31 +129,37 @@ class LKBallScore:
         atom_type_i,
         atom_type_j,
     ):
-        params_i = {p.name: p for p in self.ljlk_database.atom_type_parameters}[
-            atom_type_i
-        ]
-        params_j = {p.name: p for p in self.ljlk_database.atom_type_parameters}[
-            atom_type_j
-        ]
+        # Cast parameter tensors to precision required for input tensors.
+        # Required to support double-precision inputs for gradcheck tests.
+        type_params = self.param_resolver.type_params
+        if coord_i.dtype != type_params.lj_radius.dtype:
+            type_params = attr.evolve(
+                self.param_resolver.type_params,
+                **{
+                    n: t.to(coord_i.dtype) if t.is_floating_point() else t
+                    for n, t in attr.asdict(type_params).items()
+                },
+            )
 
-        params = merge(
-            keymap(lambda k: f"i_{k}", attr.asdict(params_i)),
-            keymap(lambda k: f"j_{k}", attr.asdict(params_j)),
-            attr.asdict(self.ljlk_database.global_parameters),
-        )
+        params_i = type_params[self.param_resolver.type_idx([atom_type_i])]
+        params_j = type_params[self.param_resolver.type_idx([atom_type_j])]
+        params_global = self.param_resolver.global_params
 
-        return LKBallScoreFun(params)(
-            coord_i, coord_j, waters_i, waters_j, bonded_path_length
+        return LKBallScoreFun.apply(
+            coord_i,
+            coord_j,
+            waters_i,
+            waters_j,
+            bonded_path_length,
+            params_global.lkb_water_dist,
+            params_i,
+            params_j,
+            params_global,
         )
 
 
 class LKBallScoreFun(torch.autograd.Function):
-    def __init__(self, params):
-        self.params = params
-        self.lk_ball_score_V = ignore_unused_kwargs(_compiled.lk_ball_score_V)
-        self.lk_ball_score_dV = ignore_unused_kwargs(_compiled.lk_ball_score_dV)
-        super().__init__()
-
+    @staticmethod
     def forward(ctx, *args) -> Tensor(float):
 
         args = list(args)
@@ -164,15 +168,16 @@ class LKBallScoreFun(torch.autograd.Function):
         if rgrad:
             ctx.args = args
 
-        return torch.tensor(ctx.lk_ball_score_V(*args, **ctx.params)).to(args[0].dtype)
+        return torch.tensor(_compiled.lk_ball_score_V(*args)).to(args[0].dtype)
 
+    @staticmethod
     def backward(ctx, dE_dV: Tensor(float)):
         args = ctx.args
 
         # Output grads [arg_index, out_shape, ...arg_shape] Unpack into
         # tuple-by-arg-index, then transpose into [...arg_shape, out_shape] to
         # allow broadcast mult and reduce.
-        dargs = map(torch.tensor, ctx.lk_ball_score_dV(*args, **ctx.params))
+        dargs = map(torch.tensor, _compiled.lk_ball_score_dV(*args))
 
         return tuple((d.transpose(0, -1) * dE_dV).sum(dim=-1) for d in dargs) + tuple(
             None for _ in args[4:]
