@@ -8,6 +8,13 @@
 namespace pybind11 {
 namespace detail {
 
+#define CAST_ATTR(SRC, TARGET, NAME)                             \
+  try {                                                          \
+    TARGET.NAME = SRC.attr(#NAME).cast<decltype(TARGET.NAME)>(); \
+  } catch (pybind11::cast_error) {                               \
+    return false;                                                \
+  }
+
 template <typename Real>
 struct type_caster<tmol::score::ljlk::potentials::LJTypeParams<Real>> {
  public:
@@ -16,16 +23,12 @@ struct type_caster<tmol::score::ljlk::potentials::LJTypeParams<Real>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
-    using namespace pybind11::detail;
-
-    value = T{
-        src.attr("lj_radius").cast<decltype(T::lj_radius)>(),
-        src.attr("lj_wdepth").cast<decltype(T::lj_wdepth)>(),
-        src.attr("is_donor").cast<decltype(T::is_donor)>(),
-        src.attr("is_hydroxyl").cast<decltype(T::is_hydroxyl)>(),
-        src.attr("is_polarh").cast<decltype(T::is_polarh)>(),
-        src.attr("is_acceptor").cast<decltype(T::is_acceptor)>(),
-    };
+    CAST_ATTR(src, value, lj_radius);
+    CAST_ATTR(src, value, lj_wdepth);
+    CAST_ATTR(src, value, is_donor);
+    CAST_ATTR(src, value, is_acceptor);
+    CAST_ATTR(src, value, is_hydroxyl);
+    CAST_ATTR(src, value, is_polarh);
 
     return true;
   }
@@ -39,16 +42,12 @@ struct type_caster<tmol::score::ljlk::potentials::LJTypeParamTensors<Real, D>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
-    using namespace pybind11::detail;
-
-    value = T{
-        src.attr("lj_radius").cast<decltype(T::lj_radius)>(),
-        src.attr("lj_wdepth").cast<decltype(T::lj_wdepth)>(),
-        src.attr("is_donor").cast<decltype(T::is_donor)>(),
-        src.attr("is_hydroxyl").cast<decltype(T::is_hydroxyl)>(),
-        src.attr("is_polarh").cast<decltype(T::is_polarh)>(),
-        src.attr("is_acceptor").cast<decltype(T::is_acceptor)>(),
-    };
+    CAST_ATTR(src, value, lj_radius);
+    CAST_ATTR(src, value, lj_wdepth);
+    CAST_ATTR(src, value, is_donor);
+    CAST_ATTR(src, value, is_acceptor);
+    CAST_ATTR(src, value, is_hydroxyl);
+    CAST_ATTR(src, value, is_polarh);
 
     return true;
   }
@@ -62,18 +61,14 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParams<Real>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
-    using namespace pybind11::detail;
-
-    value = T{
-        src.attr("lj_radius").cast<decltype(T::lj_radius)>(),
-        src.attr("lk_dgfree").cast<decltype(T::lk_dgfree)>(),
-        src.attr("lk_lambda").cast<decltype(T::lk_lambda)>(),
-        src.attr("lk_volume").cast<decltype(T::lk_volume)>(),
-        src.attr("is_donor").cast<decltype(T::is_donor)>(),
-        src.attr("is_hydroxyl").cast<decltype(T::is_hydroxyl)>(),
-        src.attr("is_polarh").cast<decltype(T::is_polarh)>(),
-        src.attr("is_acceptor").cast<decltype(T::is_acceptor)>(),
-    };
+    CAST_ATTR(src, value, lj_radius);
+    CAST_ATTR(src, value, lk_dgfree);
+    CAST_ATTR(src, value, lk_lambda);
+    CAST_ATTR(src, value, lk_volume);
+    CAST_ATTR(src, value, is_donor);
+    CAST_ATTR(src, value, is_acceptor);
+    CAST_ATTR(src, value, is_hydroxyl);
+    CAST_ATTR(src, value, is_polarh);
 
     return true;
   }
@@ -87,18 +82,14 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParamTensors<Real, D>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
-    using namespace pybind11::detail;
-
-    value = T{
-        src.attr("lj_radius").cast<decltype(T::lj_radius)>(),
-        src.attr("lk_dgfree").cast<decltype(T::lk_dgfree)>(),
-        src.attr("lk_lambda").cast<decltype(T::lk_lambda)>(),
-        src.attr("lk_volume").cast<decltype(T::lk_volume)>(),
-        src.attr("is_donor").cast<decltype(T::is_donor)>(),
-        src.attr("is_hydroxyl").cast<decltype(T::is_hydroxyl)>(),
-        src.attr("is_polarh").cast<decltype(T::is_polarh)>(),
-        src.attr("is_acceptor").cast<decltype(T::is_acceptor)>(),
-    };
+    CAST_ATTR(src, value, lj_radius);
+    CAST_ATTR(src, value, lk_dgfree);
+    CAST_ATTR(src, value, lk_lambda);
+    CAST_ATTR(src, value, lk_volume);
+    CAST_ATTR(src, value, is_donor);
+    CAST_ATTR(src, value, is_acceptor);
+    CAST_ATTR(src, value, is_hydroxyl);
+    CAST_ATTR(src, value, is_polarh);
 
     return true;
   }
@@ -114,16 +105,15 @@ struct type_caster<tmol::score::ljlk::potentials::LJGlobalParams<Real>> {
   bool load(handle src, bool convert) {
     using namespace pybind11::detail;
 
-    value = T{
-        src.attr("lj_hbond_dis").cast<decltype(T::lj_hbond_dis)>(),
-        src.attr("lj_hbond_OH_donor_dis")
-            .cast<decltype(T::lj_hbond_OH_donor_dis)>(),
-        src.attr("lj_hbond_hdis").cast<decltype(T::lj_hbond_hdis)>(),
-    };
+    CAST_ATTR(src, value, lj_hbond_dis);
+    CAST_ATTR(src, value, lj_hbond_OH_donor_dis);
+    CAST_ATTR(src, value, lj_hbond_hdis);
 
     return true;
   }
 };
+
+#undef CAST_ATTR
 
 }  // namespace detail
 }  // namespace pybind11

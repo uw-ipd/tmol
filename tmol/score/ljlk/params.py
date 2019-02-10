@@ -20,7 +20,7 @@ from ..chemical_database import AtomTypeParamResolver
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class LJLKGlobalParams(TensorGroup, ValidateAttrs):
+class LJLKGlobalParams(TensorGroup):
     max_dis: Tensor("f")[...]
     spline_start: Tensor("f")[...]
     lj_hbond_OH_donor_dis: Tensor("f")[...]
@@ -39,7 +39,7 @@ class LJLKGlobalParams(TensorGroup, ValidateAttrs):
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class LJLKTypeParams(TensorGroup, ValidateAttrs):
+class LJLKTypeParams(TensorGroup):
     lj_radius: Tensor("f")[...]
     lj_wdepth: Tensor("f")[...]
     lk_dgfree: Tensor("f")[...]

@@ -11,6 +11,7 @@
 
 #include "lj.hh"
 #include "lk_isotropic.hh"
+#include "params.hh"
 
 namespace tmol {
 namespace score {
@@ -38,9 +39,8 @@ struct LJDispatch {
       TView<Int, 1, D> atom_type_j,
 
       TView<Real, 2, D> bonded_path_lengths,
-
-      LJTypeParams_targs(1, D),
-      LJGlobalParams_args())
+      LJTypeParamTensors<Real, D> type_params,
+      LJGlobalParams<Real> global_params)
       -> std::tuple<
           TPack<int64_t, 2, D>,
           TPack<Real, 1, D>,
@@ -64,8 +64,8 @@ struct LKIsotropicDispatch {
 
       TView<Real, 2, D> bonded_path_lengths,
 
-      LKTypeParams_targs(1, D),
-      LJGlobalParams_args())
+      LKTypeParamTensors<Real, D> type_params,
+      LJGlobalParams<Real> global_params)
       -> std::tuple<
           TPack<int64_t, 2, D>,
           TPack<Real, 1, D>,

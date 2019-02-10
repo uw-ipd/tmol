@@ -17,8 +17,8 @@ from tmol.utility.args import ignore_unused_kwargs
 @attr.s(auto_attribs=True)
 class ScoreSetup:
     param_resolver: tmol.score.ljlk.params.LJLKParamResolver
-    coords: numpy.ndarray
-    atom_type_idx: numpy.ndarray
+    coords: torch.tensor
+    atom_type_idx: torch.tensor
     atom_pair_bpl: numpy.ndarray
 
     tcoords: torch.Tensor
@@ -38,7 +38,7 @@ class ScoreSetup:
         tcoords = (
             torch.from_numpy(system.coords).to(device=torch_device).requires_grad_(True)
         )
-        ttype = torch.from_numpy(atom_type_idx).to(device=torch_device)
+        ttype = atom_type_idx
         tbpl = torch.from_numpy(atom_pair_bpl).to(device=torch_device)
 
         return cls(
@@ -99,7 +99,7 @@ def test_lj_intra_op(default_database, ubq_system, torch_device):
         )
     )
 
-    op = LJOp.from_param_resolver(s.param_resolver)
+    op = LJOp(s.param_resolver)
 
     v_inds, v_val = op.intra(s.tcoords, s.ttype, s.tbpl)
 
@@ -122,7 +122,7 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
         )
     )[:part, part:]
 
-    op = LJOp.from_param_resolver(s.param_resolver)
+    op = LJOp(s.param_resolver)
 
     v_inds, v_val = op.inter(
         s.tcoords[:part],
@@ -144,7 +144,7 @@ def test_lj_inter_op_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
     natoms = 16
-    op = LJOp.from_param_resolver(s.param_resolver)
+    op = LJOp(s.param_resolver)
 
     coords_a = s.tcoords[0:natoms]
     coords_b = s.tcoords[natoms : natoms * 2]
@@ -172,7 +172,7 @@ def test_lj_intra_op_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
     natoms = 32
-    op = LJOp.from_param_resolver(s.param_resolver)
+    op = LJOp(s.param_resolver)
 
     coords = s.tcoords[:natoms]
 
@@ -196,7 +196,7 @@ def test_lk_intra_op(default_database, ubq_system, torch_device):
         )
     )
 
-    op = LKOp.from_param_resolver(s.param_resolver)
+    op = LKOp(s.param_resolver)
 
     v_inds, v_val = op.intra(s.tcoords, s.ttype, s.tbpl)
 
@@ -220,7 +220,7 @@ def test_lk_inter_op(default_database, ubq_system, torch_device):
         )
     )[:part, part:]
 
-    op = LKOp.from_param_resolver(s.param_resolver)
+    op = LKOp(s.param_resolver)
 
     v_inds, v_val = op.inter(
         s.tcoords[:part],
@@ -242,7 +242,7 @@ def test_lk_inter_op_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
     natoms = 16
-    op = LKOp.from_param_resolver(s.param_resolver)
+    op = LKOp(s.param_resolver)
 
     coords_a = s.tcoords[0:natoms]
     coords_b = s.tcoords[natoms : natoms * 2]
@@ -270,7 +270,7 @@ def test_lk_intra_op_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
     natoms = 32
-    op = LKOp.from_param_resolver(s.param_resolver)
+    op = LKOp(s.param_resolver)
 
     coords = s.tcoords[:natoms]
 

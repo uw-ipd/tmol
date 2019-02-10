@@ -36,7 +36,7 @@ class LJIntraScore(IntraScore):
         assert target.bonded_path_length.dim() == 3
         assert target.bonded_path_length.shape[0] == 1
 
-        return target.lj_op.intra(
+        return LJOp(target.ljlk_param_resolver).intra(
             target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
         )
 
@@ -61,7 +61,7 @@ class LKIntraScore(IntraScore):
         assert target.bonded_path_length.dim() == 3
         assert target.bonded_path_length.shape[0] == 1
 
-        return target.lk_op.intra(
+        return LKOp(target.ljlk_param_resolver).intra(
             target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
         )
 
@@ -122,21 +122,9 @@ class LJScoreGraph(_LJLKCommonScoreGraph):
         ScoreComponentClasses("lj", intra_container=LJIntraScore, inter_container=None)
     ]
 
-    @reactive_property
-    @validate_args
-    def lj_op(ljlk_param_resolver: LJLKParamResolver) -> LJOp:
-        """LJ evaluation op."""
-        return LJOp.from_param_resolver(ljlk_param_resolver)
-
 
 @reactive_attrs(auto_attribs=True)
 class LKScoreGraph(_LJLKCommonScoreGraph):
     total_score_components = [
         ScoreComponentClasses("lk", intra_container=LKIntraScore, inter_container=None)
     ]
-
-    @reactive_property
-    @validate_args
-    def lk_op(ljlk_param_resolver: LJLKParamResolver) -> LKOp:
-        """LK evaluation op."""
-        return LKOp.from_param_resolver(ljlk_param_resolver)

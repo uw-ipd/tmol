@@ -20,12 +20,22 @@ struct LJTypeParams {
 
 template <typename Real, tmol::Device D>
 struct LJTypeParamTensors {
-  TView<Real, 2, D> lj_radius;
-  TView<Real, 2, D> lj_wdepth;
-  TView<bool, 2, D> is_donor;
-  TView<bool, 2, D> is_hydroxyl;
-  TView<bool, 2, D> is_polarh;
-  TView<bool, 2, D> is_acceptor;
+  TView<Real, 1, D> lj_radius;
+  TView<Real, 1, D> lj_wdepth;
+  TView<bool, 1, D> is_donor;
+  TView<bool, 1, D> is_hydroxyl;
+  TView<bool, 1, D> is_polarh;
+  TView<bool, 1, D> is_acceptor;
+
+  template <typename Idx>
+  auto operator[](Idx i) const {
+    return LJTypeParams<Real>{lj_radius[i],
+                              lj_wdepth[i],
+                              is_donor[i],
+                              is_hydroxyl[i],
+                              is_polarh[i],
+                              is_acceptor[i]};
+  }
 };
 
 template <typename Real>
@@ -42,14 +52,26 @@ struct LKTypeParams {
 
 template <typename Real, tmol::Device D>
 struct LKTypeParamTensors {
-  TView<Real, 2, D> lj_radius;
-  TView<Real, 2, D> lk_dgfree;
-  TView<Real, 2, D> lk_lambda;
-  TView<Real, 2, D> lk_volume;
-  TView<bool, 2, D> is_donor;
-  TView<bool, 2, D> is_hydroxyl;
-  TView<bool, 2, D> is_polarh;
-  TView<bool, 2, D> is_acceptor;
+  TView<Real, 1, D> lj_radius;
+  TView<Real, 1, D> lk_dgfree;
+  TView<Real, 1, D> lk_lambda;
+  TView<Real, 1, D> lk_volume;
+  TView<bool, 1, D> is_donor;
+  TView<bool, 1, D> is_hydroxyl;
+  TView<bool, 1, D> is_polarh;
+  TView<bool, 1, D> is_acceptor;
+
+  template <typename Idx>
+  auto operator[](Idx i) const {
+    return LKTypeParams<Real>{lj_radius[i],
+                              lk_dgfree[i],
+                              lk_lambda[i],
+                              lk_volume[i],
+                              is_donor[i],
+                              is_hydroxyl[i],
+                              is_polarh[i],
+                              is_acceptor[i]};
+  }
 };
 
 template <typename Real>
