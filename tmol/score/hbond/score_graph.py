@@ -139,10 +139,14 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def hbond_param_resolver(
-        hbond_database: HBondDatabase, device: torch.device
+        parameter_database: ParameterDatabase,
+        hbond_database: HBondDatabase,
+        device: torch.device,
     ) -> HBondParamResolver:
         "hbond pair parameter resolver"
-        return HBondParamResolver.from_database(hbond_database, device)
+        return HBondParamResolver.from_database(
+            parameter_database.chemical, hbond_database, device
+        )
 
     @reactive_property
     @validate_args
@@ -154,19 +158,19 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def hbond_elements(
+        parameter_database: ParameterDatabase,
         hbond_database: HBondDatabase,
         atom_types: NDArray(object)[:, :],
-        atom_elements: NDArray(object)[:, :],
         bonds: NDArray(int)[:, 3],
     ) -> HBondElementAnalysis:
         """hbond score elements in target graph"""
         assert atom_types.shape[0] == 1
         assert numpy.all(bonds[:, 0] == 0)
 
-        return HBondElementAnalysis.setup(
+        return HBondElementAnalysis.setup_from_database(
+            chemical_database=parameter_database.chemical,
             hbond_database=hbond_database,
             atom_types=atom_types[0],
-            atom_is_hydrogen=atom_elements[0] == "H",
             bonds=bonds[:, 1:],
         )
 

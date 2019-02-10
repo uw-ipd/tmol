@@ -1,3 +1,5 @@
+import typing
+
 import attr
 import cattr
 
@@ -20,14 +22,19 @@ from .score_graph import score_graph
 from .database import ParamDB
 from .device import TorchDevice
 
+from enum import IntEnum
 
-class AcceptorHybridization:
+
+class AcceptorHybridization(IntEnum):
     none = 0
     sp2 = 1
     sp3 = 2
     ring = 3
 
-    _index = pandas.Index([None, "sp2", "sp3", "ring"])
+    _index: typing.ClassVar[pandas.Index]
+
+
+AcceptorHybridization._index = pandas.Index([None, "sp2", "sp3", "ring"])
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

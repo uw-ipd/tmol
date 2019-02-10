@@ -14,6 +14,9 @@ def test_hbond_defs(default_database: tmol.database.ParameterDatabase):
     donor_types = {t.name: t for t in db.donor_type_params}
     assert len(donor_types) == len(db.donor_type_params), "donor types not unique."
 
+    for dt in db.donor_type_params:
+        assert dt.weight
+
     for da in db.donor_atom_types:
         assert da.donor_type in donor_types
         assert da.d in atom_types
@@ -28,7 +31,7 @@ def test_hbond_defs(default_database: tmol.database.ParameterDatabase):
         db.acceptor_type_params
     ), "acceptor types not unique."
     for at in db.acceptor_type_params:
-        assert at.hybridization in ("sp2", "sp3", "ring")
+        assert at.weight
 
     for da in db.acceptor_atom_types:
         assert da.acceptor_type in acceptor_types

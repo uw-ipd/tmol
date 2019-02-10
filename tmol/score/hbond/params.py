@@ -13,10 +13,9 @@ from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
 
 from tmol.database.scoring.hbond import HBondDatabase
+from tmol.database.chemical import ChemicalDatabase
 
-
-# static mapping to equivalent index in compiled potentials.
-acceptor_class_index: pandas.Index = pandas.Index(["sp2", "sp3", "ring"])
+from ..chemical_database import AcceptorHybridization
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -49,7 +48,7 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
 class HBondPairParams(TensorGroup, ValidateAttrs):
     donor_weight: Tensor("f")[...]
     acceptor_weight: Tensor("f")[...]
-    acceptor_class: Tensor("i4")[...]
+    acceptor_hybridization: Tensor("i4")[...]
     AHdist: HBondPolyParams
     cosBAH: HBondPolyParams
     cosAHD: HBondPolyParams
@@ -65,7 +64,7 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
         return cls(
             donor_weight=torch.full(shape, fill_value, dtype=torch.float),
             acceptor_weight=torch.full(shape, fill_value, dtype=torch.float),
-            acceptor_class=torch.full(
+            acceptor_hybridization=torch.full(
                 shape, numpy.nan_to_num(fill_value), dtype=torch.int32
             ),  # nan_to_num fill value for integer dtype
             AHdist=HBondPolyParams.full(shape, fill_value),
@@ -95,13 +94,26 @@ class HBondParamResolver(ValidateAttrs):
         return torch.from_numpy(i).to(device=self.device)
 
     @classmethod
-    def from_database(cls, hbond_database: HBondDatabase, device: torch.device):
+    def from_database(
+        cls,
+        chemical_database: ChemicalDatabase,
+        hbond_database: HBondDatabase,
+        device: torch.device,
+    ):
 
         donors = {g.name: g for g in hbond_database.donor_type_params}
         donor_type_index = pandas.Index(list(donors))
 
         acceptors = {g.name: g for g in hbond_database.acceptor_type_params}
         acceptor_type_index = pandas.Index(list(acceptors))
+
+        atom_type_hybridization = {
+            a.name: a.acceptor_hybridization for a in chemical_database.atom_types
+        }
+        acceptor_type_hybridization = {
+            g.acceptor_type: atom_type_hybridization[g.a]
+            for g in hbond_database.acceptor_atom_types
+        }
 
         pair_params = HBondPairParams.full((len(donors), len(acceptors)), numpy.nan)
 
@@ -113,8 +125,10 @@ class HBondParamResolver(ValidateAttrs):
         for name, g in acceptors.items():
             i, = acceptor_type_index.get_indexer([name])
             pair_params.acceptor_weight[:, i] = g.weight
-            pair_params.acceptor_class[:, i] = int(
-                acceptor_class_index.get_indexer_for([g.hybridization])
+            pair_params.acceptor_hybridization[:, i] = int(
+                AcceptorHybridization._index.get_indexer_for(
+                    [acceptor_type_hybridization[name]]
+                )
             )
 
         # Get polynomial parameters indexed by polynomial name

@@ -1,4 +1,3 @@
-import pytest
 import cattr
 
 import numpy
@@ -13,18 +12,10 @@ from tmol.system.score_support import bonded_atoms_for_system
 import tmol.database
 from tmol.score.hbond.identification import HBondElementAnalysis
 
-_analysis_class = {"graph_traversal_elements": HBondElementAnalysis}
-
-
-@pytest.fixture(params=_analysis_class)
-def analysis_class(request):
-    return _analysis_class[request.param]
-
 
 def test_ambig_identification(
     default_database: tmol.database.ParameterDatabase,
     water_box_system: PackedResidueSystem,
-    analysis_class: HBondElementAnalysis,
 ):
     """Tests identification in cases with 'ambiguous' acceptor bases."""
 
@@ -54,10 +45,10 @@ def test_ambig_identification(
     )
     assert len(expected_acceptors) == len(water_box_system.residues)
 
-    element_analysis = analysis_class.setup(
+    element_analysis = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
         hbond_database=default_database.scoring.hbond,
         atom_types=water_box_system.atom_metadata["atom_type"],
-        atom_is_hydrogen=water_box_system.atom_metadata["atom_element"] == "H",
         bonds=water_box_system.bonds,
     )
 
@@ -82,7 +73,7 @@ def test_ambig_identification(
     )
 
 
-def test_bb_identification(bb_hbond_database, ubq_system, analysis_class):
+def test_bb_identification(default_database, bb_hbond_database, ubq_system):
     tsys = ubq_system
 
     donors = []
@@ -109,10 +100,10 @@ def test_bb_identification(bb_hbond_database, ubq_system, analysis_class):
 
     test_params = bonded_atoms_for_system(tsys)
 
-    hbe = analysis_class.setup(
+    hbe = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
         hbond_database=bb_hbond_database,
         atom_types=test_params["atom_types"][0],
-        atom_is_hydrogen=test_params["atom_elements"][0] == "H",
         bonds=test_params["bonds"][:, 1:],
     )
 
@@ -134,38 +125,35 @@ def test_bb_identification(bb_hbond_database, ubq_system, analysis_class):
 
 def test_identification_by_chemical_types(
     default_database: tmol.database.ParameterDatabase,
-    analysis_class: HBondElementAnalysis,
 ):
     """Hbond donor/acceptor identification covers all donors and accceptor atom
     types in the chemical database."""
     db_res = default_database.chemical.residues
-    types = [
+    residue_types = [
         cattr.structure(cattr.unstructure(r), restypes.ResidueType) for r in db_res
     ]
 
     atom_types = {t.name: t for t in default_database.chemical.atom_types}
 
-    for t in types:
-        atom_types = numpy.array([a.atom_type for a in t.atoms])
-        bonds = t.bond_indicies
+    for rt in residue_types:
+        res_atom_types = numpy.array([a.atom_type for a in rt.atoms])
+        bonds = rt.bond_indicies
 
-        hbe = analysis_class.setup(
+        hbe = HBondElementAnalysis.setup_from_database(
+            chemical_database=default_database.chemical,
             hbond_database=default_database.scoring.hbond,
-            atom_types=atom_types.astype(object),
-            atom_is_hydrogen=numpy.array(
-                [t[0] == "H" for t in atom_types.astype(object)]
-            ),
+            atom_types=res_atom_types.astype(object),
             bonds=bonds,
         )
         identified_donors = set(hbe.donors["d"])
         identified_acceptors = set(hbe.acceptors["a"])
 
-        for ai, at in enumerate(atom_types):
+        for ai, at in enumerate(res_atom_types):
             if atom_types[at].is_donor:
                 assert (
                     ai in identified_donors
-                ), f"Unidentified donor. res: {t.name} atom:{t.atoms[ai]}"
+                ), f"Unidentified donor. res: {rt.name} atom:{rt.atoms[ai]}"
             if atom_types[at].is_acceptor:
                 assert (
                     ai in identified_acceptors
-                ), f"Unidentified acceptor. res: {t.name} atom:{t.atoms[ai]}"
+                ), f"Unidentified acceptor. res: {rt.name} atom:{rt.atoms[ai]}"

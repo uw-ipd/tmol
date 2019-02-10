@@ -6,20 +6,11 @@ import numpy
 import numba
 
 import tmol.numeric.interpolation.cubic_hermite_polynomial as cubic_hermite_polynomial
-from enum import IntEnum
+from tmol.score.chemical_database import AcceptorHybridization
 
 from .common import dist, lj_sigma
 
 from .lk_isotropic import lk_isotropic_pair, d_lk_isotropic_pair_d_dist
-
-
-class AcceptorHybridization(IntEnum):
-    """Redefine acceptor hybridization as int enum for use in numba."""
-
-    none = 0
-    sp2 = 1
-    sp3 = 2
-    ring = 3
 
 
 jit = toolz.curry(numba.jit)(nopython=True, nogil=True)
