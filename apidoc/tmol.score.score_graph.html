@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.numba &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
+  <title>tmol.score.score_graph &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.utility.numba.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.score_graph.html"/>
   
 
   
@@ -30,8 +30,8 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.utility.reactive" href="tmol.utility.reactive.html" />
-    <link rel="prev" title="tmol.utility.mixins" href="tmol.utility.mixins.html" /> 
+    <link rel="next" title="tmol.score.stacked_system" href="tmol.score.stacked_system.html" />
+    <link rel="prev" title="tmol.score.score_components" href="tmol.score.score_components.html" /> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -92,20 +92,15 @@
 <p class="caption"><span class="caption-text">Packages</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="tmol.utility.html">tmol.utility</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.args.html">tmol.utility.args</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.attr.html">tmol.utility.attr</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.categorical.html">tmol.utility.categorical</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.cpp_extension.html">tmol.utility.cpp_extension</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.dicttoolz.html">tmol.utility.dicttoolz</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.log.html">tmol.utility.log</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.mixins.html">tmol.utility.mixins</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.utility.numba</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.score.html">tmol.score</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.bonded_atom.html">tmol.score.bonded_atom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.coordinates.html">tmol.score.coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.database.html">tmol.score.database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.factory_mixin.html">tmol.score.factory_mixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.score.score_graph</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
 </ul>
@@ -113,13 +108,21 @@
 <li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.reactive.html">tmol.utility.reactive</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.units.html">tmol.utility.units</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.tensor.html">tmol.utility.tensor</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#summary">Summary</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.utility.html#reference">Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.common.html">tmol.score.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.elec.html">tmol.score.elec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.html#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.html#reference">Reference</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
@@ -169,15 +172,15 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-          <li><a href="tmol.utility.html">tmol.utility</a> &raquo;</li>
+          <li><a href="tmol.score.html">tmol.score</a> &raquo;</li>
         
-      <li>tmol.utility.numba</li>
+      <li>tmol.score.score_graph</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.utility.numba.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.score.score_graph.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -190,9 +193,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.utility.numba">
-<span id="tmol-utility-numba"></span><h1>tmol.utility.numba<a class="headerlink" href="#module-tmol.utility.numba" title="Permalink to this headline">¶</a></h1>
-<p>Utilities for numba/torch interconversion.</p>
+  <div class="section" id="module-tmol.score.score_graph">
+<span id="tmol-score-score-graph"></span><h1>tmol.score.score_graph<a class="headerlink" href="#module-tmol.score.score_graph" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="functions">
@@ -203,8 +205,8 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.utility.numba.torch_cuda_array_interface" title="tmol.utility.numba.torch_cuda_array_interface"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch_cuda_array_interface</span></code></a></td>
-<td>__cuda_array_interface__ getter implementation for torch.Tensor.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.score_graph.score_graph" title="tmol.score.score_graph.score_graph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">score_graph</span></code></a></td>
+<td>Decorate a reactive score graph class.</td>
 </tr>
 </tbody>
 </table>
@@ -213,9 +215,9 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="tmol.utility.numba.torch_cuda_array_interface">
-<code class="descclassname">tmol.utility.numba.</code><code class="descname">torch_cuda_array_interface</code><span class="sig-paren">(</span><em>tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/numba.html#torch_cuda_array_interface"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.numba.torch_cuda_array_interface" title="Permalink to this definition">¶</a></dt>
-<dd><p>__cuda_array_interface__ getter implementation for torch.Tensor.</p>
+<dt id="tmol.score.score_graph.score_graph">
+<code class="descclassname">tmol.score.score_graph.</code><code class="descname">score_graph</code><span class="sig-paren">(</span><em>cls=None</em>, <em>*</em>, <em>auto_attribs=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_graph.html#score_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_graph.score_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorate a reactive score graph class.</p>
 </dd></dl>
 
 </div>
@@ -229,10 +231,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.utility.reactive.html" class="btn btn-neutral float-right" title="tmol.utility.reactive" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.stacked_system.html" class="btn btn-neutral float-right" title="tmol.score.stacked_system" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="tmol.utility.mixins.html" class="btn btn-neutral" title="tmol.utility.mixins" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tmol.score.score_components.html" class="btn btn-neutral" title="tmol.score.score_components" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
+  <title>tmol.score.interatomic_distance &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-145-ge03dd9bf
+                0.0.0-146-g170f8dc8
               </div>
             
           
@@ -172,15 +172,15 @@
 <span class="kn">import</span> <span class="nn">numpy</span>
 <span class="kn">import</span> <span class="nn">scipy.sparse.csgraph</span>
 
-<span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
+<span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_property</span>
 <span class="kn">from</span> <span class="nn">tmol.utility.mixins</span> <span class="k">import</span> <span class="n">gather_superclass_properies</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">TensorGroup</span>
 
+<span class="kn">from</span> <span class="nn">.score_graph</span> <span class="k">import</span> <span class="n">score_graph</span>
 <span class="kn">from</span> <span class="nn">.stacked_system</span> <span class="k">import</span> <span class="n">StackedSystem</span>
-<span class="kn">from</span> <span class="nn">.factory</span> <span class="k">import</span> <span class="n">Factory</span>
 
 
 <div class="viewcode-block" id="_nan_to_num"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance._nan_to_num">[docs]</a><span class="k">def</span> <span class="nf">_nan_to_num</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
@@ -189,7 +189,7 @@
     <span class="k">return</span> <span class="n">var</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">vals</span><span class="p">),</span> <span class="n">zeros</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="InteratomicDistanceGraphBase"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="InteratomicDistanceGraphBase"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.InteratomicDistanceGraphBase">[docs]</a><span class="nd">@score_graph</span>
 <span class="k">class</span> <span class="nc">InteratomicDistanceGraphBase</span><span class="p">(</span><span class="n">StackedSystem</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base graph for interatomic distances.</span>
 
@@ -258,7 +258,7 @@
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">j</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="NaiveInteratomicDistanceGraph"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="NaiveInteratomicDistanceGraph"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.NaiveInteratomicDistanceGraph">[docs]</a><span class="nd">@score_graph</span>
 <span class="k">class</span> <span class="nc">NaiveInteratomicDistanceGraph</span><span class="p">(</span><span class="n">InteratomicDistanceGraphBase</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
@@ -403,8 +403,8 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">atom_pair_mask</span><span class="p">))</span></div></div>
 
 
-<div class="viewcode-block" id="BlockedInteratomicDistanceGraph"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">BlockedInteratomicDistanceGraph</span><span class="p">(</span><span class="n">InteratomicDistanceGraphBase</span><span class="p">,</span> <span class="n">Factory</span><span class="p">):</span>
+<div class="viewcode-block" id="BlockedInteratomicDistanceGraph"><a class="viewcode-back" href="../../../apidoc/tmol.score.interatomic_distance.html#tmol.score.interatomic_distance.BlockedInteratomicDistanceGraph">[docs]</a><span class="nd">@score_graph</span>
+<span class="k">class</span> <span class="nc">BlockedInteratomicDistanceGraph</span><span class="p">(</span><span class="n">InteratomicDistanceGraphBase</span><span class="p">):</span>
     <span class="c1"># atom block size for block-neighbor optimization</span>
     <span class="n">atom_pair_block_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
 
@@ -484,7 +484,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-145-ge03dd9bf',
+              VERSION:'0.0.0-146-g170f8dc8',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

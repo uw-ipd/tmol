@@ -7,7 +7,7 @@ tmol.score.score_components
 .. currentmodule:: tmol.score.score_components
 
 .. automodule:: tmol.score.score_components
-    :members: InterScore, IntraScore, ScoreComponent, ScoreComponentClasses
+    :members: InterScore, IntraScore, ScoreComponentClasses
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -23,7 +23,6 @@ tmol.score.score_components
 
         InterScore
         IntraScore
-        ScoreComponent
         ScoreComponentClasses
 
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.stacked_system &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
+  <title>tmol.score.stacked_system &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-145-ge03dd9bf
+                0.0.0-146-g170f8dc8
               </div>
             
           
@@ -167,13 +167,11 @@
   <h1>Source code for tmol.score.stacked_system</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">singledispatch</span>
 
-<span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span>
-
-<span class="kn">from</span> <span class="nn">.factory</span> <span class="k">import</span> <span class="n">Factory</span>
+<span class="kn">from</span> <span class="nn">.score_graph</span> <span class="k">import</span> <span class="n">score_graph</span>
 
 
-<div class="viewcode-block" id="StackedSystem"><a class="viewcode-back" href="../../../apidoc/tmol.score.stacked_system.html#tmol.score.stacked_system.StackedSystem">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">StackedSystem</span><span class="p">(</span><span class="n">Factory</span><span class="p">):</span>
+<div class="viewcode-block" id="StackedSystem"><a class="viewcode-back" href="../../../apidoc/tmol.score.stacked_system.html#tmol.score.stacked_system.StackedSystem">[docs]</a><span class="nd">@score_graph</span>
+<span class="k">class</span> <span class="nc">StackedSystem</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Score graph component describing stacked system&#39;s &quot;depth&quot; and &quot;size&quot;.</span>
 
 <span class="sd">    A score graph is defined over a set of independent system layers. The</span>
@@ -232,7 +230,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-145-ge03dd9bf',
+              VERSION:'0.0.0-146-g170f8dc8',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

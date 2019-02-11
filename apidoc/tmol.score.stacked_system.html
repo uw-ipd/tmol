@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.stacked_system &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
+  <title>tmol.score.stacked_system &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
   
 
   
@@ -31,7 +31,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="tmol.score.viewer" href="tmol.score.viewer.html" />
-    <link rel="prev" title="tmol.score.score_components" href="tmol.score.score_components.html" /> 
+    <link rel="prev" title="tmol.score.score_graph" href="tmol.score.score_graph.html" /> 
 
   
   <script src="../_static/js/modernizr.min.js"></script>
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-145-ge03dd9bf
+                0.0.0-146-g170f8dc8
               </div>
             
           
@@ -97,9 +97,10 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.coordinates.html">tmol.score.coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.database.html">tmol.score.database</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.score.factory.html">tmol.score.factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.factory_mixin.html">tmol.score.factory_mixin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_graph.html">tmol.score.score_graph</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.score.stacked_system</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
@@ -216,7 +217,7 @@
 <dl class="class">
 <dt id="tmol.score.stacked_system.StackedSystem">
 <em class="property">class </em><code class="descclassname">tmol.score.stacked_system.</code><code class="descname">StackedSystem</code><span class="sig-paren">(</span><em>stack_depth: int</em>, <em>system_size: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/stacked_system.html#StackedSystem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.stacked_system.StackedSystem" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.score.factory.html#tmol.score.factory.Factory" title="tmol.score.factory.Factory"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.factory.Factory</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Score graph component describing stacked system’s “depth” and “size”.</p>
 <p>A score graph is defined over a set of independent system layers. The
 number layers defines the stacked “depth”, and the maximum number of atoms
@@ -241,6 +242,48 @@ maximum number of atoms, but systems may have varying number of null atoms.</p>
 <dd><p>Overridable clone-constructor.</p>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="tmol.score.stacked_system.StackedSystem._inter_score_type">
+<em class="property">classmethod </em><code class="descname">_inter_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="headerlink" href="#tmol.score.stacked_system.StackedSystem._inter_score_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compose and create InterScore type for all ScoreComponents in class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.stacked_system.StackedSystem._intra_score_type">
+<em class="property">classmethod </em><code class="descname">_intra_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="headerlink" href="#tmol.score.stacked_system.StackedSystem._intra_score_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compose and create IntraScore type for all ScoreComponents in class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.stacked_system.StackedSystem._score_components">
+<em class="property">classmethod </em><code class="descname">_score_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.stacked_system.StackedSystem._score_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather all <code class="docutils literal notranslate"><span class="pre">total_score_components</span></code> defined in class bases.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.stacked_system.StackedSystem.build_for">
+<em class="property">classmethod </em><code class="descname">build_for</code><span class="sig-paren">(</span><em>val</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.stacked_system.StackedSystem.build_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct score graph for val, defaults to cloning val.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.stacked_system.StackedSystem.init_parameters_for">
+<em class="property">classmethod </em><code class="descname">init_parameters_for</code><span class="sig-paren">(</span><em>val</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.stacked_system.StackedSystem.init_parameters_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get score graph params for val, defaults to cloning.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.stacked_system.StackedSystem.inter_score">
+<code class="descname">inter_score</code><span class="sig-paren">(</span><em>other: tmol.score.score_components._ScoreComponent</em><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.InterScore<a class="headerlink" href="#tmol.score.stacked_system.StackedSystem.inter_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create inter-score container for this component and other.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.stacked_system.StackedSystem.intra_score">
+<code class="descname">intra_score</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.IntraScore<a class="headerlink" href="#tmol.score.stacked_system.StackedSystem.intra_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create intra-score container over this component.</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -257,7 +300,7 @@ maximum number of atoms, but systems may have varying number of null atoms.</p>
         <a href="tmol.score.viewer.html" class="btn btn-neutral float-right" title="tmol.score.viewer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="tmol.score.score_components.html" class="btn btn-neutral" title="tmol.score.score_components" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tmol.score.score_graph.html" class="btn btn-neutral" title="tmol.score.score_graph" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -290,7 +333,7 @@ maximum number of atoms, but systems may have varying number of null atoms.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-145-ge03dd9bf',
+              VERSION:'0.0.0-146-g170f8dc8',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

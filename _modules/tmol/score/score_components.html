@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.score_components &mdash; TMol 0.0.0-145-ge03dd9bf documentation</title>
+  <title>tmol.score.score_components &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-145-ge03dd9bf
+                0.0.0-146-g170f8dc8
               </div>
             
           
@@ -169,13 +169,13 @@
 
 <span class="sd">Score evaluation involves the interaction of three types:</span>
 
-<span class="sd">(a) A `ScoreComponent`, defining a single system state.</span>
+<span class="sd">(a) A `_ScoreComponent`, defining a single system state.</span>
 <span class="sd">(b) An `IntraScore`, managing the total intra-system score for a</span>
 <span class="sd">    single system.</span>
 <span class="sd">(c) An `IntraScore`, managing the total inter-system score for a pair</span>
 <span class="sd">    of systems.</span>
 
-<span class="sd">The ``ScoreComponent`` type is instantiated once for a group of related scoring</span>
+<span class="sd">The ``_ScoreComponent`` type is instantiated once for a group of related scoring</span>
 <span class="sd">operations, and is responsible for initializing any static or reusable data</span>
 <span class="sd">required to score a system. The system state (Eg: atomic coordinates) is</span>
 <span class="sd">updated via assignment for each score operation, preserving the ``System``</span>
@@ -245,13 +245,13 @@
 
 <span class="sd">To &quot;simplify&quot; the definition of concrete scoring classes from a composite of</span>
 <span class="sd">score component base classes, the ``IntraScore`` and ``InterScore`` types are</span>
-<span class="sd">dynamically derived from the ``ScoreComponent`` type via inspection of the</span>
-<span class="sd">``ScoreComponent`` MRO, gathering base components for the ``IntraScore`` and</span>
+<span class="sd">dynamically derived from the ``_ScoreComponent`` type via inspection of the</span>
+<span class="sd">``_ScoreComponent`` MRO, gathering base components for the ``IntraScore`` and</span>
 <span class="sd">``InterScore`` classes. Note that this results in a unsettling inversion of</span>
-<span class="sd">ownership between classes and instances: ``ScoreComponent`` types define class</span>
+<span class="sd">ownership between classes and instances: ``_ScoreComponent`` types define class</span>
 <span class="sd">level references to their ``IntraScore`` and ``InterScore`` counterparts, but</span>
 <span class="sd">the resulting ``intra_score` and ``inter_score`` *objects* contain references</span>
-<span class="sd">to a target ``ScoreComponent`` object.</span>
+<span class="sd">to a target ``_ScoreComponent`` object.</span>
 
 <span class="sd">.. aafig::</span>
 
@@ -295,7 +295,7 @@
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
 
 
-<div class="viewcode-block" id="IntraScore"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.IntraScore">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
+<div class="viewcode-block" id="IntraScore"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.IntraScore">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
 <span class="k">class</span> <span class="nc">IntraScore</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Base mixin for intra-system scoring.</span>
 
@@ -311,14 +311,14 @@
 <span class="sd">    will be exposed via ``reactive_property``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">target</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="n">target</span><span class="p">:</span> <span class="s2">&quot;_ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
 
-<div class="viewcode-block" id="IntraScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.IntraScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="IntraScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.IntraScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">total</span><span class="p">(</span><span class="o">**</span><span class="n">component_totals</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div></div>
 
 
-<div class="viewcode-block" id="InterScore"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.InterScore">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
+<div class="viewcode-block" id="InterScore"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.InterScore">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
 <span class="k">class</span> <span class="nc">InterScore</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Base mixin for inter-system scoring.</span>
 
@@ -334,20 +334,20 @@
 <span class="sd">    will be exposed via ``reactive_property``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">target_i</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
-    <span class="n">target_j</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="n">target_i</span><span class="p">:</span> <span class="s2">&quot;_ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
+    <span class="n">target_j</span><span class="p">:</span> <span class="s2">&quot;_ScoreComponent&quot;</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
 
-<div class="viewcode-block" id="InterScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.InterScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="InterScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.InterScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">total</span><span class="p">(</span><span class="o">**</span><span class="n">component_totals</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div></div>
 
 
-<div class="viewcode-block" id="ScoreComponentClasses"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponentClasses">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="ScoreComponentClasses"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.ScoreComponentClasses">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ScoreComponentClasses</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;The intra/inter graph class components for a ScoreComponent.</span>
 
 <span class="sd">    Container for intra/inter graph components exposing a specific score term</span>
-<span class="sd">    for a `ScoreComponent`. Each ``ScoreComponent``-based term implementation</span>
+<span class="sd">    for a `_ScoreComponent`. Each ``_ScoreComponent``-based term implementation</span>
 <span class="sd">    will expose one-or-more named terms via the ``total_score_components``</span>
 <span class="sd">    class property, which are composed to generate the corresponding</span>
 <span class="sd">    ``IntraScore`` and ``InterScore`` utility classes.</span>
@@ -367,8 +367,8 @@
     <span class="n">inter_container</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
-<div class="viewcode-block" id="ScoreComponent"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent">[docs]</a><span class="k">class</span> <span class="nc">ScoreComponent</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Mixin-base managing definition of inter/intra score containers.</span>
+<div class="viewcode-block" id="_ScoreComponent"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent">[docs]</a><span class="k">class</span> <span class="nc">_ScoreComponent</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Mixin collection managing definition of inter/intra score containers.</span>
 
 <span class="sd">    A mixin-base for all score term implementations managing definition of</span>
 <span class="sd">    ``InterScore`` and ``IntraScore`` composite classes for all terms present</span>
@@ -394,15 +394,15 @@
     <span class="n">__resolved_intra_score_type__</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span>
     <span class="n">__resolved_inter_score_type__</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]</span>
 
-<div class="viewcode-block" id="ScoreComponent.intra_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent.intra_score">[docs]</a>    <span class="k">def</span> <span class="nf">intra_score</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntraScore</span><span class="p">:</span>
+<div class="viewcode-block" id="_ScoreComponent.intra_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent.intra_score">[docs]</a>    <span class="k">def</span> <span class="nf">intra_score</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">IntraScore</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Create intra-score container over this component.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_intra_score_type</span><span class="p">()(</span><span class="bp">self</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ScoreComponent.inter_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent.inter_score">[docs]</a>    <span class="k">def</span> <span class="nf">inter_score</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;ScoreComponent&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterScore</span><span class="p">:</span>
+<div class="viewcode-block" id="_ScoreComponent.inter_score"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent.inter_score">[docs]</a>    <span class="k">def</span> <span class="nf">inter_score</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span> <span class="s2">&quot;_ScoreComponent&quot;</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;_ScoreComponent&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterScore</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Create inter-score container for this component and other.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inter_score_type</span><span class="p">()(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ScoreComponent._intra_score_type"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._intra_score_type">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_ScoreComponent._intra_score_type"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent._intra_score_type">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_intra_score_type</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Compose and create IntraScore type for all ScoreComponents in class.&quot;&quot;&quot;</span>
 
@@ -461,7 +461,7 @@
 
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_intra_score_type__</span></div>
 
-<div class="viewcode-block" id="ScoreComponent._inter_score_type"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._inter_score_type">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_ScoreComponent._inter_score_type"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent._inter_score_type">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_inter_score_type</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">type</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Compose and create InterScore type for all ScoreComponents in class.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="s2">&quot;__resolved_inter_score_type__&quot;</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
@@ -519,7 +519,7 @@
 
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_inter_score_type__</span></div>
 
-<div class="viewcode-block" id="ScoreComponent._score_components"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.score_components.ScoreComponent._score_components">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_ScoreComponent._score_components"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent._score_components">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_score_components</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Gather all ``total_score_components`` defined in class bases.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="s2">&quot;__resolved_score_components__&quot;</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
@@ -539,7 +539,20 @@
 
         <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_score_components__</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">score_components</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_score_components__</span></div></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_score_components__</span></div>
+
+<div class="viewcode-block" id="_ScoreComponent.mixin"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent.mixin">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">mixin</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Mixin _ScoreComponent interface into class.&quot;&quot;&quot;</span>
+        <span class="n">target</span><span class="o">.</span><span class="n">_score_components</span> <span class="o">=</span> <span class="nb">classmethod</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_score_components</span><span class="o">.</span><span class="vm">__func__</span><span class="p">)</span>
+
+        <span class="n">target</span><span class="o">.</span><span class="n">_inter_score_type</span> <span class="o">=</span> <span class="nb">classmethod</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_inter_score_type</span><span class="o">.</span><span class="vm">__func__</span><span class="p">)</span>
+        <span class="n">target</span><span class="o">.</span><span class="n">inter_score</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">inter_score</span>
+
+        <span class="n">target</span><span class="o">.</span><span class="n">_intra_score_type</span> <span class="o">=</span> <span class="nb">classmethod</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_intra_score_type</span><span class="o">.</span><span class="vm">__func__</span><span class="p">)</span>
+        <span class="n">target</span><span class="o">.</span><span class="n">intra_score</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">intra_score</span>
+
+        <span class="k">return</span> <span class="n">target</span></div></div>
 </pre></div>
 
            </div>
@@ -576,7 +589,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-145-ge03dd9bf',
+              VERSION:'0.0.0-146-g170f8dc8',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
