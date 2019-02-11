@@ -9,10 +9,10 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.device import TorchDevice
 
-from tmol.utility.reactive import reactive_attrs
+from tmol.score.score_graph import score_graph
 
 
-@reactive_attrs
+@score_graph
 class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice):
     pass
 

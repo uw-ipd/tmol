@@ -1,13 +1,11 @@
 from typing import Optional
 
 import torch
-from tmol.utility.reactive import reactive_attrs
-
-from .factory import Factory
+from .score_graph import score_graph
 
 
-@reactive_attrs(auto_attribs=True)
-class TorchDevice(Factory):
+@score_graph
+class TorchDevice:
     """Graph component specifying the target compute device.
 
     Attributes:

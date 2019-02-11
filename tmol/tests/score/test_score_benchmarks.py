@@ -1,18 +1,13 @@
 import pytest
 
-from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.reactive import reactive_property
 
 from tmol.score import TotalScoreGraph
 
+from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
-
-
 from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.score_components import (
-    ScoreComponent,
-    ScoreComponentClasses,
-    IntraScore,
-)
+from tmol.score.score_components import ScoreComponentClasses, IntraScore
 
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
@@ -24,48 +19,48 @@ from tmol.score.hbond import HBondScoreGraph
 from tmol.score.elec import ElecScoreGraph
 
 
-@reactive_attrs
+@score_graph
 class DummyIntra(IntraScore):
     @reactive_property
     def total_dummy(target):
         return target.coords.sum()
 
 
-@reactive_attrs
+@score_graph
 class DofSpaceDummy(
-    KinematicAtomicCoordinateProvider, BondedAtomScoreGraph, ScoreComponent, TorchDevice
+    KinematicAtomicCoordinateProvider, BondedAtomScoreGraph, TorchDevice
 ):
     total_score_components = [
         ScoreComponentClasses("dummy", intra_container=DummyIntra, inter_container=None)
     ]
 
 
-@reactive_attrs
+@score_graph
 class DofSpaceTotal(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
     pass
 
 
-@reactive_attrs
+@score_graph
 class TotalScore(CartesianAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
     pass
 
 
-@reactive_attrs
+@score_graph
 class HBondScore(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice):
     pass
 
 
-@reactive_attrs
+@score_graph
 class ElecScore(CartesianAtomicCoordinateProvider, ElecScoreGraph, TorchDevice):
     pass
 
 
-@reactive_attrs
+@score_graph
 class LJScore(CartesianAtomicCoordinateProvider, LJScoreGraph, TorchDevice):
     pass
 
 
-@reactive_attrs
+@score_graph
 class LKScore(CartesianAtomicCoordinateProvider, LKScoreGraph, TorchDevice):
     pass
 

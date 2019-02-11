@@ -1,7 +1,7 @@
 import tmol.utility.mixins as mixins
 
 
-class Factory:
+class _Factory:
     """Mixin managing cooperative score graph factory functions.
 
     `Factory` manages cooperative evaluation of a set of component-specifc
@@ -29,3 +29,11 @@ class Factory:
     def init_parameters_for(cls, val, **kwargs):
         """Get score graph params for val, defaults to cloning."""
         return mixins.cooperative_superclass_factory(cls, "factory_for", val, **kwargs)
+
+    @classmethod
+    def mixin(cls, target):
+        """Mixin cooperative score graph factory functions into class."""
+        target.build_for = classmethod(cls.build_for.__func__)
+        target.init_parameters_for = classmethod(cls.init_parameters_for.__func__)
+
+        return target

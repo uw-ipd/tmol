@@ -8,17 +8,17 @@ from tmol.score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 
-from tmol.utility.reactive import reactive_attrs
+from tmol.score.score_graph import score_graph
 
 from tmol.tests.autograd import gradcheck
 
 
-@reactive_attrs
+@score_graph
 class RealSpaceScore(CartesianAtomicCoordinateProvider, TotalScoreGraph):
     pass
 
 
-@reactive_attrs
+@score_graph
 class DofSpaceScore(KinematicAtomicCoordinateProvider, TotalScoreGraph):
     pass
 

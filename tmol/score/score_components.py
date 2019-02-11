@@ -2,13 +2,13 @@ r"""Graph components managing dispatch of "intra" and "inter" layer scoring.
 
 Score evaluation involves the interaction of three types:
 
-(a) A `ScoreComponent`, defining a single system state.
+(a) A `_ScoreComponent`, defining a single system state.
 (b) An `IntraScore`, managing the total intra-system score for a
     single system.
 (c) An `IntraScore`, managing the total inter-system score for a pair
     of systems.
 
-The ``ScoreComponent`` type is instantiated once for a group of related scoring
+The ``_ScoreComponent`` type is instantiated once for a group of related scoring
 operations, and is responsible for initializing any static or reusable data
 required to score a system. The system state (Eg: atomic coordinates) is
 updated via assignment for each score operation, preserving the ``System``
@@ -78,13 +78,13 @@ property.
 
 To "simplify" the definition of concrete scoring classes from a composite of
 score component base classes, the ``IntraScore`` and ``InterScore`` types are
-dynamically derived from the ``ScoreComponent`` type via inspection of the
-``ScoreComponent`` MRO, gathering base components for the ``IntraScore`` and
+dynamically derived from the ``_ScoreComponent`` type via inspection of the
+``_ScoreComponent`` MRO, gathering base components for the ``IntraScore`` and
 ``InterScore`` classes. Note that this results in a unsettling inversion of
-ownership between classes and instances: ``ScoreComponent`` types define class
+ownership between classes and instances: ``_ScoreComponent`` types define class
 level references to their ``IntraScore`` and ``InterScore`` counterparts, but
 the resulting ``intra_score` and ``inter_score`` *objects* contain references
-to a target ``ScoreComponent`` object.
+to a target ``_ScoreComponent`` object.
 
 .. aafig::
 
@@ -144,7 +144,7 @@ class IntraScore:
     will be exposed via ``reactive_property``.
     """
 
-    target: "ScoreComponent" = attr.ib()
+    target: "_ScoreComponent" = attr.ib()
 
     @staticmethod
     def total(**component_totals):
@@ -167,8 +167,8 @@ class InterScore:
     will be exposed via ``reactive_property``.
     """
 
-    target_i: "ScoreComponent" = attr.ib()
-    target_j: "ScoreComponent" = attr.ib()
+    target_i: "_ScoreComponent" = attr.ib()
+    target_j: "_ScoreComponent" = attr.ib()
 
     @staticmethod
     def total(**component_totals):
@@ -180,7 +180,7 @@ class ScoreComponentClasses:
     """The intra/inter graph class components for a ScoreComponent.
 
     Container for intra/inter graph components exposing a specific score term
-    for a `ScoreComponent`. Each ``ScoreComponent``-based term implementation
+    for a `_ScoreComponent`. Each ``_ScoreComponent``-based term implementation
     will expose one-or-more named terms via the ``total_score_components``
     class property, which are composed to generate the corresponding
     ``IntraScore`` and ``InterScore`` utility classes.
@@ -200,8 +200,8 @@ class ScoreComponentClasses:
     inter_container: Optional[type] = None
 
 
-class ScoreComponent:
-    """Mixin-base managing definition of inter/intra score containers.
+class _ScoreComponent:
+    """Mixin collection managing definition of inter/intra score containers.
 
     A mixin-base for all score term implementations managing definition of
     ``InterScore`` and ``IntraScore`` composite classes for all terms present
@@ -231,7 +231,7 @@ class ScoreComponent:
         """Create intra-score container over this component."""
         return self._intra_score_type()(self)
 
-    def inter_score(self: "ScoreComponent", other: "ScoreComponent") -> InterScore:
+    def inter_score(self: "_ScoreComponent", other: "_ScoreComponent") -> InterScore:
         """Create inter-score container for this component and other."""
         return self._inter_score_type()(self, other)
 
@@ -373,3 +373,16 @@ class ScoreComponent:
         cls.__resolved_score_components__ = tuple(score_components)
 
         return cls.__resolved_score_components__
+
+    @classmethod
+    def mixin(cls, target):
+        """Mixin _ScoreComponent interface into class."""
+        target._score_components = classmethod(cls._score_components.__func__)
+
+        target._inter_score_type = classmethod(cls._inter_score_type.__func__)
+        target.inter_score = cls.inter_score
+
+        target._intra_score_type = classmethod(cls._intra_score_type.__func__)
+        target.intra_score = cls.intra_score
+
+        return target

@@ -3,10 +3,10 @@ import toolz
 import numpy
 import pandas
 
-from tmol.utility.reactive import reactive_attrs
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
+from tmol.score.score_graph import score_graph
 
 from tmol.system.packed import PackedResidueSystem
 
@@ -14,7 +14,7 @@ from tmol.system.packed import PackedResidueSystem
 def hbond_score_comparison(rosetta_baseline):
     test_system = PackedResidueSystem.from_residues(rosetta_baseline.tmol_residues)
 
-    @reactive_attrs
+    @score_graph
     class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph):
         pass
 

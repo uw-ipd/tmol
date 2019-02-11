@@ -4,13 +4,13 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
+
+from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJScoreGraph
 
-from tmol.utility.reactive import reactive_attrs
 
-
-@reactive_attrs
+@score_graph
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
     pass
 

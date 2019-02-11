@@ -14,8 +14,8 @@ from tmol.database.scoring import LJLKDatabase
 from ..database import ParamDB
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
-from ..factory import Factory
-from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
+from ..score_components import ScoreComponentClasses, IntraScore
+from ..score_graph import score_graph
 
 from .params import LJLKParamResolver
 from .torch_op import LJOp, LKOp
@@ -71,10 +71,8 @@ class LKIntraScore(IntraScore):
         return score_val.sum()
 
 
-@reactive_attrs(auto_attribs=True)
-class _LJLKCommonScoreGraph(
-    BondedAtomScoreGraph, ScoreComponent, ParamDB, TorchDevice, Factory
-):
+@score_graph
+class _LJLKCommonScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @staticmethod
     def factory_for(
         val,
