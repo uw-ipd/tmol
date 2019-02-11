@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, NewType
 from tmol.utility.units import BondAngle, DihedralAngle
 
 import attr
@@ -6,6 +6,30 @@ import cattr
 
 import os
 import yaml
+
+AcceptorHybridization = NewType("AcceptorHybridization", str)
+_acceptor_hybridizations = {"sp2", "sp3", "ring"}
+
+
+def _parse_acceptor_hybridization(v, t):
+    if v in _acceptor_hybridizations:
+        return v
+    else:
+        raise ValueError(f"Invalid AcceptorHybridization value: {v}")
+
+
+cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class AtomType:
+    name: str
+    element: str
+    is_acceptor: bool = False
+    is_donor: bool = False
+    is_hydroxyl: bool = False
+    is_polarh: bool = False
+    acceptor_hybridization: Optional[AcceptorHybridization] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -60,7 +84,7 @@ class Residue:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
-    atom_types: Tuple[str, ...]
+    atom_types: Tuple[AtomType, ...]
     residues: Tuple[Residue, ...]
 
     @classmethod

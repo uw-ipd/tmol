@@ -26,11 +26,11 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define Real3 Vec<Real, 3>
 
-struct AcceptorClass {
-  static constexpr int none = -1;
-  static constexpr int sp2 = 0;
-  static constexpr int sp3 = 1;
-  static constexpr int ring = 2;
+struct AcceptorHybridization {
+  static constexpr int none = 0;
+  static constexpr int sp2 = 1;
+  static constexpr int sp3 = 2;
+  static constexpr int ring = 3;
 };
 
 template <typename Real>
@@ -96,7 +96,7 @@ def BAH_angle_V_dV(
     Real3 B0,
     Real3 A,
     Real3 H,
-    Int acceptor_class,
+    Int acceptor_hybridization,
     Vec<double, 11> cosBAH_coeffs,
     Vec<double, 2> cosBAH_range,
     Vec<double, 2> cosBAH_bound,
@@ -105,7 +105,7 @@ def BAH_angle_V_dV(
   using std::exp;
   using std::log;
 
-  if (acceptor_class == AcceptorClass::sp2) {
+  if (acceptor_hybridization == AcceptorHybridization::sp2) {
     Real PxH;
     Real3 dPxH_dB, dPxH_dA, dPxH_dH;
     tie(PxH, dPxH_dB, dPxH_dA, dPxH_dH) = _BAH_angle_base_form_V_dV(
@@ -113,7 +113,7 @@ def BAH_angle_V_dV(
 
     return {PxH, dPxH_dB, Real3({0, 0, 0}), dPxH_dA, dPxH_dH};
 
-  } else if (acceptor_class == AcceptorClass::ring) {
+  } else if (acceptor_hybridization == AcceptorHybridization::ring) {
     Real3 Bm = (B + B0) / 2;
     Real PxHm;
     Real3 dPxH_dBm, dPxH_dA, dPxH_dH;
@@ -122,7 +122,7 @@ def BAH_angle_V_dV(
 
     return {PxHm, dPxH_dBm / 2, dPxH_dBm / 2, dPxH_dA, dPxH_dH};
 
-  } else if (acceptor_class == AcceptorClass::sp3) {
+  } else if (acceptor_hybridization == AcceptorHybridization::sp3) {
     Real PxH;
     Real3 dPxH_dB, dPxH_dA, dPxH_dH;
     tie(PxH, dPxH_dB, dPxH_dA, dPxH_dH) = _BAH_angle_base_form_V_dV(
@@ -150,7 +150,7 @@ def BAH_angle_V_dV(
             (dPxHfade_dPxH * dPxH_dH) + (dPxHfade_dPxH0 * dPxH0_dH)};
   } else {
 #ifndef __CUDACC__
-    throw std::runtime_error("Invalid acceptor_class.");
+    throw std::runtime_error("Invalid acceptor_hybridization.");
 #endif
   }
 }
@@ -206,12 +206,12 @@ def B0BAH_chi_V_dV(
     Real3 B,
     Real3 A,
     Real3 H,
-    Int acceptor_class,
+    Int acceptor_hybridization,
     Real hb_sp2_BAH180_rise,
     Real hb_sp2_range_span,
     Real hb_sp2_outer_width)
     ->tuple<Real, Real3, Real3, Real3, Real3> {
-  if (acceptor_class == AcceptorClass::sp2) {
+  if (acceptor_hybridization == AcceptorHybridization::sp2) {
     // SP-2 Chi Angle
     Real BAH;
     Real3 dBAH_dB, dBAH_dA, dBAH_dH;
@@ -253,7 +253,7 @@ def hbond_score_V_dV(
     Real3 B0,
 
     // type pair parameters
-    Int acceptor_class,
+    Int acceptor_hybridization,
     Real acceptor_weight,
     Real donor_weight,
 
@@ -300,7 +300,7 @@ def hbond_score_V_dV(
           B0,
           A,
           H,
-          acceptor_class,
+          acceptor_hybridization,
           cosBAH_coeffs,
           cosBAH_range,
           cosBAH_bound,
@@ -314,7 +314,7 @@ def hbond_score_V_dV(
           B,
           A,
           H,
-          acceptor_class,
+          acceptor_hybridization,
           hb_sp2_BAH180_rise,
           hb_sp2_range_span,
           hb_sp2_outer_width));

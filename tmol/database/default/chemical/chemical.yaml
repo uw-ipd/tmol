@@ -1,44 +1,59 @@
 atom_types:
-  - CNH2
-  - COO
-  - CH0
-  - CH1
-  - CH2
-  - CH3
-  - Caro
-  - Ntrp #Tryp indole or pyrrole
-  - NhisD #Near in His imidazole
-  - NhisDDepro
-  - NhisE #Far in His imidazole
-  - NhisEDepro
-  - NtrR
-  - NH2O
-  - Nlys
-  - Narg
-  - Npro
-  - OH
-  - OHphenol
-  - ONH2
-  - OOC
-  - S
-  - SH1
-  - Nbb
-  - CAbb
-  - CObb
-  - OCbb
-  - Hpol
-  - HS
-  - Hapo
-  - Haro
-  - HNbb
-  - Owat
-  - Hwat
+  - &n name: CNH2
+    &e element: C
+    is_acceptor: False
+    &hyb acceptor_hybridization: null
+    is_donor: False
+    is_hydroxyl: False
+    is_polarh: False
+  - { name: COO , *e: C }
+  - { name: CH0 , *e: C }
+  - { name: CH1 , *e: C }
+  - { name: CH2 , *e: C }
+  - { name: CH3 , *e: C }
+  - { name: Caro, *e: C }
+
+  - { name: Ntrp, *e: N, is_donor : true } #Tryp indole or pyrrole
+
+  - { name: NhisE,      *e: N, is_donor : true } #Far in His imidazole
+  - { name: NhisEDepro, *e: N, is_acceptor: true, *hyb: ring } # Deprotenated form in HIS
+  - { name: NhisD,      *e: N, is_donor : true }  #Near in His imidazole
+  - { name: NhisDDepro, *e: N, is_acceptor: true, *hyb: ring } # Deprotenated form in HIS_D
+
+  - { name: NtrR, *e: N, is_donor : true }
+  - { name: NH2O, *e: N, is_donor : true }
+  - { name: Nlys, *e: N, is_donor : true }
+  - { name: Narg, *e: N, is_donor : true }
+  - { name: Npro, *e: N, }
+
+  - { name: OH      , *e: O, is_donor : true, is_acceptor : true, *hyb: sp3, is_hydroxyl : true }
+  - { name: OHphenol, *e: O, is_donor : true, is_acceptor : true, *hyb: sp3, is_hydroxyl : true } # Phenol hydrogen in TYR
+
+  - { name: Owat, *e: O, is_donor: true, is_acceptor : true , *hyb: sp3 }
+  - { name: ONH2, *e: O, is_acceptor : true, *hyb: sp2 }
+  - { name: OOC , *e: O, is_acceptor : true, *hyb: sp2 }
+
+  - { name: S   , *e: S }
+  - { name: SH1 , *e: S }
+
+  - { name: Nbb , *e: N, is_donor : true }
+  - { name: CAbb, *e: C }
+  - { name: CObb, *e: C }
+  - { name: OCbb, *e: O, is_acceptor : true, *hyb: sp2 }
+
+  - { name: Hapo, *e: H }
+  - { name: Haro, *e: H }
+
+  - { name: Hpol, *e: H, is_polarh : true }
+  - { name: HS  , *e: H, is_polarh : true }
+  - { name: HNbb, *e: H, is_polarh : true }
+  - { name: Hwat, *e: H, is_polarh : true }
 
 residues:
   - name:  ALA
     name3: ALA
     atoms:
-    - { &n name: N,  &t atom_type: Nbb  }
+    - { *n: N,  &t atom_type: Nbb  }
     - { *n: CA  ,  *t: CAbb }
     - { *n: C   ,  *t: CObb }
     - { *n: O   ,  *t: OCbb }

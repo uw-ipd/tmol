@@ -33,7 +33,7 @@ struct HBondDispatch {
       TView<Vec<Real, 3>, 1, Dev> B0,
       TView<Int, 1, Dev> acceptor_type,
 
-      TView<Int, 2, Dev> acceptor_class,
+      TView<Int, 2, Dev> acceptor_hybridization,
       TView<Real, 2, Dev> acceptor_weight,
       TView<Real, 2, Dev> donor_weight,
 

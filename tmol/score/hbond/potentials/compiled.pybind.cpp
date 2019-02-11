@@ -16,7 +16,7 @@ void bind_dispatch(pybind11::module& m) {
 
 #define HBOND_PYARGS()                                                       \
   "D"_a, "H"_a, "donor_type"_a, "A"_a, "B"_a, "B0"_a, "acceptor_type"_a,     \
-      "acceptor_class"_a, "acceptor_weight"_a, "donor_weight"_a,             \
+      "acceptor_hybridization"_a, "acceptor_weight"_a, "donor_weight"_a,             \
       "AHdist_coeffs"_a, "AHdist_range"_a, "AHdist_bound"_a,                 \
       "cosBAH_coeffs"_a, "cosBAH_range"_a, "cosBAH_bound"_a,                 \
       "cosAHD_coeffs"_a, "cosAHD_range"_a, "cosAHD_bound"_a,                 \

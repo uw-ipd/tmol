@@ -20,17 +20,17 @@ donor_atom_types:
   - { d: Owat,     donor_type: hbdon_H2O } #ex: water O--H
 
 donor_type_params:
-  - {name: hbdon_IND, weight: 1.15}
-  - {name: hbdon_CXA, weight: 1.29}
-  - {name: hbdon_AMO, weight: 1.17}
-  - {name: hbdon_IMD, weight: 1.18}
-  - {name: hbdon_GDH, weight: 1.11}
-  - {name: hbdon_IME, weight: 1.42}
-  - {name: hbdon_GDE, weight: 1.11}
-  - {name: hbdon_HXL, weight: 0.99}
-  - {name: hbdon_AHX, weight: 1.00}
-  - {name: hbdon_PBA, weight: 1.45}
-  - {name: hbdon_H2O, weight: 1.15}
+  - {name: hbdon_IND, weight: 1.15 }
+  - {name: hbdon_CXA, weight: 1.29 }
+  - {name: hbdon_AMO, weight: 1.17 }
+  - {name: hbdon_IMD, weight: 1.18 }
+  - {name: hbdon_GDH, weight: 1.11 }
+  - {name: hbdon_IME, weight: 1.42 }
+  - {name: hbdon_GDE, weight: 1.11 }
+  - {name: hbdon_HXL, weight: 0.99 }
+  - {name: hbdon_AHX, weight: 1.00 }
+  - {name: hbdon_PBA, weight: 1.45 }
+  - {name: hbdon_H2O, weight: 1.15 }
 
 acceptor_atom_types:
   # sp2 acceptors
@@ -46,14 +46,14 @@ acceptor_atom_types:
   - { a: NhisEDepro, acceptor_type: hbacc_IME } #ex: His(HIS_D res_type) NE2 -- tautomer state with hydrogen on nitrogen farther from backbone
 
 acceptor_type_params:
-  - {name: hbacc_PBA, weight: 1.19, hybridization: sp2 }
-  - {name: hbacc_CXA, weight: 1.21, hybridization: sp2 }
-  - {name: hbacc_CXL, weight: 1.10, hybridization: sp2 }
-  - {name: hbacc_AHX, weight: 1.15, hybridization: sp3 }
-  - {name: hbacc_HXL, weight: 1.15, hybridization: sp3 }
-  - {name: hbacc_H2O, weight: 1.15, hybridization: sp3 }
-  - {name: hbacc_IMD, weight: 1.13, hybridization: ring }
-  - {name: hbacc_IME, weight: 1.17, hybridization: ring }
+  - {name: hbacc_PBA, weight: 1.19 }
+  - {name: hbacc_CXA, weight: 1.21 }
+  - {name: hbacc_CXL, weight: 1.10 }
+  - {name: hbacc_AHX, weight: 1.15 }
+  - {name: hbacc_HXL, weight: 1.15 }
+  - {name: hbacc_H2O, weight: 1.15 }
+  - {name: hbacc_IMD, weight: 1.13 }
+  - {name: hbacc_IME, weight: 1.17 }
 
 polynomial_parameters: # Parameters imported from rosetta sp2_elec_params @v2017.48-dev59886
   - {name: hbpoly_ahdist_aASN_dARG_9gt3_hesmooth_min1p6, dimension: hbgd_AHdist, xmin: 0.7019094761929999,    xmax: 2.86820307153,      min_val: 1.1, max_val: 1.1, degree: 10, c_a: 0.0, c_b: 0.58376113,       c_c: -9.29345473,      c_d: 64.86270904,      c_e: -260.3946711,     c_f: 661.43138077,      c_g: -1098.01378958,    c_h: 1183.58371466,      c_i: -790.82929582,   c_j: 291.33125475,      c_k: -43.01629727,     }

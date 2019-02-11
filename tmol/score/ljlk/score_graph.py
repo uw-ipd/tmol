@@ -12,6 +12,7 @@ from tmol.database import ParameterDatabase
 from tmol.database.scoring import LJLKDatabase
 
 from ..database import ParamDB
+from ..chemical_database import ChemicalDB, AtomTypeParamResolver
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
 from ..score_components import ScoreComponentClasses, IntraScore
@@ -35,7 +36,7 @@ class LJIntraScore(IntraScore):
         assert target.bonded_path_length.dim() == 3
         assert target.bonded_path_length.shape[0] == 1
 
-        return target.lj_op.intra(
+        return LJOp(target.ljlk_param_resolver).intra(
             target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
         )
 
@@ -60,7 +61,7 @@ class LKIntraScore(IntraScore):
         assert target.bonded_path_length.dim() == 3
         assert target.bonded_path_length.shape[0] == 1
 
-        return target.lk_op.intra(
+        return LKOp(target.ljlk_param_resolver).intra(
             target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
         )
 
@@ -72,7 +73,7 @@ class LKIntraScore(IntraScore):
 
 
 @score_graph
-class _LJLKCommonScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
+class _LJLKCommonScoreGraph(BondedAtomScoreGraph, ChemicalDB, ParamDB, TorchDevice):
     @staticmethod
     def factory_for(
         val,
@@ -99,10 +100,10 @@ class _LJLKCommonScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def ljlk_param_resolver(
-        ljlk_database: LJLKDatabase, device: torch.device
+        atom_type_params: AtomTypeParamResolver, ljlk_database: LJLKDatabase
     ) -> LJLKParamResolver:
         """Parameter tensor groups and atom-type to parameter resolver."""
-        return LJLKParamResolver.from_database(ljlk_database, device)
+        return LJLKParamResolver.from_param_resolver(atom_type_params, ljlk_database)
 
     @reactive_property
     @validate_args
@@ -112,9 +113,7 @@ class _LJLKCommonScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         """Pair parameter tensors for all atoms within system."""
         assert atom_types.shape[0] == 1
         atom_types = atom_types[0]
-        return torch.from_numpy(ljlk_param_resolver.type_idx(atom_types)[None, :]).to(
-            ljlk_param_resolver.device
-        )
+        return ljlk_param_resolver.type_idx(atom_types)[None, :]
 
 
 @reactive_attrs(auto_attribs=True)
@@ -123,21 +122,9 @@ class LJScoreGraph(_LJLKCommonScoreGraph):
         ScoreComponentClasses("lj", intra_container=LJIntraScore, inter_container=None)
     ]
 
-    @reactive_property
-    @validate_args
-    def lj_op(ljlk_param_resolver: LJLKParamResolver) -> LJOp:
-        """LJ evaluation op."""
-        return LJOp.from_param_resolver(ljlk_param_resolver)
-
 
 @reactive_attrs(auto_attribs=True)
 class LKScoreGraph(_LJLKCommonScoreGraph):
     total_score_components = [
         ScoreComponentClasses("lk", intra_container=LKIntraScore, inter_container=None)
     ]
-
-    @reactive_property
-    @validate_args
-    def lk_op(ljlk_param_resolver: LJLKParamResolver) -> LKOp:
-        """LK evaluation op."""
-        return LKOp.from_param_resolver(ljlk_param_resolver)

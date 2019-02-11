@@ -28,7 +28,6 @@ bb_hbond_config = """
     acceptor_type_params:
       - name: hbacc_PBA
         weight: 1.08
-        hybridization: sp2
     polynomial_parameters:
       - name: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6
         dimension: hbgd_AHdist

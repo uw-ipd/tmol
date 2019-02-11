@@ -2,6 +2,7 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
+#include "params.pybind.hh"
 #include "dispatch.hh"
 
 namespace tmol {
@@ -22,8 +23,8 @@ void bind_dispatch(pybind11::module& m) {
       "coords_j"_a,
       "atom_type_j"_a,
       "bonded_path_lengths"_a,
-      LKTypeParams_pyargs(),
-      LJGlobalParams_pyargs());
+      "type_params"_a,
+      "global_params"_a);
 
   m.def(
       "lk_isotropic_triu",
@@ -33,8 +34,8 @@ void bind_dispatch(pybind11::module& m) {
       "coords_j"_a,
       "atom_type_j"_a,
       "bonded_path_lengths"_a,
-      LKTypeParams_pyargs(),
-      LJGlobalParams_pyargs());
+      "type_params"_a,
+      "global_params"_a);
 
   m.def(
       "lj",
@@ -44,8 +45,8 @@ void bind_dispatch(pybind11::module& m) {
       "coords_j"_a,
       "atom_type_j"_a,
       "bonded_path_lengths"_a,
-      LJTypeParams_pyargs(),
-      LJGlobalParams_pyargs());
+      "type_params"_a,
+      "global_params"_a);
 
   m.def(
       "lj_triu",
@@ -55,8 +56,8 @@ void bind_dispatch(pybind11::module& m) {
       "coords_j"_a,
       "atom_type_j"_a,
       "bonded_path_lengths"_a,
-      LJTypeParams_pyargs(),
-      LJGlobalParams_pyargs());
+      "type_params"_a,
+      "global_params"_a);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

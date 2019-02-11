@@ -1,12 +1,9 @@
 import attr
-from attr import asdict
-from toolz import merge, valmap
-from typing import Callable, Mapping
+from typing import Callable
 
 import torch
 
 from tmol.types.functional import validate_args
-from tmol.utility.args import ignore_unused_kwargs
 
 from .params import LJLKDatabase, LJLKParamResolver
 
@@ -15,31 +12,17 @@ from .params import LJLKDatabase, LJLKParamResolver
 class AtomOp:
     """torch.autograd atom pair score baseline operator."""
 
-    device: torch.device
     param_resolver: LJLKParamResolver
-    params: Mapping[str, torch.Tensor]
 
     @classmethod
     @validate_args
-    def from_param_resolver(cls, param_resolver: LJLKParamResolver):
-        res = cls(
-            param_resolver=param_resolver,
-            params=merge(
-                asdict(param_resolver.global_params), asdict(param_resolver.type_params)
-            ),
-            device=param_resolver.device,
-        )
-
-        assert all(res.device == t.device for t in res.params.values())
-
-        return res
-
-    @classmethod
-    @validate_args
-    def from_database(cls, ljlk_database: LJLKDatabase, device: torch.device):
-
-        return cls.from_param_resolver(
-            param_resolver=LJLKParamResolver.from_database(ljlk_database, device)
+    def from_database(
+        cls, chemical_database, ljlk_database: LJLKDatabase, device: torch.device
+    ):
+        return cls(
+            param_resolver=LJLKParamResolver.from_database(
+                chemical_database, ljlk_database, device
+            )
         )
 
     def inter(
@@ -80,15 +63,27 @@ class _AtomScoreFun(torch.autograd.Function):
         assert J.shape[:1] == atom_type_J.shape
         assert not atom_type_J.requires_grad
 
-        params = valmap(
-            lambda t: t.to(I.dtype)
-            if isinstance(t, torch.Tensor) and t.is_floating_point()
-            else t,
-            ctx.op.params,
-        )
+        # Cast parameter tensors to precision required for input tensors.
+        # Required to support double-precision inputs for gradcheck tests,
+        # inputs/params will be single-precision in standard case.
+        type_params = ctx.op.param_resolver.type_params
+        if I.dtype != type_params.lj_radius.dtype:
+            type_params = attr.evolve(
+                ctx.op.param_resolver.type_params,
+                **{
+                    n: t.to(I.dtype) if t.is_floating_point() else t
+                    for n, t in attr.asdict(type_params).items()
+                },
+            )
 
         inds, E, *dE_dC = ctx.f(
-            I, atom_type_I, J, atom_type_J, bonded_path_lengths, **params
+            I,
+            atom_type_I,
+            J,
+            atom_type_J,
+            bonded_path_lengths,
+            type_params,
+            ctx.op.param_resolver.global_params,
         )
 
         # Assert of returned shape of indicies and scores. Seeing strange
@@ -130,13 +125,13 @@ class LJOp(AtomOp):
     def _load_f(self):
         from .potentials import compiled
 
-        return ignore_unused_kwargs(compiled.lj)
+        return compiled.lj
 
     @f_triu.default
     def _load_f_triu(self):
         from .potentials import compiled
 
-        return ignore_unused_kwargs(compiled.lj_triu)
+        return compiled.lj_triu
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -150,10 +145,10 @@ class LKOp(AtomOp):
     def _load_f(self):
         from .potentials import compiled
 
-        return ignore_unused_kwargs(compiled.lk_isotropic)
+        return compiled.lk_isotropic
 
     @f_triu.default
     def _load_f_triu(self):
         from .potentials import compiled
 
-        return ignore_unused_kwargs(compiled.lk_isotropic_triu)
+        return compiled.lk_isotropic_triu

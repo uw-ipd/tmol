@@ -2,20 +2,7 @@ import attr
 import cattr
 import yaml
 
-from typing import Tuple, NewType
-
-AcceptorHybridization = NewType("AcceptorHybridization", str)
-_acceptor_hybridizations = {"sp2", "sp3", "ring"}
-
-
-def _parse_acceptor_hybridization(v, t):
-    if v in _acceptor_hybridizations:
-        return v
-    else:
-        raise ValueError(f"Invalid AcceptorHybridization value: {v}")
-
-
-cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
+from typing import Tuple
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -49,7 +36,6 @@ class DonorTypeParam:
 class AcceptorTypeParam:
     name: str
     weight: float
-    hybridization: AcceptorHybridization
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)

@@ -1,19 +1,21 @@
-import toolz
 import attr
+import toolz
 
 import pytest
 from pytest import approx
 
+import torch
+
 import numpy
 import scipy.optimize
 
-import tmol.score.ljlk.numba.lk_isotropic
 from tmol.score.ljlk.numba.lk_isotropic import f_desolv
 from tmol.score.ljlk.numba.common import lj_sigma
 from tmol.score.ljlk.numba.vectorized import lk_isotropic, d_lk_isotropic_d_dist
 from tmol.utility.args import ignore_unused_kwargs
 
-import tmol.database
+
+from tmol.score.ljlk.params import LJLKParamResolver
 
 # TODO add lj_sigma spot check
 parametrize_atom_pairs = pytest.mark.parametrize(
@@ -22,21 +24,34 @@ parametrize_atom_pairs = pytest.mark.parametrize(
 
 
 def combine_params(params_i, params_j, global_params):
+    def _t(t):
+        # Coerce 0-d to scalars for numba
+        if t.dim() == 0:
+            return t.numpy()[()]
+        else:
+            return t.numpy()
+
     return toolz.merge(
-        toolz.keymap(lambda k: f"{k}_i", attr.asdict(params_i)),
-        toolz.keymap(lambda k: f"{k}_j", attr.asdict(params_j)),
-        attr.asdict(global_params),
+        {f"{k}_i": _t(t) for k, t in attr.asdict(params_i).items()},
+        {f"{k}_j": _t(t) for k, t in attr.asdict(params_j).items()},
+        {k: _t(t) for k, t in attr.asdict(global_params).items()},
+    )
+
+
+@pytest.fixture
+def params(default_database):
+    return LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, torch.device("cpu")
     )
 
 
 @pytest.mark.parametrize("bonded_path_length", [2, 4, 5])
 @parametrize_atom_pairs
-def test_lk_isotropic_gradcheck(iname, jname, bonded_path_length):
-    params = tmol.database.ParameterDatabase.get_default().scoring.ljlk
-
-    i = {p.name: p for p in params.atom_type_parameters}[iname]
-    j = {p.name: p for p in params.atom_type_parameters}[jname]
-    g = params.global_parameters
+def test_lk_isotropic_gradcheck(params, iname, jname, bonded_path_length):
+    iidx, jidx = params.type_idx([iname, jname])
+    i = params.type_params[iidx]
+    j = params.type_params[jidx]
+    g = params.global_params
 
     ds = numpy.linspace(0, 10, 1000)
 
@@ -59,12 +74,11 @@ def test_lk_isotropic_gradcheck(iname, jname, bonded_path_length):
 
 
 @parametrize_atom_pairs
-def test_lk_isotropic_spotcheck(iname, jname):
-    params = tmol.database.ParameterDatabase.get_default().scoring.ljlk
-
-    i = {p.name: p for p in params.atom_type_parameters}[iname]
-    j = {p.name: p for p in params.atom_type_parameters}[jname]
-    g = params.global_parameters
+def test_lk_isotropic_spotcheck(params, iname, jname):
+    iidx, jidx = params.type_idx([iname, jname])
+    i = params.type_params[iidx]
+    j = params.type_params[jidx]
+    g = params.global_params
 
     sigma = ignore_unused_kwargs(lj_sigma)(**combine_params(i, j, g))
 
@@ -74,8 +88,18 @@ def test_lk_isotropic_spotcheck(iname, jname):
 
     def eval_f_desolv(d):
         return f_desolv(
-            d, i.lj_radius, i.lk_dgfree, i.lk_lambda, j.lk_volume
-        ) + f_desolv(d, j.lj_radius, j.lk_dgfree, j.lk_lambda, i.lk_volume)
+            d,
+            i.lj_radius.numpy(),
+            i.lk_dgfree.numpy(),
+            i.lk_lambda.numpy(),
+            j.lk_volume.numpy(),
+        ) + f_desolv(
+            d,
+            j.lj_radius.numpy(),
+            j.lk_dgfree.numpy(),
+            j.lk_lambda.numpy(),
+            i.lk_volume.numpy(),
+        )
 
     def eval_lk_isotropic(d, bonded_path_length=5):
         return ignore_unused_kwargs(lk_isotropic)(
