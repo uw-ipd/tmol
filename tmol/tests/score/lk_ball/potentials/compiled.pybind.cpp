@@ -3,6 +3,7 @@
 #include <torch/torch.h>
 
 #include <tmol/score/lk_ball/potentials/lk_ball.hh>
+#include <tmol/score/lk_ball/potentials/water.hh>
 #include <tmol/score/ljlk/potentials/params.pybind.hh>
 
 namespace tmol {
