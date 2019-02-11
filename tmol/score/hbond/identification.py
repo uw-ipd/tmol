@@ -12,6 +12,7 @@ import numpy
 from tmol.database.chemical import ChemicalDatabase
 from tmol.database.scoring import HBondDatabase
 from tmol.score.chemical_database import AcceptorHybridization, AtomTypeParamResolver
+from ..bonded_atom import IndexedBonds
 
 
 acceptor_dtype = numpy.dtype(
@@ -181,17 +182,10 @@ class HBondElementAnalysis(ValidateAttrs):
         atom_is_hydrogen: NDArray(bool)[:],
         bonds: NDArray(int)[:, 2],
     ):
-        # Sort (i,j) bond indicies in ascending order.
-        bonds = bonds[numpy.lexsort((bonds[:, 1], bonds[:, 0]))]
+        indexed_bonds = IndexedBonds.from_bonds(bonds, minlength=len(atom_types))
 
-        # Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]
-        # blocks in the sorted bond table indexed by i
-        num_bonds = numpy.cumsum(numpy.bincount(bonds[:, 0], minlength=len(atom_types)))
-
-        atom_bond_span = numpy.empty((len(num_bonds), 2))
-        atom_bond_span[0, 0] = 0
-        atom_bond_span[1:, 0] = num_bonds[:-1]
-        atom_bond_span[:, 1] = num_bonds
+        # Only access bonds through index.
+        del bonds
 
         # Filter donors/acceptors to those with type definitions in hbond
         # database, this logic should likely be moved to parameter resolution.
@@ -222,8 +216,8 @@ class HBondElementAnalysis(ValidateAttrs):
             B_idx,
             B0_idx,
             atom_acceptor_hybridization[A_idx],
-            bonds,
-            atom_bond_span,
+            indexed_bonds.bonds,
+            indexed_bonds.bond_spans,
             atom_is_hydrogen,
         )
 
@@ -240,10 +234,10 @@ class HBondElementAnalysis(ValidateAttrs):
             p.d: p.donor_type for p in hbond_database.donor_atom_types
         }
 
-        donor_pair_idx = bonds[
-            atom_is_donor[bonds[:, 0]]
-            & atom_donor_type.astype(bool)[bonds[:, 0]]  # None -> False
-            & atom_is_hydrogen[bonds[:, 1]]
+        donor_pair_idx = indexed_bonds.bonds[
+            atom_is_donor[indexed_bonds.bonds[:, 0]]
+            & atom_donor_type.astype(bool)[indexed_bonds.bonds[:, 0]]  # None -> False
+            & atom_is_hydrogen[indexed_bonds.bonds[:, 1]]
         ]
 
         donors = numpy.empty(donor_pair_idx.shape[0], dtype=donor_dtype)

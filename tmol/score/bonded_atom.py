@@ -1,3 +1,5 @@
+import attr
+
 from functools import singledispatch
 
 import torch
@@ -16,6 +18,34 @@ from .score_graph import score_graph
 from .database import ParamDB
 from .stacked_system import StackedSystem
 from .device import TorchDevice
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class IndexedBonds:
+    bonds: NDArray(int)[:, 2]
+    bond_spans: NDArray(int)[:, 2]
+    src_index: NDArray(int)[:]
+
+    @classmethod
+    def from_bonds(cls, src_bonds, minlength=None):
+
+        # Convert undirected (i, j) bond index tuples into sorted, indexed list.
+
+        bonds, src_index = numpy.unique(src_bonds, axis=0, return_index=True)
+
+        if not minlength:
+            minlength = numpy.max(bonds)
+
+        # Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]
+        # blocks in the sorted bond table indexed by i
+        num_bonds = numpy.cumsum(numpy.bincount(bonds[:, 0], minlength=minlength))
+
+        bond_spans = numpy.empty((len(num_bonds), 2))
+        bond_spans[0, 0] = 0
+        bond_spans[1:, 0] = num_bonds[:-1]
+        bond_spans[:, 1] = num_bonds
+
+        return cls(bonds=bonds, bond_spans=bond_spans, src_index=src_index)
 
 
 @score_graph
