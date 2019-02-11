@@ -1,8 +1,6 @@
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorPack.h>
-#include <tmol/utility/tensor/pybind.h>
-
 #include <tmol/score/common/geom.hh>
 
 #include "potentials.hh"
@@ -41,7 +39,7 @@ struct CartBondedLengthDispatch {
     auto dV_dIs = dV_dIs_t.view;
     auto dV_dJs = dV_dJs_t.view;
 
-    auto f = ([=] EIGEN_DEVICE_FUNC(int i) {
+    auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atompair_indices[i][0];
       Int atj = atompair_indices[i][1];
       Int pari = parameter_indices[i];
@@ -50,7 +48,7 @@ struct CartBondedLengthDispatch {
     });
 
     for (int i = 0; i < num_Vs; i++) {
-      f(i);
+      f_i(i);
     }
 
     return {Vs_t, dV_dIs_t, dV_dJs_t};

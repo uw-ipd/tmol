@@ -55,7 +55,20 @@ class CartBondedLengthFun(torch.autograd.Function):
         assert parameter_indices.shape[0] == atmpair_indices.shape[0]
 
         ctx.coords_shape = coords.size()
-        print("in", ctx.coords_shape)
+        print(
+            atmpair_indices.dtype,
+            parameter_indices.dtype,
+            coords.dtype,
+            ctx.op.params["K"].dtype,
+            ctx.op.params["x0"].dtype,
+        )
+        print(
+            atmpair_indices.shape,
+            parameter_indices.shape,
+            coords.shape,
+            ctx.op.params["K"].shape,
+            ctx.op.params["x0"].shape,
+        )
         E, dE_dA, dE_dB = ctx.op.f(
             atmpair_indices, parameter_indices, coords, **ctx.op.params
         )

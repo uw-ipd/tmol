@@ -28,21 +28,21 @@ from tmol.types.tensor import TensorGroup
 
 @attr.s(auto_attribs=True)
 class CartBondedLengthParams(TensorGroup):
-    atom_indices: Tensor("i8")[..., 2]
-    param_indices: Tensor("i8")[...]
+    atom_indices: Tensor(torch.int32)[..., 2]
+    param_indices: Tensor(torch.int32)[...]
 
 
 @attr.s(auto_attribs=True)
 class CartBondedAngleParams(TensorGroup):
-    atom_indices: Tensor("i8")[..., 2]
-    param_indices: Tensor("i8")[...]
+    atom_indices: Tensor(torch.int32)[..., 2]
+    param_indices: Tensor(torch.int32)[...]
 
 
 # all of torsion/imroper/hxltorsion use this struct
 @attr.s(auto_attribs=True)
 class CartBondedTorsionParams(TensorGroup):
-    atom_indices: Tensor("i8")[..., 4]
-    param_indices: Tensor("i8")[...]
+    atom_indices: Tensor(torch.int32)[..., 4]
+    param_indices: Tensor(torch.int32)[...]
 
 
 @reactive_attrs
@@ -147,10 +147,10 @@ class CartBondedGraph(
         bondlength_defined = bondlength_indices != -1
         tbondlength_atom_indices = torch.from_numpy(
             bondlength_atom_indices[bondlength_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
         tbondlength_indices = torch.from_numpy(
             bondlength_indices[bondlength_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
 
         return CartBondedLengthParams(
             atom_indices=tbondlength_atom_indices, param_indices=tbondlength_indices
@@ -178,9 +178,9 @@ class CartBondedGraph(
         bondangle_defined = bondangle_indices != -1
         tbondangle_atom_indices = torch.from_numpy(
             bondangle_atom_indices[bondangle_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
         tbondangle_indices = torch.from_numpy(bondangle_indices[bondangle_defined]).to(
-            device=cartbonded_param_resolver.device
+            device=cartbonded_param_resolver.device, dtype=torch.int32
         )
 
         return CartBondedAngleParams(
@@ -210,10 +210,10 @@ class CartBondedGraph(
         bondtorsion_defined = bondtorsion_indices != -1
         tbondtorsion_atom_indices = torch.from_numpy(
             bondtorsion_atom_indices[bondtorsion_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
         tbondtorsion_indices = torch.from_numpy(
             bondtorsion_indices[bondtorsion_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
 
         return CartBondedTorsionParams(
             atom_indices=tbondtorsion_atom_indices, param_indices=tbondtorsion_indices
@@ -242,10 +242,10 @@ class CartBondedGraph(
         bondimproper_defined = bondimproper_indices != -1
         tbondimproper_atom_indices = torch.from_numpy(
             bondimproper_atom_indices[bondimproper_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
         tbondimproper_indices = torch.from_numpy(
             bondimproper_indices[bondimproper_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
 
         return CartBondedTorsionParams(
             atom_indices=tbondimproper_atom_indices, param_indices=tbondimproper_indices
@@ -274,10 +274,10 @@ class CartBondedGraph(
         bondhxltorsion_defined = bondhxltorsion_indices != -1
         tbondhxltorsion_atom_indices = torch.from_numpy(
             bondhxltorsion_atom_indices[bondhxltorsion_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
         tbondhxltorsion_indices = torch.from_numpy(
             bondhxltorsion_indices[bondhxltorsion_defined]
-        ).to(device=cartbonded_param_resolver.device)
+        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
 
         return CartBondedTorsionParams(
             atom_indices=tbondhxltorsion_atom_indices,

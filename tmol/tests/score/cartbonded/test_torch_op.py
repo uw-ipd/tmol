@@ -46,10 +46,10 @@ class ScoreSetup:
 
         tbondlength_atom_indices = torch.from_numpy(
             bondlength_atom_indices[bondlength_defined]
-        ).to(device=param_resolver.device)
+        ).to(device=param_resolver.device, dtype=torch.int32)
         tbondlength_indices = torch.from_numpy(
             bondlength_indices[bondlength_defined]
-        ).to(device=param_resolver.device)
+        ).to(device=param_resolver.device, dtype=torch.int32)
         tcoords = (
             torch.from_numpy(coords).to(device=torch_device).requires_grad_(True)
         )[None, :]
@@ -66,7 +66,7 @@ def test_cartbonded_length_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedLengthOp.from_param_resolver(s.param_resolver)
 
-    V = op.score(s.tbondlength_atom_indices, s.tbondlength_indices, s.tcoords)
+    V = op.score(s.tbondlength_atom_indices, s.tbondlength_indices, s.tcoords[0, :])
 
     numpy.testing.assert_allclose(V.detach().sum(), 37.784897, atol=1e-4)
 
