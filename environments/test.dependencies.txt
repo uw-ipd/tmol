@@ -3,5 +3,6 @@ pytest-cov
 
 flake8
 uw-ipd::clangdev=7.*
+virtualenv
 
 psutil
