@@ -5,12 +5,15 @@
 #include <cmath>
 
 #include <tmol/score/common/geom.hh>
-#include "lk_isotropic.hh"
+#include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace lk_ball {
 namespace potentials {
+
+using tmol::score::ljlk::potentials::LJGlobalParams;
+using tmol::score::ljlk::potentials::LKTypeParams;
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
@@ -23,7 +26,7 @@ struct build_don_water {
     RealMat dD;
     RealMat dH;
 
-    def astuple() { return make_tuple(dD, dH); }
+    def astuple() { return tmol::score::common::make_tuple(dD, dH); }
 
     static def Zero()->dV_t { return {RealMat::Zero(), RealMat::Zero()}; }
   };
@@ -79,7 +82,7 @@ struct build_acc_water {
     RealMat dB;
     RealMat dB0;
 
-    def astuple() { return make_tuple(dA, dB, dB0); }
+    def astuple() { return tmol::score::common::make_tuple(dA, dB, dB0); }
 
     static def Zero()->dV_t {
       return {RealMat::Zero(), RealMat::Zero(), RealMat::Zero()};
@@ -652,7 +655,7 @@ struct lk_fraction {
     WatersMat dWI;
     Real3 dJ;
 
-    def astuple() { return make_tuple(dWI, dJ); }
+    def astuple() { return tmol::score::common::make_tuple(dWI, dJ); }
 
     static def Zero()->dV_t { return {WatersMat::Zero(), Real3::Zero()}; }
   };
@@ -732,7 +735,7 @@ struct lk_bridge_fraction {
     WatersMat dWI;
     WatersMat dWJ;
 
-    def astuple() { return make_tuple(dI, dJ, dWI, dWJ); }
+    def astuple() { return tmol::score::common::make_tuple(dI, dJ, dWI, dWJ); }
 
     static def Zero()->dV_t {
       return dV_t{
@@ -884,7 +887,8 @@ struct lk_ball_score {
     Real lkbridge_uncpl;
 
     auto astuple() {
-      return make_tuple(lkball_iso, lkball, lkbridge, lkbridge_uncpl);
+      return tmol::score::common::make_tuple(
+          lkball_iso, lkball, lkbridge, lkbridge_uncpl);
     }
   };
 
@@ -895,7 +899,8 @@ struct lk_ball_score {
     Real3 d_lkbridge_uncpl;
 
     auto astuple() {
-      return make_tuple(d_lkball_iso, d_lkball, d_lkbridge, d_lkbridge_uncpl);
+      return tmol::score::common::make_tuple(
+          d_lkball_iso, d_lkball, d_lkbridge, d_lkbridge_uncpl);
     }
 
     static def Zero()->dV_dReal3 {
@@ -910,7 +915,8 @@ struct lk_ball_score {
     WatersMat d_lkbridge_uncpl;
 
     auto astuple() {
-      return make_tuple(d_lkball_iso, d_lkball, d_lkbridge, d_lkbridge_uncpl);
+      return tmol::score::common::make_tuple(
+          d_lkball_iso, d_lkball, d_lkbridge, d_lkbridge_uncpl);
     }
 
     static def Zero()->dV_dWatersMat {
@@ -928,7 +934,7 @@ struct lk_ball_score {
     dV_dWatersMat dWJ;
 
     auto astuple() {
-      return make_tuple(
+      return tmol::score::common::make_tuple(
           dI.astuple(), dJ.astuple(), dWI.astuple(), dWJ.astuple());
     }
 
@@ -951,6 +957,10 @@ struct lk_ball_score {
       LKTypeParams<Real> j,
       LJGlobalParams<Real> global)
       ->V_t {
+    using tmol::score::common::distance;
+    using tmol::score::ljlk::potentials::lj_sigma;
+    using tmol::score::ljlk::potentials::lk_isotropic_pair_V;
+
     Real sigma = lj_sigma<Real>(i, j, global);
 
     Real dist = distance<Real>::V(I, J);
@@ -993,6 +1003,11 @@ struct lk_ball_score {
       LKTypeParams<Real> j,
       LJGlobalParams<Real> global)
       ->dV_t {
+    using tmol::score::common::distance;
+    using tmol::score::common::get;
+    using tmol::score::ljlk::potentials::lj_sigma;
+    using tmol::score::ljlk::potentials::lk_isotropic_pair_V_dV;
+
     Real sigma = lj_sigma<Real>(i, j, global);
 
     auto _dist = distance<Real>::V_dV(I, J);
@@ -1088,6 +1103,6 @@ struct lk_ball_score {
 #undef def
 
 }  // namespace potentials
-}  // namespace ljlk
+}  // namespace lk_ball
 }  // namespace score
 }  // namespace tmol

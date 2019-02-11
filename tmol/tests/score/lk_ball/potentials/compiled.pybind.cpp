@@ -2,12 +2,12 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
-#include <tmol/score/ljlk/potentials/lk_ball.hh>
+#include <tmol/score/lk_ball/potentials/lk_ball.hh>
 #include <tmol/score/ljlk/potentials/params.pybind.hh>
 
 namespace tmol {
 namespace score {
-namespace ljlk {
+namespace lk_ball {
 namespace potentials {
 
 template <typename Real>
