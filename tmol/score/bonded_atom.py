@@ -22,9 +22,9 @@ from .device import TorchDevice
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class IndexedBonds:
-    bonds: NDArray(int)[:, 2]
-    bond_spans: NDArray(int)[:, 2]
-    src_index: NDArray(int)[:]
+    bonds: Tensor(int)[:, 2]
+    bond_spans: Tensor(int)[:, 2]
+    src_index: Tensor(int)[:]
 
     @classmethod
     def from_bonds(cls, src_bonds, minlength=None):
@@ -40,12 +40,16 @@ class IndexedBonds:
         # blocks in the sorted bond table indexed by i
         num_bonds = numpy.cumsum(numpy.bincount(bonds[:, 0], minlength=minlength))
 
-        bond_spans = numpy.empty((len(num_bonds), 2))
+        bond_spans = numpy.empty((len(num_bonds), 2), dtype=int)
         bond_spans[0, 0] = 0
         bond_spans[1:, 0] = num_bonds[:-1]
         bond_spans[:, 1] = num_bonds
 
-        return cls(bonds=bonds, bond_spans=bond_spans, src_index=src_index)
+        return cls(
+            bonds=torch.from_numpy(bonds),
+            bond_spans=torch.from_numpy(bond_spans),
+            src_index=torch.from_numpy(src_index),
+        )
 
 
 @score_graph

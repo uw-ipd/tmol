@@ -1,8 +1,6 @@
 import torch
 import attr
 
-import numba
-
 from tmol.types.functional import convert_args
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
@@ -11,158 +9,16 @@ import numpy
 
 from tmol.database.chemical import ChemicalDatabase
 from tmol.database.scoring import HBondDatabase
-from tmol.score.chemical_database import AcceptorHybridization, AtomTypeParamResolver
+from tmol.score.chemical_database import AtomTypeParamResolver
 from ..bonded_atom import IndexedBonds
 
+from tmol.utility.cpp_extension import load, modulename, relpaths
 
 acceptor_dtype = numpy.dtype(
     [("a", int), ("b", int), ("b0", int), ("acceptor_type", object)]
 )
 
 donor_dtype = numpy.dtype([("d", int), ("h", int), ("donor_type", object)])
-
-
-@numba.jit(nopython=True)
-def sp2_acceptor_base(A, bonds, atom_bond_span, atom_is_hydrogen):
-    """ Identify acceptor bases for sp2 acceptors.
-
-        A = sp2 acceptor =>
-            B = bonded to A, not H
-            B0 = bonded to B, not A
-
-        Returns:
-            (A, B, B0) Index Tuple
-    """
-    B = -1
-    B0 = -1
-
-    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
-        other_atom = bonds[bidx][1]
-        if not atom_is_hydrogen[other_atom]:
-            B = other_atom
-            break
-
-    if B == -1:
-        return (A, -1, -1)
-
-    for bidx in range(atom_bond_span[B][0], atom_bond_span[B][1]):
-        other_atom = bonds[bidx][1]
-        if not other_atom == A:
-            B0 = other_atom
-            break
-
-    if B0 == -1:
-        return (A, -1, -1)
-
-    return (A, B, B0)
-
-
-@numba.jit(nopython=True)
-def sp3_acceptor_base(A, bonds, atom_bond_span, atom_is_hydrogen):
-    """ Identify acceptor bases for sp3 acceptors.
-
-        A = sp3 acceptor =>
-            B0 = bonded to A, is H
-            B = bonded to A, not B0
-
-        Returns:
-            (A, B, B0) Index Tuple
-    """
-    B = -1
-    B0 = -1
-
-    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
-        other_atom = bonds[bidx][1]
-        if atom_is_hydrogen[other_atom]:
-            B0 = other_atom
-            break
-
-    if B0 == -1:
-        return (A, -1, -1)
-
-    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
-        other_atom = bonds[bidx][1]
-        if not other_atom == B0:
-            B = other_atom
-            break
-
-    if B == -1:
-        return (A, -1, -1)
-
-    return (A, B, B0)
-
-
-@numba.jit(nopython=True)
-def ring_acceptor_base(A, bonds, atom_bond_span, atom_is_hydrogen):
-    """ Identify acceptor bases for ring acceptors.
-
-        A = ring acceptor =>
-            B = bonded to A, not H
-            B0 = bonded to A, not H, not B
-
-        Returns:
-            (A, B, B0) Index Tuple
-    """
-    B = -1
-    B0 = -1
-
-    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
-        other_atom = bonds[bidx][1]
-        if not atom_is_hydrogen[other_atom]:
-            B = other_atom
-            break
-
-    if B == -1:
-        return (A, -1, -1)
-
-    for bidx in range(atom_bond_span[A][0], atom_bond_span[A][1]):
-        other_atom = bonds[bidx][1]
-        if not atom_is_hydrogen[other_atom] and other_atom != B:
-            B0 = other_atom
-            break
-
-    if B0 == -1:
-        return (A, -1, -1)
-
-    return (A, B, B0)
-
-
-@numba.jit
-def id_acceptor_bases(
-    A_idx, B_idx, B0_idx, A_hyb, bonds, atom_bond_span, atom_is_hydrogen
-):
-    """Given A_idx and bond graph metadata, calculate B, B0 idx.
-
-    Params:
-        A_idx: int[N] Populated Aatom index.
-        B_idx: int[N] Empty B atom index.
-        B0_idx: int[N] Empty B0 atom index.
-        A_hyb: int[N] Acceptor hybridization class.
-        bonds: int[nbond, 2] (i,j) sorted, symmetric bond tuples.
-        atom_bond_span: int[natom, 2] [start,end) bond index i span.
-        atom_is_hydrogen: bool[natom] Flag is atom is hydrogen.
-
-    Populates A_idx, B_idx, B0_idx with identified atom indices, B, B0 = -1 if
-    no valid acceptor bond pattern found.
-    """
-
-    for ai in range(A_idx.shape[0]):
-        if A_hyb[ai] == AcceptorHybridization.sp2:
-            A_idx[ai], B_idx[ai], B0_idx[ai] = sp2_acceptor_base(
-                A_idx[ai], bonds, atom_bond_span, atom_is_hydrogen
-            )
-        elif A_hyb[ai] == AcceptorHybridization.sp3:
-            A_idx[ai], B_idx[ai], B0_idx[ai] = sp3_acceptor_base(
-                A_idx[ai], bonds, atom_bond_span, atom_is_hydrogen
-            )
-        elif A_hyb[ai] == AcceptorHybridization.ring:
-            A_idx[ai], B_idx[ai], B0_idx[ai] = ring_acceptor_base(
-                A_idx[ai], bonds, atom_bond_span, atom_is_hydrogen
-            )
-        else:
-            A_idx[ai], B_idx[ai], B0_idx[ai] = A_idx[ai], -1, -1
-
-    return A_idx, B_idx, B0_idx
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -182,10 +38,13 @@ class HBondElementAnalysis(ValidateAttrs):
         atom_is_hydrogen: NDArray(bool)[:],
         bonds: NDArray(int)[:, 2],
     ):
-        indexed_bonds = IndexedBonds.from_bonds(bonds, minlength=len(atom_types))
+
+        compiled = load(
+            modulename(__name__), relpaths(__file__, "identification.pybind.cc")
+        )
 
         # Only access bonds through index.
-        del bonds
+        bonds = IndexedBonds.from_bonds(bonds, minlength=len(atom_types))
 
         # Filter donors/acceptors to those with type definitions in hbond
         # database, this logic should likely be moved to parameter resolution.
@@ -211,14 +70,13 @@ class HBondElementAnalysis(ValidateAttrs):
         B0_idx = numpy.empty_like(A_idx)
 
         # Yeeeehaw
-        id_acceptor_bases(
-            A_idx,
-            B_idx,
-            B0_idx,
-            atom_acceptor_hybridization[A_idx],
-            indexed_bonds.bonds,
-            indexed_bonds.bond_spans,
-            atom_is_hydrogen,
+        compiled.id_acceptor_bases(
+            torch.from_numpy(A_idx),
+            torch.from_numpy(B_idx),
+            torch.from_numpy(B0_idx),
+            torch.from_numpy(atom_acceptor_hybridization),
+            torch.from_numpy(atom_is_hydrogen.astype(numpy.ubyte)),
+            bonds,
         )
 
         assert not numpy.any(B_idx == -1), "Invalid acceptor atom type."
@@ -234,10 +92,10 @@ class HBondElementAnalysis(ValidateAttrs):
             p.d: p.donor_type for p in hbond_database.donor_atom_types
         }
 
-        donor_pair_idx = indexed_bonds.bonds[
-            atom_is_donor[indexed_bonds.bonds[:, 0]]
-            & atom_donor_type.astype(bool)[indexed_bonds.bonds[:, 0]]  # None -> False
-            & atom_is_hydrogen[indexed_bonds.bonds[:, 1]]
+        donor_pair_idx = bonds.bonds.numpy()[
+            atom_is_donor[bonds.bonds[:, 0]]
+            & atom_donor_type.astype(bool)[bonds.bonds[:, 0]]  # None -> False
+            & atom_is_hydrogen[bonds.bonds[:, 1]]
         ]
 
         donors = numpy.empty(donor_pair_idx.shape[0], dtype=donor_dtype)
