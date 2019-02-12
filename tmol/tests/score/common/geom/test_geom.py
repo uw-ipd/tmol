@@ -200,7 +200,12 @@ def dihedral_test_data():
                     "-171.94319 deg",
                     "60.82226 deg",
                     "-177.63641 deg",
-                    nan,
+                    "0",
+                    # fd: we clip acos to [-1,1] now
+                    #     which means this does not return NaN
+                    #     with current clipping (no fast-math) this returns 0.
+                    #     ....but I'm not sure we should test this.
+                    # no dispatching code should ever check this.
                 ],
             )
         )

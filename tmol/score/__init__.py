@@ -6,6 +6,7 @@ from . import (  # noqa: F401
     interatomic_distance,
     ljlk,
     elec,
+    cartbonded,
     hbond,
     coordinates,
     score_graph,
@@ -15,7 +16,11 @@ from . import (  # noqa: F401
 
 @score_graph.score_graph
 class TotalScoreGraph(
-    ljlk.LJScoreGraph, ljlk.LKScoreGraph, hbond.HBondScoreGraph, elec.ElecScoreGraph
+    ljlk.LJScoreGraph,
+    ljlk.LKScoreGraph,
+    hbond.HBondScoreGraph,
+    elec.ElecScoreGraph,
+    cartbonded.CartBondedScoreGraph,
 ):
     pass
 
