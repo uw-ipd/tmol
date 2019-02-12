@@ -6,8 +6,8 @@ import torch
 from ..database import ParamDB
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
-from ..factory import Factory
-from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
+from ..score_components import ScoreComponentClasses, IntraScore
+from ..score_graph import score_graph
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import CartBondedDatabase
@@ -148,10 +148,8 @@ class CartBondedHxlTorsionScore(IntraScore):
             )
 
 
-@reactive_attrs(auto_attribs=True)
-class CartBondedScoreGraph(
-    BondedAtomScoreGraph, ScoreComponent, ParamDB, TorchDevice, Factory
-):
+@score_graph
+class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     """Compute graph for the CartBonded term.
     """
 
