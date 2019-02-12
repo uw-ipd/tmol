@@ -25,7 +25,7 @@ class AttachedWaters:
             ).global_params,
         )
 
-    def apply(self, coords, atom_types, indexed_bonds):
+    def for_bonded_atoms(self, coords, atom_types, indexed_bonds):
         atom_type_params = self.atom_resolver.params[atom_types]
 
         return AttachedWatersFun(self, indexed_bonds, atom_type_params)(coords)

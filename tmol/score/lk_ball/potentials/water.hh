@@ -733,6 +733,102 @@ struct attached_waters {
 
     return waters_t;
   };
+
+  static def backward(
+      TView<Vec<Real, 3>, 2, D> dE_dW,
+      TView<Vec<Real, 3>, 1, D> coords,
+      tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds,
+      AtomTypes<D> atom_types,
+      LKBallGlobalParameters<Real, D> global_params)
+      ->TPack<Vec<Real, 3>, 1, D> {
+    using tmol::score::hbond::AcceptorBases;
+    using tmol::score::hbond::AcceptorHybridization;
+
+    auto dE_d_coord_t =
+        TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0), MAX_WATER});
+    auto dE_d_coord = dE_d_coord_t.view;
+
+    static_assert(D == tmol::Device::CPU, "Invalid target device.");
+
+    for (int i : iter::range(coords.size(0))) {
+      int wi = 0;
+
+      if (atom_types.is_acceptor[i]) {
+        Int hyb = atom_types.acceptor_hybridization[i];
+        auto bases = AcceptorBases<Int>::for_acceptor(
+            i,
+            atom_types.acceptor_hybridization[i],
+            indexed_bonds,
+            atom_types.is_hydrogen);
+        Vec<Real, 3> XA = coords[bases.A];
+        Vec<Real, 3> XB = coords[bases.B];
+        Vec<Real, 3> XB0 = coords[bases.B0];
+
+        Vec<Real, 3> dE_dXA = Vec<Real, 3>::Zero();
+        Vec<Real, 3> dE_dXB = Vec<Real, 3>::Zero();
+        Vec<Real, 3> dE_dXB0 = Vec<Real, 3>::Zero();
+
+        Real dist;
+        Real angle;
+        TView<Real, 1, D> tors;
+
+        if (hyb == AcceptorHybridization::sp2) {
+          dist = global_params.lkb_water_dist;
+          angle = global_params.lkb_water_angle_sp2;
+          tors = global_params.lkb_water_tors_sp2;
+        } else if (hyb == AcceptorHybridization::sp3) {
+          dist = global_params.lkb_water_dist;
+          angle = global_params.lkb_water_angle_sp3;
+          tors = global_params.lkb_water_tors_sp3;
+        } else if (hyb == AcceptorHybridization::ring) {
+          dist = global_params.lkb_water_dist;
+          angle = global_params.lkb_water_angle_ring;
+          tors = global_params.lkb_water_tors_ring;
+          XB = 0.5 * (XB + XB0);
+        }
+
+        for (int ti = 0; ti < tors.size(0); ti++) {
+          auto dW =
+              build_acc_water<Real>::dV(XA, XB, XB0, dist, angle, tors[ti]);
+          auto dE_dWi = dE_dW[i][wi];
+
+          dE_dXA += dW.dA * dE_dWi;
+          dE_dXB += dW.dB * dE_dWi;
+          dE_dXB0 += dW.dB0 * dE_dWi;
+
+          wi++;
+        }
+
+        dE_d_coord[bases.A] += dE_dXA;
+
+        if (hyb == AcceptorHybridization::ring) {
+          dE_d_coord[bases.B] += dE_dXB / 2;
+          dE_d_coord[bases.B0] += dE_dXB / 2;
+        } else {
+          dE_d_coord[bases.B] += dE_dXB;
+        }
+
+        dE_d_coord[bases.B0] += dE_dXB0;
+      }
+
+      if (atom_types.is_donor[i]) {
+        for (int other_atom : indexed_bonds.bound_to(i)) {
+          if (atom_types.is_hydrogen[other_atom]) {
+            auto dE_dWi = dE_dW[i][wi];
+            auto dW = build_don_water<Real>::dV(
+                coords[i], coords[other_atom], global_params.lkb_water_dist);
+
+            dE_d_coord[i] += dW.dD * dE_dWi;
+            dE_d_coord[other_atom] += dW.dH * dE_dWi;
+
+            wi++;
+          };
+        }
+      }
+    }
+
+    return dE_d_coord_t;
+  };
 };
 
 #undef def

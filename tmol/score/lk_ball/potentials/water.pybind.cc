@@ -23,6 +23,15 @@ void bind_dispatch(pybind11::module& m) {
       "indexed_bonds"_a,
       "atom_types"_a,
       "global_params"_a);
+
+  m.def(
+      "attached_waters_backward",
+      attached_waters<Real, Int, tmol::Device::CPU, 4>::backward,
+      "dE_dW"_a,
+      "coords"_a,
+      "indexed_bonds"_a,
+      "atom_types"_a,
+      "global_params"_a);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
