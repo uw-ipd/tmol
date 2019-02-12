@@ -35,15 +35,6 @@ RUN chmod +x /usr/bin/tini
 ENTRYPOINT [ "/usr/bin/tini", "--", "/docker-entrypoint.sh" ]
 CMD [ "/bin/bash" ]
 
-### Add clang-format for formatting checks
-RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
-    apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main" && \
-    apt-get update --fix-missing && \
-    apt-get install -y clang-format-7 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-7 0
-
 ### Setup test environment
 # Layering setup to allow partial caching of conda packages
 
