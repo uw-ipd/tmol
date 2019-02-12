@@ -2,9 +2,10 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
+#include <tmol/score/ljlk/potentials/params.pybind.hh>
+#include <tmol/score/lk_ball/potentials/datatypes.pybind.hh>
 #include <tmol/score/lk_ball/potentials/lk_ball.hh>
 #include <tmol/score/lk_ball/potentials/water.hh>
-#include <tmol/score/ljlk/potentials/params.pybind.hh>
 
 namespace tmol {
 namespace score {
@@ -103,27 +104,7 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lk_ball_score_V",
-      [](Eigen::Matrix<Real, 3, 1> coord_i,
-         Eigen::Matrix<Real, 3, 1> coord_j,
-         Eigen::Matrix<Real, MAX_WATER, 3> waters_i,
-         Eigen::Matrix<Real, MAX_WATER, 3> waters_j,
-         Real bonded_path_length,
-         Real lkb_water_dist,
-         LKTypeParams<Real> i,
-         LKTypeParams<Real> j,
-         LJGlobalParams<Real> g) {
-        return lk_ball_score<Real, MAX_WATER>::V(
-                   coord_i,
-                   coord_j,
-                   waters_i,
-                   waters_j,
-                   bonded_path_length,
-                   lkb_water_dist,
-                   i,
-                   j,
-                   g)
-            .astuple();
-      },
+      &lk_ball_score<Real, MAX_WATER>::V,
       "coord_i"_a,
       "coord_j"_a,
       "waters_i"_a,
@@ -136,27 +117,7 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lk_ball_score_dV",
-      [](Eigen::Matrix<Real, 3, 1> coord_i,
-         Eigen::Matrix<Real, 3, 1> coord_j,
-         Eigen::Matrix<Real, MAX_WATER, 3> waters_i,
-         Eigen::Matrix<Real, MAX_WATER, 3> waters_j,
-         Real bonded_path_length,
-         Real lkb_water_dist,
-         LKTypeParams<Real> i,
-         LKTypeParams<Real> j,
-         LJGlobalParams<Real> g) {
-        return lk_ball_score<Real, MAX_WATER>::dV(
-                   coord_i,
-                   coord_j,
-                   waters_i,
-                   waters_j,
-                   bonded_path_length,
-                   lkb_water_dist,
-                   i,
-                   j,
-                   g)
-            .astuple();
-      },
+      &lk_ball_score<Real, MAX_WATER>::dV,
       "coord_i"_a,
       "coord_j"_a,
       "waters_i"_a,
@@ -175,6 +136,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 }
 
 }  // namespace potentials
-}  // namespace ljlk
+}  // namespace lk_ball
 }  // namespace score
 }  // namespace tmol
