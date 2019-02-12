@@ -1,0 +1,639 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-149-g5c401940 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/score/cartbonded/score_graph.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-149-g5c401940
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../score.html">tmol.score</a> &raquo;</li>
+        
+      <li>tmol.score.cartbonded.score_graph</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.score.cartbonded.score_graph</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">..database</span> <span class="k">import</span> <span class="n">ParamDB</span>
+<span class="kn">from</span> <span class="nn">..device</span> <span class="k">import</span> <span class="n">TorchDevice</span>
+<span class="kn">from</span> <span class="nn">..bonded_atom</span> <span class="k">import</span> <span class="n">BondedAtomScoreGraph</span>
+<span class="kn">from</span> <span class="nn">..score_components</span> <span class="k">import</span> <span class="n">ScoreComponentClasses</span><span class="p">,</span> <span class="n">IntraScore</span>
+<span class="kn">from</span> <span class="nn">..score_graph</span> <span class="k">import</span> <span class="n">score_graph</span>
+
+<span class="kn">from</span> <span class="nn">tmol.database</span> <span class="k">import</span> <span class="n">ParameterDatabase</span>
+<span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">CartBondedDatabase</span>
+<span class="kn">from</span> <span class="nn">.identification</span> <span class="k">import</span> <span class="n">CartBondedIdentification</span>
+<span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">CartBondedParamResolver</span>
+<span class="kn">from</span> <span class="nn">.torch_op</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">CartBondedLengthOp</span><span class="p">,</span>
+    <span class="n">CartBondedAngleOp</span><span class="p">,</span>
+    <span class="n">CartBondedTorsionOp</span><span class="p">,</span>
+    <span class="n">CartBondedImproperOp</span><span class="p">,</span>
+    <span class="n">CartBondedHxlTorsionOp</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
+<span class="kn">from</span> <span class="nn">tmol.types.array</span> <span class="k">import</span> <span class="n">NDArray</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">TensorGroup</span>
+
+
+<div class="viewcode-block" id="CartBondedLengthParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedLengthParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CartBondedLengthParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
+    <span class="n">atom_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">param_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="CartBondedAngleParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedAngleParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CartBondedAngleParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
+    <span class="n">atom_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">param_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
+
+
+<span class="c1"># all of torsion/imroper/hxltorsion use this struct</span>
+<div class="viewcode-block" id="CartBondedTorsionParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedTorsionParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CartBondedTorsionParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
+    <span class="n">atom_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+    <span class="n">param_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="CartBondedLengthScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedLengthScore">[docs]</a><span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">CartBondedLengthScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">total_cartbonded_length</span><span class="p">(</span><span class="n">cartbonded_length</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;total cartbonded length score&quot;&quot;&quot;</span>
+        <span class="n">score_val</span> <span class="o">=</span> <span class="n">cartbonded_length</span>
+        <span class="k">return</span> <span class="n">score_val</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_length</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_length_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_lengths</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_lengths</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CartBondedAngleScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedAngleScore">[docs]</a><span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">CartBondedAngleScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">total_cartbonded_angle</span><span class="p">(</span><span class="n">cartbonded_angle</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;total cartbonded angle score&quot;&quot;&quot;</span>
+        <span class="n">score_val</span> <span class="o">=</span> <span class="n">cartbonded_angle</span>
+        <span class="k">return</span> <span class="n">score_val</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_angle</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_angle_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_angles</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_angles</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CartBondedTorsionScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedTorsionScore">[docs]</a><span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">CartBondedTorsionScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">total_cartbonded_torsion</span><span class="p">(</span><span class="n">cartbonded_torsion</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;total cartbonded torsion score&quot;&quot;&quot;</span>
+        <span class="n">score_val</span> <span class="o">=</span> <span class="n">cartbonded_torsion</span>
+        <span class="k">return</span> <span class="n">score_val</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_torsion</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_torsion_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_torsions</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_torsions</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CartBondedImproperScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedImproperScore">[docs]</a><span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">CartBondedImproperScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">total_cartbonded_improper</span><span class="p">(</span><span class="n">cartbonded_improper</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;total cartbonded improper score&quot;&quot;&quot;</span>
+        <span class="n">score_val</span> <span class="o">=</span> <span class="n">cartbonded_improper</span>
+        <span class="k">return</span> <span class="n">score_val</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_improper</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_improper_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_impropers</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_impropers</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CartBondedHxlTorsionScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedHxlTorsionScore">[docs]</a><span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">CartBondedHxlTorsionScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">total_cartbonded_hxltorsion</span><span class="p">(</span><span class="n">cartbonded_hxltorsion</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;total cartbonded hxltorsion score&quot;&quot;&quot;</span>
+        <span class="n">score_val</span> <span class="o">=</span> <span class="n">cartbonded_hxltorsion</span>
+        <span class="k">return</span> <span class="n">score_val</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_hxltorsion</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_hxltorsions</span><span class="o">.</span><span class="n">atom_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([],</span> <span class="n">device</span><span class="o">=</span><span class="n">target</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_hxltorsion_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_hxltorsions</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_hxltorsions</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+            <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CartBondedScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedScoreGraph">[docs]</a><span class="nd">@score_graph</span>
+<span class="k">class</span> <span class="nc">CartBondedScoreGraph</span><span class="p">(</span><span class="n">BondedAtomScoreGraph</span><span class="p">,</span> <span class="n">ParamDB</span><span class="p">,</span> <span class="n">TorchDevice</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute graph for the CartBonded term.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">total_score_components</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">ScoreComponentClasses</span><span class="p">(</span>
+            <span class="s2">&quot;cartbonded_length&quot;</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedLengthScore</span><span class="p">,</span>
+            <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">ScoreComponentClasses</span><span class="p">(</span>
+            <span class="s2">&quot;cartbonded_angle&quot;</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedAngleScore</span><span class="p">,</span>
+            <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">ScoreComponentClasses</span><span class="p">(</span>
+            <span class="s2">&quot;cartbonded_torsion&quot;</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedTorsionScore</span><span class="p">,</span>
+            <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">ScoreComponentClasses</span><span class="p">(</span>
+            <span class="s2">&quot;cartbonded_improper&quot;</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedImproperScore</span><span class="p">,</span>
+            <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">ScoreComponentClasses</span><span class="p">(</span>
+            <span class="s2">&quot;cartbonded_hxltorsion&quot;</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedHxlTorsionScore</span><span class="p">,</span>
+            <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="CartBondedScoreGraph.factory_for"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span>
+        <span class="n">val</span><span class="p">,</span>
+        <span class="n">parameter_database</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">cartbonded_database</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CartBondedDatabase</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">_</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Overridable clone-constructor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">cartbonded_database</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s2">&quot;cartbonded_database&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">cartbonded_database</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">cartbonded_database</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cartbonded_database</span> <span class="o">=</span> <span class="n">parameter_database</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">cartbonded</span>
+
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">cartbonded_database</span><span class="o">=</span><span class="n">cartbonded_database</span><span class="p">)</span></div>
+
+    <span class="n">cartbonded_database</span><span class="p">:</span> <span class="n">CartBondedDatabase</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_param_resolver</span><span class="p">(</span>
+        <span class="n">cartbonded_database</span><span class="p">:</span> <span class="n">CartBondedDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedParamResolver</span><span class="p">:</span>
+        <span class="s2">&quot;cartbonded tuple resolver&quot;</span>
+        <span class="k">return</span> <span class="n">CartBondedParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">cartbonded_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_param_identifier</span><span class="p">(</span>
+        <span class="n">cartbonded_database</span><span class="p">:</span> <span class="n">CartBondedDatabase</span><span class="p">,</span> <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedIdentification</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CartBondedIdentification</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span>
+            <span class="n">cartbonded_database</span><span class="o">=</span><span class="n">cartbonded_database</span><span class="p">,</span> <span class="n">bonds</span><span class="o">=</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+        <span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_length_op</span><span class="p">(</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedLengthOp</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CartBondedLengthOp</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">cartbonded_param_resolver</span><span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_angle_op</span><span class="p">(</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedAngleOp</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CartBondedAngleOp</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">cartbonded_param_resolver</span><span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_torsion_op</span><span class="p">(</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedTorsionOp</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CartBondedTorsionOp</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">cartbonded_param_resolver</span><span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_improper_op</span><span class="p">(</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedImproperOp</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CartBondedImproperOp</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">cartbonded_param_resolver</span><span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_hxltorsion_op</span><span class="p">(</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedHxlTorsionOp</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">CartBondedHxlTorsionOp</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">cartbonded_param_resolver</span><span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_lengths</span><span class="p">(</span>
+        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+        <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedLengthParams</span><span class="p">:</span>
+        <span class="c1"># combine resolved atom indices and bondlength indices</span>
+        <span class="n">bondlength_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">lengths</span>
+        <span class="n">bondlength_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_lengths</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondlength_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>  <span class="c1"># use atm1 for resid</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondlength_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondlength_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="p">)</span>
+        <span class="c1"># remove undefined indices</span>
+        <span class="n">bondlength_defined</span> <span class="o">=</span> <span class="n">bondlength_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">tbondlength_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">bondlength_atom_indices</span><span class="p">[</span><span class="n">bondlength_defined</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">tbondlength_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">bondlength_indices</span><span class="p">[</span><span class="n">bondlength_defined</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CartBondedLengthParams</span><span class="p">(</span>
+            <span class="n">atom_indices</span><span class="o">=</span><span class="n">tbondlength_atom_indices</span><span class="p">,</span> <span class="n">param_indices</span><span class="o">=</span><span class="n">tbondlength_indices</span>
+        <span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_angles</span><span class="p">(</span>
+        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+        <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedAngleParams</span><span class="p">:</span>
+        <span class="c1"># combine resolved atom indices and bondangle indices</span>
+        <span class="n">bondangle_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">angles</span>
+        <span class="n">bondangle_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_angles</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>  <span class="c1"># use atm2 for resid</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># remove undefined indices</span>
+        <span class="n">bondangle_defined</span> <span class="o">=</span> <span class="n">bondangle_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">tbondangle_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">bondangle_atom_indices</span><span class="p">[</span><span class="n">bondangle_defined</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">tbondangle_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">bondangle_indices</span><span class="p">[</span><span class="n">bondangle_defined</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CartBondedAngleParams</span><span class="p">(</span>
+            <span class="n">atom_indices</span><span class="o">=</span><span class="n">tbondangle_atom_indices</span><span class="p">,</span> <span class="n">param_indices</span><span class="o">=</span><span class="n">tbondangle_indices</span>
+        <span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_torsions</span><span class="p">(</span>
+        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+        <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedTorsionParams</span><span class="p">:</span>
+        <span class="c1"># combine resolved atom indices and bondangle indices</span>
+        <span class="n">torsion_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">torsions</span>
+        <span class="n">torsion_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_torsions</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>  <span class="c1"># use atm2 for resid</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># remove undefined indices</span>
+        <span class="n">torsion_defined</span> <span class="o">=</span> <span class="n">torsion_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">ttorsion_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">torsion_atom_indices</span><span class="p">[</span><span class="n">torsion_defined</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">ttorsion_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">torsion_indices</span><span class="p">[</span><span class="n">torsion_defined</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CartBondedTorsionParams</span><span class="p">(</span>
+            <span class="n">atom_indices</span><span class="o">=</span><span class="n">ttorsion_atom_indices</span><span class="p">,</span> <span class="n">param_indices</span><span class="o">=</span><span class="n">ttorsion_indices</span>
+        <span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_impropers</span><span class="p">(</span>
+        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+        <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedTorsionParams</span><span class="p">:</span>
+        <span class="c1"># combine resolved atom indices and bondangle indices</span>
+        <span class="n">improper_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">impropers</span>
+        <span class="n">improper_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_impropers</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>  <span class="c1"># use atm3 for resid</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># remove undefined indices</span>
+        <span class="n">improper_defined</span> <span class="o">=</span> <span class="n">improper_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">timproper_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">improper_atom_indices</span><span class="p">[</span><span class="n">improper_defined</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">timproper_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">improper_indices</span><span class="p">[</span><span class="n">improper_defined</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CartBondedTorsionParams</span><span class="p">(</span>
+            <span class="n">atom_indices</span><span class="o">=</span><span class="n">timproper_atom_indices</span><span class="p">,</span> <span class="n">param_indices</span><span class="o">=</span><span class="n">timproper_indices</span>
+        <span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">cartbonded_hxltorsions</span><span class="p">(</span>
+        <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
+        <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CartBondedTorsionParams</span><span class="p">:</span>
+        <span class="c1"># same identification as regular torsions, but resolved against a different DB</span>
+        <span class="n">hxltorsion_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">torsions</span>
+        <span class="n">hxltorsion_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_hxltorsions</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>  <span class="c1"># use atm3 for resid</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>
+            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]],</span>
+        <span class="p">)</span>
+
+        <span class="c1"># remove undefined indices</span>
+        <span class="n">hxltorsion_defined</span> <span class="o">=</span> <span class="n">hxltorsion_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">thxltorsion_atom_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">hxltorsion_atom_indices</span><span class="p">[</span><span class="n">hxltorsion_defined</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">thxltorsion_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+            <span class="n">hxltorsion_indices</span><span class="p">[</span><span class="n">hxltorsion_defined</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">CartBondedTorsionParams</span><span class="p">(</span>
+            <span class="n">atom_indices</span><span class="o">=</span><span class="n">thxltorsion_atom_indices</span><span class="p">,</span> <span class="n">param_indices</span><span class="o">=</span><span class="n">thxltorsion_indices</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../../',
+              VERSION:'0.0.0-149-g5c401940',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

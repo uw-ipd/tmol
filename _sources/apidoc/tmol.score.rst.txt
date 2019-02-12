@@ -25,6 +25,7 @@ tmol.score
        tmol.score.stacked_system
        tmol.score.viewer
   
+       tmol.score.cartbonded
        tmol.score.common
        tmol.score.elec
        tmol.score.hbond
