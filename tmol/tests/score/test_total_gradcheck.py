@@ -3,21 +3,21 @@ import torch
 from tmol.system.packed import PackedResidueSystem
 
 from tmol.score import TotalScoreGraph
+from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
 
-from tmol.utility.reactive import reactive_attrs
 from tmol.tests.autograd import gradcheck
 
 
-@reactive_attrs
+@score_graph
 class RealSpaceScore(CartesianAtomicCoordinateProvider, TotalScoreGraph):
     pass
 
 
-@reactive_attrs
+@score_graph
 class DofSpaceScore(KinematicAtomicCoordinateProvider, TotalScoreGraph):
     pass
 

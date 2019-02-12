@@ -5,6 +5,14 @@ import torch.autograd
 from tmol.utility.units import parse_angle
 import numpy
 from tmol.tests.autograd import gradcheck
+from tmol.score.ljlk.params import LJLKParamResolver
+
+
+@pytest.fixture
+def params(default_database):
+    return LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, torch.device("cpu")
+    )
 
 
 def test_build_acc_waters():
@@ -142,28 +150,28 @@ def test_lk_bridge_fraction():
     )
 
 
-def lkball_score_and_gradcheck(database, I, J, WI, WJ, bonded_path_length, at_i, at_j):
+def lkball_score_and_gradcheck(params, I, J, WI, WJ, bonded_path_length, at_i, at_j):
     from tmol.tests.score.ljlk.potentials.lk_ball import (
         LKBallScore,
         LKFraction,
         LKBridgeFraction,
     )
 
-    atom_type_params = {p.name: p for p in database.scoring.ljlk.atom_type_parameters}
+    aidx_i, aidx_j = params.type_idx([at_i, at_j])
 
-    op = LKBallScore(database.scoring.ljlk)
+    op = LKBallScore(params)
 
     score = op.apply(I, J, WI, WJ, bonded_path_length, at_i, at_j)
 
     gradcheck(
-        lambda WI, J: LKFraction.apply(WI, J, atom_type_params[at_j].lj_radius),
+        lambda WI, J: LKFraction.apply(WI, J, params.type_params[aidx_j].lj_radius),
         (WI.requires_grad_(True), J.requires_grad_(True)),
-        eps=1e-3,
+        eps=2e-3,
     )
 
     gradcheck(
         lambda I, J, WI, WJ: LKBridgeFraction.apply(
-            I, J, WI, WJ, database.scoring.ljlk.global_parameters.lkb_water_dist
+            I, J, WI, WJ, params.global_params.lkb_water_dist
         ),
         (
             I.requires_grad_(True),
@@ -171,7 +179,7 @@ def lkball_score_and_gradcheck(database, I, J, WI, WJ, bonded_path_length, at_i,
             WI.requires_grad_(True),
             WJ.requires_grad_(True),
         ),
-        eps=1e-3,
+        eps=2e-3,
     )
 
     gradcheck(
@@ -182,17 +190,17 @@ def lkball_score_and_gradcheck(database, I, J, WI, WJ, bonded_path_length, at_i,
             WI.requires_grad_(False),
             WJ.requires_grad_(False),
         ),
-        eps=1e-4,
+        eps=2e-4,
     )
 
     return score
 
 
-def test_lk_ball_donor_donor_spotcheck(default_database):
+def test_lk_ball_donor_donor_spotcheck(params):
 
     from tmol.tests.score.ljlk.potentials.lk_ball import BuildDonorWater
 
-    dist = default_database.scoring.ljlk.global_parameters.lkb_water_dist
+    dist = params.global_params.lkb_water_dist
 
     tensor = torch.DoubleTensor
 
@@ -226,24 +234,10 @@ def test_lk_ball_donor_donor_spotcheck(default_database):
     bonded_path_length = tensor([5.0])[()]
 
     i_by_j = lkball_score_and_gradcheck(
-        default_database,
-        coord_i,
-        coord_j,
-        waters_i,
-        waters_j,
-        bonded_path_length,
-        at_i,
-        at_j,
+        params, coord_i, coord_j, waters_i, waters_j, bonded_path_length, at_i, at_j
     )
     j_by_i = lkball_score_and_gradcheck(
-        default_database,
-        coord_j,
-        coord_i,
-        waters_j,
-        waters_i,
-        bonded_path_length,
-        at_i,
-        at_j,
+        params, coord_j, coord_i, waters_j, waters_i, bonded_path_length, at_i, at_j
     )
 
     torch.testing.assert_allclose(
@@ -251,11 +245,9 @@ def test_lk_ball_donor_donor_spotcheck(default_database):
     )
 
 
-def test_lk_ball_sp2_nonpolar_spotcheck(default_database):
+def test_lk_ball_sp2_nonpolar_spotcheck(params):
 
     from tmol.tests.score.ljlk.potentials.lk_ball import BuildAcceptorWater
-
-    params = default_database.scoring.ljlk
 
     tensor = torch.DoubleTensor
     coords = tensor(
@@ -277,11 +269,11 @@ def test_lk_ball_sp2_nonpolar_spotcheck(default_database):
                 coords[2],
                 coords[1],
                 coords[0],
-                params.global_parameters.lkb_water_dist,
-                params.global_parameters.lkb_water_angle_sp2,
+                params.global_params.lkb_water_dist,
+                params.global_params.lkb_water_angle_sp2,
                 torsion,
             )
-            for torsion in params.global_parameters.lkb_water_tors_sp2
+            for torsion in params.global_params.lkb_water_tors_sp2
         ]
     )
 
@@ -293,7 +285,7 @@ def test_lk_ball_sp2_nonpolar_spotcheck(default_database):
     bonded_path_length = tensor([5.0])[()]
 
     i_by_j = lkball_score_and_gradcheck(
-        default_database,
+        params,
         sp2_c,
         nonpolar_c,
         sp2_waters,
@@ -306,13 +298,11 @@ def test_lk_ball_sp2_nonpolar_spotcheck(default_database):
     torch.testing.assert_allclose(i_by_j, tensor([0.14107985, 0.04765878, 0., 0.]))
 
 
-def test_lk_ball_sp3_ring_spotcheck(default_database):
+def test_lk_ball_sp3_ring_spotcheck(params):
     from tmol.tests.score.ljlk.potentials.lk_ball import (
         BuildAcceptorWater,
         BuildDonorWater,
     )
-
-    params = default_database.scoring.ljlk
 
     tensor = torch.DoubleTensor
 
@@ -337,15 +327,15 @@ def test_lk_ball_sp3_ring_spotcheck(default_database):
                 coords[1],
                 coords[0],
                 coords[2],
-                params.global_parameters.lkb_water_dist,
-                params.global_parameters.lkb_water_angle_sp3,
+                params.global_params.lkb_water_dist,
+                params.global_params.lkb_water_angle_sp3,
                 torsion,
             )
-            for torsion in params.global_parameters.lkb_water_tors_sp3
+            for torsion in params.global_params.lkb_water_tors_sp3
         ]
         + [
             BuildDonorWater.apply(
-                coords[1], coords[2], params.global_parameters.lkb_water_dist
+                coords[1], coords[2], params.global_params.lkb_water_dist
             )
         ]
     )
@@ -359,11 +349,11 @@ def test_lk_ball_sp3_ring_spotcheck(default_database):
                 coords[4],
                 0.5 * (coords[3] + coords[5]),
                 coords[5],
-                params.global_parameters.lkb_water_dist,
-                params.global_parameters.lkb_water_angle_ring,
+                params.global_params.lkb_water_dist,
+                params.global_params.lkb_water_angle_ring,
                 torsion,
             )
-            for torsion in params.global_parameters.lkb_water_tors_ring
+            for torsion in params.global_params.lkb_water_tors_ring
         ]
         + [
             tensor([math.nan, math.nan, math.nan]),
@@ -376,7 +366,7 @@ def test_lk_ball_sp3_ring_spotcheck(default_database):
 
     # Acceptor/Acceptor pair
     sp3_by_ring = lkball_score_and_gradcheck(
-        default_database,
+        params,
         sp3_c,
         ring_c,
         sp3_waters,
@@ -386,7 +376,7 @@ def test_lk_ball_sp3_ring_spotcheck(default_database):
         ring_at,
     )
     ring_by_sp3 = lkball_score_and_gradcheck(
-        default_database,
+        params,
         ring_c,
         sp3_c,
         ring_waters,
@@ -401,7 +391,7 @@ def test_lk_ball_sp3_ring_spotcheck(default_database):
     assert scores == pytest.approx(scores_ref, abs=1e-4)
 
     sp3_by_nonpolar = lkball_score_and_gradcheck(
-        default_database,
+        params,
         sp3_c,
         coords[3],
         sp3_waters,
@@ -416,7 +406,7 @@ def test_lk_ball_sp3_ring_spotcheck(default_database):
     )
 
     sp3_by_nonpolar = lkball_score_and_gradcheck(
-        default_database,
+        params,
         sp3_c,
         coords[5],
         sp3_waters,
@@ -431,7 +421,7 @@ def test_lk_ball_sp3_ring_spotcheck(default_database):
     )
 
     ring_by_nonpolar = lkball_score_and_gradcheck(
-        default_database,
+        params,
         ring_c,
         coords[0],
         ring_waters,

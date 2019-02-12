@@ -39,7 +39,7 @@ void bind_potentials(pybind11::module& m) {
       "B0"_a,
       "A"_a,
       "H"_a,
-      "acceptor_class"_a,
+      "acceptor_hybridization"_a,
       "cosBAH_coeffs"_a,
       "cosBAH_range"_a,
       "cosBAH_bound"_a,
@@ -66,7 +66,7 @@ void bind_potentials(pybind11::module& m) {
       "B0"_a,
 
       // type pair parameters
-      "acceptor_class"_a,
+      "acceptor_hybridization"_a,
       "acceptor_weight"_a,
       "donor_weight"_a,
 

@@ -1,3 +1,11 @@
+#pragma once
+
+#include <tmol/utility/tensor/TensorAccessor.h>
+
+namespace tmol {
+namespace score {
+namespace ljlk {
+namespace potentials {
 #define _STR(v) #v
 
 template <typename Real>
@@ -10,42 +18,25 @@ struct LJTypeParams {
   bool is_acceptor;
 };
 
-// clang-format off
-//
-#define LJTypeParams_args(PREFIX)    \
-  Real PREFIX##lj_radius,   \
-  Real PREFIX##lj_wdepth,   \
-  bool PREFIX##is_donor,    \
-  bool PREFIX##is_hydroxyl, \
-  bool PREFIX##is_polarh,   \
-  bool PREFIX##is_acceptor
+template <typename Real, tmol::Device D>
+struct LJTypeParamTensors {
+  TView<Real, 1, D> lj_radius;
+  TView<Real, 1, D> lj_wdepth;
+  TView<bool, 1, D> is_donor;
+  TView<bool, 1, D> is_hydroxyl;
+  TView<bool, 1, D> is_polarh;
+  TView<bool, 1, D> is_acceptor;
 
-#define LJTypeParams_targs(NDIM, DEVICE)    \
-  TView<Real, NDIM, DEVICE> lj_radius,   \
-  TView<Real, NDIM, DEVICE> lj_wdepth,   \
-  TView<bool, NDIM, DEVICE> is_donor,    \
-  TView<bool, NDIM, DEVICE> is_hydroxyl, \
-  TView<bool, NDIM, DEVICE> is_polarh,   \
-  TView<bool, NDIM, DEVICE> is_acceptor
-
-#define LJTypeParams_struct(PREFIX, ...)   \
-{                  \
-  PREFIX##lj_radius __VA_ARGS__,   \
-  PREFIX##lj_wdepth __VA_ARGS__,   \
-  PREFIX##is_donor __VA_ARGS__,    \
-  PREFIX##is_hydroxyl __VA_ARGS__, \
-  PREFIX##is_polarh __VA_ARGS__,   \
-  PREFIX##is_acceptor __VA_ARGS__  \
-}
-
-#define LJTypeParams_pyargs(PREFIX)      \
-  py::arg( _STR(PREFIX##lj_radius) ),   \
-  py::arg( _STR(PREFIX##lj_wdepth) ),   \
-  py::arg( _STR(PREFIX##is_donor) ),    \
-  py::arg( _STR(PREFIX##is_hydroxyl) ), \
-  py::arg( _STR(PREFIX##is_polarh) ),   \
-  py::arg( _STR(PREFIX##is_acceptor) )
-// clang-format on
+  template <typename Idx>
+  auto operator[](Idx i) const {
+    return LJTypeParams<Real>{lj_radius[i],
+                              lj_wdepth[i],
+                              is_donor[i],
+                              is_hydroxyl[i],
+                              is_polarh[i],
+                              is_acceptor[i]};
+  }
+};
 
 template <typename Real>
 struct LKTypeParams {
@@ -59,49 +50,29 @@ struct LKTypeParams {
   bool is_acceptor;
 };
 
-// clang-format off
-#define LKTypeParams_args(PREFIX)    \
-  Real PREFIX##lj_radius,   \
-  Real PREFIX##lk_dgfree,   \
-  Real PREFIX##lk_lambda,   \
-  Real PREFIX##lk_volume,   \
-  bool PREFIX##is_donor,    \
-  bool PREFIX##is_hydroxyl, \
-  bool PREFIX##is_polarh,   \
-  bool PREFIX##is_acceptor
+template <typename Real, tmol::Device D>
+struct LKTypeParamTensors {
+  TView<Real, 1, D> lj_radius;
+  TView<Real, 1, D> lk_dgfree;
+  TView<Real, 1, D> lk_lambda;
+  TView<Real, 1, D> lk_volume;
+  TView<bool, 1, D> is_donor;
+  TView<bool, 1, D> is_hydroxyl;
+  TView<bool, 1, D> is_polarh;
+  TView<bool, 1, D> is_acceptor;
 
-#define LKTypeParams_targs(NDIM, DEVICE)    \
-  TView<Real, NDIM, DEVICE> lj_radius,   \
-  TView<Real, NDIM, DEVICE> lk_dgfree,   \
-  TView<Real, NDIM, DEVICE> lk_lambda,   \
-  TView<Real, NDIM, DEVICE> lk_volume,   \
-  TView<bool, NDIM, DEVICE> is_donor,    \
-  TView<bool, NDIM, DEVICE> is_hydroxyl, \
-  TView<bool, NDIM, DEVICE> is_polarh,   \
-  TView<bool, NDIM, DEVICE> is_acceptor
-
-#define LKTypeParams_struct(PREFIX, ...)   \
-{                  \
-  PREFIX##lj_radius __VA_ARGS__,   \
-  PREFIX##lk_dgfree __VA_ARGS__,   \
-  PREFIX##lk_lambda __VA_ARGS__,   \
-  PREFIX##lk_volume __VA_ARGS__,   \
-  PREFIX##is_donor __VA_ARGS__,    \
-  PREFIX##is_hydroxyl __VA_ARGS__, \
-  PREFIX##is_polarh __VA_ARGS__,   \
-  PREFIX##is_acceptor __VA_ARGS__  \
-}
-
-#define LKTypeParams_pyargs(PREFIX)     \
-  py::arg( _STR(PREFIX##lj_radius) ),  \
-  py::arg( _STR(PREFIX##lk_dgfree) ),  \
-  py::arg( _STR(PREFIX##lk_lambda) ),  \
-  py::arg( _STR(PREFIX##lk_volume) ),  \
-  py::arg( _STR(PREFIX##is_donor) ),   \
-  py::arg( _STR(PREFIX##is_hydroxyl) ),\
-  py::arg( _STR(PREFIX##is_polarh) ),  \
-  py::arg( _STR(PREFIX##is_acceptor) )
-// clang-format on
+  template <typename Idx>
+  auto operator[](Idx i) const {
+    return LKTypeParams<Real>{lj_radius[i],
+                              lk_dgfree[i],
+                              lk_lambda[i],
+                              lk_volume[i],
+                              is_donor[i],
+                              is_hydroxyl[i],
+                              is_polarh[i],
+                              is_acceptor[i]};
+  }
+};
 
 template <typename Real>
 struct LJGlobalParams {
@@ -110,22 +81,7 @@ struct LJGlobalParams {
   Real lj_hbond_hdis;
 };
 
-// clang-format off
-#define LJGlobalParams_args() \
-  Real lj_hbond_dis,          \
-  Real lj_hbond_OH_donor_dis, \
-  Real lj_hbond_hdis          \
-
-#define LJGlobalParams_pyargs()           \
-  py::arg( _STR(lj_hbond_dis) ),          \
-  py::arg( _STR(lj_hbond_OH_donor_dis) ), \
-  py::arg( _STR(lj_hbond_hdis) )
-
-
-#define LJGlobalParams_struct() \
-{                               \
-  lj_hbond_dis,                 \
-  lj_hbond_OH_donor_dis,        \
-  lj_hbond_hdis                 \
-}
-// clang-format on
+}  // namespace potentials
+}  // namespace ljlk
+}  // namespace score
+}  // namespace tmol

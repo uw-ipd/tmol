@@ -375,7 +375,9 @@ def _get_params(param_resolver: LJLKParamResolver):
 # full backward pass
 def test_lkball_deriv_full_backward_pass(default_database):
     param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
-        default_database.scoring.ljlk, device=torch.device("cpu")
+        default_database.chemical,
+        default_database.scoring.ljlk,
+        device=torch.device("cpu"),
     )
     params = _get_params(param_resolver)
 
@@ -413,7 +415,7 @@ def test_lkball_deriv_full_backward_pass(default_database):
     )
     atom_types = param_resolver.type_idx(
         ["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]
-    )
+    ).numpy()
     bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int)
     bonded_path_lengths[:3, 3:] = 5
     bonded_path_lengths[3:, :3] = 5
@@ -455,7 +457,9 @@ def test_lkball_deriv_full_backward_pass(default_database):
 # full forward pass
 def test_lkball_spotcheck(default_database):
     param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
-        default_database.scoring.ljlk, device=torch.device("cpu")
+        default_database.chemical,
+        default_database.scoring.ljlk,
+        device=torch.device("cpu"),
     )
 
     params = _get_params(param_resolver)
@@ -483,7 +487,7 @@ def test_lkball_spotcheck(default_database):
 
     atom_types = param_resolver.type_idx(
         ["Nlys", "Hpol", "Hpol", "Hpol", "Nlys", "Hpol", "Hpol", "Hpol"]
-    )
+    ).numpy()
     bonded_path_lengths = numpy.ones((8, 8), dtype=numpy.int)
     bonded_path_lengths[:4, 4:] = 5
     bonded_path_lengths[4:, :4] = 5
@@ -503,7 +507,9 @@ def test_lkball_spotcheck(default_database):
 
 def test_lkball_spotcheck_sp2_nonpolar(default_database):
     param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
-        default_database.scoring.ljlk, device=torch.device("cpu")
+        default_database.chemical,
+        default_database.scoring.ljlk,
+        device=torch.device("cpu"),
     )
 
     params = _get_params(param_resolver)
@@ -524,7 +530,7 @@ def test_lkball_spotcheck_sp2_nonpolar(default_database):
             [-6.932, 4.109, -5.683],
         ]
     )
-    atom_types = param_resolver.type_idx(["CH2", "COO", "OOC", "CH3"])
+    atom_types = param_resolver.type_idx(["CH2", "COO", "OOC", "CH3"]).numpy()
 
     bonded_path_lengths = numpy.ones((4, 4), dtype=numpy.int)
     bonded_path_lengths[:3, 3] = 5
@@ -544,7 +550,9 @@ def test_lkball_spotcheck_sp2_nonpolar(default_database):
 
 def test_lkball_spotcheck_sp3_ring(default_database):
     param_resolver: LJLKParamResolver = LJLKParamResolver.from_database(
-        default_database.scoring.ljlk, device=torch.device("cpu")
+        default_database.chemical,
+        default_database.scoring.ljlk,
+        device=torch.device("cpu"),
     )
 
     params = _get_params(param_resolver)
@@ -569,7 +577,7 @@ def test_lkball_spotcheck_sp3_ring(default_database):
     )
     atom_types = param_resolver.type_idx(
         ["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]
-    )
+    ).numpy()
     bonded_path_lengths = numpy.ones((6, 6), dtype=numpy.int)
     bonded_path_lengths[:3, 3:] = 5
     bonded_path_lengths[3:, :3] = 5

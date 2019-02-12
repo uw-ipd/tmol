@@ -6,17 +6,17 @@ import math
 
 from tmol.kinematics.torch_op import KinematicOp
 
-from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.reactive import reactive_property
 
 from tmol.types.torch import Tensor
 
-from .factory import Factory
-from .stacked_system import StackedSystem
 from .device import TorchDevice
+from .score_graph import score_graph
+from .stacked_system import StackedSystem
 
 
-@reactive_attrs(auto_attribs=True)
-class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
+@score_graph
+class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice):
     @staticmethod
     @singledispatch
     def factory_for(
@@ -40,8 +40,8 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
         self.coords = self.coords
 
 
-@reactive_attrs(auto_attribs=True)
-class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice, Factory):
+@score_graph
+class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
     @staticmethod
     @singledispatch
     def factory_for(

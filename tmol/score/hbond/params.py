@@ -1,9 +1,6 @@
 import attr
-import cattr
 
 from typing import Sequence
-
-from enum import IntEnum
 
 import numpy
 import pandas
@@ -16,14 +13,9 @@ from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
 
 from tmol.database.scoring.hbond import HBondDatabase
+from tmol.database.chemical import ChemicalDatabase
 
-
-class AcceptorClass(IntEnum):
-    # Integer mapping from symbolic acceptor types int flag.
-    # TODO resolve from compiled layer.
-    sp2 = 0
-    sp3 = 1
-    ring = 2
+from ..chemical_database import AcceptorHybridization
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
@@ -56,7 +48,7 @@ class HBondPolyParams(TensorGroup, ConvertAttrs):
 class HBondPairParams(TensorGroup, ValidateAttrs):
     donor_weight: Tensor("f")[...]
     acceptor_weight: Tensor("f")[...]
-    acceptor_class: Tensor("i4")[...]
+    acceptor_hybridization: Tensor("i4")[...]
     AHdist: HBondPolyParams
     cosBAH: HBondPolyParams
     cosAHD: HBondPolyParams
@@ -72,7 +64,7 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
         return cls(
             donor_weight=torch.full(shape, fill_value, dtype=torch.float),
             acceptor_weight=torch.full(shape, fill_value, dtype=torch.float),
-            acceptor_class=torch.full(
+            acceptor_hybridization=torch.full(
                 shape, numpy.nan_to_num(fill_value), dtype=torch.int32
             ),  # nan_to_num fill value for integer dtype
             AHdist=HBondPolyParams.full(shape, fill_value),
@@ -85,6 +77,7 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
 class HBondParamResolver(ValidateAttrs):
     donor_type_index: pandas.Index = attr.ib()
     acceptor_type_index: pandas.Index = attr.ib()
+
     pair_params: HBondPairParams = attr.ib()
     device: torch.device = attr.ib()
 
@@ -101,52 +94,44 @@ class HBondParamResolver(ValidateAttrs):
         return torch.from_numpy(i).to(device=self.device)
 
     @classmethod
-    def from_database(cls, hbond_database: HBondDatabase, device: torch.device):
-        atom_groups = hbond_database.atom_groups
+    def from_database(
+        cls,
+        chemical_database: ChemicalDatabase,
+        hbond_database: HBondDatabase,
+        device: torch.device,
+    ):
 
-        donors = list(set(g.donor_type for g in atom_groups.donors))
+        donors = {g.name: g for g in hbond_database.donor_type_params}
+        donor_type_index = pandas.Index(list(donors))
 
-        acceptor_classes = (
-            [(g.acceptor_type, AcceptorClass.sp2) for g in atom_groups.sp2_acceptors]
-            + [(g.acceptor_type, AcceptorClass.sp3) for g in atom_groups.sp3_acceptors]
-            + [
-                (g.acceptor_type, AcceptorClass.ring)
-                for g in atom_groups.ring_acceptors
-            ]
-        )
-        assert len(set(acceptor_classes)) == len(
-            set(dict(acceptor_classes).keys())
-        ), "acceptor type with multiple hybridization classes defined."
+        acceptors = {g.name: g for g in hbond_database.acceptor_type_params}
+        acceptor_type_index = pandas.Index(list(acceptors))
 
-        acceptor_classes = dict(acceptor_classes)
-        acceptors = list(acceptor_classes.keys())
+        atom_type_hybridization = {
+            a.name: a.acceptor_hybridization for a in chemical_database.atom_types
+        }
+        acceptor_type_hybridization = {
+            g.acceptor_type: atom_type_hybridization[g.a]
+            for g in hbond_database.acceptor_atom_types
+        }
 
-        donor_type_index = pandas.Index(donors)
+        pair_params = HBondPairParams.full((len(donors), len(acceptors)), numpy.nan)
 
-        donor_weights = torch.Tensor(
-            (
-                pandas.DataFrame.from_records(
-                    cattr.unstructure(hbond_database.don_weights)
+        # Denormalize donor/acceptor weight and class into pair parameter table
+        for name, g in donors.items():
+            i, = donor_type_index.get_indexer([name])
+            pair_params.donor_weight[i, :] = g.weight
+
+        for name, g in acceptors.items():
+            i, = acceptor_type_index.get_indexer([name])
+            pair_params.acceptor_weight[:, i] = g.weight
+            pair_params.acceptor_hybridization[:, i] = int(
+                AcceptorHybridization._index.get_indexer_for(
+                    [acceptor_type_hybridization[name]]
                 )
-                .set_index("name")["weight"]
-                .reindex(donor_type_index)
-                .values
             )
-        )
 
-        acceptor_type_index = pandas.Index(acceptors)
-
-        acceptor_weights = torch.Tensor(
-            (
-                pandas.DataFrame.from_records(
-                    cattr.unstructure(hbond_database.acc_weights)
-                )
-                .set_index("name")["weight"]
-                .reindex(acceptor_type_index)
-            )
-        )
-
-        # Get polynomial parameters index by polynomial name
+        # Get polynomial parameters indexed by polynomial name
         poly_params = HBondPolyParams(
             **toolz.merge_with(
                 numpy.vstack,
@@ -166,23 +151,17 @@ class HBondParamResolver(ValidateAttrs):
             for i, p in enumerate(hbond_database.polynomial_parameters)
         }
 
-        pair_params = HBondPairParams.full((len(donors), len(acceptors)), numpy.nan)
-
+        # Denormalize polynomial parameters into pair parameter table
         for pp in hbond_database.pair_parameters:
-            di, = donor_type_index.get_indexer([pp.don_chem_type])
+            di, = donor_type_index.get_indexer([pp.donor_type])
             assert di >= 0
 
-            ai, = acceptor_type_index.get_indexer([pp.acc_chem_type])
+            ai, = acceptor_type_index.get_indexer([pp.acceptor_type])
             assert ai >= 0
 
             pair_params[di, ai].AHdist[:] = poly_params[pp.AHdist]
             pair_params[di, ai].cosBAH[:] = poly_params[pp.cosBAH]
             pair_params[di, ai].cosAHD[:] = poly_params[pp.cosAHD]
-            pair_params[di, ai].donor_weight.reshape(1)[:] = donor_weights[di]
-            pair_params[di, ai].acceptor_weight.reshape(1)[:] = acceptor_weights[ai]
-            pair_params[di, ai].acceptor_class.reshape(1)[:] = acceptor_classes[
-                pp.acc_chem_type
-            ]
 
         return cls(
             donor_type_index=donor_type_index,

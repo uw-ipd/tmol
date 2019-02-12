@@ -1,8 +1,6 @@
 import torch
 import attr
 
-from tmol.database import ParameterDatabase
-
 from tmol.score.hbond.identification import HBondElementAnalysis
 from tmol.score.hbond.params import HBondParamResolver
 
@@ -37,7 +35,7 @@ def _setup_inputs(coords, params, donors, acceptors, torch_device):
     )
 
 
-def test_score_op(ubq_system, torch_device):
+def test_score_op(default_database, ubq_system, torch_device):
     """Scores computed via op-based dispatch match values from explicit
     evaluation."""
 
@@ -45,9 +43,8 @@ def test_score_op(ubq_system, torch_device):
     import tmol.tests.score.hbond.potentials.compiled as compiled
 
     system = ubq_system
-    hbond_database = ParameterDatabase.get_default().scoring.hbond
     hbond_param_resolver = HBondParamResolver.from_database(
-        hbond_database, torch_device
+        default_database.chemical, default_database.scoring.hbond, torch_device
     )
 
     # Load coordinates and types from standard test system
@@ -58,8 +55,11 @@ def test_score_op(ubq_system, torch_device):
 
     # Run donor/acceptor identification over system
 
-    hbond_elements = HBondElementAnalysis.setup(
-        hbond_database=hbond_database, atom_types=atom_types, bonds=bonds
+    hbond_elements = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
+        hbond_database=default_database.scoring.hbond,
+        atom_types=atom_types,
+        bonds=bonds,
     )
 
     donors = hbond_elements.donors
@@ -73,19 +73,19 @@ def test_score_op(ubq_system, torch_device):
 
     ### score via op
 
-    op = HBondOp.from_database(hbond_database, hbond_param_resolver)
+    op = HBondOp.from_database(default_database.scoring.hbond, hbond_param_resolver)
     (dind, aind), op_scores = op.score(**inputs)
     assert (op_scores < 0).sum() > 10
 
     # Verify scores via back comparison to explicit evaluation
     hbond_param_resolver = HBondParamResolver.from_database(
-        hbond_database, torch.device("cpu")
+        default_database.chemical, default_database.scoring.hbond, torch.device("cpu")
     )
     batch_coords = _setup_inputs(
         coords, hbond_param_resolver, donors[dind], acceptors[aind], torch.device("cpu")
     )
 
-    gparams = attr.asdict(hbond_database.global_parameters)
+    gparams = attr.asdict(default_database.scoring.hbond.global_parameters)
     batch_params = valmap(
         lambda t: t[
             batch_coords["donor_type"].to(torch.int64),
@@ -105,14 +105,13 @@ def test_score_op(ubq_system, torch_device):
     # Derivative values validated via gradcheck
 
 
-def test_score_op_gradcheck(ubq_system, torch_device):
+def test_score_op_gradcheck(default_database, ubq_system, torch_device):
 
     from tmol.score.hbond.torch_op import HBondOp
 
     system = ubq_system
-    hbond_database = ParameterDatabase.get_default().scoring.hbond
     hbond_param_resolver = HBondParamResolver.from_database(
-        hbond_database, torch_device
+        default_database.chemical, default_database.scoring.hbond, torch_device
     )
 
     # Load coordinates and types from standard test system
@@ -123,15 +122,18 @@ def test_score_op_gradcheck(ubq_system, torch_device):
 
     # Run donor/acceptor identification over system
 
-    hbond_elements = HBondElementAnalysis.setup(
-        hbond_database=hbond_database, atom_types=atom_types, bonds=bonds
+    hbond_elements = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
+        hbond_database=default_database.scoring.hbond,
+        atom_types=atom_types,
+        bonds=bonds,
     )
 
     donors = hbond_elements.donors[:10]
     acceptors = hbond_elements.acceptors[:10]
 
     op = HBondOp.from_database(
-        hbond_database, hbond_param_resolver, dtype=torch.float64
+        default_database.scoring.hbond, hbond_param_resolver, dtype=torch.float64
     )
 
     # setup input coordinate tensors

@@ -3,6 +3,7 @@
 #include <torch/torch.h>
 
 #include <tmol/score/ljlk/potentials/lk_ball.hh>
+#include <tmol/score/ljlk/potentials/params.pybind.hh>
 
 namespace tmol {
 namespace score {
@@ -107,9 +108,9 @@ void bind_potentials(pybind11::module& m) {
          Eigen::Matrix<Real, MAX_WATER, 3> waters_j,
          Real bonded_path_length,
          Real lkb_water_dist,
-         LKTypeParams_args(i_),
-         LKTypeParams_args(j_),
-         LJGlobalParams_args()) {
+         LKTypeParams<Real> i,
+         LKTypeParams<Real> j,
+         LJGlobalParams<Real> g) {
         return lk_ball_score<Real, MAX_WATER>::V(
                    coord_i,
                    coord_j,
@@ -117,9 +118,9 @@ void bind_potentials(pybind11::module& m) {
                    waters_j,
                    bonded_path_length,
                    lkb_water_dist,
-                   LKTypeParams_struct(i_),
-                   LKTypeParams_struct(j_),
-                   LJGlobalParams_struct())
+                   i,
+                   j,
+                   g)
             .astuple();
       },
       "coord_i"_a,
@@ -128,9 +129,9 @@ void bind_potentials(pybind11::module& m) {
       "waters_j"_a,
       "bonded_path_length"_a,
       "lkb_water_dist"_a,
-      LKTypeParams_pyargs(i_),
-      LKTypeParams_pyargs(j_),
-      LJGlobalParams_pyargs());
+      "params_i"_a,
+      "params_j"_a,
+      "params_global"_a);
 
   m.def(
       "lk_ball_score_dV",
@@ -140,9 +141,9 @@ void bind_potentials(pybind11::module& m) {
          Eigen::Matrix<Real, MAX_WATER, 3> waters_j,
          Real bonded_path_length,
          Real lkb_water_dist,
-         LKTypeParams_args(i_),
-         LKTypeParams_args(j_),
-         LJGlobalParams_args()) {
+         LKTypeParams<Real> i,
+         LKTypeParams<Real> j,
+         LJGlobalParams<Real> g) {
         return lk_ball_score<Real, MAX_WATER>::dV(
                    coord_i,
                    coord_j,
@@ -150,9 +151,9 @@ void bind_potentials(pybind11::module& m) {
                    waters_j,
                    bonded_path_length,
                    lkb_water_dist,
-                   LKTypeParams_struct(i_),
-                   LKTypeParams_struct(j_),
-                   LJGlobalParams_struct())
+                   i,
+                   j,
+                   g)
             .astuple();
       },
       "coord_i"_a,
@@ -161,9 +162,9 @@ void bind_potentials(pybind11::module& m) {
       "waters_j"_a,
       "bonded_path_length"_a,
       "lkb_water_dist"_a,
-      LKTypeParams_pyargs(i_),
-      LKTypeParams_pyargs(j_),
-      LJGlobalParams_pyargs());
+      "params_i"_a,
+      "params_j"_a,
+      "params_global"_a);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

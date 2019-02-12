@@ -4,22 +4,16 @@ import pytest
 
 import torch
 
-from tmol.score.factory import Factory
-
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.score_components import (
-    ScoreComponent,
-    ScoreComponentClasses,
-    InterScore,
-    IntraScore,
-)
+from tmol.score.score_components import ScoreComponentClasses, InterScore, IntraScore
 from tmol.score.interatomic_distance import (
     InteratomicDistanceGraphBase,
     BlockedInteratomicDistanceGraph,
     InterLayerAtomPairs,
 )
 
-from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.reactive import reactive_property
+from tmol.score.score_graph import score_graph
 
 
 @pytest.fixture(scope="function")
@@ -85,7 +79,7 @@ def multilayer_test_coords(multilayer_test_offsets):
     return coords.reshape((4, 8 * 3, 3))
 
 
-@reactive_attrs(auto_attribs=True)
+@score_graph
 class ThresholdDistanceCountIntraScore(IntraScore):
     @reactive_property
     def total_threshold_count(target):
@@ -105,7 +99,7 @@ class ThresholdDistanceCountIntraScore(IntraScore):
         )
 
 
-@reactive_attrs(auto_attribs=True)
+@score_graph
 class ThresholdDistanceCountInterScore(InterScore):
     @reactive_property
     def total_threshold_count(target_i, target_j):
@@ -136,12 +130,9 @@ class ThresholdDistanceCountInterScore(InterScore):
         )
 
 
-@reactive_attrs(auto_attribs=True)
+@score_graph
 class ThresholdDistanceCount(
-    CartesianAtomicCoordinateProvider,
-    InteratomicDistanceGraphBase,
-    ScoreComponent,
-    Factory,
+    CartesianAtomicCoordinateProvider, InteratomicDistanceGraphBase
 ):
     total_score_components = ScoreComponentClasses(
         name="threshold_count",
@@ -163,7 +154,7 @@ class ThresholdDistanceCount(
 def threshold_distance_score_class(request):
     interatomic_distance_component = request.param
 
-    @reactive_attrs
+    @score_graph
     class TestGraph(ThresholdDistanceCount, interatomic_distance_component):
         pass
 

@@ -39,8 +39,8 @@ struct LJDispatch {
 
       TView<Real, 2, D> bonded_path_lengths,
 
-      LJTypeParams_targs(1, D),
-      LJGlobalParams_args())
+      LJTypeParamTensors<Real, D> type_params,
+      LJGlobalParams<Real> global_params)
       -> std::tuple<
           TPack<int64_t, 2, D>,
           TPack<Real, 1, D>,
@@ -73,9 +73,9 @@ struct LJDispatch {
       tie(V, dV_dDist) = lj_score_V_dV(
           dist,
           bonded_path_lengths[i][j],
-          LJTypeParams_struct(, [ati]),
-          LJTypeParams_struct(, [atj]),
-          LJGlobalParams_struct());
+          type_params[ati],
+          type_params[atj],
+          global_params);
 
       inds[o][0] = i;
       inds[o][1] = j;
@@ -105,8 +105,8 @@ struct LKIsotropicDispatch {
 
       TView<Real, 2, D> bonded_path_lengths,
 
-      LKTypeParams_targs(1, D),
-      LJGlobalParams_args())
+      LKTypeParamTensors<Real, D> type_params,
+      LJGlobalParams<Real> global_params)
       -> std::tuple<
           TPack<int64_t, 2, D>,
           TPack<Real, 1, D>,
@@ -139,9 +139,9 @@ struct LKIsotropicDispatch {
       tie(V, dV_dDist) = lk_isotropic_score_V_dV(
           dist,
           bonded_path_lengths[i][j],
-          LKTypeParams_struct(, [ati]),
-          LKTypeParams_struct(, [atj]),
-          LJGlobalParams_struct());
+          type_params[ati],
+          type_params[atj],
+          global_params);
 
       inds[o][0] = i;
       inds[o][1] = j;

@@ -12,23 +12,20 @@ bb_hbond_config = """
         hb_sp2_outer_width: 0.357
         hb_sp3_softmax_fade: 2.5
         threshold_distance: 6.0
-    atom_groups:
-        donors:
-            - { d: Nbb, h: HNbb, donor_type: hbdon_PBA }
-        sp2_acceptors:
-            - { a: OCbb, b: CObb, b0: CAbb, acceptor_type: hbacc_PBA }
-        sp3_acceptors: []
-        ring_acceptors: []
+    donor_atom_types:
+        - { d: Nbb, donor_type: hbdon_PBA }
+    acceptor_atom_types:
+        - { a: OCbb, acceptor_type: hbacc_PBA }
     pair_parameters:
-      - don_chem_type: hbdon_PBA
-        acc_chem_type: hbacc_PBA
+      - donor_type: hbdon_PBA
+        acceptor_type: hbacc_PBA
         AHdist: hbpoly_ahdist_aGLY_dGLY_9gt3_hesmooth_min1p6
         cosBAH: poly_cosBAH_off
         cosAHD: poly_AHD_1j
-    don_weights:
+    donor_type_params:
       - name: hbdon_PBA
         weight: 1.41
-    acc_weights:
+    acceptor_type_params:
       - name: hbacc_PBA
         weight: 1.08
     polynomial_parameters:

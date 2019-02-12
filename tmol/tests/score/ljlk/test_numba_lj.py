@@ -1,25 +1,34 @@
 import pytest
 from pytest import approx
 
+import torch
 import numpy
 import scipy.optimize
 
 from tmol.score.ljlk.numba.lj import f_vdw, f_vdw_d_dist
 from tmol.score.ljlk.numba.vectorized import lj, d_lj_d_dist
 
+from tmol.score.ljlk.params import LJLKParamResolver
+
+
+@pytest.fixture
+def params(default_database):
+    return LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, torch.device("cpu")
+    )
+
 
 @pytest.mark.parametrize("bonded_path_length", [2, 4, 5])
-def test_lj_gradcheck(default_database, bonded_path_length):
-    params = default_database.scoring.ljlk
-
-    i = params.atom_type_parameters[0]
-    j = params.atom_type_parameters[2]
+def test_lj_gradcheck(params, bonded_path_length):
+    i = params.type_params[0]
+    j = params.type_params[2]
+    g = params.global_params
 
     ds = numpy.linspace(0, 10, 1000)
 
     bonded_path_length = 4
 
-    sigma = i.lj_radius + j.lj_radius
+    sigma = (i.lj_radius + j.lj_radius).numpy()
 
     grad_errors = numpy.array(
         [
@@ -28,21 +37,21 @@ def test_lj_gradcheck(default_database, bonded_path_length):
                 d_lj_d_dist,
                 numpy.array([d]),
                 bonded_path_length,
-                i.lj_radius,
-                i.lj_wdepth,
-                i.is_donor,
-                i.is_hydroxyl,
-                i.is_polarh,
-                i.is_acceptor,
-                j.lj_radius,
-                j.lj_wdepth,
-                j.is_donor,
-                j.is_hydroxyl,
-                j.is_polarh,
-                j.is_acceptor,
-                params.global_parameters.lj_hbond_dis,
-                params.global_parameters.lj_hbond_OH_donor_dis,
-                params.global_parameters.lj_hbond_hdis,
+                i.lj_radius.numpy(),
+                i.lj_wdepth.numpy(),
+                i.is_donor.numpy(),
+                i.is_hydroxyl.numpy(),
+                i.is_polarh.numpy(),
+                i.is_acceptor.numpy(),
+                j.lj_radius.numpy(),
+                j.lj_wdepth.numpy(),
+                j.is_donor.numpy(),
+                j.is_hydroxyl.numpy(),
+                j.is_polarh.numpy(),
+                j.is_acceptor.numpy(),
+                g.lj_hbond_dis.numpy(),
+                g.lj_hbond_OH_donor_dis.numpy(),
+                g.lj_hbond_hdis.numpy(),
             )
             for d in ds
         ]
@@ -50,58 +59,57 @@ def test_lj_gradcheck(default_database, bonded_path_length):
 
     # Reduce grad check precision in repulsive regime due to high magnitude derivs
     numpy.testing.assert_allclose(grad_errors[ds < sigma], 0, atol=1e-5)
-    numpy.testing.assert_allclose(grad_errors[ds > sigma], 0, atol=1e-7)
+    numpy.testing.assert_allclose(grad_errors[ds > sigma], 0, atol=1e-6)
 
 
-def test_lj_spotcheck(default_database):
-    params = default_database.scoring.ljlk
+def test_lj_spotcheck(params):
+    i = params.type_params[0]
+    j = params.type_params[2]
+    g = params.global_params
 
-    i = params.atom_type_parameters[0]
-    j = params.atom_type_parameters[2]
-
-    sigma = i.lj_radius + j.lj_radius
-    epsilon = numpy.sqrt(i.lj_wdepth * j.lj_wdepth)
+    sigma = (i.lj_radius + j.lj_radius).numpy()
+    epsilon = numpy.sqrt(i.lj_wdepth * j.lj_wdepth).numpy()
 
     def eval_lj(d, bonded_path_length=5):
         return lj(
             d,
             bonded_path_length,
-            i.lj_radius,
-            i.lj_wdepth,
-            i.is_donor,
-            i.is_hydroxyl,
-            i.is_polarh,
-            i.is_acceptor,
-            j.lj_radius,
-            j.lj_wdepth,
-            j.is_donor,
-            j.is_hydroxyl,
-            j.is_polarh,
-            j.is_acceptor,
-            params.global_parameters.lj_hbond_dis,
-            params.global_parameters.lj_hbond_OH_donor_dis,
-            params.global_parameters.lj_hbond_hdis,
+            i.lj_radius.numpy(),
+            i.lj_wdepth.numpy(),
+            i.is_donor.numpy(),
+            i.is_hydroxyl.numpy(),
+            i.is_polarh.numpy(),
+            i.is_acceptor.numpy(),
+            j.lj_radius.numpy(),
+            j.lj_wdepth.numpy(),
+            j.is_donor.numpy(),
+            j.is_hydroxyl.numpy(),
+            j.is_polarh.numpy(),
+            j.is_acceptor.numpy(),
+            g.lj_hbond_dis.numpy(),
+            g.lj_hbond_OH_donor_dis.numpy(),
+            g.lj_hbond_hdis.numpy(),
         )
 
     def eval_d_lj_d_dist(d, bonded_path_length=5):
         return d_lj_d_dist(
             d,
             bonded_path_length,
-            i.lj_radius,
-            i.lj_wdepth,
-            i.is_donor,
-            i.is_hydroxyl,
-            i.is_polarh,
-            i.is_acceptor,
-            j.lj_radius,
-            j.lj_wdepth,
-            j.is_donor,
-            j.is_hydroxyl,
-            j.is_polarh,
-            j.is_acceptor,
-            params.global_parameters.lj_hbond_dis,
-            params.global_parameters.lj_hbond_OH_donor_dis,
-            params.global_parameters.lj_hbond_hdis,
+            i.lj_radius.numpy(),
+            i.lj_wdepth.numpy(),
+            i.is_donor.numpy(),
+            i.is_hydroxyl.numpy(),
+            i.is_polarh.numpy(),
+            i.is_acceptor.numpy(),
+            j.lj_radius.numpy(),
+            j.lj_wdepth.numpy(),
+            j.is_donor.numpy(),
+            j.is_hydroxyl.numpy(),
+            j.is_polarh.numpy(),
+            j.is_acceptor.numpy(),
+            g.lj_hbond_dis.numpy(),
+            g.lj_hbond_OH_donor_dis.numpy(),
+            g.lj_hbond_hdis.numpy(),
         )
 
     # Linear region
