@@ -1,15 +1,9 @@
 import attr
 import cattr
 
-from typing import Sequence
-
-from enum import IntEnum
-
 import numpy
 import pandas
 import torch
-
-import toolz
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor

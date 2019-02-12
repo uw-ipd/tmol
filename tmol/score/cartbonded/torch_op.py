@@ -1,11 +1,10 @@
 import attr
 from attr import asdict
-from typing import Optional, Mapping, Callable
+from typing import Mapping, Callable
 
 from .params import CartBondedDatabase, CartBondedParamResolver
 
 import torch
-import numpy
 
 
 @attr.s(auto_attribs=True, frozen=True)

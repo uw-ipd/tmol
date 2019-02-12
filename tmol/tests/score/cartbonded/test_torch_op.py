@@ -1,9 +1,7 @@
-import toolz
 import attr
 
 import numpy
 import torch
-import sparse
 
 from tmol.score.cartbonded.torch_op import (
     CartBondedLengthOp,
@@ -16,8 +14,6 @@ from tmol.score.cartbonded.params import CartBondedParamResolver
 from tmol.score.cartbonded.identification import CartBondedIdentification
 
 import tmol.database
-
-from tmol.utility.args import ignore_unused_kwargs
 
 
 @attr.s(auto_attribs=True)

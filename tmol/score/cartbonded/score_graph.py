@@ -2,7 +2,6 @@ import attr
 from typing import Optional
 
 import torch
-import numpy
 
 from ..database import ParamDB
 from ..device import TorchDevice

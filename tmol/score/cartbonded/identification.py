@@ -1,17 +1,16 @@
 import attr
-import cattr
-import toolz
 
 from tmol.types.functional import convert_args
-from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
+from tmol.database.scoring import CartBondedDatabase
 
 import numpy
-import pandas
 
 from numba import jit
 
-# fd TODO: replace this with fast lkball versions
+
+## fd TODO: replace this with fast lkball versions
+
 
 # traverse bond graph, generate angles
 @jit(nopython=True)
@@ -163,9 +162,6 @@ def find_impropers(angles, bonds):
                 nimproper += 2
 
     return improper[:nimproper]
-
-
-from tmol.database.scoring import CartBondedDatabase
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
