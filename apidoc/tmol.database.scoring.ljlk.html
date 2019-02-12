@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring.ljlk &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
+  <title>tmol.database.scoring.ljlk &mdash; TMol 0.0.0-148-gbf41c7f2 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-146-g170f8dc8
+                0.0.0-148-gbf41c7f2
               </div>
             
           
@@ -199,16 +199,13 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.ljlk.AcceptorHybridization" title="tmol.database.scoring.ljlk.AcceptorHybridization"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AcceptorHybridization</span></code></a></td>
-<td>An enumeration.</td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters" title="tmol.database.scoring.ljlk.LJLKAtomTypeParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKAtomTypeParameters</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters" title="tmol.database.scoring.ljlk.LJLKAtomTypeParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKAtomTypeParameters</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.ljlk.LJLKDatabase" title="tmol.database.scoring.ljlk.LJLKDatabase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKDatabase</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.ljlk.LJLKDatabase" title="tmol.database.scoring.ljlk.LJLKDatabase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKDatabase</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.ljlk.LJLKGlobalParameters" title="tmol.database.scoring.ljlk.LJLKGlobalParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKGlobalParameters</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.ljlk.LJLKGlobalParameters" title="tmol.database.scoring.ljlk.LJLKGlobalParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LJLKGlobalParameters</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -218,35 +215,8 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="tmol.database.scoring.ljlk.AcceptorHybridization">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.ljlk.</code><code class="descname">AcceptorHybridization</code><a class="reference internal" href="../_modules/tmol/database/scoring/ljlk.html#AcceptorHybridization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.ljlk.AcceptorHybridization" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
-<p>An enumeration.</p>
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.AcceptorHybridization.none">
-<code class="descname">none</code><em class="property"> = 'none'</em><a class="headerlink" href="#tmol.database.scoring.ljlk.AcceptorHybridization.none" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.AcceptorHybridization.sp2">
-<code class="descname">sp2</code><em class="property"> = 'sp2'</em><a class="headerlink" href="#tmol.database.scoring.ljlk.AcceptorHybridization.sp2" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.AcceptorHybridization.sp3">
-<code class="descname">sp3</code><em class="property"> = 'sp3'</em><a class="headerlink" href="#tmol.database.scoring.ljlk.AcceptorHybridization.sp3" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.AcceptorHybridization.ring">
-<code class="descname">ring</code><em class="property"> = 'ring'</em><a class="headerlink" href="#tmol.database.scoring.ljlk.AcceptorHybridization.ring" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="tmol.database.scoring.ljlk.LJLKGlobalParameters">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.ljlk.</code><code class="descname">LJLKGlobalParameters</code><span class="sig-paren">(</span><em>max_dis: float, spline_start: float, lj_hbond_OH_donor_dis: float, lj_hbond_dis: float, lj_hbond_hdis: float, lj_switch_dis2sigma: float, lk_min_dis2sigma: float, lkb_water_dist: float, lkb_water_angle_sp2: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1adf268&gt;, lkb_water_angle_sp3: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1adf268&gt;, lkb_water_angle_ring: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1adf268&gt;, lkb_water_tors_sp2: List[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1adf268&gt;], lkb_water_tors_sp3: List[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1adf268&gt;], lkb_water_tors_ring: List[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1adf268&gt;]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/ljlk.html#LJLKGlobalParameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKGlobalParameters" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.ljlk.</code><code class="descname">LJLKGlobalParameters</code><span class="sig-paren">(</span><em>max_dis: float, spline_start: float, lj_hbond_OH_donor_dis: float, lj_hbond_dis: float, lj_hbond_hdis: float, lj_switch_dis2sigma: float, lk_min_dis2sigma: float, lkb_water_dist: float, lkb_water_angle_sp2: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1b74598&gt;, lkb_water_angle_sp3: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1b74598&gt;, lkb_water_angle_ring: &lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1b74598&gt;, lkb_water_tors_sp2: List[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1b74598&gt;], lkb_water_tors_sp3: List[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1b74598&gt;], lkb_water_tors_ring: List[&lt;function NewType.&lt;locals&gt;.new_type at 0x7fffe1b74598&gt;]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/ljlk.html#LJLKGlobalParameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKGlobalParameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.database.scoring.ljlk.LJLKGlobalParameters.max_dis">
@@ -322,16 +292,11 @@
 
 <dl class="class">
 <dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.ljlk.</code><code class="descname">LJLKAtomTypeParameters</code><span class="sig-paren">(</span><em>name: str</em>, <em>elem: str</em>, <em>lj_radius: float</em>, <em>lj_wdepth: float</em>, <em>lk_dgfree: float</em>, <em>lk_lambda: float</em>, <em>lk_volume: float</em>, <em>is_acceptor: bool = False</em>, <em>acceptor_hybridization: tmol.database.scoring.ljlk.AcceptorHybridization = &lt;AcceptorHybridization.none: 'none'&gt;</em>, <em>is_donor: bool = False</em>, <em>is_hydroxyl: bool = False</em>, <em>is_polarh: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/ljlk.html#LJLKAtomTypeParameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.ljlk.</code><code class="descname">LJLKAtomTypeParameters</code><span class="sig-paren">(</span><em>name: str</em>, <em>lj_radius: float</em>, <em>lj_wdepth: float</em>, <em>lk_dgfree: float</em>, <em>lk_lambda: float</em>, <em>lk_volume: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/ljlk.html#LJLKAtomTypeParameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters.name">
 <code class="descname">name</code><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.name" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters.elem">
-<code class="descname">elem</code><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.elem" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -357,31 +322,6 @@
 <dl class="attribute">
 <dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters.lk_volume">
 <code class="descname">lk_volume</code><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.lk_volume" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_acceptor">
-<code class="descname">is_acceptor</code><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_acceptor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters.acceptor_hybridization">
-<code class="descname">acceptor_hybridization</code><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.acceptor_hybridization" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_donor">
-<code class="descname">is_donor</code><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_donor" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_hydroxyl">
-<code class="descname">is_hydroxyl</code><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_hydroxyl" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_polarh">
-<code class="descname">is_polarh</code><a class="headerlink" href="#tmol.database.scoring.ljlk.LJLKAtomTypeParameters.is_polarh" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -454,7 +394,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-146-g170f8dc8',
+              VERSION:'0.0.0-148-gbf41c7f2',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

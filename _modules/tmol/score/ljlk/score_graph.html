@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.score_graph &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
+  <title>tmol.score.ljlk.score_graph &mdash; TMol 0.0.0-148-gbf41c7f2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-146-g170f8dc8
+                0.0.0-148-gbf41c7f2
               </div>
             
           
@@ -179,6 +179,7 @@
 <span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">LJLKDatabase</span>
 
 <span class="kn">from</span> <span class="nn">..database</span> <span class="k">import</span> <span class="n">ParamDB</span>
+<span class="kn">from</span> <span class="nn">..chemical_database</span> <span class="k">import</span> <span class="n">ChemicalDB</span><span class="p">,</span> <span class="n">AtomTypeParamResolver</span>
 <span class="kn">from</span> <span class="nn">..device</span> <span class="k">import</span> <span class="n">TorchDevice</span>
 <span class="kn">from</span> <span class="nn">..bonded_atom</span> <span class="k">import</span> <span class="n">BondedAtomScoreGraph</span>
 <span class="kn">from</span> <span class="nn">..score_components</span> <span class="k">import</span> <span class="n">ScoreComponentClasses</span><span class="p">,</span> <span class="n">IntraScore</span>
@@ -202,7 +203,7 @@
         <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
         <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
 
-        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">lj_op</span><span class="o">.</span><span class="n">intra</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">LJOp</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="p">)</span><span class="o">.</span><span class="n">intra</span><span class="p">(</span>
             <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">target</span><span class="o">.</span><span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
 
@@ -227,7 +228,7 @@
         <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
         <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
 
-        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">lk_op</span><span class="o">.</span><span class="n">intra</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">LKOp</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="p">)</span><span class="o">.</span><span class="n">intra</span><span class="p">(</span>
             <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">target</span><span class="o">.</span><span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
 
@@ -239,7 +240,7 @@
 
 
 <div class="viewcode-block" id="_LJLKCommonScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph._LJLKCommonScoreGraph">[docs]</a><span class="nd">@score_graph</span>
-<span class="k">class</span> <span class="nc">_LJLKCommonScoreGraph</span><span class="p">(</span><span class="n">BondedAtomScoreGraph</span><span class="p">,</span> <span class="n">ParamDB</span><span class="p">,</span> <span class="n">TorchDevice</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">_LJLKCommonScoreGraph</span><span class="p">(</span><span class="n">BondedAtomScoreGraph</span><span class="p">,</span> <span class="n">ChemicalDB</span><span class="p">,</span> <span class="n">ParamDB</span><span class="p">,</span> <span class="n">TorchDevice</span><span class="p">):</span>
 <div class="viewcode-block" id="_LJLKCommonScoreGraph.factory_for"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph._LJLKCommonScoreGraph.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span>
         <span class="n">val</span><span class="p">,</span>
@@ -266,10 +267,10 @@
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">ljlk_param_resolver</span><span class="p">(</span>
-        <span class="n">ljlk_database</span><span class="p">:</span> <span class="n">LJLKDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">atom_type_params</span><span class="p">:</span> <span class="n">AtomTypeParamResolver</span><span class="p">,</span> <span class="n">ljlk_database</span><span class="p">:</span> <span class="n">LJLKDatabase</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LJLKParamResolver</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Parameter tensor groups and atom-type to parameter resolver.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">LJLKParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">ljlk_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">LJLKParamResolver</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">atom_type_params</span><span class="p">,</span> <span class="n">ljlk_database</span><span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
@@ -279,35 +280,21 @@
         <span class="sd">&quot;&quot;&quot;Pair parameter tensors for all atoms within system.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">atom_types</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
         <span class="n">atom_types</span> <span class="o">=</span> <span class="n">atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">type_idx</span><span class="p">(</span><span class="n">atom_types</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
-            <span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">device</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">type_idx</span><span class="p">(</span><span class="n">atom_types</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span></div>
 
 
 <div class="viewcode-block" id="LJScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LJScoreGraph">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LJScoreGraph</span><span class="p">(</span><span class="n">_LJLKCommonScoreGraph</span><span class="p">):</span>
     <span class="n">total_score_components</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">ScoreComponentClasses</span><span class="p">(</span><span class="s2">&quot;lj&quot;</span><span class="p">,</span> <span class="n">intra_container</span><span class="o">=</span><span class="n">LJIntraScore</span><span class="p">,</span> <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="p">]</span>
-
-    <span class="nd">@reactive_property</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">lj_op</span><span class="p">(</span><span class="n">ljlk_param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LJOp</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;LJ evaluation op.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">LJOp</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">ljlk_param_resolver</span><span class="p">)</span></div>
+    <span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="LKScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.ljlk.score_graph.html#tmol.score.ljlk.score_graph.LKScoreGraph">[docs]</a><span class="nd">@reactive_attrs</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">LKScoreGraph</span><span class="p">(</span><span class="n">_LJLKCommonScoreGraph</span><span class="p">):</span>
     <span class="n">total_score_components</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">ScoreComponentClasses</span><span class="p">(</span><span class="s2">&quot;lk&quot;</span><span class="p">,</span> <span class="n">intra_container</span><span class="o">=</span><span class="n">LKIntraScore</span><span class="p">,</span> <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-    <span class="p">]</span>
-
-    <span class="nd">@reactive_property</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">lk_op</span><span class="p">(</span><span class="n">ljlk_param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LKOp</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;LK evaluation op.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">LKOp</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">ljlk_param_resolver</span><span class="p">)</span></div>
+    <span class="p">]</span></div>
 </pre></div>
 
            </div>
@@ -344,7 +331,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-146-g170f8dc8',
+              VERSION:'0.0.0-148-gbf41c7f2',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -14,6 +14,7 @@ tmol.score
        :maxdepth: 1
   
        tmol.score.bonded_atom
+       tmol.score.chemical_database
        tmol.score.coordinates
        tmol.score.database
        tmol.score.device

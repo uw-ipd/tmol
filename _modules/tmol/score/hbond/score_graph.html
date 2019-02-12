@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
+  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-148-gbf41c7f2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-146-g170f8dc8
+                0.0.0-148-gbf41c7f2
               </div>
             
           
@@ -306,10 +306,14 @@
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">hbond_param_resolver</span><span class="p">(</span>
-        <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+        <span class="n">parameter_database</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
+        <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondParamResolver</span><span class="p">:</span>
         <span class="s2">&quot;hbond pair parameter resolver&quot;</span>
-        <span class="k">return</span> <span class="n">HBondParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">hbond_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">HBondParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span>
+            <span class="n">parameter_database</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="n">hbond_database</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
@@ -321,19 +325,19 @@
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">hbond_elements</span><span class="p">(</span>
+        <span class="n">parameter_database</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
         <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
         <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
-        <span class="n">atom_elements</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
         <span class="n">bonds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondElementAnalysis</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;hbond score elements in target graph&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">atom_types</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
         <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">HBondElementAnalysis</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">HBondElementAnalysis</span><span class="o">.</span><span class="n">setup_from_database</span><span class="p">(</span>
+            <span class="n">chemical_database</span><span class="o">=</span><span class="n">parameter_database</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span>
             <span class="n">hbond_database</span><span class="o">=</span><span class="n">hbond_database</span><span class="p">,</span>
             <span class="n">atom_types</span><span class="o">=</span><span class="n">atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">atom_is_hydrogen</span><span class="o">=</span><span class="n">atom_elements</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span>
             <span class="n">bonds</span><span class="o">=</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:],</span>
         <span class="p">)</span>
 
@@ -436,7 +440,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-146-g170f8dc8',
+              VERSION:'0.0.0-148-gbf41c7f2',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.params &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
+  <title>tmol.score.hbond.params &mdash; TMol 0.0.0-148-gbf41c7f2 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-146-g170f8dc8
+                0.0.0-148-gbf41c7f2
               </div>
             
           
@@ -94,6 +94,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="tmol.score.html">tmol.score</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.bonded_atom.html">tmol.score.bonded_atom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.chemical_database.html">tmol.score.chemical_database</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.coordinates.html">tmol.score.coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.database.html">tmol.score.database</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
@@ -267,7 +268,7 @@ and <code class="xref py py-class docutils literal notranslate"><span class="pre
 
 <dl class="class">
 <dt id="tmol.score.hbond.params.HBondPairParams">
-<em class="property">class </em><code class="descclassname">tmol.score.hbond.params.</code><code class="descname">HBondPairParams</code><span class="sig-paren">(</span><em>donor_weight: Tensor(torch.float32)[...], acceptor_weight: Tensor(torch.float32)[...], acceptor_class: Tensor(torch.int32)[...], AHdist: tmol.score.hbond.params.HBondPolyParams, cosBAH: tmol.score.hbond.params.HBondPolyParams, cosAHD: tmol.score.hbond.params.HBondPolyParams</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondPairParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.hbond.params.</code><code class="descname">HBondPairParams</code><span class="sig-paren">(</span><em>donor_weight: Tensor(torch.float32)[...], acceptor_weight: Tensor(torch.float32)[...], acceptor_hybridization: Tensor(torch.int32)[...], AHdist: tmol.score.hbond.params.HBondPolyParams, cosBAH: tmol.score.hbond.params.HBondPolyParams, cosAHD: tmol.score.hbond.params.HBondPolyParams</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondPairParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.score.hbond.params.HBondPairParams.donor_weight">
@@ -280,8 +281,8 @@ and <code class="xref py py-class docutils literal notranslate"><span class="pre
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.hbond.params.HBondPairParams.acceptor_class">
-<code class="descname">acceptor_class</code><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams.acceptor_class" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.hbond.params.HBondPairParams.acceptor_hybridization">
+<code class="descname">acceptor_hybridization</code><a class="headerlink" href="#tmol.score.hbond.params.HBondPairParams.acceptor_hybridization" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -357,7 +358,7 @@ and <code class="xref py py-class docutils literal notranslate"><span class="pre
 
 <dl class="classmethod">
 <dt id="tmol.score.hbond.params.HBondParamResolver.from_database">
-<em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>hbond_database: tmol.database.scoring.hbond.HBondDatabase</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondParamResolver.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondParamResolver.from_database" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>chemical_database: tmol.database.chemical.ChemicalDatabase</em>, <em>hbond_database: tmol.database.scoring.hbond.HBondDatabase</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/params.html#HBondParamResolver.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.params.HBondParamResolver.from_database" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -409,7 +410,7 @@ and <code class="xref py py-class docutils literal notranslate"><span class="pre
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-146-g170f8dc8',
+              VERSION:'0.0.0-148-gbf41c7f2',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

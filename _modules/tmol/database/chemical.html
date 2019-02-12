@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.chemical &mdash; TMol 0.0.0-146-g170f8dc8 documentation</title>
+  <title>tmol.database.chemical &mdash; TMol 0.0.0-148-gbf41c7f2 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-146-g170f8dc8
+                0.0.0-148-gbf41c7f2
               </div>
             
           
@@ -165,7 +165,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for tmol.database.chemical</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">NewType</span>
 <span class="kn">from</span> <span class="nn">tmol.utility.units</span> <span class="k">import</span> <span class="n">BondAngle</span><span class="p">,</span> <span class="n">DihedralAngle</span>
 
 <span class="kn">import</span> <span class="nn">attr</span>
@@ -173,6 +173,30 @@
 
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="n">AcceptorHybridization</span> <span class="o">=</span> <span class="n">NewType</span><span class="p">(</span><span class="s2">&quot;AcceptorHybridization&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+<span class="n">_acceptor_hybridizations</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;sp2&quot;</span><span class="p">,</span> <span class="s2">&quot;sp3&quot;</span><span class="p">,</span> <span class="s2">&quot;ring&quot;</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="_parse_acceptor_hybridization"><a class="viewcode-back" href="../../../apidoc/tmol.database.chemical.html#tmol.database.chemical._parse_acceptor_hybridization">[docs]</a><span class="k">def</span> <span class="nf">_parse_acceptor_hybridization</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">_acceptor_hybridizations</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Invalid AcceptorHybridization value: </span><span class="si">{v}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<span class="n">cattr</span><span class="o">.</span><span class="n">register_structure_hook</span><span class="p">(</span><span class="n">AcceptorHybridization</span><span class="p">,</span> <span class="n">_parse_acceptor_hybridization</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="AtomType"><a class="viewcode-back" href="../../../apidoc/tmol.database.chemical.html#tmol.database.chemical.AtomType">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">AtomType</span><span class="p">:</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">element</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">is_acceptor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">is_donor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">is_hydroxyl</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">is_polarh</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">acceptor_hybridization</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AcceptorHybridization</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="Atom"><a class="viewcode-back" href="../../../apidoc/tmol.database.chemical.html#tmol.database.chemical.Atom">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -227,7 +251,7 @@
 
 <div class="viewcode-block" id="ChemicalDatabase"><a class="viewcode-back" href="../../../apidoc/tmol.database.chemical.html#tmol.database.chemical.ChemicalDatabase">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ChemicalDatabase</span><span class="p">:</span>
-    <span class="n">atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">residues</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Residue</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="ChemicalDatabase.from_file"><a class="viewcode-back" href="../../../apidoc/tmol.database.chemical.html#tmol.database.chemical.ChemicalDatabase.from_file">[docs]</a>    <span class="nd">@classmethod</span>
@@ -273,7 +297,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-146-g170f8dc8',
+              VERSION:'0.0.0-148-gbf41c7f2',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
