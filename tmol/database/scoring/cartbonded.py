@@ -33,7 +33,7 @@ class TorsionGroup:
     atm4: str
     x0: float
     K: float
-    ncyc: int = 1
+    period: int = 1
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
