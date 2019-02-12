@@ -17,6 +17,7 @@ from tmol.score.coordinates import (
 from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.elec import ElecScoreGraph
+from tmol.score.cartbonded import CartBondedScoreGraph
 
 
 @score_graph
@@ -52,6 +53,13 @@ class HBondScore(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice
 
 @score_graph
 class ElecScore(CartesianAtomicCoordinateProvider, ElecScoreGraph, TorchDevice):
+    pass
+
+
+@score_graph
+class CartBondedScore(
+    CartesianAtomicCoordinateProvider, CartBondedScoreGraph, TorchDevice
+):
     pass
 
 
@@ -112,8 +120,26 @@ _non_cuda_components = ()
 
 @pytest.mark.parametrize(
     "graph_class",
-    [TotalScore, DofSpaceTotal, HBondScore, ElecScore, LJScore, LKScore, DofSpaceDummy],
-    ids=["total_cart", "total_torsion", "hbond", "elec", "lj", "lk", "kinematics"],
+    [
+        TotalScore,
+        DofSpaceTotal,
+        HBondScore,
+        ElecScore,
+        CartBondedScore,
+        LJScore,
+        LKScore,
+        DofSpaceDummy,
+    ],
+    ids=[
+        "total_cart",
+        "total_torsion",
+        "hbond",
+        "elec",
+        "cartbonded",
+        "lj",
+        "lk",
+        "kinematics",
+    ],
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 @pytest.mark.benchmark(group="score_components")

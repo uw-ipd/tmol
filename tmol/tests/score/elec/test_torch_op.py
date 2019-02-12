@@ -169,8 +169,6 @@ def test_elec_sweep_gradcheck(default_database, torch_device):
             tcoords[0, j] = 0
             dscores_N[i, j] = (score_p - score_m) / (2 * eps)
 
-        print(dscores_A[i], dscores_N[i])
-
     numpy.testing.assert_allclose(dscores_A, dscores_N, atol=1e-5)
 
 
@@ -179,7 +177,7 @@ def test_elec_intra(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     func = ElecOp.from_param_resolver(s.param_resolver)
 
-    pairs, batch_scores, *batch_derivs = func.intra(s.tcoords[0], s.tpcs[0], s.trbpl[0])
+    pairs, batch_scores = func.intra(s.tcoords[0], s.tpcs[0], s.trbpl[0])
 
     numpy.testing.assert_allclose(batch_scores.detach().sum(), -131.9225, atol=1e-4)
 
