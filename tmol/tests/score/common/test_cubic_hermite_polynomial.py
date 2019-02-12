@@ -7,11 +7,23 @@ import toolz
 
 import math
 from math import nan
+import numpy
 
-approx = toolz.partial(pytest.approx, nan_ok=True)
 
-# Use width=16 restricting test values to "reasonable" precision (e > -8)
-real = hypothesis.strategies.floats(allow_infinity=False, width=16)
+def approx_for(values):
+    values = numpy.array(values)
+    atol = numpy.max(numpy.abs(values)) * 1e-5
+
+    return toolz.partial(pytest.approx, nan_ok=True, rel=1e-5, abs=atol)
+
+
+real = (
+    hypothesis.strategies.decimals(
+        allow_infinity=False, places=3, max_value=1e5, min_value=-1e5
+    )
+    .filter(lambda v: not v.is_snan())
+    .map(float)
+)
 
 
 @pytest.fixture(scope="session")
@@ -28,6 +40,8 @@ def test_unit_interpolate(cubic_hermite_polynomial, p0, dp0, p1, dp1):
     from tmol.score.common.cubic_hermite_polynomial import interpolate_t, interpolate_dt
 
     params = (p0, dp0, p1, dp1)
+    approx = approx_for(params)
+
     if any(map(math.isnan, params)):
         assert interpolate_t(0.0, p0, dp0, p1, dp1) == approx(nan)
         assert interpolate_dt(0.0, p0, dp0, p1, dp1) == approx(nan)
@@ -49,6 +63,8 @@ def test_unit_interpolate_to_zero(cubic_hermite_polynomial, p0, dp0):
     )
 
     params = (p0, dp0)
+    approx = approx_for(params)
+
     if any(map(math.isnan, params)):
         assert interpolate_to_zero_t(0.0, p0, dp0) == approx(nan)
         assert interpolate_to_zero_dt(0.0, p0, dp0) == approx(nan)
@@ -67,6 +83,7 @@ def test_interpolate(cubic_hermite_polynomial, x0, p0, dpdx0, x1, p1, dpdx1):
     from tmol.score.common.cubic_hermite_polynomial import interpolate, interpolate_dx
 
     params = (x0, p0, dpdx0, x1, p1, dpdx1)
+    approx = approx_for(params)
     if x0 == x1:
         assert interpolate(x0, x0, p0, dpdx0, x1, p1, dpdx1) == approx(nan)
         assert interpolate_dx(x0, x0, p0, dpdx0, x1, p1, dpdx1) == approx(nan)
@@ -94,6 +111,8 @@ def test_interpolate_to_zero(cubic_hermite_polynomial, x0, p0, dpdx0, x1, p1, dp
     )
 
     params = (x0, p0, dpdx0, x1)
+    approx = approx_for(params)
+
     if x0 == x1:
         assert interpolate_to_zero(x0, x0, p0, dpdx0, x1) == approx(nan)
         assert interpolate_to_zero_dx(x0, x0, p0, dpdx0, x1) == approx(nan)
