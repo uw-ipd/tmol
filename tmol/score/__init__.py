@@ -8,6 +8,7 @@ from . import (  # noqa: F401
     interatomic_distance,
     ljlk,
     elec,
+    cartbonded,
     hbond,
     coordinates,
     viewer,  # import viewer to register io overloads
@@ -20,6 +21,7 @@ class TotalScoreGraph(
     ljlk.LJScoreGraph,
     ljlk.LKScoreGraph,
     elec.ElecScoreGraph,
+    cartbonded.CartBondedScoreGraph,
     interatomic_distance.BlockedInteratomicDistanceGraph,
     bonded_atom.BondedAtomScoreGraph,
     device.TorchDevice,

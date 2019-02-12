@@ -172,21 +172,17 @@ def test_cartbonded_length_gradcheck(default_database, ubq_system, torch_device)
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedLengthOp.from_param_resolver(s.param_resolver)
 
-    natoms = 32
-    mask = (s.tbondlength_atom_indices[:, 0] < natoms) & (
-        s.tbondlength_atom_indices[:, 1] < natoms
-    )
+    t_atm_indices = torch.arange(24, dtype=torch.long)
 
-    tbondlength_atom_indices = s.tbondlength_atom_indices[mask]
-    tbondlength_indices = s.tbondlength_indices[mask]
-
-    def eval_cbl(coords):
-        v = op.score(tbondlength_atom_indices, tbondlength_indices, coords)
+    def eval_cbl(coords_subset):
+        coords = s.tcoords[0, ...].clone()
+        coords[t_atm_indices] = coords_subset
+        v = op.score(s.tbondlength_atom_indices, s.tbondlength_indices, coords)
         return v
 
-    coords = s.tcoords[0, :natoms]
+    masked_coords = s.tcoords[0, t_atm_indices]
     torch.autograd.gradcheck(
-        eval_cbl, (coords.requires_grad_(True),), eps=1e-3, atol=2e-3
+        eval_cbl, (masked_coords.requires_grad_(True),), eps=1e-3, atol=1e-3
     )
 
 
@@ -203,23 +199,17 @@ def test_cartbonded_angle_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedAngleOp.from_param_resolver(s.param_resolver)
 
-    natoms = 32
-    mask = (
-        (s.tbondangle_atom_indices[:, 0] < natoms)
-        & (s.tbondangle_atom_indices[:, 1] < natoms)
-        & (s.tbondangle_atom_indices[:, 2] < natoms)
-    )
+    t_atm_indices = torch.arange(24, dtype=torch.long)
 
-    tbondangle_atom_indices = s.tbondangle_atom_indices[mask]
-    tbondangle_indices = s.tbondangle_indices[mask]
-
-    def eval_cba(coords):
-        v = op.score(tbondangle_atom_indices, tbondangle_indices, coords)
+    def eval_cba(coords_subset):
+        coords = s.tcoords[0, ...].clone()
+        coords[t_atm_indices] = coords_subset
+        v = op.score(s.tbondangle_atom_indices, s.tbondangle_indices, coords)
         return v
 
-    coords = s.tcoords[0, :natoms]
+    masked_coords = s.tcoords[0, t_atm_indices]
     torch.autograd.gradcheck(
-        eval_cba, (coords.requires_grad_(True),), eps=1e-3, atol=2e-3
+        eval_cba, (masked_coords.requires_grad_(True),), eps=1e-3, atol=1e-3
     )
 
 
@@ -236,24 +226,17 @@ def test_cartbonded_torsion_gradcheck(default_database, ubq_system, torch_device
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedTorsionOp.from_param_resolver(s.param_resolver)
 
-    natoms = 32
-    mask = (
-        (s.ttorsion_atom_indices[:, 0] < natoms)
-        & (s.ttorsion_atom_indices[:, 1] < natoms)
-        & (s.ttorsion_atom_indices[:, 2] < natoms)
-        & (s.ttorsion_atom_indices[:, 3] < natoms)
-    )
+    t_atm_indices = torch.arange(24, dtype=torch.long)
 
-    ttorsion_atom_indices = s.ttorsion_atom_indices[mask]
-    ttorsion_indices = s.ttorsion_indices[mask]
-
-    def eval_cbt(coords):
-        v = op.score(ttorsion_atom_indices, ttorsion_indices, coords)
+    def eval_cbt(coords_subset):
+        coords = s.tcoords[0, ...].clone()
+        coords[t_atm_indices] = coords_subset
+        v = op.score(s.ttorsion_atom_indices, s.ttorsion_indices, coords)
         return v
 
-    coords = s.tcoords[0, :natoms]
+    masked_coords = s.tcoords[0, t_atm_indices]
     torch.autograd.gradcheck(
-        eval_cbt, (coords.requires_grad_(True),), eps=1e-3, atol=5e-3
+        eval_cbt, (masked_coords.requires_grad_(True),), eps=1e-3, atol=5e-3
     )  # needs higher tol...
 
 
@@ -270,24 +253,17 @@ def test_cartbonded_improper_gradcheck(default_database, ubq_system, torch_devic
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedImproperOp.from_param_resolver(s.param_resolver)
 
-    natoms = 32
-    mask = (
-        (s.timproper_atom_indices[:, 0] < natoms)
-        & (s.timproper_atom_indices[:, 1] < natoms)
-        & (s.timproper_atom_indices[:, 2] < natoms)
-        & (s.timproper_atom_indices[:, 3] < natoms)
-    )
+    t_atm_indices = torch.arange(24, dtype=torch.long)
 
-    timproper_atom_indices = s.timproper_atom_indices[mask]
-    timproper_indices = s.timproper_indices[mask]
-
-    def eval_cbi(coords):
-        v = op.score(timproper_atom_indices, timproper_indices, coords)
+    def eval_cbi(coords_subset):
+        coords = s.tcoords[0, ...].clone()
+        coords[t_atm_indices] = coords_subset
+        v = op.score(s.timproper_atom_indices, s.timproper_indices, coords)
         return v
 
-    coords = s.tcoords[0, :natoms]
+    masked_coords = s.tcoords[0, t_atm_indices]
     torch.autograd.gradcheck(
-        eval_cbi, (coords.requires_grad_(True),), eps=1e-3, atol=5e-3
+        eval_cbi, (masked_coords.requires_grad_(True),), eps=1e-3, atol=5e-3
     )  # needs higher tol...
 
 
@@ -304,22 +280,20 @@ def test_cartbonded_hxltorsion_gradcheck(default_database, ubq_system, torch_dev
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedHxlTorsionOp.from_param_resolver(s.param_resolver)
 
-    natoms = 32
-    mask = (
-        (s.thxltorsion_atom_indices[:, 0] < natoms)
-        & (s.thxltorsion_atom_indices[:, 1] < natoms)
-        & (s.thxltorsion_atom_indices[:, 2] < natoms)
-        & (s.thxltorsion_atom_indices[:, 3] < natoms)
+    res_names = ubq_system.atom_metadata["residue_name"].copy()
+    atm_mask = (res_names == "SER") | (res_names == "THR") | (res_names == "TYR")
+    t_atm_indices = torch.from_numpy(atm_mask.nonzero()[0]).to(
+        device=torch_device, dtype=torch.long
     )
+    t_atm_indices = t_atm_indices[:33]  # limit runtime
 
-    thxltorsion_atom_indices = s.thxltorsion_atom_indices[mask]
-    thxltorsion_indices = s.thxltorsion_indices[mask]
-
-    def eval_cbi(coords):
-        v = op.score(thxltorsion_atom_indices, thxltorsion_indices, coords)
+    def eval_cbh(coords_subset):
+        coords = s.tcoords[0, ...].clone()
+        coords[t_atm_indices] = coords_subset
+        v = op.score(s.thxltorsion_atom_indices, s.thxltorsion_indices, coords)
         return v
 
-    coords = s.tcoords[0, :natoms]
+    masked_coords = s.tcoords[0, t_atm_indices]
     torch.autograd.gradcheck(
-        eval_cbi, (coords.requires_grad_(True),), eps=1e-3, atol=5e-3
+        eval_cbh, (masked_coords.requires_grad_(True),), eps=1e-3, atol=5e-3
     )  # needs higher tol...

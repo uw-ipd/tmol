@@ -14,7 +14,13 @@ from tmol.database import ParameterDatabase
 from tmol.database.scoring import CartBondedDatabase
 from .identification import CartBondedIdentification
 from .params import CartBondedParamResolver
-from .torch_op import CartBondedOp
+from .torch_op import (
+    CartBondedLengthOp,
+    CartBondedAngleOp,
+    CartBondedTorsionOp,
+    CartBondedImproperOp,
+    CartBondedHxlTorsionOp,
+)
 
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -141,7 +147,7 @@ class CartBondedHxlTorsionScore(IntraScore):
 
 
 @reactive_attrs(auto_attribs=True)
-class CartBondedGraph(
+class CartBondedScoreGraph(
     BondedAtomScoreGraph, ScoreComponent, ParamDB, TorchDevice, Factory
 ):
     """Compute graph for the CartBonded term.
@@ -149,8 +155,30 @@ class CartBondedGraph(
 
     total_score_components = [
         ScoreComponentClasses(
-            "cartbonded", intra_container=CartBondedIntraScore, inter_container=None
-        )
+            "cartbonded_length",
+            intra_container=CartBondedLengthScore,
+            inter_container=None,
+        ),
+        ScoreComponentClasses(
+            "cartbonded_angle",
+            intra_container=CartBondedAngleScore,
+            inter_container=None,
+        ),
+        ScoreComponentClasses(
+            "cartbonded_torsion",
+            intra_container=CartBondedTorsionScore,
+            inter_container=None,
+        ),
+        ScoreComponentClasses(
+            "cartbonded_improper",
+            intra_container=CartBondedImproperScore,
+            inter_container=None,
+        ),
+        ScoreComponentClasses(
+            "cartbonded_hxltorsion",
+            intra_container=CartBondedHxlTorsionScore,
+            inter_container=None,
+        ),
     ]
 
     @staticmethod
