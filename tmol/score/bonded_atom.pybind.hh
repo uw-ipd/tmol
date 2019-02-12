@@ -17,7 +17,7 @@ namespace detail {
 template <typename Int, tmol::Device D>
 struct type_caster<tmol::score::bonded_atom::IndexedBonds<Int, D>> {
  public:
-  typedef tmol::score::hbond::IndexedBonds<Int, D> T;
+  typedef tmol::score::bonded_atom::IndexedBonds<Int, D> T;
 
   PYBIND11_TYPE_CASTER(T, _<T>());
 

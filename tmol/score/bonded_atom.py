@@ -51,6 +51,21 @@ class IndexedBonds:
             src_index=torch.from_numpy(src_index),
         )
 
+    @classmethod
+    def to_directed(cls, src_bonds):
+        """Convert a potentially-undirected bond-table into dense, directed bonds.
+
+        Eg. Converts [[0, 1], [0, 2]] into [[0, 1], [1, 0], [0, 1], [2, 0]]
+        """
+
+        return numpy.concatenate(
+            (
+                src_bonds,
+                numpy.concatenate((src_bonds[:, -1:], src_bonds[:, -2:-1]), axis=-1),
+            ),
+            axis=0,
+        )
+
 
 @score_graph
 class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):

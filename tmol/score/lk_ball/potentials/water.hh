@@ -3,8 +3,11 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <cmath>
+#include <cppitertools/range.hpp>
 
+#include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/hbond/identification.hh>
 
 namespace tmol {
 namespace score {
@@ -13,9 +16,12 @@ namespace potentials {
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
+
 template <typename Real>
 struct build_don_water {
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef Vec<Real, 3> Real3;
   typedef Eigen::Matrix<Real, 3, 3> RealMat;
 
   struct dV_t {
@@ -70,7 +76,7 @@ struct build_don_water {
 
 template <typename Real>
 struct build_acc_water {
-  typedef Eigen::Matrix<Real, 3, 1> Real3;
+  typedef Vec<Real, 3> Real3;
   typedef Eigen::Matrix<Real, 3, 3> RealMat;
 
   struct dV_t {
@@ -632,6 +638,101 @@ struct build_acc_water {
 
     return dW;
   }
+};
+
+template <tmol::Device D>
+struct AtomTypes {
+  TView<bool, 1, D> is_acceptor;
+  TView<int32_t, 1, D> acceptor_hybridization;
+  TView<bool, 1, D> is_donor;
+  TView<bool, 1, D> is_hydrogen;
+};
+
+template <typename Real, tmol::Device D>
+struct LKBallGlobalParameters {
+  Real lkb_water_dist;
+  Real lkb_water_angle_sp2;
+  Real lkb_water_angle_sp3;
+  Real lkb_water_angle_ring;
+  TView<Real, 1, D> lkb_water_tors_sp2;
+  TView<Real, 1, D> lkb_water_tors_sp3;
+  TView<Real, 1, D> lkb_water_tors_ring;
+};
+
+template <typename Real, typename Int, tmol::Device D, int MAX_WATER>
+struct attached_waters {
+  static def forward(
+      TView<Vec<Real, 3>, 1, D> coords,
+      tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds,
+      AtomTypes<D> atom_types,
+      LKBallGlobalParameters<Real, D> global_params)
+      ->TPack<Vec<Real, 3>, 2, D> {
+    using tmol::score::hbond::AcceptorBases;
+    using tmol::score::hbond::AcceptorHybridization;
+
+    auto waters_t =
+        TPack<Vec<Real, 3>, 2, D>::empty({coords.size(0), MAX_WATER});
+    auto waters = waters_t.view;
+
+    static_assert(D == tmol::Device::CPU, "Invalid target device.");
+
+    for (int i : iter::range(coords.size(0))) {
+      int wi = 0;
+
+      if (atom_types.is_acceptor[i]) {
+        Int hyb = atom_types.acceptor_hybridization[i];
+        auto bases = AcceptorBases<Int>::for_acceptor(
+            i,
+            atom_types.acceptor_hybridization[i],
+            indexed_bonds,
+            atom_types.is_hydrogen);
+        Vec<Real, 3> XA = coords[bases.A];
+        Vec<Real, 3> XB = coords[bases.B];
+        Vec<Real, 3> XB0 = coords[bases.B0];
+
+        Real dist;
+        Real angle;
+        TView<Real, 1, D> tors;
+
+        if (hyb == AcceptorHybridization::sp2) {
+          dist = global_params.lkb_water_dist;
+          angle = global_params.lkb_water_angle_sp2;
+          tors = global_params.lkb_water_tors_sp2;
+        } else if (hyb == AcceptorHybridization::sp3) {
+          dist = global_params.lkb_water_dist;
+          angle = global_params.lkb_water_angle_sp3;
+          tors = global_params.lkb_water_tors_sp3;
+        } else if (hyb == AcceptorHybridization::ring) {
+          dist = global_params.lkb_water_dist;
+          angle = global_params.lkb_water_angle_ring;
+          tors = global_params.lkb_water_tors_ring;
+          XB = 0.5 * (XB + XB0);
+        }
+
+        for (int ti = 0; ti < tors.size(0); ti++) {
+          waters[i][wi] =
+              build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
+          wi++;
+        }
+      }
+
+      if (atom_types.is_donor[i]) {
+        for (int other_atom : indexed_bonds.bound_to(i)) {
+          if (atom_types.is_hydrogen[other_atom]) {
+            waters[i][wi] = build_don_water<Real>::V(
+                coords[i], coords[other_atom], global_params.lkb_water_dist);
+            wi++;
+          };
+        }
+      }
+
+      for (; wi < MAX_WATER; wi++) {
+        waters[i][wi] = Vec<Real, 3>::Constant(NAN);
+      }
+    }
+
+    return waters_t;
+  };
 };
 
 #undef def
