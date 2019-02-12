@@ -10,3 +10,6 @@ _compiled = load(
 )
 
 cartbonded_length = _compiled.cartbonded_length
+cartbonded_angle = _compiled.cartbonded_angle
+cartbonded_torsion = _compiled.cartbonded_torsion
+cartbonded_hxltorsion = _compiled.cartbonded_hxltorsion

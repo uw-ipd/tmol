@@ -22,18 +22,25 @@ from tmol.database.scoring.cartbonded import CartBondedDatabase
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class CartHarmonicParams(TensorGroup, ConvertAttrs):
-    K: Tensor(torch.double)[...]
-    x0: Tensor(torch.double)[...]
+    K: Tensor(torch.float)[...]
+    x0: Tensor(torch.float)[...]
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class CartSimpleSinusoidalParams(TensorGroup, ConvertAttrs):
+    K: Tensor(torch.float)[...]
+    x0: Tensor(torch.float)[...]
+    period: Tensor(torch.int)[...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CartSinusoidalParams(TensorGroup, ValidateAttrs):
-    k1: Tensor(torch.double)[...]
-    k2: Tensor(torch.double)[...]
-    k3: Tensor(torch.double)[...]
-    phi1: Tensor(torch.double)[...]
-    phi2: Tensor(torch.double)[...]
-    phi3: Tensor(torch.double)[...]
+    k1: Tensor(torch.float)[...]
+    k2: Tensor(torch.float)[...]
+    k3: Tensor(torch.float)[...]
+    phi1: Tensor(torch.float)[...]
+    phi2: Tensor(torch.float)[...]
+    phi3: Tensor(torch.float)[...]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -46,8 +53,8 @@ class CartBondedParamResolver(ValidateAttrs):
 
     bondlength_params: CartHarmonicParams
     bondangle_params: CartHarmonicParams
-    torsion_params: CartHarmonicParams
-    improper_params: CartHarmonicParams
+    torsion_params: CartSimpleSinusoidalParams
+    improper_params: CartSimpleSinusoidalParams
     hxltorsion_params: CartSinusoidalParams
 
     device: torch.device
@@ -233,12 +240,12 @@ class CartBondedParamResolver(ValidateAttrs):
         torsion_index = pandas.Index(
             torsion_records[["res", "atm1", "atm2", "atm3", "atm4"]]
         )
-        torsion_params = CartHarmonicParams(
+        torsion_params = CartSimpleSinusoidalParams(
             **{
                 f.name: torch.tensor(
                     torsion_records[f.name].values, dtype=f.type.dtype, device=device
                 )
-                for f in attr.fields(CartHarmonicParams)
+                for f in attr.fields(CartSimpleSinusoidalParams)
             }
         )
 
@@ -249,12 +256,12 @@ class CartBondedParamResolver(ValidateAttrs):
         improper_index = pandas.Index(
             improper_records[["res", "atm1", "atm2", "atm3", "atm4"]]
         )
-        improper_params = CartHarmonicParams(
+        improper_params = CartSimpleSinusoidalParams(
             **{
                 f.name: torch.tensor(
                     improper_records[f.name].values, dtype=f.type.dtype, device=device
                 )
-                for f in attr.fields(CartHarmonicParams)
+                for f in attr.fields(CartSimpleSinusoidalParams)
             }
         )
 

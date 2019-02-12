@@ -34,7 +34,7 @@ class CartBondedLengthParams(TensorGroup):
 
 @attr.s(auto_attribs=True)
 class CartBondedAngleParams(TensorGroup):
-    atom_indices: Tensor(torch.int32)[..., 2]
+    atom_indices: Tensor(torch.int32)[..., 3]
     param_indices: Tensor(torch.int32)[...]
 
 
@@ -49,18 +49,93 @@ class CartBondedTorsionParams(TensorGroup):
 class CartBondedLengthScore(IntraScore):
     @reactive_property
     @validate_args
-    def total_cartbonded(cartbonded):
+    def total_cartbonded_length(cartbonded_length):
         """total hbond score"""
-        score_ind, score_val = cartbonded
+        score_ind, score_val = cartbonded_length
         return score_val.sum()
 
     @reactive_property
     @validate_args
-    def cartbonded(target):
+    def cartbonded_length(target):
         return target.cartbonded_length_op.score(
-            target.cartbonded_lengths.atom_indices[0][..., 0],
-            target.cartbonded_lengths.atom_indices[0][..., 1],
+            target.cartbonded_lengths.atom_indices[0],
             target.cartbonded_lengths.param_indices[0],
+            target.coords,
+        )
+
+
+@reactive_attrs
+class CartBondedAngleScore(IntraScore):
+    @reactive_property
+    @validate_args
+    def total_cartbonded_angle(cartbonded_angle):
+        """total hbond score"""
+        score_ind, score_val = cartbonded_angle
+        return score_val.sum()
+
+    @reactive_property
+    @validate_args
+    def cartbonded_angle(target):
+        return target.cartbonded_angle_op.score(
+            target.cartbonded_angles.atom_indices[0],
+            target.cartbonded_angles.param_indices[0],
+            target.coords,
+        )
+
+
+@reactive_attrs
+class CartBondedTorsionScore(IntraScore):
+    @reactive_property
+    @validate_args
+    def total_cartbonded_torsion(cartbonded_torsion):
+        """total hbond score"""
+        score_ind, score_val = cartbonded_torsion
+        return score_val.sum()
+
+    @reactive_property
+    @validate_args
+    def cartbonded_torsion(target):
+        return target.cartbonded_torsion_op.score(
+            target.cartbonded_torsions.atom_indices[0],
+            target.cartbonded_torsions.param_indices[0],
+            target.coords,
+        )
+
+
+@reactive_attrs
+class CartBondedImproperScore(IntraScore):
+    @reactive_property
+    @validate_args
+    def total_cartbonded_improper(cartbonded_improper):
+        """total hbond score"""
+        score_ind, score_val = cartbonded_improper
+        return score_val.sum()
+
+    @reactive_property
+    @validate_args
+    def cartbonded_improper(target):
+        return target.cartbonded_improper_op.score(
+            target.cartbonded_impropers.atom_indices[0],
+            target.cartbonded_impropers.param_indices[0],
+            target.coords,
+        )
+
+
+@reactive_attrs
+class CartBondedHxlTorsionScore(IntraScore):
+    @reactive_property
+    @validate_args
+    def total_cartbonded_hxltorsion(cartbonded_hxltorsion):
+        """total hbond score"""
+        score_ind, score_val = cartbonded_hxltorsion
+        return score_val.sum()
+
+    @reactive_property
+    @validate_args
+    def cartbonded_hxltorsion(target):
+        return target.cartbonded_hxltorsion_op.score(
+            target.cartbonded_hxltorsions.atom_indices[0],
+            target.cartbonded_hxltorsions.param_indices[0],
             target.coords,
         )
 
@@ -128,7 +203,7 @@ class CartBondedGraph(
 
     @reactive_property
     @validate_args
-    def cartbonded_length_indices(
+    def cartbonded_lengths(
         bonds: NDArray(int)[:, 3],
         res_names: NDArray(object)[...],
         atom_names: NDArray(object)[...],
@@ -158,7 +233,7 @@ class CartBondedGraph(
 
     @reactive_property
     @validate_args
-    def cartbonded_angle_indices(
+    def cartbonded_angles(
         bonds: NDArray(int)[:, 3],
         res_names: NDArray(object)[...],
         atom_names: NDArray(object)[...],
@@ -189,7 +264,7 @@ class CartBondedGraph(
 
     @reactive_property
     @validate_args
-    def cartbonded_torsion_indices(
+    def cartbonded_torsions(
         bonds: NDArray(int)[:, 3],
         res_names: NDArray(object)[...],
         atom_names: NDArray(object)[...],
@@ -197,31 +272,31 @@ class CartBondedGraph(
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> CartBondedTorsionParams:
         # combine resolved atom indices and bondangle indices
-        bondtorsion_atom_indices = cartbonded_param_identifier.torsions
-        bondtorsion_indices = cartbonded_param_resolver.resolve_torsions(
-            res_names[bondtorsion_atom_indices[:, 1]],  # use atm2 for resid
-            atom_names[bondtorsion_atom_indices[:, 0]],
-            atom_names[bondtorsion_atom_indices[:, 1]],
-            atom_names[bondtorsion_atom_indices[:, 2]],
-            atom_names[bondtorsion_atom_indices[:, 3]],
+        torsion_atom_indices = cartbonded_param_identifier.torsions
+        torsion_indices = cartbonded_param_resolver.resolve_torsions(
+            res_names[torsion_atom_indices[:, 1]],  # use atm2 for resid
+            atom_names[torsion_atom_indices[:, 0]],
+            atom_names[torsion_atom_indices[:, 1]],
+            atom_names[torsion_atom_indices[:, 2]],
+            atom_names[torsion_atom_indices[:, 3]],
         )
 
         # remove undefined indices
-        bondtorsion_defined = bondtorsion_indices != -1
-        tbondtorsion_atom_indices = torch.from_numpy(
-            bondtorsion_atom_indices[bondtorsion_defined]
+        torsion_defined = torsion_indices != -1
+        ttorsion_atom_indices = torch.from_numpy(
+            torsion_atom_indices[torsion_defined]
         ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
-        tbondtorsion_indices = torch.from_numpy(
-            bondtorsion_indices[bondtorsion_defined]
-        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
+        ttorsion_indices = torch.from_numpy(torsion_indices[torsion_defined]).to(
+            device=cartbonded_param_resolver.device, dtype=torch.int32
+        )
 
         return CartBondedTorsionParams(
-            atom_indices=tbondtorsion_atom_indices, param_indices=tbondtorsion_indices
+            atom_indices=ttorsion_atom_indices, param_indices=ttorsion_indices
         )
 
     @reactive_property
     @validate_args
-    def cartbonded_improper_indices(
+    def cartbonded_impropers(
         bonds: NDArray(int)[:, 3],
         res_names: NDArray(object)[...],
         atom_names: NDArray(object)[...],
@@ -229,31 +304,31 @@ class CartBondedGraph(
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> CartBondedTorsionParams:
         # combine resolved atom indices and bondangle indices
-        bondimproper_atom_indices = cartbonded_param_identifier.impropers
-        bondimproper_indices = cartbonded_param_resolver.resolve_impropers(
-            res_names[bondimproper_atom_indices[:, 2]],  # use atm3 for resid
-            atom_names[bondimproper_atom_indices[:, 0]],
-            atom_names[bondimproper_atom_indices[:, 1]],
-            atom_names[bondimproper_atom_indices[:, 2]],
-            atom_names[bondimproper_atom_indices[:, 3]],
+        improper_atom_indices = cartbonded_param_identifier.impropers
+        improper_indices = cartbonded_param_resolver.resolve_impropers(
+            res_names[improper_atom_indices[:, 2]],  # use atm3 for resid
+            atom_names[improper_atom_indices[:, 0]],
+            atom_names[improper_atom_indices[:, 1]],
+            atom_names[improper_atom_indices[:, 2]],
+            atom_names[improper_atom_indices[:, 3]],
         )
 
         # remove undefined indices
-        bondimproper_defined = bondimproper_indices != -1
-        tbondimproper_atom_indices = torch.from_numpy(
-            bondimproper_atom_indices[bondimproper_defined]
+        improper_defined = improper_indices != -1
+        timproper_atom_indices = torch.from_numpy(
+            improper_atom_indices[improper_defined]
         ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
-        tbondimproper_indices = torch.from_numpy(
-            bondimproper_indices[bondimproper_defined]
-        ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
+        timproper_indices = torch.from_numpy(improper_indices[improper_defined]).to(
+            device=cartbonded_param_resolver.device, dtype=torch.int32
+        )
 
         return CartBondedTorsionParams(
-            atom_indices=tbondimproper_atom_indices, param_indices=tbondimproper_indices
+            atom_indices=timproper_atom_indices, param_indices=timproper_indices
         )
 
     @reactive_property
     @validate_args
-    def cartbonded_hxltorsion_indices(
+    def cartbonded_hxltorsions(
         bonds: NDArray(int)[:, 3],
         res_names: NDArray(object)[...],
         atom_names: NDArray(object)[...],
@@ -261,25 +336,24 @@ class CartBondedGraph(
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> CartBondedTorsionParams:
         # combine resolved atom indices and bondangle indices
-        bondhxltorsion_atom_indices = cartbonded_param_identifier.hxltorsions
-        bondhxltorsion_indices = cartbonded_param_resolver.resolve_hxltorsions(
-            res_names[bondhxltorsion_atom_indices[:, 2]],  # use atm3 for resid
-            atom_names[bondhxltorsion_atom_indices[:, 0]],
-            atom_names[bondhxltorsion_atom_indices[:, 1]],
-            atom_names[bondhxltorsion_atom_indices[:, 2]],
-            atom_names[bondhxltorsion_atom_indices[:, 3]],
+        hxltorsion_atom_indices = cartbonded_param_identifier.hxltorsions
+        hxltorsion_indices = cartbonded_param_resolver.resolve_hxltorsions(
+            res_names[hxltorsion_atom_indices[:, 2]],  # use atm3 for resid
+            atom_names[hxltorsion_atom_indices[:, 0]],
+            atom_names[hxltorsion_atom_indices[:, 1]],
+            atom_names[hxltorsion_atom_indices[:, 2]],
+            atom_names[hxltorsion_atom_indices[:, 3]],
         )
 
         # remove undefined indices
-        bondhxltorsion_defined = bondhxltorsion_indices != -1
-        tbondhxltorsion_atom_indices = torch.from_numpy(
-            bondhxltorsion_atom_indices[bondhxltorsion_defined]
+        hxltorsion_defined = hxltorsion_indices != -1
+        thxltorsion_atom_indices = torch.from_numpy(
+            hxltorsion_atom_indices[hxltorsion_defined]
         ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
-        tbondhxltorsion_indices = torch.from_numpy(
-            bondhxltorsion_indices[bondhxltorsion_defined]
+        thxltorsion_indices = torch.from_numpy(
+            hxltorsion_indices[hxltorsion_defined]
         ).to(device=cartbonded_param_resolver.device, dtype=torch.int32)
 
         return CartBondedTorsionParams(
-            atom_indices=tbondhxltorsion_atom_indices,
-            param_indices=tbondhxltorsion_indices,
+            atom_indices=thxltorsion_atom_indices, param_indices=thxltorsion_indices
         )
