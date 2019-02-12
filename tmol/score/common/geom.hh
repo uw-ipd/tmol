@@ -9,15 +9,13 @@ namespace tmol {
 namespace score {
 namespace common {
 
-template <typename Real, int N>
-using Vec = Eigen::Matrix<Real, N, 1>;
+template <typename Real, int N> using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 #define Real3 Vec<Real, 3>
 
-template <typename Real>
-struct distance {
+template <typename Real> struct distance {
   struct V_dV_T {
     Real V;
     Vec<Real, 3> dV_dA;
@@ -33,16 +31,19 @@ struct distance {
     Real V = delta.norm();
 
     if (V != 0) {
-      return {V, delta / V, -delta / V};
+      return { V, delta / V, -delta / V };
     } else {
       // Correct for nan, gradient is discontinuous across dist = 0
-      return {V, Real3({0.0, 0.0, 0.0}), Real3({0.0, 0.0, 0.0})};
+      return {V, Real3(
+      { 0.0, 0.0, 0.0 }), Real3({
+        0.0, 0.0, 0.0})
+    }
+    ;
     }
   }
 };
 
-template <typename Real>
-struct interior_angle {
+template <typename Real> struct interior_angle {
   struct V_dV_T {
     Real V;
     Vec<Real, 3> dV_dA;
@@ -68,14 +69,13 @@ struct interior_angle {
     auto A_norm = A.norm();
     auto B_norm = B.norm();
 
-    return {2 * std::atan2(CR.dot(z_unit), A_norm * B_norm + A.dot(B)),
-            (A / A_norm).cross(z_unit) / A_norm,
-            -(B / B_norm).cross(z_unit) / B_norm};
+    return { 2 * std::atan2(CR.dot(z_unit), A_norm * B_norm + A.dot(B)),
+             (A / A_norm).cross(z_unit) / A_norm,
+             -(B / B_norm).cross(z_unit) / B_norm };
   }
 };
 
-template <typename Real>
-struct pt_interior_angle {
+template <typename Real> struct pt_interior_angle {
   struct V_dV_T {
     Real V;
     Vec<Real, 3> dV_dA;
@@ -96,12 +96,11 @@ struct pt_interior_angle {
     Real3 BC = C - B;
 
     auto angle = interior_angle<Real>::V_dV(BA, BC);
-    return {angle.V, angle.dV_dA, -(angle.dV_dA + angle.dV_dB), angle.dV_dB};
+    return { angle.V, angle.dV_dA, -(angle.dV_dA + angle.dV_dB), angle.dV_dB };
   }
 };
 
-template <typename Real>
-struct cos_interior_angle {
+template <typename Real> struct cos_interior_angle {
   struct V_dV_T {
     Real V;
     Vec<Real, 3> dV_dA;
@@ -121,14 +120,12 @@ struct cos_interior_angle {
 
     auto cosAB = (A.dot(B) / AB_norm);
 
-    return {cosAB,
-            -cosAB * A / (A_norm * A_norm) + B / AB_norm,
-            -cosAB * B / (B_norm * B_norm) + A / AB_norm};
+    return { cosAB, -cosAB * A / (A_norm * A_norm) + B / AB_norm,
+             -cosAB * B / (B_norm * B_norm) + A / AB_norm };
   }
 };
 
-template <typename Real>
-struct pt_cos_interior_angle {
+template <typename Real> struct pt_cos_interior_angle {
   struct V_dV_T {
     Real V;
     Vec<Real, 3> dV_dA;
@@ -153,12 +150,11 @@ struct pt_cos_interior_angle {
 
     auto angle = cos_interior_angle<Real>::V_dV(BA, BC);
 
-    return {angle.V, angle.dV_dA, -(angle.dV_dA + angle.dV_dB), angle.dV_dB};
+    return { angle.V, angle.dV_dA, -(angle.dV_dA + angle.dV_dB), angle.dV_dB };
   }
 };
 
-template <typename Real>
-struct dihedral_angle {
+template <typename Real> struct dihedral_angle {
   struct V_dV_T {
     Real V;
     Real3 dV_dI;
@@ -182,7 +178,9 @@ struct dihedral_angle {
 
     Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
 
-    return sign * std::acos(A.dot(B) / (A.norm() * B.norm()));
+    return sign * std::acos(std::max(
+                      (Real) - 1.0,
+                      std::min(A.dot(B) / (A.norm() * B.norm()), (Real) 1.0)));
   }
 
   static def V_dV(Real3 I, Real3 J, Real3 K, Real3 L)->V_dV_T {
@@ -197,21 +195,22 @@ struct dihedral_angle {
     auto B = H.cross(G);
 
     Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
-    auto V = sign * std::acos(A.dot(B) / (A.norm() * B.norm()));
+    auto V = sign * std::acos(std::max(
+                        (Real) - 1.0, std::min(A.dot(B) / (A.norm() * B.norm()),
+                                               (Real) 1.0)));
 
-    return {V,
-            -(G.norm() / A.dot(A)) * A,
-            G.norm() / A.dot(A) * A + F.dot(G) / (A.dot(A) * G.norm()) * A
-                - (H.dot(G) / (B.dot(B) * G.norm())) * B,
-            -G.norm() / B.dot(B) * B - F.dot(G) / (A.dot(A) * G.norm()) * A
-                + (H.dot(G) / (B.dot(B) * G.norm())) * B,
-            G.norm() / B.dot(B) * B};
+    return { V, -(G.norm() / A.dot(A)) * A,
+             G.norm() / A.dot(A) * A + F.dot(G) / (A.dot(A) * G.norm()) * A -
+                 (H.dot(G) / (B.dot(B) * G.norm())) * B,
+             -G.norm() / B.dot(B) * B - F.dot(G) / (A.dot(A) * G.norm()) * A +
+                 (H.dot(G) / (B.dot(B) * G.norm())) * B,
+             G.norm() / B.dot(B) * B };
   }
 };
 
 #undef Real3
 #undef def
 
-}  // namespace common
-}  // namespace score
-}  // namespace tmol
+} // namespace common
+} // namespace score
+} // namespace tmol
