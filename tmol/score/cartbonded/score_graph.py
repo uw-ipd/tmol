@@ -56,17 +56,17 @@ class CartBondedLengthScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_length(cartbonded_length):
-        """total hbond score"""
-        score_ind, score_val = cartbonded_length
+        """total cartbonded length score"""
+        score_val = cartbonded_length
         return score_val.sum()
 
     @reactive_property
     @validate_args
     def cartbonded_length(target):
         return target.cartbonded_length_op.score(
-            target.cartbonded_lengths.atom_indices[0],
-            target.cartbonded_lengths.param_indices[0],
-            target.coords,
+            target.cartbonded_lengths.atom_indices,
+            target.cartbonded_lengths.param_indices,
+            target.coords[0, ...],
         )
 
 
@@ -75,17 +75,17 @@ class CartBondedAngleScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_angle(cartbonded_angle):
-        """total hbond score"""
-        score_ind, score_val = cartbonded_angle
+        """total cartbonded angle score"""
+        score_val = cartbonded_angle
         return score_val.sum()
 
     @reactive_property
     @validate_args
     def cartbonded_angle(target):
         return target.cartbonded_angle_op.score(
-            target.cartbonded_angles.atom_indices[0],
-            target.cartbonded_angles.param_indices[0],
-            target.coords,
+            target.cartbonded_angles.atom_indices,
+            target.cartbonded_angles.param_indices,
+            target.coords[0, ...],
         )
 
 
@@ -94,17 +94,17 @@ class CartBondedTorsionScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_torsion(cartbonded_torsion):
-        """total hbond score"""
-        score_ind, score_val = cartbonded_torsion
+        """total cartbonded torsion score"""
+        score_val = cartbonded_torsion
         return score_val.sum()
 
     @reactive_property
     @validate_args
     def cartbonded_torsion(target):
         return target.cartbonded_torsion_op.score(
-            target.cartbonded_torsions.atom_indices[0],
-            target.cartbonded_torsions.param_indices[0],
-            target.coords,
+            target.cartbonded_torsions.atom_indices,
+            target.cartbonded_torsions.param_indices,
+            target.coords[0, ...],
         )
 
 
@@ -113,17 +113,17 @@ class CartBondedImproperScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_improper(cartbonded_improper):
-        """total hbond score"""
-        score_ind, score_val = cartbonded_improper
+        """total cartbonded improper score"""
+        score_val = cartbonded_improper
         return score_val.sum()
 
     @reactive_property
     @validate_args
     def cartbonded_improper(target):
         return target.cartbonded_improper_op.score(
-            target.cartbonded_impropers.atom_indices[0],
-            target.cartbonded_impropers.param_indices[0],
-            target.coords,
+            target.cartbonded_impropers.atom_indices,
+            target.cartbonded_impropers.param_indices,
+            target.coords[0, ...],
         )
 
 
@@ -132,18 +132,21 @@ class CartBondedHxlTorsionScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_hxltorsion(cartbonded_hxltorsion):
-        """total hbond score"""
-        score_ind, score_val = cartbonded_hxltorsion
+        """total cartbonded hxltorsion score"""
+        score_val = cartbonded_hxltorsion
         return score_val.sum()
 
     @reactive_property
     @validate_args
     def cartbonded_hxltorsion(target):
-        return target.cartbonded_hxltorsion_op.score(
-            target.cartbonded_hxltorsions.atom_indices[0],
-            target.cartbonded_hxltorsions.param_indices[0],
-            target.coords,
-        )
+        if target.cartbonded_hxltorsions.atom_indices.shape[0] == 0:
+            return torch.tensor([], device=target.device)
+        else:
+            return target.cartbonded_hxltorsion_op.score(
+                target.cartbonded_hxltorsions.atom_indices,
+                target.cartbonded_hxltorsions.param_indices,
+                target.coords[0, ...],
+            )
 
 
 @reactive_attrs(auto_attribs=True)
@@ -186,7 +189,7 @@ class CartBondedScoreGraph(
         val,
         parameter_database: ParameterDatabase,
         device: torch.device,
-        hbond_database: Optional[CartBondedDatabase] = None,
+        cartbonded_database: Optional[CartBondedDatabase] = None,
         **_,
     ):
         """Overridable clone-constructor.
@@ -222,17 +225,41 @@ class CartBondedScoreGraph(
     @reactive_property
     @validate_args
     def cartbonded_length_op(
-        cartbonded_database: CartBondedDatabase,
         cartbonded_param_resolver: CartBondedParamResolver,
     ) -> CartBondedLengthOp:
-        return CartBondedLengthOp.from_database(
-            cartbonded_database, cartbonded_param_resolver
-        )
+        return CartBondedLengthOp.from_param_resolver(cartbonded_param_resolver)
+
+    @reactive_property
+    @validate_args
+    def cartbonded_angle_op(
+        cartbonded_param_resolver: CartBondedParamResolver,
+    ) -> CartBondedAngleOp:
+        return CartBondedAngleOp.from_param_resolver(cartbonded_param_resolver)
+
+    @reactive_property
+    @validate_args
+    def cartbonded_torsion_op(
+        cartbonded_param_resolver: CartBondedParamResolver,
+    ) -> CartBondedTorsionOp:
+        return CartBondedTorsionOp.from_param_resolver(cartbonded_param_resolver)
+
+    @reactive_property
+    @validate_args
+    def cartbonded_improper_op(
+        cartbonded_param_resolver: CartBondedParamResolver,
+    ) -> CartBondedImproperOp:
+        return CartBondedImproperOp.from_param_resolver(cartbonded_param_resolver)
+
+    @reactive_property
+    @validate_args
+    def cartbonded_hxltorsion_op(
+        cartbonded_param_resolver: CartBondedParamResolver,
+    ) -> CartBondedHxlTorsionOp:
+        return CartBondedHxlTorsionOp.from_param_resolver(cartbonded_param_resolver)
 
     @reactive_property
     @validate_args
     def cartbonded_lengths(
-        bonds: NDArray(int)[:, 3],
         res_names: NDArray(object)[...],
         atom_names: NDArray(object)[...],
         cartbonded_param_resolver: CartBondedParamResolver,
@@ -241,11 +268,10 @@ class CartBondedScoreGraph(
         # combine resolved atom indices and bondlength indices
         bondlength_atom_indices = cartbonded_param_identifier.lengths
         bondlength_indices = cartbonded_param_resolver.resolve_lengths(
-            res_names[bondlength_atom_indices[:, 0]],  # use atm1 for resid
-            atom_names[bondlength_atom_indices[:, 0]],
-            atom_names[bondlength_atom_indices[:, 1]],
+            res_names[0, bondlength_atom_indices[:, 0]],  # use atm1 for resid
+            atom_names[0, bondlength_atom_indices[:, 0]],
+            atom_names[0, bondlength_atom_indices[:, 1]],
         )
-
         # remove undefined indices
         bondlength_defined = bondlength_indices != -1
         tbondlength_atom_indices = torch.from_numpy(
@@ -271,10 +297,10 @@ class CartBondedScoreGraph(
         # combine resolved atom indices and bondangle indices
         bondangle_atom_indices = cartbonded_param_identifier.angles
         bondangle_indices = cartbonded_param_resolver.resolve_angles(
-            res_names[bondangle_atom_indices[:, 1]],  # use atm2 for resid
-            atom_names[bondangle_atom_indices[:, 0]],
-            atom_names[bondangle_atom_indices[:, 1]],
-            atom_names[bondangle_atom_indices[:, 2]],
+            res_names[0, bondangle_atom_indices[:, 1]],  # use atm2 for resid
+            atom_names[0, bondangle_atom_indices[:, 0]],
+            atom_names[0, bondangle_atom_indices[:, 1]],
+            atom_names[0, bondangle_atom_indices[:, 2]],
         )
 
         # remove undefined indices
@@ -302,11 +328,11 @@ class CartBondedScoreGraph(
         # combine resolved atom indices and bondangle indices
         torsion_atom_indices = cartbonded_param_identifier.torsions
         torsion_indices = cartbonded_param_resolver.resolve_torsions(
-            res_names[torsion_atom_indices[:, 1]],  # use atm2 for resid
-            atom_names[torsion_atom_indices[:, 0]],
-            atom_names[torsion_atom_indices[:, 1]],
-            atom_names[torsion_atom_indices[:, 2]],
-            atom_names[torsion_atom_indices[:, 3]],
+            res_names[0, torsion_atom_indices[:, 1]],  # use atm2 for resid
+            atom_names[0, torsion_atom_indices[:, 0]],
+            atom_names[0, torsion_atom_indices[:, 1]],
+            atom_names[0, torsion_atom_indices[:, 2]],
+            atom_names[0, torsion_atom_indices[:, 3]],
         )
 
         # remove undefined indices
@@ -334,11 +360,11 @@ class CartBondedScoreGraph(
         # combine resolved atom indices and bondangle indices
         improper_atom_indices = cartbonded_param_identifier.impropers
         improper_indices = cartbonded_param_resolver.resolve_impropers(
-            res_names[improper_atom_indices[:, 2]],  # use atm3 for resid
-            atom_names[improper_atom_indices[:, 0]],
-            atom_names[improper_atom_indices[:, 1]],
-            atom_names[improper_atom_indices[:, 2]],
-            atom_names[improper_atom_indices[:, 3]],
+            res_names[0, improper_atom_indices[:, 2]],  # use atm3 for resid
+            atom_names[0, improper_atom_indices[:, 0]],
+            atom_names[0, improper_atom_indices[:, 1]],
+            atom_names[0, improper_atom_indices[:, 2]],
+            atom_names[0, improper_atom_indices[:, 3]],
         )
 
         # remove undefined indices
@@ -363,14 +389,14 @@ class CartBondedScoreGraph(
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> CartBondedTorsionParams:
-        # combine resolved atom indices and bondangle indices
-        hxltorsion_atom_indices = cartbonded_param_identifier.hxltorsions
+        # same identification as regular torsions, but resolved against a different DB
+        hxltorsion_atom_indices = cartbonded_param_identifier.torsions
         hxltorsion_indices = cartbonded_param_resolver.resolve_hxltorsions(
-            res_names[hxltorsion_atom_indices[:, 2]],  # use atm3 for resid
-            atom_names[hxltorsion_atom_indices[:, 0]],
-            atom_names[hxltorsion_atom_indices[:, 1]],
-            atom_names[hxltorsion_atom_indices[:, 2]],
-            atom_names[hxltorsion_atom_indices[:, 3]],
+            res_names[0, hxltorsion_atom_indices[:, 2]],  # use atm3 for resid
+            atom_names[0, hxltorsion_atom_indices[:, 0]],
+            atom_names[0, hxltorsion_atom_indices[:, 1]],
+            atom_names[0, hxltorsion_atom_indices[:, 2]],
+            atom_names[0, hxltorsion_atom_indices[:, 3]],
         )
 
         # remove undefined indices

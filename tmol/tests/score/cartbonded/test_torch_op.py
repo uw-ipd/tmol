@@ -48,7 +48,7 @@ class ScoreSetup:
             database.scoring.cartbonded, torch_device
         )
         param_identifier = CartBondedIdentification.setup(
-            database.scoring.cartbonded, system.bonds[:, :]
+            database.scoring.cartbonded, system.bonds
         )
 
         atom_names = system.atom_metadata["atom_name"].copy()

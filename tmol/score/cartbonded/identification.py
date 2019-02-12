@@ -11,6 +11,8 @@ import pandas
 
 from numba import jit
 
+# fd TODO: replace this with fast lkball versions
+
 # traverse bond graph, generate angles
 @jit(nopython=True)
 def find_angles(bonds):

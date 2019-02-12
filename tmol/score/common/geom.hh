@@ -178,9 +178,9 @@ template <typename Real> struct dihedral_angle {
 
     Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
 
-    return sign * std::acos(std::max(
+    return sign * std::acos(std::fmax(
                       (Real) - 1.0,
-                      std::min(A.dot(B) / (A.norm() * B.norm()), (Real) 1.0)));
+                      std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real) 1.0)));
   }
 
   static def V_dV(Real3 I, Real3 J, Real3 K, Real3 L)->V_dV_T {
@@ -195,9 +195,10 @@ template <typename Real> struct dihedral_angle {
     auto B = H.cross(G);
 
     Real sign = G.dot(A.cross(B)) >= 0 ? -1.0 : 1.0;
-    auto V = sign * std::acos(std::max(
-                        (Real) - 1.0, std::min(A.dot(B) / (A.norm() * B.norm()),
-                                               (Real) 1.0)));
+    auto V =
+        sign * std::acos(std::fmax(
+                   (Real) - 1.0,
+                   std::fmin(A.dot(B) / (A.norm() * B.norm()), (Real) 1.0)));
 
     return { V, -(G.norm() / A.dot(A)) * A,
              G.norm() / A.dot(A) * A + F.dot(G) / (A.dot(A) * G.norm()) * A -
