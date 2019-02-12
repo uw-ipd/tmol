@@ -21,5 +21,7 @@ class ScoringDatabase:
             ljlk=LJLKDatabase.from_file(os.path.join(path, "ljlk.yaml")),
             hbond=HBondDatabase.from_file(os.path.join(path, "hbond.yaml")),
             elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),
-            rama=RamaDatabase.from_files(os.path.join(path, "rama/")),
+            rama=RamaDatabase.from_files(
+                os.path.join(path, "rama.yaml"), os.path.join(path, "rama.zip")
+            ),
         )

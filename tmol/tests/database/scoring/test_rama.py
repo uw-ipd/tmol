@@ -1,6 +1,6 @@
 import pytest
 
-from tmol.database.scoring.rama import RamaDatabase, parse_property_pattern
+from tmol.database.scoring.rama import RamaDatabase
 from tmol.database import ParameterDatabase
 
 import re
@@ -49,37 +49,3 @@ def test_rama_repr():
     assert parts[0] == "RamaDatabase"
     rama_path_parts = parts[2].partition("tmol/database/")
     assert rama_path_parts[2] == "default/scoring/rama/)"
-
-
-def test_parse_property_pattern1():
-    property = "aa.alpha.l.proline"
-    regex_pattern = parse_property_pattern(property)
-    assert regex_pattern == r"^aa\.alpha\.l\.proline(\.[\.a-zA-Z0-9_\-\[\]]+)?$"
-
-
-def test_parse_property_pattern2():
-    property = "aa.alpha.l.histadine.ne2_protonated"
-    regex_pattern = parse_property_pattern(property)
-    assert (
-        regex_pattern
-        == r"^aa\.alpha\.l\.histadine\.ne2_protonated(\.[\.a-zA-Z0-9_\-\[\]]+)?$"
-    )
-
-    assert re.match(regex_pattern, "aa.alpha.l.histadine.ne2_protonated")
-    assert re.match(regex_pattern, "aa.alpha.l.histadine.ne2_protonated.n_term")
-    assert re.match(
-        regex_pattern, "aa.alpha.l.histadine.ne2_protonated.n_term.acetylated"
-    )
-    assert not re.match(regex_pattern, "aa.alpha.l.histadine")
-
-
-def test_parse_property_pattern3():
-    """Make sure that '-', '[', and ']' are properly escaped"""
-    property = (
-        "carbohydrate.fructose-[O3]-dehydrated"
-    )  # this is not a real molecule name
-    regex_pattern = parse_property_pattern(property)
-    assert (
-        regex_pattern
-        == r"^carbohydrate\.fructose\-\[O3\]\-dehydrated(\.[\.a-zA-Z0-9_\-\[\]]+)?$"
-    )
