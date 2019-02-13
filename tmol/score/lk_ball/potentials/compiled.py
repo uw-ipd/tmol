@@ -51,7 +51,7 @@ class LKBallFun(torch.autograd.Function):
         i_idx = torch.nonzero(i_heavy)[:, 0]
         j_idx = torch.nonzero(j_heavy)[:, 0]
 
-        ind, v = _compiled.lk_ball(
+        inputs = (
             coords_i[i_idx],
             coords_j[j_idx],
             waters_i[i_idx],
@@ -64,7 +64,73 @@ class LKBallFun(torch.autograd.Function):
             ctx.op.param_resolver.global_params,
         )
 
-        return torch.stack((i_idx[ind[:, 0]], j_idx[ind[:, 1]]), dim=1), v
+        ind, v = _compiled.lk_ball_V(*inputs)
+
+        ctx.inputs = inputs
+        ctx.i_idx = i_idx
+        ctx.j_idx = j_idx
+
+        ctx.shape_I = atom_types_i.shape
+        ctx.shape_J = atom_types_j.shape
+
+        return torch.stack((i_idx[ind[:, 0]], j_idx[ind[:, 1]])), v
+
+    def backward(ctx, _, dT_dV):
+        i_idx = ctx.i_idx
+        j_idx = ctx.j_idx
+
+        ind, dV_dCI, dV_dCJ, dV_dWI, dV_dWJ = _compiled.lk_ball_dV(*ctx.inputs)
+
+        ind_I = i_idx[ind[:, 0]]
+        ind_J = j_idx[ind[:, 1]]
+
+        dT_dI = (
+            torch.sparse_coo_tensor(
+                # Insert leading dimension: [1, n]
+                ind_I[None, :],
+                # [n, 4] -> [n, 4, 1] * [n, 4, 3]
+                dT_dV[..., None] * dV_dCI,
+                ctx.shape_J + (4, 3),
+            )
+            .to_dense()  # [i, 4, 3]
+            .sum(dim=1)  # [i, 3]
+        )
+        dT_dJ = (
+            torch.sparse_coo_tensor(
+                # Jnsert leading dimension: [1, n]
+                ind_J[None, :],
+                # [n, 4] -> [n, 4, 1] * [n, 4, 3]
+                dT_dV[..., None] * dV_dCJ,
+                ctx.shape_J + (4, 3),
+            )
+            .to_dense()  # [i, 4, 3]
+            .sum(dim=1)  # [i,    3]
+        )
+        dT_dWI = (
+            torch.sparse_coo_tensor(
+                # Insert leading dimension: [1, n]
+                ind_I[None, :],
+                # [n, 4] -> [n, 4, 1, 1] * [n, 4, 4, 3]
+                dT_dV[..., None, None] * dV_dWI,
+                ctx.shape_I + (4, 4, 3),
+            )
+            .to_dense()  # [i, 4, 4, 3]
+            .sum(dim=1)  # [i,    4, 3]
+        )
+
+        dT_dWJ = (
+            torch.sparse_coo_tensor(
+                # Insert leading dimension: [1, n]
+                ind_J[None, :],
+                # [n, 4] -> [n, 4, 1, 1] * [n, 4, 4, 3]
+                dT_dV[..., None, None] * dV_dWJ,
+                ctx.shape_J + (4, 4, 3),
+            )
+            .to_dense()  # [i, 4, 4, 3]
+            .sum(dim=1)  # [i,    4, 3]
+        )
+
+        return (dT_dI, dT_dJ, dT_dWI, dT_dWJ, None, None, None)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

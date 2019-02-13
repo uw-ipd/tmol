@@ -68,7 +68,8 @@ struct lk_fraction {
   }
 
   static def dV(WatersMat WI, Real3 J, Real lj_radius_j)->dV_t {
-    Real d2_low = std::max(0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
+    Real d2_low =
+        std::max((Real)0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
 
     Real wted_d2_delta = 0.0;
     Real3 d_wted_d2_delta_d_J = Real3::Zero();
@@ -87,8 +88,10 @@ struct lk_fraction {
       }
     }
 
-    d_wted_d2_delta_d_J /= wted_d2_delta;
-    d_wted_d2_delta_d_WI /= wted_d2_delta;
+    if (wted_d2_delta != 0) {
+      d_wted_d2_delta_d_J /= wted_d2_delta;
+      d_wted_d2_delta_d_WI /= wted_d2_delta;
+    }
 
     wted_d2_delta = -std::log(wted_d2_delta);
 
@@ -99,6 +102,7 @@ struct lk_fraction {
                        / square(square(ramp_width_A2));
     }
 
+    // TODO nan @ 0
     return dV_t{d_wted_d2_delta_d_WI * dfrac_dwted_d2,
                 d_wted_d2_delta_d_J * dfrac_dwted_d2};
   }
@@ -329,14 +333,14 @@ struct lk_ball_score {
     using tmol::score::ljlk::potentials::lj_sigma;
     using tmol::score::ljlk::potentials::lk_isotropic_pair_V;
 
-    Real sigma = lj_sigma<Real>(i, j, global);
-
-    Real dist = distance<Real>::V(I, J);
-
     // No j-against-i score if I has no attached waters.
     if (std::isnan(WI(0, 0))) {
       return {0, 0, 0, 0};
     }
+
+    Real sigma = lj_sigma<Real>(i, j, global);
+
+    Real dist = distance<Real>::V(I, J);
 
     Real lk_iso_IJ = lk_isotropic_pair_V<Real>(
         dist,
@@ -380,6 +384,11 @@ struct lk_ball_score {
     using tmol::score::common::get;
     using tmol::score::ljlk::potentials::lj_sigma;
     using tmol::score::ljlk::potentials::lk_isotropic_pair_V_dV;
+
+    // No j-against-i score if I has no attached waters.
+    if (std::isnan(WI(0, 0))) {
+      return lk_ball_dVt<Real, MAX_WATER>::Zero();
+    }
 
     Real sigma = lj_sigma<Real>(i, j, global);
 

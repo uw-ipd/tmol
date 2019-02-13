@@ -38,8 +38,22 @@ void bind_dispatch(pybind11::module& m) {
       "global_params"_a);
 
   m.def(
-      "lk_ball",
-      &LKBallDispatch<common::NaiveDispatch, tmol::Device::CPU, Real, Int>::f,
+      "lk_ball_V",
+      &LKBallDispatch<common::NaiveDispatch, tmol::Device::CPU, Real, Int>::V,
+      "coords_i"_a,
+      "coords_j"_a,
+      "waters_i"_a,
+      "waters_j"_a,
+      "atom_type_i"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      "type_params"_a,
+      "global_lkb_params"_a,
+      "global_lj_params"_a);
+
+  m.def(
+      "lk_ball_dV",
+      &LKBallDispatch<common::NaiveDispatch, tmol::Device::CPU, Real, Int>::dV,
       "coords_i"_a,
       "coords_j"_a,
       "waters_i"_a,
