@@ -75,8 +75,6 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         atom_types: [layer, atom_index] String atom type descriptors.
             Type descriptions defined in :py:mod:`tmol.database.chemical`.
 
-        atom_elements: [layer, atom_index] String atom element.
-
         atom_names: [layer, atom_index] String residue-specific atom name.
 
         res_names: [layer, atom_index] String residue name descriptors.
@@ -102,7 +100,6 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         """`clone`-factory, extract atom types and bonds from other."""
         return dict(
             atom_types=other.atom_types,
-            atom_elements=other.atom_elements,
             atom_names=other.atom_names,
             res_names=other.res_names,
             res_indices=other.res_indices,
@@ -110,7 +107,6 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         )
 
     atom_types: NDArray(object)[:, :]
-    atom_elements: NDArray(object)[:, :]
     atom_names: NDArray(object)[:, :]
     res_names: NDArray(object)[:, :]
     res_indices: NDArray(int)[:, :]
@@ -123,6 +119,17 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         return torch.ByteTensor(
             (atom_types != None).astype(numpy.ubyte)
         )  # noqa: E711 - None != is a vectorized check for None.
+
+    @reactive_property
+    def indexed_bonds(bonds, system_size):
+        """Sorted, constant time access to bond graph."""
+        assert numpy.all(bonds[:, 0] == 0)
+        assert bonds.ndim == 2
+        assert bonds.shape[1] == 3
+
+        return IndexedBonds.from_bonds(
+            IndexedBonds.to_directed(bonds[..., 1:]), minlength=system_size
+        )
 
     @reactive_property
     @validate_args
