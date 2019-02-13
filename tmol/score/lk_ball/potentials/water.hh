@@ -9,6 +9,8 @@
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/hbond/identification.hh>
 
+#include "datatypes.hh"
+
 namespace tmol {
 namespace score {
 namespace lk_ball {
@@ -638,25 +640,6 @@ struct build_acc_water {
 
     return dW;
   }
-};
-
-template <tmol::Device D>
-struct AtomTypes {
-  TView<bool, 1, D> is_acceptor;
-  TView<int32_t, 1, D> acceptor_hybridization;
-  TView<bool, 1, D> is_donor;
-  TView<bool, 1, D> is_hydrogen;
-};
-
-template <typename Real, tmol::Device D>
-struct LKBallGlobalParameters {
-  Real lkb_water_dist;
-  Real lkb_water_angle_sp2;
-  Real lkb_water_angle_sp3;
-  Real lkb_water_angle_ring;
-  TView<Real, 1, D> lkb_water_tors_sp2;
-  TView<Real, 1, D> lkb_water_tors_sp3;
-  TView<Real, 1, D> lkb_water_tors_ring;
 };
 
 template <typename Real, typename Int, tmol::Device D, int MAX_WATER>

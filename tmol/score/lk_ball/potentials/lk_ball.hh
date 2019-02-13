@@ -44,7 +44,8 @@ struct lk_fraction {
   static def square(Real v)->Real { return v * v; }
 
   static def V(WatersMat WI, Real3 J, Real lj_radius_j)->Real {
-    Real d2_low = std::max(0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
+    Real d2_low =
+        std::max((Real)0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
 
     Real wted_d2_delta = 0;
     for (int w = 0; w < MAX_WATER; ++w) {
@@ -331,6 +332,11 @@ struct lk_ball_score {
     Real sigma = lj_sigma<Real>(i, j, global);
 
     Real dist = distance<Real>::V(I, J);
+
+    // No j-against-i score if I has no attached waters.
+    if (std::isnan(WI(0, 0))) {
+      return {0, 0, 0, 0};
+    }
 
     Real lk_iso_IJ = lk_isotropic_pair_V<Real>(
         dist,

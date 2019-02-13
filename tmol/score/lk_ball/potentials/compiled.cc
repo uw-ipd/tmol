@@ -2,9 +2,13 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
-#include "../../bonded_atom.pybind.hh"
-#include "water.pybind.hh"
+#include <tmol/score/common/dispatch.cpu.impl.hh>
 
+#include <tmol/score/ljlk/potentials/params.pybind.hh>
+#include "../../bonded_atom.pybind.hh"
+#include "datatypes.pybind.hh"
+
+#include "dispatch.impl.hh"
 #include "water.hh"
 
 namespace tmol {
@@ -32,6 +36,20 @@ void bind_dispatch(pybind11::module& m) {
       "indexed_bonds"_a,
       "atom_types"_a,
       "global_params"_a);
+
+  m.def(
+      "lk_ball",
+      &LKBallDispatch<common::NaiveDispatch, tmol::Device::CPU, Real, Int>::f,
+      "coords_i"_a,
+      "coords_j"_a,
+      "waters_i"_a,
+      "waters_j"_a,
+      "atom_type_i"_a,
+      "atom_type_j"_a,
+      "bonded_path_lengths"_a,
+      "type_params"_a,
+      "global_lkb_params"_a,
+      "global_lj_params"_a);
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
