@@ -1,3 +1,5 @@
+import torch
+
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
 from ..score_components import ScoreComponentClasses, IntraScore
@@ -59,6 +61,18 @@ class LKBallIntraScore(IntraScore):
 
 @score_graph
 class LKBallScoreGraph(_LJLKCommonScoreGraph):
+    @staticmethod
+    def factory_for(val, device: torch.device, **_):
+        """Overridable clone-constructor.
+
+        Initialize from ``val.ljlk_database`` if possible, otherwise from
+        ``parameter_database.scoring.ljlk``.
+        """
+        if device.type != "cpu":
+            raise NotImplementedError("lk_ball not supported on non-cpu devices.")
+
+        return dict()
+
     total_score_components = [
         ScoreComponentClasses(
             "lk_ball_iso", intra_container=LKBallIntraScore, inter_container=None
