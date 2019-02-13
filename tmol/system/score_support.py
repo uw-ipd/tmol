@@ -34,7 +34,6 @@ def bonded_atoms_for_system(
     bonds[:, 1:] = system.bonds
 
     atom_types = system.atom_metadata["atom_type"].copy()[None, :]
-    atom_elements = system.atom_metadata["atom_element"].copy()[None, :]
     atom_names = system.atom_metadata["atom_name"].copy()[None, :]
     res_indices = system.atom_metadata["residue_index"].copy()[None, :]
     res_names = system.atom_metadata["residue_name"].copy()[None, :]
@@ -45,7 +44,6 @@ def bonded_atoms_for_system(
     return dict(
         bonds=bonds,
         atom_types=atom_types,
-        atom_elements=atom_elements,
         atom_names=atom_names,
         res_indices=res_indices,
         res_names=res_names,

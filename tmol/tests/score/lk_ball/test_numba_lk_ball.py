@@ -12,7 +12,7 @@ from tmol.utility.args import ignore_unused_kwargs
 
 from tmol.score.ljlk.params import LJLKParamResolver
 
-from tmol.score.ljlk.numba.lk_ball import (
+from tmol.score.lk_ball.numba.lk_ball import (
     build_acc_waters,
     build_don_water,
     d_don_water_datom,

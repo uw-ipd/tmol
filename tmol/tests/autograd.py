@@ -8,6 +8,7 @@ from torch.autograd.gradcheck import (
     _differentiable_outputs,
     get_numerical_jacobian,
     get_analytical_jacobian,
+    make_jacobian,
     iter_tensors,
 )
 
@@ -185,7 +186,7 @@ class VectorizedOp:
         f(*inputs_with_grad, *inputs_without_grad) -> (value, *d_value_d_inputs_with_grad)
 
     Functions are wrapped with a numpy.vectorize gufunc dispatcher, which performs vector dispatch
-    over tensors of input values. An autograd 
+    over tensors of input values. An autograd
 
     The [(input), ...] -> [(val), (d_val_d_input), ...] function is converted into:
 
@@ -263,3 +264,49 @@ class VectorizedOp:
             d_d_i = tuple(d_d_v * d_v_d_i for d_v_d_i in ctx.saved_tensors)
 
             return d_d_i + (None,) * ctx.op.n_input_non_grad
+
+
+def get_analytical_jacobian(input, output):
+    diff_input_list = list(iter_tensors(input, True))
+    jacobian = make_jacobian(input, output.numel())
+    jacobian_reentrant = make_jacobian(input, output.numel())
+    grad_output = torch.zeros_like(output)
+    flat_grad_output = grad_output.view(-1)
+    reentrant = True
+    correct_grad_sizes = True
+
+    for i in range(flat_grad_output.numel()):
+        flat_grad_output.zero_()
+        flat_grad_output[i] = 1
+        for jacobian_c in (jacobian, jacobian_reentrant):
+            grads_input = torch.autograd.grad(
+                output,
+                diff_input_list,
+                grad_output,
+                retain_graph=True,
+                allow_unused=True,
+            )
+            for jacobian_x, d_x, x in zip(jacobian_c, grads_input, diff_input_list):
+                if d_x is not None and d_x.size() != x.size():
+                    correct_grad_sizes = False
+                elif jacobian_x.numel() != 0:
+                    if d_x is None:
+                        jacobian_x[:, i].zero_()
+                    else:
+                        d_x_dense = d_x.to_dense() if d_x.is_sparse else d_x
+                        assert jacobian_x[:, i].numel() == d_x_dense.numel()
+                        jacobian_x[:, i] = d_x_dense.contiguous().view(-1)
+
+    for jacobian_x, jacobian_reentrant_x in zip(jacobian, jacobian_reentrant):
+        reentrant_delta = (jacobian_x - jacobian_reentrant_x).abs().max()
+
+        if (
+            jacobian_x.numel() != 0
+            and (jacobian_x - jacobian_reentrant_x).abs().max() != 0
+        ):
+            warnings.warn(
+                f"Analytical jacobian is not reentrant, max delta: {reentrant_delta}"
+            )
+            reentrant = False
+
+    return jacobian, reentrant, correct_grad_sizes
