@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.score_components &mdash; TMol 0.0.0-150-g23c51d22 documentation</title>
+  <title>tmol.score.score_components &mdash; TMol 0.0.0-151-g0f69b913 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-150-g23c51d22
+                0.0.0-151-g0f69b913
               </div>
             
           
@@ -429,9 +429,9 @@
             <span class="p">)</span>
 
         <span class="c1"># Collect the intra_container classes into a base list</span>
-        <span class="n">generated_accessor_bases</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">component</span><span class="o">.</span><span class="n">intra_container</span> <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">score_component_accessors</span>
-        <span class="p">]</span>
+        <span class="n">generated_accessor_bases</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">set</span><span class="p">(</span><span class="n">component</span><span class="o">.</span><span class="n">intra_container</span> <span class="k">for</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">score_component_accessors</span><span class="p">)</span>
+        <span class="p">)</span>
 
         <span class="c1"># Collect the intra_container.total accessor functions, renaming</span>
         <span class="c1"># into appropriate &quot;total_{name}&quot; accessors, and then add the &quot;total&quot;</span>
@@ -589,7 +589,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-150-g23c51d22',
+              VERSION:'0.0.0-151-g0f69b913',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

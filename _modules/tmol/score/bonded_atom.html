@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-150-g23c51d22 documentation</title>
+  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-151-g0f69b913 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-150-g23c51d22
+                0.0.0-151-g0f69b913
               </div>
             
           
@@ -165,7 +165,9 @@
            <div itemprop="articleBody">
             
   <h1>Source code for tmol.score.bonded_atom</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">singledispatch</span>
+<span></span><span class="kn">import</span> <span class="nn">attr</span>
+
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">singledispatch</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">numpy</span>
@@ -185,6 +187,53 @@
 <span class="kn">from</span> <span class="nn">.device</span> <span class="k">import</span> <span class="n">TorchDevice</span>
 
 
+<div class="viewcode-block" id="IndexedBonds"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.IndexedBonds">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">IndexedBonds</span><span class="p">:</span>
+    <span class="n">bonds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">bond_spans</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">src_index</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:]</span>
+
+<div class="viewcode-block" id="IndexedBonds.from_bonds"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.IndexedBonds.from_bonds">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_bonds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_bonds</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="c1"># Convert undirected (i, j) bond index tuples into sorted, indexed list.</span>
+
+        <span class="n">bonds</span><span class="p">,</span> <span class="n">src_index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">src_bonds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">minlength</span><span class="p">:</span>
+            <span class="n">minlength</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span>
+
+        <span class="c1"># Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]</span>
+        <span class="c1"># blocks in the sorted bond table indexed by i</span>
+        <span class="n">num_bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">minlength</span><span class="o">=</span><span class="n">minlength</span><span class="p">))</span>
+
+        <span class="n">bond_spans</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">num_bonds</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">bond_spans</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">bond_spans</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_bonds</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">bond_spans</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_bonds</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">bonds</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">bonds</span><span class="p">),</span>
+            <span class="n">bond_spans</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">),</span>
+            <span class="n">src_index</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">src_index</span><span class="p">),</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="IndexedBonds.to_directed"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.IndexedBonds.to_directed">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">to_directed</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_bonds</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert a potentially-undirected bond-table into dense, directed bonds.</span>
+
+<span class="sd">        Eg. Converts [[0, 1], [0, 2]] into [[0, 1], [1, 0], [0, 1], [2, 0]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">src_bonds</span><span class="p">,</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">src_bonds</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:],</span> <span class="n">src_bonds</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="BondedAtomScoreGraph"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph">[docs]</a><span class="nd">@score_graph</span>
 <span class="k">class</span> <span class="nc">BondedAtomScoreGraph</span><span class="p">(</span><span class="n">StackedSystem</span><span class="p">,</span> <span class="n">ParamDB</span><span class="p">,</span> <span class="n">TorchDevice</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Score graph component describing a system&#39;s atom types and bonds.</span>
@@ -192,8 +241,6 @@
 <span class="sd">    Attributes:</span>
 <span class="sd">        atom_types: [layer, atom_index] String atom type descriptors.</span>
 <span class="sd">            Type descriptions defined in :py:mod:`tmol.database.chemical`.</span>
-
-<span class="sd">        atom_elements: [layer, atom_index] String atom element.</span>
 
 <span class="sd">        atom_names: [layer, atom_index] String residue-specific atom name.</span>
 
@@ -220,7 +267,6 @@
         <span class="sd">&quot;&quot;&quot;`clone`-factory, extract atom types and bonds from other.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">atom_types</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="n">atom_types</span><span class="p">,</span>
-            <span class="n">atom_elements</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="n">atom_elements</span><span class="p">,</span>
             <span class="n">atom_names</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="n">atom_names</span><span class="p">,</span>
             <span class="n">res_names</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="n">res_names</span><span class="p">,</span>
             <span class="n">res_indices</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="n">res_indices</span><span class="p">,</span>
@@ -228,7 +274,6 @@
         <span class="p">)</span></div>
 
     <span class="n">atom_types</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:]</span>
-    <span class="n">atom_elements</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:]</span>
     <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:]</span>
     <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:]</span>
     <span class="n">res_indices</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:]</span>
@@ -241,6 +286,17 @@
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ByteTensor</span><span class="p">(</span>
             <span class="p">(</span><span class="n">atom_types</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ubyte</span><span class="p">)</span>
         <span class="p">)</span>  <span class="c1"># noqa: E711 - None != is a vectorized check for None.</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">indexed_bonds</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">system_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Sorted, constant time access to bond graph.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">bonds</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+
+        <span class="k">return</span> <span class="n">IndexedBonds</span><span class="o">.</span><span class="n">from_bonds</span><span class="p">(</span>
+            <span class="n">IndexedBonds</span><span class="o">.</span><span class="n">to_directed</span><span class="p">(</span><span class="n">bonds</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]),</span> <span class="n">minlength</span><span class="o">=</span><span class="n">system_size</span>
+        <span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
@@ -331,7 +387,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-150-g23c51d22',
+              VERSION:'0.0.0-151-g0f69b913',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

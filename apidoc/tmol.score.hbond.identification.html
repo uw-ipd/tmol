@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-150-g23c51d22 documentation</title>
+  <title>tmol.score.hbond.identification &mdash; TMol 0.0.0-151-g0f69b913 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-150-g23c51d22
+                0.0.0-151-g0f69b913
               </div>
             
           
@@ -120,6 +120,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.lk_ball.html">tmol.score.lk_ball</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.html#summary">Summary</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.html#reference">Reference</a></li>
 </ul>
@@ -222,81 +223,6 @@
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
-<dl class="attribute">
-<dt id="tmol.score.hbond.identification.sp2_acceptor_base">
-<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">sp2_acceptor_base</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#sp2_acceptor_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.sp2_acceptor_base" title="Permalink to this definition">¶</a></dt>
-<dd><p>Identify acceptor bases for sp2 acceptors.</p>
-<dl class="docutils">
-<dt>A = sp2 acceptor =&gt;</dt>
-<dd>B = bonded to A, not H
-B0 = bonded to B, not A</dd>
-</dl>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(A, B, B0) Index Tuple</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.identification.sp3_acceptor_base">
-<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">sp3_acceptor_base</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#sp3_acceptor_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.sp3_acceptor_base" title="Permalink to this definition">¶</a></dt>
-<dd><p>Identify acceptor bases for sp3 acceptors.</p>
-<dl class="docutils">
-<dt>A = sp3 acceptor =&gt;</dt>
-<dd>B0 = bonded to A, is H
-B = bonded to A, not B0</dd>
-</dl>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(A, B, B0) Index Tuple</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.identification.ring_acceptor_base">
-<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">ring_acceptor_base</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#ring_acceptor_base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.ring_acceptor_base" title="Permalink to this definition">¶</a></dt>
-<dd><p>Identify acceptor bases for ring acceptors.</p>
-<dl class="docutils">
-<dt>A = ring acceptor =&gt;</dt>
-<dd>B = bonded to A, not H
-B0 = bonded to A, not H, not B</dd>
-</dl>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(A, B, B0) Index Tuple</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.hbond.identification.id_acceptor_bases">
-<code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">id_acceptor_bases</code><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#id_acceptor_bases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.id_acceptor_bases" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given A_idx and bond graph metadata, calculate B, B0 idx.</p>
-<dl class="docutils">
-<dt>Params:</dt>
-<dd>A_idx: int[N] Populated Aatom index.
-B_idx: int[N] Empty B atom index.
-B0_idx: int[N] Empty B0 atom index.
-A_hyb: int[N] Acceptor hybridization class.
-bonds: int[nbond, 2] (i,j) sorted, symmetric bond tuples.
-atom_bond_span: int[natom, 2] [start,end) bond index i span.
-atom_is_hydrogen: bool[natom] Flag is atom is hydrogen.</dd>
-</dl>
-<p>Populates A_idx, B_idx, B0_idx with identified atom indices, B, B0 = -1 if
-no valid acceptor bond pattern found.</p>
-</dd></dl>
-
 <dl class="class">
 <dt id="tmol.score.hbond.identification.HBondElementAnalysis">
 <em class="property">class </em><code class="descclassname">tmol.score.hbond.identification.</code><code class="descname">HBondElementAnalysis</code><span class="sig-paren">(</span><em>donors: NDArray(dtype([('d', '&lt;i8'), ('h', '&lt;i8'), ('donor_type', 'O')]))[:], acceptors: NDArray(dtype([('a', '&lt;i8'), ('b', '&lt;i8'), ('b0', '&lt;i8'), ('acceptor_type', 'O')]))[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/hbond/identification.html#HBondElementAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.hbond.identification.HBondElementAnalysis" title="Permalink to this definition">¶</a></dt>
@@ -370,7 +296,7 @@ no valid acceptor bond pattern found.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-150-g23c51d22',
+              VERSION:'0.0.0-151-g0f69b913',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

@@ -7,7 +7,7 @@ tmol.score.hbond.identification
 .. currentmodule:: tmol.score.hbond.identification
 
 .. automodule:: tmol.score.hbond.identification
-    :members: HBondElementAnalysis, acceptor_dtype, donor_dtype, id_acceptor_bases, ring_acceptor_base, sp2_acceptor_base, sp3_acceptor_base
+    :members: HBondElementAnalysis, acceptor_dtype, donor_dtype
     :undoc-members:
     :show-inheritance:
     :member-order: bysource

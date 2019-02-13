@@ -30,6 +30,7 @@ tmol.score
        tmol.score.elec
        tmol.score.hbond
        tmol.score.ljlk
+       tmol.score.lk_ball
 
 
 
