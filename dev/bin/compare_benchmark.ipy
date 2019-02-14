@@ -67,7 +67,7 @@ try:
         !git stash pop
 
     all_results = " ".join(map(shlex.quote, revmap.values()))
-    !pytest-benchmark compare {all_results}
+    !pytest-benchmark compare {all_results} --columns=ops,mean,iqr --sort=name
 
 finally:
     if not options.benchmark_outdir:
