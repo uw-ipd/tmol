@@ -54,6 +54,8 @@ struct PtrTraits<T, PtrTag::Restricted> {
 // pointers.
 template <typename T, size_t N, Device D, PtrTag P = PtrTag::Restricted>
 class TensorAccessorBase {
+  static_assert(N >= 0, "Invalid TensorAccessor dim < 0.");
+
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
@@ -63,7 +65,7 @@ class TensorAccessorBase {
 
   AT_HOST_DEVICE int64_t stride(int64_t i) const { return strides_[i]; }
   AT_HOST_DEVICE int64_t size(int64_t i) const { return sizes_[i]; }
-  AT_HOST_DEVICE const int64_t dim() const { return N; }
+  AT_HOST_DEVICE int64_t dim() const { return N; }
   AT_HOST_DEVICE T* data() { return data_; }
   AT_HOST_DEVICE const T* data() const { return data_; }
 
@@ -103,16 +105,20 @@ class TensorAccessor : public TensorAccessorBase<T, N, D, P> {
 };
 
 template <typename T, Device D, PtrTag P>
-class TensorAccessor<T, 1, D, P> : public TensorAccessorBase<T, 1, D, P> {
+class TensorAccessor<T, 0, D, P> : public TensorAccessorBase<T, 0, D, P> {
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
   AT_HOST_DEVICE TensorAccessor(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
-      : TensorAccessorBase<T, 1, D, P>(data_, sizes_, strides_) {}
-  AT_HOST_DEVICE T& operator[](int64_t i) const {
-    return this->data_[this->strides_[0] * i];
-  }
+      : TensorAccessorBase<T, 0, D, P>(data_, sizes_, strides_) {}
+
+  AT_HOST TensorAccessor(PtrType data_)
+      : TensorAccessorBase<T, 0, D, P>(data_, 0, 0){};
+
+  AT_HOST TensorAccessor() : TensorAccessorBase<T, 0, D, P>(){};
+
+  AT_HOST_DEVICE T& operator*() const { return *this->data_; }
 };
 
 // TViewBase and TView are used on for CUDA
@@ -154,6 +160,8 @@ class TViewBase {
 
 template <typename T, size_t N, Device D, PtrTag P = PtrTag::Restricted>
 class TView : public TViewBase<T, N, D, P> {
+  static_assert(N >= 0, "Invalid TView dim < 0.");
+
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
@@ -179,21 +187,15 @@ class TView : public TViewBase<T, N, D, P> {
 };
 
 template <typename T, Device D, PtrTag P>
-class TView<T, 1, D, P> : public TViewBase<T, 1, D, P> {
+class TView<T, 0, D, P> : public TViewBase<T, 0, D, P> {
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
-  AT_HOST TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
-      : TViewBase<T, 1, D, P>(data_, sizes_, strides_){};
+  AT_HOST TView(PtrType data_) : TViewBase<T, 0, D, P>(data_, {}, {}){};
 
-  AT_HOST TView() : TViewBase<T, 1, D, P>(){};
+  AT_HOST TView() : TViewBase<T, 0, D, P>(){};
 
-  AT_HOST_DEVICE T& operator[](int64_t i) {
-    return this->data_[this->strides_[0] * i];
-  }
-  AT_HOST_DEVICE T& operator[](int64_t i) const {
-    return this->data_[this->strides_[0] * i];
-  }
+  AT_HOST_DEVICE T& operator*() const { return this->data; }
 };
 
 }  // namespace tmol
