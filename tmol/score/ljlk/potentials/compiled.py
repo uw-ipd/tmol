@@ -1,5 +1,6 @@
 from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
 
+
 _compiled = load(
     modulename(__name__),
     cuda_if_available(
@@ -9,8 +10,20 @@ _compiled = load(
     ),
 )
 
-lk_isotropic = _compiled.lk_isotropic
-lk_isotropic_triu = _compiled.lk_isotropic_triu
 
-lj = _compiled.lj
-lj_triu = _compiled.lj_triu
+def lk_isotropic(*args, **kwargs):
+    return _compiled.lk_isotropic[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+
+
+def lk_isotropic_triu(*args, **kwargs):
+    return _compiled.lk_isotropic_triu[(args[0].device.type, args[0].dtype)](
+        *args, **kwargs
+    )
+
+
+def lj(*args, **kwargs):
+    return _compiled.lj[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+
+
+def lj_triu(*args, **kwargs):
+    return _compiled.lj_triu[(args[0].device.type, args[0].dtype)](*args, **kwargs)
