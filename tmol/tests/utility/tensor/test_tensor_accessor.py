@@ -1,5 +1,6 @@
 import pytest
 import torch
+import math
 
 import tmol.utility.cpp_extension as cpp_extension
 from tmol.utility.cpp_extension import relpaths, modulename
@@ -64,3 +65,46 @@ def test_tensor_accessor_device_conversion(accessor_funcs):
                 f(tvec)
         else:
             torch.testing.assert_allclose(f(tvec), expected)
+
+
+def test_tensor_pack_constructors(tensor_accessor):
+
+    eshape = (2, 5, 3)
+    res = tensor_accessor.tensor_pack_construct()
+
+    torch.testing.assert_allclose(res[1], torch.ones(eshape))
+    torch.testing.assert_allclose(res[2], torch.zeros(eshape))
+    torch.testing.assert_allclose(res[3], torch.full(eshape, math.nan))
+
+    t = torch.empty((1, 4))
+    eshape = (1, 4, 3)
+
+    # ATen *_like constructors
+    res = tensor_accessor.tensor_pack_construct_like_aten(t)
+
+    torch.testing.assert_allclose(res[1], torch.ones(eshape))
+    torch.testing.assert_allclose(res[2], torch.zeros(eshape))
+    torch.testing.assert_allclose(res[3], torch.full(eshape, math.nan))
+
+    with pytest.raises(RuntimeError):
+        tensor_accessor.tensor_pack_construct_like_aten(torch.empty(10))
+
+    # TView *_like constructors
+    res = tensor_accessor.tensor_pack_construct_like_tview(t)
+
+    torch.testing.assert_allclose(res[1], torch.ones(eshape))
+    torch.testing.assert_allclose(res[2], torch.zeros(eshape))
+    torch.testing.assert_allclose(res[3], torch.full(eshape, math.nan))
+
+    with pytest.raises(TypeError):
+        tensor_accessor.tensor_pack_construct_like_tview(torch.empty(10))
+
+    # TPack *_like constructors
+    res = tensor_accessor.tensor_pack_construct_like_tpack(t)
+
+    torch.testing.assert_allclose(res[1], torch.ones(eshape))
+    torch.testing.assert_allclose(res[2], torch.zeros(eshape))
+    torch.testing.assert_allclose(res[3], torch.full(eshape, math.nan))
+
+    with pytest.raises(TypeError):
+        tensor_accessor.tensor_pack_construct_like_tpack(torch.empty(10))

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ATen/Device.h>
 #include <stdint.h>
 #include <algorithm>
 #include <cstddef>
@@ -64,6 +63,7 @@ class TensorAccessorBase {
 
   AT_HOST_DEVICE int64_t stride(int64_t i) const { return strides_[i]; }
   AT_HOST_DEVICE int64_t size(int64_t i) const { return sizes_[i]; }
+  AT_HOST_DEVICE const int64_t dim() const { return N; }
   AT_HOST_DEVICE T* data() { return data_; }
   AT_HOST_DEVICE const T* data() const { return data_; }
 
@@ -139,8 +139,10 @@ class TViewBase {
     std::copy(sizes_, sizes_ + N, std::begin(this->sizes_));
     std::copy(strides_, strides_ + N, std::begin(this->strides_));
   }
+  AT_HOST_DEVICE const int64_t dim() const { return N; }
   AT_HOST_DEVICE const int64_t& stride(int64_t i) const { return strides_[i]; }
   AT_HOST_DEVICE const int64_t& size(int64_t i) const { return sizes_[i]; }
+
   AT_HOST_DEVICE PtrType data() { return data_; }
   AT_HOST_DEVICE const PtrType data() const { return data_; }
 
