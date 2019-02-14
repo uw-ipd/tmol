@@ -18,6 +18,7 @@ from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.elec import ElecScoreGraph
 from tmol.score.cartbonded import CartBondedScoreGraph
+from tmol.score.lk_ball import LKBallScoreGraph
 
 
 @score_graph
@@ -73,6 +74,11 @@ class LKScore(CartesianAtomicCoordinateProvider, LKScoreGraph, TorchDevice):
     pass
 
 
+@score_graph
+class LKBallScore(CartesianAtomicCoordinateProvider, LKBallScoreGraph, TorchDevice):
+    pass
+
+
 def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     # Score once to prep graph
     total = score_graph.intra_score().total
@@ -115,7 +121,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     return run
 
 
-_non_cuda_components = ()
+_non_cuda_components = (LKBallScoreGraph,)
 
 
 @pytest.mark.parametrize(
@@ -128,6 +134,7 @@ _non_cuda_components = ()
         CartBondedScore,
         LJScore,
         LKScore,
+        LKBallScore,
         DofSpaceDummy,
     ],
     ids=[
@@ -138,6 +145,7 @@ _non_cuda_components = ()
         "cartbonded",
         "lj",
         "lk",
+        "lk_ball",
         "kinematics",
     ],
 )

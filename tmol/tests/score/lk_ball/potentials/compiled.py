@@ -9,7 +9,7 @@ from tmol.score.ljlk.params import LJLKParamResolver
 
 from tmol.utility.cpp_extension import load, relpaths, modulename
 
-_compiled = load(modulename(__name__), relpaths(__file__, ["lk_ball.pybind.cpp"]))
+_compiled = load(modulename(__name__), relpaths(__file__, ["compiled.pybind.cpp"]))
 
 
 def detach_maybe_requires_grad(

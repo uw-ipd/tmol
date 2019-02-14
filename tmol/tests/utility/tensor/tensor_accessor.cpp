@@ -101,6 +101,48 @@ auto vector_magnitude_eigen_arg_squeeze(
   return output_t;
 }
 
+auto tensor_pack_construct() {
+  typedef tmol::TPack<Eigen::Vector3f, 2, tmol::Device::CPU> T;
+
+  return std::make_tuple(
+      T::empty({2, 5}),
+      T::ones({2, 5}),
+      T::zeros({2, 5}),
+      T::full({2, 5}, NAN));
+}
+
+auto tensor_pack_construct_like_aten(at::Tensor t) {
+  typedef tmol::TPack<Eigen::Vector3f, 2, tmol::Device::CPU> T;
+
+  return std::make_tuple(
+      T::empty_like(t),
+      T::ones_like(t),
+      T::zeros_like(t),
+      T::full_like(t, NAN));
+}
+
+auto tensor_pack_construct_like_tview(
+    tmol::TView<float, 2, tmol::Device::CPU> t) {
+  typedef tmol::TPack<Eigen::Vector3f, 2, tmol::Device::CPU> T;
+
+  return std::make_tuple(
+      T::empty_like(t),
+      T::ones_like(t),
+      T::zeros_like(t),
+      T::full_like(t, NAN));
+}
+
+auto tensor_pack_construct_like_tpack(
+    tmol::TPack<float, 2, tmol::Device::CPU> t) {
+  typedef tmol::TPack<Eigen::Vector3f, 2, tmol::Device::CPU> T;
+
+  return std::make_tuple(
+      T::empty_like(t),
+      T::ones_like(t),
+      T::zeros_like(t),
+      T::full_like(t, NAN));
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
       "aten", &vector_magnitude_aten, "ATen-based vector_magnitude function.");
@@ -132,4 +174,24 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       &vector_magnitude_eigen_arg_squeeze,
       "Tensoreigen-based vector_magnitude function with pybind11 argument "
       "conversion, implictly squeezing minor dimension.");
+
+  m.def(
+      "tensor_pack_construct",
+      &tensor_pack_construct,
+      "Construct {2, 5, 3} tensors via TensorPack constructors.");
+
+  m.def(
+      "tensor_pack_construct_like_aten",
+      &tensor_pack_construct_like_aten,
+      "Construct tensors via TensorPack constructors.");
+
+  m.def(
+      "tensor_pack_construct_like_tview",
+      &tensor_pack_construct_like_tview,
+      "Construct tensors via TensorPack constructors.");
+
+  m.def(
+      "tensor_pack_construct_like_tpack",
+      &tensor_pack_construct_like_tpack,
+      "Construct tensors via TensorPack constructors.");
 }

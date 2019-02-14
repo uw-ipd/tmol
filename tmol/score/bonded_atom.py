@@ -1,3 +1,5 @@
+import attr
+
 from functools import singledispatch
 
 import torch
@@ -18,6 +20,53 @@ from .stacked_system import StackedSystem
 from .device import TorchDevice
 
 
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class IndexedBonds:
+    bonds: Tensor(int)[:, 2]
+    bond_spans: Tensor(int)[:, 2]
+    src_index: Tensor(int)[:]
+
+    @classmethod
+    def from_bonds(cls, src_bonds, minlength=None):
+
+        # Convert undirected (i, j) bond index tuples into sorted, indexed list.
+
+        bonds, src_index = numpy.unique(src_bonds, axis=0, return_index=True)
+
+        if not minlength:
+            minlength = numpy.max(bonds)
+
+        # Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]
+        # blocks in the sorted bond table indexed by i
+        num_bonds = numpy.cumsum(numpy.bincount(bonds[:, 0], minlength=minlength))
+
+        bond_spans = numpy.empty((len(num_bonds), 2), dtype=int)
+        bond_spans[0, 0] = 0
+        bond_spans[1:, 0] = num_bonds[:-1]
+        bond_spans[:, 1] = num_bonds
+
+        return cls(
+            bonds=torch.from_numpy(bonds),
+            bond_spans=torch.from_numpy(bond_spans),
+            src_index=torch.from_numpy(src_index),
+        )
+
+    @classmethod
+    def to_directed(cls, src_bonds):
+        """Convert a potentially-undirected bond-table into dense, directed bonds.
+
+        Eg. Converts [[0, 1], [0, 2]] into [[0, 1], [1, 0], [0, 1], [2, 0]]
+        """
+
+        return numpy.concatenate(
+            (
+                src_bonds,
+                numpy.concatenate((src_bonds[:, -1:], src_bonds[:, -2:-1]), axis=-1),
+            ),
+            axis=0,
+        )
+
+
 @score_graph
 class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     """Score graph component describing a system's atom types and bonds.
@@ -25,8 +74,6 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     Attributes:
         atom_types: [layer, atom_index] String atom type descriptors.
             Type descriptions defined in :py:mod:`tmol.database.chemical`.
-
-        atom_elements: [layer, atom_index] String atom element.
 
         atom_names: [layer, atom_index] String residue-specific atom name.
 
@@ -53,7 +100,6 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         """`clone`-factory, extract atom types and bonds from other."""
         return dict(
             atom_types=other.atom_types,
-            atom_elements=other.atom_elements,
             atom_names=other.atom_names,
             res_names=other.res_names,
             res_indices=other.res_indices,
@@ -61,7 +107,6 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         )
 
     atom_types: NDArray(object)[:, :]
-    atom_elements: NDArray(object)[:, :]
     atom_names: NDArray(object)[:, :]
     res_names: NDArray(object)[:, :]
     res_indices: NDArray(int)[:, :]
@@ -74,6 +119,17 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         return torch.ByteTensor(
             (atom_types != None).astype(numpy.ubyte)
         )  # noqa: E711 - None != is a vectorized check for None.
+
+    @reactive_property
+    def indexed_bonds(bonds, system_size):
+        """Sorted, constant time access to bond graph."""
+        assert numpy.all(bonds[:, 0] == 0)
+        assert bonds.ndim == 2
+        assert bonds.shape[1] == 3
+
+        return IndexedBonds.from_bonds(
+            IndexedBonds.to_directed(bonds[..., 1:]), minlength=system_size
+        )
 
     @reactive_property
     @validate_args

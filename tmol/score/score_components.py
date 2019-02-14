@@ -262,9 +262,9 @@ class _ScoreComponent:
             )
 
         # Collect the intra_container classes into a base list
-        generated_accessor_bases = [
-            component.intra_container for component in score_component_accessors
-        ]
+        generated_accessor_bases = list(
+            set(component.intra_container for component in score_component_accessors)
+        )
 
         # Collect the intra_container.total accessor functions, renaming
         # into appropriate "total_{name}" accessors, and then add the "total"

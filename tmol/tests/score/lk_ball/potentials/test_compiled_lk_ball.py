@@ -16,7 +16,7 @@ def params(default_database):
 
 
 def test_build_acc_waters():
-    from tmol.tests.score.ljlk.potentials.lk_ball import BuildAcceptorWater
+    from .compiled import BuildAcceptorWater
 
     tensor = torch.DoubleTensor
 
@@ -44,7 +44,7 @@ def test_build_acc_waters():
 
 
 def test_build_don_water():
-    from tmol.tests.score.ljlk.potentials.lk_ball import BuildDonorWater
+    from .compiled import BuildDonorWater
 
     tensor = torch.DoubleTensor
 
@@ -67,7 +67,7 @@ def test_build_don_water():
 
 
 def test_lk_fraction():
-    from tmol.tests.score.ljlk.potentials.lk_ball import LKFraction, BuildAcceptorWater
+    from .compiled import LKFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
     I = dict(  # noqa
@@ -99,10 +99,7 @@ def test_lk_fraction():
 
 
 def test_lk_bridge_fraction():
-    from tmol.tests.score.ljlk.potentials.lk_ball import (
-        LKBridgeFraction,
-        BuildAcceptorWater,
-    )
+    from .compiled import LKBridgeFraction, BuildAcceptorWater
 
     tensor = torch.DoubleTensor
 
@@ -151,11 +148,7 @@ def test_lk_bridge_fraction():
 
 
 def lkball_score_and_gradcheck(params, I, J, WI, WJ, bonded_path_length, at_i, at_j):
-    from tmol.tests.score.ljlk.potentials.lk_ball import (
-        LKBallScore,
-        LKFraction,
-        LKBridgeFraction,
-    )
+    from .compiled import LKBallScore, LKFraction, LKBridgeFraction
 
     aidx_i, aidx_j = params.type_idx([at_i, at_j])
 
@@ -198,7 +191,7 @@ def lkball_score_and_gradcheck(params, I, J, WI, WJ, bonded_path_length, at_i, a
 
 def test_lk_ball_donor_donor_spotcheck(params):
 
-    from tmol.tests.score.ljlk.potentials.lk_ball import BuildDonorWater
+    from .compiled import BuildDonorWater
 
     dist = params.global_params.lkb_water_dist
 
@@ -247,7 +240,7 @@ def test_lk_ball_donor_donor_spotcheck(params):
 
 def test_lk_ball_sp2_nonpolar_spotcheck(params):
 
-    from tmol.tests.score.ljlk.potentials.lk_ball import BuildAcceptorWater
+    from .compiled import BuildAcceptorWater
 
     tensor = torch.DoubleTensor
     coords = tensor(
@@ -299,10 +292,7 @@ def test_lk_ball_sp2_nonpolar_spotcheck(params):
 
 
 def test_lk_ball_sp3_ring_spotcheck(params):
-    from tmol.tests.score.ljlk.potentials.lk_ball import (
-        BuildAcceptorWater,
-        BuildDonorWater,
-    )
+    from .compiled import BuildAcceptorWater, BuildDonorWater
 
     tensor = torch.DoubleTensor
 

@@ -18,10 +18,6 @@ class LKGraph(CartesianAtomicCoordinateProvider, LKScoreGraph):
 
 
 comparisons = {
-    "lj_numpyros": pytest.param(
-        LJGraph, {"total_lj": -425.3 + 248.8}, marks=pytest.mark.xfail
-    ),
-    "lk_numpyros": pytest.param(LKGraph, {"total_lk": 255.8}, marks=pytest.mark.xfail),
     "lj_regression": (LJGraph, {"total_lj": -177.1}),
     "lk_regression": (LKGraph, {"total_lk": 297.3}),
 }
