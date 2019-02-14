@@ -38,11 +38,11 @@ struct CartBondedLengthDispatch {
     auto dV_dJs = dV_dJs_t.view;
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atompair_indices[i][0];
-      Int atj = atompair_indices[i][1];
-      Int pari = parameter_indices[i];
-      tie(Vs[i], dV_dIs[i], dV_dJs[i]) =
-          cblength_V_dV(coords[ati], coords[atj], K[pari], x0[pari]);
+      Int ati = (*atompair_indices[i])[0];
+      Int atj = (*atompair_indices[i])[1];
+      Int pari = *parameter_indices[i];
+      tie(*Vs[i], *dV_dIs[i], *dV_dJs[i]) =
+          cblength_V_dV(*coords[ati], *coords[atj], *K[pari], *x0[pari]);
     });
 
     mgpu::standard_context_t context;
@@ -78,12 +78,12 @@ struct CartBondedAngleDispatch {
     auto dV_dKs = dV_dKs_t.view;
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atomtriple_indices[i][0];
-      Int atj = atomtriple_indices[i][1];
-      Int atk = atomtriple_indices[i][2];
-      Int pari = parameter_indices[i];
-      tie(Vs[i], dV_dIs[i], dV_dJs[i], dV_dKs[i]) = cbangle_V_dV(
-          coords[ati], coords[atj], coords[atk], K[pari], x0[pari]);
+      Int ati = (*atomtriple_indices[i])[0];
+      Int atj = (*atomtriple_indices[i])[1];
+      Int atk = (*atomtriple_indices[i])[2];
+      Int pari = *parameter_indices[i];
+      tie(*Vs[i], *dV_dIs[i], *dV_dJs[i], *dV_dKs[i]) = cbangle_V_dV(
+          *coords[ati], *coords[atj], *coords[atk], *K[pari], *x0[pari]);
     });
 
     mgpu::standard_context_t context;
@@ -123,19 +123,20 @@ struct CartBondedTorsionDispatch {
     auto dV_dLs = dV_dLs_t.view;
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atomquad_indices[i][0];
-      Int atj = atomquad_indices[i][1];
-      Int atk = atomquad_indices[i][2];
-      Int atl = atomquad_indices[i][3];
-      Int pari = parameter_indices[i];
-      tie(Vs[i], dV_dIs[i], dV_dJs[i], dV_dKs[i], dV_dLs[i]) = cbtorsion_V_dV(
-          coords[ati],
-          coords[atj],
-          coords[atk],
-          coords[atl],
-          K[pari],
-          x0[pari],
-          period[pari]);
+      Int ati = (*atomquad_indices[i])[0];
+      Int atj = (*atomquad_indices[i])[1];
+      Int atk = (*atomquad_indices[i])[2];
+      Int atl = (*atomquad_indices[i])[3];
+      Int pari = *parameter_indices[i];
+      tie(*Vs[i], *dV_dIs[i], *dV_dJs[i], *dV_dKs[i], *dV_dLs[i]) =
+          cbtorsion_V_dV(
+              *coords[ati],
+              *coords[atj],
+              *coords[atk],
+              *coords[atl],
+              *K[pari],
+              *x0[pari],
+              *period[pari]);
     });
 
     mgpu::standard_context_t context;
@@ -178,23 +179,23 @@ struct CartBondedHxlTorsionDispatch {
     auto dV_dLs = dV_dLs_t.view;
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atomquad_indices[i][0];
-      Int atj = atomquad_indices[i][1];
-      Int atk = atomquad_indices[i][2];
-      Int atl = atomquad_indices[i][3];
-      Int pari = parameter_indices[i];
-      tie(Vs[i], dV_dIs[i], dV_dJs[i], dV_dKs[i], dV_dLs[i]) =
+      Int ati = (*atomquad_indices[i])[0];
+      Int atj = (*atomquad_indices[i])[1];
+      Int atk = (*atomquad_indices[i])[2];
+      Int atl = (*atomquad_indices[i])[3];
+      Int pari = *parameter_indices[i];
+      tie(*Vs[i], *dV_dIs[i], *dV_dJs[i], *dV_dKs[i], *dV_dLs[i]) =
           cbhxltorsion_V_dV(
-              coords[ati],
-              coords[atj],
-              coords[atk],
-              coords[atl],
-              K1[pari],
-              K2[pari],
-              K3[pari],
-              phi1[pari],
-              phi2[pari],
-              phi3[pari]);
+              *coords[ati],
+              *coords[atj],
+              *coords[atk],
+              *coords[atl],
+              *K1[pari],
+              *K2[pari],
+              *K3[pari],
+              *phi1[pari],
+              *phi2[pari],
+              *phi3[pari]);
     });
 
     mgpu::standard_context_t context;

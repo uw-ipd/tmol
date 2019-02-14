@@ -25,7 +25,7 @@ struct sum<Real, tmol::Device::CPU> {
     using iter::range;
 
     for (auto i : range(t.size(0))) {
-      v += t[i];
+      v += *t[i];
     }
 
     return v;

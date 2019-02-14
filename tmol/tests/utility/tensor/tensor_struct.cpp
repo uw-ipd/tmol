@@ -52,7 +52,7 @@ int64_t sum_a(std::map<std::string, at::Tensor> tmap) {
 
   int64_t v = 0;
   for (int i = 0; i < tdata.a.size(0); ++i) {
-    v += tdata.a[i];
+    v += *tdata.a[i];
   }
 
   return v;
@@ -61,7 +61,7 @@ int64_t sum_a(std::map<std::string, at::Tensor> tmap) {
 int64_t sum_a_map(TData<1, tmol::Device::CPU> tdata) {
   int64_t v = 0;
   for (int i = 0; i < tdata.a.size(0); ++i) {
-    v += tdata.a[i];
+    v += *tdata.a[i];
   }
 
   return v;
@@ -73,7 +73,7 @@ int64_t sum(at::Tensor tensor_data_t) {
 
   int64_t v = 0;
   for (int i = 0; i < tensor_data.size(0); ++i) {
-    v += tensor_data[i];
+    v += *tensor_data[i];
   }
 
   return v;

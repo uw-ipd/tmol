@@ -16,9 +16,9 @@ struct sum_tensor<Real, tmol::Device::CPU> {
     auto v_t = tmol::TPack<Real, 1, D>::empty({1});
     auto v = v_t.view;
 
-    v[0] = 0;
+    *v[0] = 0;
     for (int i = 0; i < t.size(0); i++) {
-      v[0] += t[i];
+      *v[0] += *t[i];
     }
 
     return v_t.tensor;

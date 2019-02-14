@@ -39,7 +39,7 @@ struct AcceptorBases {
     Int B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (!atom_is_hydrogen[other_atom]) {
+      if (!*atom_is_hydrogen[other_atom]) {
         B = other_atom;
         break;
       }
@@ -74,7 +74,7 @@ struct AcceptorBases {
     Int B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (atom_is_hydrogen[other_atom]) {
+      if (*atom_is_hydrogen[other_atom]) {
         B0 = other_atom;
         break;
       }
@@ -109,7 +109,7 @@ struct AcceptorBases {
     Int B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (!atom_is_hydrogen[other_atom]) {
+      if (!*atom_is_hydrogen[other_atom]) {
         B = other_atom;
         break;
       }
@@ -120,7 +120,7 @@ struct AcceptorBases {
     }
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (other_atom != B && !atom_is_hydrogen[other_atom]) {
+      if (other_atom != B && !*atom_is_hydrogen[other_atom]) {
         B0 = other_atom;
         break;
       }

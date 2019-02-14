@@ -58,7 +58,7 @@ struct ElecDispatch {
     auto dV_dJs = dV_dJs_t.view;
 
     dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
-      auto dist_r = distance<Real>::V_dV(x_i[i], x_j[j]);
+      auto dist_r = distance<Real>::V_dV(*x_i[i], *x_j[j]);
       auto& dist = dist_r.V;
       auto& ddist_dI = dist_r.dV_dA;
       auto& ddist_dJ = dist_r.dV_dB;
@@ -66,21 +66,21 @@ struct ElecDispatch {
       Real V, dV_dDist;
       tie(V, dV_dDist) = elec_delec_ddist(
           dist,
-          e_i[i],
-          e_j[j],
-          bonded_path_lengths[i][j],
+          *e_i[i],
+          *e_j[j],
+          *bonded_path_lengths[i][j],
           D,
           D0,
           S,
           min_dis,
           max_dis);
 
-      inds[o][0] = i;
-      inds[o][1] = j;
+      *inds[o][0] = i;
+      *inds[o][1] = j;
 
-      Vs[o] = V;
-      dV_dIs[o] = dV_dDist * ddist_dI;
-      dV_dJs[o] = dV_dDist * ddist_dJ;
+      *Vs[o] = V;
+      *dV_dIs[o] = dV_dDist * ddist_dI;
+      *dV_dJs[o] = dV_dDist * ddist_dJ;
     });
 
     return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};

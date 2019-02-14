@@ -29,12 +29,12 @@ struct LJTypeParamTensors {
 
   template <typename Idx>
   auto operator[](Idx i) const {
-    return LJTypeParams<Real>{lj_radius[i],
-                              lj_wdepth[i],
-                              is_donor[i],
-                              is_hydroxyl[i],
-                              is_polarh[i],
-                              is_acceptor[i]};
+    return LJTypeParams<Real>{*lj_radius[i],
+                              *lj_wdepth[i],
+                              *is_donor[i],
+                              *is_hydroxyl[i],
+                              *is_polarh[i],
+                              *is_acceptor[i]};
   }
 };
 
@@ -63,14 +63,14 @@ struct LKTypeParamTensors {
 
   template <typename Idx>
   auto operator[](Idx i) const {
-    return LKTypeParams<Real>{lj_radius[i],
-                              lk_dgfree[i],
-                              lk_lambda[i],
-                              lk_volume[i],
-                              is_donor[i],
-                              is_hydroxyl[i],
-                              is_polarh[i],
-                              is_acceptor[i]};
+    return LKTypeParams<Real>{*lj_radius[i],
+                              *lk_dgfree[i],
+                              *lk_lambda[i],
+                              *lk_volume[i],
+                              *is_donor[i],
+                              *is_hydroxyl[i],
+                              *is_polarh[i],
+                              *is_acceptor[i]};
   }
 };
 

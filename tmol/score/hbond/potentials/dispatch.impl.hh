@@ -101,36 +101,36 @@ struct HBondDispatch {
     auto dE_dB0 = dE_dB0_t.view;
 
     dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int di, int ai) {
-      ind[o][0] = di;
-      ind[o][1] = ai;
+      *ind[o][0] = di;
+      *ind[o][1] = ai;
 
-      int dt = donor_type[di];
-      int at = acceptor_type[ai];
+      int dt = *donor_type[di];
+      int at = *acceptor_type[ai];
 
-      tie(E[o], dE_dD[o], dE_dH[o], dE_dA[o], dE_dB[o], dE_dB0[o]) =
+      tie(*E[o], *dE_dD[o], *dE_dH[o], *dE_dA[o], *dE_dB[o], *dE_dB0[o]) =
           hbond_score_V_dV(
-              D[di],
-              H[di],
+              *D[di],
+              *H[di],
 
-              A[ai],
-              B[ai],
-              B0[ai],
+              *A[ai],
+              *B[ai],
+              *B0[ai],
 
-              acceptor_hybridization[dt][at],
-              acceptor_weight[dt][at],
-              donor_weight[dt][at],
+              *acceptor_hybridization[dt][at],
+              *acceptor_weight[dt][at],
+              *donor_weight[dt][at],
 
-              AHdist_coeffs[dt][at],
-              AHdist_range[dt][at],
-              AHdist_bound[dt][at],
+              *AHdist_coeffs[dt][at],
+              *AHdist_range[dt][at],
+              *AHdist_bound[dt][at],
 
-              cosBAH_coeffs[dt][at],
-              cosBAH_range[dt][at],
-              cosBAH_bound[dt][at],
+              *cosBAH_coeffs[dt][at],
+              *cosBAH_range[dt][at],
+              *cosBAH_bound[dt][at],
 
-              cosAHD_coeffs[dt][at],
-              cosAHD_range[dt][at],
-              cosAHD_bound[dt][at],
+              *cosAHD_coeffs[dt][at],
+              *cosAHD_range[dt][at],
+              *cosAHD_bound[dt][at],
 
               hb_sp2_range_span,
               hb_sp2_BAH180_rise,

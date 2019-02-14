@@ -20,9 +20,9 @@ struct sum_tensor<Real, tmol::Device::CUDA> {
     mgpu::standard_context_t context;
 
     mgpu::transform_reduce(
-        [=] MGPU_DEVICE(int i) { return t[i]; },
+        [=] MGPU_DEVICE(int i) { return *t[i]; },
         t.size(0),
-        &v[0],
+        v[0].data(),
         mgpu::plus_t<Real>(),
         context);
 

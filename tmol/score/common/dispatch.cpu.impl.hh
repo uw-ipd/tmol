@@ -118,9 +118,9 @@ struct NaiveDispatch<tmol::Device::CPU> {
 
     for (int i = 0; i < n_i; ++i) {
       for (int j = 0; j < n_j; ++j) {
-        if (tbox.contains(coords_i[i] - coords_j[j])) {
-          inds_t.view[n_ind][0] = i;
-          inds_t.view[n_ind][1] = j;
+        if (tbox.contains(*coords_i[i] - *coords_j[j])) {
+          *inds_t.view[n_ind][0] = i;
+          *inds_t.view[n_ind][1] = j;
           n_ind++;
         }
       }
@@ -132,7 +132,7 @@ struct NaiveDispatch<tmol::Device::CPU> {
   template <typename funct_t>
   void score(funct_t f) {
     for (int o = 0; o < n_ind; o++) {
-      f(o, inds_t.view[o][0], inds_t.view[o][1]);
+      f(o, *inds_t.view[o][0], *inds_t.view[o][1]);
     }
   }
 };
@@ -168,9 +168,9 @@ struct NaiveTriuDispatch<tmol::Device::CPU> {
 
     for (int i = 0; i < n_i; ++i) {
       for (int j = i; j < n_j; ++j) {
-        if (tbox.contains(coords_i[i] - coords_j[j])) {
-          inds_t.view[n_ind][0] = i;
-          inds_t.view[n_ind][1] = j;
+        if (tbox.contains(*coords_i[i] - *coords_j[j])) {
+          *inds_t.view[n_ind][0] = i;
+          *inds_t.view[n_ind][1] = j;
           n_ind++;
         }
       }
@@ -182,7 +182,7 @@ struct NaiveTriuDispatch<tmol::Device::CPU> {
   template <typename funct_t>
   void score(funct_t f) {
     for (int o = 0; o < n_ind; o++) {
-      f(o, inds_t.view[o][0], inds_t.view[o][1]);
+      f(o, *inds_t.view[o][0], *inds_t.view[o][1]);
     }
   }
 };

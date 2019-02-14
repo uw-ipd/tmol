@@ -21,7 +21,7 @@ at::Tensor vector_magnitude_accessor(at::Tensor input_t) {
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     auto v = input[i];
-    output[i] = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    *output[i] = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
   }
 
   return output_t.tensor;
@@ -36,7 +36,7 @@ auto vector_magnitude_accessor_arg(
 
   for (int64_t i = 0; i < input.size(0); ++i) {
     auto v = input[i];
-    output[i] = std::sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+    *output[i] = std::sqrt(*v[0] * *v[0] + *v[1] * *v[1] + *v[2] * *v[2]);
   }
 
   return output_t;
@@ -52,7 +52,7 @@ at::Tensor vector_magnitude_eigen(at::Tensor input_t) {
   auto output = output_t.accessor<float, 1>();
 
   for (int64_t i = 0; i < input.size(0); ++i) {
-    output[i] = input[i][0].norm();
+    output[i] = (*input[i][0]).norm();
   }
 
   return output_t;
@@ -67,7 +67,7 @@ at::Tensor vector_magnitude_eigen_squeeze(at::Tensor input_t) {
   auto output = output_t.view;
 
   for (int64_t i = 0; i < input.size(0); ++i) {
-    output[i] = input[i].norm();
+    *output[i] = (*input[i]).norm();
   }
 
   return output_t.tensor;
@@ -81,7 +81,7 @@ auto vector_magnitude_eigen_arg(
   auto output = output_t.view;
 
   for (int64_t i = 0; i < input.size(0); ++i) {
-    output[i] = input[i][0].norm();
+    *output[i] = (*input[i][0]).norm();
   }
 
   return output_t;
@@ -95,7 +95,7 @@ auto vector_magnitude_eigen_arg_squeeze(
   auto output = output_t.view;
 
   for (int64_t i = 0; i < input.size(0); ++i) {
-    output[i] = input[i].norm();
+    *output[i] = (*input[i]).norm();
   }
 
   return output_t;

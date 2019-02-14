@@ -174,7 +174,7 @@ struct NaiveDispatch<tmol::Device::CUDA> {
       int i = index / n_j;
       int j = index % n_j;
 
-      return tbox.contains(coords_i[i] - coords_j[j]);
+      return tbox.contains(*coords_i[i] - *coords_j[j]);
     });
   }
 
@@ -224,7 +224,7 @@ struct NaiveTriuDispatch<tmol::Device::CUDA> {
           Vec<Real, 3>(
               threshold_distance, threshold_distance, threshold_distance));
 
-      return tbox.contains(coords_i[i] - coords_j[j]);
+      return tbox.contains(*coords_i[i] - *coords_j[j]);
     });
   }
 

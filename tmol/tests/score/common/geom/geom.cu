@@ -34,7 +34,7 @@ void bind(pybind11::module& m) {
         mgpu::standard_context_t context(false);
 
         mgpu::transform(
-            [=] MGPU_LAMBDA(int i) { V[i] = distance<Real>::V(A[i], B[i]); },
+            [=] MGPU_LAMBDA(int i) { *V[i] = distance<Real>::V(*A[i], *B[i]); },
             A.size(0),
             context);
 
@@ -66,8 +66,8 @@ void bind(pybind11::module& m) {
         mgpu::transform(
             [=] MGPU_LAMBDA(int i) {
               using tmol::score::common::tie;
-              tie(V[i], dV_dA[i], dV_dB[i]) =
-                  distance<Real>::V_dV(A[i], B[i]).astuple();
+              tie(*V[i], *dV_dA[i], *dV_dB[i]) =
+                  distance<Real>::V_dV(*A[i], *B[i]).astuple();
             },
             A.size(0),
             context);

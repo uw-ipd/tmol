@@ -662,16 +662,16 @@ struct attached_waters {
     for (int i : iter::range(coords.size(0))) {
       int wi = 0;
 
-      if (atom_types.is_acceptor[i]) {
-        Int hyb = atom_types.acceptor_hybridization[i];
+      if (*atom_types.is_acceptor[i]) {
+        Int hyb = *atom_types.acceptor_hybridization[i];
         auto bases = AcceptorBases<Int>::for_acceptor(
             i,
-            atom_types.acceptor_hybridization[i],
+            *atom_types.acceptor_hybridization[i],
             indexed_bonds,
             atom_types.is_hydrogen);
-        Vec<Real, 3> XA = coords[bases.A];
-        Vec<Real, 3> XB = coords[bases.B];
-        Vec<Real, 3> XB0 = coords[bases.B0];
+        Vec<Real, 3> XA = *coords[bases.A];
+        Vec<Real, 3> XB = *coords[bases.B];
+        Vec<Real, 3> XB0 = *coords[bases.B0];
 
         Real dist;
         Real angle;
@@ -693,24 +693,24 @@ struct attached_waters {
         }
 
         for (int ti = 0; ti < tors.size(0); ti++) {
-          waters[i][wi] =
-              build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
+          *waters[i][wi] =
+              build_acc_water<Real>::V(XA, XB, XB0, dist, angle, *tors[ti]);
           wi++;
         }
       }
 
-      if (atom_types.is_donor[i]) {
+      if (*atom_types.is_donor[i]) {
         for (int other_atom : indexed_bonds.bound_to(i)) {
-          if (atom_types.is_hydrogen[other_atom]) {
-            waters[i][wi] = build_don_water<Real>::V(
-                coords[i], coords[other_atom], global_params.lkb_water_dist);
+          if (*atom_types.is_hydrogen[other_atom]) {
+            *waters[i][wi] = build_don_water<Real>::V(
+                *coords[i], *coords[other_atom], global_params.lkb_water_dist);
             wi++;
           };
         }
       }
 
       for (; wi < MAX_WATER; wi++) {
-        waters[i][wi] = Vec<Real, 3>::Constant(NAN);
+        *waters[i][wi] = Vec<Real, 3>::Constant(NAN);
       }
     }
 
@@ -736,16 +736,16 @@ struct attached_waters {
     for (int i : iter::range(coords.size(0))) {
       int wi = 0;
 
-      if (atom_types.is_acceptor[i]) {
-        Int hyb = atom_types.acceptor_hybridization[i];
+      if (*atom_types.is_acceptor[i]) {
+        Int hyb = *atom_types.acceptor_hybridization[i];
         auto bases = AcceptorBases<Int>::for_acceptor(
             i,
-            atom_types.acceptor_hybridization[i],
+            *atom_types.acceptor_hybridization[i],
             indexed_bonds,
             atom_types.is_hydrogen);
-        Vec<Real, 3> XA = coords[bases.A];
-        Vec<Real, 3> XB = coords[bases.B];
-        Vec<Real, 3> XB0 = coords[bases.B0];
+        Vec<Real, 3> XA = *coords[bases.A];
+        Vec<Real, 3> XB = *coords[bases.B];
+        Vec<Real, 3> XB0 = *coords[bases.B0];
 
         Vec<Real, 3> dE_dXA = Vec<Real, 3>::Zero();
         Vec<Real, 3> dE_dXB = Vec<Real, 3>::Zero();
@@ -772,8 +772,8 @@ struct attached_waters {
 
         for (int ti = 0; ti < tors.size(0); ti++) {
           auto dW =
-              build_acc_water<Real>::dV(XA, XB, XB0, dist, angle, tors[ti]);
-          auto dE_dWi = dE_dW[i][wi];
+              build_acc_water<Real>::dV(XA, XB, XB0, dist, angle, *tors[ti]);
+          auto dE_dWi = *dE_dW[i][wi];
 
           dE_dXA += dW.dA * dE_dWi;
           dE_dXB += dW.dB * dE_dWi;
@@ -782,27 +782,27 @@ struct attached_waters {
           wi++;
         }
 
-        dE_d_coord[bases.A] += dE_dXA;
+        *dE_d_coord[bases.A] += dE_dXA;
 
         if (hyb == AcceptorHybridization::ring) {
-          dE_d_coord[bases.B] += dE_dXB / 2;
-          dE_d_coord[bases.B0] += dE_dXB / 2;
+          *dE_d_coord[bases.B] += dE_dXB / 2;
+          *dE_d_coord[bases.B0] += dE_dXB / 2;
         } else {
-          dE_d_coord[bases.B] += dE_dXB;
+          *dE_d_coord[bases.B] += dE_dXB;
         }
 
-        dE_d_coord[bases.B0] += dE_dXB0;
+        *dE_d_coord[bases.B0] += dE_dXB0;
       }
 
-      if (atom_types.is_donor[i]) {
+      if (*atom_types.is_donor[i]) {
         for (int other_atom : indexed_bonds.bound_to(i)) {
-          if (atom_types.is_hydrogen[other_atom]) {
-            auto dE_dWi = dE_dW[i][wi];
+          if (*atom_types.is_hydrogen[other_atom]) {
+            auto dE_dWi = *dE_dW[i][wi];
             auto dW = build_don_water<Real>::dV(
-                coords[i], coords[other_atom], global_params.lkb_water_dist);
+                *coords[i], *coords[other_atom], global_params.lkb_water_dist);
 
-            dE_d_coord[i] += dW.dD * dE_dWi;
-            dE_d_coord[other_atom] += dW.dH * dE_dWi;
+            *dE_d_coord[i] += dW.dD * dE_dWi;
+            *dE_d_coord[other_atom] += dW.dH * dE_dWi;
 
             wi++;
           };

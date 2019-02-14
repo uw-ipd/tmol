@@ -20,11 +20,11 @@ void id_acceptor_bases(
     IndexedBonds<Int, D> bonds) {
   for (int ai : iter::range(A_idx.size(0))) {
     auto bases = AcceptorBases<Int>::for_acceptor(
-        A_idx[ai], atom_hybridization[A_idx[ai]], bonds, atom_is_hydrogen);
+        *A_idx[ai], *atom_hybridization[*A_idx[ai]], bonds, atom_is_hydrogen);
 
-    A_idx[ai] = bases.A;
-    B_idx[ai] = bases.B;
-    B0_idx[ai] = bases.B0;
+    *A_idx[ai] = bases.A;
+    *B_idx[ai] = bases.B;
+    *B0_idx[ai] = bases.B0;
   };
 }
 
