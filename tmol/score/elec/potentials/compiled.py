@@ -9,5 +9,10 @@ _compiled = load(
     ),
 )
 
-elec = _compiled.elec
-elec_triu = _compiled.elec_triu
+
+def elec(*args, **kwargs):
+    return _compiled.elec[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+
+
+def elec_triu(*args, **kwargs):
+    return _compiled.elec_triu[(args[0].device.type, args[0].dtype)](*args, **kwargs)

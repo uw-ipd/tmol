@@ -5,6 +5,8 @@
 #include <tmol/score/common/dispatch.hh>
 #include <tmol/score/elec/potentials/dispatch.hh>
 
+#include <tmol/utility/function_dispatch/pybind.hh>
+
 namespace tmol {
 namespace score {
 namespace elec {
@@ -13,6 +15,7 @@ namespace potentials {
 template <tmol::Device Dev, typename Real, typename Int>
 void bind_dispatch(pybind11::module& m) {
   using namespace pybind11::literals;
+  using namespace tmol::utility::function_dispatch;
   using tmol::score::common::NaiveDispatch;
 
 #define ELEC_PYARGS()                                          \
@@ -20,12 +23,14 @@ void bind_dispatch(pybind11::module& m) {
       "elec_sigmoidal_die_D"_a, "elec_sigmoidal_die_D0"_a,     \
       "elec_sigmoidal_die_S"_a, "elec_min_dis"_a, "elec_max_dis"_a
 
-  m.def(
+  add_dispatch_impl<Dev, Real>(
+      m,
       "elec",
       &ElecDispatch<common::NaiveDispatch, Dev, Real, Int>::f,
       ELEC_PYARGS());
 
-  m.def(
+  add_dispatch_impl<Dev, Real>(
+      m,
       "elec_triu",
       &ElecDispatch<common::NaiveTriuDispatch, Dev, Real, Int>::f,
       ELEC_PYARGS());
@@ -35,9 +40,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
   bind_dispatch<tmol::Device::CPU, float, int32_t>(m);
-  bind_dispatch<tmol::Device::CPU, float, int64_t>(m);
   bind_dispatch<tmol::Device::CPU, double, int32_t>(m);
-  bind_dispatch<tmol::Device::CPU, double, int64_t>(m);
 
 #ifdef WITH_CUDA
   bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
