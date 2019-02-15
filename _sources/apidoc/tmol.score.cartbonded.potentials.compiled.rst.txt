@@ -7,7 +7,24 @@ tmol.score.cartbonded.potentials.compiled
 .. currentmodule:: tmol.score.cartbonded.potentials.compiled
 
 .. automodule:: tmol.score.cartbonded.potentials.compiled
+    :members: cartbonded_angle, cartbonded_hxltorsion, cartbonded_length, cartbonded_torsion
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
+
+    Summary
+    -------
+
+    Functions
+    ~~~~~~~~~
     
+    .. autosummary::
+        :nosignatures:
+
+        cartbonded_angle
+        cartbonded_hxltorsion
+        cartbonded_length
+        cartbonded_torsion
 
 
 
@@ -15,3 +32,6 @@ tmol.score.cartbonded.potentials.compiled
 
 
 
+
+    Reference
+    ---------

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.lk_ball.potentials.compiled &mdash; TMol 0.0.0-153-g23bed8ee documentation</title>
+  <title>tmol.score.lk_ball.potentials.compiled &mdash; TMol 0.0.0-154-gda189d30 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-153-g23bed8ee
+                0.0.0-154-gda189d30
               </div>
             
           
@@ -111,6 +111,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.lk_ball.html">tmol.score.lk_ball</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.lk_ball.score_graph.html">tmol.score.lk_ball.score_graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.lk_ball.torch_ops.html">tmol.score.lk_ball.torch_ops</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="tmol.score.lk_ball.potentials.html">tmol.score.lk_ball.potentials</a><ul class="current">
 <li class="toctree-l4 current"><a class="current reference internal" href="#">tmol.score.lk_ball.potentials.compiled</a></li>
 </ul>
@@ -204,24 +205,24 @@
 <span id="tmol-score-lk-ball-potentials-compiled"></span><h1>tmol.score.lk_ball.potentials.compiled<a class="headerlink" href="#module-tmol.score.lk_ball.potentials.compiled" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
 <table border="1" class="longtable docutils">
 <colgroup>
 <col width="10%" />
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.AttachedWaters" title="tmol.score.lk_ball.potentials.compiled.AttachedWaters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AttachedWaters</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.attached_waters_backward" title="tmol.score.lk_ball.potentials.compiled.attached_waters_backward"><code class="xref py py-obj docutils literal notranslate"><span class="pre">attached_waters_backward</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun" title="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AttachedWatersFun</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.attached_waters_forward" title="tmol.score.lk_ball.potentials.compiled.attached_waters_forward"><code class="xref py py-obj docutils literal notranslate"><span class="pre">attached_waters_forward</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.LKBall" title="tmol.score.lk_ball.potentials.compiled.LKBall"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LKBall</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.lk_ball_V" title="tmol.score.lk_ball.potentials.compiled.lk_ball_V"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lk_ball_V</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun" title="tmol.score.lk_ball.potentials.compiled.LKBallFun"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LKBallFun</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.lk_ball_dV" title="tmol.score.lk_ball.potentials.compiled.lk_ball_dV"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lk_ball_dV</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -230,137 +231,25 @@
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBall">
-<em class="property">class </em><code class="descclassname">tmol.score.lk_ball.potentials.compiled.</code><code class="descname">LKBall</code><span class="sig-paren">(</span><em>atom_resolver: tmol.score.chemical_database.AtomTypeParamResolver</em>, <em>param_resolver: tmol.score.ljlk.params.LJLKParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#LKBall"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBall" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBall.atom_resolver">
-<code class="descname">atom_resolver</code><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBall.atom_resolver" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="tmol.score.lk_ball.potentials.compiled.lk_ball_V">
+<code class="descclassname">tmol.score.lk_ball.potentials.compiled.</code><code class="descname">lk_ball_V</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#lk_ball_V"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.lk_ball_V" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBall.param_resolver">
-<code class="descname">param_resolver</code><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBall.param_resolver" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="tmol.score.lk_ball.potentials.compiled.lk_ball_dV">
+<code class="descclassname">tmol.score.lk_ball.potentials.compiled.</code><code class="descname">lk_ball_dV</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#lk_ball_dV"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.lk_ball_dV" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="classmethod">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBall.from_database">
-<em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>database</em>, <em>torch_device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#LKBall.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBall.from_database" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="tmol.score.lk_ball.potentials.compiled.attached_waters_forward">
+<code class="descclassname">tmol.score.lk_ball.potentials.compiled.</code><code class="descname">attached_waters_forward</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#attached_waters_forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.attached_waters_forward" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBall.apply">
-<code class="descname">apply</code><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBall.apply" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="tmol.score.lk_ball.potentials.compiled.attached_waters_backward">
+<code class="descclassname">tmol.score.lk_ball.potentials.compiled.</code><code class="descname">attached_waters_backward</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#attached_waters_backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.attached_waters_backward" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBallFun">
-<em class="property">class </em><code class="descclassname">tmol.score.lk_ball.potentials.compiled.</code><code class="descname">LKBallFun</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#LKBallFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
-<dl class="method">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBallFun.forward">
-<code class="descname">forward</code><span class="sig-paren">(</span><em>coords_i</em>, <em>coords_j</em>, <em>waters_i</em>, <em>waters_j</em>, <em>atom_types_i</em>, <em>atom_types_j</em>, <em>bonded_path_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#LKBallFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context ctx as the first argument, followed by any
-number of arguments (tensors or other types).</p>
-<p>The context can be used to store tensors that can be then retrieved
-during the backward pass.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBallFun.backward">
-<code class="descname">backward</code><span class="sig-paren">(</span><em>_</em>, <em>dT_dV</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#LKBallFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun.backward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines a formula for differentiating the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
-as many outputs did <a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun.forward" title="tmol.score.lk_ball.potentials.compiled.LKBallFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
-tensors, as there were inputs to <a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun.forward" title="tmol.score.lk_ball.potentials.compiled.LKBallFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
-gradient w.r.t the given output, and each returned value should be the
-gradient w.r.t. the corresponding input.</p>
-<p>The context can be used to retrieve tensors saved during the forward
-pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
-of booleans representing whether each input needs gradient. E.g.,
-<a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun.backward" title="tmol.score.lk_ball.potentials.compiled.LKBallFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
-first input to <a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun.forward" title="tmol.score.lk_ball.potentials.compiled.LKBallFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
-output.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.lk_ball.potentials.compiled.LKBallFun._is_legacy">
-<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.LKBallFun._is_legacy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWaters">
-<em class="property">class </em><code class="descclassname">tmol.score.lk_ball.potentials.compiled.</code><code class="descname">AttachedWaters</code><span class="sig-paren">(</span><em>atom_resolver: tmol.score.chemical_database.AtomTypeParamResolver</em>, <em>global_params: tmol.score.ljlk.params.LJLKGlobalParams</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#AttachedWaters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWaters" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWaters.atom_resolver">
-<code class="descname">atom_resolver</code><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWaters.atom_resolver" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWaters.global_params">
-<code class="descname">global_params</code><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWaters.global_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWaters.from_database">
-<em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>database</em>, <em>torch_device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#AttachedWaters.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWaters.from_database" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWaters.apply">
-<code class="descname">apply</code><span class="sig-paren">(</span><em>coords</em>, <em>atom_types</em>, <em>indexed_bonds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#AttachedWaters.apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWaters.apply" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun">
-<em class="property">class </em><code class="descclassname">tmol.score.lk_ball.potentials.compiled.</code><code class="descname">AttachedWatersFun</code><span class="sig-paren">(</span><em>op</em>, <em>indexed_bonds</em>, <em>atom_type_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#AttachedWatersFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
-<dl class="method">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.forward">
-<code class="descname">forward</code><span class="sig-paren">(</span><em>coords</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#AttachedWatersFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context ctx as the first argument, followed by any
-number of arguments (tensors or other types).</p>
-<p>The context can be used to store tensors that can be then retrieved
-during the backward pass.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.backward">
-<code class="descname">backward</code><span class="sig-paren">(</span><em>dE_dW</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/potentials/compiled.html#AttachedWatersFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.backward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines a formula for differentiating the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
-as many outputs did <a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.forward" title="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
-tensors, as there were inputs to <a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.forward" title="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
-gradient w.r.t the given output, and each returned value should be the
-gradient w.r.t. the corresponding input.</p>
-<p>The context can be used to retrieve tensors saved during the forward
-pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
-of booleans representing whether each input needs gradient. E.g.,
-<a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.backward" title="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
-first input to <a class="reference internal" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.forward" title="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
-output.</p>
-</dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.lk_ball.potentials.compiled.AttachedWatersFun._is_legacy">
-<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.lk_ball.potentials.compiled.AttachedWatersFun._is_legacy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
 
 </div>
 </div>
@@ -409,7 +298,7 @@ output.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-153-g23bed8ee',
+              VERSION:'0.0.0-154-gda189d30',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

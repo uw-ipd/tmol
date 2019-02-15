@@ -7,7 +7,21 @@ tmol.score.hbond.potentials.compiled
 .. currentmodule:: tmol.score.hbond.potentials.compiled
 
 .. automodule:: tmol.score.hbond.potentials.compiled
+    :members: hbond_pair_score
+    :undoc-members:
+    :show-inheritance:
+    :member-order: bysource
+
+    Summary
+    -------
+
+    Functions
+    ~~~~~~~~~
     
+    .. autosummary::
+        :nosignatures:
+
+        hbond_pair_score
 
 
 
@@ -15,3 +29,6 @@ tmol.score.hbond.potentials.compiled
 
 
 
+
+    Reference
+    ---------

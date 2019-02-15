@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.torch_op &mdash; TMol 0.0.0-153-g23bed8ee documentation</title>
+  <title>tmol.score.cartbonded.torch_op &mdash; TMol 0.0.0-154-gda189d30 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-153-g23bed8ee
+                0.0.0-154-gda189d30
               </div>
             
           
@@ -204,8 +204,8 @@
             <span class="n">param_resolver</span><span class="o">=</span><span class="n">CartBondedParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">cb_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="CartBondedLengthOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedLengthOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atmpair_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
-        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedLengthFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">atmpair_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+<div class="viewcode-block" id="CartBondedLengthOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedLengthOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atmpair_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">):</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedLengthFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">coords</span><span class="p">,</span> <span class="n">atmpair_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">E</span></div></div>
 
 
@@ -238,8 +238,8 @@
             <span class="n">param_resolver</span><span class="o">=</span><span class="n">CartBondedParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">cb_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="CartBondedAngleOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedAngleOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atmtriple_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
-        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedAngleFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">atmtriple_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+<div class="viewcode-block" id="CartBondedAngleOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedAngleOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atmtriple_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">):</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedAngleFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">coords</span><span class="p">,</span> <span class="n">atmtriple_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">E</span></div></div>
 
 
@@ -272,8 +272,8 @@
             <span class="n">param_resolver</span><span class="o">=</span><span class="n">CartBondedParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">cb_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="CartBondedTorsionOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedTorsionOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
-        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedTorsionFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+<div class="viewcode-block" id="CartBondedTorsionOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedTorsionOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">):</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedTorsionFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">coords</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">E</span></div></div>
 
 
@@ -306,8 +306,8 @@
             <span class="n">param_resolver</span><span class="o">=</span><span class="n">CartBondedParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">cb_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="CartBondedImproperOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedImproperOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
-        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedTorsionFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+<div class="viewcode-block" id="CartBondedImproperOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedImproperOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">):</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedTorsionFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">coords</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">E</span></div></div>
 
 
@@ -341,8 +341,8 @@
             <span class="n">param_resolver</span><span class="o">=</span><span class="n">CartBondedParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">cb_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="CartBondedHxlTorsionOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedHxlTorsionOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
-        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedTorsionFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+<div class="viewcode-block" id="CartBondedHxlTorsionOp.score"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedHxlTorsionOp.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">):</span>
+        <span class="n">E</span> <span class="o">=</span> <span class="n">CartBondedTorsionFun</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="n">coords</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">E</span></div></div>
 
 
@@ -351,7 +351,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">op</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-<div class="viewcode-block" id="CartBondedLengthFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedLengthFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">atmpair_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+<div class="viewcode-block" id="CartBondedLengthFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedLengthFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atmpair_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">atmpair_indices</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
         <span class="k">assert</span> <span class="n">atmpair_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
         <span class="k">assert</span> <span class="n">parameter_indices</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
@@ -359,7 +359,7 @@
 
         <span class="n">ctx</span><span class="o">.</span><span class="n">coords_shape</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
         <span class="n">E</span><span class="p">,</span> <span class="n">dE_dA</span><span class="p">,</span> <span class="n">dE_dB</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">f</span><span class="p">(</span>
-            <span class="n">atmpair_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span>
+            <span class="n">coords</span><span class="p">,</span> <span class="n">atmpair_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span>
         <span class="p">)</span>
 
         <span class="n">atmpair_indices</span> <span class="o">=</span> <span class="n">atmpair_indices</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># coo_tensor wants this</span>
@@ -377,7 +377,7 @@
             <span class="n">ind_ij</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dV_dE</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">dE_dJ</span><span class="p">,</span> <span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">coords_shape</span><span class="p">)</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
 
-        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">dV_dA</span> <span class="o">+</span> <span class="n">dV_dB</span><span class="p">))</span></div></div>
+        <span class="k">return</span> <span class="p">((</span><span class="n">dV_dA</span> <span class="o">+</span> <span class="n">dV_dB</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="CartBondedAngleFun"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedAngleFun">[docs]</a><span class="k">class</span> <span class="nc">CartBondedAngleFun</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
@@ -385,7 +385,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">op</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-<div class="viewcode-block" id="CartBondedAngleFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedAngleFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">atmtriple_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+<div class="viewcode-block" id="CartBondedAngleFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedAngleFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atmtriple_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">atmtriple_indices</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
         <span class="k">assert</span> <span class="n">atmtriple_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
         <span class="k">assert</span> <span class="n">parameter_indices</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
@@ -393,7 +393,7 @@
 
         <span class="n">ctx</span><span class="o">.</span><span class="n">coords_shape</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
         <span class="n">E</span><span class="p">,</span> <span class="n">dE_dA</span><span class="p">,</span> <span class="n">dE_dB</span><span class="p">,</span> <span class="n">dE_dC</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">f</span><span class="p">(</span>
-            <span class="n">atmtriple_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span>
+            <span class="n">coords</span><span class="p">,</span> <span class="n">atmtriple_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span>
         <span class="p">)</span>
 
         <span class="n">atmtriple_indices</span> <span class="o">=</span> <span class="n">atmtriple_indices</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># coo_tensor wants this</span>
@@ -414,7 +414,7 @@
             <span class="n">ind_ijk</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dV_dE</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">dE_dK</span><span class="p">,</span> <span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">coords_shape</span><span class="p">)</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
 
-        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">dV_dA</span> <span class="o">+</span> <span class="n">dV_dB</span> <span class="o">+</span> <span class="n">dV_dC</span><span class="p">))</span></div></div>
+        <span class="k">return</span> <span class="p">((</span><span class="n">dV_dA</span> <span class="o">+</span> <span class="n">dV_dB</span> <span class="o">+</span> <span class="n">dV_dC</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="CartBondedTorsionFun"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedTorsionFun">[docs]</a><span class="k">class</span> <span class="nc">CartBondedTorsionFun</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
@@ -422,7 +422,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">op</span> <span class="o">=</span> <span class="n">op</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
-<div class="viewcode-block" id="CartBondedTorsionFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedTorsionFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+<div class="viewcode-block" id="CartBondedTorsionFun.forward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.torch_op.html#tmol.score.cartbonded.torch_op.CartBondedTorsionFun.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">atmquad_indices</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
         <span class="k">assert</span> <span class="n">atmquad_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span>
         <span class="k">assert</span> <span class="n">parameter_indices</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
@@ -430,7 +430,7 @@
 
         <span class="n">ctx</span><span class="o">.</span><span class="n">coords_shape</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
         <span class="n">E</span><span class="p">,</span> <span class="n">dE_dA</span><span class="p">,</span> <span class="n">dE_dB</span><span class="p">,</span> <span class="n">dE_dC</span><span class="p">,</span> <span class="n">dE_dD</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">f</span><span class="p">(</span>
-            <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span>
+            <span class="n">coords</span><span class="p">,</span> <span class="n">atmquad_indices</span><span class="p">,</span> <span class="n">parameter_indices</span><span class="p">,</span> <span class="o">**</span><span class="n">ctx</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">params</span>
         <span class="p">)</span>
 
         <span class="n">atmquad_indices</span> <span class="o">=</span> <span class="n">atmquad_indices</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># coo_tensor wants this</span>
@@ -454,7 +454,7 @@
             <span class="n">ind_ijkl</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dV_dE</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">dE_dL</span><span class="p">,</span> <span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">coords_shape</span><span class="p">)</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
 
-        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">dV_dA</span> <span class="o">+</span> <span class="n">dV_dB</span> <span class="o">+</span> <span class="n">dV_dC</span> <span class="o">+</span> <span class="n">dV_dD</span><span class="p">))</span></div></div>
+        <span class="k">return</span> <span class="p">((</span><span class="n">dV_dA</span> <span class="o">+</span> <span class="n">dV_dB</span> <span class="o">+</span> <span class="n">dV_dC</span> <span class="o">+</span> <span class="n">dV_dD</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
@@ -491,7 +491,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-153-g23bed8ee',
+              VERSION:'0.0.0-154-gda189d30',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

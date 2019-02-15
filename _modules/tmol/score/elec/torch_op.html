@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.elec.torch_op &mdash; TMol 0.0.0-153-g23bed8ee documentation</title>
+  <title>tmol.score.elec.torch_op &mdash; TMol 0.0.0-154-gda189d30 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-153-g23bed8ee
+                0.0.0-154-gda189d30
               </div>
             
           
@@ -173,7 +173,6 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
-<span class="kn">from</span> <span class="nn">tmol.utility.args</span> <span class="k">import</span> <span class="n">ignore_unused_kwargs</span>
 <span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">ElecDatabase</span><span class="p">,</span> <span class="n">ElecParamResolver</span>
 
 
@@ -190,13 +189,13 @@
     <span class="k">def</span> <span class="nf">_load_f</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">compiled</span>
 
-        <span class="k">return</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">elec</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">compiled</span><span class="o">.</span><span class="n">elec</span></div>
 
 <div class="viewcode-block" id="ElecOp._load_f_triu"><a class="viewcode-back" href="../../../../apidoc/tmol.score.elec.torch_op.html#tmol.score.elec.torch_op.ElecOp._load_f_triu">[docs]</a>    <span class="nd">@f_triu</span><span class="o">.</span><span class="n">default</span>
     <span class="k">def</span> <span class="nf">_load_f_triu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">.potentials</span> <span class="k">import</span> <span class="n">compiled</span>
 
-        <span class="k">return</span> <span class="n">ignore_unused_kwargs</span><span class="p">(</span><span class="n">compiled</span><span class="o">.</span><span class="n">elec_triu</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">compiled</span><span class="o">.</span><span class="n">elec_triu</span></div>
 
 <div class="viewcode-block" id="ElecOp.from_param_resolver"><a class="viewcode-back" href="../../../../apidoc/tmol.score.elec.torch_op.html#tmol.score.elec.torch_op.ElecOp.from_param_resolver">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_param_resolver</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_resolver</span><span class="p">:</span> <span class="n">ElecParamResolver</span><span class="p">):</span>
@@ -313,7 +312,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-153-g23bed8ee',
+              VERSION:'0.0.0-154-gda189d30',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

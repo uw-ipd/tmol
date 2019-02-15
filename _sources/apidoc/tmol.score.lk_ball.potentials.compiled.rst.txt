@@ -7,7 +7,7 @@ tmol.score.lk_ball.potentials.compiled
 .. currentmodule:: tmol.score.lk_ball.potentials.compiled
 
 .. automodule:: tmol.score.lk_ball.potentials.compiled
-    :members: AttachedWaters, AttachedWatersFun, LKBall, LKBallFun
+    :members: attached_waters_backward, attached_waters_forward, lk_ball_V, lk_ball_dV
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -15,16 +15,16 @@ tmol.score.lk_ball.potentials.compiled
     Summary
     -------
 
-    Classes
-    ~~~~~~~
-
+    Functions
+    ~~~~~~~~~
+    
     .. autosummary::
         :nosignatures:
 
-        AttachedWaters
-        AttachedWatersFun
-        LKBall
-        LKBallFun
+        attached_waters_backward
+        attached_waters_forward
+        lk_ball_V
+        lk_ball_dV
 
 
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-153-g23bed8ee documentation</title>
+  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-154-gda189d30 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-153-g23bed8ee
+                0.0.0-154-gda189d30
               </div>
             
           
@@ -217,8 +217,8 @@
     <span class="n">param_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="CartBondedLengthScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedLengthScore">[docs]</a><span class="nd">@reactive_attrs</span>
-<span class="k">class</span> <span class="nc">CartBondedLengthScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
+<div class="viewcode-block" id="CartBondedIntraScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedIntraScore">[docs]</a><span class="nd">@reactive_attrs</span>
+<span class="k">class</span> <span class="nc">CartBondedIntraScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_length</span><span class="p">(</span><span class="n">cartbonded_length</span><span class="p">):</span>
@@ -230,14 +230,11 @@
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">cartbonded_length</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_length_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_lengths</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_lengths</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="CartBondedAngleScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedAngleScore">[docs]</a><span class="nd">@reactive_attrs</span>
-<span class="k">class</span> <span class="nc">CartBondedAngleScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_angle</span><span class="p">(</span><span class="n">cartbonded_angle</span><span class="p">):</span>
@@ -249,14 +246,11 @@
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">cartbonded_angle</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_angle_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_angles</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_angles</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="CartBondedTorsionScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedTorsionScore">[docs]</a><span class="nd">@reactive_attrs</span>
-<span class="k">class</span> <span class="nc">CartBondedTorsionScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_torsion</span><span class="p">(</span><span class="n">cartbonded_torsion</span><span class="p">):</span>
@@ -268,14 +262,11 @@
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">cartbonded_torsion</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_torsion_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_torsions</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_torsions</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="CartBondedImproperScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedImproperScore">[docs]</a><span class="nd">@reactive_attrs</span>
-<span class="k">class</span> <span class="nc">CartBondedImproperScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_improper</span><span class="p">(</span><span class="n">cartbonded_improper</span><span class="p">):</span>
@@ -287,14 +278,11 @@
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">cartbonded_improper</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_improper_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_impropers</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_impropers</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-        <span class="p">)</span></div>
+        <span class="p">)</span>
 
-
-<div class="viewcode-block" id="CartBondedHxlTorsionScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedHxlTorsionScore">[docs]</a><span class="nd">@reactive_attrs</span>
-<span class="k">class</span> <span class="nc">CartBondedHxlTorsionScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_hxltorsion</span><span class="p">(</span><span class="n">cartbonded_hxltorsion</span><span class="p">):</span>
@@ -309,9 +297,9 @@
             <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([],</span> <span class="n">device</span><span class="o">=</span><span class="n">target</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_hxltorsion_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
+                <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
                 <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_hxltorsions</span><span class="o">.</span><span class="n">atom_indices</span><span class="p">,</span>
                 <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_hxltorsions</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
-                <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
             <span class="p">)</span></div>
 
 
@@ -323,27 +311,27 @@
     <span class="n">total_score_components</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">ScoreComponentClasses</span><span class="p">(</span>
             <span class="s2">&quot;cartbonded_length&quot;</span><span class="p">,</span>
-            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedLengthScore</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedIntraScore</span><span class="p">,</span>
             <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">ScoreComponentClasses</span><span class="p">(</span>
             <span class="s2">&quot;cartbonded_angle&quot;</span><span class="p">,</span>
-            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedAngleScore</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedIntraScore</span><span class="p">,</span>
             <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">ScoreComponentClasses</span><span class="p">(</span>
             <span class="s2">&quot;cartbonded_torsion&quot;</span><span class="p">,</span>
-            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedTorsionScore</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedIntraScore</span><span class="p">,</span>
             <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">ScoreComponentClasses</span><span class="p">(</span>
             <span class="s2">&quot;cartbonded_improper&quot;</span><span class="p">,</span>
-            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedImproperScore</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedIntraScore</span><span class="p">,</span>
             <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">),</span>
         <span class="n">ScoreComponentClasses</span><span class="p">(</span>
             <span class="s2">&quot;cartbonded_hxltorsion&quot;</span><span class="p">,</span>
-            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedHxlTorsionScore</span><span class="p">,</span>
+            <span class="n">intra_container</span><span class="o">=</span><span class="n">CartBondedIntraScore</span><span class="p">,</span>
             <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="p">),</span>
     <span class="p">]</span>
@@ -611,7 +599,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-153-g23bed8ee',
+              VERSION:'0.0.0-154-gda189d30',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
