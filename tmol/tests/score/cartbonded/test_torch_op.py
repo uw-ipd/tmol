@@ -159,7 +159,7 @@ def test_cartbonded_length_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedLengthOp.from_param_resolver(s.param_resolver)
 
-    V = op.score(s.tbondlength_atom_indices, s.tbondlength_indices, s.tcoords[0, :])
+    V = op.score(s.tcoords[0, :], s.tbondlength_atom_indices, s.tbondlength_indices)
 
     numpy.testing.assert_allclose(V.detach().sum(), 37.78476, atol=1e-3, rtol=0)
 
@@ -173,7 +173,7 @@ def test_cartbonded_length_gradcheck(default_database, ubq_system, torch_device)
     def eval_cbl(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op.score(s.tbondlength_atom_indices, s.tbondlength_indices, coords)
+        v = op.score(coords, s.tbondlength_atom_indices, s.tbondlength_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
@@ -186,7 +186,7 @@ def test_cartbonded_angle_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedAngleOp.from_param_resolver(s.param_resolver)
 
-    V = op.score(s.tbondangle_atom_indices, s.tbondangle_indices, s.tcoords[0, :])
+    V = op.score(s.tcoords[0, :], s.tbondangle_atom_indices, s.tbondangle_indices)
 
     numpy.testing.assert_allclose(V.detach().sum(), 183.578, atol=1e-3, rtol=0)
 
@@ -200,7 +200,7 @@ def test_cartbonded_angle_gradcheck(default_database, ubq_system, torch_device):
     def eval_cba(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op.score(s.tbondangle_atom_indices, s.tbondangle_indices, coords)
+        v = op.score(coords, s.tbondangle_atom_indices, s.tbondangle_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
@@ -213,7 +213,7 @@ def test_cartbonded_torsion_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedTorsionOp.from_param_resolver(s.param_resolver)
 
-    V = op.score(s.ttorsion_atom_indices, s.ttorsion_indices, s.tcoords[0, :])
+    V = op.score(s.tcoords[0, :], s.ttorsion_atom_indices, s.ttorsion_indices)
 
     numpy.testing.assert_allclose(V.detach().sum(), 50.5842, atol=1e-3, rtol=0)
 
@@ -227,7 +227,7 @@ def test_cartbonded_torsion_gradcheck(default_database, ubq_system, torch_device
     def eval_cbt(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op.score(s.ttorsion_atom_indices, s.ttorsion_indices, coords)
+        v = op.score(coords, s.ttorsion_atom_indices, s.ttorsion_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
@@ -240,7 +240,7 @@ def test_cartbonded_improper_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedImproperOp.from_param_resolver(s.param_resolver)
 
-    V = op.score(s.timproper_atom_indices, s.timproper_indices, s.tcoords[0, :])
+    V = op.score(s.tcoords[0, :], s.timproper_atom_indices, s.timproper_indices)
 
     numpy.testing.assert_allclose(V.detach().sum(), 9.43055, atol=1e-3, rtol=0)
 
@@ -254,7 +254,7 @@ def test_cartbonded_improper_gradcheck(default_database, ubq_system, torch_devic
     def eval_cbi(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op.score(s.timproper_atom_indices, s.timproper_indices, coords)
+        v = op.score(coords, s.timproper_atom_indices, s.timproper_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
@@ -267,7 +267,7 @@ def test_cartbonded_hxltorsion_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedHxlTorsionOp.from_param_resolver(s.param_resolver)
 
-    V = op.score(s.thxltorsion_atom_indices, s.thxltorsion_indices, s.tcoords[0, :])
+    V = op.score(s.tcoords[0, :], s.thxltorsion_atom_indices, s.thxltorsion_indices)
 
     numpy.testing.assert_allclose(V.detach().sum(), 47.4197, atol=1e-3, rtol=0)
 
@@ -286,7 +286,7 @@ def test_cartbonded_hxltorsion_gradcheck(default_database, ubq_system, torch_dev
     def eval_cbh(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op.score(s.thxltorsion_atom_indices, s.thxltorsion_indices, coords)
+        v = op.score(coords, s.thxltorsion_atom_indices, s.thxltorsion_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]

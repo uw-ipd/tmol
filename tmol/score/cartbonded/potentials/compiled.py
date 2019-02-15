@@ -9,7 +9,26 @@ _compiled = load(
     ),
 )
 
-cartbonded_length = _compiled.cartbonded_length
-cartbonded_angle = _compiled.cartbonded_angle
-cartbonded_torsion = _compiled.cartbonded_torsion
-cartbonded_hxltorsion = _compiled.cartbonded_hxltorsion
+
+def cartbonded_length(*args, **kwargs):
+    return _compiled.cartbonded_length[(args[0].device.type, args[0].dtype)](
+        *args, **kwargs
+    )
+
+
+def cartbonded_angle(*args, **kwargs):
+    return _compiled.cartbonded_angle[(args[0].device.type, args[0].dtype)](
+        *args, **kwargs
+    )
+
+
+def cartbonded_torsion(*args, **kwargs):
+    return _compiled.cartbonded_torsion[(args[0].device.type, args[0].dtype)](
+        *args, **kwargs
+    )
+
+
+def cartbonded_hxltorsion(*args, **kwargs):
+    return _compiled.cartbonded_hxltorsion[(args[0].device.type, args[0].dtype)](
+        *args, **kwargs
+    )
