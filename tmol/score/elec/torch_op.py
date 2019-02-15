@@ -6,7 +6,6 @@ from typing import Callable, Mapping
 import torch
 
 from tmol.types.functional import validate_args
-from tmol.utility.args import ignore_unused_kwargs
 from .params import ElecDatabase, ElecParamResolver
 
 
@@ -23,13 +22,13 @@ class ElecOp:
     def _load_f(self):
         from .potentials import compiled
 
-        return ignore_unused_kwargs(compiled.elec)
+        return compiled.elec
 
     @f_triu.default
     def _load_f_triu(self):
         from .potentials import compiled
 
-        return ignore_unused_kwargs(compiled.elec_triu)
+        return compiled.elec_triu
 
     @classmethod
     def from_param_resolver(cls, param_resolver: ElecParamResolver):

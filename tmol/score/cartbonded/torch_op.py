@@ -37,8 +37,8 @@ class CartBondedLengthOp:
             param_resolver=CartBondedParamResolver.from_database(cb_database, device)
         )
 
-    def score(self, atmpair_indices, parameter_indices, coords):
-        E = CartBondedLengthFun(self)(atmpair_indices, parameter_indices, coords)
+    def score(self, coords, atmpair_indices, parameter_indices):
+        E = CartBondedLengthFun(self)(coords, atmpair_indices, parameter_indices)
         return E
 
 
@@ -71,8 +71,8 @@ class CartBondedAngleOp:
             param_resolver=CartBondedParamResolver.from_database(cb_database, device)
         )
 
-    def score(self, atmtriple_indices, parameter_indices, coords):
-        E = CartBondedAngleFun(self)(atmtriple_indices, parameter_indices, coords)
+    def score(self, coords, atmtriple_indices, parameter_indices):
+        E = CartBondedAngleFun(self)(coords, atmtriple_indices, parameter_indices)
         return E
 
 
@@ -105,8 +105,8 @@ class CartBondedTorsionOp:
             param_resolver=CartBondedParamResolver.from_database(cb_database, device)
         )
 
-    def score(self, atmquad_indices, parameter_indices, coords):
-        E = CartBondedTorsionFun(self)(atmquad_indices, parameter_indices, coords)
+    def score(self, coords, atmquad_indices, parameter_indices):
+        E = CartBondedTorsionFun(self)(coords, atmquad_indices, parameter_indices)
         return E
 
 
@@ -139,8 +139,8 @@ class CartBondedImproperOp:
             param_resolver=CartBondedParamResolver.from_database(cb_database, device)
         )
 
-    def score(self, atmquad_indices, parameter_indices, coords):
-        E = CartBondedTorsionFun(self)(atmquad_indices, parameter_indices, coords)
+    def score(self, coords, atmquad_indices, parameter_indices):
+        E = CartBondedTorsionFun(self)(coords, atmquad_indices, parameter_indices)
         return E
 
 
@@ -174,8 +174,8 @@ class CartBondedHxlTorsionOp:
             param_resolver=CartBondedParamResolver.from_database(cb_database, device)
         )
 
-    def score(self, atmquad_indices, parameter_indices, coords):
-        E = CartBondedTorsionFun(self)(atmquad_indices, parameter_indices, coords)
+    def score(self, coords, atmquad_indices, parameter_indices):
+        E = CartBondedTorsionFun(self)(coords, atmquad_indices, parameter_indices)
         return E
 
 
@@ -184,7 +184,7 @@ class CartBondedLengthFun(torch.autograd.Function):
         self.op = op
         super().__init__()
 
-    def forward(ctx, atmpair_indices, parameter_indices, coords):
+    def forward(ctx, coords, atmpair_indices, parameter_indices):
         assert atmpair_indices.dim() == 2
         assert atmpair_indices.shape[1] == 2
         assert parameter_indices.dim() == 1
@@ -192,7 +192,7 @@ class CartBondedLengthFun(torch.autograd.Function):
 
         ctx.coords_shape = coords.size()
         E, dE_dA, dE_dB = ctx.op.f(
-            atmpair_indices, parameter_indices, coords, **ctx.op.params
+            coords, atmpair_indices, parameter_indices, **ctx.op.params
         )
 
         atmpair_indices = atmpair_indices.transpose(0, 1)  # coo_tensor wants this
@@ -210,7 +210,7 @@ class CartBondedLengthFun(torch.autograd.Function):
             ind_ij[1, None, :], dV_dE[..., None] * dE_dJ, (ctx.coords_shape)
         ).to_dense()
 
-        return (None, None, (dV_dA + dV_dB))
+        return ((dV_dA + dV_dB), None, None)
 
 
 class CartBondedAngleFun(torch.autograd.Function):
@@ -218,7 +218,7 @@ class CartBondedAngleFun(torch.autograd.Function):
         self.op = op
         super().__init__()
 
-    def forward(ctx, atmtriple_indices, parameter_indices, coords):
+    def forward(ctx, coords, atmtriple_indices, parameter_indices):
         assert atmtriple_indices.dim() == 2
         assert atmtriple_indices.shape[1] == 3
         assert parameter_indices.dim() == 1
@@ -226,7 +226,7 @@ class CartBondedAngleFun(torch.autograd.Function):
 
         ctx.coords_shape = coords.size()
         E, dE_dA, dE_dB, dE_dC = ctx.op.f(
-            atmtriple_indices, parameter_indices, coords, **ctx.op.params
+            coords, atmtriple_indices, parameter_indices, **ctx.op.params
         )
 
         atmtriple_indices = atmtriple_indices.transpose(0, 1)  # coo_tensor wants this
@@ -247,7 +247,7 @@ class CartBondedAngleFun(torch.autograd.Function):
             ind_ijk[2, None, :], dV_dE[..., None] * dE_dK, (ctx.coords_shape)
         ).to_dense()
 
-        return (None, None, (dV_dA + dV_dB + dV_dC))
+        return ((dV_dA + dV_dB + dV_dC), None, None)
 
 
 class CartBondedTorsionFun(torch.autograd.Function):
@@ -255,7 +255,7 @@ class CartBondedTorsionFun(torch.autograd.Function):
         self.op = op
         super().__init__()
 
-    def forward(ctx, atmquad_indices, parameter_indices, coords):
+    def forward(ctx, coords, atmquad_indices, parameter_indices):
         assert atmquad_indices.dim() == 2
         assert atmquad_indices.shape[1] == 4
         assert parameter_indices.dim() == 1
@@ -263,7 +263,7 @@ class CartBondedTorsionFun(torch.autograd.Function):
 
         ctx.coords_shape = coords.size()
         E, dE_dA, dE_dB, dE_dC, dE_dD = ctx.op.f(
-            atmquad_indices, parameter_indices, coords, **ctx.op.params
+            coords, atmquad_indices, parameter_indices, **ctx.op.params
         )
 
         atmquad_indices = atmquad_indices.transpose(0, 1)  # coo_tensor wants this
@@ -287,4 +287,4 @@ class CartBondedTorsionFun(torch.autograd.Function):
             ind_ijkl[3, None, :], dV_dE[..., None] * dE_dL, (ctx.coords_shape)
         ).to_dense()
 
-        return (None, None, (dV_dA + dV_dB + dV_dC + dV_dD))
+        return ((dV_dA + dV_dB + dV_dC + dV_dD), None, None)
