@@ -414,7 +414,6 @@ class BSplineInterpolation:
             wts_expand = wts_expand.view(nx, -1, 1) * wts_bydim[:, :, dim].view(
                 nx, 1, -1
             )
-
         if Y is not None:
             non_interp_dims_offset = interp_dims_offset
             # create a tuple of -1 followed by 1s of the right length for broadcasting
@@ -429,6 +428,8 @@ class BSplineInterpolation:
         retval = torch.sum(
             wts_expand.view(nx, -1) * self.coeffs.view(-1)[inds].view(nx, -1), 1
         )
+
+        # print (wts_expand, self.coeffs.view(-1)[inds])
 
         return retval
 

@@ -11,6 +11,8 @@
 
 #include "datatypes.hh"
 
+#undef B0
+
 namespace tmol {
 namespace score {
 namespace lk_ball {
@@ -121,10 +123,9 @@ struct build_acc_water {
 
     // Build water in frame
     return (
-        M
-            * Real3({dist * std::cos(pi - angle),
-                     dist * std::sin(pi - angle) * std::cos(torsion),
-                     dist * std::sin(pi - angle) * std::sin(torsion)})
+        M * Real3({dist * std::cos(pi - angle),
+                   dist * std::sin(pi - angle) * std::cos(torsion),
+                   dist * std::sin(pi - angle) * std::sin(torsion)})
         + A);
   }
 

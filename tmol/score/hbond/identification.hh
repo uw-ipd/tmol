@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <tmol/score/bonded_atom.hh>
 
+#undef B0
+
 namespace tmol {
 namespace score {
 namespace hbond {
