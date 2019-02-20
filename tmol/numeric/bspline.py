@@ -77,14 +77,15 @@ class BSplineInterpolation:
 
         # we only implement the python interface for CPU
         assert coords.device == torch.device("cpu")
+        coeffs = coords.clone()
 
         input_shape = coords.shape
         if len(input_shape) == 2:
-            coeffs = compiled.computeCoeffs2(coords)
+            compiled.computeCoeffs2(coeffs)
         elif len(input_shape) == 3:
-            coeffs = compiled.computeCoeffs3(coords)
+            compiled.computeCoeffs3(coeffs)
         elif len(input_shape) == 4:
-            coeffs = compiled.computeCoeffs4(coords)
+            compiled.computeCoeffs4(coeffs)
         else:
             raise ValueError("Unsupported dimensionality in BSplineInterpolation!")
 
