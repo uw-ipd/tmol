@@ -9,15 +9,17 @@ from tmol.score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 
-from tmol.utility.reactive import reactive_attrs
+from tmol.score.score_graph import score_graph
+
+from tmol.tests.autograd import gradcheck
 
 
-@reactive_attrs
+@score_graph
 class RealSpaceScore(CartesianAtomicCoordinateProvider, TotalScoreGraph):
     pass
 
 
-@reactive_attrs
+@score_graph
 class DofSpaceScore(KinematicAtomicCoordinateProvider, TotalScoreGraph):
     pass
 
@@ -62,7 +64,7 @@ def test_torsion_space_coord_smoke(ubq_system):
     assert pdofs.grad is not None
 
 
-def test_torsion_space_to_coordinate_gradcheck(ubq_res):
+def test_torsion_space_to_cart_space_gradcheck(ubq_res):
     tsys = PackedResidueSystem.from_residues(ubq_res[:6])
 
     torsion_space = DofSpaceScore.build_for(tsys)
@@ -72,12 +74,8 @@ def test_torsion_space_to_coordinate_gradcheck(ubq_res):
 
     cmask = torch.isnan(start_coords).sum(dim=-1) == 0
 
-    def coord_residuals(dofs):
+    def coords(dofs):
         torsion_space.dofs = dofs
-        res = (torsion_space.coords[cmask] - (start_coords[cmask])).sum(dim=-1)
+        return torsion_space.coords[cmask]
 
-        return res
-
-    assert torch.autograd.gradcheck(
-        coord_residuals, (start_dofs,), eps=5e-3, atol=5e-4, rtol=5e-3
-    )
+    assert gradcheck(coords, (start_dofs,), eps=1e-1, atol=1e-6, rtol=2e-3)

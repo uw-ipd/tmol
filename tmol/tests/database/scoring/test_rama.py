@@ -1,75 +1,20 @@
-import numpy
-import torch
-import zarr
-import os
 import pytest
 
-from tmol.database.scoring.rama import (
-    RamaDatabase,
-    RamaDBFromText,
-    CompactedRamaDatabase,
-)
+from tmol.database.scoring.rama import RamaDatabase
 from tmol.database import ParameterDatabase
 
+import re
 
-def test_rama_from_json():
-    fname = "tmol/database/default/scoring/rama.json"
-    ramadb = RamaDatabase.from_file(fname, read_binary=False, write_binary=False)
+
+def test_rama_construction_smoke():
+    fname = "tmol/database/default/scoring/rama/"
+    ramadb = RamaDatabase.from_files(fname)
     assert len(ramadb.tables) == 40
-
-
-def test_save_rama_with_zarr():
-    # setup
-    fname = "tmol/database/default/scoring/rama.json"
-    temp_fname = "temp_rama.json"
-    RamaDatabase.clear_binary_rep_for_file(temp_fname)
-    if os.path.isfile(temp_fname):
-        os.remove(temp_fname)
-    os.system("ln -s %s %s" % (fname, temp_fname))
-
-    ramadb = RamaDatabase.from_file(temp_fname, read_binary=False, write_binary=True)
-    assert len(ramadb.tables) == 40
-    zgroup = zarr.group(ramadb.binary_filename_for_path(temp_fname))
-    assert "LAA_ALA_STANDARD" in zgroup
-    assert "LAA_ALA_STANDARD" in zgroup.attrs["tables"]
-
-    # clean up
-    os.remove(temp_fname)
-    RamaDatabase.clear_binary_rep_for_file(temp_fname)
-
-
-def test_rama_with_zarr_matches_rama_from_json():
-    # setup
-    fname = "tmol/database/default/scoring/rama.json"
-    temp_fname = "temp_rama.json"
-    RamaDatabase.clear_binary_rep_for_file(temp_fname)
-    if os.path.isfile(temp_fname):
-        os.remove(temp_fname)
-    os.system("ln -s %s %s" % (fname, temp_fname))
-
-    ramadb_from_json = RamaDatabase.from_file(
-        fname, read_binary=False, write_binary=False
-    )
-    assert len(ramadb_from_json.tables) == 40
-
-    ramadb_from_binary = RamaDatabase.from_file(fname, read_binary=True)
-    for i, json_table in enumerate(ramadb_from_json.tables):
-        bin_table = ramadb_from_binary.tables[i]
-        assert json_table.name == bin_table.name
-        assert json_table.probabilities == bin_table.probabilities
-        assert json_table.energies == bin_table.energies
-
-    # clean up
-    os.remove(temp_fname)
-    RamaDatabase.clear_binary_rep_for_file(temp_fname)
 
 
 def test_rama_mapper():
-    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
+    ramadb = RamaDatabase.from_files("tmol/database/default/scoring/rama/")
     mapper = ramadb.mapper
-    assert len(mapper.ndots_to_consider) == 1
-    assert mapper.ndots_to_consider[0] == 3
-    assert mapper.substr_end_for_ndotted_prefix("1.2.3.4.5", 3) == 7
     assert (
         mapper.table_ind_for_res(["aa.alpha.l.alanine"], ["aa.alpha.l.proline"]) == 20
     )
@@ -82,59 +27,13 @@ def test_rama_mapper():
     )
 
 
-def test_compacted_rama(torch_device):
-    ramadb = RamaDatabase.from_file("tmol/database/default/scoring/rama.json")
-    compacted = CompactedRamaDatabase.from_ramadb(ramadb, torch_device)
-    assert compacted.table.shape == (40, 36, 36)
-    phi_vals = (
-        torch.arange(36, device=torch_device)
-        .reshape(-1, 1)
-        .repeat(1, 36)
-        .reshape(-1, 1)
-    )
-    psi_vals = torch.arange(36, device=torch_device).repeat(1, 36).reshape(-1, 1)
-    x = torch.cat((phi_vals, psi_vals), dim=1)
-    y = torch.full((36 * 36, 1), 0, dtype=torch.long, device=torch_device)
-    for i in range(20):
-        for j in range(2):
-            y[:, 0] = i + 20 * j
-            xlong = x.type(torch.long)
-            inds = y[:, 0] * 36 * 36 + xlong[:, 0] * 36 + xlong[:, 1]
-            original_vals = compacted.table.reshape(-1)[inds]
-            interp_vals = compacted.bspline.interpolate(x, y)
-            numpy.testing.assert_allclose(
-                interp_vals.cpu().detach().numpy(),
-                original_vals.cpu().detach().numpy(),
-                atol=1e-5,
-                rtol=1e-7,
-            )
-
-
-def test_load_compacted_rama_once(torch_device):
-    db = ParameterDatabase.get_default()
-    crama1 = CompactedRamaDatabase.from_ramadb(db.scoring.rama, torch_device)
-    crama2 = CompactedRamaDatabase.from_ramadb(db.scoring.rama, torch_device)
-    assert crama1 is crama2
-
-
 @pytest.mark.benchmark(group="rama_load", min_rounds=1)
-@pytest.mark.parametrize("method", ["json", "binary"])
+@pytest.mark.parametrize("method", ["binary"])
 def test_rama_load_benchmark(benchmark, method):
-    import yaml
-    import json
-    import cattr
 
-    path = {
-        "json": "tmol/database/default/scoring/rama.json",
-        "binary": "tmol/database/default/scoring/rama.json",
-    }[method]
+    path = {"binary": "tmol/database/default/scoring/rama/"}[method]
 
-    load = {
-        "json": lambda infile: cattr.structure(
-            json.load(open(infile, "r")), RamaDBFromText
-        ),
-        "binary": lambda infile: RamaDatabase.load_textrep_from_binary(infile),
-    }[method]
+    load = {"binary": lambda infile: RamaDatabase.from_files(infile)}[method]
 
     @benchmark
     def db():
@@ -149,4 +48,4 @@ def test_rama_repr():
     parts = rama_repr.partition("(")
     assert parts[0] == "RamaDatabase"
     rama_path_parts = parts[2].partition("tmol/database/")
-    assert rama_path_parts[2] == "default/scoring/rama.json)"
+    assert rama_path_parts[2] == "default/scoring/rama/)"

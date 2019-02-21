@@ -3,10 +3,10 @@ import toolz
 import numpy
 import pandas
 
-from tmol.utility.reactive import reactive_attrs
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
+from tmol.score.score_graph import score_graph
 
 from tmol.system.packed import PackedResidueSystem
 
@@ -14,7 +14,7 @@ from tmol.system.packed import PackedResidueSystem
 def hbond_score_comparison(rosetta_baseline):
     test_system = PackedResidueSystem.from_residues(rosetta_baseline.tmol_residues)
 
-    @reactive_attrs
+    @score_graph
     class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph):
         pass
 
@@ -22,8 +22,9 @@ def hbond_score_comparison(rosetta_baseline):
 
     # Extract list of hbonds from packed system into summary table
     # via atom metadata
-    h_i = hbond_graph.intra_score().hbond_pair_metadata["h"]
-    a_i = hbond_graph.intra_score().hbond_pair_metadata["a"]
+    hbond_descr = hbond_graph.intra_score().hbond_descr
+    h_i = hbond_descr.donor.H
+    a_i = hbond_descr.acceptor.A
     tmol_candidate_hbonds = pandas.DataFrame.from_dict(
         toolz.merge(
             {
@@ -31,11 +32,14 @@ def hbond_score_comparison(rosetta_baseline):
                 "h_atom": test_system.atom_metadata["atom_name"][h_i],
                 "a_res": test_system.atom_metadata["residue_index"][a_i],
                 "a_atom": test_system.atom_metadata["atom_name"][a_i],
-                "score": numpy.nan_to_num(hbond_graph.intra_score().hbond_scores),
+                "score": numpy.nan_to_num(hbond_graph.intra_score().hbond_descr.score),
             },
             {
-                n: hbond_graph.intra_score().hbond_pair_metadata[n]
-                for n in hbond_graph.intra_score().hbond_pair_metadata.dtype.names
+                "d": hbond_descr.donor.D,
+                "h": hbond_descr.donor.H,
+                "a": hbond_descr.acceptor.A,
+                "b": hbond_descr.acceptor.B,
+                "b0": hbond_descr.acceptor.B0,
             },
         )
     ).set_index(["a", "h"])

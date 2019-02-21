@@ -8,6 +8,7 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
+import tmol.utility.numba  # noqa
 
 
 from .scan_paths import PathPartitioning

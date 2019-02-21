@@ -45,7 +45,8 @@ def test_ambig_identification(
     )
     assert len(expected_acceptors) == len(water_box_system.residues)
 
-    element_analysis: HBondElementAnalysis = HBondElementAnalysis.setup(
+    element_analysis = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
         hbond_database=default_database.scoring.hbond,
         atom_types=water_box_system.atom_metadata["atom_type"],
         bonds=water_box_system.bonds,
@@ -62,7 +63,7 @@ def test_ambig_identification(
     )
 
     identified_acceptors = (
-        pandas.DataFrame.from_records(element_analysis.sp3_acceptors)
+        pandas.DataFrame.from_records(element_analysis.acceptors)
         .sort_values(by="a")
         .reset_index(drop=True)
     )
@@ -71,11 +72,8 @@ def test_ambig_identification(
         expected_acceptors[["a"]].astype(int), identified_acceptors[["a"]]
     )
 
-    assert len(element_analysis.sp2_acceptors) == 0
-    assert len(element_analysis.ring_acceptors) == 0
 
-
-def test_bb_identification(bb_hbond_database, ubq_system):
+def test_bb_identification(default_database, bb_hbond_database, ubq_system):
     tsys = ubq_system
 
     donors = []
@@ -102,59 +100,60 @@ def test_bb_identification(bb_hbond_database, ubq_system):
 
     test_params = bonded_atoms_for_system(tsys)
 
-    hbe = HBondElementAnalysis.setup(
+    hbe = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
         hbond_database=bb_hbond_database,
         atom_types=test_params["atom_types"][0],
         bonds=test_params["bonds"][:, 1:],
     )
 
-    pandas.testing.assert_frame_equal(
-        pandas.DataFrame.from_records(
-            donors, columns=hbe.donors.dtype.names
-        ).sort_values("d"),
-        pandas.DataFrame.from_records(hbe.donors).sort_values("d"),
+    def _t(d):
+        return tuple(tuple(r.items()) for r in d)
+
+    hbe_donors = pandas.DataFrame.from_records(hbe.donors).to_dict(orient="records")
+    assert len(_t(hbe_donors)) == len(set(_t(hbe_donors)))
+    assert {(r["d"], r["h"]): r for r in hbe_donors} == {
+        (r["d"], r["h"]): r for r in donors
+    }
+
+    hbe_acceptors = pandas.DataFrame.from_records(hbe.acceptors).to_dict(
+        orient="records"
     )
-
-    pandas.testing.assert_frame_equal(
-        pandas.DataFrame.from_records(
-            acceptors, columns=hbe.sp2_acceptors.dtype.names
-        ).sort_values("a"),
-        pandas.DataFrame.from_records(hbe.sp2_acceptors).sort_values("a"),
-    )
+    assert len(_t(hbe_acceptors)) == len(set(_t(hbe_acceptors)))
+    assert {r["a"]: r for r in hbe_acceptors} == {r["a"]: r for r in acceptors}
 
 
-def test_identification_by_ljlk_types(
-    default_database: tmol.database.ParameterDatabase
+def test_identification_by_chemical_types(
+    default_database: tmol.database.ParameterDatabase,
 ):
+    """Hbond donor/acceptor identification covers all donors and accceptor atom
+    types in the chemical database."""
     db_res = default_database.chemical.residues
-    types = [
+    residue_types = [
         cattr.structure(cattr.unstructure(r), restypes.ResidueType) for r in db_res
     ]
 
-    lj_types = {t.name: t for t in default_database.scoring.ljlk.atom_type_parameters}
+    atom_types = {t.name: t for t in default_database.chemical.atom_types}
 
-    for t in types:
-        atom_types = numpy.array([a.atom_type for a in t.atoms])
-        bonds = t.bond_indicies
+    for rt in residue_types:
+        res_atom_types = numpy.array([a.atom_type for a in rt.atoms])
+        bonds = rt.bond_indicies
 
-        hbe = HBondElementAnalysis.setup(
+        hbe = HBondElementAnalysis.setup_from_database(
+            chemical_database=default_database.chemical,
             hbond_database=default_database.scoring.hbond,
-            atom_types=atom_types.astype(object),
+            atom_types=res_atom_types.astype(object),
             bonds=bonds,
         )
         identified_donors = set(hbe.donors["d"])
-        identified_acceptors = set(
-            list(hbe.sp2_acceptors["a"])
-            + list(hbe.sp3_acceptors["a"])
-            + list(hbe.ring_acceptors["a"])
-        )
+        identified_acceptors = set(hbe.acceptors["a"])
 
-        for ai, at in enumerate(atom_types):
-            if lj_types[at].is_donor:
+        for ai, at in enumerate(res_atom_types):
+            if atom_types[at].is_donor:
                 assert (
                     ai in identified_donors
-                ), f"Unidentified donor. res: {t.name} atom:{t.atoms[ai]}"
-            if lj_types[at].is_acceptor:
+                ), f"Unidentified donor. res: {rt.name} atom:{rt.atoms[ai]}"
+            if atom_types[at].is_acceptor:
                 assert (
                     ai in identified_acceptors
-                ), f"Unidentified acceptor. res: {t.name} atom:{t.atoms[ai]}"
+                ), f"Unidentified acceptor. res: {rt.name} atom:{rt.atoms[ai]}"

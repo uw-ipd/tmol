@@ -92,6 +92,8 @@ class PackedResidueSystem:
             residue_block["residue_name"] = rt.name
             residue_block["atom_name"] = [a.name for a in rt.atoms]
             residue_block["atom_type"] = [a.atom_type for a in rt.atoms]
+            # TODO Rewrite chemical database with explict element tag.
+            residue_block["atom_element"] = [a.atom_type[0] for a in rt.atoms]
             residue_block["residue_index"] = ri
 
         ### Index residue connectivity

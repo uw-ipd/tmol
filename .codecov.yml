@@ -1,5 +1,7 @@
 ignore:
   - "tmol/extern"
   - "tmol/kinematics/*_operations/*jit.py"
+  - "tmol/kinematics/*_operations/*jit.py"
+  - "tmol/score/ljlk/numba/*.py"
 codecov:
   token: e026c394-ddc8-4181-9239-504619c1d7e6

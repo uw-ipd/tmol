@@ -1,3 +1,7 @@
+.torch_extensions
+
+# Conda environment
+.conda
 # Rendered environment definitions
 environment.yml
 
@@ -6,7 +10,7 @@ dask-worker-space
 # Created by https://www.gitignore.io/api/python,jupyternotebook
 
 # src-install packages
-src
+./src
 
 ### JupyterNotebook ###
 .ipynb_checkpoints
@@ -120,3 +124,7 @@ venv.bak/
 
 
 # End of https://www.gitignore.io/api/python,jupyternotebook
+
+
+# ignore any lock files created by LMDB
+lock.mdb

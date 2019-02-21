@@ -1,39 +1,39 @@
 """Composable, scoring components for molecular systems."""
 
-from tmol.utility.reactive import reactive_attrs
-
 from . import (  # noqa: F401
     device,
     bonded_atom,
     interatomic_distance,
     ljlk,
+    elec,
+    cartbonded,
     hbond,
     coordinates,
+    score_graph,
     viewer,  # import viewer to register io overloads
     rama,
 )
 
 
-@reactive_attrs
+@score_graph.score_graph
 class TotalScoreGraph(
+    ljlk.LJScoreGraph,
+    ljlk.LKScoreGraph,
     hbond.HBondScoreGraph,
-    ljlk.LJLKScoreGraph,
-    rama.RamaScoreGraph,
-    interatomic_distance.BlockedInteratomicDistanceGraph,
-    bonded_atom.BondedAtomScoreGraph,
-    device.TorchDevice,
+    elec.ElecScoreGraph,
+    cartbonded.CartBondedScoreGraph,
 ):
     pass
 
 
-@reactive_attrs
+@score_graph.score_graph
 class KinematicTotalScoreGraph(
     coordinates.KinematicAtomicCoordinateProvider, TotalScoreGraph
 ):
     pass
 
 
-@reactive_attrs
+@score_graph.score_graph
 class CartesianTotalScoreGraph(
     coordinates.CartesianAtomicCoordinateProvider, TotalScoreGraph
 ):

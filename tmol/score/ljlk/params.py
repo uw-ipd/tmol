@@ -1,11 +1,11 @@
-from typing import Tuple, Sequence
 import attr
 import cattr
 
 import pandas
-import torch
 
+import torch
 import numpy
+
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
@@ -14,12 +14,13 @@ from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
 
 from tmol.database.scoring.ljlk import LJLKDatabase
+from tmol.database.chemical import ChemicalDatabase
 
-from . import potentials
+from ..chemical_database import AtomTypeParamResolver
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
-class LJLKGlobalParams(TensorGroup, ValidateAttrs):
+class LJLKGlobalParams(TensorGroup):
     max_dis: Tensor("f")[...]
     spline_start: Tensor("f")[...]
     lj_hbond_OH_donor_dis: Tensor("f")[...]
@@ -28,44 +29,31 @@ class LJLKGlobalParams(TensorGroup, ValidateAttrs):
     lj_switch_dis2sigma: Tensor("f")[...]
     lk_min_dis2sigma: Tensor("f")[...]
 
+    lkb_water_dist: Tensor("f")[...]
+    lkb_water_angle_sp2: Tensor("f")[...]
+    lkb_water_angle_sp3: Tensor("f")[...]
+    lkb_water_angle_ring: Tensor("f")[...]
+    lkb_water_tors_sp2: Tensor("f")[..., :]
+    lkb_water_tors_sp3: Tensor("f")[..., :]
+    lkb_water_tors_ring: Tensor("f")[..., :]
+
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
-class LJLKTypeParams(TensorGroup, ValidateAttrs):
+class LJLKTypeParams(TensorGroup):
     lj_radius: Tensor("f")[...]
     lj_wdepth: Tensor("f")[...]
     lk_dgfree: Tensor("f")[...]
     lk_lambda: Tensor("f")[...]
     lk_volume: Tensor("f")[...]
+
+    # Parameters imported from chemical database
     is_acceptor: Tensor(bool)[...]
+    acceptor_hybridization: Tensor("i4")[...]
+
     is_donor: Tensor(bool)[...]
+
     is_hydroxyl: Tensor(bool)[...]
     is_polarh: Tensor(bool)[...]
-
-
-@attr.s(auto_attribs=True, frozen=True, slots=True)
-class LJLKTypePairParams(TensorGroup, ValidateAttrs):
-    lj_rad1: Tensor("f")[...]
-    lj_rad2: Tensor("f")[...]
-    lj_sigma: Tensor("f")[...]
-    lj_wdepth: Tensor("f")[...]
-    lj_coeff_sigma6: Tensor("f")[...]
-    lj_coeff_sigma12: Tensor("f")[...]
-    lj_switch_intercept: Tensor("f")[...]
-    lj_switch_slope: Tensor("f")[...]
-    lj_spline_y0: Tensor("f")[...]
-    lj_spline_dy0: Tensor("f")[...]
-
-    lk_coeff1: Tensor("f")[...]
-    lk_coeff2: Tensor("f")[...]
-    lk_inv_lambda2_1: Tensor("f")[...]
-    lk_inv_lambda2_2: Tensor("f")[...]
-    lk_spline_close_x0: Tensor("f")[...]
-    lk_spline_close_x1: Tensor("f")[...]
-    lk_spline_close_y0: Tensor("f")[...]
-    lk_spline_close_y1: Tensor("f")[...]
-    lk_spline_close_dy1: Tensor("f")[...]
-    lk_spline_far_y0: Tensor("f")[...]
-    lk_spline_far_dy0: Tensor("f")[...]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -86,47 +74,47 @@ class LJLKParamResolver(ValidateAttrs):
     # shape [n] per-type parameters, source params used to calculate pair parameters
     type_params: LJLKTypeParams
 
-    # shape [n,n] type pair parameters
-    pair_params: LJLKTypePairParams
+    device: torch.device
 
-    def type_idx(self, atom_types: NDArray(object)[...]) -> NDArray("i8")[...]:
+    def type_idx(self, atom_types: NDArray(object)[...]) -> Tensor("i8")[...]:
         """Convert array of atom type names to parameter indices.
 
         pandas.Index.get_indexer only operates on 1-d input arrays. Coerces
         higher-dimensional arrays, as may be produced via broadcasting, into
         lower-dimensional views to resolver parameter indices.
         """
-        return self.atom_type_index.get_indexer(atom_types.ravel()).reshape(
-            atom_types.shape
-        )
+        if not isinstance(atom_types, numpy.ndarray):
+            atom_types = numpy.array(atom_types, dtype=object)
 
-    def __getitem__(
-        self, key: Tuple[Sequence[str], Sequence[str]]
-    ) -> LJLKTypePairParams:
-        """Resolve to/from atom types into broadcast pair params."""
-        from_type, to_type = key
-
-        i = self.type_idx(from_type)
-        assert not numpy.any(
-            (i == -1) | (i == len(self.atom_type_index))
-        ), "type not present in index"
-        j = self.type_idx(to_type)
-        assert not numpy.any(
-            (j == -1) | (j == len(self.atom_type_index))
-        ), "type not present in index"
-
-        return self.pair_params[i, j]
+        return torch.from_numpy(
+            self.atom_type_index.get_indexer(atom_types.ravel()).reshape(
+                atom_types.shape
+            )
+        ).to(self.device)
 
     @classmethod
     @validate_args
-    def from_database(cls, ljlk_database: LJLKDatabase, device: torch.device):
+    def from_database(
+        cls,
+        chemical_database: ChemicalDatabase,
+        ljlk_database: LJLKDatabase,
+        device: torch.device,
+    ):
         """Initialize param resolver for all atom types in database."""
+        return cls.from_param_resolver(
+            AtomTypeParamResolver.from_database(chemical_database, device=device),
+            ljlk_database,
+        )
 
-        # Generate a full atom type index, appending a "None" value at index -1
-        # to generate nan parameter entries if an atom type is not present in
-        # the index.
-        atom_type_names = [p.name for p in ljlk_database.atom_type_parameters]
-        atom_type_index = pandas.Index(atom_type_names + [None])
+    @classmethod
+    @validate_args
+    def from_param_resolver(
+        cls, atom_type_resolver: AtomTypeParamResolver, ljlk_database: LJLKDatabase
+    ):
+
+        # Reference existing atom type index from atom_type_resolver
+        atom_type_index = atom_type_resolver.index
+        device = atom_type_resolver.device
 
         # Convert float entries into 1-d tensors
         global_params = LJLKGlobalParams(
@@ -147,33 +135,27 @@ class LJLKParamResolver(ValidateAttrs):
             .reindex(index=atom_type_index)
         )
 
-        # Convert boolean types to uint8 for torch, setting the invalid/None
-        # entry to 0/false
-        for field in attr.fields(LJLKTypeParams):
-            if field.type.dtype == torch.uint8:
-                (param_records[field.name]) = (
-                    param_records[field.name].fillna(value=0).astype("u1")
-                )
-
         # Convert the param record dataframe into typed TensorGroup
         type_params = LJLKTypeParams(
+            # Reference parameters from atom_type_resolver
+            is_acceptor=atom_type_resolver.params.is_acceptor,
+            acceptor_hybridization=atom_type_resolver.params.acceptor_hybridization,
+            is_donor=atom_type_resolver.params.is_donor,
+            is_hydroxyl=atom_type_resolver.params.is_hydroxyl,
+            is_polarh=atom_type_resolver.params.is_polarh,
             **{
                 f.name: torch.tensor(
                     param_records[f.name].values, dtype=f.type.dtype, device=device
                 )
                 for f in attr.fields(LJLKTypeParams)
-            }
-        )
-
-        # Broadcast N atom type parameters against itself, resolving an [N,N]
-        # type pair parameter tensor group.
-        pair_params = potentials.render_pair_parameters(
-            global_params, type_params.reshape((-1, 1)), type_params.reshape((1, -1))
+                if f.name
+                in ("lj_radius", "lj_wdepth", "lk_dgfree", "lk_lambda", "lk_volume")
+            },
         )
 
         return cls(
             atom_type_index=atom_type_index,
             global_params=global_params,
             type_params=type_params,
-            pair_params=pair_params,
+            device=device,
         )

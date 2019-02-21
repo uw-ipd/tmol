@@ -1,67 +1,81 @@
 import pytest
 
-from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.reactive import reactive_property
 
 from tmol.score import TotalScoreGraph
 
+from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
-
-
 from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.score_components import (
-    ScoreComponent,
-    ScoreComponentClasses,
-    IntraScore,
-)
+from tmol.score.score_components import ScoreComponentClasses, IntraScore
 
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
 )
-from tmol.score.interatomic_distance import BlockedInteratomicDistanceGraph
 
-from tmol.score.ljlk import LJLKScoreGraph
+from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
+from tmol.score.elec import ElecScoreGraph
+from tmol.score.cartbonded import CartBondedScoreGraph
+from tmol.score.lk_ball import LKBallScoreGraph
 
 
-@reactive_attrs
+@score_graph
 class DummyIntra(IntraScore):
     @reactive_property
     def total_dummy(target):
         return target.coords.sum()
 
 
-@reactive_attrs
+@score_graph
 class DofSpaceDummy(
-    KinematicAtomicCoordinateProvider, BondedAtomScoreGraph, ScoreComponent, TorchDevice
+    KinematicAtomicCoordinateProvider, BondedAtomScoreGraph, TorchDevice
 ):
     total_score_components = [
         ScoreComponentClasses("dummy", intra_container=DummyIntra, inter_container=None)
     ]
 
 
-@reactive_attrs
+@score_graph
 class DofSpaceTotal(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
     pass
 
 
-@reactive_attrs
+@score_graph
 class TotalScore(CartesianAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
     pass
 
 
-@reactive_attrs
+@score_graph
 class HBondScore(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice):
     pass
 
 
-@reactive_attrs
-class LJLKScore(
-    CartesianAtomicCoordinateProvider,
-    BlockedInteratomicDistanceGraph,
-    LJLKScoreGraph,
-    TorchDevice,
+@score_graph
+class ElecScore(CartesianAtomicCoordinateProvider, ElecScoreGraph, TorchDevice):
+    pass
+
+
+@score_graph
+class CartBondedScore(
+    CartesianAtomicCoordinateProvider, CartBondedScoreGraph, TorchDevice
 ):
+    pass
+
+
+@score_graph
+class LJScore(CartesianAtomicCoordinateProvider, LJScoreGraph, TorchDevice):
+    pass
+
+
+@score_graph
+class LKScore(CartesianAtomicCoordinateProvider, LKScoreGraph, TorchDevice):
+    pass
+
+
+@score_graph
+class LKBallScore(CartesianAtomicCoordinateProvider, LKBallScoreGraph, TorchDevice):
     pass
 
 
@@ -69,7 +83,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     # Score once to prep graph
     total = score_graph.intra_score().total
 
-    if benchmark_pass is "full":
+    if benchmark_pass == "full":
 
         @benchmark
         def run():
@@ -82,7 +96,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
             return total
 
-    elif benchmark_pass is "forward":
+    elif benchmark_pass == "forward":
 
         @benchmark
         def run():
@@ -94,7 +108,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
             return total
 
-    elif benchmark_pass is "backward":
+    elif benchmark_pass == "backward":
 
         @benchmark
         def run():
@@ -107,16 +121,44 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     return run
 
 
+_non_cuda_components = (LKBallScoreGraph,)
+
+
 @pytest.mark.parametrize(
     "graph_class",
-    [TotalScore, DofSpaceTotal, HBondScore, LJLKScore, DofSpaceDummy],
-    ids=["total_cart", "total_torsion", "hbond", "ljlk", "kinematics"],
+    [
+        TotalScore,
+        DofSpaceTotal,
+        HBondScore,
+        ElecScore,
+        CartBondedScore,
+        LJScore,
+        LKScore,
+        LKBallScore,
+        DofSpaceDummy,
+    ],
+    ids=[
+        "total_cart",
+        "total_torsion",
+        "hbond",
+        "elec",
+        "cartbonded",
+        "lj",
+        "lk",
+        "lk_ball",
+        "kinematics",
+    ],
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 @pytest.mark.benchmark(group="score_components")
 def test_end_to_end_score_graph(
     benchmark, benchmark_pass, graph_class, ubq_system, torch_device
 ):
+    if issubclass(graph_class, _non_cuda_components) and torch_device.type == "cuda":
+        with pytest.raises(NotImplementedError):
+            graph_class.build_for(ubq_system, requires_grad=True, device=torch_device)
+        return
+
     score_graph = graph_class.build_for(
         ubq_system, requires_grad=True, device=torch_device
     )

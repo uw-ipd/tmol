@@ -3,7 +3,7 @@ import tmol.database
 
 def test_residue_defs(default_database: tmol.database.ParameterDatabase):
 
-    atom_types = set(default_database.chemical.atom_types)
+    atom_types = set(at.name for at in default_database.chemical.atom_types)
     assert len(default_database.chemical.atom_types) == len(
         atom_types
     ), "Duplicate atom types."

@@ -6,7 +6,7 @@ from tmol.viewer import SystemViewer
 from tmol.score.bonded_atom import BondedAtomScoreGraph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 
-from tmol.utility.reactive import reactive_attrs
+from tmol.score.score_graph import score_graph
 
 from argparse import Namespace
 
@@ -28,7 +28,7 @@ def test_residue_viewer_smoke(ubq_res):
 def test_score_graph_viewer_smoke(ubq_system):
     """Viewer can render score graph of depth 1 as cdjson or pdb."""
 
-    @reactive_attrs
+    @score_graph
     class MinGraph(BondedAtomScoreGraph, CartesianAtomicCoordinateProvider):
         pass
 
@@ -50,6 +50,9 @@ def test_score_graph_viewer_smoke(ubq_system):
             device=ubq_graph.device,
             coords=ubq_graph.coords.expand(5, -1, -1),
             atom_types=ubq_graph.atom_types.repeat(5, 0),
+            atom_names=ubq_graph.atom_names.repeat(5, 0),
+            res_names=ubq_graph.res_names.repeat(5, 0),
+            res_indices=ubq_graph.res_indices.repeat(5, 0),
             bonds=stacked_bonds,
         )
     )

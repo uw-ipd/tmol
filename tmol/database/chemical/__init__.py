@@ -1,12 +1,35 @@
 from typing import Tuple, Optional, NewType
-from tmol.utility.units import parse_angle, u
-from toolz import curry
+from tmol.utility.units import BondAngle, DihedralAngle
 
 import attr
 import cattr
 
 import os
 import yaml
+
+AcceptorHybridization = NewType("AcceptorHybridization", str)
+_acceptor_hybridizations = {"sp2", "sp3", "ring"}
+
+
+def _parse_acceptor_hybridization(v, t):
+    if v in _acceptor_hybridizations:
+        return v
+    else:
+        raise ValueError(f"Invalid AcceptorHybridization value: {v}")
+
+
+cattr.register_structure_hook(AcceptorHybridization, _parse_acceptor_hybridization)
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class AtomType:
+    name: str
+    element: str
+    is_acceptor: bool = False
+    is_donor: bool = False
+    is_hydroxyl: bool = False
+    is_polarh: bool = False
+    acceptor_hybridization: Optional[AcceptorHybridization] = None
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -15,28 +38,15 @@ class Atom:
     atom_type: str
 
 
-PhiAngle = NewType("PhiAngle", float)
-ThetaAngle = NewType("ThetaAngle", float)
-
-
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class Icoor:
     name: str
-    phi: PhiAngle
-    theta: ThetaAngle
+    phi: DihedralAngle
+    theta: BondAngle
     d: float
     parent: str
     grand_parent: str
     great_grand_parent: str
-
-
-parse_angle = curry(parse_angle)
-
-parse_phi = parse_angle(lim=(u("-pi rad"), u("pi rad")))
-cattr.register_structure_hook(PhiAngle, lambda v, t: parse_phi(v))
-
-parse_theta = parse_angle(lim=(u("0 rad"), u("pi rad")))
-cattr.register_structure_hook(ThetaAngle, lambda v, t: parse_theta(v))
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -74,7 +84,7 @@ class Residue:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class ChemicalDatabase:
-    atom_types: Tuple[str, ...]
+    atom_types: Tuple[AtomType, ...]
     residues: Tuple[Residue, ...]
 
     @classmethod

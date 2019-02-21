@@ -5,15 +5,15 @@ import torch
 import numpy
 import scipy.sparse.csgraph
 
-from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.reactive import reactive_property
 from tmol.utility.mixins import gather_superclass_properies
 
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 
+from .score_graph import score_graph
 from .stacked_system import StackedSystem
-from .factory import Factory
 
 
 def _nan_to_num(var):
@@ -22,7 +22,7 @@ def _nan_to_num(var):
     return var.where(~torch.isnan(vals), zeros)
 
 
-@reactive_attrs(auto_attribs=True)
+@score_graph
 class InteratomicDistanceGraphBase(StackedSystem):
     """Base graph for interatomic distances.
 
@@ -91,7 +91,7 @@ def triu_indices(n, k=0, m=None) -> Tensor(torch.long)[:, 2]:
     return torch.stack((torch.from_numpy(i), torch.from_numpy(j)), dim=-1)
 
 
-@reactive_attrs(auto_attribs=True)
+@score_graph
 class NaiveInteratomicDistanceGraph(InteratomicDistanceGraphBase):
     @reactive_property
     @validate_args
@@ -236,8 +236,8 @@ class InterLayerAtomPairs:
         return cls(torch.nonzero(atom_pair_mask))
 
 
-@reactive_attrs(auto_attribs=True)
-class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase, Factory):
+@score_graph
+class BlockedInteratomicDistanceGraph(InteratomicDistanceGraphBase):
     # atom block size for block-neighbor optimization
     atom_pair_block_size: int = attr.ib()
 

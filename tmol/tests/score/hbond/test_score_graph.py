@@ -9,10 +9,10 @@ from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.device import TorchDevice
 
-from tmol.utility.reactive import reactive_attrs
+from tmol.score.score_graph import score_graph
 
 
-@reactive_attrs
+@score_graph
 class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice):
     pass
 
@@ -33,7 +33,8 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
 
     intra_graph = hbond_graph.intra_score()
 
-    nan_scores = torch.nonzero(torch.isnan(intra_graph.hbond_scores))
+    ind, score = intra_graph.hbond
+    nan_scores = torch.nonzero(torch.isnan(score))
     assert len(nan_scores) == 0
     assert (intra_graph.total_hbond != 0).all()
     assert intra_graph.total.device == torch_device
@@ -53,8 +54,9 @@ def test_hbond_score_setup(benchmark, ubq_system, torch_device):
     def score_graph():
         score_graph = HBGraph(**graph_params)
 
-        # Non-coordinate depdendent components for scoring
-        score_graph.hbond_pairs
+        # Non-coordinate dependent components for scoring
+        score_graph.hbond_donor_indices
+        score_graph.hbond_acceptor_indices
 
         return score_graph
 
