@@ -56,6 +56,13 @@ struct handle_type_name<tmol::TPack<T, N, D, P>> {
 };
 
 template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
+struct handle_type_name<tmol::TViewCollection<T, N, D, P>> {
+  static constexpr auto name =
+      _("torch.TensorCollection[") + npy_format_descriptor_name<T>::name
+      + _(", ") + _<N>() + _(", ") + device_name<D>::name + _("]");
+};
+
+template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
 struct type_caster<tmol::TView<T, N, D, P>> {
  public:
   typedef tmol::TView<T, N, D, P> ViewType;
@@ -129,6 +136,38 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
   }
 
   // C++ -> Python cast operation not supported.
+};
+
+template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
+struct type_caster<tmol::TViewCollection<T, N, D, P>> {
+ public:
+  typedef tmol::TViewCollection<T, N, D, P> ViewCollType;
+  PYBIND11_TYPE_CASTER(ViewCollType, handle_type_name<ViewCollType>::name);
+
+  bool load(handle src, bool convert) {
+    PyObject* source = src.ptr();
+    auto tuple = PyTuple_Check(source);
+    if (tuple || PyList_Check(source)) {
+      auto size = tuple ? PyTuple_GET_SIZE(source) : PyList_GET_SIZE(source);
+      value_v.resize(size);
+
+      for (int i = 0; i < size; ++i) {
+        PyObject* obj =
+            tuple ? PyTuple_GET_ITEM(source, i) : PyList_GET_ITEM(source, i);
+        type_caster<tmol::TView<T, N, D, P>> conv;
+        if (conv.load(obj, convert)) {
+          value_v[i] = conv;
+        } else {
+          return false;
+        }
+      }
+      value = value_v;
+      return true;
+    }
+  }
+
+ private:
+  tmol::TViewCollection<T, N, D, P> value_v;
 };
 
 }  // namespace detail
