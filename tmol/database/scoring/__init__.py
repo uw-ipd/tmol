@@ -5,6 +5,7 @@ from .hbond import HBondDatabase
 from .ljlk import LJLKDatabase
 from .elec import ElecDatabase
 from .rama import RamaDatabase
+from .dunbrack_libraries import DunbrackRotamerLibrary
 from .cartbonded import CartBondedDatabase
 
 
@@ -15,6 +16,7 @@ class ScoringDatabase:
     elec: ElecDatabase
     hbond: HBondDatabase
     rama: RamaDatabase
+    dun: DunbrackRotamerLibrary
     cartbonded: CartBondedDatabase
 
     @classmethod
@@ -25,6 +27,9 @@ class ScoringDatabase:
             elec=ElecDatabase.from_file(os.path.join(path, "elec.yaml")),
             rama=RamaDatabase.from_files(
                 os.path.join(path, "rama.yaml"), os.path.join(path, "rama.zip")
+            ),
+            dun=DunbrackRotamerLibrary.from_zarr_archive(
+                os.path.join(path, "dunbrack.bin")
             ),
             cartbonded=CartBondedDatabase.from_file(
                 os.path.join(path, "cartbonded.yaml")
