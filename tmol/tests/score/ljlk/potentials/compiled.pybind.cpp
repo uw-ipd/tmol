@@ -59,7 +59,7 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "f_desolv_V",
-      &f_desolv_V<Real>,
+      &f_desolv<Real>::V,
       "dist"_a,
       "lj_radius_i"_a,
       "lk_dgfree_i"_a,
@@ -68,7 +68,17 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "f_desolv_V_dV",
-      &f_desolv_V_dV<Real>,
+      [](
+
+          Real dist,
+          Real lj_radius_i,
+          Real lk_dgfree_i,
+          Real lk_lambda_i,
+          Real lk_volume_j) {
+        return f_desolv<Real>::V_dV(
+                   dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j)
+            .astuple();
+      },
       "dist"_a,
       "lj_radius_i"_a,
       "lk_dgfree_i"_a,
@@ -77,7 +87,7 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lk_isotropic_score_V",
-      &lk_isotropic_score_V<Real>,
+      &lk_isotropic_score<Real>::V,
       "dist"_a,
       "bonded_path_length"_a,
       "i"_a,
@@ -86,7 +96,15 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lk_isotropic_score_V_dV",
-      &lk_isotropic_score_V_dV<Real>,
+      [](Real dist,
+         Real bonded_path_length,
+         LKTypeParams<Real> i,
+         LKTypeParams<Real> j,
+         LJGlobalParams<Real> global) {
+        return lk_isotropic_score<Real>::V_dV(
+                   dist, bonded_path_length, i, j, global)
+            .astuple();
+      },
       "dist"_a,
       "bonded_path_length"_a,
       "i"_a,

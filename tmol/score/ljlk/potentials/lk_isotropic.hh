@@ -15,24 +15,31 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
-#define def                \
-  template <typename Real> \
-  auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
 using namespace tmol::score::common;
 
-def f_desolv_V(
-    Real dist,
-    Real lj_radius_i,
-    Real lk_dgfree_i,
-    Real lk_lambda_i,
-    Real lk_volume_j)
-    ->Real {
-  using std::exp;
-  using std::pow;
-  const Real pi = EIGEN_PI;
+template <typename Real>
+struct f_desolv {
+  struct V_dV_t {
+    Real V;
+    Real dV_ddist;
 
-  // clang-format off
+    def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
+  };
+
+  static def V(
+      Real dist,
+      Real lj_radius_i,
+      Real lk_dgfree_i,
+      Real lk_lambda_i,
+      Real lk_volume_j)
+      ->Real {
+    using std::exp;
+    using std::pow;
+    const Real pi = EIGEN_PI;
+
+    // clang-format off
   return (
       -lk_volume_j
       * lk_dgfree_i
@@ -40,21 +47,21 @@ def f_desolv_V(
       / (dist * dist)
       * exp(-pow((dist - lj_radius_i) / lk_lambda_i, 2))
   );
-  // clang-format on
-}
+    // clang-format on
+  }
 
-def f_desolv_V_dV(
-    Real dist,
-    Real lj_radius_i,
-    Real lk_dgfree_i,
-    Real lk_lambda_i,
-    Real lk_volume_j)
-    ->tuple<Real, Real> {
-  using std::exp;
-  using std::pow;
-  const Real pi = EIGEN_PI;
+  static def V_dV(
+      Real dist,
+      Real lj_radius_i,
+      Real lk_dgfree_i,
+      Real lk_lambda_i,
+      Real lk_volume_j)
+      ->V_dV_t {
+    using std::exp;
+    using std::pow;
+    const Real pi = EIGEN_PI;
 
-  // clang-format off
+    // clang-format off
   Real desolv = (
       -lk_volume_j
       * lk_dgfree_i
@@ -78,180 +85,214 @@ def f_desolv_V_dV(
         )
       )
   );
-  // clang-format on
+    // clang-format on
 
-  return {desolv, d_desolv_d_dist};
-}
+    return {desolv, d_desolv_d_dist};
+  }
+};
 
-def lk_isotropic_pair_V(
-    Real dist,
-    Real bonded_path_length,
-    Real lj_sigma_ij,
-    Real lj_radius_i,
-    Real lk_dgfree_i,
-    Real lk_lambda_i,
-    Real lk_volume_j)
-    ->Real {
-  Real d_min = lj_sigma_ij * .89;
+template <typename Real>
+struct lk_isotropic_pair {
+  struct V_dV_t {
+    Real V;
+    Real dV_ddist;
 
-  Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
-  Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
+    def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
+  };
 
-  Real cpoly_far_dmin = 4.5;
-  Real cpoly_far_dmax = 6.0;
+  static def V(
+      Real dist,
+      Real bonded_path_length,
+      Real lj_sigma_ij,
+      Real lj_radius_i,
+      Real lk_dgfree_i,
+      Real lk_lambda_i,
+      Real lk_volume_j)
+      ->Real {
+    Real d_min = lj_sigma_ij * .89;
 
-  Real weight = connectivity_weight<Real>(bonded_path_length);
+    Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
+    Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
-  Real lk;
+    Real cpoly_far_dmin = 4.5;
+    Real cpoly_far_dmax = 6.0;
 
-  if (dist < cpoly_close_dmin) {
-    lk = f_desolv_V(d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+    Real weight = connectivity_weight<Real>(bonded_path_length);
 
-  } else if (dist < cpoly_close_dmax) {
-    Real dmax_lk, dmax_lk_d_dist;
-    tie(dmax_lk, dmax_lk_d_dist) = f_desolv_V_dV(
-        cpoly_close_dmax, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+    Real lk;
 
-    lk = interpolate<Real>(
-        dist,
-        cpoly_close_dmin,
-        f_desolv_V(d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
-        0.0,
-        cpoly_close_dmax,
-        dmax_lk,
-        dmax_lk_d_dist);
+    if (dist < cpoly_close_dmin) {
+      lk = f_desolv<Real>::V(
+          d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
 
-  } else if (dist < cpoly_far_dmin) {
-    lk = f_desolv_V(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+    } else if (dist < cpoly_close_dmax) {
+      auto f_desolv_at_dmax = f_desolv<Real>::V_dV(
+          cpoly_close_dmax, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
 
-  } else if (dist < cpoly_far_dmax) {
-    Real dmin_lk, dmin_lk_d_dist;
-    tie(dmin_lk, dmin_lk_d_dist) = f_desolv_V_dV(
-        cpoly_far_dmin, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+      lk = interpolate<Real>(
+          dist,
+          cpoly_close_dmin,
+          f_desolv<Real>::V(
+              d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
+          0.0,
+          cpoly_close_dmax,
+          f_desolv_at_dmax.V,
+          f_desolv_at_dmax.dV_ddist);
 
-    lk = interpolate_to_zero(
-        dist, cpoly_far_dmin, dmin_lk, dmin_lk_d_dist, cpoly_far_dmax);
+    } else if (dist < cpoly_far_dmin) {
+      lk = f_desolv<Real>::V(
+          dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
 
-  } else {
-    lk = 0.0;
+    } else if (dist < cpoly_far_dmax) {
+      auto f_desolv_at_dmin = f_desolv<Real>::V_dV(
+          cpoly_far_dmin, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+
+      lk = interpolate_to_zero(
+          dist,
+          cpoly_far_dmin,
+          f_desolv_at_dmin.V,
+          f_desolv_at_dmin.dV_ddist,
+          cpoly_far_dmax);
+
+    } else {
+      lk = 0.0;
+    }
+
+    return weight * lk;
   }
 
-  return weight * lk;
-}
+  static def V_dV(
+      Real dist,
+      Real bonded_path_length,
+      Real lj_sigma_ij,
+      Real lj_radius_i,
+      Real lk_dgfree_i,
+      Real lk_lambda_i,
+      Real lk_volume_j)
+      ->V_dV_t {
+    Real d_min = lj_sigma_ij * .89;
 
-def lk_isotropic_pair_V_dV(
-    Real dist,
-    Real bonded_path_length,
-    Real lj_sigma_ij,
-    Real lj_radius_i,
-    Real lk_dgfree_i,
-    Real lk_lambda_i,
-    Real lk_volume_j)
-    ->tuple<Real, Real> {
-  Real d_min = lj_sigma_ij * .89;
+    Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
+    Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
-  Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
-  Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
+    Real cpoly_far_dmin = 4.5;
+    Real cpoly_far_dmax = 6.0;
 
-  Real cpoly_far_dmin = 4.5;
-  Real cpoly_far_dmax = 6.0;
+    Real weight = connectivity_weight<Real>(bonded_path_length);
 
-  Real weight = connectivity_weight<Real>(bonded_path_length);
+    Real lk, d_lk_d_dist;
 
-  Real lk, d_lk_d_dist;
+    if (dist < cpoly_close_dmin) {
+      lk = f_desolv<Real>::V(
+          d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+      d_lk_d_dist = 0;
 
-  if (dist < cpoly_close_dmin) {
-    lk = f_desolv_V(d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
-    d_lk_d_dist = 0;
+    } else if (dist < cpoly_close_dmax) {
+      auto f_desolv_at_dmax = f_desolv<Real>::V_dV(
+          cpoly_close_dmax, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
 
-  } else if (dist < cpoly_close_dmax) {
-    Real dmax_lk, dmax_lk_d_dist;
-    tie(dmax_lk, dmax_lk_d_dist) = f_desolv_V_dV(
-        cpoly_close_dmax, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+      tie(lk, d_lk_d_dist) = interpolate_V_dV<Real>(
+          dist,
+          cpoly_close_dmin,
+          f_desolv<Real>::V(
+              d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
+          0.0,
+          cpoly_close_dmax,
+          f_desolv_at_dmax.V,
+          f_desolv_at_dmax.dV_ddist);
 
-    tie(lk, d_lk_d_dist) = interpolate_V_dV<Real>(
-        dist,
-        cpoly_close_dmin,
-        f_desolv_V(d_min, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j),
-        0.0,
-        cpoly_close_dmax,
-        dmax_lk,
-        dmax_lk_d_dist);
+    } else if (dist < cpoly_far_dmin) {
+      auto f_desolv_at_dist = f_desolv<Real>::V_dV(
+          dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
 
-  } else if (dist < cpoly_far_dmin) {
-    tie(lk, d_lk_d_dist) =
-        f_desolv_V_dV(dist, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+      lk = f_desolv_at_dist.V;
+      d_lk_d_dist = f_desolv_at_dist.dV_ddist;
+    } else if (dist < cpoly_far_dmax) {
+      auto f_desolv_at_dmin = f_desolv<Real>::V_dV(
+          cpoly_far_dmin, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
 
-  } else if (dist < cpoly_far_dmax) {
-    Real dmin_lk, dmin_lk_d_dist;
-    tie(dmin_lk, dmin_lk_d_dist) = f_desolv_V_dV(
-        cpoly_far_dmin, lj_radius_i, lk_dgfree_i, lk_lambda_i, lk_volume_j);
+      tie(lk, d_lk_d_dist) = interpolate_to_zero_V_dV(
+          dist,
+          cpoly_far_dmin,
+          f_desolv_at_dmin.V,
+          f_desolv_at_dmin.dV_ddist,
+          cpoly_far_dmax);
 
-    tie(lk, d_lk_d_dist) = interpolate_to_zero_V_dV(
-        dist, cpoly_far_dmin, dmin_lk, dmin_lk_d_dist, cpoly_far_dmax);
+    } else {
+      lk = 0.0;
+      d_lk_d_dist = 0.0;
+    }
 
-  } else {
-    lk = 0.0;
-    d_lk_d_dist = 0.0;
+    return {weight * lk, weight * d_lk_d_dist};
   }
+};
 
-  return {weight * lk, weight * d_lk_d_dist};
-}
+template <typename Real>
+struct lk_isotropic_score {
+  struct V_dV_t {
+    Real V;
+    Real dV_ddist;
 
-def lk_isotropic_score_V_dV(
-    Real dist,
-    Real bonded_path_length,
-    LKTypeParams<Real> i,
-    LKTypeParams<Real> j,
-    LJGlobalParams<Real> global)
-    ->tuple<Real, Real> {
-  Real sigma = lj_sigma<Real>(i, j, global);
+    def astuple() { return tmol::score::common::make_tuple(V, dV_ddist); }
+  };
 
-  return add(
-      lk_isotropic_pair_V_dV(
-          dist,
-          bonded_path_length,
-          sigma,
-          i.lj_radius,
-          i.lk_dgfree,
-          i.lk_lambda,
-          j.lk_volume),
-      lk_isotropic_pair_V_dV(
-          dist,
-          bonded_path_length,
-          sigma,
-          j.lj_radius,
-          j.lk_dgfree,
-          j.lk_lambda,
-          i.lk_volume));
-}
+  static def V(
+      Real dist,
+      Real bonded_path_length,
+      LKTypeParams<Real> i,
+      LKTypeParams<Real> j,
+      LJGlobalParams<Real> global)
+      ->Real {
+    Real sigma = lj_sigma<Real>(i, j, global);
 
-def lk_isotropic_score_V(
-    Real dist,
-    Real bonded_path_length,
-    LKTypeParams<Real> i,
-    LKTypeParams<Real> j,
-    LJGlobalParams<Real> global)
-    ->Real {
-  Real sigma = lj_sigma<Real>(i, j, global);
-
-  return lk_isotropic_pair_V(
-             dist,
-             bonded_path_length,
-             sigma,
-             i.lj_radius,
-             i.lk_dgfree,
-             i.lk_lambda,
-             j.lk_volume)
-         + lk_isotropic_pair_V(
+    return lk_isotropic_pair<Real>::V(
                dist,
                bonded_path_length,
                sigma,
-               j.lj_radius,
-               j.lk_dgfree,
-               j.lk_lambda,
-               i.lk_volume);
-}
+               i.lj_radius,
+               i.lk_dgfree,
+               i.lk_lambda,
+               j.lk_volume)
+           + lk_isotropic_pair<Real>::V(
+                 dist,
+                 bonded_path_length,
+                 sigma,
+                 j.lj_radius,
+                 j.lk_dgfree,
+                 j.lk_lambda,
+                 i.lk_volume);
+  }
+
+  static def V_dV(
+      Real dist,
+      Real bonded_path_length,
+      LKTypeParams<Real> i,
+      LKTypeParams<Real> j,
+      LJGlobalParams<Real> global)
+      ->V_dV_t {
+    Real sigma = lj_sigma<Real>(i, j, global);
+
+    auto ij = lk_isotropic_pair<Real>::V_dV(
+        dist,
+        bonded_path_length,
+        sigma,
+        i.lj_radius,
+        i.lk_dgfree,
+        i.lk_lambda,
+        j.lk_volume);
+
+    auto ji = lk_isotropic_pair<Real>::V_dV(
+        dist,
+        bonded_path_length,
+        sigma,
+        j.lj_radius,
+        j.lk_dgfree,
+        j.lk_lambda,
+        i.lk_volume);
+
+    return {ij.V + ji.V, ij.dV_ddist + ji.dV_ddist};
+  }
+};
 
 #undef def
 
