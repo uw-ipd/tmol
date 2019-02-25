@@ -134,8 +134,7 @@ struct LKIsotropicDispatch {
       auto& ddist_dI = dist_r.dV_dA;
       auto& ddist_dJ = dist_r.dV_dB;
 
-      Real V, dV_dDist;
-      tie(V, dV_dDist) = lk_isotropic_score_V_dV(
+      auto lk = lk_isotropic_score<Real>::V_dV(
           dist,
           bonded_path_lengths[i][j],
           type_params[ati],
@@ -145,9 +144,9 @@ struct LKIsotropicDispatch {
       inds[o][0] = i;
       inds[o][1] = j;
 
-      Vs[o] = V;
-      dV_dIs[o] = dV_dDist * ddist_dI;
-      dV_dJs[o] = dV_dDist * ddist_dJ;
+      Vs[o] = lk.V;
+      dV_dIs[o] = lk.dV_ddist * ddist_dI;
+      dV_dJs[o] = lk.dV_ddist * ddist_dJ;
     });
 
     return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
