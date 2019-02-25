@@ -13,7 +13,7 @@ namespace common {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <int POrd, typename Real>
+template <int POrd, typename Real, typename EvalReal = Real>
 struct poly {
   struct V_dV_T {
     Real V;
@@ -24,20 +24,20 @@ struct poly {
 
   static def V(Real X, Vec<Real, POrd> coeffs)->Real {
     static_assert(POrd >= 2, "");
-    Real v = coeffs(0);
+    EvalReal v = coeffs(0);
 
 #pragma unroll
     for (int i = 1; i < POrd; ++i) {
       v = v * X + coeffs[i];
     }
 
-    return v;
+    return (Real)v;
   }
 
   static def V_dV(Real X, Vec<Real, POrd> coeffs)->V_dV_T {
     static_assert(POrd >= 2, "");
-    Real v = coeffs(0);
-    Real d = coeffs(0);
+    EvalReal v = coeffs(0);
+    EvalReal d = coeffs(0);
 
 #pragma unroll
     for (int i = 1; i < POrd - 1; ++i) {
@@ -47,13 +47,13 @@ struct poly {
 
     v = v * X + coeffs[POrd - 1];
 
-    return {v, d};
+    return {(Real)v, (Real)d};
   }
 };
 
-template <int PDim, typename Real>
+template <int PDim, typename Real, typename EvalReal = Real>
 struct bound_poly {
-  typedef typename poly<PDim, Real>::V_dV_T V_dV_T;
+  typedef typename poly<PDim, Real, EvalReal>::V_dV_T V_dV_T;
 
   static def V(
       const Real& x,
@@ -66,7 +66,7 @@ struct bound_poly {
     } else if (x > range[1]) {
       return bound[1];
     } else {
-      return poly_v(x, coeffs);
+      return poly<PDim, Real, EvalReal>::V(x, coeffs);
     }
   }
 
@@ -78,7 +78,7 @@ struct bound_poly {
     } else if (x > range[1]) {
       return {bound[1], 0};
     } else {
-      return poly<PDim, Real>::V_dV(x, coeffs);
+      return poly<PDim, Real, EvalReal>::V_dV(x, coeffs);
     }
   }
 };
