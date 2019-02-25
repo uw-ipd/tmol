@@ -22,12 +22,19 @@ void bind_potentials(pybind11::module& m) {
       "j_params"_a,
       "global_params"_a);
 
-  m.def("vdw_V_dV", &vdw_V_dV<Real>, "dist"_a, "sigma"_a, "epsilon"_a);
-  m.def("vdw_V", &vdw_V<Real>, "dist"_a, "sigma"_a, "epsilon"_a);
+  m.def(
+      "vdw_V_dV",
+      [](Real dist, Real sigma, Real epsilon) {
+        return vdw<Real>::V_dV(dist, sigma, epsilon).astuple();
+      },
+      "dist"_a,
+      "sigma"_a,
+      "epsilon"_a);
+  m.def("vdw_V", &vdw<Real>::V, "dist"_a, "sigma"_a, "epsilon"_a);
 
   m.def(
       "lj_score_V",
-      &lj_score_V<Real>,
+      &lj_score<Real>::V,
       "dist"_a,
       "bonded_path_length"_a,
       "i_params"_a,
@@ -36,7 +43,14 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "lj_score_V_dV",
-      &lj_score_V_dV<Real>,
+      [](Real dist,
+         Real bonded_path_length,
+         LJTypeParams<Real> i,
+         LJTypeParams<Real> j,
+         LJGlobalParams<Real> global) {
+        return lj_score<Real>::V_dV(dist, bonded_path_length, i, j, global)
+            .astuple();
+      },
       "dist"_a,
       "bonded_path_length"_a,
       "i_params"_a,
@@ -78,7 +92,7 @@ void bind_potentials(pybind11::module& m) {
       "i"_a,
       "j"_a,
       "global"_a);
-}
+}  // namespace potentials
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) { bind_potentials<double>(m); }
 
