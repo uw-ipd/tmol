@@ -2,7 +2,8 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/extension.h>
 
-#include "dispatch.hh"
+#include "lj.dispatch.hh"
+#include "lk_isotropic.dispatch.hh"
 #include "params.pybind.hh"
 
 #include <tmol/utility/function_dispatch/pybind.hh>
@@ -73,7 +74,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
 #ifdef WITH_CUDA
   bind_dispatch<tmol::Device::CUDA, float, int64_t>(m);
-  bind_dispatch<tmol::Device::CUDA, double, int64_t>(m);
 #endif
 }
 
