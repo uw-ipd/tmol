@@ -6,8 +6,8 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
-#include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/simple_dispatch.hh>
 
 #include "lj.hh"
 #include "params.hh"
@@ -38,7 +38,6 @@ struct LJDispatch {
       LJTypeParamTensors<Real, D> type_params,
       LJGlobalParams<Real> global_params)
       -> std::tuple<
-          TPack<int64_t, 2, D>,
           TPack<Real, 1, D>,
           TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 1, D> >;

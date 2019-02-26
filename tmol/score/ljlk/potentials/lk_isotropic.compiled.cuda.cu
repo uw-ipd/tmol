@@ -21,6 +21,7 @@ namespace potentials {
       Int>;
 
 declare_dispatch(float, int64_t);
+declare_dispatch(double, int64_t);
 
 #undef declare_dispatch
 
