@@ -1,5 +1,7 @@
 #pragma once
 
+#include <nvToolsExt.h>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -13,7 +15,6 @@
 #include <tmol/score/common/tuple.hh>
 
 #include "lj.hh"
-#include "lk_isotropic.hh"
 
 namespace tmol {
 namespace score {
@@ -46,10 +47,18 @@ struct LJDispatch {
           TPack<Real, 1, D>,
           TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 1, D> > {
+    nvtxRangePushA(__FUNCTION__);
+
+    nvtxRangePushA("dispatcher_setup");
     Dispatch<D> dispatcher(coords_i.size(0), coords_j.size(0));
+    nvtxRangePop();
+
+    nvtxRangePushA("dispatcher_scan");
     Real threshold_distance = 6.0;
     auto num_Vs = dispatcher.scan(threshold_distance, coords_i, coords_j);
+    nvtxRangePop();
 
+    nvtxRangePushA("output_allocate");
     auto inds_t = TPack<int64_t, 2, D>::empty({num_Vs, 2});
     auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
     auto dV_dIs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
@@ -59,7 +68,9 @@ struct LJDispatch {
     auto Vs = Vs_t.view;
     auto dV_dIs = dV_dIs_t.view;
     auto dV_dJs = dV_dJs_t.view;
+    nvtxRangePop();
 
+    nvtxRangePushA("dispatcher_score");
     dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
       Int ati = atom_type_i[i];
       Int atj = atom_type_j[j];
@@ -83,71 +94,9 @@ struct LJDispatch {
       dV_dIs[o] = lj.dV_ddist * ddist_dI;
       dV_dJs[o] = lj.dV_ddist * ddist_dJ;
     });
+    nvtxRangePop();
 
-    return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
-  }
-};
-
-template <
-    template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
-struct LKIsotropicDispatch {
-  static auto f(
-      TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Int, 1, D> atom_type_i,
-
-      TView<Vec<Real, 3>, 1, D> coords_j,
-      TView<Int, 1, D> atom_type_j,
-
-      TView<Real, 2, D> bonded_path_lengths,
-
-      LKTypeParamTensors<Real, D> type_params,
-      LJGlobalParams<Real> global_params)
-      -> std::tuple<
-          TPack<int64_t, 2, D>,
-          TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D> > {
-    Dispatch<D> dispatcher(coords_i.size(0), coords_j.size(0));
-    Real threshold_distance = 6.0;
-    auto num_Vs = dispatcher.scan(threshold_distance, coords_i, coords_j);
-
-    auto inds_t = TPack<int64_t, 2, D>::empty({num_Vs, 2});
-    auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
-    auto dV_dIs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dJs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-
-    auto inds = inds_t.view;
-    auto Vs = Vs_t.view;
-    auto dV_dIs = dV_dIs_t.view;
-    auto dV_dJs = dV_dJs_t.view;
-
-    dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
-      Int ati = atom_type_i[i];
-      Int atj = atom_type_j[j];
-
-      auto dist_r = distance<Real>::V_dV(coords_i[i], coords_j[j]);
-      auto& dist = dist_r.V;
-      auto& ddist_dI = dist_r.dV_dA;
-      auto& ddist_dJ = dist_r.dV_dB;
-
-      auto lk = lk_isotropic_score<Real>::V_dV(
-          dist,
-          bonded_path_lengths[i][j],
-          type_params[ati],
-          type_params[atj],
-          global_params);
-
-      inds[o][0] = i;
-      inds[o][1] = j;
-
-      Vs[o] = lk.V;
-      dV_dIs[o] = lk.dV_ddist * ddist_dI;
-      dV_dJs[o] = lk.dV_ddist * ddist_dJ;
-    });
+    nvtxRangePop();
 
     return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
   }
