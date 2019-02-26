@@ -1,4 +1,4 @@
-#include <tmol/score/common/dispatch.cpu.impl.hh>
+#include <tmol/score/common/simple_dispatch.cpu.impl.hh>
 
 #include "lj.dispatch.impl.hh"
 
@@ -7,9 +7,13 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
-#define declare_dispatch(Real, Int)                                            \
-  template struct LJDispatch<NaiveDispatch, tmol::Device::CPU, Real, Int>;     \
-  template struct LJDispatch<NaiveTriuDispatch, tmol::Device::CPU, Real, Int>; \
+#define declare_dispatch(Real, Int)                                       \
+  template struct LJDispatch<AABBDispatch, tmol::Device::CPU, Real, Int>; \
+  template struct LJDispatch<                                             \
+      AABBTriuDispatch,                                              \
+      tmol::Device::CPU,                                                  \
+      Real,                                                               \
+      Int>;
 
 declare_dispatch(float, int64_t);
 declare_dispatch(double, int64_t);
