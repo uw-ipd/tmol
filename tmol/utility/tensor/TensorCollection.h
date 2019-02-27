@@ -19,7 +19,8 @@
 
 namespace tmol {
 
-// a collection of TViews
+// a container for an arbitrary sized set of TViews
+// TCollection::view can be passed through device lambda capture
 template <typename T, size_t N, Device D, PtrTag P = PtrTag::Restricted>
 class TCollection {
  public:
@@ -28,11 +29,8 @@ class TCollection {
   AT_HOST TCollection(std::vector<at::Tensor> &tviews) {
     int n = tviews.size();
 
-    pybind11::print('1');
     tensors.resize(n);
     for (int i = 0; i < n; ++i) {
-      pybind11::print(
-          '1', i, tviews[i].is_cuda(), (int)tviews[i].device().type(), (int)D);
       tensors[i] = tmol::TPack<T, N, D, P>(tviews[i]);
     }
 

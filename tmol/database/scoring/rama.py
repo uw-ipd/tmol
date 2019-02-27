@@ -17,9 +17,9 @@ from tmol.types.functional import validate_args
 class RamaMappingParams:
     name: str
     res_middle: str
-    res_upper: str
-    invert_phi: bool
-    invert_psi: bool
+    res_upper: str = ""
+    invert_phi: bool = False
+    invert_psi: bool = False
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

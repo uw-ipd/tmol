@@ -15,7 +15,6 @@ from ..score_graph import score_graph
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import RamaDatabase
-from .identification import RamaIdentification
 from .params import RamaParamResolver
 from .torch_op import RamaOp
 

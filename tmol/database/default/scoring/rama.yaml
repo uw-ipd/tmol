@@ -1,44 +1,44 @@
 rama_lookup:
   - &n name: ALA
     &r0 res_middle: ALA
-    &r1 res_upper: xPRO
-    &iphi invert_phi: False
-    &ipsi invert_psi: False
-  - { *n: ARG ,*r0: ARG, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: ASN ,*r0: ASN, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: ASP ,*r0: ASP, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: CYS ,*r0: CYS, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: GLN ,*r0: GLN, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: GLU ,*r0: GLU, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: GLY ,*r0: GLY, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: HIS ,*r0: HIS, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: ILE ,*r0: ILE, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: LEU ,*r0: LEU, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: LYS ,*r0: LYS, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: MET ,*r0: MET, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: PHE ,*r0: PHE, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: PRO ,*r0: PRO, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: SER ,*r0: SER, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: THR ,*r0: THR, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: TRP ,*r0: TRP, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: TYR ,*r0: TYR, *r1: xPRO, *iphi: False, *ipsi: False }
-  - { *n: ALA_prepro ,*r0: ALA, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: ARG_prepro ,*r0: ARG, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: ASN_prepro ,*r0: ASN, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: ASP_prepro ,*r0: ASP, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: CYS_prepro ,*r0: CYS, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: GLN_prepro ,*r0: GLN, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: GLU_prepro ,*r0: GLU, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: GLY_prepro ,*r0: GLY, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: HIS_prepro ,*r0: HIS, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: ILE_prepro ,*r0: ILE, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: LEU_prepro ,*r0: LEU, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: LYS_prepro ,*r0: LYS, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: MET_prepro ,*r0: MET, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: PHE_prepro ,*r0: PHE, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: PRO_prepro ,*r0: PRO, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: SER_prepro ,*r0: SER, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: THR_prepro ,*r0: THR, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: TRP_prepro ,*r0: TRP, *r1: PRO, *iphi: False, *ipsi: False }
-  - { *n: TYR_prepro ,*r0: TYR, *r1: PRO, *iphi: False, *ipsi: False }
-
+  - { *n: ARG ,*r0: ARG }
+  - { *n: ASN ,*r0: ASN }
+  - { *n: ASP ,*r0: ASP }
+  - { *n: CYS ,*r0: CYS }
+  - { *n: GLN ,*r0: GLN }
+  - { *n: GLU ,*r0: GLU }
+  - { *n: GLY ,*r0: GLY }
+  - { *n: HIS ,*r0: HIS }
+  - { *n: ILE ,*r0: ILE }
+  - { *n: LEU ,*r0: LEU }
+  - { *n: LYS ,*r0: LYS }
+  - { *n: MET ,*r0: MET }
+  - { *n: PHE ,*r0: PHE }
+  - { *n: PRO ,*r0: PRO }
+  - { *n: SER ,*r0: SER }
+  - { *n: THR ,*r0: THR }
+  - { *n: TRP ,*r0: TRP }
+  - { *n: TYR ,*r0: TYR }
+  - { *n: VAL ,*r0: VAL }
+  - *n: ALA_prepro
+    *r0: ALA
+    &r1 res_upper: PRO
+  - { *n: ARG_prepro ,*r0: ARG, *r1: PRO }
+  - { *n: ASN_prepro ,*r0: ASN, *r1: PRO }
+  - { *n: ASP_prepro ,*r0: ASP, *r1: PRO }
+  - { *n: CYS_prepro ,*r0: CYS, *r1: PRO }
+  - { *n: GLN_prepro ,*r0: GLN, *r1: PRO }
+  - { *n: GLU_prepro ,*r0: GLU, *r1: PRO }
+  - { *n: GLY_prepro ,*r0: GLY, *r1: PRO }
+  - { *n: HIS_prepro ,*r0: HIS, *r1: PRO }
+  - { *n: ILE_prepro ,*r0: ILE, *r1: PRO }
+  - { *n: LEU_prepro ,*r0: LEU, *r1: PRO }
+  - { *n: LYS_prepro ,*r0: LYS, *r1: PRO }
+  - { *n: MET_prepro ,*r0: MET, *r1: PRO }
+  - { *n: PHE_prepro ,*r0: PHE, *r1: PRO }
+  - { *n: PRO_prepro ,*r0: PRO, *r1: PRO }
+  - { *n: SER_prepro ,*r0: SER, *r1: PRO }
+  - { *n: THR_prepro ,*r0: THR, *r1: PRO }
+  - { *n: TRP_prepro ,*r0: TRP, *r1: PRO }
+  - { *n: TYR_prepro ,*r0: TYR, *r1: PRO }
+  - { *n: VAL_prepro ,*r0: VAL, *r1: PRO }

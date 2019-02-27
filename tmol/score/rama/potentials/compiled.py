@@ -9,4 +9,6 @@ _compiled = load(
     ),
 )
 
-rama = _compiled.rama
+
+def rama(*args, **kwargs):
+    return _compiled.rama[(args[0][0].device.type, args[0][0].dtype)](*args, **kwargs)

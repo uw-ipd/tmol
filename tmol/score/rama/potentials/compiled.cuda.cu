@@ -28,7 +28,6 @@ template <tmol::Device D, typename Real, typename Int>
 struct RamaDispatch {
   static auto f(TCollection<Real, 2, D> tables, TView<Real2, 1, D> indices)
       -> TPack<Real, 1, D> {
-    printf("1\n");
     int num_Vs = indices.size(0);
 
     auto Vs_t = TPack<Real, 1, D>::empty(num_Vs);
@@ -37,16 +36,13 @@ struct RamaDispatch {
     auto dV_dIs_t = TPack<Real2, 1, D>::empty(num_Vs);
     auto dV_dIs = dV_dIs_t.view;
 
+    auto tableview = tables.view;
+
     auto func = ([=] __device__(int i) {
-      printf("Calling...\n");
-      // Vs[i] = tables.view[0][0][0];
-      // Vs[i] = indices[0][0];
-      // printf("%f\n", tables[0][0][0]);
-      // tmol::score::common::tie(Vs[i], dV_dIs[i]) =
-      //  numeric::bspline::ndspline<2, 3, D, Real,
-      //    Int>::interpolate(tables[0],indices[i]);
+      tmol::score::common::tie(Vs[i], dV_dIs[i]) =
+          numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+              tableview[0], indices[i]);
     });
-    printf("Called %i\n", num_Vs);
     mgpu::standard_context_t context;
     mgpu::transform([=] MGPU_DEVICE(int idx) { func(idx); }, num_Vs, context);
 
