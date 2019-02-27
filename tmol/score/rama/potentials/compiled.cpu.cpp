@@ -1,6 +1,7 @@
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/score/common/geom.hh>
 #include <tmol/numeric/bspline_compiled/bspline.hh>
 
@@ -29,23 +30,21 @@ template <
     typename Int>
 struct RamaDispatch {
   static auto f(
-      //TView<Real, 2, D> table,
-      TViewCollection<Real, 2, D> tables,
+      TCollection<Real, 2, D> tables,
       TView<Real2, 1, D> indices
   )
       -> TPack<Real, 1, D> {
 	int num_Vs = indices.size(0);
-
-	pybind11::print("x");
 
     auto Vs_t = TPack<Real, 1, D>::empty(num_Vs);
     auto Vs = Vs_t.view;
 
     auto dV_dIs_t = TPack<Real2, 1, D>::empty(num_Vs);
     auto dV_dIs = dV_dIs_t.view;
+
     auto func = ([=] EIGEN_DEVICE_FUNC(int i) {
       tmol::score::common::tie(Vs[i], dV_dIs[i]) =
-          numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(tables[1],indices[i]);
+          numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(tables.view[0],indices[i]);
     });
 
 	for (int idx=0; idx<num_Vs; ++idx) {

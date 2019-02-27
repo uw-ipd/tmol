@@ -1,5 +1,8 @@
 #pragma once
 
+#include <ATen/Tensor.h>
+#include <torch/torch.h>
+
 #include <stdint.h>
 #include <algorithm>
 #include <cstddef>
@@ -194,30 +197,6 @@ class TView<T, 1, D, P> : public TViewBase<T, 1, D, P> {
   AT_HOST_DEVICE T& operator[](int64_t i) const {
     return this->data_[this->strides_[0] * i];
   }
-};
-
-// a collection of TViews
-template <typename T, size_t N, Device D, PtrTag P = PtrTag::Restricted>
-class TViewCollection {
- public:
-  AT_HOST TViewCollection() {}
-
-  AT_HOST void resize(int64_t n) { data_.resize(n); }
-
-  AT_HOST void set(int64_t i, TView<T, N, D, P> const& tv) { data_[i] = tv; }
-
-  AT_HOST TView<T, N, D, P>* data() { return data_.data(); }
-
-  AT_HOST_DEVICE TView<T, N, D, P>& operator[](int64_t i) {
-    return this->data_[i];
-  }
-
-  AT_HOST_DEVICE TView<T, N, D, P> const& operator[](int64_t i) const {
-    return this->data_[i];
-  }
-
- protected:
-  std::vector<tmol::TView<T, N, D, P>> data_;
 };
 
 }  // namespace tmol
