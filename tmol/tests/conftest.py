@@ -56,3 +56,34 @@ def pytest_benchmark_update_machine_info(config, machine_info):
     machine_info["conda"] = {
         "list": json.loads(subprocess.getoutput("conda list --json"))
     }
+
+
+def pytest_addoption(parser):
+    group = parser.getgroup("benchmark")
+
+    group.addoption(
+        "--benchmark-cuda-profile",
+        action="store_true",
+        default=False,
+        help="Enable nvrt profile run.",
+    )
+
+
+def pytest_benchmark_fixture_post_run(config, fixture, f):
+
+    if not config.getoption("benchmark_cuda_profile"):
+        return
+
+    import torch
+    import time
+
+    with torch.cuda.profiler.profile():
+        torch.cuda.nvtx.range_push("benchmark-warmup")
+        f()
+        torch.cuda.nvtx.range_pop()
+
+        time.sleep(.01)
+
+        torch.cuda.nvtx.range_push("benchmark-run")
+        f()
+        torch.cuda.nvtx.range_pop()
