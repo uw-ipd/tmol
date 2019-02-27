@@ -39,7 +39,6 @@ struct LKIsotropicDispatch {
       LKTypeParamTensors<Real, D> type_params,
       LJGlobalParams<Real> global_params)
       -> std::tuple<
-          TPack<int64_t, 2, D>,
           TPack<Real, 1, D>,
           TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 1, D> >;
