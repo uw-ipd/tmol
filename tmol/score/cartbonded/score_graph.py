@@ -179,7 +179,6 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     ):
         """Overridable clone-constructor.
         """
-
         if cartbonded_database is None:
             if getattr(val, "cartbonded_database", None):
                 cartbonded_database = val.cartbonded_database

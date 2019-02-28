@@ -25,6 +25,7 @@ template <typename Real, int N>
 
 using Vec = Eigen::Matrix<Real, N, 1>;
 
+#define CoordQuad Eigen::Matrix<Real, 4, 3>
 #define Real3 Vec<Real, 3>
 #define Real2 Vec<Real, 2>
 
@@ -35,44 +36,40 @@ static def square(Real v)->Real {
 
 template <typename Real, typename Int>
 def rama_V_dV(
-    Real3 phi1,
-    Real3 phi2,
-    Real3 phi3,
-    Real3 phi4,
-    Real3 psi1,
-    Real3 psi2,
-    Real3 psi3,
-    Real3 psi4,
+    CoordQuad phi,
+    CoordQuad psi,
     TView<Real, 2, D> coeffs,
     Real2 bbstart,
     Real2 bbstep)
-    ->tuple<Real, Real3, Real3, Real3, Real3, Real3, Real3, Real3, Real3> {
-  Eigen::Matrix<Real, 2, 1> phipsi;
+    ->tuple<Real, CoordQuad, CoordQuad> {
+  Real2 phipsi;
 
-  auto phi = dihedral_angle<Real>::V_dV(phi1, phi2, phi3, phi4);
-  auto psi = dihedral_angle<Real>::V_dV(psi1, psi2, psi3, psi4);
+  auto phi = dihedral_angle<Real>::V_dV(
+      phi.row(1), phi.row(2), phi.row(3), phi.row(4));
+  auto psi = dihedral_angle<Real>::V_dV(
+      psi.row(1), psi.row(2), psi.row(3), psi.row(4));
 
   phipsi[0] = phi.V;
   phipsi[1] = psi.V;
 
-  {V, dVdphi, dVdpsi) = ndspline<2, 3, Real, Int>::interpolate(coeffs, phipsi);
+  {V, dVdphi, dVdpsi} = ndspline<2, 3, Real, Int>::interpolate(coeffs, phipsi);
 
-    return {V,
-            dVdphi * phi.dV_dI,
-            dVdphi * phi.dV_dJ,
-            dVdphi * phi.dV_dK,
-            dVdphi * phi.dV_dL,
-            dVdpsi * psi.dV_dI,
-            dVdpsi * psi.dV_dJ,
-            dVdpsi * psi.dV_dK,
-            dVdpsi * psi.dV_dL};
-  }
+  return {V,
+          dVdphi * phi.dV_dI,
+          dVdphi * phi.dV_dJ,
+          dVdphi * phi.dV_dK,
+          dVdphi * phi.dV_dL,
+          dVdpsi * psi.dV_dI,
+          dVdpsi * psi.dV_dJ,
+          dVdpsi * psi.dV_dK,
+          dVdpsi * psi.dV_dL};
+}
 
 #undef Real2
 #undef Real3
 
 #undef def
 }  // namespace potentials
-}  // namespace potentials
 }  // namespace rama
 }  // namespace score
+}  // namespace tmol

@@ -9,8 +9,7 @@ import numpy
 from numba import jit
 
 
-## fd TODO: replace this with fast lkball versions
-
+## fd TODO: replace this with fast IndexedAtom versions
 
 # traverse bond graph, generate angles
 @jit(nopython=True)
