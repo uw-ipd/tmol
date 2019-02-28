@@ -4,6 +4,34 @@
 
 #include <tmol/score/hbond/potentials/potentials.hh>
 
+namespace pybind11 {
+namespace detail {
+
+using tmol::score::hbond::potentials::hbond_score_V_dV_t;
+using tmol::score::hbond::potentials::Vec;
+
+template <typename Real>
+struct type_caster<hbond_score_V_dV_t<Real>> {
+ public:
+  PYBIND11_TYPE_CASTER(hbond_score_V_dV_t<Real>, _("hbond_score_V_dV_t"));
+
+  static handle cast(
+      hbond_score_V_dV_t<Real> src,
+      return_value_policy /* policy */,
+      handle /* parent */) {
+    return py::cast(std::make_tuple(
+                        src.V,
+                        src.dV_dD,
+                        src.dV_dH,
+                        src.dV_dA,
+                        src.dV_dB,
+                        src.dV_dB0))
+        .release();
+  }
+};
+}  // namespace detail
+}  // namespace pybind11
+
 namespace tmol {
 namespace score {
 namespace hbond {
@@ -56,7 +84,7 @@ void bind_potentials(pybind11::module& m) {
 
   m.def(
       "hbond_score_V_dV",
-      &hbond_score_V_dV<Real, int>,
+      &hbond_score<Real, int>::V_dV,
       "HBond donor-acceptor geometry score.",
 
       "D"_a,
