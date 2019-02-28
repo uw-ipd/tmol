@@ -40,14 +40,14 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
     TView<Real, 2, D> bonded_path_lengths,
 
     LJTypeParamTensors<Real, D> type_params,
-    LJGlobalParams<Real> global_params)
+    LJGlobalParamTensors<Real, D> global_params)
     -> std::tuple<
         TPack<Real, 1, D>,
         TPack<Vec<Real, 3>, 1, D>,
         TPack<Vec<Real, 3>, 1, D>> {
-  nvtx_range_push(__FUNCTION__);
+  NVTXRange _function(__FUNCTION__);
 
-  nvtx_range_push("output_allocate");
+  nvtx_range_push("dispatch::score");
   auto V_t = TPack<Real, 1, D>::zeros({1});
   auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
   auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
@@ -77,7 +77,7 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
             bonded_path_lengths[i][j],
             type_params[ati],
             type_params[atj],
-            global_params);
+            global_params[0]);
 
         accumulate<D, Real>::add(V[0], lj.V);
         accumulate<D, Vec<Real, 3>>::add(dV_dI[i], lj.dV_ddist * ddist_dI);

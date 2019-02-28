@@ -41,7 +41,7 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
     TView<Real, 2, D> bonded_path_lengths,
 
     LKTypeParamTensors<Real, D> type_params,
-    LJGlobalParams<Real> global_params)
+    LJGlobalParamTensors<Real, D> global_params)
     -> std::tuple<
         TPack<Real, 1, D>,
         TPack<Vec<Real, 3>, 1, D>,
@@ -78,7 +78,7 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
             bonded_path_lengths[i][j],
             type_params[ati],
             type_params[atj],
-            global_params);
+            global_params[0]);
 
         accumulate<D, Real>::add(V[0], lk.V);
         accumulate<D, Vec<Real, 3>>::add(dV_dI[i], lk.dV_ddist * ddist_dI);
