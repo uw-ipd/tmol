@@ -9,6 +9,8 @@ from tmol.utility.dicttoolz import flat_items, merge
 from tmol.database.scoring import HBondDatabase
 from .params import HBondParamResolver
 
+from tmol.utility.nvtx import nvtx_range
+
 
 @attr.s(auto_attribs=True, frozen=True)
 class HBondOp:
@@ -48,14 +50,23 @@ class HBondOp:
         param_resolver: HBondParamResolver,
         dtype=torch.float32,
     ):
+
         pair_params = cls._setup_pair_params(param_resolver, dtype)
-        global_params = attr.asdict(database.global_parameters)
+
+        global_params = {
+            n: torch.tensor(v, device=param_resolver.device).expand(1).to(dtype)
+            for n, v in attr.asdict(database.global_parameters).items()
+        }
 
         return cls(params=merge(pair_params, global_params))
 
-    def score(self, D, H, donor_type, A, B, B0, acceptor_type):
-        inds, scores = HBondFun(self)(D, H, donor_type, A, B, B0, acceptor_type)
-        return inds.detach(), scores
+    def score(
+        self, donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
+    ):
+        score = HBondFun(self)(
+            donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
+        )
+        return score
 
 
 class HBondFun(torch.autograd.Function):
@@ -63,61 +74,49 @@ class HBondFun(torch.autograd.Function):
         self.op = op
         super().__init__()
 
-    def forward(ctx, D, H, donor_type, A, B, B0, acceptor_type):
-        assert D.dim() == 2
-        assert D.shape[1] == 3
-        assert D.shape == H.shape
-        assert D.shape[:1] == donor_type.shape
-        assert not donor_type.requires_grad
+    def forward(
+        ctx, donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
+    ):
+        with nvtx_range("HBondFun.forward.assert"):
+            assert D.dim() == 1
+            assert D.shape == H.shape
+            assert D.shape == donor_type.shape
 
-        assert A.dim() == 2
-        assert A.shape[1] == 3
-        assert A.shape == B.shape
-        assert A.shape == B0.shape
-        assert A.shape[:1] == acceptor_type.shape
-        assert not acceptor_type.requires_grad
+            assert A.dim() == 1
+            assert A.shape == B.shape
+            assert A.shape == B0.shape
+            assert A.shape == acceptor_type.shape
 
-        inds, E, *dE_dC = ctx.op.hbond_pair_score(
-            D, H, donor_type, A, B, B0, acceptor_type, **ctx.op.params
-        )
+        with nvtx_range("HBondFun.forward.pair_score"):
+            E, *dE_d_coords = ctx.op.hbond_pair_score(
+                donor_coords,
+                acceptor_coords,
+                D,
+                H,
+                donor_type,
+                A,
+                B,
+                B0,
+                acceptor_type,
+                **ctx.op.params,
+            )
 
-        # Assert of returned shape of indicies and scores. Seeing strange
-        # results w/ reversed ordering if mgpu::tuple converted std::tuple
-        assert inds.dim() == 2
-        assert inds.shape[1] == 2
-        assert inds.shape[0] == E.shape[0]
+        ctx.save_for_backward(*dE_d_coords)
 
-        inds = inds.transpose(0, 1)
+        return E
 
-        ctx.donor_shape = donor_type.shape
-        ctx.acceptor_shape = acceptor_type.shape
+    def backward(ctx, dV_dE):
+        with nvtx_range("HBondFun.backward"):
+            dE_d_don, dE_d_acc = ctx.saved_tensors
 
-        ctx.save_for_backward(*([inds] + dE_dC))
-
-        return (inds, E)
-
-    def backward(ctx, _ind_grads, dV_dE):
-        ind, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0 = ctx.saved_tensors
-        donor_ind, acceptor_ind = ind
-
-        def _chain_donor(dE_dDonor):
-            return torch.sparse_coo_tensor(
-                donor_ind[None, :], dV_dE[..., None] * dE_dDonor, ctx.donor_shape + (3,)
-            ).to_dense()
-
-        def _chain_acceptor(dE_dAcceptor):
-            return torch.sparse_coo_tensor(
-                acceptor_ind[None, :],
-                dV_dE[..., None] * dE_dAcceptor,
-                ctx.acceptor_shape + (3,),
-            ).to_dense()
-
-        return (
-            _chain_donor(dE_dD),
-            _chain_donor(dE_dH),
-            None,
-            _chain_acceptor(dE_dA),
-            _chain_acceptor(dE_dB),
-            _chain_acceptor(dE_dB0),
-            None,
-        )
+            return (
+                dV_dE * dE_d_don,
+                dV_dE * dE_d_acc,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )

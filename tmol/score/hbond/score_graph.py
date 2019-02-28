@@ -25,6 +25,7 @@ from tmol.types.array import NDArray
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
+from tmol.utility.nvtx import nvtx_range
 
 
 @attr.s(auto_attribs=True)
@@ -43,21 +44,6 @@ class HBondAcceptorIndices(TensorGroup):
 
 
 @attr.s(auto_attribs=True)
-class HBondDonorCoords(TensorGroup):
-    D: Tensor("f")[..., 3]
-    H: Tensor("f")[..., 3]
-    donor_type: Tensor("i4")[...]
-
-
-@attr.s(auto_attribs=True)
-class HBondAcceptorCoords(TensorGroup):
-    A: Tensor("f")[..., 3]
-    B: Tensor("f")[..., 3]
-    B0: Tensor("f")[..., 3]
-    acceptor_type: Tensor("i4")[...]
-
-
-@attr.s(auto_attribs=True)
 class HBondDescr(TensorGroup):
     donor: HBondDonorIndices
     acceptor: HBondAcceptorIndices
@@ -68,23 +54,23 @@ class HBondDescr(TensorGroup):
 class HBondIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def total_hbond(hbond):
+    def total_hbond(target):
         """total hbond score"""
-        score_ind, score_val = hbond
-        return score_val.sum()
+        with nvtx_range("HBondIntraScore.hbond"):
+            with nvtx_range("HBondIntraScore.hbond.coords"):
+                coords = target.coords[0]
 
-    @reactive_property
-    @validate_args
-    def hbond(target):
-        return target.hbond_op.score(
-            target.hbond_donor_coords.D[0],
-            target.hbond_donor_coords.H[0],
-            target.hbond_donor_coords.donor_type,
-            target.hbond_acceptor_coords.A[0],
-            target.hbond_acceptor_coords.B[0],
-            target.hbond_acceptor_coords.B0[0],
-            target.hbond_acceptor_coords.acceptor_type,
-        )
+            return target.hbond_op.score(
+                coords,
+                coords,
+                target.hbond_donor_indices.D,
+                target.hbond_donor_indices.H,
+                target.hbond_donor_indices.donor_type,
+                target.hbond_acceptor_indices.A,
+                target.hbond_acceptor_indices.B,
+                target.hbond_acceptor_indices.B0,
+                target.hbond_acceptor_indices.acceptor_type,
+            )
 
     @reactive_property
     @validate_args
@@ -210,30 +196,3 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         )
 
         return HBondAcceptorIndices(A=A, B=B, B0=B0, acceptor_type=acceptor_type)
-
-    @reactive_property
-    @validate_args
-    def hbond_donor_coords(
-        coords: torch.Tensor, hbond_donor_indices: HBondDonorIndices
-    ) -> HBondDonorCoords:
-        """hbond donor coordinates and type indicies."""
-
-        i = hbond_donor_indices
-        return HBondDonorCoords(
-            donor_type=i.donor_type, D=coords[:, i.D], H=coords[:, i.H]
-        )
-
-    @reactive_property
-    @validate_args
-    def hbond_acceptor_coords(
-        coords: torch.Tensor, hbond_acceptor_indices: HBondAcceptorIndices
-    ) -> HBondAcceptorCoords:
-        """hbond acceptor coordinates and type indicies."""
-
-        i = hbond_acceptor_indices
-        return HBondAcceptorCoords(
-            acceptor_type=i.acceptor_type,
-            A=coords[:, i.A],
-            B=coords[:, i.B],
-            B0=coords[:, i.B0],
-        )
