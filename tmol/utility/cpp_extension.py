@@ -20,7 +20,7 @@ warnings.filterwarnings(
 
 _default_include_paths = list(tmol_include_paths() + extern_include_paths())
 
-_required_flags = ["--std=c++14"]
+_required_flags = ["--std=c++14", "-DWITH_NVTX"]
 _default_flags = ["-O3"]
 # _default_flags = ["-g", "-Og"]
 
@@ -28,6 +28,7 @@ _required_cuda_flags = [
     "-std=c++14",
     "--expt-extended-lambda",
     "--expt-relaxed-constexpr",
+    "-DWITH_NVTX",
 ]
 
 if torch.cuda.is_available():
