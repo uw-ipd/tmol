@@ -7,7 +7,7 @@ from tmol.types.functional import validate_args
 
 from .params import LJLKDatabase, LJLKParamResolver
 
-from tmol.utility.nvtx import range_ctx
+from tmol.utility.nvtx import nvtx_range
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -49,7 +49,7 @@ class _AtomScoreFun(torch.autograd.Function):
         super().__init__()
 
     def forward(ctx, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
-        with range_ctx("_AtomScoreFun.forward"):
+        with nvtx_range("_AtomScoreFun.forward"):
 
             assert I.dim() == 2
             assert I.shape[1] == 3
@@ -61,7 +61,7 @@ class _AtomScoreFun(torch.autograd.Function):
             assert J.shape[:1] == atom_type_J.shape
             assert not atom_type_J.requires_grad
 
-            with range_ctx("cast_params"):
+            with nvtx_range("cast_params"):
                 # Cast parameter tensors to precision required for input tensors.
                 # Required to support double-precision inputs for gradcheck tests,
                 # inputs/params will be single-precision in standard case.
@@ -85,7 +85,7 @@ class _AtomScoreFun(torch.autograd.Function):
                         },
                     )
 
-            with range_ctx("ctx.f"):
+            with nvtx_range("ctx.f"):
                 E, *dE = ctx.f(
                     I,
                     atom_type_I,
@@ -101,7 +101,7 @@ class _AtomScoreFun(torch.autograd.Function):
             return E
 
     def backward(ctx, dV_dE):
-        with range_ctx("_AtomScoreFun.backward"):
+        with nvtx_range("_AtomScoreFun.backward"):
             dE_dI, dE_dJ = ctx.saved_tensors
             return dV_dE * dE_dI, None, dV_dE * dE_dJ, None, None
 

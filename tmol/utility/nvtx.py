@@ -4,7 +4,7 @@ from torch.cuda.nvtx import range_push, range_pop
 
 
 @contextlib.contextmanager
-def range_ctx(name):
+def nvtx_range(name):
     try:
         range_push(name)
         yield
