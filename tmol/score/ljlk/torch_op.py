@@ -66,6 +66,8 @@ class _AtomScoreFun(torch.autograd.Function):
                 # Required to support double-precision inputs for gradcheck tests,
                 # inputs/params will be single-precision in standard case.
                 type_params = ctx.op.param_resolver.type_params
+                global_params = ctx.op.param_resolver.global_params
+
                 if I.dtype != type_params.lj_radius.dtype:
                     type_params = attr.evolve(
                         ctx.op.param_resolver.type_params,
@@ -75,15 +77,24 @@ class _AtomScoreFun(torch.autograd.Function):
                         },
                     )
 
-            E, *dE = ctx.f(
-                I,
-                atom_type_I,
-                J,
-                atom_type_J,
-                bonded_path_lengths,
-                type_params,
-                ctx.op.param_resolver.global_params,
-            )
+                    global_params = attr.evolve(
+                        ctx.op.param_resolver.global_params,
+                        **{
+                            n: t.to(I.dtype) if t.is_floating_point() else t
+                            for n, t in attr.asdict(global_params).items()
+                        },
+                    )
+
+            with range_ctx("ctx.f"):
+                E, *dE = ctx.f(
+                    I,
+                    atom_type_I,
+                    J,
+                    atom_type_J,
+                    bonded_path_lengths,
+                    type_params,
+                    global_params,
+                )
 
             ctx.save_for_backward(*dE)
 
