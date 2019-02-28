@@ -20,8 +20,6 @@ from tmol.score.elec import ElecScoreGraph
 from tmol.score.cartbonded import CartBondedScoreGraph
 from tmol.score.lk_ball import LKBallScoreGraph
 
-from tmol.tests.data import structures_bysize  # noqa
-
 
 @score_graph
 class DummyIntra(IntraScore):
@@ -154,9 +152,9 @@ _non_cuda_components = (LKBallScoreGraph,)
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 @pytest.mark.benchmark(group="score_components")
 def test_end_to_end_score_graph(
-    benchmark, benchmark_pass, graph_class, torch_device, structures_bysize
+    benchmark, benchmark_pass, graph_class, torch_device, ubq_system
 ):
-    target_system = structures_bysize["BYSIZE_200_RES_5MM8"].tmol_system
+    target_system = ubq_system
 
     if issubclass(graph_class, _non_cuda_components) and torch_device.type == "cuda":
         with pytest.raises(NotImplementedError):
