@@ -147,7 +147,7 @@ test_cases = dict(
     "test_case", list(test_cases.values()), ids=list(test_cases.keys())
 )
 def test_water_generation(test_case, default_database):
-    from tmol.score.lk_ball.potentials.compiled import AttachedWaters, LKBall
+    from tmol.score.lk_ball.torch_ops import AttachedWaters, LKBall
 
     water_op = AttachedWaters.from_database(default_database, torch.device("cpu"))
     lkb_op = LKBall.from_database(default_database, torch.device("cpu"))

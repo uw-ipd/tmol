@@ -26,7 +26,7 @@ void bind(pybind11::module& m) {
   m.def(
       "computeCoeffs3",
       &ndspline<3, 3, tmol::Device::CPU, Real, Int>::computeCoeffs,
-      "x"_a);
+      "data"_a);
 
   m.def(
       "interpolate3",
@@ -37,7 +37,7 @@ void bind(pybind11::module& m) {
   m.def(
       "computeCoeffs4",
       &ndspline<4, 3, tmol::Device::CPU, Real, Int>::computeCoeffs,
-      "x"_a);
+      "data"_a);
 
   m.def(
       "interpolate4",

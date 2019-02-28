@@ -9,6 +9,7 @@
 #include <torch/csrc/utils/pybind.h>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 
@@ -53,6 +54,13 @@ struct handle_type_name<tmol::TPack<T, N, D, P>> {
   static constexpr auto name =
       _("torch.Tensor[") + npy_format_descriptor_name<T>::name + _(", ")
       + _<N>() + _(", ") + device_name<D>::name + _("]");
+};
+
+template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
+struct handle_type_name<tmol::TCollection<T, N, D, P>> {
+  static constexpr auto name =
+      _("torch.TensorCollection[") + npy_format_descriptor_name<T>::name
+      + _(", ") + _<N>() + _(", ") + device_name<D>::name + _("]");
 };
 
 template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
@@ -129,6 +137,23 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
   }
 
   // C++ -> Python cast operation not supported.
+};
+
+template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
+struct type_caster<tmol::TCollection<T, N, D, P>> {
+ public:
+  typedef tmol::TCollection<T, N, D, P> ViewCollType;
+  PYBIND11_TYPE_CASTER(ViewCollType, handle_type_name<ViewCollType>::name);
+
+  bool load(handle src, bool convert) {
+    type_caster<std::vector<at::Tensor>> conv;
+
+    if (conv.load(src, convert)) {
+      value = tmol::TCollection<T, N, D, P>(conv);
+      return true;
+    }
+    return false;
+  }
 };
 
 }  // namespace detail

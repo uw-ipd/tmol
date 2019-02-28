@@ -2,27 +2,27 @@ import attr
 
 import torch
 import numpy
-from typing import List
+import attr
+from typing import Optional
+
+import torch
 
 from ..database import ParamDB
 from ..device import TorchDevice
-
-# from ..total_score import ScoreComponentAttributes, TotalScoreComponentsGraph
-from ..factory import Factory
-from ..residue_properties import ResidueProperties
-from ..score_components import ScoreComponent, ScoreComponentClasses, IntraScore
-from ..torsions import AlphaAABackboneTorsionProvider
-from ..polymeric_bonds import PolymericBonds
+from ..bonded_atom import BondedAtomScoreGraph
+from ..score_components import ScoreComponentClasses, IntraScore
+from ..score_graph import score_graph
 
 from tmol.database import ParameterDatabase
+from tmol.database.scoring import RamaDatabase
+from .params import RamaParamResolver
+from .torch_op import RamaOp
 
-# from tmol.database.chemical import AAType
-from tmol.database.scoring.rama import CompactedRamaDatabase
 
-from tmol.utility.reactive import reactive_attrs, reactive_property
-
-from tmol.types.functional import validate_args
-from tmol.types.torch import Tensor
+@attr.s(auto_attribs=True)
+class RamaParams(TensorGroup):
+    atom_indices: Tensor(torch.int32)[..., 4]
+    param_indices: Tensor(torch.int32)[...]
 
 
 @reactive_attrs

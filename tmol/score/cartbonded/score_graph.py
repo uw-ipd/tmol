@@ -51,7 +51,7 @@ class CartBondedTorsionParams(TensorGroup):
 
 
 @reactive_attrs
-class CartBondedLengthScore(IntraScore):
+class CartBondedIntraScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_length(cartbonded_length):
@@ -63,14 +63,11 @@ class CartBondedLengthScore(IntraScore):
     @validate_args
     def cartbonded_length(target):
         return target.cartbonded_length_op.score(
+            target.coords[0, ...],
             target.cartbonded_lengths.atom_indices,
             target.cartbonded_lengths.param_indices,
-            target.coords[0, ...],
         )
 
-
-@reactive_attrs
-class CartBondedAngleScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_angle(cartbonded_angle):
@@ -82,14 +79,11 @@ class CartBondedAngleScore(IntraScore):
     @validate_args
     def cartbonded_angle(target):
         return target.cartbonded_angle_op.score(
+            target.coords[0, ...],
             target.cartbonded_angles.atom_indices,
             target.cartbonded_angles.param_indices,
-            target.coords[0, ...],
         )
 
-
-@reactive_attrs
-class CartBondedTorsionScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_torsion(cartbonded_torsion):
@@ -101,14 +95,11 @@ class CartBondedTorsionScore(IntraScore):
     @validate_args
     def cartbonded_torsion(target):
         return target.cartbonded_torsion_op.score(
+            target.coords[0, ...],
             target.cartbonded_torsions.atom_indices,
             target.cartbonded_torsions.param_indices,
-            target.coords[0, ...],
         )
 
-
-@reactive_attrs
-class CartBondedImproperScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_improper(cartbonded_improper):
@@ -120,14 +111,11 @@ class CartBondedImproperScore(IntraScore):
     @validate_args
     def cartbonded_improper(target):
         return target.cartbonded_improper_op.score(
+            target.coords[0, ...],
             target.cartbonded_impropers.atom_indices,
             target.cartbonded_impropers.param_indices,
-            target.coords[0, ...],
         )
 
-
-@reactive_attrs
-class CartBondedHxlTorsionScore(IntraScore):
     @reactive_property
     @validate_args
     def total_cartbonded_hxltorsion(cartbonded_hxltorsion):
@@ -142,9 +130,9 @@ class CartBondedHxlTorsionScore(IntraScore):
             return torch.tensor([], device=target.device)
         else:
             return target.cartbonded_hxltorsion_op.score(
+                target.coords[0, ...],
                 target.cartbonded_hxltorsions.atom_indices,
                 target.cartbonded_hxltorsions.param_indices,
-                target.coords[0, ...],
             )
 
 
@@ -156,27 +144,27 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     total_score_components = [
         ScoreComponentClasses(
             "cartbonded_length",
-            intra_container=CartBondedLengthScore,
+            intra_container=CartBondedIntraScore,
             inter_container=None,
         ),
         ScoreComponentClasses(
             "cartbonded_angle",
-            intra_container=CartBondedAngleScore,
+            intra_container=CartBondedIntraScore,
             inter_container=None,
         ),
         ScoreComponentClasses(
             "cartbonded_torsion",
-            intra_container=CartBondedTorsionScore,
+            intra_container=CartBondedIntraScore,
             inter_container=None,
         ),
         ScoreComponentClasses(
             "cartbonded_improper",
-            intra_container=CartBondedImproperScore,
+            intra_container=CartBondedIntraScore,
             inter_container=None,
         ),
         ScoreComponentClasses(
             "cartbonded_hxltorsion",
-            intra_container=CartBondedHxlTorsionScore,
+            intra_container=CartBondedIntraScore,
             inter_container=None,
         ),
     ]

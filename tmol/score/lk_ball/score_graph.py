@@ -7,7 +7,7 @@ from ..score_graph import score_graph
 
 from ..ljlk.score_graph import _LJLKCommonScoreGraph
 
-from .potentials.compiled import AttachedWaters, LKBall
+from .torch_ops import AttachedWaters, LKBall
 
 
 @reactive_attrs

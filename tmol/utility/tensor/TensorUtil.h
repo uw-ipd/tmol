@@ -77,6 +77,14 @@ struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
+template <typename T, size_t N, Device D, PtrTag P>
+struct enable_tensor_view<tmol::TView<T, N, D, P>> {
+  static const bool enabled = enable_tensor_view<uint8_t>::enabled;
+  static const at::ScalarType scalar_type =
+      enable_tensor_view<uint8_t>::scalar_type;
+  typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
+};
+
 template <
     typename T,
     int N,

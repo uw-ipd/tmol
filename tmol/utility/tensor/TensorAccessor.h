@@ -1,5 +1,8 @@
 #pragma once
 
+#include <ATen/Tensor.h>
+#include <torch/torch.h>
+
 #include <stdint.h>
 #include <algorithm>
 #include <cstddef>

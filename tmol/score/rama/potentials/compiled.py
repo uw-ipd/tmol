@@ -10,9 +10,5 @@ _compiled = load(
 )
 
 
-def elec(*args, **kwargs):
-    return _compiled.elec[(args[0].device.type, args[0].dtype)](*args, **kwargs)
-
-
-def elec_triu(*args, **kwargs):
-    return _compiled.elec_triu[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+def rama(*args, **kwargs):
+    return _compiled.rama[(args[0][0].device.type, args[0][0].dtype)](*args, **kwargs)
