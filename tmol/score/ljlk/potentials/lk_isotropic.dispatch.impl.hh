@@ -1,7 +1,5 @@
 #pragma once
 
-#include <nvToolsExt.h>
-
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -9,6 +7,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/dispatch.hh>
@@ -47,9 +46,9 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
         TPack<Real, 1, D>,
         TPack<Vec<Real, 3>, 1, D>,
         TPack<Vec<Real, 3>, 1, D>> {
-  nvtxRangePushA(__FUNCTION__);
+  nvtx_range_push(__FUNCTION__);
 
-  nvtxRangePushA("output_allocate");
+  nvtx_range_push("output_allocate");
   auto V_t = TPack<Real, 1, D>::zeros({1});
   auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
   auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
@@ -57,9 +56,9 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
   auto dV_dJ = dV_dJ_t.view;
-  nvtxRangePop();
+  nvtx_range_pop();
 
-  nvtxRangePushA("dispatch::score");
+  nvtx_range_push("dispatch::score");
   Real threshold_distance = 6.0;
   Dispatch<D>::forall_pairs(
       threshold_distance,
@@ -85,7 +84,9 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
         accumulate<D, Vec<Real, 3>>::add(dV_dI[i], lk.dV_ddist * ddist_dI);
         accumulate<D, Vec<Real, 3>>::add(dV_dJ[j], lk.dV_ddist * ddist_dJ);
       });
+  nvtx_range_pop();
 
+  nvtx_range_pop();
   return {V_t, dV_dI_t, dV_dJ_t};
 };
 
