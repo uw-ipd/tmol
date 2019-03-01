@@ -1,6 +1,8 @@
 import numpy
 import torch
 
+from typing import Optional
+
 from ..types.functional import validate_args
 from ..types.torch import Tensor
 
@@ -9,7 +11,8 @@ from ..kinematics.metadata import DOFTypes
 
 from ..score.stacked_system import StackedSystem
 from ..score.bonded_atom import BondedAtomScoreGraph
-
+from ..score.rama.score_graph import RamaScoreGraph
+from tmol.database.scoring import RamaDatabase
 from ..score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
@@ -21,8 +24,7 @@ from ..score.polymeric_bonds import PolymericBonds
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
 
-# from ..database.chemical import three_letter_to_aatype
-# from tmol.chemical.aa import AAIndex
+from tmol.database import ParameterDatabase
 
 
 @StackedSystem.factory_for.register(PackedResidueSystem)
@@ -108,87 +110,46 @@ def system_torsion_graph_inputs(
     )
 
 
-@AlphaAABackboneTorsionProvider.factory_for.register(PackedResidueSystem)
+@RamaScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
-def system_torsions_from_coordinates(
-    system: PackedResidueSystem, device: torch.device, **_
+def rama_graph_inputs(
+    system: PackedResidueSystem,
+    parameter_database: ParameterDatabase,
+    rama_database: Optional[RamaDatabase] = None,
+    **_,
 ):
-    """Constructor for finding the alpha amino-acid backbone torsions
+    """Constructor parameters for rama scoring.
 
-    Each of the residues in the system is represented by the three
-    atom-index arrays, but some entries are going to be listed with
-    an index of -1. Either these atoms don't exist for a canonical
-    AA at that residue or that residue is not a canonical AA.
+    Extract the atom indices of the 'phi' and 'psi' torsions
+	from the torsion_metadata object, and the database.
     """
+    if rama_database is None:
+        rama_database = parameter_database.scoring.rama
 
-    phi_inds = inds_for_torsion(system, device, "phi").unsqueeze(0)
-    psi_inds = inds_for_torsion(system, device, "psi").unsqueeze(0)
-    omega_inds = inds_for_torsion(system, device, "omega").unsqueeze(0)
-
-    return dict(phi_inds=phi_inds, psi_inds=psi_inds, omega_inds=omega_inds)
-
-
-@validate_args
-def inds_for_torsion(
-    system: PackedResidueSystem, device: torch.device, torsion_name: str
-) -> Tensor(torch.long)[:, 4]:
-    inds = torch.full((len(system.residues), 4), -1, dtype=torch.long, device=device)
-
-    tor_data = system.torsion_metadata[system.torsion_metadata["name"] == torsion_name]
-    tor_res = tor_data["residue_index"]
-    inds[tor_res, 0] = torch.tensor(
-        tor_data["atom_index_a"], dtype=torch.long, device=device
-    )
-    inds[tor_res, 1] = torch.tensor(
-        tor_data["atom_index_b"], dtype=torch.long, device=device
-    )
-    inds[tor_res, 2] = torch.tensor(
-        tor_data["atom_index_c"], dtype=torch.long, device=device
-    )
-    inds[tor_res, 3] = torch.tensor(
-        tor_data["atom_index_d"], dtype=torch.long, device=device
-    )
-    return inds
-
-
-@PolymericBonds.factory_for.register(PackedResidueSystem)
-@validate_args
-def system_polymeric_connections(
-    system: PackedResidueSystem, device: torch.device, **_
-):
-    """Constructor for identifying which polymeric residue is chemically bonded
-    to which other polymeric residue
-
-    The upper connection (usually i+1) for cyclic peptides, e.g., will for the
-    last residue be residue 0, and in the same cyclic peptide, the lower
-    connection for residue 0 with be the last residue. An index of -1 is given
-    to suggest that a residue does not have an upper or lower connection (perhaps
-    because it is not a polymeric residue, or perhaps because it is a chain
-    terminus)."""
-
-    upper = torch.full((len(system.residues),), -1, dtype=torch.long, device=device)
-    lower = torch.full((len(system.residues),), -1, dtype=torch.long, device=device)
-    ups = system.connection_metadata[
-        system.connection_metadata["from_connection_name"] == "up"
-    ]
-    upper[ups["from_residue_index"]] = torch.tensor(
-        ups["to_residue_index"], dtype=torch.long, device=device
+    phis = numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "phi"]
+        ]
     )
 
-    downs = system.connection_metadata[
-        system.connection_metadata["from_connection_name"] == "down"
-    ]
-    lower[downs["from_residue_index"]] = torch.tensor(
-        downs["to_residue_index"], dtype=torch.long, device=device
+    psis = numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "psi"]
+        ]
     )
 
-    return dict(upper=upper.unsqueeze(0), lower=lower.unsqueeze(0))
-
-
-@ResidueProperties.factory_for.register(PackedResidueSystem)
-@validate_args
-def system_residue_properties(system: PackedResidueSystem, **_):
-    residue_properties = [None] * len(system.residues)
-    for i, res in enumerate(system.residues):
-        residue_properties[i] = res.residue_type.hierarchies
-    return dict(residue_properties=residue_properties)
+    return dict(rama_database=rama_database, phis=phis, psis=psis)
