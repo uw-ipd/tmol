@@ -100,7 +100,7 @@ def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, outpu
             paapp[aa] = energies
 
         for aa, prob in general.items():
-            prob = prob + eps
+            # prob = prob + eps
 
             # convert rama to energies
             prob /= numpy.sum(prob)
@@ -111,12 +111,11 @@ def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, outpu
             #    numpy.savetxt("ala_rama_es.csv", energies, delimiter=",")
 
             # reweight, add paapp
-            general[aa] = rama_wt * energies + paapp_wt * paapp[aa]
-
-        # numpy.savetxt("ala.csv", general['ALA'], delimiter=",")
+            # general[aa] = rama_wt * energies + paapp_wt * paapp[aa]
+            general[aa] = energies
 
         for aa, prob in prepro.items():
-            prob = prob + eps
+            # prob = prob + eps
 
             # convert rama to energies
             prob /= numpy.sum(prob)
@@ -124,27 +123,25 @@ def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, outpu
             energies = -numpy.log(prob) + entropy
 
             # reweight, add paapp
-            prepro[aa] = rama_wt * energies + paapp_wt * paapp[aa]
+            # prepro[aa] = rama_wt * energies + paapp_wt * paapp[aa]
+            prepro[aa] = energies
+
+        numpy.savetxt("alapp.csv", prepro["ALA"], delimiter=",")
+        numpy.savetxt("ala.csv", general["ALA"], delimiter=",")
 
         # write tables
         zgroup = zarr.group(store=store)
         for aa, prob in general.items():
             group_aa = zgroup.create_group(aa)
             data_aa = group_aa.create_dataset("prob", data=prob)
-            data_aa.attrs["bbstep"] = [10 * numpy.pi / 180.0, 10 * numpy.pi / 180.0]
-            data_aa.attrs["bbstart"] = [
-                -180 * numpy.pi / 180.0,
-                -180 * numpy.pi / 180.0,
-            ]
+            data_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
+            data_aa.attrs["bbstart"] = [-numpy.pi, -numpy.pi]
 
         for aa, prob in prepro.items():
             group_aa = zgroup.create_group(aa + "_prepro")
             data_aa = group_aa.create_dataset("prob", data=prob)
-            data_aa.attrs["bbstep"] = [10 * numpy.pi / 180.0, 10 * numpy.pi / 180.0]
-            data_aa.attrs["bbstart"] = [
-                -180 * numpy.pi / 180.0,
-                -180 * numpy.pi / 180.0,
-            ]
+            data_aa.attrs["bbstep"] = [numpy.pi / 18.0, numpy.pi / 18.0]
+            data_aa.attrs["bbstart"] = [-numpy.pi, -numpy.pi]
 
 
 if __name__ == "__main__":

@@ -27,8 +27,8 @@ struct RamaDispatch {
       TView<Vec<Int, 4>, 1, D> psi_indices,
       TView<Int, 1, D> parameter_indices,
       TCollection<Real, 2, D> tables,
-      TView<Vec<Real, 2>, 1, D> bbsteps,
-      TView<Vec<Real, 2>, 1, D> bbstarts) -> std::
+      TView<Vec<Real, 2>, 1, D> bbstarts,
+      TView<Vec<Real, 2>, 1, D> bbsteps) -> std::
       tuple<TPack<Real, 1, D>, TPack<CoordQuad, 1, D>, TPack<CoordQuad, 1, D> >;
 };
 

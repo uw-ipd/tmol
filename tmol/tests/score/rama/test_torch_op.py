@@ -99,21 +99,30 @@ def test_rama_intra(default_database, ubq_system, torch_device):
         s.tcoords, s.tphi_atom_indices, s.tpsi_atom_indices, s.tramatable_indices
     )
 
-    print(batch_scores)
-
-    numpy.testing.assert_allclose(batch_scores.detach().sum(), -131.9225, atol=1e-4)
+    numpy.testing.assert_allclose(batch_scores.detach().sum(), 0.305813, atol=1e-4)
 
 
 # torch gradcheck
-# def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
-#    s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
-#    func = ElecOp.from_param_resolver(s.param_resolver)
+def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
+    s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
+    func = RamaOp.from_param_resolver(s.param_resolver)
 
-#    natoms = 32
+    atom_names = ubq_system.atom_metadata["atom_name"].copy()
+    atm_mask = (atom_names == "N") | (atom_names == "CA") | (atom_names == "C")
+    t_atm_indices = torch.from_numpy(atm_mask.nonzero()[0]).to(
+        device=torch_device, dtype=torch.long
+    )
+    t_atm_indices = t_atm_indices[4:9]  # limit runtime
 
-#    def eval_intra(coords):
-#        i, v = func.intra(coords, s.tpcs[0, :natoms], s.trbpl[0, :natoms, :natoms])
-#        return v
+    def eval_rama(coords_subset):
+        coords = s.tcoords.clone()
+        coords[t_atm_indices] = coords_subset
+        v = func.intra(
+            coords, s.tphi_atom_indices, s.tpsi_atom_indices, s.tramatable_indices
+        )
+        return v
 
-#    coords = s.tcoords[0, :natoms]
-#    torch.autograd.gradcheck(eval_intra, (coords.requires_grad_(True),), eps=1e-4)
+    masked_coords = s.tcoords[t_atm_indices]
+    torch.autograd.gradcheck(
+        eval_rama, (masked_coords.requires_grad_(True),), eps=1e-3, atol=1e-3, rtol=-1
+    )

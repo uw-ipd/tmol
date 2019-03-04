@@ -33,8 +33,8 @@ struct RamaDispatch {
       TView<Vec<Int, 4>, 1, D> psi_indices,
       TView<Int, 1, D> parameter_indices,
       TCollection<Real, 2, D> tables,
-      TView<Vec<Real, 2>, 1, D> bbsteps,
-      TView<Vec<Real, 2>, 1, D> bbstarts)
+      TView<Vec<Real, 2>, 1, D> bbstarts,
+      TView<Vec<Real, 2>, 1, D> bbsteps)
       -> std::tuple<
           TPack<Real, 1, D>,
           TPack<CoordQuad, 1, D>,
@@ -64,7 +64,7 @@ struct RamaDispatch {
       psicoords.row(3) = coords[psi_indices[i][3]];
       Int pari = parameter_indices[i];
       tie(Vs[i], dV_dphis[i], dV_dpsis[i]) = rama_V_dV<D, Real, Int>(
-          phicoords, psicoords, tableview[pari], bbsteps[pari], bbstarts[pari]);
+          phicoords, psicoords, tableview[pari], bbstarts[pari], bbsteps[pari]);
     });
 
     mgpu::standard_context_t context;

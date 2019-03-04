@@ -25,8 +25,8 @@ void bind_dispatch(pybind11::module& m) {
       "psi_indices"_a,
       "table_indices"_a,
       "tables"_a, 
-      "bbsteps"_a,
-      "bbstarts"_a );
+      "bbstarts"_a,
+      "bbsteps"_a );
 };
 
 

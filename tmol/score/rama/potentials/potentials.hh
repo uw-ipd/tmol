@@ -42,6 +42,7 @@ def rama_V_dV(
   Real2 dVdphipsi;
   CoordQuad dV_dphiatm;
   CoordQuad dV_dpsiatm;
+
   auto phiang = dihedral_angle<Real>::V_dV(
       phi.row(0), phi.row(1), phi.row(2), phi.row(3));
   auto psiang = dihedral_angle<Real>::V_dV(
@@ -64,6 +65,12 @@ def rama_V_dV(
   dV_dpsiatm.row(1) = psiang.dV_dJ;
   dV_dpsiatm.row(2) = psiang.dV_dK;
   dV_dpsiatm.row(3) = psiang.dV_dL;
+
+  // printf("%f %f -> %f %f -> %f\n",
+  //  phiang.V*57.29577951308232,
+  //  psiang.V*57.29577951308232,
+  //  phipsi_idx[0], phipsi_idx[1],
+  //  V);
 
   return {V, dVdphipsi[0] * dV_dphiatm, dVdphipsi[1] * dV_dpsiatm};
 }
