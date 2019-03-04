@@ -5,6 +5,8 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <pybind11/pybind11.h>
+
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
@@ -26,15 +28,9 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define CoordQuad Eigen::Matrix<Real, 4, 3>
-#define Real3 Vec<Real, 3>
 #define Real2 Vec<Real, 2>
 
-template <typename Real>
-static def square(Real v)->Real {
-  return v * v;
-}
-
-template <typename Real, typename Int>
+template <tmol::Device D, typename Real, typename Int>
 def rama_V_dV(
     CoordQuad phi,
     CoordQuad psi,
@@ -42,31 +38,38 @@ def rama_V_dV(
     Real2 bbstart,
     Real2 bbstep)
     ->tuple<Real, CoordQuad, CoordQuad> {
-  Real2 phipsi;
+  Real V;
+  Real2 dVdphipsi;
+  CoordQuad dV_dphiatm;
+  CoordQuad dV_dpsiatm;
+  auto phiang = dihedral_angle<Real>::V_dV(
+      phi.row(0), phi.row(1), phi.row(2), phi.row(3));
+  auto psiang = dihedral_angle<Real>::V_dV(
+      psi.row(0), psi.row(1), psi.row(2), psi.row(3));
 
-  auto phi = dihedral_angle<Real>::V_dV(
-      phi.row(1), phi.row(2), phi.row(3), phi.row(4));
-  auto psi = dihedral_angle<Real>::V_dV(
-      psi.row(1), psi.row(2), psi.row(3), psi.row(4));
+  Real2 phipsi_idx;
+  phipsi_idx[0] = (phiang.V - bbstart[0]) / bbstep[0];
+  phipsi_idx[1] = (psiang.V - bbstart[1]) / bbstep[1];
 
-  phipsi[0] = phi.V;
-  phipsi[1] = psi.V;
+  tie(V, dVdphipsi) =
+      tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+          coeffs, phipsi_idx);
 
-  {V, dVdphi, dVdpsi} = ndspline<2, 3, Real, Int>::interpolate(coeffs, phipsi);
+  dV_dphiatm.row(0) = phiang.dV_dI;
+  dV_dphiatm.row(1) = phiang.dV_dJ;
+  dV_dphiatm.row(2) = phiang.dV_dK;
+  dV_dphiatm.row(3) = phiang.dV_dL;
 
-  return {V,
-          dVdphi * phi.dV_dI,
-          dVdphi * phi.dV_dJ,
-          dVdphi * phi.dV_dK,
-          dVdphi * phi.dV_dL,
-          dVdpsi * psi.dV_dI,
-          dVdpsi * psi.dV_dJ,
-          dVdpsi * psi.dV_dK,
-          dVdpsi * psi.dV_dL};
+  dV_dpsiatm.row(0) = psiang.dV_dI;
+  dV_dpsiatm.row(1) = psiang.dV_dJ;
+  dV_dpsiatm.row(2) = psiang.dV_dK;
+  dV_dpsiatm.row(3) = psiang.dV_dL;
+
+  return {V, dVdphipsi[0] * dV_dphiatm, dVdphipsi[1] * dV_dpsiatm};
 }
 
 #undef Real2
-#undef Real3
+#undef CoordQuad
 
 #undef def
 }  // namespace potentials

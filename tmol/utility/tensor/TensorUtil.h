@@ -63,8 +63,8 @@ struct enable_tensor_view<bool> {
   typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
 };
 
-template <typename T, int N>
-struct enable_tensor_view<Eigen::Matrix<T, N, 1>> {
+template <typename T, int M, int N>
+struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;

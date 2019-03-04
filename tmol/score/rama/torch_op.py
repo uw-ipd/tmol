@@ -25,10 +25,19 @@ class RamaOp:
     def from_param_resolver(cls, param_resolver: RamaParamResolver):
         res = cls(
             param_resolver=param_resolver,
-            params=asdict(param_resolver.global_params),
+            params=asdict(param_resolver.rama_params),
             device=param_resolver.device,
         )
-        assert all(res.device == t.device for t in res.params.values())
+        assert all(
+            res.device == t.device
+            for t in res.params.values()
+            if not isinstance(t, list)
+        )
+        assert all(
+            all(res.device == t.device for t in l)
+            for l in res.params.values()
+            if isinstance(l, list)
+        )
         return res
 
     @classmethod
@@ -38,8 +47,8 @@ class RamaOp:
         )
 
     def intra(self, coords, phi_indices, psi_indices, parameter_indices):
-        i, v = RamaScoreFun(self)(coords, phi_indices, psi_indices, parameter_indices)
-        return (i.detach(), v)
+        E = RamaScoreFun(self)(coords, phi_indices, psi_indices, parameter_indices)
+        return E
 
 
 class RamaScoreFun(torch.autograd.Function):
@@ -61,8 +70,8 @@ class RamaScoreFun(torch.autograd.Function):
             coords, phi_indices, psi_indices, parameter_indices, **ctx.op.params
         )
 
-        phi_indices = atmquad_indices.transpose(0, 1)  # coo_tensor wants this
-        psi_indices = atmquad_indices.transpose(0, 1)  # coo_tensor wants this
+        phi_indices = phi_indices.transpose(0, 1)  # coo_tensor wants this
+        psi_indices = psi_indices.transpose(0, 1)  # coo_tensor wants this
         ctx.save_for_backward(phi_indices, psi_indices, dE_dphis, dE_dpsis)
 
         return E

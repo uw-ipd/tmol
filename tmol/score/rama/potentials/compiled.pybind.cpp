@@ -20,7 +20,13 @@ void bind_dispatch(pybind11::module& m) {
       m,
       "rama",
       &RamaDispatch<Dev, Real, Int>::f,
-      "tables"_a, "indices"_a );
+      "coords"_a,
+      "phi_indices"_a,
+      "psi_indices"_a,
+      "table_indices"_a,
+      "tables"_a, 
+      "bbsteps"_a,
+      "bbstarts"_a );
 };
 
 
