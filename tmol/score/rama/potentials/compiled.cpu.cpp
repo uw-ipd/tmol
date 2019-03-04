@@ -49,6 +49,7 @@ struct RamaDispatch {
     auto dV_dphis = dV_dphis_t.view;
     auto dV_dpsis_t = TPack<CoordQuad, 1, D>::empty(num_Vs);
     auto dV_dpsis = dV_dpsis_t.view;
+
     auto tableview = tables.view;
 
     auto func = ([=] EIGEN_DEVICE_FUNC(int i) {

@@ -74,6 +74,8 @@ class RamaScoreFun(torch.autograd.Function):
 
         phi_indices = phi_indices.transpose(0, 1)  # coo_tensor wants this
         psi_indices = psi_indices.transpose(0, 1)  # coo_tensor wants this
+        dE_dphis = dE_dphis.reshape([-1, 3, 4])
+        dE_dpsis = dE_dpsis.reshape([-1, 3, 4])
         ctx.save_for_backward(phi_indices, psi_indices, dE_dphis, dE_dpsis)
 
         return E
@@ -85,12 +87,12 @@ class RamaScoreFun(torch.autograd.Function):
         for i in range(4):
             dVdA += torch.sparse_coo_tensor(
                 phi_indices[i, None, :],
-                dV_dE[..., None] * dE_dphis[..., 3 * i : (3 * i + 3)],
+                dV_dE[..., None] * dE_dphis[..., i],
                 (ctx.coords_shape),
             ).to_dense()
             dVdA += torch.sparse_coo_tensor(
                 psi_indices[i, None, :],
-                dV_dE[..., None] * dE_dpsis[..., 3 * i : (3 * i + 3)],
+                dV_dE[..., None] * dE_dpsis[..., i],
                 (ctx.coords_shape),
             ).to_dense()
 

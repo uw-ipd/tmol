@@ -182,7 +182,7 @@ def test_rama_intra(default_database, ubq_system, torch_device):
 
 
 # torch gradcheck
-def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
+def test_rama_intra_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     func = RamaOp.from_param_resolver(s.param_resolver)
 
@@ -191,7 +191,7 @@ def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
     t_atm_indices = torch.from_numpy(atm_mask.nonzero()[0]).to(
         device=torch_device, dtype=torch.long
     )
-    t_atm_indices = t_atm_indices[4:9]  # limit runtime
+    t_atm_indices = t_atm_indices[2]  # limit runtime
 
     def eval_rama(coords_subset):
         coords = s.tcoords.clone()
@@ -203,5 +203,5 @@ def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
 
     masked_coords = s.tcoords[t_atm_indices]
     torch.autograd.gradcheck(
-        eval_rama, (masked_coords.requires_grad_(True),), eps=1e-3, atol=1e-3, rtol=-1
+        eval_rama, (masked_coords.requires_grad_(True),), eps=1e-3, atol=5e-3
     )

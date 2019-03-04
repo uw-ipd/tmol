@@ -56,15 +56,15 @@ def rama_V_dV(
       tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
           coeffs, phipsi_idx);
 
-  dV_dphiatm.row(0) = phiang.dV_dI;
-  dV_dphiatm.row(1) = phiang.dV_dJ;
-  dV_dphiatm.row(2) = phiang.dV_dK;
-  dV_dphiatm.row(3) = phiang.dV_dL;
+  dV_dphiatm.row(0) = phiang.dV_dI / bbstep[0];
+  dV_dphiatm.row(1) = phiang.dV_dJ / bbstep[0];
+  dV_dphiatm.row(2) = phiang.dV_dK / bbstep[0];
+  dV_dphiatm.row(3) = phiang.dV_dL / bbstep[0];
 
-  dV_dpsiatm.row(0) = psiang.dV_dI;
-  dV_dpsiatm.row(1) = psiang.dV_dJ;
-  dV_dpsiatm.row(2) = psiang.dV_dK;
-  dV_dpsiatm.row(3) = psiang.dV_dL;
+  dV_dpsiatm.row(0) = psiang.dV_dI / bbstep[1];
+  dV_dpsiatm.row(1) = psiang.dV_dJ / bbstep[1];
+  dV_dpsiatm.row(2) = psiang.dV_dK / bbstep[1];
+  dV_dpsiatm.row(3) = psiang.dV_dL / bbstep[1];
 
   // printf("%f %f -> %f %f -> %f\n",
   //  phiang.V*57.29577951308232,
