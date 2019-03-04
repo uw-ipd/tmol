@@ -47,7 +47,7 @@ class RamaIntraScore(IntraScore):
     @reactive_property
     @validate_args
     def rama_score(target):
-        return target.rama_op.score(
+        return target.rama_op.intra(
             target.coords[0, ...],
             target.resolve_indices.phi_indices,
             target.resolve_indices.psi_indices,
@@ -101,8 +101,8 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         # find all phi/psis where BOTH are defined
         dfphis = pandas.DataFrame(phis)
         dfpsis = pandas.DataFrame(psis)
-        phipsis = df1.merge(
-            df2, left_on=0, right_on=0, suffixes=("_phi", "_psi")
+        phipsis = dfphis.merge(
+            dfpsis, left_on=0, right_on=0, suffixes=("_phi", "_psi")
         ).values[:, 1:]
 
         # resolve parameter indices
@@ -112,14 +112,14 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         )
 
         # remove undefined indices and send to device
-        rama_defined = numpy.any(phipsis == -1, axis=1)
-        phi_indices = torch.from_numpy(phipsis[bondlength_defined, :4]).to(
+        rama_defined = numpy.all(phipsis != -1, axis=1)
+        phi_indices = torch.from_numpy(phipsis[rama_defined, :4]).to(
             device=rama_param_resolver.device, dtype=torch.int32
         )
-        psi_indices = torch.from_numpy(phipsis[bondlength_defined, 4:]).to(
+        psi_indices = torch.from_numpy(phipsis[rama_defined, 4:]).to(
             device=rama_param_resolver.device, dtype=torch.int32
         )
-        param_indices = torch.from_numpy(ramatable_indices[bondlength_defined]).to(
+        param_indices = torch.from_numpy(ramatable_indices[rama_defined]).to(
             device=rama_param_resolver.device, dtype=torch.int32
         )
 

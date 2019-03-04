@@ -25,10 +25,19 @@ class RamaOp:
     def from_param_resolver(cls, param_resolver: RamaParamResolver):
         res = cls(
             param_resolver=param_resolver,
-            params=asdict(param_resolver.global_params),
+            params=asdict(param_resolver.rama_params),
             device=param_resolver.device,
         )
-        assert all(res.device == t.device for t in res.params.values())
+        assert all(
+            res.device == t.device
+            for t in res.params.values()
+            if not isinstance(t, list)
+        )
+        assert all(
+            all(res.device == t.device for t in l)
+            for l in res.params.values()
+            if isinstance(l, list)
+        )
         return res
 
     @classmethod
@@ -38,8 +47,8 @@ class RamaOp:
         )
 
     def intra(self, coords, phi_indices, psi_indices, parameter_indices):
-        i, v = RamaScoreFun(self)(coords, phi_indices, psi_indices, parameter_indices)
-        return (i.detach(), v)
+        E = RamaScoreFun(self)(coords, phi_indices, psi_indices, parameter_indices)
+        return E
 
 
 class RamaScoreFun(torch.autograd.Function):
@@ -57,12 +66,16 @@ class RamaScoreFun(torch.autograd.Function):
         assert parameter_indices.shape[0] == psi_indices.shape[0]
 
         ctx.coords_shape = coords.size()
+
+        # dE_dphi/psi are returned as ntors x 12 arrays
         E, dE_dphis, dE_dpsis = ctx.op.f(
             coords, phi_indices, psi_indices, parameter_indices, **ctx.op.params
         )
 
-        phi_indices = atmquad_indices.transpose(0, 1)  # coo_tensor wants this
-        psi_indices = atmquad_indices.transpose(0, 1)  # coo_tensor wants this
+        phi_indices = phi_indices.transpose(0, 1)  # coo_tensor wants this
+        psi_indices = psi_indices.transpose(0, 1)  # coo_tensor wants this
+        dE_dphis = dE_dphis.reshape([-1, 3, 4])
+        dE_dpsis = dE_dpsis.reshape([-1, 3, 4])
         ctx.save_for_backward(phi_indices, psi_indices, dE_dphis, dE_dpsis)
 
         return E
@@ -70,17 +83,17 @@ class RamaScoreFun(torch.autograd.Function):
     def backward(ctx, dV_dE):
         phi_indices, psi_indices, dE_dphis, dE_dpsis = ctx.saved_tensors
 
-        dVdA = torch.zeros_like(dV_dE)
+        dVdA = torch.zeros(ctx.coords_shape, dtype=torch.float, device=dE_dphis.device)
         for i in range(4):
             dVdA += torch.sparse_coo_tensor(
                 phi_indices[i, None, :],
-                dV_dE[..., None] * dE_dphis[i, ...],
+                dV_dE[..., None] * dE_dphis[..., i],
                 (ctx.coords_shape),
             ).to_dense()
             dVdA += torch.sparse_coo_tensor(
                 psi_indices[i, None, :],
-                dV_dE[..., None] * dE_dpsis[i, ...],
+                dV_dE[..., None] * dE_dpsis[..., i],
                 (ctx.coords_shape),
             ).to_dense()
 
-        return (dVdA, None, None)
+        return (dVdA, None, None, None)

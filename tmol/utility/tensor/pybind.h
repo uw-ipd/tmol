@@ -29,10 +29,10 @@ struct device_name<tmol::Device::CUDA> {
   static constexpr auto name = _("\'cuda\'");
 };
 
-template <typename T, int N>
-struct npy_format_descriptor_name<Eigen::Matrix<T, N, 1>> {
-  static constexpr auto name =
-      npy_format_descriptor_name<T>::name + _("[") + _<N>() + _("]");
+template <typename T, int M, int N>
+struct npy_format_descriptor_name<Eigen::Matrix<T, M, N>> {
+  static constexpr auto name = npy_format_descriptor_name<T>::name + _("[")
+                               + _<M>() + _(", ") + _<N>() + _("]");
 };
 
 template <typename T, int N>

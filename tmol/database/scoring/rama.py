@@ -25,7 +25,7 @@ class RamaMappingParams:
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaTables:
     name: str
-    prob: NDArray(float)
+    table: NDArray(float)
     bbstep: Tuple[float, float]
     bbstart: Tuple[float, float]
 
@@ -38,7 +38,7 @@ def load_tables_from_zarr(path_tables):
         alltables.append(
             RamaTables(
                 name=aa,
-                prob=numpy.array(root[aa]["prob"]),
+                table=numpy.array(root[aa]["prob"]),
                 bbstep=root[aa]["prob"].attrs["bbstep"],
                 bbstart=root[aa]["prob"].attrs["bbstart"],
             )
@@ -48,6 +48,7 @@ def load_tables_from_zarr(path_tables):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaDatabase:
+    uniq_id: str  # unique id for memoization
     rama_lookup: Tuple[RamaMappingParams, ...]
     rama_tables: Tuple[RamaTables, ...]
 
@@ -61,4 +62,6 @@ class RamaDatabase:
 
         rama_tables = load_tables_from_zarr(path_tables)
 
-        return cls(rama_lookup=rama_lookup, rama_tables=rama_tables)
+        uniq_id = path_lookup + "," + path_tables
+
+        return cls(uniq_id=uniq_id, rama_lookup=rama_lookup, rama_tables=rama_tables)
