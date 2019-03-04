@@ -75,59 +75,42 @@ def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, outpu
         )
         paa = parse_paa(open(r3_paa_dir + "P_AA").readlines())
 
-        # numpy.savetxt("ala_paapp_rawprob.csv", paapp['ALA'], delimiter=",")
-        # numpy.savetxt("ala_rama_rawprob.csv", general['ALA'], delimiter=",")
-
         for aa, prob in paapp.items():
             # convert p_aa_pp to energies
-            prob = prob + eps
-            prob /= numpy.sum(prob)
             energies = -numpy.log(prob / paa[aa])
-
-            # if (aa == 'ALA'):
-            #    numpy.savetxt("ala_paapp_es.csv", energies, delimiter=",")
 
             # resample, shifting -5 degrees
             espline = BSplineInterpolation.from_coordinates(
                 torch.tensor(energies, dtype=torch.float)
             )
-            for i in numpy.arange(20):
-                for j in numpy.arange(20):
+            for i in numpy.arange(36):
+                for j in numpy.arange(36):
                     energies[i, j] = espline.interpolate(
                         torch.tensor([i - 0.5, j - 0.5])
                     )
 
             paapp[aa] = energies
 
-        for aa, prob in general.items():
-            # prob = prob + eps
-
-            # convert rama to energies
-            prob /= numpy.sum(prob)
-            entropy = numpy.sum(prob * numpy.log(prob))
-            energies = -numpy.log(prob) + entropy
-
-            # if (aa == 'ALA'):
-            #    numpy.savetxt("ala_rama_es.csv", energies, delimiter=",")
-
-            # reweight, add paapp
-            # general[aa] = rama_wt * energies + paapp_wt * paapp[aa]
-            general[aa] = energies
-
         for aa, prob in prepro.items():
-            # prob = prob + eps
+            # convert rama to energies
+            # NOTE: this normalization is not properly done in R3 for prepro
+            prob /= numpy.sum(prob)
+            entropy = numpy.sum(prob * numpy.log(prob))
+            energies = -numpy.log(prob) + entropy
 
+            # reweight, add paapp
+            prepro[aa] = rama_wt * energies + paapp_wt * paapp[aa]
+
+        for aa, prob in general.items():
             # convert rama to energies
             prob /= numpy.sum(prob)
             entropy = numpy.sum(prob * numpy.log(prob))
             energies = -numpy.log(prob) + entropy
 
             # reweight, add paapp
-            # prepro[aa] = rama_wt * energies + paapp_wt * paapp[aa]
-            prepro[aa] = energies
+            general[aa] = rama_wt * energies + paapp_wt * paapp[aa]
 
-        numpy.savetxt("alapp.csv", prepro["ALA"], delimiter=",")
-        numpy.savetxt("ala.csv", general["ALA"], delimiter=",")
+        # numpy.savetxt("ala.csv", general['ALA'], delimiter=",")
 
         # write tables
         zgroup = zarr.group(store=store)

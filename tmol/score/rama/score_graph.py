@@ -47,7 +47,7 @@ class RamaIntraScore(IntraScore):
     @reactive_property
     @validate_args
     def rama_score(target):
-        return target.rama_op.score(
+        return target.rama_op.intra(
             target.coords[0, ...],
             target.resolve_indices.phi_indices,
             target.resolve_indices.psi_indices,
