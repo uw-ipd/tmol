@@ -1,6 +1,6 @@
 import attr
 import cattr
-import json
+import yaml
 import zarr
 import torch
 from typing import Tuple
@@ -144,11 +144,10 @@ class SemiRotamericAADunbrackLibrary:
         )
 
 
-@attrs.s(auto_attribs=True, slots=True, frozen=True)
+@attr.s(auto_attribs=True, slots=True, frozen=True)
 class DunMappingParams:
     dun_table_name: str
     residue_name: str
-    invert_bb: Tuple[bool, ...]
 
 
 def load_tables_from_zarr(path_tables):
@@ -184,7 +183,7 @@ class DunbrackRotamerLibrary:
         with open(path_lookup, "r") as infile_lookup:
             raw = yaml.load(infile_lookup)
             dun_lookup = cattr.structure(
-                raw["dun_lookup"], attr.fields(cls).dun_lookup.type
+                raw["dunbrack_lookup"], attr.fields(cls).dun_lookup.type
             )
 
         rotameric_libraries, semi_rotameric_libraries = load_tables_from_zarr(
@@ -198,32 +197,32 @@ class DunbrackRotamerLibrary:
         )
 
 
-@attr.s(auto_attribs=True, slots=True, frozen=True)
-class CompactedDunbrackRotamerLibrary:
-
-    bbstart: Tensor(torch.float)[:, :]  # ntables x nbb
-    bbstep: Tensor(torch.float)[:, :]  # ntables x nbb
-
-    offset_for_prob_rotameric_table: Tuple[int, ...]
-    rotameric_prob_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
-
-    offset_for_mean_rotameric_table: Tuple[int, ...]
-    rotameric_mean_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
-    rotameric_sdev_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
-
-    non_rot_chi_start: Tensor(torch.float)[:]
-    non_rot_chi_step: Tensor(torch.float)[:]
-    non_rot_chi_period: Tensor(torch.float)[:]
-    offset_for_semirotameric_table: Tuple[int, ...]
-    semirotameric_prob_interp_tables: Tuple[
-        Tensor(torch.float), ...
-    ]  # nbb+1-dim tensors
-
-    @classmethod
-    def from_dunbrack_rotlib(cls, drl):
-        # here we will create an indexing of the rotameric tables
-        # including the semi-rotameric tables
-        # and for each one will create the interpolation coefficients
-        # tensor
-        #
-        pass
+#   @attr.s(auto_attribs=True, slots=True, frozen=True)
+#   class CompactedDunbrackRotamerLibrary:
+#
+#       bbstart: Tensor(torch.float)[:, :]  # ntables x nbb
+#       bbstep: Tensor(torch.float)[:, :]  # ntables x nbb
+#
+#       offset_for_prob_rotameric_table: Tuple[int, ...]
+#       rotameric_prob_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
+#
+#       offset_for_mean_rotameric_table: Tuple[int, ...]
+#       rotameric_mean_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
+#       rotameric_sdev_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
+#
+#       non_rot_chi_start: Tensor(torch.float)[:]
+#       non_rot_chi_step: Tensor(torch.float)[:]
+#       non_rot_chi_period: Tensor(torch.float)[:]
+#       offset_for_semirotameric_table: Tuple[int, ...]
+#       semirotameric_prob_interp_tables: Tuple[
+#           Tensor(torch.float), ...
+#       ]  # nbb+1-dim tensors
+#
+#       @classmethod
+#       def from_dunbrack_rotlib(cls, drl):
+#           # here we will create an indexing of the rotameric tables
+#           # including the semi-rotameric tables
+#           # and for each one will create the interpolation coefficients
+#           # tensor
+#           #
+#           pass

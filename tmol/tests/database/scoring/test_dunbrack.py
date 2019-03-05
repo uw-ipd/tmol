@@ -19,7 +19,8 @@ def test_load_dunbrack_from_binary(benchmark):
     @benchmark
     def db():
         return DunbrackRotamerLibrary.from_zarr_archive(
-            "tmol/database/default/scoring/dunbrack.bin"
+            "tmol/database/default/scoring/dunbrack.yaml",
+            "tmol/database/default/scoring/dunbrack.bin",
         )
 
     # cProfile.run('DunbrackRotamerLibrary.from_zarr_archive("tmol/database/default/scoring/dunbrack.bin")')

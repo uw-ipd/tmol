@@ -1,0 +1,20 @@
+dunbrack_lookup:
+  - &n dun_table_name: ARG
+    &r residue_name: ARG
+  - { *n: ASN ,*r: ASN }
+  - { *n: ASP ,*r: ASP }
+  - { *n: CYS ,*r: CYS }
+  - { *n: GLN ,*r: GLN }
+  - { *n: GLU ,*r: GLU }
+  - { *n: HIS ,*r: HIS }
+  - { *n: ILE ,*r: ILE }
+  - { *n: LEU ,*r: LEU }
+  - { *n: LYS ,*r: LYS }
+  - { *n: MET ,*r: MET }
+  - { *n: PHE ,*r: PHE }
+  - { *n: PRO ,*r: PRO }
+  - { *n: SER ,*r: SER }
+  - { *n: THR ,*r: THR }
+  - { *n: TRP ,*r: TRP }
+  - { *n: TYR ,*r: TYR }
+  - { *n: VAL ,*r: VAL }
