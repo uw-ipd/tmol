@@ -232,7 +232,6 @@ def semirotameric_energy(
     TView<Int, 1, D> semirot_table_ofset,
     TView<Int, 1, D> dihedral_offset_for_res,
     TView<Real, 1, D> dihedrals,
-    TView<Int, 1, D> ndihe_for_res,
     TView<Int, 1, D> rottable_assignment,
     Int resid,
     Int semirot_dihedral_index,
