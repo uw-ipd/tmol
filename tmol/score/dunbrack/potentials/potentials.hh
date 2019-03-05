@@ -31,22 +31,33 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <typename Real, typename Int, typename D>
 def measure_dihedrals_V_dV(
-    TView<Eigen::Matrix<Real, 2, 1>, 1, D> coordinates, Int4 indices)
+    TView<Eigen::Matrix<Real, 2, 1>, 1, D> coordinates,
+    Int i,
+    TView<Int, 1, D> dihedral_atom_inds,
+    TView<Real, 1, D> dihedrals,
+    TView<Eigen::MatrixMReal, 4, 3>,
+    1,
+    D > ddihe_dxyz)
     ->tuple<Real, CoordQuad> {
-  return = dihedral_angle<Real>::V_dV(
-             coordinates[indices[0]],
-             coordinates[indices[1]],
-             coordinates[indices[2]],
-             coordinates[indices[3]])
+  auto dihe = dihedral_angle<Real>::V_dV(
+      coordinates[dihedral_atom_inds[i][0]],
+      coordinates[dihedral_atom_inds[i][1]],
+      coordinates[dihedral_atom_inds[i][2]],
+      coordinates[dihedral_atom_inds[i][3]]);
+  dihedrals[i] = dihe.V;
+  ddihe_dxyz[i].row(0) = dihe.dV_dI;
+  ddihe_dxyz[i].row(1) = dihe.dV_dJ;
+  ddihe_dxyz[i].row(2) = dihe.dV_dK;
+  ddihe_dxyz[i].row(3) = dihe.dV_dL;
 }
 
 template <typename Real, typename Int, typename D>
 def classify_rotamer(
-    TView<Real, 1, D> dihedrals, Int n_rotameric_chi, Int offset)
+    TView<Real, 1, D> dihedrals, Int n_rotameric_chi, Int dihe_offset)
     ->Int {
   Int rotamer_ind = 0;
   for (int ii = 0; ii < n_rotameric_chi; ++ii) {
-    Real iidihe = dihedrals[offset + ii];
+    Real iidihe = dihedrals[dihe_offset + ii];
     rotamer_ind *= 3;
     if (iidihe < -120) {
       // dihedral between -180 and -120: trans
@@ -70,38 +81,62 @@ def classify_rotamer(
 // rotameric means as for interpolating rotameric stdev.
 template <typename Real, typename Int, typename D>
 def interpolate_rotameric_table(
-    TCollection<Real, 2, D> rotameric_value_tables,
+    TCollection<Real, 2, D>& rotameric_value_tables,
+    TView<Vec<Real, 2, D>, 1, D>& rotameric_bb_start,
+    TView<Vec<Real, 2, D>, 1, D>& rotameric_bb_step,
+    TView<Int, 1, D> rotind2tableind,
     Int residue_ind,
     Int residue_nchi,
     Int chi_dihe_for_residue,
-    TView<Real, 1, D> dihedrals,
-    TView<Real, 1, D> dihedral_offset_for_res,
-    TView<Int, 1, D> rotameric_table_set_offset,
+    TView<Real, 1, D>& dihedrals,
+    TView<Real, 1, D>& dihedral_offset_for_res,
+    TView<Real, 1, D>& rottable_set_for_res,
+    TView<Int, 1, D> rotind2tableind_offset_for_res,
+    TView<Int, 1, D>& rotmean_table_offset_for_residue,
     TView<Int, 1, D> rotameric_assignment)
     ->tuple<Real, Eigen::Matrix<Real, 2, 1> > {
-  Int tableind = rotameric_table_set_offset[residue_ind]
-                 + residue_nchi * rotameric_assignment[residue_ind]
-                 + chi_dihe_for_residue;
+  Int tableind_for_set = rotind2tableind
+      [rotind2tableind_offset_for_res[resiue_ind]
+       + rotameric_assignment[residue_ind]];
+
+  Int tableind = rotmean_table_offset_for_res[residue_ind]
+                 + residue_nchi * tableind_for_set + chi_dihe_for_residue;
   Int res_dihedral_offset = dihedral_offset_for_res[residue_ind];
 
-  Eigen::Matrix<Real, 2, 1> bbdihe;
+  Int table_set = rottable_set_for_res[residue_ind];
+
+  Eigen::Matrix<Real, 2, 1> bbdihe, bbstep;
   for (Int ii = 0; ii < 2; ++ii) {
-    bbdihe[ii] = dihedrals[res_dihedral_offset + ii];
+    bbstep[ii] = rotameric_bb_step[table_set][ii];
+    bbdihe[ii] = (dihedrals[res_dihedral_offset + ii]
+                  - rotameric_bb_start[table_set][ii])
+                 / bbstep[ii];
   }
 
-  return ndspline<2, 3, Real, Int>::interpolate(
+  Real V;
+  Eigen::Matrix<Real, 2, 1> dVdbb;
+  std::tie(V, dVdbb) = ndspline<2, 3, Real, Int>::interpolate(
       rotameric_value_tables[tableind], bbdihe);
+  for (Int ii = 0; ii < 2; ++ii) {
+    dVdbb[ii] /= bbstep[ii];
+  }
+  return {V, dVdbb};
 }
 
 template <typename Real, typename Int, typename D>
 def chi_deviation_penalty(
     TCollection<Real, 2, D> rotameric_mean_tables,
     TCollection<Real, 2, D> rotameric_sdev_tables,
+    TView<Vec<Real, 2, D>, 1, D>& rotameric_bb_start,
+    TView<Vec<Real, 2, D>, 1, D>& rotameric_bb_step,
+    TView<Int, 1, D> rotind2tableind,
     int residue_ind,
     int residue_nchi,
     Int chi_dihe_for_residue,
     TView<Real, 1, D> dihedrals,
     TView<Real, 1, D> dihedral_offset_for_res,
+    TView<Real, 1, D>& rottable_set_for_res,
+    TView<Int, 1, D> rotind2tableind_offset_for_res,
     TView<Int, 1, D> rotameric_table_set_offset,
     TView<Int, 1, D> rotameric_assignment, )
     ->std::tuple<Real, Real, Eigen::Matrix<Real, 2, 1> > {
