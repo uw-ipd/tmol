@@ -148,4 +148,4 @@ def rama_graph_inputs(
         ]
     )
 
-    return dict(rama_database=rama_database, phis=phis, psis=psis)
+    return dict(rama_database=rama_database, allphis=phis, allpsis=psis)

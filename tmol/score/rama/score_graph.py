@@ -1,4 +1,5 @@
 import attr
+import pandas
 
 import torch
 import numpy
@@ -26,6 +27,8 @@ from tmol.types.array import NDArray
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
+
+import traceback
 
 
 @attr.s(auto_attribs=True)
@@ -74,11 +77,13 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         rama_database: Optional[RamaDatabase] = None,
         **_,
     ):
-        return dict(rama_database=val.rama_database, phis=val.phis, psis=val.psis)
+        return dict(
+            rama_database=val.rama_database, allphis=val.allphis, allpsis=val.allpsis
+        )
 
     rama_database: RamaDatabase
-    phis: NDArray
-    psis: NDArray
+    allphis: NDArray(int)[:, 5]
+    allpsis: NDArray(int)[:, 5]
 
     @reactive_property
     @validate_args
@@ -96,19 +101,22 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def resolve_indices(
-        res_names: NDArray(object)[...], rama_param_resolver: RamaParamResolver
+        res_names: NDArray(object)[...],
+        rama_param_resolver: RamaParamResolver,
+        allphis: NDArray(int)[:, 5],
+        allpsis: NDArray(int)[:, 5],
     ) -> RamaParams:
         # find all phi/psis where BOTH are defined
-        dfphis = pandas.DataFrame(phis)
-        dfpsis = pandas.DataFrame(psis)
+        dfphis = pandas.DataFrame(allphis)
+        dfpsis = pandas.DataFrame(allpsis)
         phipsis = dfphis.merge(
             dfpsis, left_on=0, right_on=0, suffixes=("_phi", "_psi")
         ).values[:, 1:]
 
         # resolve parameter indices
         ramatable_indices = rama_param_resolver.resolve_ramatables(
-            res_names[phipsis[:, 5]],  # psi atom 'b'
-            res_names[phipsis[:, 7]],  # psi atom 'd'
+            res_names[0, phipsis[:, 5]],  # psi atom 'b'
+            res_names[0, phipsis[:, 7]],  # psi atom 'd'
         )
 
         # remove undefined indices and send to device
