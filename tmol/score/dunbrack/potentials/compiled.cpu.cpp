@@ -15,7 +15,7 @@
 
 namespace tmol {
 namespace score {
-namespace rama {
+namespace dunbrack {
 namespace potentials {
 
 template <typename Real, int N>
@@ -72,7 +72,7 @@ struct DunbrackDispatch {
       TView<Real, 2, D> ddevpen_dbb,  // Where d chimean/d dbbdihe is
                                       // stored, nscdihe x 2
       TView<Int, 1, D> rottable_assignment,  // nres x 1
-      ) -> TPack<Real, 1, D>
+  ) -> std::tuple<TPack<Real, 1, D>, TPack<Real, 2, D> >
   {
     Int const nres(nrotameric_chi_for_res.size(0));
     Int const n_rotameric_res(prob_table_offset_for_residue.size(0));
@@ -82,6 +82,9 @@ struct DunbrackDispatch {
 
     auto Vs_t = TPack<Real, 1, D>::empty(nres);
     auto Vs = Vs_t.view;
+
+    auto dVs_dxyz_t = TPack<Real, 2, D>::empty(coordinates.size(0),3);
+    auto dVs_dxyz = dVs_dxyz_t.view;
     
     // Five steps to this calculation
     // 0. (Initialization)
@@ -100,6 +103,11 @@ struct DunbrackDispatch {
 	ddihe_dxyz[ii][jj] = 0;
       }
       dihedral_dE_ddihe[ii] = 0;
+    }
+    for (int ii=0; ii < coordinates.size(0); ++ii) {
+      for (int jj = 0; jj < 3; ++jj) {
+	dVs_dxyz[ii][jj] = 0;
+      }
     }
 
     
@@ -241,12 +249,11 @@ struct DunbrackDispatch {
 	int jjat = dihedral_atom_inds[ii][jj];
 	dVs_dxyz[jjat] += ddihe_dxyz[ii][jj] * dihedral_dE_ddihe[ii];
       }
-    }
-    
+    }    
   }
+
+  return {Vs_t, dVs_dxyz_t};
 };
-
-
 
 template struct DunbrackDispatch<tmol::Device::CPU,float,int32_t>;
 template struct DunbrackDispatch<tmol::Device::CPU,double,int32_t>;
