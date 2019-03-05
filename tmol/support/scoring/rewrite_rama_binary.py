@@ -5,6 +5,8 @@ from pathlib import Path
 import os
 import sys
 
+from tmol.numeric.bspline import BSplineInterpolation
+
 # A conversion script from rosetta BB probability tables to
 # tmol probability tables.  tmol stores tables which contain
 # the weighted sum of p_aa_pp and rama energies.  This requires
@@ -25,8 +27,6 @@ import sys
 #
 # Tables are then written as zarr ZipStores.  rama energies
 # in tmol simply involve interpolating these tables.
-
-from tmol.numeric.bspline import BSplineInterpolation
 
 
 def parse_paa(lines):
@@ -55,6 +55,51 @@ def parse_lines_as_ndarrays(lines, aacol=0, phipsicol=1, probcol=3):
     return prob_tables
 
 
+def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
+    # load tables
+    general = parse_lines_as_ndarrays(open(r3_rama_dir + "all.ramaProb").readlines())
+    prepro = parse_lines_as_ndarrays(open(r3_rama_dir + "prepro.ramaProb").readlines())
+    paapp = parse_lines_as_ndarrays(open(r3_paapp_dir + "a20.prop").readlines(), 2, 0)
+    paa = parse_paa(open(r3_paa_dir + "P_AA").readlines())
+
+    for aa, prob in paapp.items():
+        # convert p_aa_pp to energies
+        # (do not normalize, normalization is across aas)
+        energies = -numpy.log(prob / paa[aa])
+
+        # resample, shifting -5 degrees
+        espline = BSplineInterpolation.from_coordinates(
+            torch.tensor(energies, dtype=torch.float)
+        )
+        for i in numpy.arange(36):
+            for j in numpy.arange(36):
+                energies[i, j] = espline.interpolate(torch.tensor([i - 0.5, j - 0.5]))
+
+        paapp[aa] = energies
+
+    for aa, prob in prepro.items():
+        # convert rama to energies
+        # NOTE: this normalization is not properly done in R3 for prepro
+        prob /= numpy.sum(prob)
+        entropy = numpy.sum(prob * numpy.log(prob))
+        energies = -numpy.log(prob) + entropy
+
+        # reweight, add in paapp
+        prepro[aa] = rama_wt * energies + paapp_wt * paapp[aa]
+
+    for aa, prob in general.items():
+        # convert rama to energies
+        prob /= numpy.sum(prob)
+        entropy = numpy.sum(prob * numpy.log(prob))
+        energies = -numpy.log(prob) + entropy
+
+        # reweight, add in paapp
+        general[aa] = rama_wt * energies + paapp_wt * paapp[aa]
+
+    # numpy.savetxt("ala.csv", general['ALA'], delimiter=",")
+    return (general, prepro)
+
+
 def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, output_path):
     """
     Write the Ramachandran binary file after reading Rosetta3's
@@ -63,54 +108,9 @@ def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, outpu
     eps = numpy.exp(-20)
 
     with zarr.ZipStore(output_path + "/rama.zip", mode="w") as store:
-        # load tables
-        general = parse_lines_as_ndarrays(
-            open(r3_rama_dir + "all.ramaProb").readlines()
+        general, prepro = parse_all_tables(
+            rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir
         )
-        prepro = parse_lines_as_ndarrays(
-            open(r3_rama_dir + "prepro.ramaProb").readlines()
-        )
-        paapp = parse_lines_as_ndarrays(
-            open(r3_paapp_dir + "a20.prop").readlines(), 2, 0
-        )
-        paa = parse_paa(open(r3_paa_dir + "P_AA").readlines())
-
-        for aa, prob in paapp.items():
-            # convert p_aa_pp to energies
-            energies = -numpy.log(prob / paa[aa])
-
-            # resample, shifting -5 degrees
-            espline = BSplineInterpolation.from_coordinates(
-                torch.tensor(energies, dtype=torch.float)
-            )
-            for i in numpy.arange(36):
-                for j in numpy.arange(36):
-                    energies[i, j] = espline.interpolate(
-                        torch.tensor([i - 0.5, j - 0.5])
-                    )
-
-            paapp[aa] = energies
-
-        for aa, prob in prepro.items():
-            # convert rama to energies
-            # NOTE: this normalization is not properly done in R3 for prepro
-            prob /= numpy.sum(prob)
-            entropy = numpy.sum(prob * numpy.log(prob))
-            energies = -numpy.log(prob) + entropy
-
-            # reweight, add paapp
-            prepro[aa] = rama_wt * energies + paapp_wt * paapp[aa]
-
-        for aa, prob in general.items():
-            # convert rama to energies
-            prob /= numpy.sum(prob)
-            entropy = numpy.sum(prob * numpy.log(prob))
-            energies = -numpy.log(prob) + entropy
-
-            # reweight, add paapp
-            general[aa] = rama_wt * energies + paapp_wt * paapp[aa]
-
-        # numpy.savetxt("ala.csv", general['ALA'], delimiter=",")
 
         # write tables
         zgroup = zarr.group(store=store)

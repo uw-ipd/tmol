@@ -8,6 +8,7 @@ from . import (  # noqa: F401
     elec,
     cartbonded,
     hbond,
+    rama,
     coordinates,
     score_graph,
     viewer,  # import viewer to register io overloads
@@ -19,6 +20,7 @@ class TotalScoreGraph(
     ljlk.LJScoreGraph,
     ljlk.LKScoreGraph,
     hbond.HBondScoreGraph,
+    rama.RamaScoreGraph,
     elec.ElecScoreGraph,
     cartbonded.CartBondedScoreGraph,
 ):

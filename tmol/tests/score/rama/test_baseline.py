@@ -19,4 +19,4 @@ def test_cartbonded_baseline_comparison(ubq_system, torch_device):
     print(type(test_graph.allphis))
 
     intra_container = test_graph.intra_score()
-    assert float(intra_container.total_rama) == approx(-21.141438, rel=1e-3)
+    assert float(intra_container.total_rama) == approx(-12.743369, rel=1e-3)

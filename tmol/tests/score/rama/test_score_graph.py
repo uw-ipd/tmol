@@ -30,5 +30,5 @@ def test_phipsi_identification(default_database, ubq_system):
 
 def test_rama_smoke(ubq_system, torch_device):
     rama_graph = RamaGraph.build_for(ubq_system, device=torch_device)
-    assert rama_graph.phis.shape[0] == 76
-    assert rama_graph.psis.shape[0] == 76
+    assert rama_graph.allphis.shape[0] == 76
+    assert rama_graph.allpsis.shape[0] == 76

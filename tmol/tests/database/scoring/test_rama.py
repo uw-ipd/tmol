@@ -63,7 +63,7 @@ def test_rama_mapper(default_database):
     allpairs = numpy.array([[i, j] for i in allaas for j in allaas])
     indices = rama_index.get_indexer([allpairs[:, 0], allpairs[:, 1]])
     indices[indices == -1] = rama_index.get_indexer(
-        [allpairs[indices == -1, 0], numpy.full(numpy.sum(indices == -1), "")]
+        [allpairs[indices == -1, 0], numpy.full(numpy.sum(indices == -1), "_")]
     )
 
     assert numpy.sum(indices == -1) == 0
@@ -73,5 +73,5 @@ def test_rama_mapper(default_database):
         assert rama_records.loc[name_resolved].res_middle == allpairs[row, 0]
         assert (
             rama_records.loc[name_resolved].res_upper == allpairs[row, 1]
-            or rama_records.loc[name_resolved].res_upper == ""
+            or rama_records.loc[name_resolved].res_upper == "_"
         )
