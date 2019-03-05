@@ -1,8 +1,6 @@
 import os
 import yaml
-import shutil
 import numpy
-import zarr
 
 from .rosetta import requires_rosetta_database
 

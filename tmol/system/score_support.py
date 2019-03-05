@@ -117,7 +117,7 @@ def rama_graph_inputs(
     """Constructor parameters for rama scoring.
 
     Extract the atom indices of the 'phi' and 'psi' torsions
-	from the torsion_metadata object, and the database.
+    from the torsion_metadata object, and the database.
     """
     if rama_database is None:
         rama_database = parameter_database.scoring.rama

@@ -1,18 +1,6 @@
-import copy
-
-import pytest
-import torch
-
-from tmol.database import ParameterDatabase
-
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.rama import RamaScoreGraph
-from tmol.score.device import TorchDevice
-
 from tmol.score.score_graph import score_graph
-
-import tmol.system.restypes as restypes
-from tmol.system.packed import PackedResidueSystem
 from tmol.system.score_support import rama_graph_inputs
 
 

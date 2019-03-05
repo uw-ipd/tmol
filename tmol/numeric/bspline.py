@@ -36,12 +36,10 @@ the code assumes a uniform unit distance between interpolation points.
 """
 
 import torch
-import math
 import attr
 
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
-from typing import Optional
 
 from tmol.numeric.bspline_compiled import compiled
 

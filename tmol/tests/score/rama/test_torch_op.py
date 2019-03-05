@@ -26,7 +26,6 @@ class ScoreSetup:
         )
         res_names = system.atom_metadata["residue_name"].copy()
 
-        rama_database = database.scoring.rama
         param_resolver = RamaParamResolver.from_database(
             database.scoring.rama, torch_device
         )

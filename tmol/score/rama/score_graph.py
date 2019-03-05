@@ -1,9 +1,7 @@
-import attr
 import pandas
-
-import torch
 import numpy
 import attr
+
 from typing import Optional
 from functools import singledispatch
 
@@ -27,8 +25,6 @@ from tmol.types.array import NDArray
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
-
-import traceback
 
 
 @attr.s(auto_attribs=True)

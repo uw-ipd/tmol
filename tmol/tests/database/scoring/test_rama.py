@@ -1,14 +1,6 @@
-import pytest
 import pandas
 import cattr
 import numpy
-
-from tmol.database.scoring.rama import RamaDatabase
-from tmol.database import ParameterDatabase
-
-import re
-
-import timeit
 
 
 def test_rama(default_database):

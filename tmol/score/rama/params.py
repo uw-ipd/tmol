@@ -11,13 +11,13 @@ from typing import List
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
 from tmol.types.functional import validate_args
 
 from tmol.numeric.bspline import BSplineInterpolation
 
 from tmol.database.scoring.rama import RamaDatabase
+
 
 # the rama database on the device
 @attr.s(auto_attribs=True, slots=True, frozen=True)

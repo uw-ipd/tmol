@@ -105,8 +105,6 @@ def zarr_from_db(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir, outpu
     Write the Ramachandran binary file after reading Rosetta3's
     rama and p_aa_pp, and combining the weighted sum
     """
-    eps = numpy.exp(-20)
-
     with zarr.ZipStore(output_path + "/rama.zip", mode="w") as store:
         general, prepro = parse_all_tables(
             rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir
@@ -134,7 +132,8 @@ if __name__ == "__main__":
     )
     r3_paapp_dir = (
         str(Path.home())
-        + "/Rosetta/main/database/scoring/score_functions/P_AA_pp/shapovalov/10deg/kappa131/"
+        + "/Rosetta/main/database/scoring/"
+        + "score_functions/P_AA_pp/shapovalov/10deg/kappa131/"
     )
     r3_paa_dir = (
         str(Path.home()) + "/Rosetta/main/database/scoring/score_functions/P_AA_pp/"

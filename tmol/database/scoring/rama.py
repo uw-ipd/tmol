@@ -1,16 +1,12 @@
 import attr
 import cattr
 import numpy
-import os
-import re
-import numpy
 import yaml
 import zarr
 
 from typing import Tuple
 
 from tmol.types.array import NDArray
-from tmol.types.functional import validate_args
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
