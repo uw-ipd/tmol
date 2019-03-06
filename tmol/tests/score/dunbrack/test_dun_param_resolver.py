@@ -89,5 +89,7 @@ from tmol.score.dunbrack.params import DunbrackParamResolver
 #         )
 
 
-def test_dun_param_resolver(default_database):
-    blah = DunbrackParamResolver.from_database(default_database.scoring.dun)
+def test_dun_param_resolver(default_database, torch_device):
+    blah = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )

@@ -34,21 +34,25 @@ class PackedDunbrackDatabase(ConvertAttrs):
     rotameric_mean_tables: List
     rotameric_sdev_tables: List
 
-    rotameric_prob_tableset_offsets: List
-    rotameric_meansdev_tableset_offsets: List
+    rotameric_prob_tableset_offsets: Tensor(torch.long)[:]
+    rotameric_meansdev_tableset_offsets: Tensor(torch.long)[:]
 
-    rotameric_bb_start: List
-    rotameric_bb_step: List
-    rotameric_bb_periodicity: List
+    rotameric_bb_start: Tensor(torch.float)[:]
+    rotameric_bb_step: Tensor(torch.float)[:]
+    rotameric_bb_periodicity: Tensor(torch.float)[:]
+
+    nchi_for_table_set: Tensor(torch.long)[:]
+    rotind2tableind: Tensor(torch.long)[:]
+    rotind2tableind_offsets: Tensor(torch.long)[:]
 
     semirotameric_tables: List
-    semirotameric_tableeset_offsets: List
+    semirotameric_tableeset_offsets: Tensor(torch.long)[:]
 
-    semirot_start: List
-    semirot_step: List
-    semirot_periodicity: List
+    semirot_start: Tensor(torch.float)[:]
+    semirot_step: Tensor(torch.float)[:]
+    semirot_periodicity: Tensor(torch.float)[:]
 
-    rotind2tableind: List
+    rotind2tableind: Tensor(torch.long)[:]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -81,9 +85,7 @@ class DunbrackParamResolver(ValidateAttrs):
     #    cache=_from_dun_db_cache,
     #    key=lambda args, kwargs: (args[1], args[2].type, args[2].index),
     # )
-    def from_database(
-        cls, dun_database: DunbrackRotamerLibrary
-    ):  # , device: torch.device
+    def from_database(cls, dun_database: DunbrackRotamerLibrary, device: torch.device):
         all_rotlibs = [
             rotlib
             for rotlib in itertools.chain(
@@ -119,13 +121,13 @@ class DunbrackParamResolver(ValidateAttrs):
             semirotameric_table_lookup["residue_name"]
         )
 
-        print("all_table_names", all_table_names)
-        print("rotameric_table_names", rotameric_table_names)
-        print("semirotameric_table_names", semirotameric_table_names)
-        example_residues = ["ARG", "PHE", "ALA", "LEU"]
-        print("all", all_table_indices.get_indexer(example_residues))
-        print("rot", rotameric_table_indices.get_indexer(example_residues))
-        print("sem", semirotameric_table_indices.get_indexer(example_residues))
+        # print("all_table_names", all_table_names)
+        # print("rotameric_table_names", rotameric_table_names)
+        # print("semirotameric_table_names", semirotameric_table_names)
+        # example_residues = ["ARG", "PHE", "ALA", "LEU"]
+        # print("all", all_table_indices.get_indexer(example_residues))
+        # print("rot", rotameric_table_indices.get_indexer(example_residues))
+        # print("sem", semirotameric_table_indices.get_indexer(example_residues))
 
         rotameric_prob_tables = [
             torch.tensor(rotlib.rotameric_data.rotamer_probabilities[i,])
@@ -145,12 +147,13 @@ class DunbrackParamResolver(ValidateAttrs):
         ][:-1]
         print("prob_table_nrots", prob_table_nrots)
         prob_table_offsets = torch.cumsum(
-            torch.tensor(prob_table_nrots, dtype=torch.long), 0
+            torch.tensor(prob_table_nrots, dtype=torch.long, device=device), 0
         )
         print("prob_table_offsets", prob_table_offsets)
 
         prob_coeffs = [
-            BSplineInterpolation.from_coordinates(t) for t in rotameric_prob_tables
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_prob_tables
         ]
 
         rotameric_mean_tables = [
@@ -178,23 +181,66 @@ class DunbrackParamResolver(ValidateAttrs):
         ]
 
         mean_coeffs = [
-            BSplineInterpolation.from_coordinates(t) for t in rotameric_mean_tables
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_mean_tables
         ]
 
         sdev_coeffs = [
-            BSplineInterpolation.from_coordinates(t) for t in rotameric_sdev_tables
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_sdev_tables
         ]
 
         print("len(prob_coeffs)", len(prob_coeffs))
         print("len(mean_coeffs)", len(mean_coeffs))
         print("len(sdev_coeffs)", len(sdev_coeffs))
 
-        rotameric_bb_start = [
-            rotlib.rotameric_data.backbone_dihedral_start for rotlib in all_rotlibs
+        rotameric_bb_start = torch.tensor(
+            [
+                list(rotlib.rotameric_data.backbone_dihedral_start)
+                for rotlib in all_rotlibs
+            ],
+            dtype=torch.long,
+            device=device,
+        )
+        rotameric_bb_step = torch.tensor(
+            [
+                list(rotlib.rotameric_data.backbone_dihedral_step)
+                for rotlib in all_rotlibs
+            ],
+            dtype=torch.long,
+            device=device,
+        )
+
+        rotind2tableinds = []
+        rotamer_sets = [
+            rotlib.rotameric_data.rotamers
+            for rotlib in dun_database.rotameric_libraries
+        ] + [
+            rotlib.rotameric_chi_rotamers
+            for rotlib in dun_database.semi_rotameric_libraries
         ]
-        rotameric_bb_step = [
-            rotlib.rotameric_data.backbone_dihedral_step for rotlib in all_rotlibs
-        ]
+        ntablerots = [0]
+        for rotamers in rotamer_sets:
+            exponents = [x for x in range(rotamers.shape[1])]
+            exponents.reverse()
+            exponents = torch.tensor(exponents, dtype=torch.long)
+            prods = torch.pow(3, exponents)
+            rotinds = torch.sum((rotamers - 1) * prods, 1)
+            rotind2tableind = -1 * torch.ones(
+                [3 ** rotamers.shape[1]], dtype=torch.long
+            )
+            rotind2tableind[rotinds] = torch.arange(rotamers.shape[0], dtype=torch.long)
+            rotind2tableinds.extend(list(rotind2tableind))
+            ntablerots.append(rotinds.shape[0])
+        rotind2tableinds = torch.tensor(
+            rotind2tableinds, dtype=torch.long, device=device
+        ).reshape((-1,))
+        print("rotind2tableinds", rotind2tableinds)
+
+        rotind2tableind_offsets = torch.cumsum(
+            torch.tensor(ntablerots[:-1], dtype=torch.long, device=device), 0
+        )
+        print("rotind2tableind_offsets", rotind2tableind_offsets)
 
         # ======
 
