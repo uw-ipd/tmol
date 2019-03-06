@@ -21,7 +21,12 @@ namespace tmol {
 namespace numeric {
 namespace bspline {
 
-template <std::size_t NDIM, std::size_t DEGREE, tmol::Device D, typename Real, typename Int>
+template <
+    std::size_t NDIM,
+    std::size_t DEGREE,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 struct ndspline {
   // 1D stripe setter
   static auto EIGEN_DEVICE_FUNC _put_line(
