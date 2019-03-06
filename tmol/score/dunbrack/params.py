@@ -29,6 +29,7 @@ from tmol.database.scoring.dunbrack_libraries import (
 # the rama database on the device
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedDunbrackDatabase(ConvertAttrs):
+
     rotameric_prob_tables: List
     rotameric_mean_tables: List
     rotameric_sdev_tables: List
@@ -54,8 +55,13 @@ class PackedDunbrackDatabase(ConvertAttrs):
 class DunbrackParamResolver(ValidateAttrs):
     _from_dun_db_cache = {}
 
-    dun_indices: pandas.Index
+    # This lives on the device
     dun_params: PackedDunbrackDatabase
+
+    # This will live on the CPU
+    all_table_indices: pandas.Index
+    rotameric_table_indices: pandas.Index
+    semirotameric_table_indices: pandas.Index
 
     device: torch.device
 
@@ -85,17 +91,41 @@ class DunbrackParamResolver(ValidateAttrs):
             )
         ]
 
-        names = [x.table_name for x in all_rotlibs]
-        print(names)
-        dun_records = pandas.DataFrame.from_records(
-            cattr.unstructure(dun_database.dun_lookup)
-        ).set_index("dun_table_name")
-        # .reindex( names )
-        print()
-        print("names", names)
-        print("dun_records", dun_records)
+        all_table_names = [x.table_name for x in all_rotlibs]
+        all_table_lookup = (
+            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
+            .set_index("dun_table_name")
+            .reindex(all_table_names)
+        )
+        all_table_indices = pandas.Index(all_table_lookup["residue_name"])
 
-        # dun_indices = pandas.Index(rama_records[["res_middle", "res_upper"]])???
+        rotameric_table_names = [x.table_name for x in dun_database.rotameric_libraries]
+        rotameric_table_lookup = (
+            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
+            .set_index("dun_table_name")
+            .reindex(rotameric_table_names)
+        )
+        rotameric_table_indices = pandas.Index(rotameric_table_lookup["residue_name"])
+
+        semirotameric_table_names = [
+            x.table_name for x in dun_database.semi_rotameric_libraries
+        ]
+        semirotameric_table_lookup = (
+            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
+            .set_index("dun_table_name")
+            .reindex(semirotameric_table_names)
+        )
+        semirotameric_table_indices = pandas.Index(
+            semirotameric_table_lookup["residue_name"]
+        )
+
+        print("all_table_names", all_table_names)
+        print("rotameric_table_names", rotameric_table_names)
+        print("semirotameric_table_names", semirotameric_table_names)
+        example_residues = ["ARG", "PHE", "ALA", "LEU"]
+        print("all", all_table_indices.get_indexer(example_residues))
+        print("rot", rotameric_table_indices.get_indexer(example_residues))
+        print("sem", semirotameric_table_indices.get_indexer(example_residues))
 
         rotameric_prob_tables = [
             torch.tensor(rotlib.rotameric_data.rotamer_probabilities[i,])
