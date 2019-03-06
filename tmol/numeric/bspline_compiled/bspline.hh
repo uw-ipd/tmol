@@ -21,12 +21,7 @@ namespace tmol {
 namespace numeric {
 namespace bspline {
 
-template <
-    std::size_t NDIM,
-    std::size_t DEGREE,
-    tmol::Device D,
-    typename Real,
-    typename Int>
+template <std::size_t NDIM, std::size_t DEGREE, tmol::Device D, typename Real, typename Int>
 struct ndspline {
   // 1D stripe setter
   static auto EIGEN_DEVICE_FUNC _put_line(
@@ -318,6 +313,24 @@ struct ndspline {
       }
     }
     return dwts;
+  }
+
+  static auto EIGEN_DEVICE_FUNC interpolate(
+      TView<Real, NDIM, D> coeffs, TView<Eigen::Matrix<Real, NDIM, 1>, 1, D> Xs)
+      -> tmol::score::common::
+          tuple<TPack<Real, 1, D>, TPack<Eigen::Matrix<Real, NDIM, 1>, 1, D> > {
+    auto num_Vs = Xs.size(0);
+    auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
+    auto Vs = Vs_t.view;
+    auto dV_dIs_t = TPack<Eigen::Matrix<Real, NDIM, 1>, 1, D>::empty(num_Vs);
+    auto dV_dIs = dV_dIs_t.view;
+
+    // fd - cuda specific code could be added here
+    //  (current there are only CPU python bindings)
+    for (int i = 0; i < num_Vs; ++i) {
+      tmol::score::common::tie(Vs[i], dV_dIs[i]) = interpolate(coeffs, Xs[i]);
+    }
+    return {Vs_t, dV_dIs_t};
   }
 
   static auto EIGEN_DEVICE_FUNC

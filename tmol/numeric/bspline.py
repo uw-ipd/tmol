@@ -90,7 +90,7 @@ class BSplineInterpolation:
         return cls(coeffs=coeffs, n_interp_dims=len(input_shape))
 
     @validate_args
-    def interpolate(self, X: Tensor(torch.float)[:]) -> float:
+    def interpolate(self, X: Tensor(torch.float)[...]) -> Tensor(torch.float):
         """B-spline interpolation function
 
         X should be a two dimensional tensor of size [ n_points, n_dims ]
@@ -101,8 +101,11 @@ class BSplineInterpolation:
         result returned by this is the interpolated value for each of the input points.
         """
 
-        assert len(X.shape) == 1
-        assert X.shape[0] == self.n_interp_dims
+        if len(X.shape) == 1:
+            X = X[None, :]
+
+        assert len(X.shape) == 2
+        assert X.shape[1] == self.n_interp_dims
 
         # we only implement the python interface for CPU
         assert X.device == torch.device("cpu")

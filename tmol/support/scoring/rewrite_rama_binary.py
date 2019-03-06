@@ -71,9 +71,10 @@ def parse_all_tables(rama_wt, r3_rama_dir, paapp_wt, r3_paapp_dir, r3_paa_dir):
         espline = BSplineInterpolation.from_coordinates(
             torch.tensor(energies, dtype=torch.float)
         )
-        for i in numpy.arange(36):
-            for j in numpy.arange(36):
-                energies[i, j] = espline.interpolate(torch.tensor([i - 0.5, j - 0.5]))
+        x = torch.arange(36, dtype=torch.float) - 0.5
+        xx, yy = torch.meshgrid((x, x))
+        Xs = torch.stack((xx, yy)).reshape(2, -1).transpose(0, 1).contiguous()
+        energies = espline.interpolate(Xs).reshape(36, 36).numpy()
 
         paapp[aa] = energies
 
