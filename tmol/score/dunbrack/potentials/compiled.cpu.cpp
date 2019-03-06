@@ -37,7 +37,7 @@ struct DunbrackDispatch {
       TView<Vec<Real, 3>, 1, D> semirot_start, // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_step, // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_periodicity, // n-semirot-tabset
-      TCollection<Int, 1, D> rotind2tableind,
+      TView<Int, 1, D> rotind2tableind,
 
       TView<Vec<Real, 3>, 1, D> coords,
 
