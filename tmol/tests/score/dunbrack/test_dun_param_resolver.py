@@ -238,18 +238,15 @@ def test_dun_param_resolver_construction(default_database, torch_device):
             rotind = ri2ti_offsets[i] + numpy.sum(
                 (rotamers[i].numpy()[j, :] - 1) * dim_prods, 0
             )
-            print(
-                "dim_prods",
-                dim_prods,
-                "rotamer",
-                rotamers[i].numpy()[j, :],
-                "rotind",
-                rotind,
-                "ri2ti_offsets[i]",
-                ri2ti_offsets[i],
-                "ri2ti[rotind]",
-                ri2ti[rotind],
-                "j",
-                j,
-            )
             assert ri2ti[rotind] == j
+
+    semirot_offsets = dun_params.semirotameric_tableset_offsets.cpu().numpy()
+    semirot_rotamers = [
+        rotlib.rotameric_chi_rotamers for rotlib in dunlib.semi_rotameric_libraries
+    ]
+    assert semirot_offsets[0] == 0
+    for i in range(1, len(semirot_rotamers)):
+        assert (
+            semirot_offsets[i - 1] + 3 ** semirot_rotamers[i - 1].shape[1]
+            == semirot_offsets[i]
+        )
