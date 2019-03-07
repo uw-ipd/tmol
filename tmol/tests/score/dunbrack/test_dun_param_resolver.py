@@ -193,7 +193,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     assert dun_params.semirot_periodicity.device == torch_device
 
     # ok; everything is the right size.
-    # that doesn't mean it has been properly initialized.
+    # make sure that the data has been properly initialized.
 
     rotprob_offsets = dun_params.rotameric_prob_tableset_offsets.cpu().numpy()
     assert rotprob_offsets[0] == 0
@@ -208,3 +208,48 @@ def test_dun_param_resolver_construction(default_database, torch_device):
             rotprob_offsets[i - 1] + all_rotdat[i - 1].rotamers.shape[0]
             == rotprob_offsets[i]
         )
+
+    rotmean_offsets = dun_params.rotameric_meansdev_tableset_offsets.cpu().numpy()
+    rotsandchi = [
+        rotdat.rotamers.shape[0] * rotdat.rotamers.shape[1] for rotdat in all_rotdat
+    ]
+    assert rotmean_offsets[0] == 0
+    for i in range(1, rotmean_offsets.shape[0]):
+        assert rotmean_offsets[i - 1] + rotsandchi[i - 1] == rotmean_offsets[i]
+
+    nchi = [rotdat.rotamers.shape[1] for rotdat in all_rotdat]
+    nchi_for_set = dun_params.nchi_for_table_set.cpu().numpy()
+    numpy.testing.assert_array_equal(nchi, nchi_for_set)
+
+    ri2ti_offsets = dun_params.rotind2tableind_offsets.cpu().numpy()
+    ri2ti = dun_params.rotind2tableind.cpu().numpy()
+    rotamers = [
+        rotlib.rotameric_data.rotamers for rotlib in dunlib.rotameric_libraries
+    ] + [rotlib.rotameric_chi_rotamers for rotlib in dunlib.semi_rotameric_libraries]
+    assert ri2ti_offsets[0] == 0
+    for i in range(ri2ti_offsets.shape[0]):
+        assert (
+            i == 0
+            or ri2ti_offsets[i - 1] + 3 ** rotamers[i - 1].shape[1] == ri2ti_offsets[i]
+        )
+
+        dim_prods = numpy.power(3, numpy.flip(numpy.arange(rotamers[i].shape[1]), 0))
+        for j in range(rotamers[i].shape[0]):
+            rotind = ri2ti_offsets[i] + numpy.sum(
+                (rotamers[i].numpy()[j, :] - 1) * dim_prods, 0
+            )
+            print(
+                "dim_prods",
+                dim_prods,
+                "rotamer",
+                rotamers[i].numpy()[j, :],
+                "rotind",
+                rotind,
+                "ri2ti_offsets[i]",
+                ri2ti_offsets[i],
+                "ri2ti[rotind]",
+                ri2ti[rotind],
+                "j",
+                j,
+            )
+            assert ri2ti[rotind] == j

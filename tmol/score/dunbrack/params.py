@@ -169,7 +169,7 @@ class DunbrackParamResolver(ValidateAttrs):
 
         mean_table_n_entries = [0] + [
             rotlib.rotameric_data.rotamer_means.shape[0]
-            * rotlib.rotameric_data.rotamer_means.shape[1]
+            * rotlib.rotameric_data.rotamer_means.shape[3]
             for rotlib in all_rotlibs
         ][:-1]
         rotameric_mean_offsets = torch.cumsum(
@@ -249,7 +249,12 @@ class DunbrackParamResolver(ValidateAttrs):
         print("rotind2tableind", rotind2tableind)
 
         rotind2tableind_offsets = torch.cumsum(
-            torch.tensor(ntablerots[:-1], dtype=torch.long, device=device), 0
+            torch.tensor(
+                [0] + [3 ** rotamers.shape[1] for rotamers in rotamer_sets][:-1],
+                dtype=torch.long,
+                device=device,
+            ),
+            0,
         )
         print("rotind2tableind_offsets", rotind2tableind_offsets)
 
