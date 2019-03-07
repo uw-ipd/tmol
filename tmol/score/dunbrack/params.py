@@ -67,7 +67,7 @@ class DunbrackParamResolver(ValidateAttrs):
 
     device: torch.device
 
-    def resolve_ramatables(
+    def resolve_dun_indices(
         self, resnames0: NDArray(object), resnames1: NDArray(object)
     ) -> NDArray("i8")[...]:
         indices = rama_index.get_indexer(resnames0, resnames1)
