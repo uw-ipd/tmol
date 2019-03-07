@@ -144,9 +144,11 @@ class DunbrackParamResolver(ValidateAttrs):
             for rotlib in all_rotlibs
         ][:-1]
         print("prob_table_nrots", prob_table_nrots)
-        nchi_for_table_set = [
-            rotlib.rotameric_data.rotamers.shape[1] for rotlib in all_rotlibs
-        ]
+        nchi_for_table_set = torch.tensor(
+            [rotlib.rotameric_data.rotamers.shape[1] for rotlib in all_rotlibs],
+            dtype=torch.long,
+            device=device,
+        )
 
         prob_table_offsets = torch.cumsum(
             torch.tensor(prob_table_nrots, dtype=torch.long, device=device), 0
@@ -159,10 +161,10 @@ class DunbrackParamResolver(ValidateAttrs):
         ]
 
         rotameric_mean_tables = [
-            torch.tensor(rotlib.rotameric_data.rotamer_means[i, j])
+            torch.tensor(rotlib.rotameric_data.rotamer_means[i, :, :, j])
             for rotlib in all_rotlibs
             for i in range(rotlib.rotameric_data.rotamer_means.shape[0])
-            for j in range(rotlib.rotameric_data.rotamer_means.shape[1])
+            for j in range(rotlib.rotameric_data.rotamer_means.shape[3])
         ]
 
         mean_table_n_entries = [0] + [
@@ -171,15 +173,21 @@ class DunbrackParamResolver(ValidateAttrs):
             for rotlib in all_rotlibs
         ][:-1]
         rotameric_mean_offsets = torch.cumsum(
-            torch.tensor(mean_table_n_entries, dtype=torch.long), 0
+            torch.tensor(mean_table_n_entries, dtype=torch.long, device=device), 0
         )
         print(rotameric_mean_offsets)
 
+        for rotlib in all_rotlibs:
+            print(
+                "rotlib.rotameric_data.rotamer_stdvs.shape",
+                rotlib.rotameric_data.rotamer_stdvs.shape,
+            )
+
         rotameric_sdev_tables = [
-            torch.tensor(rotlib.rotameric_data.rotamer_probabilities[i,])
+            torch.tensor(rotlib.rotameric_data.rotamer_stdvs[i, :, :, j])
             for rotlib in all_rotlibs
             for i in range(rotlib.rotameric_data.rotamer_stdvs.shape[0])
-            for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[1])
+            for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[3])
         ]
 
         mean_coeffs = [

@@ -115,6 +115,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     assert dun_params.rotameric_bb_step.shape[0] == nlibs
     assert dun_params.rotameric_bb_periodicity.shape[0] == nlibs
     assert len(resolver.all_table_indices) == nlibs
+    assert dun_params.nchi_for_table_set.shape[0] == nlibs
 
     nrotameric_rots = sum(
         (
@@ -125,3 +126,85 @@ def test_dun_param_resolver_construction(default_database, torch_device):
         )
     )
     assert len(dun_params.rotameric_prob_tables) == nrotameric_rots
+
+    nchitot = sum(
+        (
+            rotlib.rotameric_data.rotamers.shape[0]
+            * rotlib.rotameric_data.rotamers.shape[1]
+            for rotlib in itertools.chain(
+                dunlib.rotameric_libraries, dunlib.semi_rotameric_libraries
+            )
+        )
+    )
+    assert len(dun_params.rotameric_mean_tables) == nchitot
+    assert len(dun_params.rotameric_sdev_tables) == nchitot
+
+    max_nrots = sum(
+        3 ** rotlib.rotameric_data.rotamers.shape[1]
+        for rotlib in dunlib.rotameric_libraries
+    ) + sum(
+        3 ** rotlib.rotameric_chi_rotamers.shape[1]
+        for rotlib in dunlib.semi_rotameric_libraries
+    )
+    assert dun_params.rotind2tableind.shape[0] == max_nrots
+
+    # ok, this kinda makes assumptions about the step + periodicity; I ought to fix this
+    for table in dun_params.rotameric_mean_tables:
+        assert len(table.shape) == 2 and table.shape[0] == 36 and table.shape[1] == 36
+    for table in dun_params.rotameric_sdev_tables:
+        assert len(table.shape) == 2 and table.shape[0] == 36 and table.shape[1] == 36
+
+    nrotameric_libs = len(dunlib.rotameric_libraries)
+    assert len(resolver.rotameric_table_indices) == nrotameric_libs
+
+    nsemirotameric_libs = len(dunlib.semi_rotameric_libraries)
+    assert len(resolver.semirotameric_table_indices) == nsemirotameric_libs
+    assert dun_params.semirot_start.shape[0] == nsemirotameric_libs
+    assert dun_params.semirot_step.shape[0] == nsemirotameric_libs
+    assert dun_params.semirot_periodicity.shape[0] == nsemirotameric_libs
+    assert dun_params.semirotameric_tableset_offsets.shape[0] == nsemirotameric_libs
+
+    n_rotameric_rots_of_semirot_tables = sum(
+        rotlib.rotameric_chi_rotamers.shape[0]
+        for rotlib in dunlib.semi_rotameric_libraries
+    )
+    assert len(dun_params.semirotameric_tables) == n_rotameric_rots_of_semirot_tables
+
+    # now let's make sure that everything lives on the proper device
+    for table in itertools.chain(
+        dun_params.rotameric_prob_tables,
+        dun_params.rotameric_mean_tables,
+        dun_params.rotameric_sdev_tables,
+        dun_params.semirotameric_tables,
+    ):
+        assert table.device == torch_device
+
+    assert dun_params.rotameric_prob_tableset_offsets.device == torch_device
+    assert dun_params.rotameric_meansdev_tableset_offsets.device == torch_device
+    assert dun_params.rotameric_bb_start.device == torch_device
+    assert dun_params.rotameric_bb_step.device == torch_device
+    assert dun_params.rotameric_bb_periodicity.device == torch_device
+    assert dun_params.nchi_for_table_set.device == torch_device
+    assert dun_params.rotind2tableind.device == torch_device
+    assert dun_params.rotind2tableind_offsets.device == torch_device
+    assert dun_params.semirotameric_tableset_offsets.device == torch_device
+    assert dun_params.semirot_start.device == torch_device
+    assert dun_params.semirot_step.device == torch_device
+    assert dun_params.semirot_periodicity.device == torch_device
+
+    # ok; everything is the right size.
+    # that doesn't mean it has been properly initialized.
+
+    rotprob_offsets = dun_params.rotameric_prob_tableset_offsets.cpu().numpy()
+    assert rotprob_offsets[0] == 0
+    all_rotdat = [
+        rotlib.rotameric_data
+        for rotlib in itertools.chain(
+            dunlib.rotameric_libraries, dunlib.semi_rotameric_libraries
+        )
+    ]
+    for i in range(1, rotprob_offsets.shape[0]):
+        assert (
+            rotprob_offsets[i - 1] + all_rotdat[i - 1].rotamers.shape[0]
+            == rotprob_offsets[i]
+        )
