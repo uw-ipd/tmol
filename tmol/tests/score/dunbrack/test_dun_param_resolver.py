@@ -4,6 +4,8 @@ import pandas
 import numpy
 import torch
 
+import itertools
+
 from tmol.score.dunbrack.params import DunbrackParamResolver
 
 
@@ -89,7 +91,37 @@ from tmol.score.dunbrack.params import DunbrackParamResolver
 #         )
 
 
-def test_dun_param_resolver(default_database, torch_device):
-    blah = DunbrackParamResolver.from_database(
+def test_dun_param_resolver_construction(default_database, torch_device):
+    resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
+    dun_params = resolver.dun_params
+
+    # properties that are independent of the library, except for the
+    # fact that it represents alpha amino acids
+    assert dun_params.rotameric_bb_start.shape[1] == 2
+    assert dun_params.rotameric_bb_step.shape[1] == 2
+    assert dun_params.rotameric_bb_periodicity.shape[1] == 2
+    assert dun_params.semirot_start.shape[1] == 3
+    assert dun_params.semirot_step.shape[1] == 3
+    assert dun_params.semirot_periodicity.shape[1] == 3
+
+    # properties that will depend on the libraries that are read in
+    dunlib = default_database.scoring.dun
+    nlibs = len(dunlib.rotameric_libraries) + len(dunlib.semi_rotameric_libraries)
+    assert dun_params.rotameric_prob_tableset_offsets.shape[0] == nlibs
+    assert dun_params.rotameric_meansdev_tableset_offsets.shape[0] == nlibs
+    assert dun_params.rotameric_bb_start.shape[0] == nlibs
+    assert dun_params.rotameric_bb_step.shape[0] == nlibs
+    assert dun_params.rotameric_bb_periodicity.shape[0] == nlibs
+    assert len(resolver.all_table_indices) == nlibs
+
+    nrotameric_rots = sum(
+        (
+            rotlib.rotameric_data.rotamers.shape[0]
+            for rotlib in itertools.chain(
+                dunlib.rotameric_libraries, dunlib.semi_rotameric_libraries
+            )
+        )
+    )
+    assert len(dun_params.rotameric_prob_tables) == nrotameric_rots
