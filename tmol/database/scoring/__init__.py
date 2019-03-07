@@ -29,7 +29,7 @@ class ScoringDatabase:
                 os.path.join(path, "rama.yaml"), os.path.join(path, "rama.zip")
             ),
             dun=DunbrackRotamerLibrary.from_zarr_archive(
-                os.path.join(path, "dunbrack.bin")
+                os.path.join(path, "dunbrack.yaml"), os.path.join(path, "dunbrack.bin")
             ),
             cartbonded=CartBondedDatabase.from_file(
                 os.path.join(path, "cartbonded.yaml")

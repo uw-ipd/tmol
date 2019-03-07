@@ -37,22 +37,20 @@ class PackedDunbrackDatabase(ConvertAttrs):
     rotameric_prob_tableset_offsets: Tensor(torch.long)[:]
     rotameric_meansdev_tableset_offsets: Tensor(torch.long)[:]
 
-    rotameric_bb_start: Tensor(torch.float)[:]
-    rotameric_bb_step: Tensor(torch.float)[:]
-    rotameric_bb_periodicity: Tensor(torch.float)[:]
+    rotameric_bb_start: Tensor(torch.float)[:, :]
+    rotameric_bb_step: Tensor(torch.float)[:, :]
+    rotameric_bb_periodicity: Tensor(torch.float)[:, :]
 
     nchi_for_table_set: Tensor(torch.long)[:]
     rotind2tableind: Tensor(torch.long)[:]
     rotind2tableind_offsets: Tensor(torch.long)[:]
 
     semirotameric_tables: List
-    semirotameric_tableeset_offsets: Tensor(torch.long)[:]
+    semirotameric_tableset_offsets: Tensor(torch.long)[:]
 
-    semirot_start: Tensor(torch.float)[:]
-    semirot_step: Tensor(torch.float)[:]
-    semirot_periodicity: Tensor(torch.float)[:]
-
-    rotind2tableind: Tensor(torch.long)[:]
+    semirot_start: Tensor(torch.float)[:, :]
+    semirot_step: Tensor(torch.float)[:, :]
+    semirot_periodicity: Tensor(torch.float)[:, :]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -146,6 +144,10 @@ class DunbrackParamResolver(ValidateAttrs):
             for rotlib in all_rotlibs
         ][:-1]
         print("prob_table_nrots", prob_table_nrots)
+        nchi_for_table_set = [
+            rotlib.rotameric_data.rotamers.shape[1] for rotlib in all_rotlibs
+        ]
+
         prob_table_offsets = torch.cumsum(
             torch.tensor(prob_table_nrots, dtype=torch.long, device=device), 0
         )
@@ -210,8 +212,11 @@ class DunbrackParamResolver(ValidateAttrs):
             dtype=torch.long,
             device=device,
         )
+        rotameric_bb_periodicity = (
+            rotameric_bb_step.new_ones(rotameric_bb_step.shape) * 2 * numpy.pi
+        )
 
-        rotind2tableinds = []
+        rotind2tableind = []
         rotamer_sets = [
             rotlib.rotameric_data.rotamers
             for rotlib in dun_database.rotameric_libraries
@@ -226,16 +231,14 @@ class DunbrackParamResolver(ValidateAttrs):
             exponents = torch.tensor(exponents, dtype=torch.long)
             prods = torch.pow(3, exponents)
             rotinds = torch.sum((rotamers - 1) * prods, 1)
-            rotind2tableind = -1 * torch.ones(
-                [3 ** rotamers.shape[1]], dtype=torch.long
-            )
-            rotind2tableind[rotinds] = torch.arange(rotamers.shape[0], dtype=torch.long)
-            rotind2tableinds.extend(list(rotind2tableind))
+            ri2ti = -1 * torch.ones([3 ** rotamers.shape[1]], dtype=torch.long)
+            ri2ti[rotinds] = torch.arange(rotamers.shape[0], dtype=torch.long)
+            rotind2tableind.extend(list(ri2ti))
             ntablerots.append(rotinds.shape[0])
-        rotind2tableinds = torch.tensor(
-            rotind2tableinds, dtype=torch.long, device=device
+        rotind2tableind = torch.tensor(
+            rotind2tableind, dtype=torch.long, device=device
         ).reshape((-1,))
-        print("rotind2tableinds", rotind2tableinds)
+        print("rotind2tableind", rotind2tableind)
 
         rotind2tableind_offsets = torch.cumsum(
             torch.tensor(ntablerots[:-1], dtype=torch.long, device=device), 0
@@ -254,7 +257,7 @@ class DunbrackParamResolver(ValidateAttrs):
         ][:-1]
         print("nsemirot_rotamers", nsemirot_rotamers)
         semirotameric_tableset_offsets = torch.cumsum(
-            torch.tensor(nsemirot_rotamers, dtype=torch.long), 0
+            torch.tensor(nsemirot_rotamers, dtype=torch.long, device=device), 0
         )
         semirotameric_prob_tables = [
             torch.tensor(rotlib.nonrotameric_chi_probabilities[i,])
@@ -262,6 +265,69 @@ class DunbrackParamResolver(ValidateAttrs):
             for i in range(rotlib.nonrotameric_chi_probabilities.shape[0])
         ]
         print("len(semirotameric_prob_tables)", len(semirotameric_prob_tables))
+
+        semirot_coeffs = [
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in semirotameric_prob_tables
+        ]
+
+        semirot_start = torch.zeros(
+            (len(dun_database.semi_rotameric_libraries), 3),
+            dtype=torch.float,
+            device=device,
+        )
+        semirot_start[:, 0] = -1 * numpy.pi
+        semirot_start[:, 1] = -1 * numpy.pi
+        semirot_start[:, 2] = torch.tensor(
+            [x.non_rot_chi_start for x in dun_database.semi_rotameric_libraries],
+            dtype=torch.float,
+            device=device,
+        )
+
+        semirot_step = torch.zeros(
+            (len(dun_database.semi_rotameric_libraries), 3),
+            dtype=torch.float,
+            device=device,
+        )
+        semirot_step[:, 0] = 10 * numpy.pi / 180
+        semirot_step[:, 1] = 10 * numpy.pi / 180
+        semirot_step[:, 2] = torch.tensor(
+            [x.non_rot_chi_step for x in dun_database.semi_rotameric_libraries],
+            dtype=torch.float,
+            device=device,
+        )
+
+        semirot_periodicity = torch.zeros(
+            (len(dun_database.semi_rotameric_libraries), 3),
+            dtype=torch.float,
+            device=device,
+        )
+        semirot_periodicity[:, 0] = 2 * numpy.pi
+        semirot_periodicity[:, 1] = 2 * numpy.pi
+        semirot_periodicity[:, 2] = torch.tensor(
+            [x.non_rot_chi_period for x in dun_database.semi_rotameric_libraries],
+            dtype=torch.float,
+            device=device,
+        )
+
+        dun_params = PackedDunbrackDatabase(
+            rotameric_prob_tables=prob_coeffs,
+            rotameric_mean_tables=mean_coeffs,
+            rotameric_sdev_tables=sdev_coeffs,
+            rotameric_prob_tableset_offsets=prob_table_offsets,
+            rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
+            rotameric_bb_start=rotameric_bb_start,
+            rotameric_bb_step=rotameric_bb_step,
+            rotameric_bb_periodicity=rotameric_bb_periodicity,
+            nchi_for_table_set=nchi_for_table_set,
+            rotind2tableind=rotind2tableind,
+            rotind2tableind_offsets=rotind2tableind_offsets,
+            semirotameric_tables=semirot_coeffs,
+            semirotameric_tableset_offsets=semirotameric_tableset_offsets,
+            semirot_start=semirot_start,
+            semirot_step=semirot_step,
+            semirot_periodicity=semirot_periodicity,
+        )
 
         # rama_params = PackedRamaDatabase(
         #     tables=[
@@ -280,4 +346,11 @@ class DunbrackParamResolver(ValidateAttrs):
         #     ],
         # )
         #
-        # return cls(rama_indices=rama_indices, rama_params=rama_params, device=device)
+
+        return cls(
+            dun_params=dun_params,
+            all_table_indices=all_table_indices,
+            rotameric_table_indices=rotameric_table_indices,
+            semirotameric_table_indices=semirotameric_table_indices,
+            device=device,
+        )
