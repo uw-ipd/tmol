@@ -10,7 +10,6 @@ import numpy
 
 from numba import jit
 
-
 # traverse bond graph, generate angles
 @jit(nopython=True)
 def find_angles(bonds, bond_spans):
@@ -19,15 +18,14 @@ def find_angles(bonds, bond_spans):
     angles = numpy.zeros((max_angles, 3), dtype=numpy.int32)
     nangles = 0
 
-    # use ordering on bonds to ensure no duplication
+    # use atm1:atm3 ordering to ensure no duplication
     for i in range(nbonds):
         atm1,atm2 = bonds[i]
-        if (atm1<atm2):
-            for j in range(bond_spans[atm2,0],bond_spans[atm2,1]):
-                atm3 = bonds[j,1]
-                if (atm3 != atm1):
-                    angles[nangles, :] = [atm1,atm2,atm3]
-                    nangles += 1
+        for j in range(bond_spans[atm2,0],bond_spans[atm2,1]):
+            atm3 = bonds[j,1]
+            if (atm3 > atm1):
+                angles[nangles, :] = [atm1,atm2,atm3]
+                nangles += 1
 
     return angles[:nangles]
 
@@ -40,10 +38,10 @@ def find_torsions(bonds, bond_spans):
     torsions = numpy.zeros((max_torsions, 4), dtype=numpy.int32)
     ntorsions = 0
 
+    # use atm0:atm3 ordering to ensure no duplication
     # note: cycles like A-B-C-A are valid!
     for i in range(nbonds):
         atm1,atm2 = bonds[i]
-        if (atm1>atm2): continue
  
         for j in range(bond_spans[atm2,0],bond_spans[atm2,1]):
             atm3 = bonds[j,1]
@@ -51,12 +49,13 @@ def find_torsions(bonds, bond_spans):
 
             for k in range(bond_spans[atm1,0],bond_spans[atm1,1]):
                 atm0 = bonds[k,1]
+                if (atm0 == atm2): continue
 
-                if (atm0 != atm2):
+                if ((atm0 < atm3) or (atm0 == atm3 and atm1 < atm2)):
                     torsions[ntorsions, :] = [
                         atm0,atm1,atm2,atm3
                     ]
-            ntorsions += 1
+                    ntorsions += 1
 
     return torsions[:ntorsions]
 
@@ -109,6 +108,7 @@ class CartBondedIdentification:
     def setup(cls, cartbonded_database: CartBondedDatabase, indexed_bonds: IndexedBonds):
         bonds = indexed_bonds.bonds.numpy()
         spans = indexed_bonds.bond_spans.numpy()
+        print (bonds.shape)
         bond_selector = (bonds[:,0] < bonds[:,1])
 
         lengths = bonds[bond_selector].copy()

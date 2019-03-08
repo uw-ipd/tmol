@@ -12,6 +12,7 @@ from tmol.score.cartbonded.torch_op import (
 )
 from tmol.score.cartbonded.params import CartBondedParamResolver
 from tmol.score.cartbonded.identification import CartBondedIdentification
+from tmol.score.bonded_atom import IndexedBonds
 
 import tmol.database
 
@@ -40,11 +41,17 @@ class ScoreSetup:
             .requires_grad_(True)
         )[None, :]
 
+        system_size = numpy.max( system.bonds )
+        indexed_bonds = IndexedBonds.from_bonds(
+            IndexedBonds.to_directed(system.bonds), minlength=system_size
+        )
+        print (system.bonds.shape)
+        print (indexed_bonds.bonds.shape)
         param_resolver = CartBondedParamResolver.from_database(
             database.scoring.cartbonded, torch_device
         )
         param_identifier = CartBondedIdentification.setup(
-            database.scoring.cartbonded, system.bonds
+            database.scoring.cartbonded, indexed_bonds
         )
 
         atom_names = system.atom_metadata["atom_name"].copy()
