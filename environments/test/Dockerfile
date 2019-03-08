@@ -52,6 +52,9 @@ RUN conda install -n base --file /environments/test.dependencies.txt && conda cl
 COPY environments/docs.dependencies.txt /environments/
 RUN conda install -n base --file /environments/docs.dependencies.txt && conda clean -tipsy
 
+COPY environments/support.dependencies.txt /environments/
+RUN conda install -n base --file /environments/support.dependencies.txt && conda clean -tipsy
+
 ### Packages needed for graphviz png output
 # libxrender: missing package dependency in graphviz conda package
 # gsfonts: fonts for png text rendering
