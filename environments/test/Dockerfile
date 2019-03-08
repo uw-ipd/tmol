@@ -53,7 +53,8 @@ COPY environments/docs.dependencies.txt /environments/
 RUN conda install -n base --file /environments/docs.dependencies.txt && conda clean -tipsy
 
 COPY environments/support.dependencies.txt /environments/
-RUN conda install -n base --file /environments/support.dependencies.txt && conda clean -tipsy
+COPY environments/support.channels.txt /environments/
+RUN conda install -n base -c `cat /environments/support.channels.txt` --file /environments/support.dependencies.txt && conda clean -tipsy
 
 ### Packages needed for graphviz png output
 # libxrender: missing package dependency in graphviz conda package
