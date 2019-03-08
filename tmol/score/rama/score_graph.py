@@ -47,9 +47,9 @@ class RamaIntraScore(IntraScore):
     def rama_score(target):
         return target.rama_op.intra(
             target.coords[0, ...],
-            target.resolve_indices.phi_indices,
-            target.resolve_indices.psi_indices,
-            target.resolve_indices.param_indices,
+            target.rama_resolve_indices.phi_indices,
+            target.rama_resolve_indices.psi_indices,
+            target.rama_resolve_indices.param_indices,
         )
 
 
