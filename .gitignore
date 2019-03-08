@@ -124,7 +124,3 @@ venv.bak/
 
 
 # End of https://www.gitignore.io/api/python,jupyternotebook
-
-
-# ignore any lock files created by LMDB
-lock.mdb

@@ -39,7 +39,6 @@ class RamaIntraScore(IntraScore):
     @reactive_property
     @validate_args
     def total_rama(rama_score):
-        """total cartbonded length score"""
         score_val = rama_score
         return score_val.sum()
 
@@ -96,7 +95,7 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     @validate_args
-    def resolve_indices(
+    def rama_resolve_indices(
         res_names: NDArray(object)[...],
         rama_param_resolver: RamaParamResolver,
         allphis: NDArray(int)[:, 5],
