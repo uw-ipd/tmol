@@ -1,1 +1,1 @@
-rosettacommons::pyrosetta=2018.51
+pyrosetta=2018.51
