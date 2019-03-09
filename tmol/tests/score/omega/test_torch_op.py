@@ -1,6 +1,4 @@
 import attr
-import pandas
-
 import numpy
 import torch
 
@@ -20,7 +18,6 @@ class ScoreSetup:
             .to(device=torch_device, dtype=torch.float)
             .requires_grad_(True)
         )
-        res_names = system.atom_metadata["residue_name"].copy()
 
         omegas = numpy.array(
             [

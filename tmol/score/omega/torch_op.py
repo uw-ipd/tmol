@@ -1,6 +1,5 @@
 import attr
-from attr import asdict
-from typing import Mapping, Callable
+from typing import Callable
 
 import torch
 
