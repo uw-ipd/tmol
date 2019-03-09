@@ -1,0 +1,25 @@
+#!/bin/sh
+''''exec ipython "$0" -- ${1+"$@"} # '''
+# vi: filetype=python
+# -*- coding: utf-8 -*-
+
+import tempfile
+import subprocess
+import sys
+import shlex
+import shutil
+import argparse
+
+parser = argparse.ArgumentParser(prog='profile_benchmark.ipy')
+parser.add_argument('args', nargs=argparse.REMAINDER, metavar="<benchmark args> -- <nvprof_args>")
+options = parser.parse_args()
+
+try:
+    splitargs = options.args.index("--")
+except ValueError:
+    splitargs = len(options.args)
+
+benchmark_args = " ".join(map(shlex.quote, options.args[:splitargs]))
+nvprof_args = " ".join(map(shlex.quote, options.args[splitargs + 1:]))
+
+!nvprof --profile-from-start off {nvprof_args} -- pytest --benchmark-enable --benchmark-cuda-profile {benchmark_args}

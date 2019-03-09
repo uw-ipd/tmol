@@ -6,7 +6,7 @@ flake8-bugbear
 
 pytest-xdist
 pytest-faulthandler
-pytest-benchmark>=3.2
+git+http://github.com/uw-ipd/pytest-benchmark@9e50085
 
 py3Dmol
 

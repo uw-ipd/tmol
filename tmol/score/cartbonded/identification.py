@@ -4,35 +4,28 @@ from tmol.types.functional import convert_args
 from tmol.types.array import NDArray
 from tmol.database.scoring import CartBondedDatabase
 
+from ..bonded_atom import IndexedBonds
+
 import numpy
 
 from numba import jit
 
 
-## fd TODO: replace this with fast IndexedAtom versions
-
 # traverse bond graph, generate angles
 @jit(nopython=True)
-def find_angles(bonds):
+def find_angles(bonds, bond_spans):
     nbonds = bonds.shape[0]
-    max_angles = nbonds * 3  # assume each node has at most 4 connections
+    max_angles = int(nbonds * 3 / 2)  # assumes each node has at most 4 connections
     angles = numpy.zeros((max_angles, 3), dtype=numpy.int32)
     nangles = 0
 
-    # use ordering on bonds to ensure no duplication
+    # use atm1:atm3 ordering to ensure no duplication
     for i in range(nbonds):
-        for j in range(i + 1, nbonds):
-            if bonds[i, 0] == bonds[j, 0] and bonds[i, 1] != bonds[j, 1]:
-                angles[nangles, :] = [bonds[i, 1], bonds[i, 0], bonds[j, 1]]
-                nangles += 1
-            elif bonds[i, 0] == bonds[j, 1] and bonds[i, 1] != bonds[j, 0]:
-                angles[nangles, :] = [bonds[i, 1], bonds[i, 0], bonds[j, 0]]
-                nangles += 1
-            elif bonds[i, 1] == bonds[j, 0] and bonds[i, 0] != bonds[j, 1]:
-                angles[nangles, :] = [bonds[i, 0], bonds[i, 1], bonds[j, 1]]
-                nangles += 1
-            elif bonds[i, 1] == bonds[j, 1] and bonds[i, 0] != bonds[j, 0]:
-                angles[nangles, :] = [bonds[i, 0], bonds[i, 1], bonds[j, 0]]
+        atm1, atm2 = bonds[i]
+        for j in range(bond_spans[atm2, 0], bond_spans[atm2, 1]):
+            atm3 = bonds[j, 1]
+            if atm3 > atm1:
+                angles[nangles, :] = [atm1, atm2, atm3]
                 nangles += 1
 
     return angles[:nangles]
@@ -40,66 +33,30 @@ def find_angles(bonds):
 
 # traverse bond graph, generate torsions
 @jit(nopython=True)
-def find_torsions(angles, bonds):
+def find_torsions(bonds, bond_spans):
     nbonds = bonds.shape[0]
-    nangles = angles.shape[0]
-    max_torsions = nangles * 3  # assume each node has at most 4 connections
+    max_torsions = int(nbonds * 9 / 2)  # assumes each node has at most 4 connections
     torsions = numpy.zeros((max_torsions, 4), dtype=numpy.int32)
     ntorsions = 0
 
-    # note 1: we order atm1 and atm4 to prevent duplication
-    # note 2: we do not check for cycles A-B-C-A because we want those
-    #   to be generated!
-    for i in range(nangles):
-        for j in range(nbonds):
-            if (
-                angles[i, 0] == bonds[j, 0]
-                and angles[i, 1] != bonds[j, 1]
-                and bonds[j, 1] < angles[i, 2]
-            ):
-                torsions[ntorsions, :] = [
-                    bonds[j, 1],
-                    angles[i, 0],
-                    angles[i, 1],
-                    angles[i, 2],
-                ]
-                ntorsions += 1
-            elif (
-                angles[i, 0] == bonds[j, 1]
-                and angles[i, 1] != bonds[j, 0]
-                and bonds[j, 0] < angles[i, 2]
-            ):
-                torsions[ntorsions, :] = [
-                    bonds[j, 0],
-                    angles[i, 0],
-                    angles[i, 1],
-                    angles[i, 2],
-                ]
-                ntorsions += 1
-            elif (
-                angles[i, 2] == bonds[j, 0]
-                and angles[i, 1] != bonds[j, 1]
-                and bonds[j, 1] < angles[i, 0]
-            ):
-                torsions[ntorsions, :] = [
-                    bonds[j, 1],
-                    angles[i, 2],
-                    angles[i, 1],
-                    angles[i, 0],
-                ]
-                ntorsions += 1
-            elif (
-                angles[i, 2] == bonds[j, 1]
-                and angles[i, 1] != bonds[j, 0]
-                and bonds[j, 0] < angles[i, 0]
-            ):
-                torsions[ntorsions, :] = [
-                    bonds[j, 0],
-                    angles[i, 2],
-                    angles[i, 1],
-                    angles[i, 0],
-                ]
-                ntorsions += 1
+    # use atm0:atm3 ordering to ensure no duplication
+    # note: cycles like A-B-C-A are valid!
+    for i in range(nbonds):
+        atm1, atm2 = bonds[i]
+
+        for j in range(bond_spans[atm2, 0], bond_spans[atm2, 1]):
+            atm3 = bonds[j, 1]
+            if atm3 == atm1:
+                continue
+
+            for k in range(bond_spans[atm1, 0], bond_spans[atm1, 1]):
+                atm0 = bonds[k, 1]
+                if atm0 == atm2:
+                    continue
+
+                if (atm0 < atm3) or (atm0 == atm3 and atm1 < atm2):
+                    torsions[ntorsions, :] = [atm0, atm1, atm2, atm3]
+                    ntorsions += 1
 
     return torsions[:ntorsions]
 
@@ -112,53 +69,27 @@ def find_torsions(angles, bonds):
 #          /
 #         B
 @jit(nopython=True)
-def find_impropers(angles, bonds):
+def find_impropers(bonds, bond_spans):
     nbonds = bonds.shape[0]
-    nangles = angles.shape[0]
-    max_impropers = 4 * nangles
+    max_impropers = nbonds * 6  # assumes each node has at most 4 connections
     improper = numpy.zeros((max_impropers, 4), dtype=numpy.int32)
     nimproper = 0
 
-    # impropers are a bit strange, we need to consider both ABCD and BACD as
-    #  separate terms, as both might be constrained separately
-    for i in range(nangles):
-        for j in range(nbonds):
-            if (
-                angles[i, 1] == bonds[j, 0]
-                and angles[i, 0] != bonds[j, 1]
-                and angles[i, 2] != bonds[j, 1]
-            ):
-                improper[nimproper, :] = [
-                    angles[i, 0],
-                    angles[i, 2],
-                    angles[i, 1],
-                    bonds[j, 1],
-                ]
-                improper[nimproper + 1, :] = [
-                    angles[i, 2],
-                    angles[i, 0],
-                    angles[i, 1],
-                    bonds[j, 1],
-                ]
-                nimproper += 2
-            elif (
-                angles[i, 1] == bonds[j, 1]
-                and angles[i, 0] != bonds[j, 0]
-                and angles[i, 2] != bonds[j, 0]
-            ):
-                improper[nimproper, :] = [
-                    angles[i, 0],
-                    angles[i, 2],
-                    angles[i, 1],
-                    bonds[j, 0],
-                ]
-                improper[nimproper + 1, :] = [
-                    angles[i, 2],
-                    angles[i, 0],
-                    angles[i, 1],
-                    bonds[j, 0],
-                ]
-                nimproper += 2
+    # note: ABCD and BACD are considered separate terms
+    for i in range(nbonds):
+        atm1, atm2 = bonds[i]
+
+        for j in range(bond_spans[atm2, 0], bond_spans[atm2, 1]):
+            atm3 = bonds[j, 1]
+            if atm3 == atm1:
+                continue
+            for k in range(bond_spans[atm2, 0], bond_spans[atm2, 1]):
+                atm4 = bonds[k, 1]
+                if atm4 == atm1 or atm4 == atm3:
+                    continue
+
+                improper[nimproper, :] = [atm4, atm3, atm2, atm1]
+                nimproper += 1
 
     return improper[:nimproper]
 
@@ -175,11 +106,18 @@ class CartBondedIdentification:
 
     @classmethod
     @convert_args
-    def setup(cls, cartbonded_database: CartBondedDatabase, bonds: NDArray(int)[:, 2]):
-        lengths = bonds[bonds[:, 0] < bonds[:, 1]]  # triu
-        angles = find_angles(lengths)
-        torsions = find_torsions(angles, lengths)
-        impropers = find_impropers(angles, lengths)
+    def setup(
+        cls, cartbonded_database: CartBondedDatabase, indexed_bonds: IndexedBonds
+    ):
+        bonds = indexed_bonds.bonds.numpy()
+        spans = indexed_bonds.bond_spans.numpy()
+        print(bonds.shape)
+        bond_selector = bonds[:, 0] < bonds[:, 1]
+
+        lengths = bonds[bond_selector].copy()
+        angles = find_angles(bonds, spans)
+        torsions = find_torsions(bonds, spans)
+        impropers = find_impropers(bonds, spans)
 
         return cls(
             lengths=lengths, angles=angles, torsions=torsions, impropers=impropers

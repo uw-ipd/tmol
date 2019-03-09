@@ -5,7 +5,7 @@ import torch
 
 from ..database import ParamDB
 from ..device import TorchDevice
-from ..bonded_atom import BondedAtomScoreGraph
+from ..bonded_atom import BondedAtomScoreGraph, IndexedBonds
 from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
@@ -200,10 +200,10 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def cartbonded_param_identifier(
-        cartbonded_database: CartBondedDatabase, bonds: NDArray(int)[:, 3]
+        cartbonded_database: CartBondedDatabase, indexed_bonds: IndexedBonds
     ) -> CartBondedIdentification:
         return CartBondedIdentification.setup(
-            cartbonded_database=cartbonded_database, bonds=bonds[:, 1:]
+            cartbonded_database=cartbonded_database, indexed_bonds=indexed_bonds
         )
 
     @reactive_property
