@@ -100,6 +100,7 @@ auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
 
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
+  AT_ASSERTM( input_t.dim() == N, "Wrong dimensionality.")
   AT_ASSERTM(
       input_t.size(N - 1) % stride_factor == 0,
       "Low-dimension shape must be even multiple of adjusted stride.")
