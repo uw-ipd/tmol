@@ -17,6 +17,7 @@ tmol.database.scoring
        tmol.database.scoring.elec
        tmol.database.scoring.hbond
        tmol.database.scoring.ljlk
+       tmol.database.scoring.rama
   
 
 

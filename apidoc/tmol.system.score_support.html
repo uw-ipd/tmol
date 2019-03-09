@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.score_support &mdash; TMol 0.0.0-157-g5a8117df documentation</title>
+  <title>tmol.system.score_support &mdash; TMol 0.0.0-158-g747f7326 documentation</title>
   
 
   
@@ -60,7 +60,7 @@
             
             
               <div class="version">
-                0.0.0-157-g5a8117df
+                0.0.0-158-g747f7326
               </div>
             
           
@@ -201,10 +201,13 @@
 <tr class="row-even"><td><a class="reference internal" href="#tmol.system.score_support.coords_for_system" title="tmol.system.score_support.coords_for_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">coords_for_system</span></code></a></td>
 <td>Extract constructor kwargs to initialize a <a class="reference internal" href="tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider" title="tmol.score.coordinates.CartesianAtomicCoordinateProvider"><code class="xref any py py-class docutils literal notranslate"><span class="pre">CartesianAtomicCoordinateProvider</span></code></a></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.system.score_support.stack_params_for_system" title="tmol.system.score_support.stack_params_for_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_params_for_system</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.system.score_support.rama_graph_inputs" title="tmol.system.score_support.rama_graph_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rama_graph_inputs</span></code></a></td>
+<td>Constructor parameters for rama scoring.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.system.score_support.stack_params_for_system" title="tmol.system.score_support.stack_params_for_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_params_for_system</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.system.score_support.system_torsion_graph_inputs" title="tmol.system.score_support.system_torsion_graph_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">system_torsion_graph_inputs</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.system.score_support.system_torsion_graph_inputs" title="tmol.system.score_support.system_torsion_graph_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">system_torsion_graph_inputs</span></code></a></td>
 <td>Constructor parameters for torsion space scoring.</td>
 </tr>
 </tbody>
@@ -237,6 +240,14 @@
 <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref any py py-class docutils literal notranslate"><span class="pre">BondedAtomScoreGraph</span></code></a> subclass supporting torsion-space scoring. This
 includes only <a class="reference internal" href="tmol.kinematics.metadata.html#tmol.kinematics.metadata.DOFTypes.bond_torsion" title="tmol.kinematics.metadata.DOFTypes.bond_torsion"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">bond_torsion</span></code></a> dofs, a subset of valid kinematic dofs for the
 system.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.system.score_support.rama_graph_inputs">
+<code class="descclassname">tmol.system.score_support.</code><code class="descname">rama_graph_inputs</code><span class="sig-paren">(</span><em>system: tmol.system.packed.PackedResidueSystem</em>, <em>parameter_database: tmol.database.ParameterDatabase</em>, <em>rama_database: Union[tmol.database.scoring.rama.RamaDatabase</em>, <em>NoneType] = None</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/score_support.html#rama_graph_inputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.score_support.rama_graph_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor parameters for rama scoring.</p>
+<p>Extract the atom indices of the ‘phi’ and ‘psi’ torsions
+from the torsion_metadata object, and the database.</p>
 </dd></dl>
 
 </div>
@@ -286,7 +297,7 @@ system.</p>
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-157-g5a8117df',
+              VERSION:'0.0.0-158-g747f7326',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',

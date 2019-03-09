@@ -7,7 +7,7 @@ tmol.numeric.bspline
 .. currentmodule:: tmol.numeric.bspline
 
 .. automodule:: tmol.numeric.bspline
-    :members: BSplineDegree, BSplineDegree2, BSplineDegree3, BSplineDegree4, BSplineDegree5, BSplineInterpolation, bsplines_by_degree
+    :members: BSplineInterpolation
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,11 +21,6 @@ tmol.numeric.bspline
     .. autosummary::
         :nosignatures:
 
-        BSplineDegree
-        BSplineDegree2
-        BSplineDegree3
-        BSplineDegree4
-        BSplineDegree5
         BSplineInterpolation
 
 

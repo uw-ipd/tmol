@@ -1,0 +1,310 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.support.scoring.rewrite_rama_binary &mdash; TMol 0.0.0-158-g747f7326 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.support.scoring.rewrite_rama_binary.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.support.scoring.rosetta" href="tmol.support.scoring.rosetta.html" />
+    <link rel="prev" title="tmol.support.scoring.hbond_param_import" href="tmol.support.scoring.hbond_param_import.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-158-g747f7326
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.support.html">tmol.support</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tmol.support.rosetta.html">tmol.support.rosetta</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.support.scoring.html">tmol.support.scoring</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tmol.support.scoring.hbond_param_import.html">tmol.support.scoring.hbond_param_import</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.support.scoring.rewrite_rama_binary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.support.scoring.rosetta.html">tmol.support.scoring.rosetta</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.support.html">tmol.support</a> &raquo;</li>
+        
+          <li><a href="tmol.support.scoring.html">tmol.support.scoring</a> &raquo;</li>
+        
+      <li>tmol.support.scoring.rewrite_rama_binary</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.support.scoring.rewrite_rama_binary.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.support.scoring.rewrite_rama_binary">
+<span id="tmol-support-scoring-rewrite-rama-binary"></span><h1>tmol.support.scoring.rewrite_rama_binary<a class="headerlink" href="#module-tmol.support.scoring.rewrite_rama_binary" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.support.scoring.rewrite_rama_binary.parse_all_tables" title="tmol.support.scoring.rewrite_rama_binary.parse_all_tables"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_all_tables</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.support.scoring.rewrite_rama_binary.parse_lines_as_ndarrays" title="tmol.support.scoring.rewrite_rama_binary.parse_lines_as_ndarrays"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_lines_as_ndarrays</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.support.scoring.rewrite_rama_binary.parse_paa" title="tmol.support.scoring.rewrite_rama_binary.parse_paa"><code class="xref py py-obj docutils literal notranslate"><span class="pre">parse_paa</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.support.scoring.rewrite_rama_binary.zarr_from_db" title="tmol.support.scoring.rewrite_rama_binary.zarr_from_db"><code class="xref py py-obj docutils literal notranslate"><span class="pre">zarr_from_db</span></code></a></td>
+<td>Write the Ramachandran binary file after reading Rosetta3’s rama and p_aa_pp, and combining the weighted sum</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tmol.support.scoring.rewrite_rama_binary.parse_paa">
+<code class="descclassname">tmol.support.scoring.rewrite_rama_binary.</code><code class="descname">parse_paa</code><span class="sig-paren">(</span><em>lines</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/support/scoring/rewrite_rama_binary.html#parse_paa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.support.scoring.rewrite_rama_binary.parse_paa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tmol.support.scoring.rewrite_rama_binary.parse_lines_as_ndarrays">
+<code class="descclassname">tmol.support.scoring.rewrite_rama_binary.</code><code class="descname">parse_lines_as_ndarrays</code><span class="sig-paren">(</span><em>lines</em>, <em>aacol=0</em>, <em>phipsicol=1</em>, <em>probcol=3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/support/scoring/rewrite_rama_binary.html#parse_lines_as_ndarrays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.support.scoring.rewrite_rama_binary.parse_lines_as_ndarrays" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tmol.support.scoring.rewrite_rama_binary.parse_all_tables">
+<code class="descclassname">tmol.support.scoring.rewrite_rama_binary.</code><code class="descname">parse_all_tables</code><span class="sig-paren">(</span><em>rama_wt</em>, <em>r3_rama_dir</em>, <em>paapp_wt</em>, <em>r3_paapp_dir</em>, <em>r3_paa_dir</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/support/scoring/rewrite_rama_binary.html#parse_all_tables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.support.scoring.rewrite_rama_binary.parse_all_tables" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tmol.support.scoring.rewrite_rama_binary.zarr_from_db">
+<code class="descclassname">tmol.support.scoring.rewrite_rama_binary.</code><code class="descname">zarr_from_db</code><span class="sig-paren">(</span><em>rama_wt</em>, <em>r3_rama_dir</em>, <em>paapp_wt</em>, <em>r3_paapp_dir</em>, <em>r3_paa_dir</em>, <em>output_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/support/scoring/rewrite_rama_binary.html#zarr_from_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.support.scoring.rewrite_rama_binary.zarr_from_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the Ramachandran binary file after reading Rosetta3’s
+rama and p_aa_pp, and combining the weighted sum</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.support.scoring.rosetta.html" class="btn btn-neutral float-right" title="tmol.support.scoring.rosetta" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.support.scoring.hbond_param_import.html" class="btn btn-neutral" title="tmol.support.scoring.hbond_param_import" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../',
+              VERSION:'0.0.0-158-g747f7326',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

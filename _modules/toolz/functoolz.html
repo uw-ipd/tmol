@@ -1,0 +1,1302 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>toolz.functoolz &mdash; TMol 0.0.0-158-g747f7326 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/toolz/functoolz.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-158-g747f7326
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>toolz.functoolz</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for toolz.functoolz</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">reduce</span><span class="p">,</span> <span class="n">partial</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">attrgetter</span>
+<span class="kn">from</span> <span class="nn">textwrap</span> <span class="k">import</span> <span class="n">dedent</span>
+
+<span class="kn">from</span> <span class="nn">.compatibility</span> <span class="k">import</span> <span class="n">PY3</span><span class="p">,</span> <span class="n">PY33</span><span class="p">,</span> <span class="n">PY34</span><span class="p">,</span> <span class="n">PYPY</span><span class="p">,</span> <span class="n">import_module</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">no_default</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;identity&#39;</span><span class="p">,</span> <span class="s1">&#39;thread_first&#39;</span><span class="p">,</span> <span class="s1">&#39;thread_last&#39;</span><span class="p">,</span> <span class="s1">&#39;memoize&#39;</span><span class="p">,</span> <span class="s1">&#39;compose&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;complement&#39;</span><span class="p">,</span> <span class="s1">&#39;juxt&#39;</span><span class="p">,</span> <span class="s1">&#39;do&#39;</span><span class="p">,</span> <span class="s1">&#39;curry&#39;</span><span class="p">,</span> <span class="s1">&#39;flip&#39;</span><span class="p">,</span> <span class="s1">&#39;excepts&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">identity</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Identity function. Return x</span>
+
+<span class="sd">    &gt;&gt;&gt; identity(3)</span>
+<span class="sd">    3</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="k">def</span> <span class="nf">thread_first</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="o">*</span><span class="n">forms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Thread value through a sequence of functions/forms</span>
+
+<span class="sd">    &gt;&gt;&gt; def double(x): return 2*x</span>
+<span class="sd">    &gt;&gt;&gt; def inc(x):    return x + 1</span>
+<span class="sd">    &gt;&gt;&gt; thread_first(1, inc, double)</span>
+<span class="sd">    4</span>
+
+<span class="sd">    If the function expects more than one input you can specify those inputs</span>
+<span class="sd">    in a tuple.  The value is used as the first input.</span>
+
+<span class="sd">    &gt;&gt;&gt; def add(x, y): return x + y</span>
+<span class="sd">    &gt;&gt;&gt; def pow(x, y): return x**y</span>
+<span class="sd">    &gt;&gt;&gt; thread_first(1, (add, 4), (pow, 2))  # pow(add(1, 4), 2)</span>
+<span class="sd">    25</span>
+
+<span class="sd">    So in general</span>
+<span class="sd">        thread_first(x, f, (g, y, z))</span>
+<span class="sd">    expands to</span>
+<span class="sd">        g(f(x), y, z)</span>
+
+<span class="sd">    See Also:</span>
+<span class="sd">        thread_last</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">evalform_front</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">form</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">form</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">func</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">form</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">form</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">val</span><span class="p">,)</span> <span class="o">+</span> <span class="n">args</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">evalform_front</span><span class="p">,</span> <span class="n">forms</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">thread_last</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="o">*</span><span class="n">forms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Thread value through a sequence of functions/forms</span>
+
+<span class="sd">    &gt;&gt;&gt; def double(x): return 2*x</span>
+<span class="sd">    &gt;&gt;&gt; def inc(x):    return x + 1</span>
+<span class="sd">    &gt;&gt;&gt; thread_last(1, inc, double)</span>
+<span class="sd">    4</span>
+
+<span class="sd">    If the function expects more than one input you can specify those inputs</span>
+<span class="sd">    in a tuple.  The value is used as the last input.</span>
+
+<span class="sd">    &gt;&gt;&gt; def add(x, y): return x + y</span>
+<span class="sd">    &gt;&gt;&gt; def pow(x, y): return x**y</span>
+<span class="sd">    &gt;&gt;&gt; thread_last(1, (add, 4), (pow, 2))  # pow(2, add(4, 1))</span>
+<span class="sd">    32</span>
+
+<span class="sd">    So in general</span>
+<span class="sd">        thread_last(x, f, (g, y, z))</span>
+<span class="sd">    expands to</span>
+<span class="sd">        g(y, z, f(x))</span>
+
+<span class="sd">    &gt;&gt;&gt; def iseven(x):</span>
+<span class="sd">    ...     return x % 2 == 0</span>
+<span class="sd">    &gt;&gt;&gt; list(thread_last([1, 2, 3], (map, inc), (filter, iseven)))</span>
+<span class="sd">    [2, 4]</span>
+
+<span class="sd">    See Also:</span>
+<span class="sd">        thread_first</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">evalform_back</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">form</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">form</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">func</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">form</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">form</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">args</span> <span class="o">+</span> <span class="p">(</span><span class="n">val</span><span class="p">,)</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="n">evalform_back</span><span class="p">,</span> <span class="n">forms</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">instanceproperty</span><span class="p">(</span><span class="n">fget</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">classval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Like @property, but returns ``classval`` when used as a class attribute</span>
+
+<span class="sd">    &gt;&gt;&gt; class MyClass(object):</span>
+<span class="sd">    ...     &#39;&#39;&#39;The class docstring&#39;&#39;&#39;</span>
+<span class="sd">    ...     @instanceproperty(classval=__doc__)</span>
+<span class="sd">    ...     def __doc__(self):</span>
+<span class="sd">    ...         return &#39;An object docstring&#39;</span>
+<span class="sd">    ...     @instanceproperty</span>
+<span class="sd">    ...     def val(self):</span>
+<span class="sd">    ...         return 42</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; MyClass.__doc__</span>
+<span class="sd">    &#39;The class docstring&#39;</span>
+<span class="sd">    &gt;&gt;&gt; MyClass.val is None</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; obj = MyClass()</span>
+<span class="sd">    &gt;&gt;&gt; obj.__doc__</span>
+<span class="sd">    &#39;An object docstring&#39;</span>
+<span class="sd">    &gt;&gt;&gt; obj.val</span>
+<span class="sd">    42</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">fget</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">instanceproperty</span><span class="p">,</span> <span class="n">fset</span><span class="o">=</span><span class="n">fset</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="n">fdel</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">,</span>
+                       <span class="n">classval</span><span class="o">=</span><span class="n">classval</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">InstanceProperty</span><span class="p">(</span><span class="n">fget</span><span class="o">=</span><span class="n">fget</span><span class="p">,</span> <span class="n">fset</span><span class="o">=</span><span class="n">fset</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="n">fdel</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">,</span>
+                            <span class="n">classval</span><span class="o">=</span><span class="n">classval</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">InstanceProperty</span><span class="p">(</span><span class="nb">property</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Like @property, but returns ``classval`` when used as a class attribute</span>
+
+<span class="sd">    Should not be used directly.  Use ``instanceproperty`` instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fget</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">classval</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classval</span> <span class="o">=</span> <span class="n">classval</span>
+        <span class="nb">property</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fget</span><span class="o">=</span><span class="n">fget</span><span class="p">,</span> <span class="n">fset</span><span class="o">=</span><span class="n">fset</span><span class="p">,</span> <span class="n">fdel</span><span class="o">=</span><span class="n">fdel</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">doc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">classval</span>
+        <span class="k">return</span> <span class="nb">property</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fdel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">classval</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">InstanceProperty</span><span class="p">,</span> <span class="n">state</span>
+
+
+<span class="k">class</span> <span class="nc">curry</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Curry a callable function</span>
+
+<span class="sd">    Enables partial application of arguments through calling a function with an</span>
+<span class="sd">    incomplete set of arguments.</span>
+
+<span class="sd">    &gt;&gt;&gt; def mul(x, y):</span>
+<span class="sd">    ...     return x * y</span>
+<span class="sd">    &gt;&gt;&gt; mul = curry(mul)</span>
+
+<span class="sd">    &gt;&gt;&gt; double = mul(2)</span>
+<span class="sd">    &gt;&gt;&gt; double(10)</span>
+<span class="sd">    20</span>
+
+<span class="sd">    Also supports keyword arguments</span>
+
+<span class="sd">    &gt;&gt;&gt; @curry                  # Can use curry as a decorator</span>
+<span class="sd">    ... def f(x, y, a=10):</span>
+<span class="sd">    ...     return a * (x + y)</span>
+
+<span class="sd">    &gt;&gt;&gt; add = f(a=1)</span>
+<span class="sd">    &gt;&gt;&gt; add(2, 3)</span>
+<span class="sd">    5</span>
+
+<span class="sd">    See Also:</span>
+<span class="sd">        toolz.curried - namespace of curried functions</span>
+<span class="sd">                        https://toolz.readthedocs.io/en/latest/curry.html</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;__init__() takes at least 2 arguments (1 given)&#39;</span><span class="p">)</span>
+        <span class="n">func</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Input must be callable&quot;</span><span class="p">)</span>
+
+        <span class="c1"># curry- or functools.partial-like object?  Unpack and merge arguments</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;keywords&#39;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="n">_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">func</span><span class="o">.</span><span class="n">keywords</span><span class="p">:</span>
+                <span class="n">_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">keywords</span><span class="p">)</span>
+            <span class="n">_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="n">_kwargs</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">args</span> <span class="o">+</span> <span class="n">args</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">func</span>
+
+        <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_partial</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_partial</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__doc__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__name__&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;curry&gt;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__module__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__qualname__</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__qualname__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sigspec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_has_unknown_args</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@instanceproperty</span>
+    <span class="k">def</span> <span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partial</span><span class="o">.</span><span class="n">func</span>
+
+    <span class="k">if</span> <span class="n">PY3</span><span class="p">:</span>  <span class="c1"># pragma: py2 no cover</span>
+        <span class="nd">@instanceproperty</span>
+        <span class="k">def</span> <span class="nf">__signature__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="ow">or</span> <span class="p">()</span>
+            <span class="n">keywords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">is_partial_args</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">keywords</span><span class="p">,</span> <span class="n">sig</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;curry object has incorrect arguments&#39;</span><span class="p">)</span>
+
+            <span class="n">params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="n">skip</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)]:</span>
+                <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">VAR_POSITIONAL</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">skip</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">kwonly</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">newparams</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="p">[</span><span class="n">skip</span><span class="p">:]:</span>
+                <span class="n">kind</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">kind</span>
+                <span class="n">default</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">default</span>
+                <span class="k">if</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">VAR_KEYWORD</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">elif</span> <span class="n">kind</span> <span class="o">==</span> <span class="n">param</span><span class="o">.</span><span class="n">VAR_POSITIONAL</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">kwonly</span><span class="p">:</span>
+                        <span class="k">continue</span>
+                <span class="k">elif</span> <span class="n">param</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">keywords</span><span class="p">:</span>
+                    <span class="n">default</span> <span class="o">=</span> <span class="n">keywords</span><span class="p">[</span><span class="n">param</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+                    <span class="n">kind</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span>
+                    <span class="n">kwonly</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">kwonly</span><span class="p">:</span>
+                        <span class="n">kind</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span>
+                    <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">param</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                        <span class="n">default</span> <span class="o">=</span> <span class="n">no_default</span>
+                <span class="n">newparams</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">param</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="n">kind</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">sig</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">newparams</span><span class="p">)</span>
+
+    <span class="nd">@instanceproperty</span>
+    <span class="k">def</span> <span class="nf">args</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partial</span><span class="o">.</span><span class="n">args</span>
+
+    <span class="nd">@instanceproperty</span>
+    <span class="k">def</span> <span class="nf">keywords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partial</span><span class="o">.</span><span class="n">keywords</span>
+
+    <span class="nd">@instanceproperty</span>
+    <span class="k">def</span> <span class="nf">func_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__name__</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span>
+                     <span class="nb">frozenset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span>
+                     <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">curry</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">func</span> <span class="ow">and</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">args</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">keywords</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partial</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_curry</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">exc</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">raise</span>
+
+    <span class="k">def</span> <span class="nf">_should_curry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">exc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">+</span> <span class="n">args</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">:</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sigspec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigspec</span> <span class="o">=</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">signature_or_spec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_has_unknown_args</span> <span class="o">=</span> <span class="n">has_varargs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sigspec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigspec</span>
+
+        <span class="k">if</span> <span class="n">is_partial_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">sigspec</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="c1"># Nothing can make the call valid</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_unknown_args</span><span class="p">:</span>
+            <span class="c1"># The call may be valid and raised a TypeError, but we curry</span>
+            <span class="c1"># anyway because the function may have `*args`.  This is useful</span>
+            <span class="c1"># for decorators with signature `func(*args, **kwargs)`.</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">is_valid_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">sigspec</span><span class="p">):</span>
+            <span class="c1"># Adding more arguments may make the call valid</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># There was a genuine TypeError</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partial</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="n">curry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__reduce__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span>
+        <span class="n">modname</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__module__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">qualname</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__qualname__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">qualname</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: py3 no cover</span>
+            <span class="n">qualname</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__name__&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">is_decorated</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">modname</span> <span class="ow">and</span> <span class="n">qualname</span><span class="p">:</span>
+            <span class="n">attrs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="n">modname</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">qualname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">curry</span><span class="p">):</span>  <span class="c1"># pragma: py2 no cover</span>
+                    <span class="n">attrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;func&#39;</span><span class="p">)</span>
+                    <span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">func</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="n">attrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">curry</span><span class="p">)</span> <span class="ow">and</span> <span class="n">obj</span><span class="o">.</span><span class="n">func</span> <span class="ow">is</span> <span class="n">func</span><span class="p">:</span>
+                <span class="n">is_decorated</span> <span class="o">=</span> <span class="n">obj</span> <span class="ow">is</span> <span class="bp">self</span>
+                <span class="n">qualname</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
+                <span class="n">func</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">modname</span><span class="p">,</span> <span class="n">qualname</span><span class="p">)</span>
+
+        <span class="c1"># functools.partial objects can&#39;t be pickled</span>
+        <span class="n">userdict</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                         <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;_partial&#39;</span><span class="p">,</span> <span class="s1">&#39;_sigspec&#39;</span><span class="p">))</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">,</span> <span class="n">userdict</span><span class="p">,</span>
+                 <span class="n">is_decorated</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">_restore_curry</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_restore_curry</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">userdict</span><span class="p">,</span> <span class="n">is_decorated</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">modname</span><span class="p">,</span> <span class="n">qualname</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">import_module</span><span class="p">(</span><span class="n">modname</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">qualname</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_decorated</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">obj</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">func</span>
+    <span class="n">obj</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">kwargs</span> <span class="ow">or</span> <span class="p">{}))</span>
+    <span class="n">obj</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">userdict</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">obj</span>
+
+
+<span class="nd">@curry</span>
+<span class="k">def</span> <span class="nf">memoize</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Cache a function&#39;s result for speedy future evaluation</span>
+
+<span class="sd">    Considerations:</span>
+<span class="sd">        Trades memory for speed.</span>
+<span class="sd">        Only use on pure functions.</span>
+
+<span class="sd">    &gt;&gt;&gt; def add(x, y):  return x + y</span>
+<span class="sd">    &gt;&gt;&gt; add = memoize(add)</span>
+
+<span class="sd">    Or use as a decorator</span>
+
+<span class="sd">    &gt;&gt;&gt; @memoize</span>
+<span class="sd">    ... def add(x, y):</span>
+<span class="sd">    ...     return x + y</span>
+
+<span class="sd">    Use the ``cache`` keyword to provide a dict-like object as an initial cache</span>
+
+<span class="sd">    &gt;&gt;&gt; @memoize(cache={(1, 2): 3})</span>
+<span class="sd">    ... def add(x, y):</span>
+<span class="sd">    ...     return x + y</span>
+
+<span class="sd">    Note that the above works as a decorator because ``memoize`` is curried.</span>
+
+<span class="sd">    It is also possible to provide a ``key(args, kwargs)`` function that</span>
+<span class="sd">    calculates keys used for the cache, which receives an ``args`` tuple and</span>
+<span class="sd">    ``kwargs`` dict as input, and must return a hashable value.  However,</span>
+<span class="sd">    the default key function should be sufficient most of the time.</span>
+
+<span class="sd">    &gt;&gt;&gt; # Use key function that ignores extraneous keyword arguments</span>
+<span class="sd">    &gt;&gt;&gt; @memoize(key=lambda args, kwargs: args)</span>
+<span class="sd">    ... def add(x, y, verbose=False):</span>
+<span class="sd">    ...     if verbose:</span>
+<span class="sd">    ...         print(&#39;Calculating %s + %s&#39; % (x, y))</span>
+<span class="sd">    ...     return x + y</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">may_have_kwargs</span> <span class="o">=</span> <span class="n">has_keywords</span><span class="p">(</span><span class="n">func</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">False</span>
+        <span class="c1"># Is unary function (single arg, no variadic argument or keywords)?</span>
+        <span class="n">is_unary</span> <span class="o">=</span> <span class="n">is_arity</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="n">may_have_kwargs</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">is_unary</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_unary</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">key</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">may_have_kwargs</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">key</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="n">args</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="nb">frozenset</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">key</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">args</span>
+
+    <span class="k">def</span> <span class="nf">memof</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">key</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Arguments to memoized function must be hashable&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">memof</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__name__</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="n">memof</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span>
+    <span class="n">memof</span><span class="o">.</span><span class="n">__wrapped__</span> <span class="o">=</span> <span class="n">func</span>
+    <span class="k">return</span> <span class="n">memof</span>
+
+
+<span class="k">class</span> <span class="nc">Compose</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A composition of functions</span>
+
+<span class="sd">    See Also:</span>
+<span class="sd">        compose</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="s1">&#39;first&#39;</span><span class="p">,</span> <span class="s1">&#39;funcs&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">funcs</span><span class="p">):</span>
+        <span class="n">funcs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">funcs</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first</span> <span class="o">=</span> <span class="n">funcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span> <span class="o">=</span> <span class="n">funcs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">f</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span> <span class="o">=</span> <span class="n">state</span>
+
+    <span class="nd">@instanceproperty</span><span class="p">(</span><span class="n">classval</span><span class="o">=</span><span class="vm">__doc__</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__doc__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">composed_doc</span><span class="p">(</span><span class="o">*</span><span class="n">fs</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Generate a docstring for the composition of fs.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">fs</span><span class="p">:</span>
+                <span class="c1"># Argument name for the docstring.</span>
+                <span class="k">return</span> <span class="s1">&#39;*args, **kwargs&#39;</span>
+
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{f}</span><span class="s1">(</span><span class="si">{g}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="n">fs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="n">composed_doc</span><span class="p">(</span><span class="o">*</span><span class="n">fs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="s1">&#39;lambda *args, **kwargs: &#39;</span> <span class="o">+</span>
+                <span class="n">composed_doc</span><span class="p">(</span><span class="o">*</span><span class="nb">reversed</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">,)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="c1"># One of our callables does not have a `__name__`, whatever.</span>
+            <span class="k">return</span> <span class="s1">&#39;A composition of functions&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">__name__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;_of_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">f</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">,)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+
+
+<span class="k">def</span> <span class="nf">compose</span><span class="p">(</span><span class="o">*</span><span class="n">funcs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Compose functions to operate in series.</span>
+
+<span class="sd">    Returns a function that applies other functions in sequence.</span>
+
+<span class="sd">    Functions are applied from right to left so that</span>
+<span class="sd">    ``compose(f, g, h)(x, y)`` is the same as ``f(g(h(x, y)))``.</span>
+
+<span class="sd">    If no arguments are provided, the identity function (f(x) = x) is returned.</span>
+
+<span class="sd">    &gt;&gt;&gt; inc = lambda i: i + 1</span>
+<span class="sd">    &gt;&gt;&gt; compose(str, inc)(3)</span>
+<span class="sd">    &#39;4&#39;</span>
+
+<span class="sd">    See Also:</span>
+<span class="sd">        pipe</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">funcs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">identity</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">funcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">pipe</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">funcs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Pipe a value through a sequence of functions</span>
+
+<span class="sd">    I.e. ``pipe(data, f, g, h)`` is equivalent to ``h(g(f(data)))``</span>
+
+<span class="sd">    We think of the value as progressing through a pipe of several</span>
+<span class="sd">    transformations, much like pipes in UNIX</span>
+
+<span class="sd">    ``$ cat data | f | g | h``</span>
+
+<span class="sd">    &gt;&gt;&gt; double = lambda i: 2 * i</span>
+<span class="sd">    &gt;&gt;&gt; pipe(3, double, str)</span>
+<span class="sd">    &#39;6&#39;</span>
+
+<span class="sd">    See Also:</span>
+<span class="sd">        compose</span>
+<span class="sd">        thread_first</span>
+<span class="sd">        thread_last</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="n">funcs</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">data</span>
+
+
+<span class="k">def</span> <span class="nf">complement</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Convert a predicate function to its logical complement.</span>
+
+<span class="sd">    In other words, return a function that, for inputs that normally</span>
+<span class="sd">    yield True, yields False, and vice-versa.</span>
+
+<span class="sd">    &gt;&gt;&gt; def iseven(n): return n % 2 == 0</span>
+<span class="sd">    &gt;&gt;&gt; isodd = complement(iseven)</span>
+<span class="sd">    &gt;&gt;&gt; iseven(2)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; isodd(2)</span>
+<span class="sd">    False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">compose</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">not_</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">juxt</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Creates a function that calls several functions with the same arguments</span>
+
+<span class="sd">    Takes several functions and returns a function that applies its arguments</span>
+<span class="sd">    to each of those functions then returns a tuple of the results.</span>
+
+<span class="sd">    Name comes from juxtaposition: the fact of two things being seen or placed</span>
+<span class="sd">    close together with contrasting effect.</span>
+
+<span class="sd">    &gt;&gt;&gt; inc = lambda x: x + 1</span>
+<span class="sd">    &gt;&gt;&gt; double = lambda x: x * 2</span>
+<span class="sd">    &gt;&gt;&gt; juxt(inc, double)(10)</span>
+<span class="sd">    (11, 20)</span>
+<span class="sd">    &gt;&gt;&gt; juxt([inc, double])(10)</span>
+<span class="sd">    (11, 20)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;funcs&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">funcs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">funcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">funcs</span> <span class="o">=</span> <span class="n">funcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span>
+
+    <span class="k">def</span> <span class="nf">__setstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span> <span class="o">=</span> <span class="n">state</span>
+
+
+<span class="k">def</span> <span class="nf">do</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Runs ``func`` on ``x``, returns ``x``</span>
+
+<span class="sd">    Because the results of ``func`` are not returned, only the side</span>
+<span class="sd">    effects of ``func`` are relevant.</span>
+
+<span class="sd">    Logging functions can be made by composing ``do`` with a storage function</span>
+<span class="sd">    like ``list.append`` or ``file.write``</span>
+
+<span class="sd">    &gt;&gt;&gt; from toolz import compose</span>
+<span class="sd">    &gt;&gt;&gt; from toolz.curried import do</span>
+
+<span class="sd">    &gt;&gt;&gt; log = []</span>
+<span class="sd">    &gt;&gt;&gt; inc = lambda x: x + 1</span>
+<span class="sd">    &gt;&gt;&gt; inc = compose(inc, do(log.append))</span>
+<span class="sd">    &gt;&gt;&gt; inc(1)</span>
+<span class="sd">    2</span>
+<span class="sd">    &gt;&gt;&gt; inc(11)</span>
+<span class="sd">    12</span>
+<span class="sd">    &gt;&gt;&gt; log</span>
+<span class="sd">    [1, 11]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="nd">@curry</span>
+<span class="k">def</span> <span class="nf">flip</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Call the function call with the arguments flipped</span>
+
+<span class="sd">    This function is curried.</span>
+
+<span class="sd">    &gt;&gt;&gt; def div(a, b):</span>
+<span class="sd">    ...     return a // b</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; flip(div, 2, 6)</span>
+<span class="sd">    3</span>
+<span class="sd">    &gt;&gt;&gt; div_by_two = flip(div, 2)</span>
+<span class="sd">    &gt;&gt;&gt; div_by_two(4)</span>
+<span class="sd">    2</span>
+
+<span class="sd">    This is particularly useful for built in functions and functions defined</span>
+<span class="sd">    in C extensions that accept positional only arguments. For example:</span>
+<span class="sd">    isinstance, issubclass.</span>
+
+<span class="sd">    &gt;&gt;&gt; data = [1, &#39;a&#39;, &#39;b&#39;, 2, 1.5, object(), 3]</span>
+<span class="sd">    &gt;&gt;&gt; only_ints = list(filter(flip(isinstance, int), data))</span>
+<span class="sd">    &gt;&gt;&gt; only_ints</span>
+<span class="sd">    [1, 2, 3]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">return_none</span><span class="p">(</span><span class="n">exc</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+
+<span class="k">class</span> <span class="nc">excepts</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A wrapper around a function to catch exceptions and</span>
+<span class="sd">    dispatch to a handler.</span>
+
+<span class="sd">    This is like a functional try/except block, in the same way that</span>
+<span class="sd">    ifexprs are functional if/else blocks.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; excepting = excepts(</span>
+<span class="sd">    ...     ValueError,</span>
+<span class="sd">    ...     lambda a: [1, 2].index(a),</span>
+<span class="sd">    ...     lambda _: -1,</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; excepting(1)</span>
+<span class="sd">    0</span>
+<span class="sd">    &gt;&gt;&gt; excepting(3)</span>
+<span class="sd">    -1</span>
+
+<span class="sd">    Multiple exceptions and default except clause.</span>
+<span class="sd">    &gt;&gt;&gt; excepting = excepts((IndexError, KeyError), lambda a: a[0])</span>
+<span class="sd">    &gt;&gt;&gt; excepting([])</span>
+<span class="sd">    &gt;&gt;&gt; excepting([1])</span>
+<span class="sd">    1</span>
+<span class="sd">    &gt;&gt;&gt; excepting({})</span>
+<span class="sd">    &gt;&gt;&gt; excepting({0: 1})</span>
+<span class="sd">    1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">handler</span><span class="o">=</span><span class="n">return_none</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exc</span> <span class="o">=</span> <span class="n">exc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">func</span> <span class="o">=</span> <span class="n">func</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handler</span> <span class="o">=</span> <span class="n">handler</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="bp">self</span><span class="o">.</span><span class="n">exc</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">handler</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="nd">@instanceproperty</span><span class="p">(</span><span class="n">classval</span><span class="o">=</span><span class="vm">__doc__</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__doc__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">exc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exc</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">exc_name</span> <span class="o">=</span> <span class="s1">&#39;(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="nb">map</span><span class="p">(</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;__name__&#39;</span><span class="p">),</span> <span class="n">exc</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exc_name</span> <span class="o">=</span> <span class="n">exc</span><span class="o">.</span><span class="vm">__name__</span>
+
+            <span class="k">return</span> <span class="n">dedent</span><span class="p">(</span>
+                <span class="sd">&quot;&quot;&quot;\</span>
+<span class="sd">                A wrapper around {inst.func.__name__!r} that will except:</span>
+<span class="sd">                {exc}</span>
+<span class="sd">                and handle any exceptions with {inst.handler.__name__!r}.</span>
+
+<span class="sd">                Docs for {inst.func.__name__!r}:</span>
+<span class="sd">                {inst.func.__doc__}</span>
+
+<span class="sd">                Docs for {inst.handler.__name__!r}:</span>
+<span class="sd">                {inst.handler.__doc__}</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">inst</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">exc</span><span class="o">=</span><span class="n">exc_name</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__doc__</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">__name__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">exc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exc</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">exc_name</span> <span class="o">=</span> <span class="s1">&#39;_or_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;__name__&#39;</span><span class="p">),</span> <span class="n">exc</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exc_name</span> <span class="o">=</span> <span class="n">exc</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_excepting_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">exc_name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;excepting&#39;</span>
+
+
+<span class="k">if</span> <span class="n">PY3</span><span class="p">:</span>  <span class="c1"># pragma: py2 no cover</span>
+    <span class="k">def</span> <span class="nf">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">builtin_func</span><span class="p">,</span> <span class="o">*</span><span class="n">builtin_args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">sigspec</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">sigspec</span> <span class="o">=</span> <span class="n">e</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">builtin_func</span><span class="p">(</span><span class="o">*</span><span class="n">builtin_args</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Signature</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">func</span> <span class="ow">in</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">signatures</span>
+                <span class="ow">and</span> <span class="p">((</span>
+                    <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__signature__&#39;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">__signature__</span><span class="p">,</span> <span class="s1">&#39;__get__&#39;</span><span class="p">)</span>
+                <span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                    <span class="n">PY33</span>
+                    <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__wrapped__&#39;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">__wrapped__</span><span class="p">,</span> <span class="s1">&#39;__get__&#39;</span><span class="p">)</span>
+                    <span class="ow">and</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">__wrapped__</span><span class="p">)</span>
+                <span class="p">))</span>
+            <span class="p">):</span>  <span class="c1"># pragma: no cover (not covered in Python 3.4)</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">builtin_func</span><span class="p">(</span><span class="o">*</span><span class="n">builtin_args</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">val</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">sigspec</span><span class="p">,</span> <span class="kc">None</span>
+
+<span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: py3 no cover</span>
+    <span class="k">def</span> <span class="nf">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">builtin_func</span><span class="p">,</span> <span class="o">*</span><span class="n">builtin_args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">sigspec</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">sigspec</span> <span class="o">=</span> <span class="n">e</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">builtin_func</span><span class="p">(</span><span class="o">*</span><span class="n">builtin_args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sigspec</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<span class="k">if</span> <span class="n">PY34</span> <span class="ow">or</span> <span class="n">PYPY</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+    <span class="n">_check_sigspec_orig</span> <span class="o">=</span> <span class="n">_check_sigspec</span>
+
+    <span class="k">def</span> <span class="nf">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">builtin_func</span><span class="p">,</span> <span class="o">*</span><span class="n">builtin_args</span><span class="p">):</span>
+        <span class="c1"># Python 3.4 and PyPy may lie, so use our registry for builtins instead</span>
+        <span class="k">if</span> <span class="n">func</span> <span class="ow">in</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">signatures</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">builtin_func</span><span class="p">(</span><span class="o">*</span><span class="n">builtin_args</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">val</span>
+        <span class="k">return</span> <span class="n">_check_sigspec_orig</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">builtin_func</span><span class="p">,</span> <span class="o">*</span><span class="n">builtin_args</span><span class="p">)</span>
+
+<span class="n">_check_sigspec</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; </span><span class="se">\</span>
+<span class="s2">Private function to aid in introspection compatibly across Python versions.</span>
+
+<span class="s2">If a callable doesn&#39;t have a signature (Python 3) or an argspec (Python 2),</span>
+<span class="s2">the signature registry in toolz._signatures is used.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="k">if</span> <span class="n">PY3</span><span class="p">:</span>  <span class="c1"># pragma: py2 no cover</span>
+    <span class="k">def</span> <span class="nf">num_required_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_num_required_args</span><span class="p">,</span>
+                                     <span class="n">func</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">sigspec</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="n">p</span><span class="o">.</span><span class="n">empty</span>
+                   <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">POSITIONAL_ONLY</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">has_varargs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_has_varargs</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">VAR_POSITIONAL</span>
+                   <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">sigspec</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">has_keywords</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_has_keywords</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">empty</span>
+                   <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">VAR_KEYWORD</span><span class="p">)</span>
+                   <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">sigspec</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">is_valid_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_is_valid_args</span><span class="p">,</span>
+                                     <span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sigspec</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">is_partial_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_is_partial_args</span><span class="p">,</span>
+                                     <span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sigspec</span><span class="o">.</span><span class="n">bind_partial</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: py3 no cover</span>
+    <span class="k">def</span> <span class="nf">num_required_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_num_required_args</span><span class="p">,</span>
+                                     <span class="n">func</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="n">num_defaults</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sigspec</span><span class="o">.</span><span class="n">defaults</span><span class="p">)</span> <span class="k">if</span> <span class="n">sigspec</span><span class="o">.</span><span class="n">defaults</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">sigspec</span><span class="o">.</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="n">num_defaults</span>
+
+    <span class="k">def</span> <span class="nf">has_varargs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_has_varargs</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="k">return</span> <span class="n">sigspec</span><span class="o">.</span><span class="n">varargs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">has_keywords</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_has_keywords</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="k">return</span> <span class="n">sigspec</span><span class="o">.</span><span class="n">defaults</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">sigspec</span><span class="o">.</span><span class="n">keywords</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">is_valid_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_is_valid_args</span><span class="p">,</span>
+                                     <span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="n">spec</span> <span class="o">=</span> <span class="n">sigspec</span>
+        <span class="n">defaults</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">defaults</span> <span class="ow">or</span> <span class="p">()</span>
+        <span class="n">num_pos</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">defaults</span><span class="p">)</span>
+        <span class="n">missing_pos</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">):</span><span class="n">num_pos</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">arg</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">missing_pos</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">varargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">num_extra_pos</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="n">num_pos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_extra_pos</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Add missing keyword arguments (unless already included in `args`)</span>
+        <span class="n">missing_kwargs</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="n">num_pos</span> <span class="o">+</span> <span class="n">num_extra_pos</span><span class="p">:]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">missing_kwargs</span><span class="p">,</span> <span class="n">defaults</span><span class="p">[</span><span class="n">num_extra_pos</span><span class="p">:]))</span>
+
+        <span class="c1"># Convert call to use positional arguments</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">args</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">):])</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">spec</span><span class="o">.</span><span class="n">keywords</span> <span class="ow">and</span> <span class="n">kwargs</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="n">spec</span><span class="o">.</span><span class="n">varargs</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">set</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)])</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">is_partial_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_is_partial_args</span><span class="p">,</span>
+                                     <span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">rv</span>
+        <span class="n">spec</span> <span class="o">=</span> <span class="n">sigspec</span>
+        <span class="n">defaults</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">defaults</span> <span class="ow">or</span> <span class="p">()</span>
+        <span class="n">num_pos</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">defaults</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">spec</span><span class="o">.</span><span class="n">varargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">num_extra_pos</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-</span> <span class="n">num_pos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_extra_pos</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Add missing keyword arguments (unless already included in `args`)</span>
+        <span class="n">missing_kwargs</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="n">num_pos</span> <span class="o">+</span> <span class="n">num_extra_pos</span><span class="p">:]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">missing_kwargs</span><span class="p">,</span> <span class="n">defaults</span><span class="p">[</span><span class="n">num_extra_pos</span><span class="p">:]))</span>
+
+        <span class="c1"># Add missing position arguments as keywords (may already be in kwargs)</span>
+        <span class="n">missing_args</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">):</span><span class="n">num_pos</span> <span class="o">+</span> <span class="n">num_extra_pos</span><span class="p">]</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">missing_args</span><span class="p">)</span>
+
+        <span class="c1"># Convert call to use positional arguments</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">args</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">):])</span>
+
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">spec</span><span class="o">.</span><span class="n">keywords</span> <span class="ow">and</span> <span class="n">kwargs</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="n">spec</span><span class="o">.</span><span class="n">varargs</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">set</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">args</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)])</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+
+<span class="k">def</span> <span class="nf">is_arity</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Does a function have only n positional arguments?</span>
+
+<span class="sd">    This function relies on introspection and does not call the function.</span>
+<span class="sd">    Returns None if validity can&#39;t be determined.</span>
+
+<span class="sd">    &gt;&gt;&gt; def f(x):</span>
+<span class="sd">    ...     return x</span>
+<span class="sd">    &gt;&gt;&gt; is_arity(1, f)</span>
+<span class="sd">    True</span>
+<span class="sd">    &gt;&gt;&gt; def g(x, y=1):</span>
+<span class="sd">    ...     return x + y</span>
+<span class="sd">    &gt;&gt;&gt; is_arity(1, g)</span>
+<span class="sd">    False</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sigspec</span><span class="p">,</span> <span class="n">rv</span> <span class="o">=</span> <span class="n">_check_sigspec</span><span class="p">(</span><span class="n">sigspec</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_sigs</span><span class="o">.</span><span class="n">_is_arity</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sigspec</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">rv</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="n">num_required_args</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">num</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="n">num</span> <span class="o">==</span> <span class="n">n</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">num</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">varargs</span> <span class="o">=</span> <span class="n">has_varargs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">varargs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="n">keywords</span> <span class="o">=</span> <span class="n">has_keywords</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">sigspec</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">keywords</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">num</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">varargs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">keywords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># pragma: no cover</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+
+<span class="n">num_required_args</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; </span><span class="se">\</span>
+<span class="s2">Number of required positional arguments</span>
+
+<span class="s2">    This function relies on introspection and does not call the function.</span>
+<span class="s2">    Returns None if validity can&#39;t be determined.</span>
+
+<span class="s2">    &gt;&gt;&gt; def f(x, y, z=3):</span>
+<span class="s2">    ...     return x + y + z</span>
+<span class="s2">    &gt;&gt;&gt; num_required_args(f)</span>
+<span class="s2">    2</span>
+<span class="s2">    &gt;&gt;&gt; def g(*args, **kwargs):</span>
+<span class="s2">    ...     pass</span>
+<span class="s2">    &gt;&gt;&gt; num_required_args(g)</span>
+<span class="s2">    0</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="n">has_varargs</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; </span><span class="se">\</span>
+<span class="s2">Does a function have variadic positional arguments?</span>
+
+<span class="s2">    This function relies on introspection and does not call the function.</span>
+<span class="s2">    Returns None if validity can&#39;t be determined.</span>
+
+<span class="s2">    &gt;&gt;&gt; def f(*args):</span>
+<span class="s2">    ...    return args</span>
+<span class="s2">    &gt;&gt;&gt; has_varargs(f)</span>
+<span class="s2">    True</span>
+<span class="s2">    &gt;&gt;&gt; def g(**kwargs):</span>
+<span class="s2">    ...    return kwargs</span>
+<span class="s2">    &gt;&gt;&gt; has_varargs(g)</span>
+<span class="s2">    False</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="n">has_keywords</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; </span><span class="se">\</span>
+<span class="s2">Does a function have keyword arguments?</span>
+
+<span class="s2">    This function relies on introspection and does not call the function.</span>
+<span class="s2">    Returns None if validity can&#39;t be determined.</span>
+
+<span class="s2">    &gt;&gt;&gt; def f(x, y=0):</span>
+<span class="s2">    ...     return x + y</span>
+
+<span class="s2">    &gt;&gt;&gt; has_keywords(f)</span>
+<span class="s2">    True</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="n">is_valid_args</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; </span><span class="se">\</span>
+<span class="s2">Is ``func(*args, **kwargs)`` a valid function call?</span>
+
+<span class="s2">    This function relies on introspection and does not call the function.</span>
+<span class="s2">    Returns None if validity can&#39;t be determined.</span>
+
+<span class="s2">    &gt;&gt;&gt; def add(x, y):</span>
+<span class="s2">    ...     return x + y</span>
+
+<span class="s2">    &gt;&gt;&gt; is_valid_args(add, (1,), </span><span class="si">{}</span><span class="s2">)</span>
+<span class="s2">    False</span>
+<span class="s2">    &gt;&gt;&gt; is_valid_args(add, (1, 2), </span><span class="si">{}</span><span class="s2">)</span>
+<span class="s2">    True</span>
+<span class="s2">    &gt;&gt;&gt; is_valid_args(map, (), </span><span class="si">{}</span><span class="s2">)</span>
+<span class="s2">    False</span>
+
+<span class="s2">    **Implementation notes**</span>
+<span class="s2">    Python 2 relies on ``inspect.getargspec``, which only works for</span>
+<span class="s2">    user-defined functions.  Python 3 uses ``inspect.signature``, which</span>
+<span class="s2">    works for many more types of callables.</span>
+
+<span class="s2">    Many builtins in the standard library are also supported.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="n">is_partial_args</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot; </span><span class="se">\</span>
+<span class="s2">Can partial(func, *args, **kwargs)(*args2, **kwargs2) be a valid call?</span>
+
+<span class="s2">    Returns True *only* if the call is valid or if it is possible for the</span>
+<span class="s2">    call to become valid by adding more positional or keyword arguments.</span>
+
+<span class="s2">    This function relies on introspection and does not call the function.</span>
+<span class="s2">    Returns None if validity can&#39;t be determined.</span>
+
+<span class="s2">    &gt;&gt;&gt; def add(x, y):</span>
+<span class="s2">    ...     return x + y</span>
+
+<span class="s2">    &gt;&gt;&gt; is_partial_args(add, (1,), </span><span class="si">{}</span><span class="s2">)</span>
+<span class="s2">    True</span>
+<span class="s2">    &gt;&gt;&gt; is_partial_args(add, (1, 2), </span><span class="si">{}</span><span class="s2">)</span>
+<span class="s2">    True</span>
+<span class="s2">    &gt;&gt;&gt; is_partial_args(add, (1, 2, 3), </span><span class="si">{}</span><span class="s2">)</span>
+<span class="s2">    False</span>
+<span class="s2">    &gt;&gt;&gt; is_partial_args(map, (), </span><span class="si">{}</span><span class="s2">)</span>
+<span class="s2">    True</span>
+
+<span class="s2">    **Implementation notes**</span>
+<span class="s2">    Python 2 relies on ``inspect.getargspec``, which only works for</span>
+<span class="s2">    user-defined functions.  Python 3 uses ``inspect.signature``, which</span>
+<span class="s2">    works for many more types of callables.</span>
+
+<span class="s2">    Many builtins in the standard library are also supported.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_signatures</span> <span class="k">as</span> <span class="n">_sigs</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../',
+              VERSION:'0.0.0-158-g747f7326',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

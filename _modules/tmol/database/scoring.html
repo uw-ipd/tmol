@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring &mdash; TMol 0.0.0-157-g5a8117df documentation</title>
+  <title>tmol.database.scoring &mdash; TMol 0.0.0-158-g747f7326 documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-157-g5a8117df
+                0.0.0-158-g747f7326
               </div>
             
           
@@ -171,6 +171,7 @@
 <span class="kn">from</span> <span class="nn">.hbond</span> <span class="k">import</span> <span class="n">HBondDatabase</span>
 <span class="kn">from</span> <span class="nn">.ljlk</span> <span class="k">import</span> <span class="n">LJLKDatabase</span>
 <span class="kn">from</span> <span class="nn">.elec</span> <span class="k">import</span> <span class="n">ElecDatabase</span>
+<span class="kn">from</span> <span class="nn">.rama</span> <span class="k">import</span> <span class="n">RamaDatabase</span>
 <span class="kn">from</span> <span class="nn">.cartbonded</span> <span class="k">import</span> <span class="n">CartBondedDatabase</span>
 
 
@@ -180,6 +181,7 @@
     <span class="n">ljlk</span><span class="p">:</span> <span class="n">LJLKDatabase</span>
     <span class="n">elec</span><span class="p">:</span> <span class="n">ElecDatabase</span>
     <span class="n">hbond</span><span class="p">:</span> <span class="n">HBondDatabase</span>
+    <span class="n">rama</span><span class="p">:</span> <span class="n">RamaDatabase</span>
     <span class="n">cartbonded</span><span class="p">:</span> <span class="n">CartBondedDatabase</span>
 
 <div class="viewcode-block" id="ScoringDatabase.from_file"><a class="viewcode-back" href="../../../apidoc/tmol.database.scoring.html#tmol.database.scoring.ScoringDatabase.from_file">[docs]</a>    <span class="nd">@classmethod</span>
@@ -188,6 +190,9 @@
             <span class="n">ljlk</span><span class="o">=</span><span class="n">LJLKDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;ljlk.yaml&quot;</span><span class="p">)),</span>
             <span class="n">hbond</span><span class="o">=</span><span class="n">HBondDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;hbond.yaml&quot;</span><span class="p">)),</span>
             <span class="n">elec</span><span class="o">=</span><span class="n">ElecDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;elec.yaml&quot;</span><span class="p">)),</span>
+            <span class="n">rama</span><span class="o">=</span><span class="n">RamaDatabase</span><span class="o">.</span><span class="n">from_files</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rama.yaml&quot;</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;rama.zip&quot;</span><span class="p">)</span>
+            <span class="p">),</span>
             <span class="n">cartbonded</span><span class="o">=</span><span class="n">CartBondedDatabase</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;cartbonded.yaml&quot;</span><span class="p">)</span>
             <span class="p">),</span>
@@ -228,7 +233,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-157-g5a8117df',
+              VERSION:'0.0.0-158-g747f7326',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
