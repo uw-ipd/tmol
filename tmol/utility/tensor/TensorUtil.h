@@ -63,8 +63,8 @@ struct enable_tensor_view<bool> {
   typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
 };
 
-template <typename T, int N>
-struct enable_tensor_view<Eigen::Matrix<T, N, 1>> {
+template <typename T, int M, int N>
+struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
@@ -75,6 +75,14 @@ struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
+};
+
+template <typename T, size_t N, Device D, PtrTag P>
+struct enable_tensor_view<tmol::TView<T, N, D, P>> {
+  static const bool enabled = enable_tensor_view<uint8_t>::enabled;
+  static const at::ScalarType scalar_type =
+      enable_tensor_view<uint8_t>::scalar_type;
+  typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
 };
 
 template <
@@ -92,6 +100,7 @@ auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
 
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
+  AT_ASSERTM(input_t.dim() == N, "Wrong dimensionality.")
   AT_ASSERTM(
       input_t.size(N - 1) % stride_factor == 0,
       "Low-dimension shape must be even multiple of adjusted stride.")

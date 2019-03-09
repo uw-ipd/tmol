@@ -17,6 +17,7 @@ from tmol.score.coordinates import (
 from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.elec import ElecScoreGraph
+from tmol.score.rama import RamaScoreGraph
 from tmol.score.cartbonded import CartBondedScoreGraph
 from tmol.score.lk_ball import LKBallScoreGraph
 
@@ -54,6 +55,11 @@ class HBondScore(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice
 
 @score_graph
 class ElecScore(CartesianAtomicCoordinateProvider, ElecScoreGraph, TorchDevice):
+    pass
+
+
+@score_graph
+class RamaScore(CartesianAtomicCoordinateProvider, RamaScoreGraph, TorchDevice):
     pass
 
 
@@ -131,6 +137,7 @@ _non_cuda_components = (LKBallScoreGraph,)
         DofSpaceTotal,
         HBondScore,
         ElecScore,
+        RamaScore,
         CartBondedScore,
         LJScore,
         LKScore,
@@ -141,6 +148,7 @@ _non_cuda_components = (LKBallScoreGraph,)
         "total_cart",
         "total_torsion",
         "hbond",
+        "rama",
         "elec",
         "cartbonded",
         "lj",
