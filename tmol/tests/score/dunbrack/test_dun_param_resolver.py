@@ -253,21 +253,12 @@ def test_dun_param_resolver_construction(default_database, torch_device):
 
 
 def test_dun_param_resolver_construction(default_database, torch_device):
-    def exclusive_cumsum(inds: Tensor(torch.long)[:]) -> Tensor(torch.long)[:]:
-        return torch.cat(
-            (
-                torch.tensor([0], dtype=torch.long, device=inds.device),
-                torch.cumsum(inds, 0).narrow(0, 0, inds.shape[0] - 1),
-            )
-        )
 
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
 
     example_names = numpy.array(["ALA", "PHE", "ARG", "LEU", "GLY", "GLU", "MET"])
-    rns_inds, r_inds, s_inds = resolver.resolve_dun_indices(example_names, torch_device)
-    print(rns_inds)
 
     phis = torch.tensor(
         [
@@ -316,153 +307,117 @@ def test_dun_param_resolver_construction(default_database, torch_device):
         device=torch_device,
     )
 
-    nchi_for_pose_res = -1 * torch.ones(
-        (len(example_names),), dtype=torch.long, device=torch_device
+    dun_params = resolver.resolve_dunbrack_parameters(
+        example_names, phis, psis, chi, torch_device
     )
-    # DunbrackParams #5
-    nchi_for_res = resolver.dun_params.nchi_for_table_set[rns_inds[rns_inds != -1]]
 
-    nchi_for_pose_res[rns_inds != -1] = nchi_for_res
-    print("nchi_for_pose_res", nchi_for_pose_res)
+    ndihe_for_res_gold = numpy.array([4, 6, 4, 5, 5], dtype=int)
+    numpy.testing.assert_array_equal(
+        ndihe_for_res_gold, dun_params.ndihe_for_res.cpu().numpy()
+    )
 
-    chi_selected = chi[chi[:, 1] < nchi_for_pose_res[chi[:, 0]], :]
-    chi_sel_res = chi_selected[:, 0:1]
-    chi_sel_ats = chi_selected[:, 2:]
-    print("chi_sel_res.shape", chi_sel_res.shape)
-    print("chi_sel_ats.shape", chi_sel_ats.shape)
-    chi_wanted = torch.cat((chi_sel_res, chi_sel_ats), 1)
-    print("chi_wanted", chi_wanted)
-    phi_wanted = phis[rns_inds[phis[:, 0]] != -1]
-    print("phi_wanted", phi_wanted)
-    psi_wanted = psis[rns_inds[psis[:, 0]] != -1]
-    print("psi_wanted", psi_wanted)
+    dihedral_offsets_gold = numpy.array([0, 4, 10, 14, 19], dtype=int)
+    numpy.testing.assert_array_equal(
+        dihedral_offsets_gold, dun_params.dihedral_offsets.cpu().numpy()
+    )
 
-    dihedrals = torch.cat((phi_wanted, psi_wanted, chi_wanted), 0)
-    if dihedrals.shape[0] < 2049:
-        dihedral_res = (example_names.shape[0] + 1) * torch.ones(
-            (2049,), dtype=torch.long, device=torch_device
-        )
-        dihedral_res[: dihedrals.shape[0]] = dihedrals[:, 0]
-    else:
-        dihedral_res = dihedrals[:, 0]
+    dihedral_atom_indices_gold = numpy.array(
+        [
+            [2, 3, 4, 5],
+            [3, 3, 4, 5],
+            [3, 5, 7, 9],
+            [5, 7, 9, 11],
+            [3, 4, 5, 6],
+            [4, 4, 5, 6],
+            [9, 11, 13, 15],
+            [11, 13, 15, 17],
+            [13, 15, 17, 19],
+            [15, 17, 19, 21],
+            [4, 5, 6, 7],
+            [5, 5, 6, 7],
+            [17, 19, 21, 23],
+            [19, 21, 23, 25],
+            [6, 7, 8, 9],
+            [7, 7, 8, 9],
+            [31, 33, 35, 37],
+            [33, 35, 37, 39],
+            [35, 36, 37, 39],
+            [7, 8, 9, 10],
+            [8, 8, 9, 10],
+            [41, 42, 43, 44],
+            [42, 43, 44, 45],
+            [43, 44, 45, 46],
+        ]
+    )
+    numpy.testing.assert_array_equal(
+        dihedral_atom_indices_gold, dun_params.dihedral_atom_indices.cpu().numpy()
+    )
 
-    dihedral_res_sorted, sort_inds = torch.sort(dihedral_res, 0)
+    rns_inds = resolver.all_table_indices.get_indexer(example_names)
+    rottable_set_for_res_gold = rns_inds[rns_inds != -1]
+    numpy.testing.assert_array_equal(
+        rottable_set_for_res_gold, dun_params.rottable_set_for_res.cpu().numpy()
+    )
 
-    if dihedrals.shape[0] < 2049:
-        sort_inds = sort_inds[: dihedrals.shape[0]]
+    nchi_for_res_gold = numpy.array([2, 4, 2, 3, 3], dtype=int)
+    numpy.testing.assert_array_equal(
+        nchi_for_res_gold, dun_params.nchi_for_res.cpu().numpy()
+    )
 
-    # DunbrackParams #3
-    dihedral_indices = dihedrals[sort_inds, :]
+    nrotameric_chi_for_res_gold = numpy.array([1, 4, 2, 2, 3])
+    numpy.testing.assert_array_equal(
+        nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res
+    )
 
-    # ok, at this point a subset of the residues in the Pose are
-    # going to be scored by the dunbrack score. This subset
-    # is what we're going to consider when we talk about residues
-    # by index. So, e.g., if the first residue to be scored is
-    # pose-residue 1, then we'll treat that as dunbrack-residue 0.
-    # So we need to remap pose-residue indices into
-    # dunbrack-residue indices. With that restricted subset, we'll
-    # talk about which residues are rotameric and which residues
-    # are semi-rotameric.
+    rotres2resid_gold = numpy.array([1, 2, 4])
+    numpy.testing.assert_array_equal(
+        rotres2resid_gold, dun_params.rotres2resid.cpu().numpy()
+    )
 
-    dun_residues = torch.unique(dihedrals[:, 0], sorted=True)
-    n_dun_residues = dun_residues.shape[0]
-    r_inds = r_inds[dun_residues]
-    s_inds = s_inds[dun_residues]
-
-    print("r_inds", r_inds)
-    print("s_inds", s_inds)
-
-    # DunbrackParams #1
-    ndihe_for_res = 2 + nchi_for_res
-    # DunbrackParmas #2
-    dihedral_offsets = exclusive_cumsum(ndihe_for_res)
-
-    print("ndihe_for_res", ndihe_for_res)
-    print("dihedral_offsets", dihedral_offsets)
-
-    # DunbrackParams #4
-    rottable_set_for_res = rns_inds[dun_residues]
-    print("rottable_set_for_res", rottable_set_for_res)
-
-    # DunbrackParams #6
-    nrotameric_chi_for_res = nchi_for_res
-    nrotameric_chi_for_res[s_inds != -1] = nrotameric_chi_for_res[s_inds != -1] - 1
-    print("nrotameric_chi_for_res", nrotameric_chi_for_res)
-
-    # DunbrackParams #7
-    rotres2resid = torch.arange(
-        ndihe_for_res.shape[0], dtype=torch.long, device=torch_device
-    )[r_inds != -1]
-    print("rotres2resid", rotres2resid)
-
-    dun_rotres = r_inds[r_inds != -1]
-    n_rotameric_res = dun_rotres.shape[0]
-    # DunbrackParams #8
-    prob_table_offset_for_rotresidue = resolver.dun_params.rotameric_prob_tableset_offsets[
-        dun_rotres
+    prob_table_offset_for_rotresidue_gold = resolver.dun_params.rotameric_prob_tableset_offsets[
+        rottable_set_for_res_gold[dun_params.rotres2resid]
     ]
-    print("prob_table_offset_for_rotresidue", prob_table_offset_for_rotresidue)
-    # DunbrackParams #9
-    rotmean_table_offset_for_residue = resolver.dun_params.rotameric_prob_tableset_offsets[
-        rottable_set_for_res
+    numpy.testing.assert_array_equal(
+        prob_table_offset_for_rotresidue_gold,
+        dun_params.prob_table_offset_for_rotresidue.cpu().numpy(),
+    )
+
+    rotmean_table_offset_for_residue_gold = resolver.dun_params.rotameric_meansdev_tableset_offsets[
+        rottable_set_for_res_gold
     ]
-    print("rotmean_table_offset_for_residue", rotmean_table_offset_for_residue)
+    print("rottable_set_for_res_gold", rottable_set_for_res_gold)
+    print(
+        "rotmean_table_offset_for_residue_gold", rotmean_table_offset_for_residue_gold
+    )
+    numpy.testing.assert_array_equal(
+        rotmean_table_offset_for_residue_gold,
+        dun_params.rotmean_table_offset_for_residue.cpu().numpy(),
+    )
 
-    # DunbrackParams #10
-    rotind2tableind_offset_for_res = resolver.dun_params.rotind2tableind_offsets[
-        rottable_set_for_res
+    rotind2tableind_offset_for_res_gold = resolver.dun_params.rotind2tableind_offsets[
+        rottable_set_for_res_gold
     ]
-    print("rotind2tableind_offset_for_res", rotind2tableind_offset_for_res)
-
-    # DunbrackParams #11
-    n_rotameric_chi = torch.sum(nchi_for_res[r_inds != -1])
-    n_chi_for_rotameric_res = nchi_for_res[r_inds != -1]
-    n_chi_for_rotameric_res_offsets = exclusive_cumsum(n_chi_for_rotameric_res)
-    print("n_rotameric_chi", n_rotameric_chi)
-    print("n_chi_for_rotameric_res", n_chi_for_rotameric_res)
-    print("n_chi_for_rotameric_res_offsets", n_chi_for_rotameric_res_offsets)
-
-    rotameric_chi_desc = torch.zeros(
-        [n_rotameric_chi, 2], dtype=torch.long, device=torch_device
+    numpy.testing.assert_array_equal(
+        rotind2tableind_offset_for_res_gold,
+        dun_params.rotind2tableind_offset_for_res.cpu().numpy(),
     )
 
-    chi_is_first = torch.zeros(
-        (n_rotameric_chi,), dtype=torch.long, device=torch_device
+    rotameric_chi_desc_gold = numpy.array(
+        [[1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [4, 0], [4, 1], [4, 2]],
+        dtype=int,
     )
-    chi_is_first[n_chi_for_rotameric_res_offsets] = torch.ones(
-        (n_rotameric_res), dtype=torch.long, device=torch_device
+    numpy.testing.assert_array_equal(
+        rotameric_chi_desc_gold, dun_params.rotameric_chi_desc.cpu().numpy()
     )
-    print("chi_is_first", chi_is_first)
-    rotres_for_chi = torch.cumsum(chi_is_first, 0) - 1
-    print("rotres_for_chi", rotres_for_chi)
-    rotameric_chi_desc[:, 0] = torch.arange(
-        n_dun_residues, dtype=torch.long, device=torch_device
-    )[rotres_for_chi]
 
-    offsets_for_chi = n_chi_for_rotameric_res_offsets[rotres_for_chi]
-    print("offsets_for_chi", offsets_for_chi)
+    s_inds = resolver.semirotameric_table_indices.get_indexer(example_names)
+    semirot_res_inds = s_inds[s_inds != -1]
 
-    rotameric_chi_desc[:, 1] = (
-        torch.arange(n_rotameric_chi, dtype=torch.long, device=torch_device)
-        - offsets_for_chi
+    semirotameric_chi_desc_gold = numpy.array([[0, 3, 0, 0], [3, 18, 0, 0]], dtype=int)
+    semirotameric_chi_desc_gold[:, 3] = semirot_res_inds
+    semirotameric_chi_desc_gold[
+        :, 2
+    ] = resolver.dun_params.semirotameric_tableset_offsets[semirot_res_inds]
+    numpy.testing.assert_array_equal(
+        semirotameric_chi_desc_gold, dun_params.semirotameric_chi_desc.cpu().numpy()
     )
-    print("rotameric_chi_desc", rotameric_chi_desc)
-
-    # DunbrackParams #11
-    n_semirotameric_res = torch.sum(s_inds != -1)
-    semirotameric_chi_desc = torch.zeros(
-        (n_semirotameric_res, 4), dtype=torch.long, device=torch_device
-    )
-    semirotameric_chi_desc[:, 0] = torch.arange(
-        s_inds.shape[0], dtype=torch.long, device=torch_device
-    )[s_inds != -1]
-
-    semirotameric_chi_desc[:, 1] = (
-        dihedral_offsets[s_inds != -1] + nchi_for_res[s_inds != -1]
-    )
-    semirotameric_chi_desc[:, 2] = resolver.dun_params.semirotameric_tableset_offsets[
-        s_inds[s_inds != -1]
-    ]
-    semirotameric_chi_desc[:, 3] = s_inds[s_inds != -1]
-
-    print("semirotameric_chi_desc", semirotameric_chi_desc)

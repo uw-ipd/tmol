@@ -15,24 +15,8 @@ from ..bonded_atom import BondedAtomScoreGraph
 from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
-from .params import LJLKParamResolver
+from .params import LJLKParamResolver, DunbrackParams
 from .torch_op import LJOp, LKOp
-
-
-@attr.s(auto_attribs=True)
-class DunbrackParams(TensorGroup):
-    ndihe_for_res: Tensor(torch.int32)[:]
-    dihedral_offsets: Tensor(torch.int32)[:]
-    dihedral_indices: Tensor(torch.int32)[..., 4]
-    rottable_set_for_res: Tensor(torch.int32)[:]
-    nchi_for_res: Tensor(torch.int32)[:]
-    nrotameric_chi_for_res: Tensor(torch.int32)[:]  # ??needed??
-    rotres2resid: Tensor(torch.int32)[:]
-    prob_table_offset_for_rotresidue: Tensor(torch.int32)[:]
-    rotmean_table_offset_for_residue: Tensor(torch.int32)[:]
-    rotind2tableind_offset_for_res: Tensor(torch.int32)[:]
-    rotameric_chi_desc: Tensor(torch.int32)[:, 2]
-    semirotameric_chi_desc: Tensor(torch.int32)[:, 4]
 
 
 @reactive_attrs
@@ -102,7 +86,7 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     def dun_resolve_indices(
         res_names: NDArray(object)[:],
         dun_param_resolver: DunbrackParamResolver,
-        device: torch.Devie,
+        device: torch.device,
     ) -> DunbrackParams:
         """Parameter tensor groups and atom-type to parameter resolver."""
         # dfphis = pandas.DataFrame(phis)
