@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.score.omega.score_graph &mdash; TMol 0.0.0-159-ga948d44b documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.omega.score_graph.html"/>
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.score.omega.torch_op" href="tmol.score.omega.torch_op.html" />
+    <link rel="prev" title="tmol.score.omega" href="tmol.score.omega.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-159-ga948d44b
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.score.html">tmol.score</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.bonded_atom.html">tmol.score.bonded_atom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.chemical_database.html">tmol.score.chemical_database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.coordinates.html">tmol.score.coordinates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.database.html">tmol.score.database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.factory_mixin.html">tmol.score.factory_mixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_graph.html">tmol.score.score_graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.cartbonded.html">tmol.score.cartbonded</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.common.html">tmol.score.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.elec.html">tmol.score.elec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.hbond.html">tmol.score.hbond</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.ljlk.html">tmol.score.ljlk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.lk_ball.html">tmol.score.lk_ball</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="tmol.score.omega.html">tmol.score.omega</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.omega.score_graph</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.omega.torch_op.html">tmol.score.omega.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.omega.potentials.html">tmol.score.omega.potentials</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.rama.html">tmol.score.rama</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.html#summary">Summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.html#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.score.html">tmol.score</a> &raquo;</li>
+        
+          <li><a href="tmol.score.omega.html">tmol.score.omega</a> &raquo;</li>
+        
+      <li>tmol.score.omega.score_graph</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.score.omega.score_graph.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.score.omega.score_graph">
+<span id="tmol-score-omega-score-graph"></span><h1>tmol.score.omega.score_graph<a class="headerlink" href="#module-tmol.score.omega.score_graph" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.omega.score_graph.OmegaIntraScore" title="tmol.score.omega.score_graph.OmegaIntraScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OmegaIntraScore</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.omega.score_graph.OmegaParams" title="tmol.score.omega.score_graph.OmegaParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OmegaParams</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.omega.score_graph.OmegaScoreGraph" title="tmol.score.omega.score_graph.OmegaScoreGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OmegaScoreGraph</span></code></a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tmol.score.omega.score_graph.OmegaParams">
+<em class="property">class </em><code class="descclassname">tmol.score.omega.score_graph.</code><code class="descname">OmegaParams</code><span class="sig-paren">(</span><em>omega_indices: Tensor(torch.int32)[...,4]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/score_graph.html#OmegaParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.omega.score_graph.OmegaIntraScore">
+<em class="property">class </em><code class="descclassname">tmol.score.omega.score_graph.</code><code class="descname">OmegaIntraScore</code><span class="sig-paren">(</span><em>target: _ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/score_graph.html#OmegaIntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaIntraScore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.score.score_components.html#tmol.score.score_components.IntraScore" title="tmol.score.score_components.IntraScore"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_components.IntraScore</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.omega.score_graph.OmegaIntraScore.total_omega">
+<code class="descname">total_omega</code><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaIntraScore.total_omega" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.omega.score_graph.OmegaIntraScore.omega_score">
+<code class="descname">omega_score</code><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaIntraScore.omega_score" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph">
+<em class="property">class </em><code class="descclassname">tmol.score.omega.score_graph.</code><code class="descname">OmegaScoreGraph</code><span class="sig-paren">(</span><em>stack_depth: int, system_size: int, parameter_database: tmol.database.ParameterDatabase, atom_types: NDArray(dtype('O'))[:,:], atom_names: NDArray(dtype('O'))[:,:], res_names: NDArray(dtype('O'))[:,:], res_indices: NDArray(dtype('int64'))[:,:], bonds: NDArray(dtype('int64'))[:,3], allomegas: NDArray(dtype('int64'))[:,4], device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/score_graph.html#OmegaScoreGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.total_score_components">
+<code class="descname">total_score_components</code><em class="property"> = [ScoreComponentClasses(name='omega', intra_container=&lt;class 'tmol.score.omega.score_graph.OmegaIntraScore'&gt;, inter_container=None)]</em><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.total_score_components" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.factory_for">
+<em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>val</em>, <em>device: torch.device</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/score_graph.html#OmegaScoreGraph.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.factory_for" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="tmol.kinematics.datatypes.html#tmol.kinematics.datatypes.KinDOF.clone" title="tmol.kinematics.datatypes.KinDOF.clone"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">clone</span></code></a>-factory, extract atom types and bonds from other.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.spring_constant">
+<code class="descname">spring_constant</code><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.spring_constant" title="Permalink to this definition">¶</a></dt>
+<dd><p>The spring constant for omega (in radians)</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.omega_op">
+<code class="descname">omega_op</code><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.omega_op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.omega_resolve_indices">
+<code class="descname">omega_resolve_indices</code><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.omega_resolve_indices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph._inter_score_type">
+<em class="property">classmethod </em><code class="descname">_inter_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph._inter_score_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compose and create InterScore type for all ScoreComponents in class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph._intra_score_type">
+<em class="property">classmethod </em><code class="descname">_intra_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph._intra_score_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compose and create IntraScore type for all ScoreComponents in class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph._score_components">
+<em class="property">classmethod </em><code class="descname">_score_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph._score_components" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather all <code class="docutils literal notranslate"><span class="pre">total_score_components</span></code> defined in class bases.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.build_for">
+<em class="property">classmethod </em><code class="descname">build_for</code><span class="sig-paren">(</span><em>val</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.build_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct score graph for val, defaults to cloning val.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.init_parameters_for">
+<em class="property">classmethod </em><code class="descname">init_parameters_for</code><span class="sig-paren">(</span><em>val</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.init_parameters_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get score graph params for val, defaults to cloning.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.inter_score">
+<code class="descname">inter_score</code><span class="sig-paren">(</span><em>other: tmol.score.score_components._ScoreComponent</em><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.InterScore<a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.inter_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create inter-score container for this component and other.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.omega.score_graph.OmegaScoreGraph.intra_score">
+<code class="descname">intra_score</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.IntraScore<a class="headerlink" href="#tmol.score.omega.score_graph.OmegaScoreGraph.intra_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create intra-score container over this component.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.score.omega.torch_op.html" class="btn btn-neutral float-right" title="tmol.score.omega.torch_op" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.score.omega.html" class="btn btn-neutral" title="tmol.score.omega" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../',
+              VERSION:'0.0.0-159-ga948d44b',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

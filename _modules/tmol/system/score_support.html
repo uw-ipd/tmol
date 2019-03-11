@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.score_support &mdash; TMol 0.0.0-158-g747f7326 documentation</title>
+  <title>tmol.system.score_support &mdash; TMol 0.0.0-159-ga948d44b documentation</title>
   
 
   
@@ -58,7 +58,7 @@
             
             
               <div class="version">
-                0.0.0-158-g747f7326
+                0.0.0-159-ga948d44b
               </div>
             
           
@@ -176,6 +176,7 @@
 <span class="kn">from</span> <span class="nn">..score.stacked_system</span> <span class="k">import</span> <span class="n">StackedSystem</span>
 <span class="kn">from</span> <span class="nn">..score.bonded_atom</span> <span class="k">import</span> <span class="n">BondedAtomScoreGraph</span>
 <span class="kn">from</span> <span class="nn">..score.rama.score_graph</span> <span class="k">import</span> <span class="n">RamaScoreGraph</span>
+<span class="kn">from</span> <span class="nn">..score.omega.score_graph</span> <span class="k">import</span> <span class="n">OmegaScoreGraph</span>
 <span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">RamaDatabase</span>
 <span class="kn">from</span> <span class="nn">..score.coordinates</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">CartesianAtomicCoordinateProvider</span><span class="p">,</span>
@@ -314,6 +315,25 @@
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">rama_database</span><span class="o">=</span><span class="n">rama_database</span><span class="p">,</span> <span class="n">allphis</span><span class="o">=</span><span class="n">phis</span><span class="p">,</span> <span class="n">allpsis</span><span class="o">=</span><span class="n">psis</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="omega_graph_inputs"><a class="viewcode-back" href="../../../apidoc/tmol.system.score_support.html#tmol.system.score_support.omega_graph_inputs">[docs]</a><span class="nd">@OmegaScoreGraph</span><span class="o">.</span><span class="n">factory_for</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">PackedResidueSystem</span><span class="p">)</span>
+<span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">omega_graph_inputs</span><span class="p">(</span><span class="n">system</span><span class="p">:</span> <span class="n">PackedResidueSystem</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructor parameters for omega scoring.</span>
+
+<span class="sd">    Extract the atom indices of the &#39;omega&#39; torsions</span>
+<span class="sd">    from the torsion_metadata object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">omegas</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_a&quot;</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_d&quot;</span><span class="p">]]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;omega&quot;</span><span class="p">]</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">allomegas</span><span class="o">=</span><span class="n">omegas</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
@@ -350,7 +370,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-158-g747f7326',
+              VERSION:'0.0.0-159-ga948d44b',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
