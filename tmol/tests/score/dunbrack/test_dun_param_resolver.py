@@ -385,10 +385,6 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     rotmean_table_offset_for_residue_gold = resolver.dun_params.rotameric_meansdev_tableset_offsets[
         rottable_set_for_res_gold
     ]
-    print("rottable_set_for_res_gold", rottable_set_for_res_gold)
-    print(
-        "rotmean_table_offset_for_residue_gold", rotmean_table_offset_for_residue_gold
-    )
     numpy.testing.assert_array_equal(
         rotmean_table_offset_for_residue_gold,
         dun_params.rotmean_table_offset_for_residue.cpu().numpy(),
