@@ -97,7 +97,6 @@ def test_rama_intra(default_database, ubq_system, torch_device):
     batch_scores = func.intra(
         s.tcoords, s.tphi_atom_indices, s.tpsi_atom_indices, s.tramatable_indices
     ).detach()
-    print(batch_scores)
     target_scores = torch.tensor(
         [
             -0.3400,
