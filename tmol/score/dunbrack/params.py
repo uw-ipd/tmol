@@ -8,7 +8,7 @@ import torch
 import toolz.functoolz
 import itertools
 
-from typing import List
+from typing import List, Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
@@ -68,14 +68,17 @@ class DunbrackParamResolver(ValidateAttrs):
     device: torch.device
 
     def resolve_dun_indices(
-        self, resnames0: NDArray(object), resnames1: NDArray(object)
-    ) -> NDArray("i8")[...]:
-        indices = rama_index.get_indexer(resnames0, resnames1)
-        wildcard = numpy.full_like(resnames1, "_")
-        indices[indices == -1] = rama_index.get_indexer(
-            [resnames0[indices == -1], wildcard]
-        )
-        return indices
+        self, resnames: NDArray(object), device: torch.device
+    ) -> Tuple[Tensor(torch.long)[:], Tensor(torch.long)[:], Tensor(torch.long)[:]]:
+        rns_inds = self.all_table_indices.get_indexer(resnames)
+        r_inds = self.rotameric_table_indices.get_indexer(resnames)
+        s_inds = self.semirotameric_table_indices.get_indexer(resnames)
+
+        rns_inds = torch.tensor(rns_inds, dtype=torch.long, device=device)
+        r_inds = torch.tensor(r_inds, dtype=torch.long, device=device)
+        s_inds = torch.tensor(s_inds, dtype=torch.long, device=device)
+
+        return rns_inds, r_inds, s_inds
 
     @classmethod
     # @validate_args

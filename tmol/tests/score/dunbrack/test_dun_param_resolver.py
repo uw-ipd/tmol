@@ -250,3 +250,98 @@ def test_dun_param_resolver_construction(default_database, torch_device):
             semirot_offsets[i - 1] + 3 ** semirot_rotamers[i - 1].shape[1]
             == semirot_offsets[i]
         )
+
+
+def test_dun_param_resolver_construction(default_database, torch_device):
+    resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+
+    example_names = numpy.array(["ALA", "PHE", "ARG", "LEU", "GLY", "GLU", "MET"])
+    rns_inds, r_inds, s_inds = resolver.resolve_dun_indices(example_names, torch_device)
+    print(rns_inds)
+
+    phis = torch.tensor(
+        [
+            [0, 1, 2, 3, 4],
+            [1, 2, 3, 4, 5],
+            [2, 3, 4, 5, 6],
+            [3, 4, 5, 6, 7],
+            [4, 5, 6, 7, 8],
+            [5, 6, 7, 8, 9],
+            [6, 7, 8, 9, 10],
+        ],
+        dtype=torch.long,
+        device=torch_device,
+    )
+    psis = torch.tensor(
+        [
+            [0, 2, 2, 3, 4],
+            [1, 3, 3, 4, 5],
+            [2, 4, 4, 5, 6],
+            [3, 5, 5, 6, 7],
+            [4, 6, 6, 7, 8],
+            [5, 7, 7, 8, 9],
+            [6, 8, 8, 9, 10],
+        ],
+        dtype=torch.long,
+        device=torch_device,
+    )
+    chi = torch.tensor(
+        [
+            [1, 0, 3, 5, 7, 9],
+            [1, 1, 5, 7, 9, 11],
+            [2, 0, 9, 11, 13, 15],
+            [2, 1, 11, 13, 15, 17],
+            [2, 2, 13, 15, 17, 19],
+            [2, 3, 15, 17, 19, 21],
+            [3, 0, 17, 19, 21, 23],
+            [3, 1, 19, 21, 23, 25],
+            [5, 0, 31, 33, 35, 37],
+            [5, 1, 33, 35, 37, 39],
+            [5, 2, 35, 36, 37, 39],
+            [6, 0, 41, 42, 43, 44],
+            [6, 1, 42, 43, 44, 45],
+            [6, 2, 43, 44, 45, 46],
+        ],
+        dtype=torch.long,
+        device=torch_device,
+    )
+
+    nchi_for_res = -1 * torch.ones(
+        (len(example_names),), dtype=torch.long, device=torch_device
+    )
+    nchi_for_res[rns_inds != -1] = resolver.dun_params.nchi_for_table_set[
+        rns_inds[rns_inds != -1]
+    ]
+    print("nchi_for_res", nchi_for_res)
+
+    chi_selected = chi[chi[:, 1] < nchi_for_res[chi[:, 0]], :]
+    chi_sel_res = chi_selected[:, 0:1]
+    chi_sel_ats = chi_selected[:, 2:]
+    print("chi_sel_res.shape", chi_sel_res.shape)
+    print("chi_sel_ats.shape", chi_sel_ats.shape)
+    chi_wanted = torch.cat((chi_sel_res, chi_sel_ats), 1)
+    print("chi_wanted", chi_wanted)
+    phi_wanted = phis[rns_inds[phis[:, 0]] != -1]
+    print("phi_wanted", phi_wanted)
+    psi_wanted = psis[rns_inds[psis[:, 0]] != -1]
+    print("psi_wanted", psi_wanted)
+
+    dihedrals = torch.cat((phi_wanted, psi_wanted, chi_wanted), 0)
+    if dihedrals.shape[0] < 2049:
+        dihedral_res = (example_names.shape[0] + 1) * torch.ones(
+            (2049,), dtype=torch.long, device=torch_device
+        )
+        dihedral_res[: dihedrals.shape[0]] = dihedrals[:, 0]
+    else:
+        dihedral_res = dihedrals[:, 0]
+
+    dihedral_res_sorted, sort_inds = torch.sort(dihedral_res, 0)
+
+    if dihedrals.shape[0] < 2049:
+        sort_inds = sort_inds[: dihedrals.shape[0]]
+
+    print("sort_inds", sort_inds)
+
+    print("select:", dihedrals[sort_inds, :])

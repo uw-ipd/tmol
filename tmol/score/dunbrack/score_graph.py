@@ -92,14 +92,39 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         )
 
     dun_database: DunbrackRotamerLibrary
-    phis: NDArray
-    psis: NDArray
-    chis: NDArray
+    device: torch.Device
+    phis: NDArray  # X by 5; resid, at1, at2, at3, at4
+    psis: NDArray  # X by 5; ibid
+    chis: NDArray  # X by 6; resid, chiind, at1, at2, at3, at4
 
     @reactive_property
     @validate_args
     def dun_resolve_indices(
-        res_names: NDArray(object)[:], dun_param_resolver: DunbrackParamResolver
+        res_names: NDArray(object)[:],
+        dun_param_resolver: DunbrackParamResolver,
+        device: torch.Devie,
     ) -> DunbrackParams:
         """Parameter tensor groups and atom-type to parameter resolver."""
+        # dfphis = pandas.DataFrame(phis)
+        # dfpsis = pandas.DataFrame(psis)
+        # phipsis = dfphis.merge(dfpsis, left_on=0, right_on=0, suffixes=("_phi", "_psi")).values[:,1:]
+
+        rotandsemirot_dun_inds, rot_dun_inds, semirot_dun_inds = dun_param_resolver.resolve_dun_inds(
+            resnames
+        )
+
+        nchi_for_res = -1 * torch.ones((len(resnames),), dtype=long, device=device)
+        nchi_for_res[
+            rotandsemirot_dun_inds != -1
+        ] = dun_param_resolver.nchi_for_table_set[
+            rotandsemirot_dun_inds[rotandsemirot_dun_inds != -1]
+        ]
+
+        chiats = chi[chi[:, 1] < nchi_for_res[chi[:, 0]]][0, 2, 3, 4, 5]
+        phi_wanted = phis[rotandsemirot_dun_inds[phis[:, 0]] != -1]
+        psi_wanted = psis[rotandsemirot_dun_inds[psis[:, 0]] != -1]
+
+        dihedrals = torch.cat((phi_wanted, psi_wanted, chiats))
+        dihedrals_sorted, _ = torch.sort(dihedrals, 0)
+
         pass
