@@ -22,8 +22,8 @@ from .torch_op import LJOp, LKOp
 @attr.s(auto_attribs=True)
 class DunbrackParams(TensorGroup):
     ndihe_for_res: Tensor(torch.int32)[:]
-    dihedral_indices: Tensor(torch.int32)[..., 4]
     dihedral_offsets: Tensor(torch.int32)[:]
+    dihedral_indices: Tensor(torch.int32)[..., 4]
     rottable_set_for_res: Tensor(torch.int32)[:]
     nchi_for_res: Tensor(torch.int32)[:]
     nrotameric_chi_for_res: Tensor(torch.int32)[:]  # ??needed??
