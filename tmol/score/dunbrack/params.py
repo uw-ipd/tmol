@@ -135,14 +135,6 @@ class DunbrackParamResolver(ValidateAttrs):
             semirotameric_table_lookup["residue_name"]
         )
 
-        # print("all_table_names", all_table_names)
-        # print("rotameric_table_names", rotameric_table_names)
-        # print("semirotameric_table_names", semirotameric_table_names)
-        # example_residues = ["ARG", "PHE", "ALA", "LEU"]
-        # print("all", all_table_indices.get_indexer(example_residues))
-        # print("rot", rotameric_table_indices.get_indexer(example_residues))
-        # print("sem", semirotameric_table_indices.get_indexer(example_residues))
-
         rotameric_prob_tables = [
             torch.tensor(rotlib.rotameric_data.rotamer_probabilities[i,])
             for rotlib in all_rotlibs
@@ -153,7 +145,6 @@ class DunbrackParamResolver(ValidateAttrs):
             (rotlib.table_name, rotlib.rotameric_data.rotamer_probabilities.shape[0])
             for rotlib in all_rotlibs
         ]
-        print(prob_table_name_and_nrots)
 
         prob_table_nrots = [0] + [
             rotlib.rotameric_data.rotamer_probabilities.shape[0]
@@ -189,7 +180,6 @@ class DunbrackParamResolver(ValidateAttrs):
         rotameric_mean_offsets = torch.cumsum(
             torch.tensor(mean_table_n_entries, dtype=torch.long, device=device), 0
         )
-        print(rotameric_mean_offsets)
 
         rotameric_sdev_tables = [
             torch.tensor(rotlib.rotameric_data.rotamer_stdvs[i, :, :, j])
@@ -372,17 +362,17 @@ class DunbrackParamResolver(ValidateAttrs):
         chi: Tensor(torch.long)[:, 6],
         torch_device: torch.device,
     ) -> DunbrackParams:
+        # soon dfphi = pandas.DataFrame(phi.cpu().numpy())
+        # soon dfpsi = pandas.DataFrame(psi.cpu().numpy())
+        # soon phipsi = dfphi.merge(dfpsi, left_on=0, right_on=0, suffixes=("_phi","_psi")).values[:,:]
+        # soon all_defined = numpy.all(phipsi != -1)
 
         rns_inds, r_inds, s_inds = self.resolve_dun_indices(res_names, torch_device)
 
         # the "pose" residues are indexed by the info in phi/psi/chi tensors
-        print("res_names", res_names)
-        print("res_names.shape", res_names.shape)
         nchi_for_pose_res, nchi_for_res = self.determine_nchi_for_res(
             len(res_names), rns_inds, torch_device
         )
-        print("nchi_for_pose_res", nchi_for_pose_res)
-        print("nchi_for_res", nchi_for_res)
 
         chi_selected = self.select_chi(chi, nchi_for_pose_res)
         phi_wanted = phi[rns_inds[phi[:, 0]] != -1][:, 1:]

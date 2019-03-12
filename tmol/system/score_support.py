@@ -175,7 +175,10 @@ def omega_graph_inputs(system: PackedResidueSystem, **_):
 @DunbrackScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
 def dunbrack_graph_inputs(
-    system: PackedResidueSystem, parameter_database: ParameterDatabase, **_
+    system: PackedResidueSystem,
+    parameter_database: ParameterDatabase,
+    device: torch.device,
+    **_,
 ):
     dun_phi = numpy.array(
         [
@@ -278,8 +281,8 @@ def dunbrack_graph_inputs(
     print(dun_chi)
 
     return dict(
-        dun_phi=torch.tensor(dun_phi, dtype=torch.long),
-        dun_psi=torch.tensor(dun_psi, dtype=torch.long),
-        dun_chi=torch.tensor(dun_chi, dtype=torch.long),
+        dun_phi=torch.tensor(dun_phi, dtype=torch.long, device=device),
+        dun_psi=torch.tensor(dun_psi, dtype=torch.long, device=device),
+        dun_chi=torch.tensor(dun_chi, dtype=torch.long, device=device),
         dun_database=parameter_database.scoring.dun,
     )

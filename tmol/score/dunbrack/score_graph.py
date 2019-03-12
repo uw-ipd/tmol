@@ -103,5 +103,5 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     ) -> DunbrackParams:
         """Parameter tensor groups and atom-type to parameter resolver."""
         return dun_param_resolver.resolve_dunbrack_parameters(
-            res_names[dun_phi[:, 2]], dun_phi, dun_psi, dun_chi, device
+            res_names[0, dun_phi[:, 2]], dun_phi, dun_psi, dun_chi, device
         )
