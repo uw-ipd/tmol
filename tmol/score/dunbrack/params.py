@@ -94,11 +94,11 @@ class DunbrackParamResolver(ValidateAttrs):
     device: torch.device
 
     @classmethod
-    # @validate_args
-    # @toolz.functoolz.memoize(
-    #    cache=_from_dun_db_cache,
-    #    key=lambda args, kwargs: (args[1], args[2].type, args[2].index),
-    # )
+    @validate_args
+    @toolz.functoolz.memoize(
+        cache=_from_dun_db_cache,
+        key=lambda args, kwargs: (args[1], args[2].type, args[2].index),
+    )
     def from_database(cls, dun_database: DunbrackRotamerLibrary, device: torch.device):
         all_rotlibs = [
             rotlib
@@ -376,9 +376,13 @@ class DunbrackParamResolver(ValidateAttrs):
         rns_inds, r_inds, s_inds = self.resolve_dun_indices(res_names, torch_device)
 
         # the "pose" residues are indexed by the info in phi/psi/chi tensors
+        print("res_names", res_names)
+        print("res_names.shape", res_names.shape)
         nchi_for_pose_res, nchi_for_res = self.determine_nchi_for_res(
             len(res_names), rns_inds, torch_device
         )
+        print("nchi_for_pose_res", nchi_for_pose_res)
+        print("nchi_for_res", nchi_for_res)
 
         chi_selected = self.select_chi(chi, nchi_for_pose_res)
         phi_wanted = phi[rns_inds[phi[:, 0]] != -1][:, 1:]

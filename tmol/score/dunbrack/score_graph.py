@@ -1,9 +1,15 @@
-from typing import Optional
+import attr
 
 import torch
+import numpy
+from typing import Optional
+from functools import singledispatch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 from tmol.types.functional import validate_args
+
+from tmol.database import ParameterDatabase
+from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
@@ -15,8 +21,9 @@ from ..bonded_atom import BondedAtomScoreGraph
 from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
-from .params import LJLKParamResolver, DunbrackParams
-from .torch_op import LJOp, LKOp
+from .params import DunbrackParamResolver, DunbrackParams
+
+# from .torch_op import LJOp, LKOp
 
 
 @reactive_attrs
@@ -58,11 +65,7 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @staticmethod
     @singledispatch
     def factory_for(
-        val,
-        parameter_database: ParameterDatabase,
-        device: torch.device,
-        dun_database: DunbrackRotamerLibrary,
-        **_,
+        val, device: torch.device, dun_database: DunbrackRotamerLibrary, **_
     ):
         """Overridable clone-constructor.
         """
@@ -70,45 +73,35 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         return dict(
             dun_database=dun_database,
             device=device,
-            phis=val.phis,
-            psis=val.psis,
-            chis=val.chis,
+            dun_phi=torch.tensor(val.dun_phi, dtype=torch.long, device=device),
+            dun_psi=torch.tensor(val.dun_psi, dtype=torch.long, device=device),
+            dun_chi=torch.tensor(val.dun_chi, dtype=torch.long, device=device),
         )
 
     dun_database: DunbrackRotamerLibrary
-    device: torch.Device
-    phis: NDArray  # X by 5; resid, at1, at2, at3, at4
-    psis: NDArray  # X by 5; ibid
-    chis: NDArray  # X by 6; resid, chiind, at1, at2, at3, at4
+    device: torch.device
+    dun_phi: Tensor(torch.long)[:, 5]  # X by 5; resid, at1, at2, at3, at4
+    dun_psi: Tensor(torch.long)[:, 5]  # X by 5; ibid
+    dun_chi: Tensor(torch.long)[:, 6]  # X by 6; resid, chi_ind, at1, at2, at3, at4
+
+    @reactive_property
+    @validate_args
+    def dun_param_resolver(
+        dun_database: DunbrackRotamerLibrary, device: torch.device
+    ) -> DunbrackParamResolver:
+        return DunbrackParamResolver.from_database(dun_database, device)
 
     @reactive_property
     @validate_args
     def dun_resolve_indices(
-        res_names: NDArray(object)[:],
         dun_param_resolver: DunbrackParamResolver,
+        res_names: NDArray(object)[...],
+        dun_phi: Tensor(torch.long)[:, 5],
+        dun_psi: Tensor(torch.long)[:, 5],
+        dun_chi: Tensor(torch.long)[:, 6],
         device: torch.device,
     ) -> DunbrackParams:
         """Parameter tensor groups and atom-type to parameter resolver."""
-        # dfphis = pandas.DataFrame(phis)
-        # dfpsis = pandas.DataFrame(psis)
-        # phipsis = dfphis.merge(dfpsis, left_on=0, right_on=0, suffixes=("_phi", "_psi")).values[:,1:]
-
-        rotandsemirot_dun_inds, rot_dun_inds, semirot_dun_inds = dun_param_resolver.resolve_dun_inds(
-            resnames
+        return dun_param_resolver.resolve_dunbrack_parameters(
+            res_names[dun_phi[:, 2]], dun_phi, dun_psi, dun_chi, device
         )
-
-        nchi_for_res = -1 * torch.ones((len(resnames),), dtype=long, device=device)
-        nchi_for_res[
-            rotandsemirot_dun_inds != -1
-        ] = dun_param_resolver.nchi_for_table_set[
-            rotandsemirot_dun_inds[rotandsemirot_dun_inds != -1]
-        ]
-
-        chiats = chi[chi[:, 1] < nchi_for_res[chi[:, 0]]][0, 2, 3, 4, 5]
-        phi_wanted = phis[rotandsemirot_dun_inds[phis[:, 0]] != -1]
-        psi_wanted = psis[rotandsemirot_dun_inds[psis[:, 0]] != -1]
-
-        dihedrals = torch.cat((phi_wanted, psi_wanted, chiats))
-        dihedrals_sorted, _ = torch.sort(dihedrals, 0)
-
-        pass

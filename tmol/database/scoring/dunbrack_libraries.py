@@ -168,7 +168,7 @@ def load_tables_from_zarr(path_tables):
         semi_rotameric_libraries.append(
             SemiRotamericAADunbrackLibrary.from_zgroup(semirotameric_group, table)
         )
-    return rotameric_libraries, semi_rotameric_libraries
+    return tuple(rotameric_libraries), tuple(semi_rotameric_libraries)
 
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
