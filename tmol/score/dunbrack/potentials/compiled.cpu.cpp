@@ -11,7 +11,7 @@
 
 #include <pybind11/pybind11.h>
 
-//#include "potentials.hh"
+#include "potentials.hh"
 
 namespace tmol {
 namespace score {
@@ -66,16 +66,16 @@ struct DunbrackDispatch {
       
       // scratch space, perhaps does not belong as an input parameter?
       TView<Real, 1, D> dihedrals,  // ndihe x 1
-      TView<Real, 2, D> ddihe_dxyz,  // ndihe x 3
+      TView<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz,  // ndihe x 4 x 3
       TView<Real, 1, D> dihedral_dE_ddihe,  // ndihe x 1
       TView<Real, 1, D> rotchi_devpen, // n-rotameric-chi x 1
       TView<Real, 2, D> ddevpen_dbb,  // Where d chimean/d dbbdihe is
-                                      // stored, nscdihe x 2
-      TView<Int, 1, D> rottable_assignment,  // nres x 1
-  ) -> std::tuple<TPack<Real, 1, D>, TPack<Real, 2, D> >
+                                      // stored, n-rotameric-chi x 2
+      TView<Int, 1, D> rottable_assignment  // nres x 1
+  ) -> std::tuple<TPack<Real, 1, D>, TPack<Real3, 1, D> >
   {
     Int const nres(nrotameric_chi_for_res.size(0));
-    Int const n_rotameric_res(prob_table_offset_for_residue.size(0));
+    Int const n_rotameric_res(prob_table_offset_for_rotresidue.size(0));
     Int const n_rotameric_chi(rotameric_chi_desc.size(0));
     Int const n_semirotameric_res(semirotameric_chi_desc.size(0));
     Int const n_dihedrals(dihedral_atom_inds.size(0));
@@ -83,7 +83,7 @@ struct DunbrackDispatch {
     auto Vs_t = TPack<Real, 1, D>::empty(nres);
     auto Vs = Vs_t.view;
 
-    auto dVs_dxyz_t = TPack<Real, 2, D>::empty(coordinates.size(0),3);
+    auto dVs_dxyz_t = TPack<Real3, 1, D>::empty({coords.size(0),3});
     auto dVs_dxyz = dVs_dxyz_t.view;
     
     // Five steps to this calculation
@@ -98,16 +98,13 @@ struct DunbrackDispatch {
     for (int ii = 0; ii < nres; ++ii) {
       Vs[ii] = 0;
     }
+
     for (int ii = 0; ii < n_dihedrals; ++ii) {
-      for (int jj = 0; jj < 3; ++jj ) {
-	ddihe_dxyz[ii][jj] = 0;
-      }
-      dihedral_dE_ddihe[ii] = 0;
+      ddihe_dxyz[ii].fill(0);
+      dihedral_dE_ddihe[ii] = 0.;
     }
-    for (int ii=0; ii < coordinates.size(0); ++ii) {
-      for (int jj = 0; jj < 3; ++jj) {
-	dVs_dxyz[ii][jj] = 0;
-      }
+    for (int ii=0; ii < coords.size(0); ++ii) {
+      dVs_dxyz[ii].fill(0);
     }
 
     
@@ -118,7 +115,7 @@ struct DunbrackDispatch {
 	  dihedrals, ddihe_dxyz);
       });
     for (Int ii = 0; ii < n_dihedrals; ++ii) {
-      func_dihe(i);
+      func_dihe(ii);
     }
 
     // 2.
@@ -133,7 +130,7 @@ struct DunbrackDispatch {
 	rottable_assignment[i] = table_ind;
       });
     for (Int ii = 0; ii < nres; ++ii) {
-      func_rot(i);
+      func_rot(ii);
     }
 
     // 3.
@@ -144,14 +141,14 @@ struct DunbrackDispatch {
 	std::tie(neglnprobE, dneglnprob_ddihe) = rotameric_chi_probability(
 	  rotameric_prob_tables,
 	  prob_table_offset_for_rotresidue,
-	  resi,
+	  ires,
 	  i,
 	  dihedrals,
 	  dihedral_offset_for_res,
 	  rottable_assignment);
 	
-	Vs[resi] = neglnprobE;
-	Int const ires_dihedral_offset = dihedral_offset_for_res[residue_ind];
+	Vs[ires] = neglnprobE;
+	Int const ires_dihedral_offset = dihedral_offset_for_res[ires];
 	for (Int ii = 0; ii < 2; ++ii ) {
 	  dihedral_dE_ddihe[ires_dihedral_offset + ii] += dneglnprob_ddihe[ii];
 	}
@@ -174,13 +171,14 @@ struct DunbrackDispatch {
 	  rotameric_sdev_tables,
 	  rotameric_bb_start,
 	  rotameric_bb_step,
+	  rotameric_bb_periodicity,
 	  ires,
 	  inchi,
 	  ichi_ind,
 	  dihedrals,
 	  dihedral_offset_for_res,
 	  rottable_set_for_res,
-	  rotmean_table_set_offset,
+	  rotmean_table_offset_for_residue,
 	  rottable_assignment);
 	rotchi_devpen[i] = devpen;
 	Int const ires_dihe_offset = dihedral_offset_for_res[ires];
@@ -188,7 +186,7 @@ struct DunbrackDispatch {
 	// either need to accumulate dpen_dbb into a scratch space
 	// or use atomic increments into dihedral_dE_ddihe
 	for (Int ii = 0; ii < 2; ++ii) {
-	  ddevpen_dbb[ires_dihe_offset + ii] = dpen_dbb[ii];
+	  ddevpen_dbb[i][ii] = dpen_dbb[ii];
 	}
       });
     for (Int ii = 0; ii < n_rotameric_chi; ++ii ) {
@@ -200,25 +198,25 @@ struct DunbrackDispatch {
 	Real neglnprob;
 	Eigen::Matrix<Real, 3, 1> dnlp_ddihe;
 
-	Int const resid = semirotchi_desc[i][0];
-	Int const semirot_dihedral_index = semirotchi_desc[i][1];
-	Int const semirot_table_offset = semirotchi_desc[i][2];
-	Int const semirot_table_set = semirotchi_desc[i][3];
+	Int const resid = semirotameric_chi_desc[i][0];
+	Int const semirot_dihedral_index = semirotameric_chi_desc[i][1];
+	Int const semirot_table_offset = semirotameric_chi_desc[i][2];
+	Int const semirot_table_set = semirotameric_chi_desc[i][3];
 	
 	Int const res_dihe_offset = dihedral_offset_for_res[resid];
       
 	tie(neglnprob, dnlp_ddihe) = semirotameric_energy(
 	  semirotameric_tables,
 	  semirot_start,
-	  semirot_stop,
+	  semirot_step,
 	  semirot_periodicity,
-	  semirot_table_offset,
 	  dihedral_offset_for_res,
+	  dihedrals,
 	  rottable_assignment,
 	  resid,
 	  semirot_dihedral_index,
 	  semirot_table_offset,
-	  semitor_table_set);
+	  semirot_table_set);
 
 	Vs[resid] = neglnprob;
 	for ( int ii = 0; ii < 3; ++ii ) {
@@ -247,18 +245,27 @@ struct DunbrackDispatch {
     for (int ii = 0; ii <= n_dihedrals; ++ii) {
       for (int jj = 0; jj < 4; ++jj) {
 	int jjat = dihedral_atom_inds[ii][jj];
-	dVs_dxyz[jjat] += ddihe_dxyz[ii][jj] * dihedral_dE_ddihe[ii];
+	for ( int kk = 0; kk < 3; ++kk ) {
+	  dVs_dxyz[jjat](kk) += ddihe_dxyz[ii](jj,kk) * dihedral_dE_ddihe[ii];
+	}
       }
     }    
+    return {Vs_t, dVs_dxyz_t};
   }
 
-  return {Vs_t, dVs_dxyz_t};
 };
 
 template struct DunbrackDispatch<tmol::Device::CPU,float,int32_t>;
 template struct DunbrackDispatch<tmol::Device::CPU,double,int32_t>;
 template struct DunbrackDispatch<tmol::Device::CPU,float,int64_t>;
 template struct DunbrackDispatch<tmol::Device::CPU,double,int64_t>;
+
+//TEMP!!!
+template struct DunbrackDispatch<tmol::Device::CUDA,float,int32_t>;
+template struct DunbrackDispatch<tmol::Device::CUDA,double,int32_t>;
+template struct DunbrackDispatch<tmol::Device::CUDA,float,int64_t>;
+template struct DunbrackDispatch<tmol::Device::CUDA,double,int64_t>;
+
 
 }  // namespace potentials
 }  // namespace rama
