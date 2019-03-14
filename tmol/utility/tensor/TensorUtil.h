@@ -118,15 +118,16 @@ auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   int64_t strides[N];
 
   for (int d = 0; d < N - 1; ++d) {
-    sizes[d] = input.size(d) / size_factor;
+    sizes[d] = input.size(d);
     strides[d] = input.stride(d) / stride_factor;
-    if (strides[d] == 1) {
-      stride_factor /= input.stride(d);
-      size_factor *= input.size(d + 1);
+    if (strides[d] == 0) {  // stride_factor > input.stride(d)
+      sizes[d] = 1;
+      strides[d] = 1;
+      stride_factor /= input.size(d);
     }
   }
 
-  sizes[N - 1] = input.size(N - 1) / size_factor;
+  sizes[N - 1] = input.size(N - 1) / stride_factor;
   strides[N - 1] = 1;
 
   return tmol::TView<T, N, D, P>(
