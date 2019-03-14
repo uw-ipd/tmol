@@ -11,7 +11,7 @@
 
 namespace tmol {
 namespace score {
-namespace rama {
+namespace dunbrack {
 namespace potentials {
 
 template <typename Real, int N>
@@ -58,17 +58,17 @@ struct DunbrackDispatch {
       // semirotchi_desc[:,3] == semirot_table_set (e.g. 0-7)
 
       // scratch space, perhaps does not belong as an input parameter?
-      TView<Real, 1, D> dihedrals,           // ndihe x 1
-      TView<Real, 2, D> ddihe_dxyz,          // ndihe x 3
-      TView<Real, 1, D> dihedral_dE_ddihe,   // ndihe x 1
-      TView<Real, 1, D> rotchi_devpen,       // n-rotameric-chi x 1
-      TView<Real, 2, D> ddevpen_dbb,         // Where d chimean/d dbbdihe is
-                                             // stored, nscdihe x 2
-      TView<Int, 1, D> rottable_assignment,  // nres x 1
+      TView<Real, 1, D> dihedrals,          // ndihe x 1
+      TView<Real, 2, D> ddihe_dxyz,         // ndihe x 3
+      TView<Real, 1, D> dihedral_dE_ddihe,  // ndihe x 1
+      TView<Real, 1, D> rotchi_devpen,      // n-rotameric-chi x 1
+      TView<Real, 2, D> ddevpen_dbb,        // Where d chimean/d dbbdihe is
+                                            // stored, nscdihe x 2
+      TView<Int, 1, D> rottable_assignment  // nres x 1
       ) -> std::tuple<TPack<Real, 1, D>, TPack<Real, 2, D> >;
 };
 
 }  // namespace potentials
-}  // namespace rama
+}  // namespace dunbrack
 }  // namespace score
 }  // namespace tmol

@@ -4,11 +4,14 @@ _compiled = load(
     modulename(__name__),
     cuda_if_available(
         relpaths(
-            __file__, ["compiled.pybind.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"]
+            __file__,
+            ["compiled.pybind.cpp", "compiled.cpu.cpp"],  # temp, "compiled.cuda.cu"]
         )
     ),
 )
 
 
-def rama(*args, **kwargs):
-    return _compiled.rama[(args[0][0].device.type, args[0][0].dtype)](*args, **kwargs)
+def dunbrack_energy(*args, **kwargs):
+    return _compiled.dunbrack[(args[0][0].device.type, args[0][0].dtype)](
+        *args, **kwargs
+    )
