@@ -25,7 +25,7 @@ class DunbrackOp:
     @classmethod
     def from_params(cls, packed_db: PackedDunbrackDatabase, dun_params: DunbrackParams):
         res = cls(
-            device=packed_db.rotameric_prob_tableset_offsets.device,
+            device=packed_db.rotameric_bb_start.device,
             params={**asdict(packed_db), **asdict(dun_params)},
             packed_db=packed_db,
             dun_params=dun_params,
@@ -54,20 +54,23 @@ class DunbrackScoreFun(torch.autograd.Function):
     def forward(ctx, coords):
 
         # allocate the temporary tensors to hold information needed
-        ndihe = ctx.op.dun_params.dihedral_atom_indices.shape[0]
+        ndihe = ctx.op.dun_params.dihedral_atom_inds.shape[0]
         nrotchi = ctx.op.dun_params.rotameric_chi_desc.shape[0]
         nres = ctx.op.dun_params.ndihe_for_res.shape[0]
 
-        dihedrals = torch.empty((ndihe,), dtype=torch.float, device=ctx.op.device)
-        ddihe_dxyz = torch.empty((ndihe, 4, 3), dtype=torch.float, device=ctx.op.device)
-        dihedral_dE_ddihe = torch.empty(
+        dihedrals = torch.zeros((ndihe,), dtype=torch.float, device=ctx.op.device)
+        ddihe_dxyz = torch.zeros((ndihe, 4, 3), dtype=torch.float, device=ctx.op.device)
+        dihedral_dE_ddihe = torch.zeros(
             (ndihe,), dtype=torch.float, device=ctx.op.device
         )
-        rotchi_devpen = torch.empty((nrotchi,), dtype=torch.float, device=ctx.op.device)
-        devpen_dbb = torch.empty((nrotchi,), dtype=torch.float, device=ctx.op.device)
-        rottable_assignment = torch.empty(
+        rotchi_devpen = torch.zeros((nrotchi,), dtype=torch.float, device=ctx.op.device)
+        ddevpen_dbb = torch.zeros((nrotchi, 2), dtype=torch.float, device=ctx.op.device)
+        rottable_assignment = torch.zeros(
             (nres,), dtype=torch.long, device=ctx.op.device
         )
+
+        for key, val in ctx.op.params.items():
+            print("key in ctx.op.params:", key, print(type(val)))
 
         # dE_dphi/psi are returned as ntors x 12 arrays
         E = ctx.op.f(
@@ -76,7 +79,7 @@ class DunbrackScoreFun(torch.autograd.Function):
             ddihe_dxyz=ddihe_dxyz,
             dihedral_dE_ddihe=dihedral_dE_ddihe,
             rotchi_devpen=rotchi_devpen,
-            devpen_dbb=devpen_dbb,
+            ddevpen_dbb=ddevpen_dbb,
             rottable_assignment=rottable_assignment,
             **ctx.op.params,
         )
