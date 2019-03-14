@@ -20,6 +20,8 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 template <tmol::Device D, typename Real, typename Int>
 struct DunbrackDispatch {
   static auto f(
+      TView<Vec<Real, 3>, 1, D> coords,
+
       TCollection<Real, 2, D> rotameric_prob_tables,
       TCollection<Real, 2, D> rotameric_mean_tables,
       TCollection<Real, 2, D> rotameric_sdev_tables,
@@ -31,8 +33,6 @@ struct DunbrackDispatch {
       TView<Vec<Real, 3>, 1, D> semirot_step,              // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset
       TView<Int, 1, D> rotind2tableind,
-
-      TView<Vec<Real, 3>, 1, D> coords,
 
       TView<Int, 1, D> ndihe_for_res,               // nres x 1
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
@@ -58,10 +58,10 @@ struct DunbrackDispatch {
       // semirotchi_desc[:,3] == semirot_table_set (e.g. 0-7)
 
       // scratch space, perhaps does not belong as an input parameter?
-      TView<Real, 1, D> dihedrals,          // ndihe x 1
-      TView<Real, 2, D> ddihe_dxyz,         // ndihe x 3
-      TView<Real, 1, D> dihedral_dE_ddihe,  // ndihe x 1
-      TView<Real, 1, D> rotchi_devpen,      // n-rotameric-chi x 1
+      TView<Real, 1, D> dihedrals,                        // ndihe x 1
+      TView<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz,  // ndihe x 3
+      TView<Real, 1, D> dihedral_dE_ddihe,                // ndihe x 1
+      TView<Real, 1, D> rotchi_devpen,                    // n-rotameric-chi x 1
       TView<Real, 2, D> ddevpen_dbb,        // Where d chimean/d dbbdihe is
                                             // stored, nscdihe x 2
       TView<Int, 1, D> rottable_assignment  // nres x 1

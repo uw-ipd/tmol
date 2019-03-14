@@ -95,7 +95,8 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
-    dun_params = resolver.dun_params
+    dun_params = resolver.packed_db
+    dun_params_aux = resolver.packed_db_aux
 
     # properties that are independent of the library, except for the
     # fact that it represents alpha amino acids
@@ -109,13 +110,13 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     # properties that will depend on the libraries that are read in
     dunlib = default_database.scoring.dun
     nlibs = len(dunlib.rotameric_libraries) + len(dunlib.semi_rotameric_libraries)
-    assert dun_params.rotameric_prob_tableset_offsets.shape[0] == nlibs
-    assert dun_params.rotameric_meansdev_tableset_offsets.shape[0] == nlibs
+    assert dun_params_aux.rotameric_prob_tableset_offsets.shape[0] == nlibs
+    assert dun_params_aux.rotameric_meansdev_tableset_offsets.shape[0] == nlibs
     assert dun_params.rotameric_bb_start.shape[0] == nlibs
     assert dun_params.rotameric_bb_step.shape[0] == nlibs
     assert dun_params.rotameric_bb_periodicity.shape[0] == nlibs
     assert len(resolver.all_table_indices) == nlibs
-    assert dun_params.nchi_for_table_set.shape[0] == nlibs
+    assert dun_params_aux.nchi_for_table_set.shape[0] == nlibs
 
     nrotameric_rots = sum(
         (
@@ -374,7 +375,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
         rotres2resid_gold, dun_params.rotres2resid.cpu().numpy()
     )
 
-    prob_table_offset_for_rotresidue_gold = resolver.dun_params.rotameric_prob_tableset_offsets[
+    prob_table_offset_for_rotresidue_gold = resolver.packed_db_aux.rotameric_prob_tableset_offsets[
         rottable_set_for_res_gold[dun_params.rotres2resid]
     ]
     numpy.testing.assert_array_equal(
@@ -382,7 +383,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
         dun_params.prob_table_offset_for_rotresidue.cpu().numpy(),
     )
 
-    rotmean_table_offset_for_residue_gold = resolver.dun_params.rotameric_meansdev_tableset_offsets[
+    rotmean_table_offset_for_residue_gold = resolver.packed_db_aux.rotameric_meansdev_tableset_offsets[
         rottable_set_for_res_gold
     ]
     numpy.testing.assert_array_equal(
@@ -390,7 +391,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
         dun_params.rotmean_table_offset_for_residue.cpu().numpy(),
     )
 
-    rotind2tableind_offset_for_res_gold = resolver.dun_params.rotind2tableind_offsets[
+    rotind2tableind_offset_for_res_gold = resolver.packed_db_aux.rotind2tableind_offsets[
         rottable_set_for_res_gold
     ]
     numpy.testing.assert_array_equal(
@@ -413,7 +414,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     semirotameric_chi_desc_gold[:, 3] = semirot_res_inds
     semirotameric_chi_desc_gold[
         :, 2
-    ] = resolver.dun_params.semirotameric_tableset_offsets[semirot_res_inds]
+    ] = resolver.packed_db_aux.semirotameric_tableset_offsets[semirot_res_inds]
     numpy.testing.assert_array_equal(
         semirotameric_chi_desc_gold, dun_params.semirotameric_chi_desc.cpu().numpy()
     )

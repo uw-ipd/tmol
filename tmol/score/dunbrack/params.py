@@ -60,31 +60,34 @@ class PackedDunbrackDatabase(ConvertAttrs):
     rotameric_mean_tables: List
     rotameric_sdev_tables: List
 
-    rotameric_prob_tableset_offsets: Tensor(torch.long)[:]
-    rotameric_meansdev_tableset_offsets: Tensor(torch.long)[:]
-
     rotameric_bb_start: Tensor(torch.float)[:, :]
     rotameric_bb_step: Tensor(torch.float)[:, :]
     rotameric_bb_periodicity: Tensor(torch.float)[:, :]
 
-    nchi_for_table_set: Tensor(torch.long)[:]
     rotind2tableind: Tensor(torch.long)[:]
-    rotind2tableind_offsets: Tensor(torch.long)[:]
 
     semirotameric_tables: List
-    semirotameric_tableset_offsets: Tensor(torch.long)[:]
-
     semirot_start: Tensor(torch.float)[:, :]
     semirot_step: Tensor(torch.float)[:, :]
     semirot_periodicity: Tensor(torch.float)[:, :]
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class PackedDunbrackDatabaseAux(ConvertAttrs):
+    rotameric_prob_tableset_offsets: Tensor(torch.long)[:]
+    rotameric_meansdev_tableset_offsets: Tensor(torch.long)[:]
+    nchi_for_table_set: Tensor(torch.long)[:]
+    rotind2tableind_offsets: Tensor(torch.long)[:]
+    semirotameric_tableset_offsets: Tensor(torch.long)[:]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class DunbrackParamResolver(ValidateAttrs):
     _from_dun_db_cache = {}
 
-    # This lives on the device
-    dun_params: PackedDunbrackDatabase
+    # These live on the device
+    packed_db: PackedDunbrackDatabase
+    packed_db_aux: PackedDunbrackDatabaseAux
 
     # This will live on the CPU
     all_table_indices: pandas.Index
@@ -309,23 +312,25 @@ class DunbrackParamResolver(ValidateAttrs):
             device=device,
         )
 
-        dun_params = PackedDunbrackDatabase(
+        packed_db = PackedDunbrackDatabase(
             rotameric_prob_tables=prob_coeffs,
             rotameric_mean_tables=mean_coeffs,
             rotameric_sdev_tables=sdev_coeffs,
-            rotameric_prob_tableset_offsets=prob_table_offsets,
-            rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
             rotameric_bb_start=rotameric_bb_start,
             rotameric_bb_step=rotameric_bb_step,
             rotameric_bb_periodicity=rotameric_bb_periodicity,
-            nchi_for_table_set=nchi_for_table_set,
             rotind2tableind=rotind2tableind,
-            rotind2tableind_offsets=rotind2tableind_offsets,
             semirotameric_tables=semirot_coeffs,
-            semirotameric_tableset_offsets=semirotameric_tableset_offsets,
             semirot_start=semirot_start,
             semirot_step=semirot_step,
             semirot_periodicity=semirot_periodicity,
+        )
+        packed_db_aux = PackedDunbrackDatabaseAux(
+            rotameric_prob_tableset_offsets=prob_table_offsets,
+            rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
+            nchi_for_table_set=nchi_for_table_set,
+            rotind2tableind_offsets=rotind2tableind_offsets,
+            semirotameric_tableset_offsets=semirotameric_tableset_offsets,
         )
 
         # rama_params = PackedRamaDatabase(
@@ -347,7 +352,8 @@ class DunbrackParamResolver(ValidateAttrs):
         #
 
         return cls(
-            dun_params=dun_params,
+            packed_db=packed_db,
+            packed_db_aux=packed_db_aux,
             all_table_indices=all_table_indices,
             rotameric_table_indices=rotameric_table_indices,
             semirotameric_table_indices=semirotameric_table_indices,
@@ -414,14 +420,14 @@ class DunbrackParamResolver(ValidateAttrs):
 
         dun_rotres = r_inds[r_inds != -1]
         n_rotameric_res = dun_rotres.shape[0]
-        prob_table_offset_for_rotresidue = self.dun_params.rotameric_prob_tableset_offsets[
+        prob_table_offset_for_rotresidue = self.packed_db_aux.rotameric_prob_tableset_offsets[
             dun_rotres
         ]
-        rotmean_table_offset_for_residue = self.dun_params.rotameric_meansdev_tableset_offsets[
+        rotmean_table_offset_for_residue = self.packed_db_aux.rotameric_meansdev_tableset_offsets[
             rottable_set_for_res
         ]
 
-        rotind2tableind_offset_for_res = self.dun_params.rotind2tableind_offsets[
+        rotind2tableind_offset_for_res = self.packed_db_aux.rotind2tableind_offsets[
             rottable_set_for_res
         ]
 
@@ -466,7 +472,7 @@ class DunbrackParamResolver(ValidateAttrs):
             (nres,), dtype=torch.long, device=torch_device
         )
         # DunbrackParams #5
-        nchi_for_res = self.dun_params.nchi_for_table_set[rns_inds[rns_inds != -1]]
+        nchi_for_res = self.packed_db_aux.nchi_for_table_set[rns_inds[rns_inds != -1]]
 
         nchi_for_pose_res[rns_inds != -1] = nchi_for_res
         return nchi_for_pose_res, nchi_for_res
@@ -558,8 +564,8 @@ class DunbrackParamResolver(ValidateAttrs):
         semirotameric_chi_desc[:, 1] = (
             dihedral_offsets[s_inds != -1] + 1 + nchi_for_res[s_inds != -1]
         )
-        semirotameric_chi_desc[:, 2] = self.dun_params.semirotameric_tableset_offsets[
-            s_inds[s_inds != -1]
-        ]
+        semirotameric_chi_desc[
+            :, 2
+        ] = self.packed_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]]
         semirotameric_chi_desc[:, 3] = s_inds[s_inds != -1]
         return semirotameric_chi_desc

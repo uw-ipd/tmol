@@ -27,6 +27,8 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 template <tmol::Device D, typename Real, typename Int>
 struct DunbrackDispatch {
   static auto f(
+      TView<Vec<Real, 3>, 1, D> coords,
+
       TCollection<Real, 2, D> rotameric_prob_tables,
       TCollection<Real, 2, D> rotameric_mean_tables,
       TCollection<Real, 2, D> rotameric_sdev_tables,
@@ -38,8 +40,6 @@ struct DunbrackDispatch {
       TView<Vec<Real, 3>, 1, D> semirot_step, // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_periodicity, // n-semirot-tabset
       TView<Int, 1, D> rotind2tableind,
-
-      TView<Vec<Real, 3>, 1, D> coords,
 
       TView<Int, 1, D> ndihe_for_res,            // nres x 1
       TView<Int, 1, D> dihedral_offset_for_res,  // nres x 1

@@ -22,8 +22,7 @@ from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
 from .params import DunbrackParamResolver, DunbrackParams
-
-# from .torch_op import LJOp, LKOp
+from .torch_op import DunbrackOp
 
 
 @reactive_attrs
@@ -31,21 +30,7 @@ class DunbrackIntraScore(IntraScore):
     @reactive_property
     @validate_args
     def dun(target):
-        return target.dunbrack_op.intra(
-            target.coords[0, ...],
-            target.resolve_indices.ndihe_for_res,
-            target.resolve_indices.dihedral_indices,
-            target.resolve_indices.dihedral_offsets,
-            target.resolve_indices.rottable_set_for_res,
-            target.resolve_indices.nchi_for_res,
-            target.resolve_indices.nrotameric_chi_for_res,
-            target.resolve_indices.rotres2resid,
-            target.resolve_indices.prob_table_offset_for_rotresidue,
-            target.resolve_indices.rotmean_table_offset_for_residue,
-            target.resolve_indices.rotind2tableind_offset_for_res,
-            target.resolve_indices.rotameric_chi_desc,
-            target.resolve_indices.semirotameric_chi_desc,
-        )
+        return target.dunbrack_op.intra(target.coords[0, ...])
 
     @reactive_property
     def total_dun(dun):
@@ -83,6 +68,13 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     dun_phi: Tensor(torch.long)[:, 5]  # X by 5; resid, at1, at2, at3, at4
     dun_psi: Tensor(torch.long)[:, 5]  # X by 5; ibid
     dun_chi: Tensor(torch.long)[:, 6]  # X by 6; resid, chi_ind, at1, at2, at3, at4
+
+    @reactive_property
+    @validate_args
+    def dunbrack_op(
+        dun_param_resolver: DunbrackParamResolver, dun_resolve_indices: DunbrackParams
+    ) -> DunbrackOp:
+        return DunbrackOp.from_params(dun_param_resolver.packed_db, dun_resolve_indices)
 
     @reactive_property
     @validate_args
