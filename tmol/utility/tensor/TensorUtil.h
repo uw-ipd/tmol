@@ -105,6 +105,7 @@ template <
 auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
+  int64_t size_factor = 1;
 
   constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
   auto consumed_dims = enable_tensor_view<T>::consumed_dims;
@@ -128,6 +129,10 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   for (int d = 0; d < N; ++d) {
     sizes[d] = input.size(d);
     strides[d] = input.stride(d) / stride_factor;
+    if (strides[d] == 1) {
+        stride_factor /= input.stride(d);
+        size_factor *= input.size(d+1);
+    }
   }
 
   return tmol::TView<T, N, D, P>(
