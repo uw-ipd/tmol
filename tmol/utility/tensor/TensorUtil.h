@@ -130,8 +130,8 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
     sizes[d] = input.size(d);
     strides[d] = input.stride(d) / stride_factor;
     if (strides[d] == 1) {
-        stride_factor /= input.stride(d);
-        size_factor *= input.size(d+1);
+      stride_factor /= input.stride(d);
+      size_factor *= input.size(d + 1);
     }
   }
 
