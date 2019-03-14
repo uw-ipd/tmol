@@ -99,7 +99,6 @@ auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
       "Cast target type must be even multiple size of source type.");
 
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
-  int64_t size_factor = 1;
 
   AT_ASSERTM(input_t.dim() == N, "Wrong dimensionality.")
   AT_ASSERTM(
