@@ -103,8 +103,10 @@ auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
 
   AT_ASSERTM(input_t.dim() == N, "Wrong dimensionality.")
   AT_ASSERTM(
-      (input_t.size(N - 1) % stride_factor == 0) ||
-      (N>=2 && input_t.size(N - 1)*input_t.size(N - 2) % stride_factor == 0),
+      (input_t.size(N - 1) % stride_factor == 0)
+          || (N >= 2
+              && input_t.size(N - 1) * input_t.size(N - 2) % stride_factor
+                     == 0),
       "Low-dimension(s) shape must be even multiple of adjusted stride.")
   AT_ASSERTM(input_t.stride(N - 1) == 1, "Must be c-contiguous.")
   AT_ASSERTM(
@@ -119,8 +121,8 @@ auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
     sizes[d] = input.size(d) / size_factor;
     strides[d] = input.stride(d) / stride_factor;
     if (strides[d] == 1) {
-        stride_factor /= input.stride(d);
-        size_factor *= input.size(d+1);
+      stride_factor /= input.stride(d);
+      size_factor *= input.size(d + 1);
     }
   }
 
@@ -141,8 +143,8 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
-  if (input_t.dim() == N + 2 && 
-        input_t.size(N)*input_t.size(N+1) == stride_factor) {
+  if (input_t.dim() == N + 2
+      && input_t.size(N) * input_t.size(N + 1) == stride_factor) {
     // Implicitly convert an input tensor of result dims [..., 1, 1]
     // into a dim-2 view, squeezing off the last two dimensions.
     auto full_view = _view_tensor<T, N + 2, D, P>(input_t);
@@ -150,11 +152,12 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
     AT_ASSERTM(
         full_view.size(N) == 1, "Expected low-dimension result shape 1.");
     AT_ASSERTM(
-        full_view.size(N+1) == 1, "Expected low-dimension result shape 1.");
+        full_view.size(N + 1) == 1, "Expected low-dimension result shape 1.");
 
     return tmol::TView<T, N, D, P>(
         full_view.data(), &full_view.size(0), &full_view.stride(0));
-  } if (input_t.dim() == N + 1 && input_t.size(N) == stride_factor) {
+  }
+  if (input_t.dim() == N + 1 && input_t.size(N) == stride_factor) {
     // Implicitly convert an input tensor of result dims [..., 1]
     // into a dim-1 view, squeezing off the last dimension.
     auto full_view = _view_tensor<T, N + 1, D, P>(input_t);
