@@ -25,12 +25,12 @@ class RotamericDataForAA:
     @classmethod
     def from_zgroup(cls, zgroup):
         rotgrp = zgroup["rotameric_data"]
-        rotamers = torch.tensor(rotgrp["rotamers"][...], dtype=torch.long)
+        rotamers = torch.tensor(rotgrp["rotamers"][...], dtype=torch.int32)
         rot_probs = torch.tensor(rotgrp["probabilities"][...], dtype=torch.float)
         rot_means = torch.tensor(rotgrp["means"][...], dtype=torch.float)
         rot_stdvs = torch.tensor(rotgrp["stdvs"][...], dtype=torch.float)
         prob_sorted_rot_inds = torch.tensor(
-            rotgrp["prob_sorted_rot_inds"][...], dtype=torch.long
+            rotgrp["prob_sorted_rot_inds"][...], dtype=torch.int32
         )
         bb_dihe_start = torch.tensor(
             rotgrp["backbone_dihedral_start"][...], dtype=torch.float
@@ -106,13 +106,13 @@ class SemiRotamericAADunbrackLibrary:
         non_rot_chi_step = semirot_group.attrs["nonrot_chi_step"]
         non_rot_chi_period = semirot_group.attrs["nonrot_chi_period"]
         rotameric_chi_rotamers = torch.tensor(
-            semirot_group["rotameric_chi_rotamers"][...], dtype=torch.long
+            semirot_group["rotameric_chi_rotamers"][...], dtype=torch.int32
         )
         nonrotameric_chi_probabilities = torch.tensor(
             semirot_group["nonrotameric_chi_probabilities"][...], dtype=torch.float
         )
         rotamer_boundaries = torch.tensor(
-            semirot_group["rotamer_boundaries"][...], dtype=torch.long
+            semirot_group["rotamer_boundaries"][...], dtype=torch.int32
         )
 
         rot_probs = rotameric_data.rotamer_probabilities

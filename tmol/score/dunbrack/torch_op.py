@@ -66,7 +66,7 @@ class DunbrackScoreFun(torch.autograd.Function):
         rotchi_devpen = torch.zeros((nrotchi,), dtype=torch.float, device=ctx.op.device)
         ddevpen_dbb = torch.zeros((nrotchi, 2), dtype=torch.float, device=ctx.op.device)
         rottable_assignment = torch.zeros(
-            (nres,), dtype=torch.long, device=ctx.op.device
+            (nres,), dtype=torch.int32, device=ctx.op.device
         )
 
         for key, val in ctx.op.params.items():

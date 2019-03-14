@@ -191,7 +191,7 @@ def dunbrack_graph_inputs(
             ]
             for x in system.torsion_metadata[system.torsion_metadata["name"] == "phi"]
         ],
-        dtype=numpy.int64,
+        dtype=numpy.int32,
     )
 
     dun_psi = numpy.array(
@@ -205,7 +205,7 @@ def dunbrack_graph_inputs(
             ]
             for x in system.torsion_metadata[system.torsion_metadata["name"] == "psi"]
         ],
-        dtype=numpy.int64,
+        dtype=numpy.int32,
     )
 
     dun_chi1 = numpy.array(
@@ -220,7 +220,7 @@ def dunbrack_graph_inputs(
             ]
             for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi1"]
         ],
-        dtype=numpy.int64,
+        dtype=numpy.int32,
     )
 
     dun_chi2 = numpy.array(
@@ -235,7 +235,7 @@ def dunbrack_graph_inputs(
             ]
             for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi2"]
         ],
-        dtype=numpy.int64,
+        dtype=numpy.int32,
     )
 
     dun_chi3 = numpy.array(
@@ -250,7 +250,7 @@ def dunbrack_graph_inputs(
             ]
             for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi3"]
         ],
-        dtype=numpy.int64,
+        dtype=numpy.int32,
     )
 
     dun_chi4 = numpy.array(
@@ -265,7 +265,7 @@ def dunbrack_graph_inputs(
             ]
             for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi4"]
         ],
-        dtype=numpy.int64,
+        dtype=numpy.int32,
     )
 
     # print("dun_chi1.shape",dun_chi.shape)
@@ -281,8 +281,8 @@ def dunbrack_graph_inputs(
     print(dun_chi)
 
     return dict(
-        dun_phi=torch.tensor(dun_phi, dtype=torch.long, device=device),
-        dun_psi=torch.tensor(dun_psi, dtype=torch.long, device=device),
-        dun_chi=torch.tensor(dun_chi, dtype=torch.long, device=device),
+        dun_phi=torch.tensor(dun_phi, dtype=torch.int32, device=device),
+        dun_psi=torch.tensor(dun_psi, dtype=torch.int32, device=device),
+        dun_chi=torch.tensor(dun_chi, dtype=torch.int32, device=device),
         dun_database=parameter_database.scoring.dun,
     )

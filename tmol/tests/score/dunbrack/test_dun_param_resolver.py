@@ -271,7 +271,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
             [5, 6, 7, 8, 9],
             [6, 7, 8, 9, 10],
         ],
-        dtype=torch.long,
+        dtype=torch.int32,
         device=torch_device,
     )
     psis = torch.tensor(
@@ -284,7 +284,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
             [5, 7, 7, 8, 9],
             [6, 8, 8, 9, 10],
         ],
-        dtype=torch.long,
+        dtype=torch.int32,
         device=torch_device,
     )
     chi = torch.tensor(
@@ -304,7 +304,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
             [6, 1, 42, 43, 44, 45],
             [6, 2, 43, 44, 45, 46],
         ],
-        dtype=torch.long,
+        dtype=torch.int32,
         device=torch_device,
     )
 
@@ -319,7 +319,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
 
     dihedral_offsets_gold = numpy.array([0, 4, 10, 14, 19], dtype=int)
     numpy.testing.assert_array_equal(
-        dihedral_offsets_gold, dun_params.dihedral_offsets.cpu().numpy()
+        dihedral_offsets_gold, dun_params.dihedral_offset_for_res.cpu().numpy()
     )
 
     dihedral_atom_indices_gold = numpy.array(
@@ -351,7 +351,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
         ]
     )
     numpy.testing.assert_array_equal(
-        dihedral_atom_indices_gold, dun_params.dihedral_atom_indices.cpu().numpy()
+        dihedral_atom_indices_gold, dun_params.dihedral_atom_inds.cpu().numpy()
     )
 
     rns_inds = resolver.all_table_indices.get_indexer(example_names)
