@@ -36,6 +36,29 @@ def exclusive_cumsum(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
     )
 
 
+def print_row_numbered_tensor(tensor):
+    if len(tensor.shape) == 1:
+        print(
+            torch.cat(
+                (
+                    torch.arange(tensor.shape[0], dtype=tensor.dtype).reshape(-1, 1),
+                    tensor.reshape(-1, 1),
+                ),
+                1,
+            )
+        )
+    else:
+        print(
+            torch.cat(
+                (
+                    torch.arange(tensor.shape[0], dtype=tensor.dtype).reshape(-1, 1),
+                    tensor,
+                ),
+                1,
+            )
+        )
+
+
 @attr.s(auto_attribs=True)
 class DunbrackParams(TensorGroup):
     ndihe_for_res: Tensor(torch.int32)[:]
@@ -57,6 +80,7 @@ class DunbrackParams(TensorGroup):
 class PackedDunbrackDatabase(ConvertAttrs):
 
     rotameric_prob_tables: List
+    rotameric_neglnprob_tables: List
     rotameric_mean_tables: List
     rotameric_sdev_tables: List
 
@@ -143,6 +167,11 @@ class DunbrackParamResolver(ValidateAttrs):
             for rotlib in all_rotlibs
             for i in range(rotlib.rotameric_data.rotamer_probabilities.shape[0])
         ]
+        for table in rotameric_prob_tables:
+            table[table == 0] = 1e-6
+        rotameric_neglnprob_tables = [
+            -1 * torch.log(table) for table in rotameric_prob_tables
+        ]
 
         prob_table_name_and_nrots = [
             (rotlib.table_name, rotlib.rotameric_data.rotamer_probabilities.shape[0])
@@ -168,12 +197,22 @@ class DunbrackParamResolver(ValidateAttrs):
             for t in rotameric_prob_tables
         ]
 
+        neglnprob_coeffs = [
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_neglnprob_tables
+        ]
+
         rotameric_mean_tables = [
             torch.tensor(rotlib.rotameric_data.rotamer_means[i, :, :, j])
             for rotlib in all_rotlibs
             for i in range(rotlib.rotameric_data.rotamer_means.shape[0])
             for j in range(rotlib.rotameric_data.rotamer_means.shape[3])
         ]
+
+        # if the mean is near -180, wrap it towards +180
+        for x in rotameric_mean_tables:
+            x[x < -120] = x[x < -120] + 360
+            x *= numpy.pi / 180
 
         mean_table_n_entries = [0] + [
             rotlib.rotameric_data.rotamer_means.shape[0]
@@ -186,6 +225,8 @@ class DunbrackParamResolver(ValidateAttrs):
 
         rotameric_sdev_tables = [
             torch.tensor(rotlib.rotameric_data.rotamer_stdvs[i, :, :, j])
+            * numpy.pi
+            / 180
             for rotlib in all_rotlibs
             for i in range(rotlib.rotameric_data.rotamer_stdvs.shape[0])
             for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[3])
@@ -269,6 +310,10 @@ class DunbrackParamResolver(ValidateAttrs):
             for rotlib in dun_database.semi_rotameric_libraries
             for i in range(rotlib.nonrotameric_chi_probabilities.shape[0])
         ]
+        # these aren't used for rotamer building, so we'll just use this for the neglnprobs
+        for table in semirotameric_prob_tables:
+            table[table == 0] = 1e-6
+            table[:] = torch.log(table)
 
         semirot_coeffs = [
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
@@ -328,6 +373,7 @@ class DunbrackParamResolver(ValidateAttrs):
 
         packed_db = PackedDunbrackDatabase(
             rotameric_prob_tables=prob_coeffs,
+            rotameric_neglnprob_tables=prob_coeffs,
             rotameric_mean_tables=mean_coeffs,
             rotameric_sdev_tables=sdev_coeffs,
             rotameric_bb_start=rotameric_bb_start,
@@ -388,12 +434,25 @@ class DunbrackParamResolver(ValidateAttrs):
         # soon phipsi = dfphi.merge(dfpsi, left_on=0, right_on=0, suffixes=("_phi","_psi")).values[:,:]
         # soon all_defined = numpy.all(phipsi != -1)
 
+        torch.set_printoptions(threshold=5000)
+        print("phi")
+        print(phi)
+        print("psi")
+        print(psi)
+        print("chi")
+        print(chi)
+
         rns_inds, r_inds, s_inds = self.resolve_dun_indices(res_names, torch_device)
 
         # the "pose" residues are indexed by the info in phi/psi/chi tensors
         nchi_for_pose_res, nchi_for_res = self.determine_nchi_for_res(
             len(res_names), rns_inds, torch_device
         )
+
+        dun_res_names = res_names[rns_inds.numpy() != -1]
+        print("dun res names")
+        print(dun_res_names.shape)
+        print(dun_res_names)
 
         chi_selected = self.select_chi(chi, nchi_for_pose_res)
         chi_selected = chi_selected.type(torch.int32)
@@ -411,9 +470,31 @@ class DunbrackParamResolver(ValidateAttrs):
         # are semi-rotameric.
 
         dun_residues = torch.unique(chi_selected[:, 0], sorted=True).type(torch.int64)
+        print("dun_residues")
+        print(dun_residues)
         n_dun_residues = dun_residues.shape[0]
+        print("r_inds before")
+        print(r_inds)
         r_inds = r_inds[dun_residues]
+        print("r_inds after")
+        print(r_inds)
+        print("s_inds before")
+        print(s_inds)
         s_inds = s_inds[dun_residues]
+        print("s_inds after")
+        print(s_inds)
+
+        print("rotameric residues")
+        rotres_inds = numpy.arange(r_inds.shape[0], dtype=int)[r_inds.numpy() != -1]
+        # print("rotres_inds")
+        # print(rotres_inds)
+        print(dun_res_names[rotres_inds].shape)
+        print(dun_res_names[rotres_inds])
+
+        print("semirotameric residues")
+        semirotres_inds = numpy.arange(s_inds.shape[0], dtype=int)[s_inds.numpy() != -1]
+        print(dun_res_names[semirotres_inds].shape)
+        print(dun_res_names[semirotres_inds])
 
         ndihe_for_res = 2 + nchi_for_res
         print("3 nchi_for_res.type()", nchi_for_res.type())
@@ -455,7 +536,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
         semirotameric_chi_desc = self.create_semirotameric_chi_descriptors(
-            s_inds, dihedral_offset_for_res, nchi_for_res, torch_device
+            s_inds, dihedral_offset_for_res, nchi_for_res, torch_device, dun_res_names
         )
 
         return DunbrackParams(
@@ -476,6 +557,7 @@ class DunbrackParamResolver(ValidateAttrs):
     def resolve_dun_indices(
         self, resnames: NDArray(object), device: torch.device
     ) -> Tuple[Tensor(torch.int32)[:], Tensor(torch.int32)[:], Tensor(torch.int32)[:]]:
+        print("resnames", resnames)
         rns_inds = self.all_table_indices.get_indexer(resnames)
         r_inds = self.rotameric_table_indices.get_indexer(resnames)
         s_inds = self.semirotameric_table_indices.get_indexer(resnames)
@@ -521,24 +603,37 @@ class DunbrackParamResolver(ValidateAttrs):
         dihedral_atom_inds[dihedral_offset_for_res64 + 1, :] = psi_wanted.type(
             torch.int32
         )
+        print("nchi_for_res")
+        print_row_numbered_tensor(nchi_for_res)
 
         nchi_offsets = exclusive_cumsum(nchi_for_res).type(torch.int64)
+        print("nchi_offsets")
+        print_row_numbered_tensor(nchi_offsets)
         chi_is_first = torch.zeros(
             (chi_selected.shape[0],), dtype=torch.int32, device=torch_device
         )
         chi_is_first[nchi_offsets] = torch.ones(
             (n_dun_residues,), dtype=torch.int32, device=torch_device
         )
+        print("chi_is_first")
+        print_row_numbered_tensor(chi_is_first)
         res_for_chi = torch.cumsum(chi_is_first, 0) - 1
         res_for_chi64 = res_for_chi.type(torch.int64)
+        print("res_for_chi64")
+        print_row_numbered_tensor(res_for_chi64)
         offsets_for_chi = dihedral_offset_for_res64[res_for_chi64]
 
         chi_sel_ats = chi_selected[:, 2:]
         chi_selected64 = chi_selected.type(torch.int64)
-        print("chi_selected64.type()", chi_selected64.type())
-        print("offsets_for_chi.type()", offsets_for_chi.type())
-        print("chi_sel_ats.type()", chi_sel_ats.type())
+        print("chi_selected64")
+        print_row_numbered_tensor(chi_selected64)
+        print("offsets_for_chi")
+        print_row_numbered_tensor(offsets_for_chi)
+        print("chi_sel_ats")
+        print_row_numbered_tensor(chi_sel_ats)
         dihedral_atom_inds[chi_selected64[:, 1] + offsets_for_chi + 2] = chi_sel_ats
+        print("dihedral_atom_inds")
+        print_row_numbered_tensor(dihedral_atom_inds)
 
         return dihedral_atom_inds
 
@@ -580,8 +675,12 @@ class DunbrackParamResolver(ValidateAttrs):
         return rotameric_chi_desc
 
     def create_semirotameric_chi_descriptors(
-        self, s_inds, dihedral_offset_for_res, nchi_for_res, torch_device
+        self, s_inds, dihedral_offset_for_res, nchi_for_res, torch_device, res_names
     ):
+        # semirotchi_desc[:,0] == residue index
+        # semirotchi_desc[:,1] == semirotchi_dihedral_index res
+        # semirotchi_desc[:,2] == semirot_table_offset
+        # semirotchi_desc[:,3] == semirot_table_set (in the range 0-7 for the 8 semirot aas)
 
         n_semirotameric_res = torch.sum(s_inds != -1)
         semirotameric_chi_desc = torch.zeros(
@@ -591,6 +690,8 @@ class DunbrackParamResolver(ValidateAttrs):
             s_inds.shape[0], dtype=torch.int32, device=torch_device
         )[s_inds != -1]
 
+        # the semirotameric chi is the last chi, so, from the residue's dihedral offset
+        # add 2 for the two backbone dihedrals and (the number of chi - 1)
         semirotameric_chi_desc[:, 1] = (
             dihedral_offset_for_res[s_inds != -1] + 1 + nchi_for_res[s_inds != -1]
         )
@@ -598,4 +699,5 @@ class DunbrackParamResolver(ValidateAttrs):
             :, 2
         ] = self.packed_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]]
         semirotameric_chi_desc[:, 3] = s_inds[s_inds != -1]
+
         return semirotameric_chi_desc

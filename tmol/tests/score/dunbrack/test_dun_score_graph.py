@@ -115,6 +115,7 @@ def test_dunbrack_score_cpu(ubq_system, default_database):
     dunbrack_graph = DunbrackGraph.build_for(
         ubq_system, device=device, parameter_database=default_database
     )
+    # dun_params = dunbrack_graph.dun_resolve_indices
 
     intra_graph = dunbrack_graph.intra_score()
     e_dun = intra_graph.dun

@@ -84,11 +84,11 @@ class DunbrackScoreFun(torch.autograd.Function):
             **ctx.op.params,
         )
 
-        ctx.save_for_backward(ddihe_dxyz, dihedral_dE_ddihe)
+        # ctx.save_for_backward(ddihe_dxyz, dihedral_dE_ddihe)
 
         return E
 
     def backward(ctx, dV_dE):
-        ddihe_dxyz, dihedral_dE_ddihe = ctx.saved_tensors
+        # ddihe_dxyz, dihedral_dE_ddihe = ctx.saved_tensors
 
         return (None, None, None, None)

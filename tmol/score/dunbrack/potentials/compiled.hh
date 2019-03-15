@@ -23,6 +23,7 @@ struct DunbrackDispatch {
       TView<Vec<Real, 3>, 1, D> coords,
 
       TCollection<Real, 2, D> rotameric_prob_tables,
+      TCollection<Real, 2, D> rotameric_neglnprob_tables,
       TCollection<Real, 2, D> rotameric_mean_tables,
       TCollection<Real, 2, D> rotameric_sdev_tables,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,        // ntable-set entries
