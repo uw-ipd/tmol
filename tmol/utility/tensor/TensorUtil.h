@@ -120,23 +120,16 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   AT_ASSERTM(
       input_t.device().type() == D, "view_tensor of incorrect device type.")
 
+  // implicitly squeeze "nconsumed_dims"
   auto input = input_t.accessor<FromT, N + nconsumed_dims>();
 
   int64_t sizes[N];
   int64_t strides[N];
 
-  for (int d = 0; d < N - 1; ++d) {
+  for (int d = 0; d < N; ++d) {
     sizes[d] = input.size(d);
     strides[d] = input.stride(d) / stride_factor;
-    if (strides[d] == 0) {  // stride_factor > input.stride(d)
-      sizes[d] = 1;
-      strides[d] = 1;
-      stride_factor /= input.size(d);
-    }
   }
-
-  sizes[N - 1] = input.size(N - 1) / stride_factor;
-  strides[N - 1] = 1;
 
   return tmol::TView<T, N, D, P>(
       reinterpret_cast<T*>(input_t.data_ptr()), sizes, strides);
