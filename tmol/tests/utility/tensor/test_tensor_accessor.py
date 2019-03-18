@@ -75,6 +75,15 @@ def test_tensor_accessor_device_conversion(accessor_funcs):
             torch.testing.assert_allclose(f(tvec), expected)
 
 
+def test_tensor_pack_eigen_matrix(tensor_accessor):
+    eshape = (2, 5, 3, 3)
+    res = tensor_accessor.tensor_pack_construct_eigen_matrix()
+
+    torch.testing.assert_allclose(res[1], torch.ones(eshape))
+    torch.testing.assert_allclose(res[2], torch.zeros(eshape))
+    torch.testing.assert_allclose(res[3], torch.full(eshape, math.nan))
+
+
 def test_tensor_pack_constructors(tensor_accessor):
 
     eshape = (2, 5, 3)

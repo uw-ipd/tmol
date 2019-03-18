@@ -44,14 +44,14 @@ struct enable_tensor_view {
   _(float, at::ScalarType::Float)          \
   _(double, at::ScalarType::Double)
 
-#define SCALAR_VIEW(ctype, stype)                    \
-  template <>                                        \
-  struct enable_tensor_view<ctype> {                 \
-    static const bool enabled = true;                \
-    static const at::ScalarType scalar_type = stype; \
-    static const int consumed_dimensions = 0;        \
-    static const int consumed_dim_size = 1;          \
-    typedef ctype PrimitiveType;                     \
+#define SCALAR_VIEW(ctype, stype)                     \
+  template <>                                         \
+  struct enable_tensor_view<ctype> {                  \
+    static const bool enabled = true;                 \
+    static const at::ScalarType scalar_type = stype;  \
+    static const int nconsumed_dims = 0;              \
+    static const int consumed_dims(int) { return 0; } \
+    typedef ctype PrimitiveType;                      \
   };
 
 FORALL_SCALAR_TYPES_EXCEPT_HALF(SCALAR_VIEW)
@@ -62,8 +62,8 @@ struct enable_tensor_view<bool> {
   static const bool enabled = enable_tensor_view<uint8_t>::enabled;
   static const at::ScalarType scalar_type =
       enable_tensor_view<uint8_t>::scalar_type;
-  static const int consumed_dimensions = 0;
-  static const int consumed_dim_size = 1;
+  static const int nconsumed_dims = 0;
+  static const int consumed_dims(int) { return 0; }
   typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
 };
 
@@ -71,8 +71,8 @@ template <typename T, int M>
 struct enable_tensor_view<Eigen::Matrix<T, M, 1>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
-  static const int consumed_dimensions = 1;
-  static const int consumed_dim_size = M;
+  static const int nconsumed_dims = 1;
+  static const int consumed_dims(int i) { return (i == 0) ? M : 0; }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
@@ -80,8 +80,10 @@ template <typename T, int M, int N>
 struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
-  static const int consumed_dimensions = 2;
-  static const int consumed_dim_size = M * N;
+  static const int nconsumed_dims = 2;
+  static const int consumed_dims(int i) {
+    return (i == 0) ? M : (i == 1) ? N : 0;
+  }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
@@ -89,19 +91,9 @@ template <typename T, int N>
 struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
-  static const int consumed_dimensions = 1;
-  static const int consumed_dim_size = N;
+  static const int nconsumed_dims = 1;
+  static const int consumed_dims(int i) { return (i == 0) ? N : 0; }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
-};
-
-template <typename T, size_t N, Device D, PtrTag P>
-struct enable_tensor_view<tmol::TView<T, N, D, P>> {
-  static const bool enabled = enable_tensor_view<uint8_t>::enabled;
-  static const at::ScalarType scalar_type =
-      enable_tensor_view<uint8_t>::scalar_type;
-  static const int consumed_dimensions = 0;
-  static const int consumed_dim_size = 1;
-  typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
 };
 
 template <
@@ -114,24 +106,20 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
-  constexpr int nconsumed_dims = enable_tensor_view<T>::consumed_dimensions;
-  constexpr int consumed_dim_size = enable_tensor_view<T>::consumed_dim_size;
+  constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
+  auto consumed_dims = enable_tensor_view<T>::consumed_dims;
 
   AT_ASSERTM(
-      input_t.dim() == N + nconsumed_dims, "View of wrong dimensionality!");
-
-  int consumed_dims_stride = 1;
+      input_t.dim() == N + nconsumed_dims,
+      "view_tensor of wrong dimensionality.");
   for (int d = N; d < input_t.dim(); ++d) {
-    consumed_dims_stride *= input_t.size(d);
+    AT_ASSERTM(
+        input_t.size(d) == consumed_dims(d - N),
+        "squeezed dimension mismatch in view_tensor.");
   }
-
   AT_ASSERTM(
-      consumed_dim_size == consumed_dims_stride,
-      "Low-dimension shape must match stride and be C-contiguous.")
-  AT_ASSERTM(
-      input_t.device().type() == D, "_view_tensor of incorrect device type.")
+      input_t.device().type() == D, "view_tensor of incorrect device type.")
 
-  // implicitly squeeze "nconsumed_dims"
   auto input = input_t.accessor<FromT, N + nconsumed_dims>();
 
   int64_t sizes[N];

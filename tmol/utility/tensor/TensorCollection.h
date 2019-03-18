@@ -36,6 +36,7 @@ class TCollection {
 
     auto data_cpu =
         tmol::TPack<tmol::TView<T, N, D, P>, 1, tmol::Device::CPU, P>::empty(n);
+
     for (int i = 0; i < n; ++i) {
       data_cpu.view[i] = tensors[i].view;
     }
@@ -53,6 +54,19 @@ class TCollection {
   std::vector<tmol::TPack<T, N, D, P>> tensors;
   tmol::TPack<tmol::TView<T, N, D, P>, 1, D, P> data;
   tmol::TView<tmol::TView<T, N, D, P>, 1, D, P> view;
+};
+
+// TCollection conversion as a tensor of bytes
+template <typename T, size_t N, Device D, PtrTag P>
+struct enable_tensor_view<tmol::TView<T, N, D, P>> {
+  static const bool enabled = enable_tensor_view<uint8_t>::enabled;
+  static const at::ScalarType scalar_type =
+      enable_tensor_view<uint8_t>::scalar_type;
+  static const int nconsumed_dims = 1;
+  static const int consumed_dims(int i) {
+    return (i == 0) ? tmol::TCollection<T, N, D, P>::blocksize : 0;
+  }
+  typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
 };
 
 }  // namespace tmol

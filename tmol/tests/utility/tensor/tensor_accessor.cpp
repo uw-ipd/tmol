@@ -129,6 +129,17 @@ auto tensor_pack_construct_like_tpack(
       T::full_like(t, NAN));
 }
 
+auto tensor_pack_construct_eigen_matrix() {
+  typedef tmol::TPack<Eigen::Matrix3f, 2, tmol::Device::CPU> T;
+
+  return std::make_tuple(
+      T::empty({2, 5}),
+      T::ones({2, 5}),
+      T::zeros({2, 5}),
+      T::full({2, 5}, NAN));
+}
+
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   m.def(
       "aten", &vector_magnitude_aten, "ATen-based vector_magnitude function.");
@@ -160,7 +171,10 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
       "tensor_pack_construct",
       &tensor_pack_construct,
       "Construct {2, 5, 3} tensors via TensorPack constructors.");
-
+  m.def(
+      "tensor_pack_construct_eigen_matrix",
+      &tensor_pack_construct_eigen_matrix,
+      "Construct {2, 5, 3, 3} tensors via TensorPack constructors.");
   m.def(
       "tensor_pack_construct_like_aten",
       &tensor_pack_construct_like_aten,
