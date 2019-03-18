@@ -120,7 +120,6 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   AT_ASSERTM(
       input_t.device().type() == D, "view_tensor of incorrect device type.")
 
-  // implicitly squeeze "nconsumed_dims"
   auto input = input_t.accessor<FromT, N + nconsumed_dims>();
 
   int64_t sizes[N];
