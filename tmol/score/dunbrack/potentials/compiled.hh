@@ -33,7 +33,8 @@ struct DunbrackDispatch {
       TView<Vec<Real, 3>, 1, D> semirot_start,             // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_step,              // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset
-      TView<Int, 1, D> rotind2tableind,
+      TView<Int, 1, D> rotameric_rotind2tableind,
+      TView<Int, 1, D> semirotameric_rotind2tableind,
 
       TView<Int, 1, D> ndihe_for_res,               // nres x 1
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
@@ -63,10 +64,11 @@ struct DunbrackDispatch {
       TView<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz,  // ndihe x 3
       TView<Real, 1, D> dihedral_dE_ddihe,                // ndihe x 1
       TView<Real, 1, D> rotchi_devpen,                    // n-rotameric-chi x 1
-      TView<Real, 2, D> ddevpen_dbb,        // Where d chimean/d dbbdihe is
-                                            // stored, nscdihe x 2
-      TView<Int, 1, D> rottable_assignment  // nres x 1
-      ) -> std::tuple<TPack<Real, 1, D>, TPack<Real, 2, D> >;
+      TView<Real, 2, D> ddevpen_dbb,  // Where d chimean/d dbbdihe is
+                                      // stored, nscdihe x 2
+      TView<Int, 1, D> rotameric_rottable_assignment,     // nres x 1
+      TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
+      ) -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
 }  // namespace potentials

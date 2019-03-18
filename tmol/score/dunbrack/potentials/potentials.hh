@@ -59,8 +59,8 @@ def measure_dihedrals_V_dV(
     dihedrals[i] =
         60.0 * M_PI / 180;  // hack -- detect psi undefined; set to neutral
   }
-  std::cout << "Dihedral " << i << " for atoms " << at1 << " " << at2 << " "
-            << at3 << " " << at4 << " = " << dihedrals[i] << std::endl;
+  // std::cout << "Dihedral " << i << " for atoms " << at1 << " " << at2 << " "
+  //          << at3 << " " << at4 << " = " << dihedrals[i] << std::endl;
 }
 
 template <typename Real, tmol::Device D>
@@ -202,8 +202,9 @@ def chi_deviation_penalty(
   Real const chi_dev =
       (chi < -120.0_2rad ? chi + Real(2 * M_PI) - mean : chi - mean);
 
-  std::cout << "chi index " << chi_index << " " << chi << " " << mean << " "
-            << chi_dev << std::endl;
+  std::cout << "res " << residue_ind << " chi index " << chi_index << " "
+            << chi * 180 / M_PI << " " << mean * 180 / M_PI << " "
+            << chi_dev * 180 / M_PI << std::endl;
 
   // Now calculate d penalty / dbb
 
@@ -266,7 +267,7 @@ def semirotameric_energy(
     TView<Vec<Real, 3>, 1, D> semirot_periodicity,
     TView<Int, 1, D> dihedral_offset_for_res,
     TView<Real, 1, D> dihedrals,
-    TView<Int, 1, D> rottable_assignment,
+    TView<Int, 1, D> semirotameric_rottable_assignment,
     Int resid,
     Int semirot_dihedral_index,
     Int semirot_table_offset,
@@ -281,7 +282,8 @@ def semirotameric_energy(
   Eigen::Matrix<Real, 3, 1> temp_dihe_period;
 
   Int res_dihedral_offset = dihedral_offset_for_res[resid];
-  Int table_ind = rottable_assignment[resid] + semirot_table_offset;
+  Int table_ind =
+      semirotameric_rottable_assignment[resid] + semirot_table_offset;
   for (int ii = 0; ii < 3; ++ii) {
     int ii_dihe_ind =
         ii == 2 ? semirot_dihedral_index : (res_dihedral_offset + ii);
@@ -301,18 +303,19 @@ def semirotameric_energy(
     temp_dihe_period(ii) = ii_period;
   }
 
-  std::cout << "semi-rot res " << resid << " wrapped dihedrals "
-            << temp_dihe_deg(0) << " " << temp_dihe_deg(1) << " "
-            << temp_dihe_deg(2) << std::endl;
-  std::cout << "start dihedrals"
-            << " " << temp_orig_dihe_deg(0) << " " << temp_orig_dihe_deg(1)
-            << " " << temp_orig_dihe_deg(2) << std::endl;
-  std::cout << "dihe_step"
-            << " " << dihe_step(0) << " " << dihe_step(1) << " " << dihe_step(2)
-            << std::endl;
-  std::cout << "dihe_period"
-            << " " << temp_dihe_period(0) << " " << temp_dihe_period(1) << " "
-            << temp_dihe_period(2) << std::endl;
+  // std::cout << "semi-rot res " << resid << " wrapped dihedrals "
+  //          << temp_dihe_deg(0) << " " << temp_dihe_deg(1) << " "
+  //          << temp_dihe_deg(2) << std::endl;
+  // std::cout << "start dihedrals"
+  //          << " " << temp_orig_dihe_deg(0) << " " << temp_orig_dihe_deg(1)
+  //          << " " << temp_orig_dihe_deg(2) << std::endl;
+  // std::cout << "dihe_step"
+  //          << " " << dihe_step(0) << " " << dihe_step(1) << " " <<
+  //          dihe_step(2)
+  //          << std::endl;
+  // std::cout << "dihe_period"
+  //          << " " << temp_dihe_period(0) << " " << temp_dihe_period(1) << " "
+  //          << temp_dihe_period(2) << std::endl;
   Real V;
   Eigen::Matrix<Real, 3, 1> dV_ddihe;
   tie(V, dV_ddihe) =

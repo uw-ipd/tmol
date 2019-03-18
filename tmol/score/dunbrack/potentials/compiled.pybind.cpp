@@ -32,7 +32,8 @@ void bind_dispatch(pybind11::module& m) {
       "semirot_start"_a,
       "semirot_step"_a,
       "semirot_periodicity"_a,
-      "rotind2tableind"_a,
+      "rotameric_rotind2tableind"_a,
+      "semirotameric_rotind2tableind"_a,
       "ndihe_for_res"_a,
       "dihedral_offset_for_res"_a,
       "dihedral_atom_inds"_a,
@@ -54,7 +55,8 @@ void bind_dispatch(pybind11::module& m) {
       "dihedral_dE_ddihe"_a,
       "rotchi_devpen"_a,
       "ddevpen_dbb"_a,
-      "rottable_assignment"_a);
+      "rotameric_rottable_assignment"_a,
+      "semirotameric_rottable_assignment"_a);
 
 };
 
