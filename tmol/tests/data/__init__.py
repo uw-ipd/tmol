@@ -7,21 +7,21 @@ from . import structure
 
 @pytest.fixture(scope="session")
 def min_pdb():
-    return pdb.data["bysize_010_res_1ubq"]
+    return pdb.data["bysize_015_res_1lu6"]
 
 
 @pytest.fixture(scope="session")
 def min_res():
     from tmol.system.io import ResidueReader
 
-    return ResidueReader.get_default().parse_pdb(pdb.data["bysize_010_res_1ubq"])
+    return ResidueReader.get_default().parse_pdb(pdb.data["bysize_015_res_1lu6"])
 
 
 @pytest.fixture(scope="session")
 def min_system():
     from tmol.system.io import read_pdb
 
-    return read_pdb(pdb.data["bysize_010_res_1ubq"])
+    return read_pdb(pdb.data["bysize_015_res_1lu6"])
 
 
 @pytest.fixture(scope="session")
