@@ -53,10 +53,32 @@ void bind_dispatch(pybind11::module& m) {
       "dihedrals"_a,
       "ddihe_dxyz"_a,
       "dihedral_dE_ddihe"_a,
-      "rotchi_devpen"_a,
-      "ddevpen_dbb"_a,
+      //"rotchi_devpen"_a,
+      //"ddevpen_dbb"_a,
       "rotameric_rottable_assignment"_a,
       "semirotameric_rottable_assignment"_a);
+
+  add_dispatch_impl<Dev, Real>(
+      m,
+      "dunbrack_deriv",
+      &DunbrackDispatch<Dev, Real, Int>::df,
+      "coords"_a,
+      "dE_drotnlp"_a,
+      "drot_nlp_dphi_xyz"_a,
+      "drot_nlp_dpsi_xyz"_a,
+      "dE_ddevpen"_a,
+      "ddevpen_dphi_xyz"_a, 
+      "ddevpen_dpsi_xyz"_a,
+      "ddevpen_dchi_xyz"_a,
+      "dE_dnonrotnlp"_a,
+      "dnonrot_nlp_dphi_xyz"_a,
+      "dnonrot_nlp_dpsi_xyz"_a,
+      "dnonrot_nlp_dchi_xyz"_a,
+      "dihedral_offset_for_res"_a,
+      "dihedral_atom_inds"_a,
+      "rotres2resid"_a,
+      "rotameric_chi_desc"_a,
+      "semirotameric_chi_desc"_a);
 
 };
 

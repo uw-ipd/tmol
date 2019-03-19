@@ -86,6 +86,8 @@ struct type_caster<tmol::TView<T, N, D, P>> {
       return true;
     } catch (at::Error err) {
 #ifdef DEBUG
+      print("err.what()");
+      print(err.what());
       print(
           "Error casting to TView type: ",
           type_id<ViewType>(),
@@ -122,6 +124,8 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
       return true;
     } catch (at::Error err) {
 #ifdef DEBUG
+      print("err.what()");
+      print(err.what());
       print(
           "Error casting to TPack type: ",
           type_id<PackType>(),

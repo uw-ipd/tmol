@@ -16,6 +16,7 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
+#define CoordQuad Eigen::Matrix<Real, 4, 3>
 
 template <tmol::Device D, typename Real, typename Int>
 struct DunbrackDispatch {
@@ -63,13 +64,56 @@ struct DunbrackDispatch {
       TView<Real, 1, D> dihedrals,                        // ndihe x 1
       TView<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz,  // ndihe x 3
       TView<Real, 1, D> dihedral_dE_ddihe,                // ndihe x 1
-      TView<Real, 1, D> rotchi_devpen,                    // n-rotameric-chi x 1
-      TView<Real, 2, D> ddevpen_dbb,  // Where d chimean/d dbbdihe is
-                                      // stored, nscdihe x 2
+      // TView<Real, 1, D> rotchi_devpen,                    // n-rotameric-chi
+      // x 1 TView<Real, 2, D> ddevpen_dbb,  // Where d chimean/d dbbdihe is
+      //                                // stored, nscdihe x 2
       TView<Int, 1, D> rotameric_rottable_assignment,     // nres x 1
       TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
-      ) -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
+      )
+      -> std::tuple<
+          TPack<Real, 1, D>,        // -ln(prob_rotameric)
+          TPack<CoordQuad, 1, D>,   // d(-ln(prob_rotameric)) / dphi atoms
+          TPack<CoordQuad, 1, D>,   // d(-ln(prob_rotameric)) / dpsi atoms
+          TPack<Real, 1, D>,        // Erotameric_chi_devpen
+          TPack<CoordQuad, 1, D>,   // ddevpen_dphi
+          TPack<CoordQuad, 1, D>,   // ddevpen_dphi
+          TPack<CoordQuad, 1, D>,   // ddevpen_dchi
+          TPack<Real, 1, D>,        // -ln(prob_nonrotameric)
+          TPack<CoordQuad, 1, D>,   // d(-ln(prob_nonrotameric)) / dphi atoms
+          TPack<CoordQuad, 1, D>,   // d(-ln(prob_nonrotameric)) / dpsi atoms
+          TPack<CoordQuad, 1, D> >  // d(-ln(prob_nonrotameric)) / dchi atoms
+      ;
+
+  static auto df(
+      TView<Vec<Real, 3>, 1, D> coords,
+      TView<Real, 1, D> dE_drotnlp,
+      TView<CoordQuad, 1, D> drot_nlp_dphi_xyz,
+      TView<CoordQuad, 1, D> drot_nlp_dpsi_xyz,
+      TView<Real, 1, D> dE_ddevpen,
+      TView<CoordQuad, 1, D> ddevpen_dphi_xyz,
+      TView<CoordQuad, 1, D> ddevpen_dpsi_xyz,
+      TView<CoordQuad, 1, D> ddevpen_dchi_xyz,
+      TView<Real, 1, D> dE_dnonrotnlp,
+      TView<CoordQuad, 1, D> dnonrot_nlp_dphi_xyz,
+      TView<CoordQuad, 1, D> dnonrot_nlp_dpsi_xyz,
+      TView<CoordQuad, 1, D> dnonrot_nlp_dchi_xyz,
+      TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
+      TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
+      TView<Int, 1, D> rotres2resid,                // nres x 1
+      TView<Int, 2, D> rotameric_chi_desc,          // n-rotameric-chi x 2
+      // rotchi_desc[:,0] == residue index for this chi
+      // rotchi_desc[:,1] == chi_dihedral_index for res
+
+      TView<Int, 2, D> semirotameric_chi_desc  // n-semirotameric-residues x 4
+      // semirotchi_desc[:,0] == residue index
+      // semirotchi_desc[:,1] == semirotchi_dihedral_index res
+      // semirotchi_desc[:,2] == semirot_table_offset
+      // semirotchi_desc[:,3] == semirot_table_set (e.g. 0-7)
+
+      ) -> TPack<Vec<Real, 3>, 1, D>;
 };
+
+#undef CoordQuad
 
 }  // namespace potentials
 }  // namespace dunbrack

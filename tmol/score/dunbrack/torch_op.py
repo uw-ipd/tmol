@@ -15,12 +15,19 @@ class DunbrackOp:
     dun_params: DunbrackParams
 
     f: Callable = attr.ib()
+    df: Callable = attr.ib()
 
     @f.default
     def _load_f(self):
         from .potentials import compiled
 
         return compiled.dunbrack_energy
+
+    @df.default
+    def _load_df(self):
+        from .potentials import compiled
+
+        return compiled.dunbrack_deriv
 
     @classmethod
     def from_params(cls, packed_db: PackedDunbrackDatabase, dun_params: DunbrackParams):
@@ -63,8 +70,8 @@ class DunbrackScoreFun(torch.autograd.Function):
         dihedral_dE_ddihe = torch.zeros(
             (ndihe,), dtype=torch.float, device=ctx.op.device
         )
-        rotchi_devpen = torch.zeros((nrotchi,), dtype=torch.float, device=ctx.op.device)
-        ddevpen_dbb = torch.zeros((nrotchi, 2), dtype=torch.float, device=ctx.op.device)
+        #  rotchi_devpen = torch.zeros((nrotchi,), dtype=torch.float, device=ctx.op.device)
+        #  ddevpen_dbb = torch.zeros((nrotchi, 2), dtype=torch.float, device=ctx.op.device)
         rotameric_rottable_assignment = torch.zeros(
             (nres,), dtype=torch.int32, device=ctx.op.device
         )
@@ -76,23 +83,64 @@ class DunbrackScoreFun(torch.autograd.Function):
         #    print("key in ctx.op.params:", key, print(type(val)))
 
         # dE_dphi/psi are returned as ntors x 12 arrays
-        E, dE_dxyz = ctx.op.f(
+        rot_nlpE, drot_nlp_dphi, drot_nlp_dpsi, devpen, ddevpen_dphi, ddevpen_dpsi, ddevpen_dchi, nonrot_nlpE, dnonrot_nlpE_dphi, dnonrot_nlpE_dpsi, dnonrot_nlpE_dchi = ctx.op.f(
             coords,
             dihedrals=dihedrals,
             ddihe_dxyz=ddihe_dxyz,
             dihedral_dE_ddihe=dihedral_dE_ddihe,
-            rotchi_devpen=rotchi_devpen,
-            ddevpen_dbb=ddevpen_dbb,
+            # rotchi_devpen=rotchi_devpen,
+            # ddevpen_dbb=ddevpen_dbb,
             rotameric_rottable_assignment=rotameric_rottable_assignment,
             semirotameric_rottable_assignment=semirotameric_rottable_assignment,
             **ctx.op.params,
         )
 
-        ctx.save_for_backward(dE_dxyz)
+        ctx.save_for_backward(
+            coords,
+            drot_nlp_dphi,
+            drot_nlp_dpsi,
+            ddevpen_dphi,
+            ddevpen_dpsi,
+            ddevpen_dchi,
+            dnonrot_nlpE_dphi,
+            dnonrot_nlpE_dpsi,
+            dnonrot_nlpE_dchi,
+        )
 
-        return E
+        return rot_nlpE, devpen, nonrot_nlpE
 
-    def backward(ctx, dV_dE):
-        dE_dxyz, = ctx.saved_tensors
+    def backward(ctx, dE_drotnlp, dE_ddevpen, dE_dnonrotnlp):
+        coords, drot_nlp_dphi, drot_nlp_dpsi, ddevpen_dphi, ddevpen_dpsi, ddevpen_dchi, dnonrot_nlpE_dphi, dnonrot_nlpE_dpsi, dnonrot_nlpE_dchi = (
+            ctx.saved_tensors
+        )
+
+        dE_drotnlp = dE_drotnlp.contiguous()
+        dE_ddevpen = dE_ddevpen.contiguous()
+        dE_dnonrotnlp = dE_dnonrotnlp.contiguous()
+
+        print("dE_drotnlp", dE_drotnlp.shape, dE_drotnlp.dtype)
+
+        # dE_dxyz = torch.zeros(ctx.coords_shape, dtype=torch.float, device=drot_nlp_dphi.device)
+        dE_dxyz = ctx.op.df(
+            coords,
+            dE_drotnlp=dE_drotnlp,
+            drot_nlp_dphi_xyz=drot_nlp_dphi,
+            drot_nlp_dpsi_xyz=drot_nlp_dpsi,
+            dE_ddevpen=dE_ddevpen,
+            ddevpen_dphi_xyz=ddevpen_dphi,
+            ddevpen_dpsi_xyz=ddevpen_dpsi,
+            ddevpen_dchi_xyz=ddevpen_dchi,
+            dE_dnonrotnlp=dE_dnonrotnlp,
+            dnonrot_nlp_dphi_xyz=dnonrot_nlpE_dphi,
+            dnonrot_nlp_dpsi_xyz=dnonrot_nlpE_dpsi,
+            dnonrot_nlp_dchi_xyz=dnonrot_nlpE_dchi,
+            dihedral_offset_for_res=ctx.op.dun_params.dihedral_offset_for_res,
+            dihedral_atom_inds=ctx.op.dun_params.dihedral_atom_inds,
+            rotres2resid=ctx.op.dun_params.rotres2resid,
+            rotameric_chi_desc=ctx.op.dun_params.rotameric_chi_desc,
+            semirotameric_chi_desc=ctx.op.dun_params.semirotameric_chi_desc,
+        )
         return dE_dxyz
+
+        # return dE_dxyz
         # return (dE_dxyz, None, None, None)

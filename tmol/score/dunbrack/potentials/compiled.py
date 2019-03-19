@@ -15,3 +15,9 @@ def dunbrack_energy(*args, **kwargs):
     return _compiled.dunbrack[(args[0][0].device.type, args[0][0].dtype)](
         *args, **kwargs
     )
+
+
+def dunbrack_deriv(*args, **kwargs):
+    return _compiled.dunbrack_deriv[(args[0][0].device.type, args[0][0].dtype)](
+        *args, **kwargs
+    )
