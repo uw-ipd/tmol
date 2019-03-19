@@ -202,10 +202,6 @@ def chi_deviation_penalty(
   Real const chi_dev =
       (chi < -120.0_2rad ? chi + Real(2 * M_PI) - mean : chi - mean);
 
-  std::cout << "res " << residue_ind << " chi index " << chi_index << " "
-            << chi * 180 / M_PI << " " << mean * 180 / M_PI << " "
-            << chi_dev * 180 / M_PI << std::endl;
-
   // Now calculate d penalty / dbb
 
   // From Rosetta3:
@@ -226,6 +222,11 @@ def chi_deviation_penalty(
   Real const deviation_penalty = f * invg;
   Real const dpen_dchi = 2 * (chi_dev)*invg;
 
+  std::cout << "res " << residue_ind << " chi index " << chi_index << " "
+            << chi * 180 / M_PI << " " << mean * 180 / M_PI << " "
+            << chi_dev * 180 / M_PI << " dev pen " << deviation_penalty
+            << std::endl;
+
   Eigen::Matrix<Real, 2, 1> ddev_dbb;
   for (Int ii = 0; ii < 2; ++ii) {
     ddev_dbb[ii] =
@@ -238,25 +239,57 @@ def chi_deviation_penalty(
 template <typename Real, typename Int, tmol::Device D>
 def rotameric_chi_probability(
     TCollection<Real, 2, D> rotameric_neglnprob_tables,
+    TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
+    TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
+    TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
     TView<Int, 1, D> prob_table_offset_for_rotresidue,
-    int rotresidue_ind,
     int residue_ind,
+    int rotresidue_ind,
     TView<Real, 1, D> dihedrals,
     TView<Int, 1, D> dihedral_offset_for_res,
-    TView<Int, 1, D> rottable_assignment)
+    TView<Int, 1, D> rottable_set_for_res,
+    TView<Int, 1, D> rotameric_rottable_assignment)
     ->std::tuple<Real, Eigen::Matrix<Real, 2, 1> > {
   auto rotameric_neglnprob_tables_view = rotameric_neglnprob_tables.view;
-  Eigen::Matrix<Real, 2, 1> bbdihe;
+  Eigen::Matrix<Real, 2, 1> bbdihe, bbstep;
 
-  Int const res_rottable = rottable_assignment[residue_ind]
-                           + prob_table_offset_for_rotresidue[residue_ind];
-  Int const res_offset = dihedral_offset_for_res[residue_ind];
+  Int const table_set = rottable_set_for_res[residue_ind];
+  std::cout << "res rottable for " << residue_ind << " / " << rotresidue_ind
+            << " = " << prob_table_offset_for_rotresidue[rotresidue_ind]
+            << " + " << rotameric_rottable_assignment[residue_ind] << std::endl;
+  Int const res_rottable = prob_table_offset_for_rotresidue[rotresidue_ind]
+                           + rotameric_rottable_assignment[residue_ind];
+  Int const res_dihedral_offset = dihedral_offset_for_res[residue_ind];
+
   for (Int ii = 0; ii < 2; ++ii) {
-    bbdihe[ii] = dihedrals[res_offset + ii];
-  }
+    Real wrap_iidihe =
+        dihedrals[res_dihedral_offset + ii] - rotameric_bb_start[table_set][ii];
+    while (wrap_iidihe < 0) {
+      wrap_iidihe += 2 * M_PI;
+    }
+    Real ii_period = rotameric_bb_periodicity[table_set][ii];
+    while (wrap_iidihe > ii_period) {
+      wrap_iidihe -= ii_period;
+    }
 
-  return tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
-      rotameric_neglnprob_tables_view[res_rottable], bbdihe);
+    bbstep[ii] = rotameric_bb_step[table_set][ii];
+    bbdihe[ii] = wrap_iidihe / bbstep[ii];
+    std::cout << "neglnprob " << residue_ind << " " << ii << " "
+              << dihedrals[res_dihedral_offset + ii] * 180 / M_PI << " "
+              << wrap_iidihe * 180 / M_PI << " " << bbdihe[ii] << " "
+              << bbstep[ii] << std::endl;
+  }
+  Real V;
+  Eigen::Matrix<Real, 2, 1> dVdbb;
+  std::tie(V, dVdbb) =
+      tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+          rotameric_neglnprob_tables_view[res_rottable], bbdihe);
+  std::cout << "interpolated neglnprob " << residue_ind << " " << res_rottable
+            << " " << V << std::endl;
+  for (int ii = 0; ii < 2; ++ii) {
+    dVdbb[ii] /= bbstep[ii];
+  }
+  return {V, dVdbb};
 }
 
 template <typename Real, typename Int, tmol::Device D>

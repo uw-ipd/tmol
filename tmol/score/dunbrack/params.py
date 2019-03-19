@@ -187,20 +187,26 @@ class DunbrackParamResolver(ValidateAttrs):
             (rotlib.table_name, rotlib.rotameric_data.rotamer_probabilities.shape[0])
             for rotlib in all_rotlibs
         ]
+        print("prob_table_name_and_nrots")
+        print(prob_table_name_and_nrots)
 
-        prob_table_nrots = [0] + [
-            rotlib.rotameric_data.rotamer_probabilities.shape[0]
-            for rotlib in all_rotlibs
-        ][:-1]
         nchi_for_table_set = torch.tensor(
             [rotlib.rotameric_data.rotamers.shape[1] for rotlib in all_rotlibs],
             dtype=torch.int32,
             device=device,
         )
 
-        prob_table_offsets = torch.cumsum(
-            torch.tensor(prob_table_nrots, dtype=torch.int32, device=device), 0
+        prob_table_nrots = torch.tensor(
+            [
+                rotlib.rotameric_data.rotamer_probabilities.shape[0]
+                for rotlib in all_rotlibs
+            ],
+            dtype=torch.int32,
+            device=device,
         )
+        prob_table_offsets = exclusive_cumsum(prob_table_nrots)
+        print("prob_table_offsets")
+        print_row_numbered_tensor(prob_table_offsets)
 
         prob_coeffs = [
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
@@ -429,7 +435,7 @@ class DunbrackParamResolver(ValidateAttrs):
 
         packed_db = PackedDunbrackDatabase(
             rotameric_prob_tables=prob_coeffs,
-            rotameric_neglnprob_tables=prob_coeffs,
+            rotameric_neglnprob_tables=neglnprob_coeffs,
             rotameric_mean_tables=mean_coeffs,
             rotameric_sdev_tables=sdev_coeffs,
             rotameric_bb_start=rotameric_bb_start,
@@ -580,6 +586,8 @@ class DunbrackParamResolver(ValidateAttrs):
         prob_table_offset_for_rotresidue = self.packed_db_aux.rotameric_prob_tableset_offsets[
             dun_rotres
         ]
+        print("prob_table_offset_for_rotresidue")
+        print_row_numbered_tensor(prob_table_offset_for_rotresidue)
         rotmean_table_offset_for_residue = self.packed_db_aux.rotameric_meansdev_tableset_offsets[
             rottable_set_for_res64
         ]

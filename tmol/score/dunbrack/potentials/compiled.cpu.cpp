@@ -159,11 +159,15 @@ struct DunbrackDispatch {
 	Int ires = rotres2resid[i];
 	std::tie(neglnprobE, dneglnprob_ddihe) = rotameric_chi_probability(
 	  rotameric_neglnprob_tables,
+	  rotameric_bb_start,
+	  rotameric_bb_step,
+	  rotameric_bb_periodicity,
 	  prob_table_offset_for_rotresidue,
 	  ires,
 	  i,
 	  dihedrals,
 	  dihedral_offset_for_res,
+	  rottable_set_for_res,
 	  rotameric_rottable_assignment);
 
 	Vs[ires] = neglnprobE;
