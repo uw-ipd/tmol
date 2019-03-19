@@ -35,7 +35,7 @@ class DunbrackIntraScore(IntraScore):
     @reactive_property
     def total_dun(dun):
         """total inter-atomic lj"""
-        score_ind, score_val = dun
+        score_val = dun
         return score_val.sum()
 
 

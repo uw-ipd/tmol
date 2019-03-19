@@ -68,6 +68,9 @@ def classify_rotamer(
     TView<Real, 1, D> dihedrals, int n_rotameric_chi, int dihe_offset)
     ->int {
   // Input dihedral value must be in the range [-pi,+pi)
+  // three bins: g+ (  0--120) = 0
+  //             t  (120--240) = 1
+  //             g- (240--360) = 2
   int rotamer_ind = 0;
   // Real const deg2rad = M_PI / 180;
   for (int ii = 0; ii < n_rotameric_chi; ++ii) {
@@ -222,10 +225,10 @@ def chi_deviation_penalty(
   Real const deviation_penalty = f * invg;
   Real const dpen_dchi = 2 * (chi_dev)*invg;
 
-  std::cout << "res " << residue_ind << " chi index " << chi_index << " "
-            << chi * 180 / M_PI << " " << mean * 180 / M_PI << " "
-            << chi_dev * 180 / M_PI << " dev pen " << deviation_penalty
-            << std::endl;
+  // std::cout << "res " << residue_ind << " chi index " << chi_index << " "
+  //          << chi * 180 / M_PI << " " << mean * 180 / M_PI << " "
+  //          << chi_dev * 180 / M_PI << " dev pen " << deviation_penalty
+  //          << std::endl;
 
   Eigen::Matrix<Real, 2, 1> ddev_dbb;
   for (Int ii = 0; ii < 2; ++ii) {
@@ -254,9 +257,10 @@ def rotameric_chi_probability(
   Eigen::Matrix<Real, 2, 1> bbdihe, bbstep;
 
   Int const table_set = rottable_set_for_res[residue_ind];
-  std::cout << "res rottable for " << residue_ind << " / " << rotresidue_ind
-            << " = " << prob_table_offset_for_rotresidue[rotresidue_ind]
-            << " + " << rotameric_rottable_assignment[residue_ind] << std::endl;
+  // std::cout << "res rottable for " << residue_ind << " / " << rotresidue_ind
+  //          << " = " << prob_table_offset_for_rotresidue[rotresidue_ind]
+  //          << " + " << rotameric_rottable_assignment[residue_ind] <<
+  //          std::endl;
   Int const res_rottable = prob_table_offset_for_rotresidue[rotresidue_ind]
                            + rotameric_rottable_assignment[residue_ind];
   Int const res_dihedral_offset = dihedral_offset_for_res[residue_ind];
@@ -274,18 +278,19 @@ def rotameric_chi_probability(
 
     bbstep[ii] = rotameric_bb_step[table_set][ii];
     bbdihe[ii] = wrap_iidihe / bbstep[ii];
-    std::cout << "neglnprob " << residue_ind << " " << ii << " "
-              << dihedrals[res_dihedral_offset + ii] * 180 / M_PI << " "
-              << wrap_iidihe * 180 / M_PI << " " << bbdihe[ii] << " "
-              << bbstep[ii] << std::endl;
+    // std::cout << "neglnprob " << residue_ind << " " << ii << " "
+    //          << dihedrals[res_dihedral_offset + ii] * 180 / M_PI << " "
+    //          << wrap_iidihe * 180 / M_PI << " " << bbdihe[ii] << " "
+    //          << bbstep[ii] << std::endl;
   }
   Real V;
   Eigen::Matrix<Real, 2, 1> dVdbb;
   std::tie(V, dVdbb) =
       tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
           rotameric_neglnprob_tables_view[res_rottable], bbdihe);
-  std::cout << "interpolated neglnprob " << residue_ind << " " << res_rottable
-            << " " << V << std::endl;
+  // std::cout << "interpolated neglnprob " << residue_ind << " " <<
+  // res_rottable
+  //          << " " << V << std::endl;
   for (int ii = 0; ii < 2; ++ii) {
     dVdbb[ii] /= bbstep[ii];
   }
@@ -355,7 +360,7 @@ def semirotameric_energy(
       tmol::numeric::bspline::ndspline<3, 3, D, Real, Int>::interpolate(
           semirot_tables_view[table_ind], dihe);
   for (int ii = 0; ii < 3; ++ii) {
-    dV_ddihe[ii] /= semirot_step[semirot_table_set][ii];
+    dV_ddihe[ii] /= dihe_step[ii];
   }
   return {V, dV_ddihe};
 }

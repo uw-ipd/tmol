@@ -6,6 +6,7 @@ import torch
 
 import itertools
 
+from tmol.system.packed import PackedResidueSystem
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.dunbrack.params import DunbrackParamResolver
@@ -15,20 +16,22 @@ from tmol.types.torch import Tensor
 
 
 @score_graph
-class DunbrackGraph(CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice):
+class CartDunbrackGraph(
+    CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice
+):
     pass
 
 
 def temp_skip_test_dunbrack_score_graph_smoke(
     ubq_system, default_database, torch_device
 ):
-    dunbrack_graph = DunbrackGraph.build_for(
+    dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=torch_device, parameter_database=default_database
     )
 
 
 def temp_skip_test_dunbrack_score_setup(ubq_system, default_database, torch_device):
-    dunbrack_graph = DunbrackGraph.build_for(
+    dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=torch_device, parameter_database=default_database
     )
 
@@ -112,10 +115,28 @@ def temp_skip_test_dunbrack_score_setup(ubq_system, default_database, torch_devi
 
 def test_dunbrack_score_cpu(ubq_system, default_database):
     device = torch.device("cpu")
-    dunbrack_graph = DunbrackGraph.build_for(
+    dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=device, parameter_database=default_database
     )
     # dun_params = dunbrack_graph.dun_resolve_indices
 
     intra_graph = dunbrack_graph.intra_score()
     e_dun = intra_graph.dun
+
+
+def test_cartesian_space_rama_gradcheck(ubq_res):
+    test_system = PackedResidueSystem.from_residues(ubq_res[:6])
+    real_space = CartDunbrackGraph.build_for(test_system)
+
+    coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
+    start_coords = real_space.coords[coord_mask]
+
+    def total_score(coords):
+        state_coords = real_space.coords.detach().clone()
+        state_coords[coord_mask] = coords
+        real_space.coords = state_coords
+        return real_space.intra_score().total
+
+    assert torch.autograd.gradcheck(
+        total_score, (start_coords,), eps=2e-3, rtol=5e-2, atol=5e-2
+    )

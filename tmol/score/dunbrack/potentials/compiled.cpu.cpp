@@ -103,7 +103,7 @@ struct DunbrackDispatch {
     // 4. compute the chi-deviation penalty for all rotameric chi
     // 5. compute the -ln(P) energy for the semi-rotameric residues
 
-    std::cout << "step 0" << std::endl;
+    //std::cout << "step 0" << std::endl;
     // 0.
     for (int ii = 0; ii < nres; ++ii) {
       Vs[ii] = 0;
@@ -119,7 +119,7 @@ struct DunbrackDispatch {
 
 
     // 1.
-    std::cout << "step 1" << std::endl;
+    //std::cout << "step 1" << std::endl;
     auto func_dihe = ([=] EIGEN_DEVICE_FUNC(int i) {
 	measure_dihedrals_V_dV(
 	  coords, i, dihedral_atom_inds,
@@ -130,7 +130,7 @@ struct DunbrackDispatch {
     }
 
     // 2.
-    std::cout << "step 2" << std::endl;
+    //std::cout << "step 2" << std::endl;
     auto func_rot = ([=] EIGEN_DEVICE_FUNC(int i) {
 	// Add in 2 backbone dihedrals for this residue
 	Int dihe_offset = dihedral_offset_for_res[i] + 2;
@@ -142,7 +142,7 @@ struct DunbrackDispatch {
 	  ri2ti_offset + rot_ind];
 	Int semirotameric_table_ind = semirotameric_rotind2tableind[
 	  ri2ti_offset + rot_ind];
-	std::cout << "residue " << i << " rotamer " << rot_ind << " rot table ind " << rotameric_table_ind << " semirot table ind " << semirotameric_table_ind << std::endl;
+	//std::cout << "residue " << i << " rotamer " << rot_ind << " rot table ind " << rotameric_table_ind << " semirot table ind " << semirotameric_table_ind << std::endl;
 	rotameric_rottable_assignment[i] = rotameric_table_ind;
 	semirotameric_rottable_assignment[i] = semirotameric_table_ind;
 
@@ -152,7 +152,7 @@ struct DunbrackDispatch {
     }
 
     // 3.
-    std::cout << "step 3" << std::endl;
+    //std::cout << "step 3" << std::endl;
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i){
 	Real neglnprobE;
 	Eigen::Matrix<Real,2,1> dneglnprob_ddihe;
@@ -185,7 +185,7 @@ struct DunbrackDispatch {
 
 
     // 4.
-    std::cout << "step 4" << std::endl;
+    //std::cout << "step 4" << std::endl;
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
 	int ires = rotameric_chi_desc[i][0];
 	int ichi_ind = rotameric_chi_desc[i][1];
@@ -251,7 +251,7 @@ struct DunbrackDispatch {
 	for ( int ii = 0; ii < 3; ++ii ) {
 	  int ii_dihe_ind = ii == 2 ? semirot_dihedral_index : (res_dihe_offset + ii);
 	  dihedral_dE_ddihe[ii_dihe_ind] += dnlp_ddihe[ii];
-	  //std::cout << "dihedral_dE_ddihe["<<ii_dihe_ind<<"] += dnlp_ddihe["<<ii<<"]" << std::endl;
+	  //std::cout << "dihedral_dE_ddihe["<<ii_dihe_ind<<"] += dnlp_ddihe["<<ii<<"] = " << dnlp_ddihe[ii] << std::endl;
 	}
       });
 
@@ -262,7 +262,7 @@ struct DunbrackDispatch {
     // OK! now we just do some bookkeeping to accumulate the energies we've just computed
     // on a per residue / per dihedral basis, and convert these into per-atom derivatives.
 
-    std::cout << "step 6" << std::endl;
+    //std::cout << "step 6" << std::endl;
     for (int ii = 0; ii < n_rotameric_chi; ++ii) {
       int iiresid = rotameric_chi_desc[ii][0];
       int ii_dihe_offset = dihedral_offset_for_res[iiresid];
@@ -290,9 +290,9 @@ struct DunbrackDispatch {
     }
     //std::cout << "done!" << std::endl;
 
-    for (int ii = 0; ii < nres; ++ii ) {
-      std::cout << "Vs[ " << ii << "] = " << Vs[ii] << std::endl;
-    }
+    //for (int ii = 0; ii < nres; ++ii ) {
+    //  std::cout << "Vs[ " << ii << "] = " << Vs[ii] << std::endl;
+    //}
     return {Vs_t, dVs_dxyz_t};
   }
 

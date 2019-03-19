@@ -72,11 +72,11 @@ class DunbrackScoreFun(torch.autograd.Function):
             (nres,), dtype=torch.int32, device=ctx.op.device
         )
 
-        for key, val in ctx.op.params.items():
-            print("key in ctx.op.params:", key, print(type(val)))
+        # for key, val in ctx.op.params.items():
+        #    print("key in ctx.op.params:", key, print(type(val)))
 
         # dE_dphi/psi are returned as ntors x 12 arrays
-        E = ctx.op.f(
+        E, dE_dxyz = ctx.op.f(
             coords,
             dihedrals=dihedrals,
             ddihe_dxyz=ddihe_dxyz,
@@ -88,11 +88,11 @@ class DunbrackScoreFun(torch.autograd.Function):
             **ctx.op.params,
         )
 
-        # ctx.save_for_backward(ddihe_dxyz, dihedral_dE_ddihe)
+        ctx.save_for_backward(dE_dxyz)
 
         return E
 
     def backward(ctx, dV_dE):
-        # ddihe_dxyz, dihedral_dE_ddihe = ctx.saved_tensors
-
-        return (None, None, None, None)
+        dE_dxyz, = ctx.saved_tensors
+        return dE_dxyz
+        # return (dE_dxyz, None, None, None)
