@@ -21,6 +21,7 @@ class RotamericDataForAA:
     prob_sorted_rot_inds: Tensor(int)  # (n-bb+1)-dimensional table
     backbone_dihedral_start: Tensor(float)[:]
     backbone_dihedral_step: Tensor(float)[:]
+    rotamer_alias: Tensor(int)[:, :]
 
     @classmethod
     def from_zgroup(cls, zgroup):
@@ -38,6 +39,10 @@ class RotamericDataForAA:
         bb_dihe_step = torch.tensor(
             rotgrp["backbone_dihedral_step"][...], dtype=torch.float
         )
+        rotamer_alias = torch.tensor(rotgrp["rotamer_alias"][...], dtype=torch.int32)
+
+        print("rotamer_alias")
+        print(rotamer_alias)
 
         assert len(rotamers.shape) == 2
         assert bb_dihe_start.shape[0] == bb_dihe_step.shape[0]
@@ -66,6 +71,7 @@ class RotamericDataForAA:
             prob_sorted_rot_inds=prob_sorted_rot_inds,
             backbone_dihedral_start=bb_dihe_start,
             backbone_dihedral_step=bb_dihe_step,
+            rotamer_alias=rotamer_alias,
         )
 
     def nrotamers(self):
@@ -84,6 +90,7 @@ class RotamericAADunbrackLibrary:
     def from_zgroup(cls, zgroup, name):
         lib_group = zgroup[name]
         rotameric_data = RotamericDataForAA.from_zgroup(lib_group)
+        print("rotameric library", name, rotameric_data.nchi())
         return cls(table_name=name, rotameric_data=rotameric_data)
 
 
@@ -132,6 +139,7 @@ class SemiRotamericAADunbrackLibrary:
         assert rotamer_boundaries.shape[0] == rotameric_data.nrotamers()
         assert rotamer_boundaries.shape[1] == 2
 
+        print("semi-rotameric library", name, rotameric_data.nchi())
         return cls(
             table_name=name,
             rotameric_data=rotameric_data,

@@ -131,8 +131,8 @@ struct DunbrackDispatch {
     auto dneglnprob_nonrot_dchi_xyz = dneglnprob_nonrot_dchi_xyz_tpack.view;
     
     
-    //auto Vs_t = TPack<Real, 1, D>::empty(nres);
-    //auto Vs = Vs_t.view;
+    auto Vs_t = TPack<Real, 1, D>::zeros(nres);
+    auto Vs = Vs_t.view;
     //
     //auto dVs_dxyz_t = TPack<Real3, 1, D>::empty(coords.size(0));
     //auto dVs_dxyz = dVs_dxyz_t.view;
@@ -147,9 +147,9 @@ struct DunbrackDispatch {
 
     //std::cout << "step 0" << std::endl;
     // 0.
-    //for (int ii = 0; ii < nres; ++ii) {
-    //  Vs[ii] = 0;
-    //}
+    for (int ii = 0; ii < nres; ++ii) {
+      Vs[ii] = 0;
+    }
 
     for (int ii = 0; ii < n_dihedrals; ++ii) {
       ddihe_dxyz[ii].fill(0);
@@ -184,7 +184,7 @@ struct DunbrackDispatch {
 	  ri2ti_offset + rot_ind];
 	Int semirotameric_table_ind = semirotameric_rotind2tableind[
 	  ri2ti_offset + rot_ind];
-	//std::cout << "residue " << i << " rotamer " << rot_ind << " rot table ind " << rotameric_table_ind << " semirot table ind " << semirotameric_table_ind << std::endl;
+	std::cout << "residue " << i << " rotamer " << rot_ind << " rot table ind " << rotameric_table_ind << " semirot table ind " << semirotameric_table_ind << std::endl;
 	rotameric_rottable_assignment[i] = rotameric_table_ind;
 	semirotameric_rottable_assignment[i] = semirotameric_table_ind;
 
@@ -212,7 +212,7 @@ struct DunbrackDispatch {
 	  rottable_set_for_res,
 	  rotameric_rottable_assignment);
 
-	//Vs[ires] = neglnprobE;
+	Vs[ires] = neglnprobE;
 	neglnprob_rot[i] = neglnprobE;
 	int phi_ind = dihedral_offset_for_res[ires];
 	int psi_ind = dihedral_offset_for_res[ires] + 1;
@@ -281,7 +281,7 @@ struct DunbrackDispatch {
 	//}
       });
     for (Int ii = 0; ii < n_rotameric_chi; ++ii ) {
-      // func_chidevpen(ii);
+      func_chidevpen(ii);
     }
 
     // 5.
@@ -311,6 +311,7 @@ struct DunbrackDispatch {
 	  semirot_table_set);
 
 	neglnprob_nonrot[i] = neglnprob;
+	Vs[resid] = neglnprob;
 
 	int phi_ind = res_dihe_offset;
 	int psi_ind = res_dihe_offset+1;
@@ -325,25 +326,25 @@ struct DunbrackDispatch {
       });
 
     for ( int ii = 0; ii < n_semirotameric_res; ++ii ) {
-      // func_semirot(ii);
+      func_semirot(ii);
     }
 
     // // OK! now we just do some bookkeeping to accumulate the energies we've just computed
     // // on a per residue / per dihedral basis, and convert these into per-atom derivatives.
     // 
-    // //std::cout << "step 6" << std::endl;
-    // for (int ii = 0; ii < n_rotameric_chi; ++ii) {
-    //   int iiresid = rotameric_chi_desc[ii][0];
-    //   int ii_dihe_offset = dihedral_offset_for_res[iiresid];
-    //   Vs[iiresid] += rotchi_devpen[ii];
-    //   //std::cout << ii << " " << iiresid << " " << ii_dihe_offset << " " << Vs[iiresid] << std::endl;
-    //   for (int jj = 0; jj < 2; ++jj) {
-    // 	dihedral_dE_ddihe[ii_dihe_offset + jj] +=
-    // 	  ddevpen_dbb[ii][jj];
-    // 	//std::cout << "dihedral_dE_ddihe[" << ii_dihe_offset << " + " << jj << "] = " << dihedral_dE_ddihe[ii_dihe_offset + jj] << std::endl;
-    //   }
-    // }
-    // 
+    //std::cout << "step 6" << std::endl;
+    for (int ii = 0; ii < n_rotameric_chi; ++ii) {
+      int iiresid = rotameric_chi_desc[ii][0];
+      int ii_dihe_offset = dihedral_offset_for_res[iiresid];
+      Vs[iiresid] += rotchi_devpen[ii];
+      //std::cout << ii << " " << iiresid << " " << ii_dihe_offset << " " << Vs[iiresid] << std::endl;
+      // for (int jj = 0; jj < 2; ++jj) {
+      // 	dihedral_dE_ddihe[ii_dihe_offset + jj] +=
+      // 	  ddevpen_dbb[ii][jj];
+      // 	//std::cout << "dihedral_dE_ddihe[" << ii_dihe_offset << " + " << jj << "] = " << dihedral_dE_ddihe[ii_dihe_offset + jj] << std::endl;
+      // }
+    }
+    
     // for (int ii = 0; ii < n_dihedrals; ++ii) {
     //   for (int jj = 0; jj < 4; ++jj) {
     // 	int jjat = dihedral_atom_inds[ii][jj];
@@ -357,11 +358,11 @@ struct DunbrackDispatch {
     // 	}
     //   }
     // }
-    // //std::cout << "done!" << std::endl;
-    // 
-    // //for (int ii = 0; ii < nres; ++ii ) {
-    // //  std::cout << "Vs[ " << ii << "] = " << Vs[ii] << std::endl;
-    // //}
+    //std::cout << "done!" << std::endl;
+     
+    for (int ii = 0; ii < nres; ++ii ) {
+      std::cout << "Vs[ " << ii << "] = " << Vs[ii] << std::endl;
+    }
     // return {Vs_t, dVs_dxyz_t};
     return {
       neglnprob_rot_tpack,
