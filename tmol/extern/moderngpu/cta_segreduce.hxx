@@ -2,6 +2,7 @@
 #pragma once
 
 #include "cta_scan.hxx"
+#include "cta_segscan.hxx"
 
 BEGIN_MGPU_NAMESPACE
 
