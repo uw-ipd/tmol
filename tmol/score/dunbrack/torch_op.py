@@ -118,7 +118,7 @@ class DunbrackScoreFun(torch.autograd.Function):
         dE_ddevpen = dE_ddevpen.contiguous()
         dE_dnonrotnlp = dE_dnonrotnlp.contiguous()
 
-        print("dE_drotnlp", dE_drotnlp.shape, dE_drotnlp.dtype)
+        # print("dE_drotnlp", dE_drotnlp.shape, dE_drotnlp.dtype)
 
         # dE_dxyz = torch.zeros(ctx.coords_shape, dtype=torch.float, device=drot_nlp_dphi.device)
         dE_dxyz = ctx.op.df(

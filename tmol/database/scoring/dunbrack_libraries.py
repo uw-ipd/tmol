@@ -41,8 +41,8 @@ class RotamericDataForAA:
         )
         rotamer_alias = torch.tensor(rotgrp["rotamer_alias"][...], dtype=torch.int32)
 
-        print("rotamer_alias")
-        print(rotamer_alias)
+        # print("rotamer_alias")
+        # print(rotamer_alias)
 
         assert len(rotamers.shape) == 2
         assert bb_dihe_start.shape[0] == bb_dihe_step.shape[0]
@@ -90,7 +90,7 @@ class RotamericAADunbrackLibrary:
     def from_zgroup(cls, zgroup, name):
         lib_group = zgroup[name]
         rotameric_data = RotamericDataForAA.from_zgroup(lib_group)
-        print("rotameric library", name, rotameric_data.nchi())
+        # print("rotameric library", name, rotameric_data.nchi())
         return cls(table_name=name, rotameric_data=rotameric_data)
 
 
@@ -139,7 +139,7 @@ class SemiRotamericAADunbrackLibrary:
         assert rotamer_boundaries.shape[0] == rotameric_data.nrotamers()
         assert rotamer_boundaries.shape[1] == 2
 
-        print("semi-rotameric library", name, rotameric_data.nchi())
+        # print("semi-rotameric library", name, rotameric_data.nchi())
         return cls(
             table_name=name,
             rotameric_data=rotameric_data,

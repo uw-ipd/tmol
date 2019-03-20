@@ -134,7 +134,7 @@ def test_dunbrack_score_cpu(ubq_system, default_database):
     e_dun = intra_graph.dun
 
 
-def skip_test_cartesian_space_rama_gradcheck(ubq_res):
+def test_cartesian_space_rama_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
     real_space = CartDunbrackGraph.build_for(test_system)
 
@@ -176,8 +176,6 @@ def test_kinematic_space_rama_gradcheck():
         torsion_space.dofs = dofs
         return torsion_space.intra_score().total
 
-    print("start_dofs")
-    print(start_dofs)
     print(total_score(start_dofs))
 
     # assert torch.autograd.gradcheck(
