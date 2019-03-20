@@ -2,7 +2,7 @@ import pytest
 
 import torch
 
-from tmol.utility.cpp_extension import load, relpaths, modulename, cuda_if_available
+from tmol.utility.cpp_extension import load, relpaths, modulename
 
 from tmol.tests.torch import requires_cuda
 
@@ -28,7 +28,7 @@ def test_segscan(benchmark):
 @requires_cuda
 @pytest.mark.benchmark
 def test_segscan_cudabench(benchmark):
-    """CUDA segscan code
+    """CUDA segscan benchmark
     """
     extension = load(modulename(f"{__name__}.cuda"), relpaths(__file__, "segscan.cu"))
 
@@ -40,22 +40,20 @@ def test_segscan_cudabench(benchmark):
     def cuda_segscan():
         return extension.segscan(xcuda, segscuda)
 
-    ycuda = benchmark(cuda_segscan)
+    benchmark(cuda_segscan)
 
 
 @requires_cuda
 @pytest.mark.benchmark
 def test_segscan_cpubench(benchmark):
-    """CUDA segscan code
+    """CPU segscan baseline benchmark
     """
     extension = load(modulename(f"{__name__}.cuda"), relpaths(__file__, "segscan.cu"))
 
     x = torch.ones(10000000, dtype=torch.float32)
     segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
-    xcuda = x.to(device="cuda")
-    segscuda = segs.to(device="cuda")
 
     def cpu_segscan():
         return extension.segscan(x, segs)
 
-    ycuda = benchmark(cpu_segscan)
+    benchmark(cpu_segscan)
