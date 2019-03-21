@@ -136,7 +136,7 @@ def interpolate_rotameric_table(
 
   Real V;
   Eigen::Matrix<Real, 2, 1> dVdbb;
-  std::tie(V, dVdbb) =
+  tie(V, dVdbb) =
       tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
           rotameric_value_tables_view[tableind], bbdihe);
   for (int ii = 0; ii < 2; ++ii) {
@@ -163,7 +163,7 @@ def chi_deviation_penalty(
     ->std::tuple<Real, Real, Eigen::Matrix<Real, 2, 1> > {
   Real mean, sdev;
   Eigen::Matrix<Real, 2, 1> dmean_dbb, dsdev_dbb;
-  std::tie(mean, dmean_dbb) = interpolate_rotameric_table(
+  tie(mean, dmean_dbb) = interpolate_rotameric_table(
       rotameric_mean_tables,
       rotameric_bb_start,
       rotameric_bb_step,
@@ -177,7 +177,7 @@ def chi_deviation_penalty(
       rotmean_table_set_offset,
       rottable_assignment);
 
-  std::tie(sdev, dsdev_dbb) = interpolate_rotameric_table(
+  tie(sdev, dsdev_dbb) = interpolate_rotameric_table(
       rotameric_sdev_tables,
       rotameric_bb_start,
       rotameric_bb_step,
@@ -264,7 +264,7 @@ def rotameric_chi_probability(
   }
   Real V;
   Eigen::Matrix<Real, 2, 1> dVdbb;
-  std::tie(V, dVdbb) =
+  tie(V, dVdbb) =
       tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
           rotameric_neglnprob_tables_view[res_rottable], bbdihe);
   for (int ii = 0; ii < 2; ++ii) {

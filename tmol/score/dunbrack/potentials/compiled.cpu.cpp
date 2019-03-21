@@ -349,12 +349,6 @@ template struct DunbrackDispatch<tmol::Device::CPU,double,int32_t>;
 template struct DunbrackDispatch<tmol::Device::CPU,float,int64_t>;
 template struct DunbrackDispatch<tmol::Device::CPU,double,int64_t>;
 
-//TEMP!!!
-template struct DunbrackDispatch<tmol::Device::CUDA,float,int32_t>;
-template struct DunbrackDispatch<tmol::Device::CUDA,double,int32_t>;
-template struct DunbrackDispatch<tmol::Device::CUDA,float,int64_t>;
-template struct DunbrackDispatch<tmol::Device::CUDA,double,int64_t>;
-
 
 }  // namespace potentials
 }  // namespace rama
