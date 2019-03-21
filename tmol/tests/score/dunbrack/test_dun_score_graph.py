@@ -176,7 +176,7 @@ def test_kinematic_space_rama_gradcheck():
         torsion_space.dofs = dofs
         return torsion_space.intra_score().total
 
-    print(total_score(start_dofs))
+    x = total_score(start_dofs)
 
     # assert torch.autograd.gradcheck(
     #     total_score, (start_coords,), eps=2e-3, rtol=5e-2, atol=5e-2

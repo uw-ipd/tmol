@@ -232,7 +232,7 @@ struct DunbrackDispatch {
 	// }
       });
     for (Int ii = 0; ii < n_rotameric_res; ++ii) {
-      func_rotameric_prob(ii);
+      // func_rotameric_prob(ii); // working properly!
     }
 
 
@@ -263,12 +263,12 @@ struct DunbrackDispatch {
 
 	int phi_ind = dihedral_offset_for_res[ires];
 	int psi_ind = dihedral_offset_for_res[ires] + 1;
-	int chi_ind = dihedral_offset_for_res[ires] + ichi_ind;
+	int chi_ind = dihedral_offset_for_res[ires] + 2 + ichi_ind;
 	for ( int ii = 0; ii < 4; ++ii ) {
 	  for ( int jj = 0; jj < 3; ++jj ) {
 	    drotchi_devpen_dphi_xyz[i](ii,jj) = dpen_dbb(0)*ddihe_dxyz[phi_ind](ii,jj);
 	    drotchi_devpen_dpsi_xyz[i](ii,jj) = dpen_dbb(1)*ddihe_dxyz[psi_ind](ii,jj);
-	    drotchi_devpen_dpsi_xyz[i](ii,jj) = dpen_dchi  *ddihe_dxyz[chi_ind](ii,jj);
+	    drotchi_devpen_dchi_xyz[i](ii,jj) = dpen_dchi  *ddihe_dxyz[chi_ind](ii,jj);
 	  }
 	}
 
@@ -281,7 +281,7 @@ struct DunbrackDispatch {
 	//}
       });
     for (Int ii = 0; ii < n_rotameric_chi; ++ii ) {
-      // func_chidevpen(ii);
+      func_chidevpen(ii); // working!
     }
 
     // 5.
