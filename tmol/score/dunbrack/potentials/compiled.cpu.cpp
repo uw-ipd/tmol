@@ -81,9 +81,7 @@ struct DunbrackDispatch {
     TPack<Real, 1, D>,       // -ln(prob_rotameric)
     TPack<CoordQuad, 2, D>,  // d(-ln(prob_rotameric)) / dbb atoms
     TPack<Real, 1, D>,       // Erotameric_chi_devpen
-    TPack<CoordQuad, 1, D>,  // ddevpen_dphi
-    TPack<CoordQuad, 1, D>,  // ddevpen_dphi
-    TPack<CoordQuad, 1, D>,  // ddevpen_dchi
+    TPack<CoordQuad, 2, D>,  // ddevpen_dtor_xyz -- nrotchi x (nbb+1)
     TPack<Real, 1, D>,       // -ln(prob_nonrotameric)
     TPack<CoordQuad, 1, D>,  // d(-ln(prob_nonrotameric)) / dphi atoms
     TPack<CoordQuad, 1, D>,  // d(-ln(prob_nonrotameric)) / dpsi atoms
@@ -105,9 +103,7 @@ struct DunbrackDispatch {
     auto dneglnprob_rot_dbb_xyz_tpack = TPack<CoordQuad, 2, D>::zeros({n_rotameric_res, 2});
 
     auto rotchi_devpen_tpack = TPack<Real, 1, D>::zeros(n_rotameric_chi);
-    auto drotchi_devpen_dphi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_rotameric_chi);
-    auto drotchi_devpen_dpsi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_rotameric_chi);
-    auto drotchi_devpen_dchi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_rotameric_chi);
+    auto drotchi_devpen_dtor_xyz_tpack = TPack<CoordQuad, 2, D>::zeros({n_rotameric_chi, 3});
 
     auto neglnprob_nonrot_tpack = TPack<Real, 1, D>::zeros(n_semirotameric_res);
     auto dneglnprob_nonrot_dphi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_semirotameric_res);
@@ -118,9 +114,7 @@ struct DunbrackDispatch {
     auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_tpack.view;
 
     auto rotchi_devpen = rotchi_devpen_tpack.view;
-    auto drotchi_devpen_dphi_xyz =drotchi_devpen_dphi_xyz_tpack.view;
-    auto drotchi_devpen_dpsi_xyz =drotchi_devpen_dpsi_xyz_tpack.view;
-    auto drotchi_devpen_dchi_xyz =drotchi_devpen_dchi_xyz_tpack.view;
+    auto drotchi_devpen_dtor_xyz =drotchi_devpen_dtor_xyz_tpack.view;
 
     auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
     auto dneglnprob_nonrot_dphi_xyz = dneglnprob_nonrot_dphi_xyz_tpack.view;
@@ -249,14 +243,15 @@ struct DunbrackDispatch {
 	  rotameric_rottable_assignment);
 	rotchi_devpen[i] = devpen;
 
-	int phi_ind = dihedral_offset_for_res[ires];
-	int psi_ind = dihedral_offset_for_res[ires] + 1;
-	int chi_ind = dihedral_offset_for_res[ires] + 2 + ichi_ind;
-	for ( int ii = 0; ii < 4; ++ii ) {
-	  for ( int jj = 0; jj < 3; ++jj ) {
-	    drotchi_devpen_dphi_xyz[i](ii,jj) = dpen_dbb(0)*ddihe_dxyz[phi_ind](ii,jj);
-	    drotchi_devpen_dpsi_xyz[i](ii,jj) = dpen_dbb(1)*ddihe_dxyz[psi_ind](ii,jj);
-	    drotchi_devpen_dchi_xyz[i](ii,jj) = dpen_dchi  *ddihe_dxyz[chi_ind](ii,jj);
+	int ires_dihe_offset = dihedral_offset_for_res[ires];
+	//int phi_ind = 
+	//int psi_ind = dihedral_offset_for_res[ires] + 1;
+	//int chi_ind = dihedral_offset_for_res[ires] + 2 + ichi_ind;
+	for ( int ii = 0; ii < 3; ++ii ) {
+	  int tor_ind = ires_dihe_offset + ( ii == 2 ? (2+ichi_ind) : ii );
+	  Real dpen_dtor = ii == 2 ? dpen_dchi : dpen_dbb(ii);
+	  for ( int jj = 0; jj < 4; ++jj ) {
+	    drotchi_devpen_dtor_xyz[i][ii].row(jj) = dpen_dtor*ddihe_dxyz[tor_ind].row(jj);
 	  }
 	}
 
@@ -357,9 +352,7 @@ struct DunbrackDispatch {
       dneglnprob_rot_dbb_xyz_tpack,
       
       rotchi_devpen_tpack,
-      drotchi_devpen_dphi_xyz_tpack,
-      drotchi_devpen_dpsi_xyz_tpack,
-      drotchi_devpen_dchi_xyz_tpack,
+      drotchi_devpen_dtor_xyz_tpack,
       
       neglnprob_nonrot_tpack,
       dneglnprob_nonrot_dphi_xyz_tpack,
@@ -371,11 +364,9 @@ struct DunbrackDispatch {
   auto df(
       TView<Vec<Real, 3>, 1, D> coords,
       TView<Real, 1, D> dE_drotnlp,
-      TView<CoordQuad, 2, D> drot_nlp_dbb_xyz,
+      TView<CoordQuad, 2, D> drot_nlp_dbb_xyz, // n-rotameric-res x 2
       TView<Real, 1, D> dE_ddevpen,
-      TView<CoordQuad, 1, D> ddevpen_dphi_xyz, 
-      TView<CoordQuad, 1, D> ddevpen_dpsi_xyz,
-      TView<CoordQuad, 1, D> ddevpen_dchi_xyz,
+      TView<CoordQuad, 2, D> ddevpen_dtor_xyz,  // n-rotameric-chi x 3
       TView<Real, 1, D> dE_dnonrotnlp,
       TView<CoordQuad, 1, D> dnonrot_nlp_dphi_xyz,
       TView<CoordQuad, 1, D> dnonrot_nlp_dpsi_xyz,
@@ -416,17 +407,19 @@ struct DunbrackDispatch {
     }
     for ( int i = 0; i < n_rotameric_chi; ++i ) {
       int ires = rotameric_chi_desc[i][0];
-      int phi_ind = dihedral_offset_for_res[ires];
-      int psi_ind = phi_ind + 1;
-      int chi_ind = phi_ind + 2 + rotameric_chi_desc[i][1];
-      for ( int ii = 0; ii < 4; ++ii ) {
-	if ( dihedral_atom_inds[phi_ind](0) >= 0 ) {
-	  dE_dxyz[dihedral_atom_inds[phi_ind](ii)] += dE_ddevpen[i] * ddevpen_dphi_xyz[i].row(ii);
+      int ires_dihe_offset = dihedral_offset_for_res[ires];
+      int ichi_ind = rotameric_chi_desc[i][1];
+      
+      //int phi_ind = dihedral_offset_for_res[ires];
+      //int psi_ind = phi_ind + 1;
+      //int chi_ind = phi_ind + 2 + rotameric_chi_desc[i][1];
+      for ( int ii = 0; ii < 3; ++ii ) {
+	int tor_ind = ires_dihe_offset + ( ii == 2 ? (2+ichi_ind) : ii );
+	for ( int jj = 0; jj < 4; ++jj ) {
+	  if ( dihedral_atom_inds[tor_ind](0) >= 0 ) {
+	    dE_dxyz[dihedral_atom_inds[tor_ind](jj)] += dE_ddevpen[i] * ddevpen_dtor_xyz[i][ii].row(jj);
+	  }
 	}
-	if ( dihedral_atom_inds[psi_ind](0) >= 0 ) {
-	  dE_dxyz[dihedral_atom_inds[psi_ind](ii)] += dE_ddevpen[i] * ddevpen_dpsi_xyz[i].row(ii);
-	}
-	dE_dxyz[dihedral_atom_inds[chi_ind](ii)] += dE_ddevpen[i] * ddevpen_dchi_xyz[i].row(ii);
       }
     }
 

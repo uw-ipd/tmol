@@ -74,9 +74,7 @@ struct DunbrackDispatch {
           TPack<Real, 1, D>,        // -ln(prob_rotameric)
           TPack<CoordQuad, 2, D>,   // d(-ln(prob_rotameric)) / dbb atoms
           TPack<Real, 1, D>,        // Erotameric_chi_devpen
-          TPack<CoordQuad, 1, D>,   // ddevpen_dphi
-          TPack<CoordQuad, 1, D>,   // ddevpen_dphi
-          TPack<CoordQuad, 1, D>,   // ddevpen_dchi
+          TPack<CoordQuad, 2, D>,   // ddevpen_dtor
           TPack<Real, 1, D>,        // -ln(prob_nonrotameric)
           TPack<CoordQuad, 1, D>,   // d(-ln(prob_nonrotameric)) / dphi atoms
           TPack<CoordQuad, 1, D>,   // d(-ln(prob_nonrotameric)) / dpsi atoms
@@ -88,9 +86,7 @@ struct DunbrackDispatch {
       TView<Real, 1, D> dE_drotnlp,
       TView<CoordQuad, 2, D> drot_nlp_dbb_xyz,
       TView<Real, 1, D> dE_ddevpen,
-      TView<CoordQuad, 1, D> ddevpen_dphi_xyz,
-      TView<CoordQuad, 1, D> ddevpen_dpsi_xyz,
-      TView<CoordQuad, 1, D> ddevpen_dchi_xyz,
+      TView<CoordQuad, 2, D> ddevpen_dtor_xyz,
       TView<Real, 1, D> dE_dnonrotnlp,
       TView<CoordQuad, 1, D> dnonrot_nlp_dphi_xyz,
       TView<CoordQuad, 1, D> dnonrot_nlp_dpsi_xyz,
