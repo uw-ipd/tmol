@@ -232,7 +232,7 @@ struct DunbrackDispatch {
 	// }
       });
     for (Int ii = 0; ii < n_rotameric_res; ++ii) {
-      // func_rotameric_prob(ii); // working properly!
+      func_rotameric_prob(ii); // working properly!
     }
 
 
@@ -281,7 +281,7 @@ struct DunbrackDispatch {
 	//}
       });
     for (Int ii = 0; ii < n_rotameric_chi; ++ii ) {
-      // func_chidevpen(ii); // working!
+      func_chidevpen(ii); // working!
     }
 
     // 5.
@@ -422,14 +422,11 @@ struct DunbrackDispatch {
       int phi_ind = dihedral_offset_for_res[ires];
       int psi_ind = phi_ind + 1;
       for ( int ii = 0; ii < 4; ++ii ) {
-	//std::cout << "A Summing " << i << " " << ii << " for " << dihedral_atom_inds[phi_ind](ii) << " " << dihedral_atom_inds[psi_ind](ii) << " " << dE_drotnlp[i] << "\nphi: " << drot_nlp_dphi_xyz[i].row(ii) << "\npsi: " << drot_nlp_dpsi_xyz[i].row(ii) << std::endl;
-	for ( int jj = 0; jj < 3; ++jj ) {
-	  if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
-	    dE_dxyz[dihedral_atom_inds[phi_ind](ii)](jj) += dE_drotnlp[i] * drot_nlp_dphi_xyz[i](ii,jj);
-	  }
-	  if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
-	    dE_dxyz[dihedral_atom_inds[psi_ind](ii)](jj) += dE_drotnlp[i] * drot_nlp_dpsi_xyz[i](ii,jj);
-	  }
+	if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
+	  dE_dxyz[dihedral_atom_inds[phi_ind](ii)] += dE_drotnlp[i] * drot_nlp_dphi_xyz[i].row(ii);
+	}
+	if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
+	  dE_dxyz[dihedral_atom_inds[psi_ind](ii)] += dE_drotnlp[i] * drot_nlp_dpsi_xyz[i].row(ii);
 	}
       }
     }
@@ -439,16 +436,13 @@ struct DunbrackDispatch {
       int psi_ind = phi_ind + 1;
       int chi_ind = phi_ind + 2 + rotameric_chi_desc[i][1];
       for ( int ii = 0; ii < 4; ++ii ) {
-	//std::cout << "B Summing " << i << " " << ii << " for " << dihedral_atom_inds[phi_ind](ii) << " " << dihedral_atom_inds[psi_ind](ii) << " " << dihedral_atom_inds[chi_ind](ii) << "\n" << ddevpen_dphi_xyz[i].row(ii) << "\n" << ddevpen_dpsi_xyz[i].row(ii) << "\n" << ddevpen_dchi_xyz[i].row(ii) << std::endl;
-	for ( int jj = 0; jj < 3; ++jj ) {
-	  if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
-	    dE_dxyz[dihedral_atom_inds[phi_ind](ii)](jj) += dE_ddevpen[i] * ddevpen_dphi_xyz[i](ii,jj);
-	  }
-	  if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
-	    dE_dxyz[dihedral_atom_inds[psi_ind](ii)](jj) += dE_ddevpen[i] * ddevpen_dpsi_xyz[i](ii,jj);
-	  }
-	  dE_dxyz[dihedral_atom_inds[chi_ind](ii)](jj) += dE_ddevpen[i] * ddevpen_dchi_xyz[i](ii,jj);
+	if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
+	  dE_dxyz[dihedral_atom_inds[phi_ind](ii)] += dE_ddevpen[i] * ddevpen_dphi_xyz[i].row(ii);
 	}
+	if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
+	  dE_dxyz[dihedral_atom_inds[psi_ind](ii)] += dE_ddevpen[i] * ddevpen_dpsi_xyz[i].row(ii);
+	}
+	dE_dxyz[dihedral_atom_inds[chi_ind](ii)] += dE_ddevpen[i] * ddevpen_dchi_xyz[i].row(ii);
       }
     }
 
@@ -458,16 +452,13 @@ struct DunbrackDispatch {
       int psi_ind = dihedral_offset_for_res[ires]+1;
       int chi_ind = semirotameric_chi_desc[i][1];
       for ( int ii = 0; ii < 4; ++ii ) {
-	//std::cout << "C Summing for " << dihedral_atom_inds[phi_ind](ii) << " " << dihedral_atom_inds[psi_ind](ii) << " " << dihedral_atom_inds[chi_ind](ii) << "\n" << dnonrot_nlp_dphi_xyz[i].row(ii) << "\n" << dnonrot_nlp_dpsi_xyz[i].row(ii) << "\n" << dnonrot_nlp_dchi_xyz[i].row(ii) << std::endl;
-	for ( int jj = 0; jj < 3; ++jj ) {
-	  if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
-	    dE_dxyz[dihedral_atom_inds[phi_ind](ii)](jj) += dE_dnonrotnlp[i] * dnonrot_nlp_dphi_xyz[i](ii,jj);
-	  }
-	  if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
-	    dE_dxyz[dihedral_atom_inds[psi_ind](ii)](jj) += dE_dnonrotnlp[i] * dnonrot_nlp_dpsi_xyz[i](ii,jj);
-	  }
-	  dE_dxyz[dihedral_atom_inds[chi_ind](ii)](jj) += dE_dnonrotnlp[i] * dnonrot_nlp_dchi_xyz[i](ii,jj);
+	if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
+	  dE_dxyz[dihedral_atom_inds[phi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dphi_xyz[i].row(ii);
 	}
+	if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
+	  dE_dxyz[dihedral_atom_inds[psi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dpsi_xyz[i].row(ii);
+	}
+	dE_dxyz[dihedral_atom_inds[chi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dchi_xyz[i].row(ii);
       }
     }
 
