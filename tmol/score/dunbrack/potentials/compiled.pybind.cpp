@@ -52,7 +52,6 @@ void bind_dispatch(pybind11::module& m) {
 
       "dihedrals"_a,
       "ddihe_dxyz"_a,
-      "dihedral_dE_ddihe"_a,
       //"rotchi_devpen"_a,
       //"ddevpen_dbb"_a,
       "rotameric_rottable_assignment"_a,
