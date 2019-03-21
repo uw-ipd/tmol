@@ -152,23 +152,9 @@ def test_cartesian_space_rama_gradcheck(ubq_res):
     )
 
 
-def test_kinematic_space_rama_gradcheck():
-    from tmol.system.io import ResidueReader
-    import os
-
-    # print("pwd")
-    # print(os.getcwd())
-    ubq_res = ResidueReader.get_default().parse_pdb(
-        open("1ubq_res2_n90phi_140psi_160chi3.pdb").read()
-    )
-
-    # print("ubq_res")
-    # print(ubq_res[:6])
+def test_kinematic_space_rama_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
     torsion_space = KinematicDunbrackGraph.build_for(test_system)
-
-    # print("kinematics meta data")
-    # print(test_system.torsion_metadata)
 
     start_dofs = torsion_space.dofs.clone()
 

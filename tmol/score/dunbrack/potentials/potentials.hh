@@ -26,11 +26,10 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define CoordQuad Eigen::Matrix<Real, 4, 3>
-#define Real3 Vec<Real, 3>
-#define Real2 Vec<Real, 2>
-#define Int4 Vec<Int, 4>
 
-float operator"" _2rad(long double deg) { return float(M_PI * deg / 180.); }
+constexpr float operator"" _2rad(long double deg) {
+  return float(M_PI * deg / 180.);
+}
 
 template <typename Real, typename Int, tmol::Device D>
 def measure_dihedrals_V_dV(
@@ -70,7 +69,7 @@ def classify_rotamer(
   //             t  (120--240) = 1
   //             g- (240--360) = 2
   int rotamer_ind = 0;
-  // Real const deg2rad = M_PI / 180;
+
   for (int ii = 0; ii < n_rotameric_chi; ++ii) {
     Real iidihe = dihedrals[dihe_offset + ii];
     rotamer_ind *= 3;
@@ -192,11 +191,6 @@ def chi_deviation_penalty(
       rotmean_table_set_offset,
       rottable_assignment);
 
-  // std::cout << "rotmean_table_set_offset[" << residue_ind
-  //          << "] = " << rotmean_table_set_offset[residue_ind] << " "
-  //          << residue_nchi << " " << rottable_assignment[residue_ind] << " "
-  //          << chi_dihe_for_residue << std::endl;
-
   Int chi_index =
       dihedral_offset_for_res[residue_ind] + chi_dihe_for_residue + 2;
   Real const chi = dihedrals[chi_index];
@@ -222,11 +216,6 @@ def chi_deviation_penalty(
 
   Real const deviation_penalty = f * invg;
   Real const dpen_dchi = 2 * (chi_dev)*invg;
-
-  // std::cout << "res " << residue_ind << " chi index " << chi_index << " "
-  //          << chi * 180 / M_PI << " " << mean * 180 / M_PI << " "
-  //          << chi_dev * 180 / M_PI << " dev pen " << deviation_penalty
-  //          << std::endl;
 
   Eigen::Matrix<Real, 2, 1> ddev_dbb;
   for (Int ii = 0; ii < 2; ++ii) {
@@ -255,10 +244,6 @@ def rotameric_chi_probability(
   Eigen::Matrix<Real, 2, 1> bbdihe, bbstep;
 
   Int const table_set = rottable_set_for_res[residue_ind];
-  // std::cout << "res rottable for " << residue_ind << " / " << rotresidue_ind
-  //          << " = " << prob_table_offset_for_rotresidue[rotresidue_ind]
-  //          << " + " << rotameric_rottable_assignment[residue_ind] <<
-  //          std::endl;
   Int const res_rottable = prob_table_offset_for_rotresidue[rotresidue_ind]
                            + rotameric_rottable_assignment[residue_ind];
   Int const res_dihedral_offset = dihedral_offset_for_res[residue_ind];
@@ -276,19 +261,12 @@ def rotameric_chi_probability(
 
     bbstep[ii] = rotameric_bb_step[table_set][ii];
     bbdihe[ii] = wrap_iidihe / bbstep[ii];
-    // std::cout << "neglnprob " << residue_ind << " " << ii << " "
-    //          << dihedrals[res_dihedral_offset + ii] * 180 / M_PI << " "
-    //          << wrap_iidihe * 180 / M_PI << " " << bbdihe[ii] << " "
-    //          << bbstep[ii] << std::endl;
   }
   Real V;
   Eigen::Matrix<Real, 2, 1> dVdbb;
   std::tie(V, dVdbb) =
       tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
           rotameric_neglnprob_tables_view[res_rottable], bbdihe);
-  // std::cout << "interpolated neglnprob " << residue_ind << " " <<
-  // res_rottable
-  //          << " " << V << std::endl;
   for (int ii = 0; ii < 2; ++ii) {
     dVdbb[ii] /= bbstep[ii];
   }
@@ -341,22 +319,6 @@ def semirotameric_energy(
     temp_dihe_period(ii) = ii_period;
   }
 
-  // std::cout << "semi-rot res " << resid << " wrapped dihedrals "
-  //          << temp_dihe_deg(0) << " " << temp_dihe_deg(1) << " "
-  //          << temp_dihe_deg(2) << std::endl;
-  // std::cout << "non-wrapped dihedrals"
-  //          << " " << temp_orig_dihe_deg(0) << " " << temp_orig_dihe_deg(1)
-  //          << " " << temp_orig_dihe_deg(2) << std::endl;
-  // std::cout << "dihedral start"
-  //          << " " << temp_dihe_start(0) << " " << temp_dihe_start(1) << " "
-  //          << temp_dihe_start(2) << std::endl;
-  // std::cout << "dihe_step"
-  //          << " " << dihe_step(0) << " " << dihe_step(1) << " " <<
-  //          dihe_step(2)
-  //          << std::endl;
-  // std::cout << "dihe_period"
-  //          << " " << temp_dihe_period(0) << " " << temp_dihe_period(1) << " "
-  //          << temp_dihe_period(2) << std::endl;
   Real V;
   Eigen::Matrix<Real, 3, 1> dV_ddihe;
   tie(V, dV_ddihe) =
@@ -365,12 +327,9 @@ def semirotameric_energy(
   for (int ii = 0; ii < 3; ++ii) {
     dV_ddihe[ii] /= dihe_step[ii];
   }
-  // std::cout << "semi-rot res " << resid << " " << V << std::endl;
+
   return {V, dV_ddihe};
 }
-
-#undef Real2
-#undef Real3
 
 #undef def
 }  // namespace potentials
