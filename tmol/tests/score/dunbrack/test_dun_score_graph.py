@@ -148,7 +148,7 @@ def test_cartesian_space_rama_gradcheck(ubq_res):
         return real_space.intra_score().total
 
     assert torch.autograd.gradcheck(
-        total_score, (start_coords,), eps=2e-3, rtol=5e-2, atol=5e-2
+        total_score, (start_coords,), eps=2e-3, rtol=5e-4, atol=5e-2
     )
 
 
@@ -179,5 +179,5 @@ def test_kinematic_space_rama_gradcheck():
     # x = total_score(start_dofs)
 
     assert torch.autograd.gradcheck(
-        total_score, (start_dofs,), eps=2e-3, rtol=5e-2, atol=5e-2
+        total_score, (start_dofs,), eps=2e-3, rtol=5e-4, atol=5e-2
     )

@@ -67,8 +67,6 @@ class DunbrackScoreFun(torch.autograd.Function):
 
         dihedrals = torch.zeros((ndihe,), dtype=torch.float, device=ctx.op.device)
         ddihe_dxyz = torch.zeros((ndihe, 4, 3), dtype=torch.float, device=ctx.op.device)
-        #  rotchi_devpen = torch.zeros((nrotchi,), dtype=torch.float, device=ctx.op.device)
-        #  ddevpen_dbb = torch.zeros((nrotchi, 2), dtype=torch.float, device=ctx.op.device)
         rotameric_rottable_assignment = torch.zeros(
             (nres,), dtype=torch.int32, device=ctx.op.device
         )
