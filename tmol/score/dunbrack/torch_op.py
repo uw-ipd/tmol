@@ -83,7 +83,7 @@ class DunbrackScoreFun(torch.autograd.Function):
         #    print("key in ctx.op.params:", key, print(type(val)))
 
         # dE_dphi/psi are returned as ntors x 12 arrays
-        rot_nlpE, drot_nlp_dphi, drot_nlp_dpsi, devpen, ddevpen_dphi, ddevpen_dpsi, ddevpen_dchi, nonrot_nlpE, dnonrot_nlpE_dphi, dnonrot_nlpE_dpsi, dnonrot_nlpE_dchi = ctx.op.f(
+        rot_nlpE, drot_nlp_dbb, devpen, ddevpen_dphi, ddevpen_dpsi, ddevpen_dchi, nonrot_nlpE, dnonrot_nlpE_dphi, dnonrot_nlpE_dpsi, dnonrot_nlpE_dchi = ctx.op.f(
             coords,
             dihedrals=dihedrals,
             ddihe_dxyz=ddihe_dxyz,
@@ -97,8 +97,7 @@ class DunbrackScoreFun(torch.autograd.Function):
 
         ctx.save_for_backward(
             coords,
-            drot_nlp_dphi,
-            drot_nlp_dpsi,
+            drot_nlp_dbb,
             ddevpen_dphi,
             ddevpen_dpsi,
             ddevpen_dchi,
@@ -110,7 +109,7 @@ class DunbrackScoreFun(torch.autograd.Function):
         return rot_nlpE, devpen, nonrot_nlpE
 
     def backward(ctx, dE_drotnlp, dE_ddevpen, dE_dnonrotnlp):
-        coords, drot_nlp_dphi, drot_nlp_dpsi, ddevpen_dphi, ddevpen_dpsi, ddevpen_dchi, dnonrot_nlpE_dphi, dnonrot_nlpE_dpsi, dnonrot_nlpE_dchi = (
+        coords, drot_nlp_dbb, ddevpen_dphi, ddevpen_dpsi, ddevpen_dchi, dnonrot_nlpE_dphi, dnonrot_nlpE_dpsi, dnonrot_nlpE_dchi = (
             ctx.saved_tensors
         )
 
@@ -124,8 +123,7 @@ class DunbrackScoreFun(torch.autograd.Function):
         dE_dxyz = ctx.op.df(
             coords,
             dE_drotnlp=dE_drotnlp,
-            drot_nlp_dphi_xyz=drot_nlp_dphi,
-            drot_nlp_dpsi_xyz=drot_nlp_dpsi,
+            drot_nlp_dbb_xyz=drot_nlp_dbb,
             dE_ddevpen=dE_ddevpen,
             ddevpen_dphi_xyz=ddevpen_dphi,
             ddevpen_dpsi_xyz=ddevpen_dpsi,

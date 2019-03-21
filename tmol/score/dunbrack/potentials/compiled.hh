@@ -72,8 +72,7 @@ struct DunbrackDispatch {
       )
       -> std::tuple<
           TPack<Real, 1, D>,        // -ln(prob_rotameric)
-          TPack<CoordQuad, 1, D>,   // d(-ln(prob_rotameric)) / dphi atoms
-          TPack<CoordQuad, 1, D>,   // d(-ln(prob_rotameric)) / dpsi atoms
+          TPack<CoordQuad, 2, D>,   // d(-ln(prob_rotameric)) / dbb atoms
           TPack<Real, 1, D>,        // Erotameric_chi_devpen
           TPack<CoordQuad, 1, D>,   // ddevpen_dphi
           TPack<CoordQuad, 1, D>,   // ddevpen_dphi
@@ -87,8 +86,7 @@ struct DunbrackDispatch {
   static auto df(
       TView<Vec<Real, 3>, 1, D> coords,
       TView<Real, 1, D> dE_drotnlp,
-      TView<CoordQuad, 1, D> drot_nlp_dphi_xyz,
-      TView<CoordQuad, 1, D> drot_nlp_dpsi_xyz,
+      TView<CoordQuad, 2, D> drot_nlp_dbb_xyz,
       TView<Real, 1, D> dE_ddevpen,
       TView<CoordQuad, 1, D> ddevpen_dphi_xyz,
       TView<CoordQuad, 1, D> ddevpen_dpsi_xyz,

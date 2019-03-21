@@ -123,7 +123,7 @@ def temp_skip_test_dunbrack_score_setup(ubq_system, default_database, torch_devi
     numpy.testing.assert_array_equal(ndihe_gold, dun_params.ndihe_for_res.cpu().numpy())
 
 
-def test_dunbrack_score_cpu(ubq_system, default_database):
+def skip_test_dunbrack_score_cpu(ubq_system, default_database):
     device = torch.device("cpu")
     dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=device, parameter_database=default_database
@@ -152,7 +152,7 @@ def test_cartesian_space_rama_gradcheck(ubq_res):
     )
 
 
-def test_kinematic_space_rama_gradcheck():
+def skip_test_kinematic_space_rama_gradcheck():
     from tmol.system.io import ResidueReader
     import os
 
