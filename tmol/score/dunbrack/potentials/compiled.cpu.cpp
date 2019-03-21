@@ -281,7 +281,7 @@ struct DunbrackDispatch {
 	//}
       });
     for (Int ii = 0; ii < n_rotameric_chi; ++ii ) {
-      func_chidevpen(ii); // working!
+      // func_chidevpen(ii); // working!
     }
 
     // 5.
@@ -326,7 +326,7 @@ struct DunbrackDispatch {
       });
 
     for ( int ii = 0; ii < n_semirotameric_res; ++ii ) {
-      // func_semirot(ii);
+      func_semirot(ii);
     }
 
     // // OK! now we just do some bookkeeping to accumulate the energies we've just computed
@@ -455,7 +455,7 @@ struct DunbrackDispatch {
     for ( int i = 0; i < n_semirotameric_res; ++i ) {
       int ires = semirotameric_chi_desc[i][0];
       int phi_ind = dihedral_offset_for_res[ires];
-      int psi_ind = dihedral_offset_for_res[ires];
+      int psi_ind = dihedral_offset_for_res[ires]+1;
       int chi_ind = semirotameric_chi_desc[i][1];
       for ( int ii = 0; ii < 4; ++ii ) {
 	//std::cout << "C Summing for " << dihedral_atom_inds[phi_ind](ii) << " " << dihedral_atom_inds[psi_ind](ii) << " " << dihedral_atom_inds[chi_ind](ii) << "\n" << dnonrot_nlp_dphi_xyz[i].row(ii) << "\n" << dnonrot_nlp_dpsi_xyz[i].row(ii) << "\n" << dnonrot_nlp_dchi_xyz[i].row(ii) << std::endl;
