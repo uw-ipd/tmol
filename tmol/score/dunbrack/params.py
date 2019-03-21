@@ -518,6 +518,13 @@ class DunbrackParamResolver(ValidateAttrs):
         # soon phipsi = dfphi.merge(dfpsi, left_on=0, right_on=0, suffixes=("_phi","_psi")).values[:,:]
         # soon all_defined = numpy.all(phipsi != -1)
 
+        phi = phi.clone()
+        psi = psi.clone()
+        phi_not_defined = (phi == -1).byte().any(1)
+        phi[phi_not_defined, 1:] = -1
+        psi_not_defined = (psi == -1).byte().any(1)
+        psi[psi_not_defined, 1:] = -2
+
         # torch.set_printoptions(threshold=5000)
         # print("phi")
         # print(phi)

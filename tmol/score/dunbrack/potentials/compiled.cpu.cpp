@@ -422,12 +422,13 @@ struct DunbrackDispatch {
       int phi_ind = dihedral_offset_for_res[ires];
       int psi_ind = phi_ind + 1;
       for ( int ii = 0; ii < 4; ++ii ) {
-	if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
+	if ( dihedral_atom_inds[phi_ind](0) >= 0 ) {
 	  dE_dxyz[dihedral_atom_inds[phi_ind](ii)] += dE_drotnlp[i] * drot_nlp_dphi_xyz[i].row(ii);
 	}
-	if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
+	if ( dihedral_atom_inds[psi_ind](0) >= 0 ) {
 	  dE_dxyz[dihedral_atom_inds[psi_ind](ii)] += dE_drotnlp[i] * drot_nlp_dpsi_xyz[i].row(ii);
 	}
+
       }
     }
     for ( int i = 0; i < n_rotameric_chi; ++i ) {
@@ -436,10 +437,10 @@ struct DunbrackDispatch {
       int psi_ind = phi_ind + 1;
       int chi_ind = phi_ind + 2 + rotameric_chi_desc[i][1];
       for ( int ii = 0; ii < 4; ++ii ) {
-	if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
+	if ( dihedral_atom_inds[phi_ind](0) >= 0 ) {
 	  dE_dxyz[dihedral_atom_inds[phi_ind](ii)] += dE_ddevpen[i] * ddevpen_dphi_xyz[i].row(ii);
 	}
-	if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
+	if ( dihedral_atom_inds[psi_ind](0) >= 0 ) {
 	  dE_dxyz[dihedral_atom_inds[psi_ind](ii)] += dE_ddevpen[i] * ddevpen_dpsi_xyz[i].row(ii);
 	}
 	dE_dxyz[dihedral_atom_inds[chi_ind](ii)] += dE_ddevpen[i] * ddevpen_dchi_xyz[i].row(ii);
@@ -452,10 +453,10 @@ struct DunbrackDispatch {
       int psi_ind = dihedral_offset_for_res[ires]+1;
       int chi_ind = semirotameric_chi_desc[i][1];
       for ( int ii = 0; ii < 4; ++ii ) {
-	if ( dihedral_atom_inds[phi_ind](0) != -1 ) {
+	if ( dihedral_atom_inds[phi_ind](0) >= 0 ) {
 	  dE_dxyz[dihedral_atom_inds[phi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dphi_xyz[i].row(ii);
 	}
-	if ( dihedral_atom_inds[psi_ind](3) != -1 ) {
+	if ( dihedral_atom_inds[psi_ind](0) >= 0 ) {
 	  dE_dxyz[dihedral_atom_inds[psi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dpsi_xyz[i].row(ii);
 	}
 	dE_dxyz[dihedral_atom_inds[chi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dchi_xyz[i].row(ii);

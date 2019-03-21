@@ -44,7 +44,7 @@ def measure_dihedrals_V_dV(
   Int at2 = dihedral_atom_inds[i][1];
   Int at3 = dihedral_atom_inds[i][2];
   Int at4 = dihedral_atom_inds[i][3];
-  if (at1 != -1 && at2 != -1 && at3 != -1 && at4 != -1) {
+  if (at1 >= 0) {
     auto dihe = dihedral_angle<Real>::V_dV(
         coordinates[at1], coordinates[at2], coordinates[at3], coordinates[at4]);
     dihedrals[i] = dihe.V;
@@ -53,14 +53,12 @@ def measure_dihedrals_V_dV(
     ddihe_dxyz[i].row(2) = dihe.dV_dK;
     ddihe_dxyz[i].row(3) = dihe.dV_dL;
   } else if (at1 == -1) {
-    dihedrals[i] =
-        -60.0 * M_PI / 180;  // hack -- detect phi undefined; set to neutral
-  } else if (at4 == -1) {
-    dihedrals[i] =
-        60.0 * M_PI / 180;  // hack -- detect psi undefined; set to neutral
+    // -1 is sentinel value for undefined phi dihedral
+    dihedrals[i] = -60.0 * M_PI / 180;
+  } else if (at1 == -2) {
+    // -2 is sentinel value for undefined psi dihedral
+    dihedrals[i] = 60.0 * M_PI / 180;
   }
-  // std::cout << "Dihedral " << i << " for atoms " << at1 << " " << at2 << " "
-  //          << at3 << " " << at4 << " = " << dihedrals[i] << std::endl;
 }
 
 template <typename Real, tmol::Device D>
