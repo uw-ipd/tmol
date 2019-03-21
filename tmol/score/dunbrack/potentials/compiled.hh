@@ -76,9 +76,7 @@ struct DunbrackDispatch {
           TPack<Real, 1, D>,        // Erotameric_chi_devpen
           TPack<CoordQuad, 2, D>,   // ddevpen_dtor
           TPack<Real, 1, D>,        // -ln(prob_nonrotameric)
-          TPack<CoordQuad, 1, D>,   // d(-ln(prob_nonrotameric)) / dphi atoms
-          TPack<CoordQuad, 1, D>,   // d(-ln(prob_nonrotameric)) / dpsi atoms
-          TPack<CoordQuad, 1, D> >  // d(-ln(prob_nonrotameric)) / dchi atoms
+          TPack<CoordQuad, 2, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
       ;
 
   static auto df(
@@ -88,9 +86,7 @@ struct DunbrackDispatch {
       TView<Real, 1, D> dE_ddevpen,
       TView<CoordQuad, 2, D> ddevpen_dtor_xyz,
       TView<Real, 1, D> dE_dnonrotnlp,
-      TView<CoordQuad, 1, D> dnonrot_nlp_dphi_xyz,
-      TView<CoordQuad, 1, D> dnonrot_nlp_dpsi_xyz,
-      TView<CoordQuad, 1, D> dnonrot_nlp_dchi_xyz,
+      TView<CoordQuad, 2, D> dnonrot_nlp_dtor_xyz,
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
       TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
       TView<Int, 1, D> rotres2resid,                // nres x 1

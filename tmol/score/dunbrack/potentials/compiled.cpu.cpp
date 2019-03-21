@@ -83,9 +83,7 @@ struct DunbrackDispatch {
     TPack<Real, 1, D>,       // Erotameric_chi_devpen
     TPack<CoordQuad, 2, D>,  // ddevpen_dtor_xyz -- nrotchi x (nbb+1)
     TPack<Real, 1, D>,       // -ln(prob_nonrotameric)
-    TPack<CoordQuad, 1, D>,  // d(-ln(prob_nonrotameric)) / dphi atoms
-    TPack<CoordQuad, 1, D>,  // d(-ln(prob_nonrotameric)) / dpsi atoms
-    TPack<CoordQuad, 1, D> > // d(-ln(prob_nonrotameric)) / dchi atoms
+    TPack<CoordQuad, 2, D> >  // d(-ln(prob_nonrotameric)) / dtor -- nsemirot-res x 3
   {
     Int const nres(nrotameric_chi_for_res.size(0));
     Int const n_rotameric_res(prob_table_offset_for_rotresidue.size(0));
@@ -106,9 +104,10 @@ struct DunbrackDispatch {
     auto drotchi_devpen_dtor_xyz_tpack = TPack<CoordQuad, 2, D>::zeros({n_rotameric_chi, 3});
 
     auto neglnprob_nonrot_tpack = TPack<Real, 1, D>::zeros(n_semirotameric_res);
-    auto dneglnprob_nonrot_dphi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_semirotameric_res);
-    auto dneglnprob_nonrot_dpsi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_semirotameric_res);
-    auto dneglnprob_nonrot_dchi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_semirotameric_res);
+    auto dneglnprob_nonrot_dtor_xyz_tpack = TPack<CoordQuad, 2, D>::zeros({n_semirotameric_res,3});
+    //auto dneglnprob_nonrot_dphi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_semirotameric_res);
+    //auto dneglnprob_nonrot_dpsi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_semirotameric_res);
+    //auto dneglnprob_nonrot_dchi_xyz_tpack = TPack<CoordQuad, 1, D>::zeros(n_semirotameric_res);
 
     auto neglnprob_rot = neglnprob_rot_tpack.view;
     auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_tpack.view;
@@ -117,10 +116,7 @@ struct DunbrackDispatch {
     auto drotchi_devpen_dtor_xyz =drotchi_devpen_dtor_xyz_tpack.view;
 
     auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
-    auto dneglnprob_nonrot_dphi_xyz = dneglnprob_nonrot_dphi_xyz_tpack.view;
-    auto dneglnprob_nonrot_dpsi_xyz = dneglnprob_nonrot_dpsi_xyz_tpack.view;
-    auto dneglnprob_nonrot_dchi_xyz = dneglnprob_nonrot_dchi_xyz_tpack.view;
-    
+    auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_tpack.view;
     
     //auto Vs_t = TPack<Real, 1, D>::zeros(nres);
     //auto Vs = Vs_t.view;
@@ -296,14 +292,13 @@ struct DunbrackDispatch {
 	neglnprob_nonrot[i] = neglnprob;
 	//Vs[resid] = neglnprob;
 
-	int phi_ind = res_dihe_offset;
-	int psi_ind = res_dihe_offset+1;
-	int chi_ind = semirot_dihedral_index;
-	for ( int ii = 0; ii < 4; ++ii ) {
-	  for ( int jj = 0; jj < 3; ++jj ) {
-	    dneglnprob_nonrot_dphi_xyz[i](ii,jj) = dnlp_ddihe(0)*ddihe_dxyz[phi_ind](ii,jj);
-	    dneglnprob_nonrot_dpsi_xyz[i](ii,jj) = dnlp_ddihe(1)*ddihe_dxyz[psi_ind](ii,jj);
-	    dneglnprob_nonrot_dchi_xyz[i](ii,jj) = dnlp_ddihe(2)*ddihe_dxyz[chi_ind](ii,jj);
+	//int phi_ind = res_dihe_offset;
+	//int psi_ind = res_dihe_offset+1;
+	//int chi_ind = semirot_dihedral_index;
+	for ( int ii = 0; ii < 3; ++ii ) {
+	  int tor_ind = ii == 2 ? semirot_dihedral_index : (res_dihe_offset + ii);
+	  for ( int jj = 0; jj < 4; ++jj ) {
+	    dneglnprob_nonrot_dtor_xyz[i][ii].row(jj) = dnlp_ddihe(ii)*ddihe_dxyz[tor_ind].row(jj);
 	  }
 	}
       });
@@ -355,9 +350,7 @@ struct DunbrackDispatch {
       drotchi_devpen_dtor_xyz_tpack,
       
       neglnprob_nonrot_tpack,
-      dneglnprob_nonrot_dphi_xyz_tpack,
-      dneglnprob_nonrot_dpsi_xyz_tpack,
-      dneglnprob_nonrot_dchi_xyz_tpack};
+      dneglnprob_nonrot_dtor_xyz_tpack};
       
   }
 
@@ -368,9 +361,7 @@ struct DunbrackDispatch {
       TView<Real, 1, D> dE_ddevpen,
       TView<CoordQuad, 2, D> ddevpen_dtor_xyz,  // n-rotameric-chi x 3
       TView<Real, 1, D> dE_dnonrotnlp,
-      TView<CoordQuad, 1, D> dnonrot_nlp_dphi_xyz,
-      TView<CoordQuad, 1, D> dnonrot_nlp_dpsi_xyz,
-      TView<CoordQuad, 1, D> dnonrot_nlp_dchi_xyz,
+      TView<CoordQuad, 2, D> dnonrot_nlp_dtor_xyz,
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
       TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
       TView<Int, 1, D> rotres2resid,                      // nres x 1
@@ -425,17 +416,15 @@ struct DunbrackDispatch {
 
     for ( int i = 0; i < n_semirotameric_res; ++i ) {
       int ires = semirotameric_chi_desc[i][0];
-      int phi_ind = dihedral_offset_for_res[ires];
-      int psi_ind = dihedral_offset_for_res[ires]+1;
-      int chi_ind = semirotameric_chi_desc[i][1];
-      for ( int ii = 0; ii < 4; ++ii ) {
-	if ( dihedral_atom_inds[phi_ind](0) >= 0 ) {
-	  dE_dxyz[dihedral_atom_inds[phi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dphi_xyz[i].row(ii);
+      int ires_dihe_offset = dihedral_offset_for_res[ires];
+      int ichi_ind = semirotameric_chi_desc[i][1];
+      for ( int ii = 0; ii < 3; ++ii ) {
+	int tor_ind = ii == 2 ? ichi_ind : (ires_dihe_offset + ii);
+	for ( int jj = 0; jj < 4; ++jj ) {
+	  if ( dihedral_atom_inds[tor_ind](0) >= 0 ) {
+	    dE_dxyz[dihedral_atom_inds[tor_ind](jj)] += dE_dnonrotnlp[i] * dnonrot_nlp_dtor_xyz[i][ii].row(jj);
+	  }
 	}
-	if ( dihedral_atom_inds[psi_ind](0) >= 0 ) {
-	  dE_dxyz[dihedral_atom_inds[psi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dpsi_xyz[i].row(ii);
-	}
-	dE_dxyz[dihedral_atom_inds[chi_ind](ii)] += dE_dnonrotnlp[i] * dnonrot_nlp_dchi_xyz[i].row(ii);
       }
     }
 
