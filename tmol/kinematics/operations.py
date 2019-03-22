@@ -8,9 +8,13 @@ from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
 from tmol.types.attrs import ValidateAttrs
 
+from tmol.kinematics.compiled import compiled
+
 from .datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
 from .gpu_operations import GPUKinTreeReordering
-from .cpu_operations import iterative_refold, iterative_f1f2_summation
+from .cpu_operations import iterative_f1f2_summation
+
+from .scan_ordering import KinTreeScanOrdering
 
 HTArray = Tensor(torch.double)[:, 4, 4]
 CoordArray = Tensor(torch.double)[:, 3]
@@ -31,89 +35,6 @@ def HTinv(HTs: HTArray) -> HTArray:
     HTinvs[:, :3, 3] = -torch.einsum("aij,aj->ai", (HTinvs[:, :3, :3], HTs[:, :3, 3]))
     HTinvs[:, 3, :3] = 0
     return HTinvs
-
-
-@validate_args
-def JumpTransforms(dofs: JumpDOF) -> HTArray:
-    """JUMP dofs -> HTs
-
-    jump dofs are _9_ parameters::
-
-     - 3 translational
-     - 3 rotational deltas
-     - 3 rotational
-
-    Only the rotational deltas should be exposed to minimization
-
-    Translations are represented as an offset in X,Y,Z
-
-    Rotations and rotational deltas are ZYX Euler angles. That is, a rotation
-    about Z, then Y, then X.
-
-    The HT returned by this function is given by::
-
-        M = trans( RBx, RBy, RBz)
-            @ roteuler( RBdel_alpha, RBdel_alpha, RBdel_alpha)
-            @ roteuler( RBalpha, RBalpha, RBalpha)
-
-    RBdel_* is meant to be reset to zero at the beginning of a minimization
-        trajectory, as when parameters are near 0, the rotational space
-        is well-behaved.
-    """
-    natoms, = dofs.shape
-
-    si = torch.sin(dofs.RBdel_alpha)
-    sj = torch.sin(dofs.RBdel_beta)
-    sk = torch.sin(dofs.RBdel_gamma)
-    ci = torch.cos(dofs.RBdel_alpha)
-    cj = torch.cos(dofs.RBdel_beta)
-    ck = torch.cos(dofs.RBdel_gamma)
-    cc = ci * ck
-    cs = ci * sk
-    sc = si * ck
-    ss = si * sk
-    Rdelta = torch.zeros((natoms, 4, 4), dtype=HTArray.dtype, device=dofs.raw.device)
-    Rdelta[:, 0, 0] = cj * ck
-    Rdelta[:, 0, 1] = sj * sc - cs
-    Rdelta[:, 0, 2] = sj * cc + ss
-    Rdelta[:, 1, 0] = cj * sk
-    Rdelta[:, 1, 1] = sj * ss + cc
-    Rdelta[:, 1, 2] = sj * cs - sc
-    Rdelta[:, 2, 0] = -sj
-    Rdelta[:, 2, 1] = cj * si
-    Rdelta[:, 2, 2] = cj * ci
-    Rdelta[:, 3, 3] = 1
-
-    # translational dofs
-    Rdelta[:, 0, 3] = dofs.RBx
-    Rdelta[:, 1, 3] = dofs.RBy
-    Rdelta[:, 2, 3] = dofs.RBz
-
-    si = torch.sin(dofs.RBalpha)
-    sj = torch.sin(dofs.RBbeta)
-    sk = torch.sin(dofs.RBgamma)
-    ci = torch.cos(dofs.RBalpha)
-    cj = torch.cos(dofs.RBbeta)
-    ck = torch.cos(dofs.RBgamma)
-    cc = ci * ck
-    cs = ci * sk
-    sc = si * ck
-    ss = si * sk
-    Rglobal = torch.zeros((natoms, 4, 4), dtype=HTArray.dtype, device=dofs.raw.device)
-    Rglobal[:, 0, 0] = cj * ck
-    Rglobal[:, 0, 1] = sj * sc - cs
-    Rglobal[:, 0, 2] = sj * cc + ss
-    Rglobal[:, 1, 0] = cj * sk
-    Rglobal[:, 1, 1] = sj * ss + cc
-    Rglobal[:, 1, 2] = sj * cs - sc
-    Rglobal[:, 2, 0] = -sj
-    Rglobal[:, 2, 1] = cj * si
-    Rglobal[:, 2, 2] = cj * ci
-    Rglobal[:, 3, 3] = 1
-
-    Ms = torch.matmul(Rdelta, Rglobal)
-
-    return Ms
 
 
 @validate_args
@@ -237,58 +158,6 @@ def JumpDerivatives(
 
 
 @validate_args
-def BondTransforms(dofs: BondDOF) -> HTArray:
-    """Bond HTs from bond dofs.
-
-    each bond has four dofs: [phi_p, theta, d, phi_c]
-
-    in the local frame:
-        - phi_p and phi_c are a rotation about x
-        - theta is a rotation about z
-        - d is a translation along x
-
-    the matrix below is a composition::
-
-        M = (
-            rot(phi_p, [1,0,0])
-            @ rot(theta, [0,0,1]
-            @ trans(d, [1,0,0])
-            @ rot(phi_c, [1,0,0])
-        )
-    """
-    natoms, = dofs.shape
-
-    cpp = torch.cos(dofs.phi_p)
-    spp = torch.sin(dofs.phi_p)
-    cpc = torch.cos(dofs.phi_c)
-    spc = torch.sin(dofs.phi_c)
-    cth = torch.cos(dofs.theta)
-    sth = torch.sin(dofs.theta)
-    d = dofs.d
-
-    # rot(ph_p, +x) * rot(th, +z) * trans(d, +x) * rot(ph_c, +x)
-    Ms = torch.empty([natoms, 4, 4], dtype=HTArray.dtype, device=dofs.raw.device)
-    Ms[:, 0, 0] = cth
-    Ms[:, 0, 1] = -cpc * sth
-    Ms[:, 0, 2] = spc * sth
-    Ms[:, 0, 3] = d * cth
-    Ms[:, 1, 0] = cpp * sth
-    Ms[:, 1, 1] = cpc * cpp * cth - spc * spp
-    Ms[:, 1, 2] = -cpp * cth * spc - cpc * spp
-    Ms[:, 1, 3] = d * cpp * sth
-    Ms[:, 2, 0] = spp * sth
-    Ms[:, 2, 1] = cpp * spc + cpc * cth * spp
-    Ms[:, 2, 2] = cpc * cpp - cth * spc * spp
-    Ms[:, 2, 3] = d * spp * sth
-    Ms[:, 3, 0] = 0
-    Ms[:, 3, 1] = 0
-    Ms[:, 3, 2] = 0
-    Ms[:, 3, 3] = 1
-
-    return Ms
-
-
-@validate_args
 def InvBondTransforms(Ms: HTArray) -> BondDOF:
     """
     HTs -> BOND dofs
@@ -391,22 +260,6 @@ def BondDerivatives(
     return dsc_ddofs
 
 
-def DOFTransforms(dof_types: Tensor(torch.int)[:], dofs: KinDOF) -> HTArray:
-    """Calculate HT representation of given dofs."""
-    HTs = torch.empty([len(dofs), 4, 4], dtype=HTArray.dtype, device=dofs.raw.device)
-
-    rootSelector = dof_types == NodeType.root
-    HTs[rootSelector] = torch.eye(4, dtype=HTs.dtype, device=HTs.device)
-
-    bondSelector = dof_types == NodeType.bond
-    HTs[bondSelector] = BondTransforms(dofs.bond[bondSelector])
-
-    jumpSelector = dof_types == NodeType.jump
-    HTs[jumpSelector] = JumpTransforms(dofs.jump[jumpSelector])
-
-    return HTs
-
-
 @validate_args
 def HTs_from_frames(
     Cs: CoordArray,
@@ -491,6 +344,11 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     return BackKinResult(HTs, dofs)
 
 
+def DOFTransforms(dof_types: Tensor(torch.int)[:], dofs: KinDOF) -> HTArray:
+    """Calculate HT representation of given dofs."""
+    return compiled.dof_transforms(dofs.raw, dof_types)
+
+
 @attr.s(frozen=True, auto_attribs=True, slots=True)
 class ForwardKinResult:
     hts: HTArray
@@ -508,17 +366,11 @@ def forwardKin(kintree: KinTree, dofs: KinDOF) -> ForwardKinResult:
     assert kintree.parent[0] == 0
 
     # 1) Calculate local inter-node HTs from dofs
-    HTs = DOFTransforms(kintree.doftype, dofs)
+    ordering = KinTreeScanOrdering.for_kintree(kintree)
 
-    # 2) Accumulate local HTs into global HTs (rewrite 1->N in-place)
-    if HTs.device.type == "cuda":
-        (
-            GPUKinTreeReordering.for_kintree(kintree).refold_ordering.segscan_hts(
-                HTs, inplace=True
-            )
-        )
-    else:
-        iterative_refold(HTs, kintree.parent, inplace=True)
+    HTs = compiled.forward_kin(
+        dofs.raw, kintree.doftype, **attr.asdict(ordering.forward_scan_paths)
+    ).reshape((-1, 4, 4))
 
     coords = HTs[:, :3, 3]
     return ForwardKinResult(HTs, coords)

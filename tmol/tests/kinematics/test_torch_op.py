@@ -12,6 +12,7 @@ from tmol.types.torch import Tensor
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.torch_op import KinematicOp
+from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.restypes import Residue
@@ -35,9 +36,19 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
         tkin.kintree, torsion_dofs, kincoords.to(torch_device)
     )
 
+    # for benchmarking, precompute GPU ordering
+    scanorder = KinTreeScanOrdering.for_kintree(tkin.kintree)
+
+    for i in range(4):
+        print(i, torch.nonzero(scanorder.forward_scan_paths.nodes[i] == 411))
+
+    print(scanorder.forward_scan_paths.scans[1])
+
     @benchmark
     def refold_kincoords():
         return kop.apply(kop.src_mobile_dofs)
+
+    print(torch.nonzero(torch.abs(refold_kincoords - kincoords) > 1e-6))
 
     torch.testing.assert_allclose(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type
