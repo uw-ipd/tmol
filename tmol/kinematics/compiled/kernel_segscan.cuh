@@ -16,7 +16,7 @@ using namespace mgpu;
 template <int nt, int vt, typename type_t>
 struct cta_lbs_segscan_t {
   typedef cta_segscan_t<nt, type_t> segscan_t;
-  typedef cta_reduce_t<nt, type_t> reduce_t;
+  typedef cta_reduce_t<nt, int> reduce_t;  // reduction is over indices
 
   union storage_t {
     typename segscan_t::storage_t segscan;
@@ -93,7 +93,9 @@ struct cta_lbs_segscan_t {
 
     // store the carryout of this scan (thread nt-1)
     if (tid == nt - 1) {
-      carry_out_values[cta] = output[cur_item - 1];
+      // p[vt-1] checks if the current node (the last of the cta)
+      //   is a segment node.  If so, no carryout.
+      carry_out_values[cta] = p[vt - 1] ? output[cur_item - 1] : init;
     }
 
     // store when the first input scan stops
@@ -126,7 +128,7 @@ void spine_segreduce(
   // upward pass
   auto k_spine_up = [=] MGPU_DEVICE(int tid, int cta) {
     typedef cta_segscan_t<nt, type_t> segscan_t;
-    typedef cta_reduce_t<nt, type_t> reduce_t;
+    typedef cta_reduce_t<nt, int> reduce_t;  // reduction is over indices
 
     __shared__ union {
       typename segscan_t::storage_t segscan;
@@ -142,7 +144,9 @@ void spine_segreduce(
 
     segscan_result_t<type_t> result = segscan_t().segscan(
         tid, has_head_flag, has_carry_out, value, shared.segscan, init, op);
-    if (gid < count) values[gid] = result.scan;
+    if (gid < count) {
+      values[gid] = result.scan;
+    }
 
     // find the first segment start in this cta
     int stopindex = has_head_flag ? tid : nt + 1;
