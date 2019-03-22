@@ -12,6 +12,7 @@ from tmol.types.attrs import ConvertAttrs, ValidateAttrs
 
 from tmol.types.functional import validate_args
 
+
 # jitted scan operation
 # inputs:
 #    parents - the "parents" array from the kinematic tree
