@@ -1,15 +1,10 @@
 import pytest
 
-import numpy
 import torch
-import numba
 
-from tmol.kinematics.operations import DOFTransforms, backwardKin, forwardKin
-
+from tmol.kinematics.operations import backwardKin, forwardKin
 from tmol.kinematics.builder import KinematicBuilder
-
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
-
 from tmol.tests.torch import requires_cuda
 
 
@@ -31,7 +26,7 @@ def test_refold_data_construction(benchmark, ubq_system):
     def tree_reordering_cpp() -> KinTreeScanOrdering:
         return KinTreeScanOrdering.calculate_from_kintree(kintree)
 
-    refold_ordering = tree_reordering_cpp
+    tree_reordering_cpp
 
 
 @requires_cuda
@@ -44,7 +39,7 @@ def test_refold_values_cpp(benchmark, big_system):
     tkintree = kintree.to(device=target_device)
     bkin = backwardKin(tkintree, tcoords)
 
-    refold_ordering = KinTreeScanOrdering.calculate_from_kintree(tkintree)
+    KinTreeScanOrdering.calculate_from_kintree(tkintree)
 
     @benchmark
     def parallel_refold_hts_cpp():

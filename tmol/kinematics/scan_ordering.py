@@ -8,7 +8,6 @@ from .datatypes import KinTree
 
 from numba import jit
 from tmol.types.tensor import TensorGroup
-from tmol.types.torch import Tensor
 from tmol.types.attrs import ConvertAttrs, ValidateAttrs
 
 from tmol.types.functional import validate_args
@@ -24,7 +23,7 @@ from tmol.types.functional import validate_args
 #    scanStarts - the index in 'scans' where each individual scan begins
 #    genStarts - the index in 'scanStarts' where each generation begins
 @jit
-def get_scans(parents, roots=numpy.array([0])):
+def get_scans(parents, roots):
     nelts = parents.shape[0]
 
     # count number of children
@@ -159,7 +158,9 @@ class KinTreeScanOrdering(ValidateAttrs):
         ``device`` is inferred from kintree tensor device.
         """
 
-        nodes, scanStarts, genStarts = get_scans(kintree.parent.cpu().numpy())
+        nodes, scanStarts, genStarts = get_scans(
+            kintree.parent.cpu().numpy(), numpy.array([0])
+        )
 
         # seperate by generation
         nodesList = []
