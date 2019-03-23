@@ -33,36 +33,33 @@ def test_refold_data_construction(benchmark, ubq_system):
     #   - dimensionality match
     #   - all connected nodes are parent->child
     natms = kintree.id.shape[0]
-    generated = numpy.zeros(natms,dtype=numpy.int32)
+    generated = numpy.zeros(natms, dtype=numpy.int32)
     ngens = len(kinorder.forward_scan_paths.nodes)
     assert ngens == len(kinorder.forward_scan_paths.scans)
 
     for i in range(ngens):
         nscans = kinorder.forward_scan_paths.scans[i].shape[0]
-        assert (kinorder.forward_scan_paths.scans[i][0] == 0)
+        assert kinorder.forward_scan_paths.scans[i][0] == 0
         for j in range(nscans):
             # tag the root(s) as generated
-            if (i==0):
+            if i == 0:
                 generated[kinorder.forward_scan_paths.nodes[i][0]] += 1
 
             scanstart = kinorder.forward_scan_paths.scans[i][j]
             scanstop = kinorder.forward_scan_paths.nodes[i].shape[0]
-            if (j != nscans-1):
-                scanstop = kinorder.forward_scan_paths.scans[i][j+1]
-            for k in range (scanstart,scanstop-1):
+            if j != nscans - 1:
+                scanstop = kinorder.forward_scan_paths.scans[i][j + 1]
+            for k in range(scanstart, scanstop - 1):
                 parent = kinorder.forward_scan_paths.nodes[i][k]
-                child = kinorder.forward_scan_paths.nodes[i][k+1]
-                assert kintree.parent[ child ].to(dtype=torch.int) == parent
+                child = kinorder.forward_scan_paths.nodes[i][k + 1]
+                assert kintree.parent[child].to(dtype=torch.int) == parent
 
                 # tag the child as visited
                 generated[child] += 1
 
-
     #  ensure all nodes are generated exactly once
-    for i in range (1,natms):
+    for i in range(1, natms):
         assert generated[i] == 1
-
-
 
 
 @requires_cuda
