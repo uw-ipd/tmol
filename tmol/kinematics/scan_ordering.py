@@ -28,7 +28,7 @@ def get_scans(parents, roots):
     nelts = parents.shape[0]
 
     # count number of children
-    nchildren = numpy.empty(nelts, dtype=numpy.int32)
+    nchildren = numpy.ones(nelts, dtype=numpy.int32)
     for i in range(nelts - 1, 0, -1):
         nchildren[parents[i]] += nchildren[i]
 
