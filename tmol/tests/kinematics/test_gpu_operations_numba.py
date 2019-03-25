@@ -112,7 +112,7 @@ def test_refold_values(benchmark, big_system, segscan_num_threads):
     coords = torch.tensor(big_system.coords[target_kintree.id]).to(device=target_device)
     kintree = target_kintree.to(device=target_device)
 
-    bkin = backwardKin(target_kintree, coords)
+    bkin = backwardKin(kintree, coords)
 
     local_hts = DOFTransforms(kintree.doftype, bkin.dofs)
 

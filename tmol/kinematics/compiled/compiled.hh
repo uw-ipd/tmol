@@ -32,6 +32,18 @@ struct DOFTransformsDispatch {
       -> TPack<HomogeneousTransform, 1, D>;
 };
 
+template <tmol::Device D, typename Real, typename Int>
+struct BackwardKinDispatch {
+  static auto f(
+      TView<Vec<Real, 3>, 1, D> ht,
+      TView<Int, 1, D> doftypes,
+      TView<Int, 1, D> parents,
+      TView<Int, 1, D> frame_x,
+      TView<Int, 1, D> frame_y,
+      TView<Int, 1, D> frame_z,
+      TView<Vec<Real, 9>, 1, D> dofs) -> TPack<HomogeneousTransform, 1, D>;
+};
+
 #undef HomogeneousTransform
 
 }  // namespace kinematics

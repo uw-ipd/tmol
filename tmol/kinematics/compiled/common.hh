@@ -3,6 +3,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -15,6 +16,7 @@ namespace kinematics {
 
 #define HomogeneousTransform Eigen::Matrix<Real, 4, 4>
 #define QuatTranslation Eigen::Matrix<Real, 7, 1>
+#define Coord Eigen::Matrix<Real, 3, 1>
 
 enum DOFtype { ROOT = 0, JUMP, BOND };
 
@@ -61,6 +63,32 @@ struct common {
     HT(3, 3) = 1;
 
     return HT;
+  }
+
+  // HTs -> BOND dofs
+  //
+  // Given the matrix definition in BondTransforms, we calculate the dofs
+  //   that give rise to this HT.
+  // A special case below handles a "singularity," that is, a configuration
+  //   where there are multiple parameterizations that give the same HT
+  // Specifically, when theta==0, the rx rotation can be put into
+  //   phi_c or phi_p (we use phi_c)
+  static auto EIGEN_DEVICE_FUNC invBondTransform(HomogeneousTransform M) {
+    Eigen::Matrix<Real, 9, 1> dof = Eigen::Matrix<Real, 9, 1>::Constant(NAN);
+
+    if (std::fabs(M(0, 0) - 1) < 1e-6) {
+      dof[0] = 0.0;
+      dof[3] = std::atan2(M(1, 2), M(1, 1));
+      dof[1] = 0.0;
+    } else {
+      dof[0] = std::atan2(M(0, 2), M(0, 1));
+      dof[3] = std::atan2(-M(2, 0), -M(1, 0));
+      dof[1] =
+          std::atan2(std::sqrt(M(1, 0) * M(1, 0) + M(2, 0) * M(2, 0)), M(0, 0));
+    }
+    dof[2] = M.bottomLeftCorner(1, 3).norm();
+
+    return dof;
   }
 
   // convert JUMP dofs to HT
@@ -137,6 +165,38 @@ struct common {
     HomogeneousTransform HT = HTglobal * HTdelta;
 
     return HT;
+  }
+
+  // HTs -> JUMP dofs
+  //
+  // Given the matrix definition in JumpTransforms, we calculate the dofs
+  //   that give rise to this HT.
+  // A special case handles the problematic region where cos(beta)=0.
+  // In this case, the alpha and gamma rotation are coincident so
+  //    we assign all rotation to alpha.
+  //
+  // Since RB and RBdel are redundant, this function always returns its
+  //    non-zero components into RB, and RBdel is always 0
+  static auto EIGEN_DEVICE_FUNC invJumpTransform(HomogeneousTransform M) {
+    Eigen::Matrix<Real, 9, 1> dof;
+
+    dof[0] = M(3, 0);
+    dof[1] = M(3, 1);
+    dof[2] = M(3, 2);
+    dof[3] = dof[4] = dof[5] = 0.0;
+
+    Real cy = std::sqrt(M(0, 0) * M(0, 0) + M(0, 1) * M(0, 1));
+    if (cy < 1e-6) {
+      dof[6] = std::atan2(-M(2, 1), M(1, 1));
+      dof[7] = std::atan2(-M(0, 2), cy);
+      dof[8] = 0.0;
+    } else {
+      dof[6] = std::atan2(M(1, 2), M(2, 2));
+      dof[7] = std::atan2(-M(0, 2), cy);
+      dof[8] = std::atan2(M(0, 1), M(0, 0));
+    }
+
+    return dof;
   }
 
   // convert a HT (16 elements) to a quaternion+translation (7 elts)
@@ -222,10 +282,39 @@ struct common {
 
     return (qt1);
   }
+
+  static auto EIGEN_DEVICE_FUNC
+  hts_from_frames(Coord ori, Coord a, Coord b, Coord c) {
+    HomogeneousTransform ht;
+
+    Coord xaxis = (a - b).normalized();
+    Coord zaxis = xaxis.cross(c - a).normalized();
+    Coord yaxis = zaxis.cross(xaxis).normalized();
+
+    ht.block(0, 0, 1, 3) = xaxis.transpose();
+    ht.block(1, 0, 1, 3) = yaxis.transpose();
+    ht.block(2, 0, 1, 3) = zaxis.transpose();
+    ht.block(3, 0, 1, 3) = ori.transpose();
+    ht.col(3) = Eigen::Matrix<Real, 1, 4>(0, 0, 0, 1);
+
+    return ht;
+  }
+
+  // note: not a proper inversion; assumes the R component is a
+  //   proper rotation
+  static auto EIGEN_DEVICE_FUNC ht_inv(HomogeneousTransform ht) {
+    HomogeneousTransform htinv;
+    htinv.topLeftCorner(3, 3) = ht.topLeftCorner(3, 3).transpose();
+    htinv.bottomLeftCorner(1, 3) =
+        -ht.bottomLeftCorner(1, 3) * htinv.topLeftCorner(3, 3);
+    htinv.col(3) = Eigen::Matrix<Real, 1, 4>(0, 0, 0, 1);
+    return htinv;
+  }
 };
 
 #undef HomogeneousTransform
 #undef QuatTranslation
+#undef Coord
 
 }  // namespace kinematics
 }  // namespace tmol

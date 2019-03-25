@@ -49,6 +49,7 @@ def test_refold_values_cpp(benchmark, big_system):
     hts_cuda = parallel_refold_hts_cpp
 
     bkin = backwardKin(kintree, tcoords.cpu())
+
     hts_cpu = forwardKin(kintree, bkin.dofs)
 
     assert hts_cuda.hts.device.type == "cuda"

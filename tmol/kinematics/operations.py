@@ -18,75 +18,6 @@ from .scan_ordering import KinTreeScanOrdering
 
 HTArray = Tensor(torch.double)[:, 4, 4]
 CoordArray = Tensor(torch.double)[:, 3]
-EPS = 1e-6
-
-
-@validate_args
-def HTinv(HTs: HTArray) -> HTArray:
-    """helper to quickly invert a HT stack"""
-    N = HTs.shape[0]
-    HTinvs = torch.eye(4).expand(N, -1, -1)
-
-    # fd: not sure why but the line below does not work...
-    # HTinvs[:, :3, :3] = torch.transpose(HTs[:, :3, :3], 2, 1)
-
-    # einsum is matrix/vector mult
-    HTinvs = torch.transpose(HTs, 2, 1)
-    HTinvs[:, :3, 3] = -torch.einsum("aij,aj->ai", (HTinvs[:, :3, :3], HTs[:, :3, 3]))
-    HTinvs[:, 3, :3] = 0
-    return HTinvs
-
-
-@validate_args
-def InvJumpTransforms(Ms: HTArray) -> JumpDOF:
-    """HTs -> JUMP dofs
-
-    Given the matrix definition in JumpTransforms, we calculate the dofs
-    that give rise to this HT.
-
-    A special case handles the problematic region where cos(beta)=0.
-        In this case, the alpha and gamma rotation are coincident so
-        we assign all rotation to alpha.
-
-    Since RB and RBdel are redundant, this function always returns its
-        non-zero components into RB, and RBdel is always 0
-    """
-
-    njumpatoms = Ms.shape[0]
-
-    dofs = JumpDOF.empty(njumpatoms, device=Ms.device)
-
-    dofs.RBx[:] = Ms[:, 0, 3]
-    dofs.RBy[:] = Ms[:, 1, 3]
-    dofs.RBz[:] = Ms[:, 2, 3]
-
-    dofs.RBdel_alpha[:] = 0
-    dofs.RBdel_beta[:] = 0
-    dofs.RBdel_gamma[:] = 0
-
-    cys = torch.sqrt(Ms[:, 0, 0] * Ms[:, 0, 0] + Ms[:, 1, 0] * Ms[:, 1, 0])
-
-    problemSelector = cys <= EPS
-
-    dofs.RBalpha[~problemSelector] = torch.atan2(
-        Ms[~problemSelector, 2, 1], Ms[~problemSelector, 2, 2]
-    )
-    dofs.RBbeta[~problemSelector] = torch.atan2(
-        -Ms[~problemSelector, 2, 0], cys[~problemSelector]
-    )
-    dofs.RBgamma[~problemSelector] = torch.atan2(
-        Ms[~problemSelector, 1, 0], Ms[~problemSelector, 0, 0]
-    )
-
-    dofs.RBalpha[problemSelector] = torch.atan2(
-        -Ms[problemSelector, 1, 2], Ms[problemSelector, 1, 1]
-    )
-    dofs.RBbeta[problemSelector] = torch.atan2(
-        -Ms[problemSelector, 2, 0], cys[problemSelector]
-    )
-    dofs.RBgamma[problemSelector] = 0.0
-
-    return dofs
 
 
 @validate_args
@@ -158,55 +89,6 @@ def JumpDerivatives(
 
 
 @validate_args
-def InvBondTransforms(Ms: HTArray) -> BondDOF:
-    """
-    HTs -> BOND dofs
-
-    Given the matrix definition in BondTransforms, we calculate the dofs
-    that give rise to this HT.
-
-    A special case below handles a "singularity," that is, a configuration
-    where there are multiple parameterizations that give the same HT
-
-    Specifically, when theta==0, the rx rotation can be put into
-    phi_c or phi_p (we use phi_c)
-    """
-    nbondatoms = Ms.shape[0]
-
-    dofs = BondDOF.empty(nbondatoms, device=Ms.device)
-
-    # d is always the same logic
-    dofs.d[:] = Ms[:, :3, 3].norm(dim=1)
-
-    # when theta == 0, phip and phic are about same axis
-    # we (arbitrarily) put all the movement into phic
-    theta0_selector = torch.abs(Ms[:, 0, 0] - 1) <= EPS
-    dofs.phi_p[theta0_selector] = 0.0
-    dofs.phi_c[theta0_selector] = torch.atan2(
-        Ms[theta0_selector, 2, 1], Ms[theta0_selector, 1, 1]
-    )
-    dofs.theta[theta0_selector] = 0
-
-    # otherwise, use the general case
-    dofs.phi_p[~theta0_selector] = torch.atan2(
-        Ms[~theta0_selector, 2, 0], Ms[~theta0_selector, 1, 0]
-    )
-    dofs.phi_c[~theta0_selector] = torch.atan2(
-        Ms[~theta0_selector, 0, 2], -Ms[~theta0_selector, 0, 1]
-    )
-
-    dofs.theta[~theta0_selector] = torch.atan2(
-        torch.sqrt(
-            Ms[~theta0_selector, 0, 1] * Ms[~theta0_selector, 0, 1]
-            + Ms[~theta0_selector, 0, 2] * Ms[~theta0_selector, 0, 2]
-        ),
-        Ms[~theta0_selector, 0, 0],
-    )
-
-    return dofs
-
-
-@validate_args
 def BondDerivatives(
     dofs: BondDOF, Ms: HTArray, Mparents: HTArray, f1s: CoordArray, f2s: CoordArray
 ) -> BondDOF:
@@ -260,40 +142,6 @@ def BondDerivatives(
     return dsc_ddofs
 
 
-@validate_args
-def HTs_from_frames(
-    Cs: CoordArray,
-    Xs: CoordArray,
-    Ys: CoordArray,
-    Zs: CoordArray,
-    out: Optional[HTArray] = None,
-) -> HTArray:
-    """xyzs -> HTs"""
-    natoms = Cs.shape[0]
-
-    def unit_norm(v):
-        return v / torch.norm(v, dim=-1, keepdim=True)
-
-    if out is None:
-        out = torch.zeros([natoms, 4, 4], dtype=torch.double, device=Cs.device)
-    else:
-        assert out.shape[0] == natoms
-
-    xaxis = out[:, :3, 0]
-    yaxis = out[:, :3, 1]
-    zaxis = out[:, :3, 2]
-    center = out[:, :3, 3]
-
-    xaxis[:] = unit_norm(Xs - Ys)
-    zaxis[:] = unit_norm(torch.cross(xaxis, Zs - Xs))
-    yaxis[:] = unit_norm(torch.cross(zaxis, xaxis))
-    center[:] = Cs
-
-    out[:, 3] = torch.tensor([0, 0, 0, 1], device=out.device)
-
-    return out
-
-
 @attr.s(frozen=True, auto_attribs=True, slots=True)
 class BackKinResult(ValidateAttrs):
     hts: HTArray
@@ -312,34 +160,16 @@ def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     assert kintree.doftype[0] == NodeType.root
     assert kintree.parent[0] == 0
 
-    # fd: not sure of a torch isnan check?
-    # assert (torch.norm(coords[0, :], dim=-1) == 0)
-
-    HTs = torch.empty((natoms, 4, 4), dtype=HTArray.dtype, device=coords.device)
-    HTs[0] = torch.eye(4)
-    HTs_from_frames(
-        coords[1:],
-        coords[kintree.frame_x[1:], :],
-        coords[kintree.frame_y[1:], :],
-        coords[kintree.frame_z[1:], :],
-        out=HTs[1:],
-    )
-
-    # 2) local HTs
-    localHTs = torch.empty((natoms, 4, 4), dtype=HTArray.dtype, device=coords.device)
-    localHTs[0] = torch.eye(4)
-    localHTs[1:] = torch.matmul(
-        HTinv(HTs[kintree.parent[1:].squeeze(), :, :]), HTs[1:, :, :]
-    )
-
-    # 3) dofs
     dofs = KinDOF.full(natoms, numpy.nan, device=coords.device)
-
-    bondSelector = kintree.doftype == NodeType.bond
-    dofs.bond[bondSelector] = InvBondTransforms(localHTs[bondSelector])
-
-    jumpSelector = kintree.doftype == NodeType.jump
-    dofs.jump[jumpSelector] = InvJumpTransforms(localHTs[jumpSelector])
+    HTs = compiled.backward_kin(
+        coords,
+        kintree.doftype,
+        kintree.parent,
+        kintree.frame_x,
+        kintree.frame_y,
+        kintree.frame_z,
+        dofs.raw,
+    )
 
     return BackKinResult(HTs, dofs)
 
@@ -370,7 +200,7 @@ def forwardKin(kintree: KinTree, dofs: KinDOF) -> ForwardKinResult:
 
     HTs = compiled.forward_kin(
         dofs.raw, kintree.doftype, **attr.asdict(ordering.forward_scan_paths)
-    ).reshape((-1, 4, 4))
+    )
 
     coords = HTs[:, :3, 3]
     return ForwardKinResult(HTs, coords)
@@ -420,12 +250,13 @@ def resolveDerivs(
 
     # 3) convert to dscore/dtors
     dsc_ddofs = dofs.clone()
+    parentIdx = kintree.parent.to(dtype=torch.long)
 
     bondSelector = kintree.doftype == NodeType.bond
     dsc_ddofs.bond[bondSelector] = BondDerivatives(
         dofs.bond[bondSelector],
         HTs[bondSelector],
-        HTs[kintree.parent[bondSelector]],
+        HTs[parentIdx[bondSelector]],
         f1s[bondSelector],
         f2s[bondSelector],
     )
@@ -434,7 +265,7 @@ def resolveDerivs(
     dsc_ddofs.jump[jumpSelector] = JumpDerivatives(
         dofs.jump[jumpSelector],
         HTs[jumpSelector],
-        HTs[kintree.parent[jumpSelector]],
+        HTs[parentIdx[jumpSelector]],
         f1s[jumpSelector],
         f2s[jumpSelector],
     )

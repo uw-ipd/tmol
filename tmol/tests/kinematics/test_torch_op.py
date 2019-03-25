@@ -39,16 +39,9 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     # for benchmarking, precompute GPU ordering
     scanorder = KinTreeScanOrdering.for_kintree(tkin.kintree)
 
-    for i in range(4):
-        print(i, torch.nonzero(scanorder.forward_scan_paths.nodes[i] == 411))
-
-    print(scanorder.forward_scan_paths.scans[1])
-
     @benchmark
     def refold_kincoords():
         return kop.apply(kop.src_mobile_dofs)
-
-    print(torch.nonzero(torch.abs(refold_kincoords - kincoords) > 1e-6))
 
     torch.testing.assert_allclose(refold_kincoords, kincoords)
     assert refold_kincoords.device.type == torch_device.type

@@ -109,10 +109,63 @@ struct DOFTransformsDispatch {
   }
 };
 
+template <tmol::Device D, typename Real, typename Int>
+struct BackwardKinDispatch {
+  static auto f(
+      TView<Vec<Real, 3>, 1, D> coords,
+      TView<Int, 1, D> doftypes,
+      TView<Int, 1, D> parents,
+      TView<Int, 1, D> frame_x,
+      TView<Int, 1, D> frame_y,
+      TView<Int, 1, D> frame_z,
+	  TView<Vec<Real, 9>, 1, D> dofs
+  ) -> TPack<HomogeneousTransform, 1, D> {
+    auto num_atoms = coords.size(0);
+
+    auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
+    auto HTs = HTs_t.view;
+
+    auto k_coords2hts = ([=] EIGEN_DEVICE_FUNC(int i) {
+		if (i==0) {
+			HTs[i] = HomogeneousTransform::Identity();
+		} else {
+			HTs[i] = common<D,Real,Int>::hts_from_frames( 
+				coords[i], coords[frame_x[i]], coords[frame_y[i]], coords[frame_z[i]] );
+		}
+	});
+
+    for (int i = 0; i < num_atoms; i++) {
+      k_coords2hts(i);
+    }	
+
+    auto k_hts2dofs = ([=] EIGEN_DEVICE_FUNC(int i) {
+	  HomogeneousTransform lclHT;
+	  if (doftypes[i] != ROOT) {
+		lclHT = HTs[i] * common<D,Real,Int>::ht_inv( HTs[parents[i]] );
+
+        if (doftypes[i] == JUMP) {
+          dofs[i]= common<D,Real,Int>::invJumpTransform(lclHT);
+        } else if (doftypes[i] == BOND) {
+          dofs[i]= common<D,Real,Int>::invBondTransform(lclHT);
+        }
+	  }
+	});
+
+    for (int i = 0; i < num_atoms; i++) {
+      k_hts2dofs(i);
+    }
+
+	return HTs_t;
+  }
+};
+
+
 template struct ForwardKinDispatch<tmol::Device::CPU, float, int32_t>;
 template struct ForwardKinDispatch<tmol::Device::CPU, double, int32_t>;
 template struct DOFTransformsDispatch<tmol::Device::CPU, float, int32_t>;
 template struct DOFTransformsDispatch<tmol::Device::CPU, double, int32_t>;
+template struct BackwardKinDispatch<tmol::Device::CPU, float, int32_t>;
+template struct BackwardKinDispatch<tmol::Device::CPU, double, int32_t>;
 
 #undef HomogeneousTransform
 #undef QuatPlusTranslation

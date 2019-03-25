@@ -18,3 +18,7 @@ def dof_transforms(*args, **kwargs):
     return _compiled.dof_transforms[(args[0].device.type, args[0].dtype)](
         *args, **kwargs
     )
+
+
+def backward_kin(*args, **kwargs):
+    return _compiled.backward_kin[(args[0].device.type, args[0].dtype)](*args, **kwargs)

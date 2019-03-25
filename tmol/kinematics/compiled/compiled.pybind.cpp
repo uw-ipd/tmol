@@ -30,6 +30,17 @@ void bind_dispatch(pybind11::module& m) {
       "dofs"_a,
       "doftypes"_a);
 
+  add_dispatch_impl<Dev, Real>(
+      m,
+      "backward_kin",
+      &BackwardKinDispatch<Dev, Real, Int>::f,
+      "coords"_a,
+      "parents"_a,
+      "doftypes"_a,
+      "frame_x"_a,
+      "frame_y"_a,
+      "frame_z"_a,
+      "dofs"_a);
 };
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
