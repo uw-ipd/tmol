@@ -23,18 +23,18 @@ from tmol.types.functional import validate_args
 #    scans - 1 1D array with the node indeices of each scan, concatenated
 #    scanStarts - the index in 'scans' where each individual scan begins
 #    genStarts - the index in 'scanStarts' where each generation begins
-@jit
+@jit(nopython=True)
 def get_scans(parents, roots):
     nelts = parents.shape[0]
 
     # count number of children
-    nchildren = numpy.ones_like(parents)
+    nchildren = numpy.ones(nelts, dtype=numpy.int32)
     for i in range(nelts - 1, 0, -1):
         nchildren[parents[i]] += nchildren[i]
 
     # map parent idx -> child idx
-    p2c = numpy.full((nelts, 4), -1, dtype=numpy.int)
-    p2c_i = numpy.full(nelts, 0, dtype=numpy.int)
+    p2c = numpy.full((nelts, 4), -1, dtype=numpy.int32)
+    p2c_i = numpy.full(nelts, 0, dtype=numpy.int32)
     for i in range(1, nelts):
         par_i = parents[i]
         p2c[par_i, p2c_i[par_i]] = i
@@ -52,13 +52,13 @@ def get_scans(parents, roots):
     genidx, scanidx, nodeidx = 0, 0, 0
 
     # store the active pool we are expanding
-    activeFront = numpy.full(nelts, -1, dtype=numpy.int)
+    activeFront = numpy.full(nelts, -1, dtype=numpy.int32)
     nActiveFront = roots.shape[0]
     activeFront[:nActiveFront] = roots
 
     # DFS traversal using #children to choose paths
-    marked = numpy.zeros(nelts, dtype=numpy.bool)
-    marked[0] = True
+    marked = numpy.zeros(nelts, dtype=numpy.int32)
+    marked[0] = 1
     while not numpy.all(marked):
         genStarts[genidx] = scanidx
         genidx += 1
@@ -69,7 +69,7 @@ def get_scans(parents, roots):
             #   so can participate in >1 scan
             for j in range(p2c_i[currRoot]):
                 expandedNode = p2c[currRoot, j]
-                if marked[expandedNode]:
+                if marked[expandedNode] != 0:
                     continue
 
                 # this is the first root expansion,
@@ -79,14 +79,14 @@ def get_scans(parents, roots):
                 scans[nodeidx] = currRoot
                 scans[nodeidx + 1] = expandedNode
                 nodeidx += 2
-                marked[expandedNode] = True
+                marked[expandedNode] = 1
 
                 while expandedNode != -1:
                     prevExpNode = expandedNode
                     expandedNode = -1
                     for k in range(p2c_i[prevExpNode]):
                         candidate = p2c[prevExpNode, k]
-                        if marked[candidate]:
+                        if marked[candidate] != 0:
                             continue
                         if (
                             expandedNode == -1
@@ -95,7 +95,7 @@ def get_scans(parents, roots):
                             expandedNode = candidate
 
                     if expandedNode != -1:
-                        marked[expandedNode] = True
+                        marked[expandedNode] = 1
                         scans[nodeidx] = expandedNode
                         nodeidx += 1
 
