@@ -12,7 +12,6 @@ from tmol.types.torch import Tensor
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.torch_op import KinematicOp
-from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.restypes import Residue
@@ -35,9 +34,6 @@ def test_kinematic_torch_op_forward(benchmark, ubq_system, torch_device):
     kop = KinematicOp.from_coords(
         tkin.kintree, torsion_dofs, kincoords.to(torch_device)
     )
-
-    # for benchmarking, precompute GPU ordering
-    scanorder = KinTreeScanOrdering.for_kintree(tkin.kintree)
 
     @benchmark
     def refold_kincoords():

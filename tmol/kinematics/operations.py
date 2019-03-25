@@ -2,7 +2,6 @@ import attr
 import numpy
 
 import torch
-from typing import Optional
 
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
