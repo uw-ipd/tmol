@@ -36,7 +36,9 @@ class DunbrackIntraScore(IntraScore):
     def total_dun(dun):
         """total inter-atomic lj"""
         rot_nlpE, devpen, nonrot_nlpE = dun
-        return rot_nlpE.sum() + devpen.sum() + nonrot_nlpE.sum()
+        sumE = rot_nlpE.sum() + devpen.sum() + nonrot_nlpE.sum()
+        print("dunbrack E", sumE)
+        return sumE
 
 
 @score_graph

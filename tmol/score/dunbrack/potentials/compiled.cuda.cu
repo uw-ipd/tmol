@@ -118,17 +118,11 @@ struct DunbrackDispatch {
     auto semirotameric_tables_view = semirotameric_tables.view;
 
     // Five steps to this calculation
-    // 0. (Initialization)
     // 1. compute the dihedrals and put them into the dihedrals array
     // 2. compute the rotameric bin for each residue
     // 3. compute the -ln(P) energy for rotameric residues
     // 4. compute the chi-deviation penalty for all rotameric chi
     // 5. compute the -ln(P) energy for the semi-rotameric residues
-
-    // std::cout << "step 0" << std::endl;
-    // for (int ii = 0; ii < n_dihedrals; ++ii) {
-    //  ddihe_dxyz[ii].fill(0);
-    //}
 
     // 1.
     // std::cout << "step 1" << std::endl;
@@ -158,10 +152,6 @@ struct DunbrackDispatch {
     });
 
     mgpu::transform([=] MGPU_DEVICE(int idx) { func_rot(idx); }, nres, context);
-
-    // for (Int ii = 0; ii < nres; ++ii) {
-    //  func_rot(ii);
-    //}
 
     // 3.
     // std::cout << "step 3" << std::endl;
@@ -195,10 +185,6 @@ struct DunbrackDispatch {
         [=] MGPU_DEVICE(int idx) { func_rotameric_prob(idx); },
         n_rotameric_res,
         context);
-
-    // for (Int ii = 0; ii < n_rotameric_res; ++ii) {
-    //  func_rotameric_prob(ii);
-    //}
 
     // 4.
     // std::cout << "step 4" << std::endl;
@@ -239,9 +225,6 @@ struct DunbrackDispatch {
         [=] MGPU_DEVICE(int idx) { func_chidevpen(idx); },
         n_rotameric_chi,
         context);
-    // for (Int ii = 0; ii < n_rotameric_chi; ++ii ) {
-    //  func_chidevpen(ii);
-    //}
 
     // 5.
     // std::cout << "step 5" << std::endl;
@@ -283,10 +266,6 @@ struct DunbrackDispatch {
         [=] MGPU_DEVICE(int idx) { func_semirot(idx); },
         n_semirotameric_res,
         context);
-
-    // for ( int ii = 0; ii < n_semirotameric_res; ++ii ) {
-    //  func_semirot(ii);
-    //}
 
     return {neglnprob_rot_tpack,
             dneglnprob_rot_dbb_xyz_tpack,

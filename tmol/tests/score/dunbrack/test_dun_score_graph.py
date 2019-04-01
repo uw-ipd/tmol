@@ -32,15 +32,13 @@ class KinematicDunbrackGraph(
     pass
 
 
-def temp_skip_test_dunbrack_score_graph_smoke(
-    ubq_system, default_database, torch_device
-):
+def test_dunbrack_score_graph_smoke(ubq_system, default_database, torch_device):
     dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=torch_device, parameter_database=default_database
     )
 
 
-def temp_skip_test_dunbrack_score_setup(ubq_system, default_database, torch_device):
+def test_dunbrack_score_setup(ubq_system, default_database, torch_device):
     dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=torch_device, parameter_database=default_database
     )
@@ -134,9 +132,10 @@ def test_dunbrack_score_cpu(ubq_system, torch_device, default_database):
     e_dun = intra_graph.dun
 
 
-def test_cartesian_space_rama_gradcheck(ubq_res):
+def test_cartesian_space_rama_gradcheck(ubq_res, torch_device):
+    print("test_cartesian_space_rama_gradcheck Device!", torch_device)
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
-    real_space = CartDunbrackGraph.build_for(test_system)
+    real_space = CartDunbrackGraph.build_for(test_system, device=torch_device)
 
     coord_mask = torch.isnan(real_space.coords).sum(dim=-1) == 0
     start_coords = real_space.coords[coord_mask]
@@ -152,11 +151,10 @@ def test_cartesian_space_rama_gradcheck(ubq_res):
     )
 
 
-def test_kinematic_space_rama_gradcheck(ubq_res):
+def test_kinematic_space_rama_gradcheck(ubq_res, torch_device):
+    print("test_kinematic_space_rama_gradcheck Device!", torch_device)
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
-    torsion_space = KinematicDunbrackGraph.build_for(test_system)
-
-    start_dofs = torsion_space.dofs.clone()
+    torsion_space = KinematicDunbrackGraph.build_for(test_system, device=torch_device)
 
     def total_score(dofs):
         torsion_space.dofs = dofs

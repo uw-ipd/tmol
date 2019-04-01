@@ -540,7 +540,7 @@ class DunbrackParamResolver(ValidateAttrs):
             len(res_names), rns_inds, torch_device
         )
 
-        dun_res_names = res_names[rns_inds.numpy() != -1]
+        # dun_res_names = res_names[rns_inds.numpy() != -1]
         # print("dun res names")
         # print(dun_res_names.shape)
         # print(dun_res_names)
@@ -576,14 +576,14 @@ class DunbrackParamResolver(ValidateAttrs):
         # print(s_inds)
 
         # print("rotameric residues")
-        rotres_inds = numpy.arange(r_inds.shape[0], dtype=int)[r_inds.numpy() != -1]
+        # rotres_inds = numpy.arange(r_inds.shape[0], dtype=int)[r_inds.numpy() != -1]
         # print("rotres_inds")
         # print(rotres_inds)
         # print(dun_res_names[rotres_inds].shape)
         # print(dun_res_names[rotres_inds])
 
         # print("semirotameric residues")
-        semirotres_inds = numpy.arange(s_inds.shape[0], dtype=int)[s_inds.numpy() != -1]
+        # semirotres_inds = numpy.arange(s_inds.shape[0], dtype=int)[s_inds.numpy() != -1]
         # print(dun_res_names[semirotres_inds].shape)
         # print(dun_res_names[semirotres_inds])
 
@@ -631,7 +631,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
         semirotameric_chi_desc = self.create_semirotameric_chi_descriptors(
-            s_inds, dihedral_offset_for_res, nchi_for_res, torch_device, dun_res_names
+            s_inds, dihedral_offset_for_res, nchi_for_res, torch_device
         )
 
         return DunbrackParams(
@@ -774,7 +774,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return rotameric_chi_desc
 
     def create_semirotameric_chi_descriptors(
-        self, s_inds, dihedral_offset_for_res, nchi_for_res, torch_device, res_names
+        self, s_inds, dihedral_offset_for_res, nchi_for_res, torch_device
     ):
         # semirotchi_desc[:,0] == residue index
         # semirotchi_desc[:,1] == semirotchi_dihedral_index res
