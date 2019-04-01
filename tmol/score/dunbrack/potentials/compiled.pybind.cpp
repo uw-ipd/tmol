@@ -85,7 +85,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
 #ifdef WITH_CUDA
   bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
-  bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
+  //bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
 #endif
 }
 

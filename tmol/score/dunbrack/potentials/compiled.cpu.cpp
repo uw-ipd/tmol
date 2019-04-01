@@ -11,6 +11,7 @@
 
 #include <pybind11/pybind11.h>
 
+//#include "compiled.hh"
 #include "potentials.hh"
 
 namespace tmol {
@@ -104,6 +105,11 @@ struct DunbrackDispatch {
     auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
     auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_tpack.view;
 
+    auto rotameric_neglnprob_tables_view = rotameric_neglnprob_tables.view;
+    auto rotameric_mean_tables_view = rotameric_mean_tables.view;
+    auto rotameric_sdev_tables_view = rotameric_sdev_tables.view;
+    auto semirotameric_tables_view = semirotameric_tables.view;
+    
     // Five steps to this calculation
     // 0. (Initialization)
     // 1. compute the dihedrals and put them into the dihedrals array
@@ -157,7 +163,7 @@ struct DunbrackDispatch {
 	Eigen::Matrix<Real,2,1> dneglnprob_ddihe;
 	Int ires = rotres2resid[i];
 	std::tie(neglnprobE, dneglnprob_ddihe) = rotameric_chi_probability(
-	  rotameric_neglnprob_tables,
+	  rotameric_neglnprob_tables_view,
 	  rotameric_bb_start,
 	  rotameric_bb_step,
 	  rotameric_bb_periodicity,
@@ -193,8 +199,8 @@ struct DunbrackDispatch {
 	Eigen::Matrix<Real, 2, 1> dpen_dbb;
 
 	std::tie(devpen, dpen_dchi, dpen_dbb) = chi_deviation_penalty(
-	  rotameric_mean_tables,
-	  rotameric_sdev_tables,
+	  rotameric_mean_tables_view,
+	  rotameric_sdev_tables_view,
 	  rotameric_bb_start,
 	  rotameric_bb_step,
 	  rotameric_bb_periodicity,
@@ -236,7 +242,7 @@ struct DunbrackDispatch {
 	Int const res_dihe_offset = dihedral_offset_for_res[resid];
 
 	tie(neglnprob, dnlp_ddihe) = semirotameric_energy(
-	  semirotameric_tables,
+	  semirotameric_tables_view,
 	  semirot_start,
 	  semirot_step,
 	  semirot_periodicity,

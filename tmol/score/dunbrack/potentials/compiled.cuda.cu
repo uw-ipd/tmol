@@ -14,6 +14,7 @@
 
 #include <pybind11/pybind11.h>
 
+//#include "compiled.hh"
 #include "potentials.hh"
 
 namespace tmol {
@@ -111,6 +112,11 @@ struct DunbrackDispatch {
     auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
     auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_tpack.view;
 
+    auto rotameric_neglnprob_tables_view = rotameric_neglnprob_tables.view;
+    auto rotameric_mean_tables_view = rotameric_mean_tables.view;
+    auto rotameric_sdev_tables_view = rotameric_sdev_tables.view;
+    auto semirotameric_tables_view = semirotameric_tables.view;
+
     // Five steps to this calculation
     // 0. (Initialization)
     // 1. compute the dihedrals and put them into the dihedrals array
@@ -163,8 +169,8 @@ struct DunbrackDispatch {
       Real neglnprobE;
       Eigen::Matrix<Real, 2, 1> dneglnprob_ddihe;
       Int ires = rotres2resid[i];
-      std::tie(neglnprobE, dneglnprob_ddihe) = rotameric_chi_probability(
-          rotameric_neglnprob_tables,
+      tie(neglnprobE, dneglnprob_ddihe) = rotameric_chi_probability(
+          rotameric_neglnprob_tables_view,
           rotameric_bb_start,
           rotameric_bb_step,
           rotameric_bb_periodicity,
@@ -203,9 +209,9 @@ struct DunbrackDispatch {
       Real devpen, dpen_dchi;
       Eigen::Matrix<Real, 2, 1> dpen_dbb;
 
-      std::tie(devpen, dpen_dchi, dpen_dbb) = chi_deviation_penalty(
-          rotameric_mean_tables,
-          rotameric_sdev_tables,
+      tie(devpen, dpen_dchi, dpen_dbb) = chi_deviation_penalty(
+          rotameric_mean_tables_view,
+          rotameric_sdev_tables_view,
           rotameric_bb_start,
           rotameric_bb_step,
           rotameric_bb_periodicity,
@@ -251,7 +257,7 @@ struct DunbrackDispatch {
       Int const res_dihe_offset = dihedral_offset_for_res[resid];
 
       tie(neglnprob, dnlp_ddihe) = semirotameric_energy(
-          semirotameric_tables,
+          semirotameric_tables_view,
           semirot_start,
           semirot_step,
           semirot_periodicity,
@@ -314,16 +320,17 @@ struct DunbrackDispatch {
     auto dE_dxyz_tpack = TPack<Real3, 1, D>::zeros(natoms);
     auto dE_dxyz = dE_dxyz_tpack.view;
 
-    auto func_accum_rotnlp = ([=] EIGEN_DEVICE_FUNC(int i) {
+    auto func_accum_rotnlp = ([=] __device__(int i) {
       int ires = rotres2resid[i];
       int ires_dihe_offset = dihedral_offset_for_res[ires];
       for (int ii = 0; ii < 2; ++ii) {
         for (int jj = 0; jj < 4; ++jj) {
-          if (dihedral_atom_inds[ires_dihe_offset + ii](0) >= 0) {
+          int const jj_at = dihedral_atom_inds[ires_dihe_offset + ii](jj);
+          if (jj_at >= 0) {
             for (int kk = 0; kk < 3; ++kk) {
               atomicAdd(
-                  &dE_dxyz[dihedral_atom_inds[ires_dihe_offset + ii](jj)](kk),
-                  dE_drotnlp[i] * drot_nlp_dbb_xyz[i][ii](jj, kk););
+                  &(dE_dxyz[jj_at](kk)),
+                  dE_drotnlp[i] * drot_nlp_dbb_xyz[i][ii](jj, kk));
             }
           }
         }
@@ -335,7 +342,7 @@ struct DunbrackDispatch {
         n_rotameric_res,
         context);
 
-    auto func_accum_chidev = ([=] EIGEN_DEVICE_FUNC(int i) {
+    auto func_accum_chidev = ([=] __device__(int i) {
       int ires = rotameric_chi_desc[i][0];
       int ires_dihe_offset = dihedral_offset_for_res[ires];
       int ichi_ind = rotameric_chi_desc[i][1];
@@ -360,7 +367,7 @@ struct DunbrackDispatch {
     //
     // for ( int i = 0; i < n_rotameric_chi; ++i ) {
     //}
-    auto func_accum_nonrotnlp = ([=] EIGEN_DEVICE_FUNC(int i) {
+    auto func_accum_nonrotnlp = ([=] __device__(int i) {
       int ires = semirotameric_chi_desc[i][0];
       int ires_dihe_offset = dihedral_offset_for_res[ires];
       int ichi_ind = semirotameric_chi_desc[i][1];
@@ -387,9 +394,9 @@ struct DunbrackDispatch {
 };
 
 template struct DunbrackDispatch<tmol::Device::CUDA, float, int32_t>;
-template struct DunbrackDispatch<tmol::Device::CUDA, double, int32_t>;
+// template struct DunbrackDispatch<tmol::Device::CUDA, double, int32_t>;
 template struct DunbrackDispatch<tmol::Device::CUDA, float, int64_t>;
-template struct DunbrackDispatch<tmol::Device::CUDA, double, int64_t>;
+// template struct DunbrackDispatch<tmol::Device::CUDA, double, int64_t>;
 
 }  // namespace potentials
 }  // namespace dunbrack

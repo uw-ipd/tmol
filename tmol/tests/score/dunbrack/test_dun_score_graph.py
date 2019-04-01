@@ -123,10 +123,10 @@ def temp_skip_test_dunbrack_score_setup(ubq_system, default_database, torch_devi
     numpy.testing.assert_array_equal(ndihe_gold, dun_params.ndihe_for_res.cpu().numpy())
 
 
-def test_dunbrack_score_cpu(ubq_system, default_database):
-    device = torch.device("cpu")
+def test_dunbrack_score_cpu(ubq_system, torch_device, default_database):
+    # device = torch.device("cpu")
     dunbrack_graph = CartDunbrackGraph.build_for(
-        ubq_system, device=device, parameter_database=default_database
+        ubq_system, device=torch_device, parameter_database=default_database
     )
     # dun_params = dunbrack_graph.dun_resolve_indices
 
