@@ -152,30 +152,21 @@ struct DunbrackDispatch {
 
     // 3.
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i) {
-      Real neglnprobE;
-      Eigen::Matrix<Real, 2, 1> dneglnprob_ddihe;
-      Int ires = rotres2resid[i];
-      tie(neglnprobE, dneglnprob_ddihe) = rotameric_chi_probability(
+      rotameric_chi_probability_for_res(
           rotameric_neglnprob_tables_view,
           rotameric_bb_start,
           rotameric_bb_step,
           rotameric_bb_periodicity,
           prob_table_offset_for_rotresidue,
-          ires,
-          i,
           dihedrals,
           dihedral_offset_for_res,
           rottable_set_for_res,
-          rotameric_rottable_assignment);
-
-      neglnprob_rot[i] = neglnprobE;
-      int ires_dihe_offset = dihedral_offset_for_res[ires];
-      for (int ii = 0; ii < 2; ++ii) {
-        for (int jj = 0; jj < 4; ++jj) {
-          dneglnprob_rot_dbb_xyz[i][ii].row(jj) =
-              dneglnprob_ddihe(ii) * ddihe_dxyz[ires_dihe_offset + ii].row(jj);
-        }
-      }
+          rotameric_rottable_assignment,
+          rotres2resid,
+          neglnprob_rot,
+          dneglnprob_rot_dbb_xyz,
+          ddihe_dxyz,
+          i);
     });
     mgpu::transform(
         [=] MGPU_DEVICE(int idx) { func_rotameric_prob(idx); },

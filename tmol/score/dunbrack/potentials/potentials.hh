@@ -323,6 +323,51 @@ def rotameric_chi_probability(
   return {V, dVdbb};
 }
 
+template <size_t Nbb, typename Real, typename Int, tmol::Device D>
+def rotameric_chi_probability_for_res(
+    TView<TView<Real, Nbb, D>, 1, D> rotameric_neglnprob_tables_view,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_start,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_step,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_periodicity,
+    TView<Int, 1, D> prob_table_offset_for_rotresidue,
+    TView<Real, 1, D> dihedrals,
+    TView<Int, 1, D> dihedral_offset_for_res,
+    TView<Int, 1, D> rottable_set_for_res,
+    TView<Int, 1, D> rotameric_rottable_assignment,
+    TView<Int, 1, D> rotres2resid,
+    TView<Real, 1, D> neglnprob_rot,
+    TView<CoordQuad, 2, D> dneglnprob_rot_dbb_xyz,
+    TView<CoordQuad, 1, D> ddihe_dxyz,
+    int i)
+    ->void {
+  Real neglnprobE;
+  Eigen::Matrix<Real, Nbb, 1> dneglnprob_ddihe;
+  Int ires = rotres2resid[i];
+  tie(neglnprobE, dneglnprob_ddihe) = rotameric_chi_probability(
+      rotameric_neglnprob_tables_view,
+      rotameric_bb_start,
+      rotameric_bb_step,
+      rotameric_bb_periodicity,
+      prob_table_offset_for_rotresidue,
+      ires,
+      i,
+      dihedrals,
+      dihedral_offset_for_res,
+      rottable_set_for_res,
+      rotameric_rottable_assignment);
+
+  neglnprob_rot[i] = neglnprobE;
+  int ires_dihe_offset = dihedral_offset_for_res[ires];
+  for (int ii = 0; ii < 2; ++ii) {
+    for (int jj = 0; jj < 4; ++jj) {
+      for (int kk = 0; kk < 3; ++kk) {
+        dneglnprob_rot_dbb_xyz[i][ii](jj, kk) =
+            dneglnprob_ddihe(ii) * ddihe_dxyz[ires_dihe_offset + ii](jj, kk);
+      }
+    }
+  }
+}
+
 template <size_t NbbP1, typename Real, typename Int, tmol::Device D>
 def semirotameric_energy(
     TView<TView<Real, NbbP1, D>, 1, D> semirotameric_tables_view,
@@ -337,7 +382,7 @@ def semirotameric_energy(
     TView<Real, 1, D> neglnprob_nonrot,
     TView<CoordQuad, 2, D> dneglnprob_nonrot_dtor_xyz,
     TView<CoordQuad, 1, D> ddihe_dxyz)
-    ->tuple<Real, Eigen::Matrix<Real, NbbP1, 1> > {
+    ->void {
   Eigen::Matrix<Real, NbbP1, 1> dihe;
   Eigen::Matrix<Real, NbbP1, 1> temp_dihe_deg;
   Eigen::Matrix<Real, NbbP1, 1> temp_orig_dihe_deg;
