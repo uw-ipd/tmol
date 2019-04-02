@@ -180,37 +180,23 @@ struct DunbrackDispatch {
     // 4.
     //std::cout << "step 4" << std::endl;
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
-	int ires = rotameric_chi_desc[i][0];
-	int ichi_ind = rotameric_chi_desc[i][1];
-	int inchi = nchi_for_res[ires];
-	Real devpen, dpen_dchi;
-	Eigen::Matrix<Real, 2, 1> dpen_dbb;
-
-	std::tie(devpen, dpen_dchi, dpen_dbb) = chi_deviation_penalty(
-	  rotameric_mean_tables_view,
-	  rotameric_sdev_tables_view,
-	  rotameric_bb_start,
-	  rotameric_bb_step,
-	  rotameric_bb_periodicity,
-	  ires,
-	  inchi,
-	  ichi_ind,
-	  dihedrals,
-	  dihedral_offset_for_res,
-	  rottable_set_for_res,
-	  rotmean_table_offset_for_residue,
-	  rotameric_rottable_assignment);
-	rotchi_devpen[i] = devpen;
-
-	int ires_dihe_offset = dihedral_offset_for_res[ires];
-	for ( int ii = 0; ii < 3; ++ii ) {
-	  int tor_ind = ires_dihe_offset + ( ii == 2 ? (2+ichi_ind) : ii );
-	  Real dpen_dtor = ii == 2 ? dpen_dchi : dpen_dbb(ii);
-	  for ( int jj = 0; jj < 4; ++jj ) {
-	    drotchi_devpen_dtor_xyz[i][ii].row(jj) = dpen_dtor*ddihe_dxyz[tor_ind].row(jj);
-	  }
-	}
-
+      deviation_penalty_for_chi(
+        rotameric_mean_tables_view,
+        rotameric_sdev_tables_view,
+        rotameric_bb_start,
+        rotameric_bb_step,
+        rotameric_bb_periodicity,
+        dihedrals,
+        dihedral_offset_for_res,
+        rottable_set_for_res,
+        rotmean_table_offset_for_residue,
+        rotameric_rottable_assignment,
+        rotameric_chi_desc,
+        nchi_for_res,
+        rotchi_devpen,
+        drotchi_devpen_dtor_xyz,
+        ddihe_dxyz,
+        i);
       });
     for (Int ii = 0; ii < n_rotameric_chi; ++ii ) {
       func_chidevpen(ii);

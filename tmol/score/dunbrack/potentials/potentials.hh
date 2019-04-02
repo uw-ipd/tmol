@@ -278,6 +278,60 @@ def chi_deviation_penalty(
 }
 
 template <size_t Nbb, typename Real, typename Int, tmol::Device D>
+def deviation_penalty_for_chi(
+    TView<TView<Real, Nbb, D>, 1, D> rotameric_mean_tables_view,
+    TView<TView<Real, Nbb, D>, 1, D> rotameric_sdev_tables_view,
+    TView<Vec<Real, (int)Nbb>, 1, D> const& rotameric_bb_start,
+    TView<Vec<Real, (int)Nbb>, 1, D> const& rotameric_bb_step,
+    TView<Vec<Real, (int)Nbb>, 1, D> const& rotameric_bb_periodicity,
+    TView<Real, 1, D> dihedrals,
+    TView<Int, 1, D> dihedral_offset_for_res,
+    TView<Int, 1, D> rottable_set_for_res,
+    TView<Int, 1, D> rotmean_table_offset_for_residue,
+    TView<Int, 1, D> rotameric_rottable_assignment,
+    TView<Int, 2, D> rotameric_chi_desc,
+    TView<Int, 1, D> nchi_for_res,
+    TView<Real, 1, D> rotchi_devpen,
+    TView<CoordQuad, 2, D> drotchi_devpen_dtor_xyz,
+    TView<CoordQuad, 1, D> ddihe_dxyz,
+    int i)
+    ->void {
+  int ires = rotameric_chi_desc[i][0];
+  int ichi_ind = rotameric_chi_desc[i][1];
+  int inchi = nchi_for_res[ires];
+  Real devpen, dpen_dchi;
+  Eigen::Matrix<Real, 2, 1> dpen_dbb;
+
+  tie(devpen, dpen_dchi, dpen_dbb) = chi_deviation_penalty(
+      rotameric_mean_tables_view,
+      rotameric_sdev_tables_view,
+      rotameric_bb_start,
+      rotameric_bb_step,
+      rotameric_bb_periodicity,
+      ires,
+      inchi,
+      ichi_ind,
+      dihedrals,
+      dihedral_offset_for_res,
+      rottable_set_for_res,
+      rotmean_table_offset_for_residue,
+      rotameric_rottable_assignment);
+  rotchi_devpen[i] = devpen;
+
+  int ires_dihe_offset = dihedral_offset_for_res[ires];
+  for (int ii = 0; ii < Nbb + 1; ++ii) {
+    int tor_ind = ires_dihe_offset + (ii == Nbb ? (Nbb + ichi_ind) : ii);
+    Real dpen_dtor = ii == Nbb ? dpen_dchi : dpen_dbb(ii);
+    for (int jj = 0; jj < 4; ++jj) {
+      for (int kk = 0; kk < 3; ++kk) {
+        drotchi_devpen_dtor_xyz[i][ii](jj, kk) =
+            dpen_dtor * ddihe_dxyz[tor_ind](jj, kk);
+      }
+    }
+  }
+}
+
+template <size_t Nbb, typename Real, typename Int, tmol::Device D>
 def rotameric_chi_probability(
     TView<TView<Real, Nbb, D>, 1, D> rotameric_neglnprob_tables_view,
     TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_start,
