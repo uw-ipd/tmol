@@ -119,6 +119,31 @@ def classify_rotamer(
   return rotamer_ind;
 }
 
+template <size_t Nbb, typename Real, typename Int, tmol::Device D>
+def classify_rotamer_for_res(
+    TView<Real, 1, D> dihedrals,
+    TView<Int, 1, D> dihedral_offset_for_res,
+    TView<Int, 1, D> nrotameric_chi_for_res,
+    TView<Int, 1, D> rotind2tableind_offset_for_res,
+    TView<Int, 1, D> rotameric_rotind2tableind,
+    TView<Int, 1, D> semirotameric_rotind2tableind,
+    TView<Int, 1, D> rotameric_rottable_assignment,
+    TView<Int, 1, D> semirotameric_rottable_assignment,
+    int i)
+    ->void {
+  // Offset by the number of backbone dihedrals for this residue
+  Int dihe_offset = dihedral_offset_for_res[i] + Nbb;
+  Int rot_ind =
+      classify_rotamer(dihedrals, nrotameric_chi_for_res[i], dihe_offset);
+  Int ri2ti_offset = rotind2tableind_offset_for_res[i];
+  Int rotameric_table_ind = rotameric_rotind2tableind[ri2ti_offset + rot_ind];
+  Int semirotameric_table_ind =
+      semirotameric_rotind2tableind[ri2ti_offset + rot_ind];
+
+  rotameric_rottable_assignment[i] = rotameric_table_ind;
+  semirotameric_rottable_assignment[i] = semirotameric_table_ind;
+}
+
 // Interpolate the mean and standard deviations on the backbone
 // dihedral angles.
 template <size_t Nbb, typename Real, typename Int, tmol::Device D>

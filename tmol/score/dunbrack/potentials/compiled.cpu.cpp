@@ -137,20 +137,16 @@ struct DunbrackDispatch {
     // 2.
     //std::cout << "step 2" << std::endl;
     auto func_rot = ([=] EIGEN_DEVICE_FUNC(int i) {
-	// Add in 2 backbone dihedrals for this residue
-	Int dihe_offset = dihedral_offset_for_res[i] + 2;
-	Int rot_ind = classify_rotamer( dihedrals,
-	  nrotameric_chi_for_res[i],
-	  dihe_offset);
-	Int ri2ti_offset = rotind2tableind_offset_for_res[i];
-	Int rotameric_table_ind = rotameric_rotind2tableind[
-	  ri2ti_offset + rot_ind];
-	Int semirotameric_table_ind = semirotameric_rotind2tableind[
-	  ri2ti_offset + rot_ind];
-
-	rotameric_rottable_assignment[i] = rotameric_table_ind;
-	semirotameric_rottable_assignment[i] = semirotameric_table_ind;
-
+	classify_rotamer_for_res<2>(
+	  dihedrals,
+	  dihedral_offset_for_res,
+	  nrotameric_chi_for_res,
+	  rotind2tableind_offset_for_res,
+	  rotameric_rotind2tableind,
+	  semirotameric_rotind2tableind,
+	  rotameric_rottable_assignment,
+	  semirotameric_rottable_assignment,
+	  i);	
       });
     for (Int ii = 0; ii < nres; ++ii) {
       func_rot(ii);
