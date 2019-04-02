@@ -16,6 +16,7 @@ namespace potentials {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
+
 #define CoordQuad Eigen::Matrix<Real, 4, 3>
 
 template <tmol::Device D, typename Real, typename Int>

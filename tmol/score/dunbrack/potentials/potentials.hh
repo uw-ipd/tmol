@@ -55,7 +55,16 @@ def measure_dihedrals_V_dV(
     // /home/andrew/rosetta/GIT/tmol/tmol/extern/Eigen/src/Core/AssignEvaluator.h(720):
     // warning: calling a __host__ function from a __host__ __device__ function
     // is not allowed
-    //
+    // ...
+    // ...
+    // /home/andrew/rosetta/GIT/tmol/tmol/extern/Eigen/src/Core/Assign.h(66):
+    // here
+    //        instantiation of "Derived
+    //        &Eigen::MatrixBase<Derived>::operator=(const
+    //        Eigen::DenseBase<OtherDerived> &) [with
+    //        Derived=Eigen::Block<Eigen::Matrix<float, 4, 3, 0, 4, 3>, 1, 3,
+    //        false>, OtherDerived=Eigen::Matrix<float, 3, 1, 0, 3, 1>]"
+
     // and I don't know why this error shows up here in dunbrack, but not in
     // rama.
     //
@@ -110,15 +119,15 @@ def classify_rotamer(
   return rotamer_ind;
 }
 
-// will also template later on the number of interpolated backbone dihedrals;
-// for now this number is 2. Same logic for interpolating
-// rotameric means as for interpolating rotameric stdev.
-template <typename Real, typename Int, tmol::Device D>
-def interpolate_rotameric_table(
-    TView<TView<Real, 2, D>, 1, D> rotameric_value_tables_view,
-    TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
-    TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
-    TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+// Interpolate the mean and standard deviations on the backbone
+// dihedral angles.
+template <size_t Nbb, typename Real, typename Int, tmol::Device D>
+def interpolate_rotameric_tables(
+    TView<TView<Real, Nbb, D>, 1, D> rotameric_mean_tables_view,
+    TView<TView<Real, Nbb, D>, 1, D> rotameric_sdev_tables_view,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_start,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_step,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_periodicity,
     int residue_ind,
     int residue_nchi,
     int chi_dihe_for_residue,
@@ -127,7 +136,11 @@ def interpolate_rotameric_table(
     TView<Int, 1, D> rottable_set_for_res,
     TView<Int, 1, D> rotmean_table_offset_for_residue,
     TView<Int, 1, D> rottable_assignment)
-    ->tuple<Real, Eigen::Matrix<Real, 2, 1> > {
+    ->tuple<
+        Real,
+        Eigen::Matrix<Real, Nbb, 1>,
+        Real,
+        Eigen::Matrix<Real, Nbb, 1> > {
   Int rottableind_for_set = rottable_assignment[residue_ind];
 
   Int tableind = rotmean_table_offset_for_residue[residue_ind]
@@ -136,8 +149,9 @@ def interpolate_rotameric_table(
 
   Int table_set = rottable_set_for_res[residue_ind];
 
-  Eigen::Matrix<Real, 2, 1> bbdihe, bbstep;
-  for (int ii = 0; ii < 2; ++ii) {
+  // Wrap and scale the input dihedrals to the range appropriate for the tables
+  Eigen::Matrix<Real, Nbb, 1> bbdihe, bbstep;
+  for (int ii = 0; ii < Nbb; ++ii) {
     Real wrap_iidihe =
         dihedrals[res_dihedral_offset + ii] - rotameric_bb_start[table_set][ii];
     while (wrap_iidihe < 0) {
@@ -152,24 +166,31 @@ def interpolate_rotameric_table(
     bbdihe[ii] = wrap_iidihe / bbstep[ii];
   }
 
-  Real V;
-  Eigen::Matrix<Real, 2, 1> dVdbb;
-  tie(V, dVdbb) =
-      tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
-          rotameric_value_tables_view[tableind], bbdihe);
-  for (int ii = 0; ii < 2; ++ii) {
-    dVdbb[ii] /= bbstep[ii];
+  Real mean, sdev;
+  Eigen::Matrix<Real, Nbb, 1> dmean_dbb, dsdev_dbb;
+
+  // Perform the interpolation
+  tie(mean, dmean_dbb) =
+      tmol::numeric::bspline::ndspline<Nbb, 3, D, Real, Int>::interpolate(
+          rotameric_mean_tables_view[tableind], bbdihe);
+  tie(sdev, dsdev_dbb) =
+      tmol::numeric::bspline::ndspline<Nbb, 3, D, Real, Int>::interpolate(
+          rotameric_sdev_tables_view[tableind], bbdihe);
+
+  for (int ii = 0; ii < Nbb; ++ii) {
+    dmean_dbb[ii] /= bbstep[ii];
+    dsdev_dbb[ii] /= bbstep[ii];
   }
-  return {V, dVdbb};
+  return {mean, dmean_dbb, sdev, dsdev_dbb};
 }
 
-template <typename Real, typename Int, tmol::Device D>
+template <size_t Nbb, typename Real, typename Int, tmol::Device D>
 def chi_deviation_penalty(
-    TView<TView<Real, 2, D>, 1, D> rotameric_mean_tables_view,
-    TView<TView<Real, 2, D>, 1, D> rotameric_sdev_tables_view,
-    TView<Vec<Real, 2>, 1, D> const& rotameric_bb_start,
-    TView<Vec<Real, 2>, 1, D> const& rotameric_bb_step,
-    TView<Vec<Real, 2>, 1, D> const& rotameric_bb_periodicity,
+    TView<TView<Real, Nbb, D>, 1, D> rotameric_mean_tables_view,
+    TView<TView<Real, Nbb, D>, 1, D> rotameric_sdev_tables_view,
+    TView<Vec<Real, (int)Nbb>, 1, D> const& rotameric_bb_start,
+    TView<Vec<Real, (int)Nbb>, 1, D> const& rotameric_bb_step,
+    TView<Vec<Real, (int)Nbb>, 1, D> const& rotameric_bb_periodicity,
     int residue_ind,
     int residue_nchi,
     int chi_dihe_for_residue,
@@ -178,24 +199,11 @@ def chi_deviation_penalty(
     TView<Int, 1, D> rottable_set_for_res,
     TView<Int, 1, D> rotmean_table_set_offset,
     TView<Int, 1, D> rottable_assignment)
-    ->tuple<Real, Real, Eigen::Matrix<Real, 2, 1> > {
+    ->tuple<Real, Real, Eigen::Matrix<Real, Nbb, 1> > {
   Real mean, sdev;
-  Eigen::Matrix<Real, 2, 1> dmean_dbb, dsdev_dbb;
-  tie(mean, dmean_dbb) = interpolate_rotameric_table(
+  Eigen::Matrix<Real, Nbb, 1> dmean_dbb, dsdev_dbb;
+  tie(mean, dmean_dbb, sdev, dsdev_dbb) = interpolate_rotameric_tables(
       rotameric_mean_tables_view,
-      rotameric_bb_start,
-      rotameric_bb_step,
-      rotameric_bb_periodicity,
-      residue_ind,
-      residue_nchi,
-      chi_dihe_for_residue,
-      dihedrals,
-      dihedral_offset_for_res,
-      rottable_set_for_res,
-      rotmean_table_set_offset,
-      rottable_assignment);
-
-  tie(sdev, dsdev_dbb) = interpolate_rotameric_table(
       rotameric_sdev_tables_view,
       rotameric_bb_start,
       rotameric_bb_step,
@@ -210,7 +218,7 @@ def chi_deviation_penalty(
       rottable_assignment);
 
   Int chi_index =
-      dihedral_offset_for_res[residue_ind] + chi_dihe_for_residue + 2;
+      dihedral_offset_for_res[residue_ind] + chi_dihe_for_residue + Nbb;
   Real const chi = dihedrals[chi_index];
   Real const chi_dev =
       (chi < -120.0_2rad ? chi + Real(2 * M_PI) - mean : chi - mean);
@@ -235,8 +243,8 @@ def chi_deviation_penalty(
   Real const deviation_penalty = f * invg;
   Real const dpen_dchi = 2 * (chi_dev)*invg;
 
-  Eigen::Matrix<Real, 2, 1> ddev_dbb;
-  for (Int ii = 0; ii < 2; ++ii) {
+  Eigen::Matrix<Real, Nbb, 1> ddev_dbb;
+  for (Int ii = 0; ii < Nbb; ++ii) {
     ddev_dbb[ii] =
         (g * fprime * dmean_dbb[ii] - f * gprime * dsdev_dbb[ii]) * invgg;
   }
@@ -244,12 +252,12 @@ def chi_deviation_penalty(
   return {deviation_penalty, dpen_dchi, ddev_dbb};
 }
 
-template <typename Real, typename Int, tmol::Device D>
+template <size_t Nbb, typename Real, typename Int, tmol::Device D>
 def rotameric_chi_probability(
-    TView<TView<Real, 2, D>, 1, D> rotameric_neglnprob_tables_view,
-    TView<Vec<Real, 2>, 1, D> rotameric_bb_start,
-    TView<Vec<Real, 2>, 1, D> rotameric_bb_step,
-    TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,
+    TView<TView<Real, Nbb, D>, 1, D> rotameric_neglnprob_tables_view,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_start,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_step,
+    TView<Vec<Real, (int)Nbb>, 1, D> rotameric_bb_periodicity,
     TView<Int, 1, D> prob_table_offset_for_rotresidue,
     int residue_ind,
     int rotresidue_ind,
@@ -257,15 +265,15 @@ def rotameric_chi_probability(
     TView<Int, 1, D> dihedral_offset_for_res,
     TView<Int, 1, D> rottable_set_for_res,
     TView<Int, 1, D> rotameric_rottable_assignment)
-    ->tuple<Real, Eigen::Matrix<Real, 2, 1> > {
-  Eigen::Matrix<Real, 2, 1> bbdihe, bbstep;
+    ->tuple<Real, Eigen::Matrix<Real, Nbb, 1> > {
+  Eigen::Matrix<Real, Nbb, 1> bbdihe, bbstep;
 
   Int const table_set = rottable_set_for_res[residue_ind];
   Int const res_rottable = prob_table_offset_for_rotresidue[rotresidue_ind]
                            + rotameric_rottable_assignment[residue_ind];
   Int const res_dihedral_offset = dihedral_offset_for_res[residue_ind];
 
-  for (Int ii = 0; ii < 2; ++ii) {
+  for (Int ii = 0; ii < Nbb; ++ii) {
     Real wrap_iidihe =
         dihedrals[res_dihedral_offset + ii] - rotameric_bb_start[table_set][ii];
     while (wrap_iidihe < 0) {
@@ -280,22 +288,22 @@ def rotameric_chi_probability(
     bbdihe[ii] = wrap_iidihe / bbstep[ii];
   }
   Real V;
-  Eigen::Matrix<Real, 2, 1> dVdbb;
+  Eigen::Matrix<Real, Nbb, 1> dVdbb;
   tie(V, dVdbb) =
-      tmol::numeric::bspline::ndspline<2, 3, D, Real, Int>::interpolate(
+      tmol::numeric::bspline::ndspline<Nbb, 3, D, Real, Int>::interpolate(
           rotameric_neglnprob_tables_view[res_rottable], bbdihe);
-  for (int ii = 0; ii < 2; ++ii) {
+  for (int ii = 0; ii < Nbb; ++ii) {
     dVdbb[ii] /= bbstep[ii];
   }
   return {V, dVdbb};
 }
 
-template <typename Real, typename Int, tmol::Device D>
+template <size_t NbbP1, typename Real, typename Int, tmol::Device D>
 def semirotameric_energy(
-    TView<TView<Real, 3, D>, 1, D> semirotameric_tables_view,
-    TView<Vec<Real, 3>, 1, D> semirot_start,
-    TView<Vec<Real, 3>, 1, D> semirot_step,
-    TView<Vec<Real, 3>, 1, D> semirot_periodicity,
+    TView<TView<Real, NbbP1, D>, 1, D> semirotameric_tables_view,
+    TView<Vec<Real, (int)NbbP1>, 1, D> semirot_start,
+    TView<Vec<Real, (int)NbbP1>, 1, D> semirot_step,
+    TView<Vec<Real, (int)NbbP1>, 1, D> semirot_periodicity,
     TView<Int, 1, D> dihedral_offset_for_res,
     TView<Real, 1, D> dihedrals,
     TView<Int, 1, D> semirotameric_rottable_assignment,
@@ -303,20 +311,20 @@ def semirotameric_energy(
     Int semirot_dihedral_index,
     Int semirot_table_offset,
     Int semirot_table_set)
-    ->tuple<Real, Eigen::Matrix<Real, 3, 1> > {
-  Eigen::Matrix<Real, 3, 1> dihe;
-  Eigen::Matrix<Real, 3, 1> temp_dihe_deg;
-  Eigen::Matrix<Real, 3, 1> temp_orig_dihe_deg;
-  Eigen::Matrix<Real, 3, 1> dihe_step;
-  Eigen::Matrix<Real, 3, 1> temp_dihe_period;
-  Eigen::Matrix<Real, 3, 1> temp_dihe_start;
+    ->tuple<Real, Eigen::Matrix<Real, NbbP1, 1> > {
+  Eigen::Matrix<Real, NbbP1, 1> dihe;
+  Eigen::Matrix<Real, NbbP1, 1> temp_dihe_deg;
+  Eigen::Matrix<Real, NbbP1, 1> temp_orig_dihe_deg;
+  Eigen::Matrix<Real, NbbP1, 1> dihe_step;
+  Eigen::Matrix<Real, NbbP1, 1> temp_dihe_period;
+  Eigen::Matrix<Real, NbbP1, 1> temp_dihe_start;
 
   Int res_dihedral_offset = dihedral_offset_for_res[resid];
   Int table_ind =
       semirotameric_rottable_assignment[resid] + semirot_table_offset;
-  for (int ii = 0; ii < 3; ++ii) {
+  for (int ii = 0; ii < NbbP1; ++ii) {
     int ii_dihe_ind =
-        ii == 2 ? semirot_dihedral_index : (res_dihedral_offset + ii);
+        ii == NbbP1 - 1 ? semirot_dihedral_index : (res_dihedral_offset + ii);
     Real wrap_iidihe =
         dihedrals[ii_dihe_ind] - semirot_start[semirot_table_set][ii];
     temp_dihe_start(ii) = semirot_start[semirot_table_set][ii] * 180 / M_PI;
@@ -335,11 +343,11 @@ def semirotameric_energy(
   }
 
   Real V;
-  Eigen::Matrix<Real, 3, 1> dV_ddihe;
+  Eigen::Matrix<Real, NbbP1, 1> dV_ddihe;
   tie(V, dV_ddihe) =
-      tmol::numeric::bspline::ndspline<3, 3, D, Real, Int>::interpolate(
+      tmol::numeric::bspline::ndspline<NbbP1, 3, D, Real, Int>::interpolate(
           semirotameric_tables_view[table_ind], dihe);
-  for (int ii = 0; ii < 3; ++ii) {
+  for (int ii = 0; ii < NbbP1; ++ii) {
     dV_ddihe[ii] /= dihe_step[ii];
   }
 
