@@ -118,13 +118,11 @@ struct DunbrackDispatch {
     // 4. compute the chi-deviation penalty for all rotameric chi
     // 5. compute the -ln(P) energy for the semi-rotameric residues
 
-    //std::cout << "step 0" << std::endl;
     for (int ii = 0; ii < n_dihedrals; ++ii) {
       ddihe_dxyz[ii].fill(0);
     }
 
     // 1.
-    //std::cout << "step 1" << std::endl;
     auto func_dihe = ([=] EIGEN_DEVICE_FUNC(int i) {
 	measure_dihedrals_V_dV(
 	  coords, i, dihedral_atom_inds,
@@ -135,7 +133,6 @@ struct DunbrackDispatch {
     }
 
     // 2.
-    //std::cout << "step 2" << std::endl;
     auto func_rot = ([=] EIGEN_DEVICE_FUNC(int i) {
 	classify_rotamer_for_res<2>(
 	  dihedrals,
@@ -153,7 +150,6 @@ struct DunbrackDispatch {
     }
 
     // 3.
-    //std::cout << "step 3" << std::endl;
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i){
 	rotameric_chi_probability_for_res(
 	  rotameric_neglnprob_tables_view,
@@ -178,7 +174,6 @@ struct DunbrackDispatch {
 
 
     // 4.
-    //std::cout << "step 4" << std::endl;
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
       deviation_penalty_for_chi(
         rotameric_mean_tables_view,
@@ -203,18 +198,7 @@ struct DunbrackDispatch {
     }
 
     // 5.
-    //std::cout << "step 5" << std::endl;
     auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int i) {
-	//Real neglnprob;
-	//Eigen::Matrix<Real, 3, 1> dnlp_ddihe;
-	//
-	//Int const resid = semirotameric_chi_desc[i][0];
-	//Int const semirot_dihedral_index = semirotameric_chi_desc[i][1];
-	//Int const semirot_table_offset = semirotameric_chi_desc[i][2];
-	//Int const semirot_table_set = semirotameric_chi_desc[i][3];
-	//
-	//Int const res_dihe_offset = dihedral_offset_for_res[resid];
-
 	semirotameric_energy(
 	  semirotameric_tables_view,
 	  semirot_start,
@@ -229,15 +213,6 @@ struct DunbrackDispatch {
 	  dneglnprob_nonrot_dtor_xyz,
 	  ddihe_dxyz
 	  );
-
-	//neglnprob_nonrot[i] = neglnprob;
-	//
-	//for ( int ii = 0; ii < 3; ++ii ) {
-	//  int tor_ind = ii == 2 ? semirot_dihedral_index : (res_dihe_offset + ii);
-	//  for ( int jj = 0; jj < 4; ++jj ) {
-	//    dneglnprob_nonrot_dtor_xyz[i][ii].row(jj) = dnlp_ddihe(ii)*ddihe_dxyz[tor_ind].row(jj);
-	//  }
-	//}
       });
 
     for ( int ii = 0; ii < n_semirotameric_res; ++ii ) {
