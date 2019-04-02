@@ -231,17 +231,17 @@ struct DunbrackDispatch {
     // 5.
     //std::cout << "step 5" << std::endl;
     auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int i) {
-	Real neglnprob;
-	Eigen::Matrix<Real, 3, 1> dnlp_ddihe;
+	//Real neglnprob;
+	//Eigen::Matrix<Real, 3, 1> dnlp_ddihe;
+	//
+	//Int const resid = semirotameric_chi_desc[i][0];
+	//Int const semirot_dihedral_index = semirotameric_chi_desc[i][1];
+	//Int const semirot_table_offset = semirotameric_chi_desc[i][2];
+	//Int const semirot_table_set = semirotameric_chi_desc[i][3];
+	//
+	//Int const res_dihe_offset = dihedral_offset_for_res[resid];
 
-	Int const resid = semirotameric_chi_desc[i][0];
-	Int const semirot_dihedral_index = semirotameric_chi_desc[i][1];
-	Int const semirot_table_offset = semirotameric_chi_desc[i][2];
-	Int const semirot_table_set = semirotameric_chi_desc[i][3];
-
-	Int const res_dihe_offset = dihedral_offset_for_res[resid];
-
-	tie(neglnprob, dnlp_ddihe) = semirotameric_energy(
+	semirotameric_energy(
 	  semirotameric_tables_view,
 	  semirot_start,
 	  semirot_step,
@@ -249,19 +249,21 @@ struct DunbrackDispatch {
 	  dihedral_offset_for_res,
 	  dihedrals,
 	  semirotameric_rottable_assignment,
-	  resid,
-	  semirot_dihedral_index,
-	  semirot_table_offset,
-	  semirot_table_set);
+	  semirotameric_chi_desc,
+	  i,
+	  neglnprob_nonrot,
+	  dneglnprob_nonrot_dtor_xyz,
+	  ddihe_dxyz
+	  );
 
-	neglnprob_nonrot[i] = neglnprob;
-
-	for ( int ii = 0; ii < 3; ++ii ) {
-	  int tor_ind = ii == 2 ? semirot_dihedral_index : (res_dihe_offset + ii);
-	  for ( int jj = 0; jj < 4; ++jj ) {
-	    dneglnprob_nonrot_dtor_xyz[i][ii].row(jj) = dnlp_ddihe(ii)*ddihe_dxyz[tor_ind].row(jj);
-	  }
-	}
+	//neglnprob_nonrot[i] = neglnprob;
+	//
+	//for ( int ii = 0; ii < 3; ++ii ) {
+	//  int tor_ind = ii == 2 ? semirot_dihedral_index : (res_dihe_offset + ii);
+	//  for ( int jj = 0; jj < 4; ++jj ) {
+	//    dneglnprob_nonrot_dtor_xyz[i][ii].row(jj) = dnlp_ddihe(ii)*ddihe_dxyz[tor_ind].row(jj);
+	//  }
+	//}
       });
 
     for ( int ii = 0; ii < n_semirotameric_res; ++ii ) {

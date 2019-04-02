@@ -125,7 +125,6 @@ struct DunbrackDispatch {
     // 5. compute the -ln(P) energy for the semi-rotameric residues
 
     // 1.
-    // std::cout << "step 1" << std::endl;
     auto func_dihe = ([=] EIGEN_DEVICE_FUNC(int i) {
       measure_dihedrals_V_dV(
           coords, i, dihedral_atom_inds, dihedrals, ddihe_dxyz);
@@ -135,7 +134,6 @@ struct DunbrackDispatch {
         [=] MGPU_DEVICE(int idx) { func_dihe(idx); }, n_dihedrals, context);
 
     // 2.
-    // std::cout << "step 2" << std::endl;
     auto func_rot = ([=] EIGEN_DEVICE_FUNC(int i) {
       // Add in 2 backbone dihedrals for this residue
       Int dihe_offset = dihedral_offset_for_res[i] + 2;
@@ -154,7 +152,6 @@ struct DunbrackDispatch {
     mgpu::transform([=] MGPU_DEVICE(int idx) { func_rot(idx); }, nres, context);
 
     // 3.
-    // std::cout << "step 3" << std::endl;
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i) {
       Real neglnprobE;
       Eigen::Matrix<Real, 2, 1> dneglnprob_ddihe;
@@ -187,7 +184,6 @@ struct DunbrackDispatch {
         context);
 
     // 4.
-    // std::cout << "step 4" << std::endl;
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
       int ires = rotameric_chi_desc[i][0];
       int ichi_ind = rotameric_chi_desc[i][1];
@@ -227,19 +223,8 @@ struct DunbrackDispatch {
         context);
 
     // 5.
-    // std::cout << "step 5" << std::endl;
     auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Real neglnprob;
-      Eigen::Matrix<Real, 3, 1> dnlp_ddihe;
-
-      Int const resid = semirotameric_chi_desc[i][0];
-      Int const semirot_dihedral_index = semirotameric_chi_desc[i][1];
-      Int const semirot_table_offset = semirotameric_chi_desc[i][2];
-      Int const semirot_table_set = semirotameric_chi_desc[i][3];
-
-      Int const res_dihe_offset = dihedral_offset_for_res[resid];
-
-      tie(neglnprob, dnlp_ddihe) = semirotameric_energy(
+      semirotameric_energy(
           semirotameric_tables_view,
           semirot_start,
           semirot_step,
@@ -247,20 +232,11 @@ struct DunbrackDispatch {
           dihedral_offset_for_res,
           dihedrals,
           semirotameric_rottable_assignment,
-          resid,
-          semirot_dihedral_index,
-          semirot_table_offset,
-          semirot_table_set);
-
-      neglnprob_nonrot[i] = neglnprob;
-
-      for (int ii = 0; ii < 3; ++ii) {
-        int tor_ind = ii == 2 ? semirot_dihedral_index : (res_dihe_offset + ii);
-        for (int jj = 0; jj < 4; ++jj) {
-          dneglnprob_nonrot_dtor_xyz[i][ii].row(jj) =
-              dnlp_ddihe(ii) * ddihe_dxyz[tor_ind].row(jj);
-        }
-      }
+          semirotameric_chi_desc,
+          i,
+          neglnprob_nonrot,
+          dneglnprob_nonrot_dtor_xyz,
+          ddihe_dxyz);
     });
     mgpu::transform(
         [=] MGPU_DEVICE(int idx) { func_semirot(idx); },

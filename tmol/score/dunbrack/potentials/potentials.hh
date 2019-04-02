@@ -307,10 +307,11 @@ def semirotameric_energy(
     TView<Int, 1, D> dihedral_offset_for_res,
     TView<Real, 1, D> dihedrals,
     TView<Int, 1, D> semirotameric_rottable_assignment,
-    Int resid,
-    Int semirot_dihedral_index,
-    Int semirot_table_offset,
-    Int semirot_table_set)
+    TView<Int, 2, D> semirotameric_chi_desc,
+    int i,
+    TView<Real, 1, D> neglnprob_nonrot,
+    TView<CoordQuad, 2, D> dneglnprob_nonrot_dtor_xyz,
+    TView<CoordQuad, 1, D> ddihe_dxyz)
     ->tuple<Real, Eigen::Matrix<Real, NbbP1, 1> > {
   Eigen::Matrix<Real, NbbP1, 1> dihe;
   Eigen::Matrix<Real, NbbP1, 1> temp_dihe_deg;
@@ -318,6 +319,13 @@ def semirotameric_energy(
   Eigen::Matrix<Real, NbbP1, 1> dihe_step;
   Eigen::Matrix<Real, NbbP1, 1> temp_dihe_period;
   Eigen::Matrix<Real, NbbP1, 1> temp_dihe_start;
+
+  Int const resid = semirotameric_chi_desc[i][0];
+  Int const semirot_dihedral_index = semirotameric_chi_desc[i][1];
+  Int const semirot_table_offset = semirotameric_chi_desc[i][2];
+  Int const semirot_table_set = semirotameric_chi_desc[i][3];
+
+  Int const res_dihe_offset = dihedral_offset_for_res[resid];
 
   Int res_dihedral_offset = dihedral_offset_for_res[resid];
   Int table_ind =
@@ -342,16 +350,24 @@ def semirotameric_energy(
     temp_dihe_period(ii) = ii_period;
   }
 
-  Real V;
-  Eigen::Matrix<Real, NbbP1, 1> dV_ddihe;
-  tie(V, dV_ddihe) =
+  Real neglnprob;
+  Eigen::Matrix<Real, NbbP1, 1> dnlp_ddihe;
+  tie(neglnprob, dnlp_ddihe) =
       tmol::numeric::bspline::ndspline<NbbP1, 3, D, Real, Int>::interpolate(
           semirotameric_tables_view[table_ind], dihe);
   for (int ii = 0; ii < NbbP1; ++ii) {
-    dV_ddihe[ii] /= dihe_step[ii];
+    dnlp_ddihe[ii] /= dihe_step[ii];
   }
 
-  return {V, dV_ddihe};
+  neglnprob_nonrot[i] = neglnprob;
+
+  for (int ii = 0; ii < 3; ++ii) {
+    int tor_ind = ii == 2 ? semirot_dihedral_index : (res_dihe_offset + ii);
+    for (int jj = 0; jj < 4; ++jj) {
+      dneglnprob_nonrot_dtor_xyz[i][ii].row(jj) =
+          dnlp_ddihe(ii) * ddihe_dxyz[tor_ind].row(jj);
+    }
+  }
 }
 
 #undef def
