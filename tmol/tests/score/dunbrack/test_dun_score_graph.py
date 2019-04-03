@@ -355,7 +355,7 @@ def test_dunbrack_score(ubq_system, torch_device, default_database):
     numpy.testing.assert_almost_equal(semiE, gold_semirotprobE, 1e-5)
 
 
-def skip_test_cartesian_space_rama_gradcheck(ubq_res, torch_device):
+def test_cartesian_space_rama_gradcheck(ubq_res, torch_device):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
     real_space = CartDunbrackGraph.build_for(test_system, device=torch_device)
 

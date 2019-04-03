@@ -68,8 +68,8 @@ class DunbrackParams(TensorGroup):
     nchi_for_res: Tensor(torch.int32)[:]
     nrotameric_chi_for_res: Tensor(torch.int32)[:]  # ??needed??
     rotres2resid: Tensor(torch.int32)[:]
-    prob_table_offset_for_rotresidue: Tensor(torch.int32)[:]
-    rotmean_table_offset_for_residue: Tensor(torch.int32)[:]
+    # prob_table_offset_for_rotresidue: Tensor(torch.int32)[:]
+    # rotmean_table_offset_for_residue: Tensor(torch.int32)[:]
     rotind2tableind_offset_for_res: Tensor(torch.int32)[:]
     rotameric_chi_desc: Tensor(torch.int32)[:, 2]
     semirotameric_chi_desc: Tensor(torch.int32)[:, 4]
@@ -99,11 +99,8 @@ class PackedDunbrackDatabase(ConvertAttrs):
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedDunbrackDatabaseAux(ConvertAttrs):
-    # rotameric_prob_tableset_offsets: Tensor(torch.int32)[:]
-    # rotameric_meansdev_tableset_offsets: Tensor(torch.int32)[:]
     nchi_for_table_set: Tensor(torch.int32)[:]
     rotind2tableind_offsets: Tensor(torch.int32)[:]
-    # semirotameric_tableset_offsets: Tensor(torch.int32)[:]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -687,14 +684,14 @@ class DunbrackParamResolver(ValidateAttrs):
 
         dun_rotres = r_inds[r_inds != -1]
         n_rotameric_res = dun_rotres.shape[0]
-        prob_table_offset_for_rotresidue = self.packed_db_aux.rotameric_prob_tableset_offsets[
-            dun_rotres
-        ]
+        # prob_table_offset_for_rotresidue = self.packed_db_aux.rotameric_prob_tableset_offsets[
+        #     dun_rotres
+        # ]
         # print("prob_table_offset_for_rotresidue")
         # print_row_numbered_tensor(prob_table_offset_for_rotresidue)
-        rotmean_table_offset_for_residue = self.packed_db_aux.rotameric_meansdev_tableset_offsets[
-            rottable_set_for_res64
-        ]
+        # rotmean_table_offset_for_residue = self.packed_db_aux.rotameric_meansdev_tableset_offsets[
+        #     rottable_set_for_res64
+        # ]
         # print("rotmean_table_offset_for_residue")
         # print_row_numbered_tensor(rotmean_table_offset_for_residue)
 
@@ -718,8 +715,8 @@ class DunbrackParamResolver(ValidateAttrs):
             nchi_for_res=nchi_for_res,
             nrotameric_chi_for_res=nrotameric_chi_for_res,
             rotres2resid=rotres2resid,
-            prob_table_offset_for_rotresidue=prob_table_offset_for_rotresidue,
-            rotmean_table_offset_for_residue=rotmean_table_offset_for_residue,
+            # prob_table_offset_for_rotresidue=prob_table_offset_for_rotresidue,
+            # rotmean_table_offset_for_residue=rotmean_table_offset_for_residue,
             rotind2tableind_offset_for_res=rotind2tableind_offset_for_res,
             rotameric_chi_desc=rotameric_chi_desc,
             semirotameric_chi_desc=semirotameric_chi_desc,
@@ -872,7 +869,9 @@ class DunbrackParamResolver(ValidateAttrs):
         )
         semirotameric_chi_desc[
             :, 2
-        ] = self.packed_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]]
+        ] = (
+            -1
+        )  # self.packed_db_aux.semirotameric_tableset_offsets[s_inds[s_inds != -1]]
         semirotameric_chi_desc[:, 3] = s_inds[s_inds != -1]
 
         return semirotameric_chi_desc

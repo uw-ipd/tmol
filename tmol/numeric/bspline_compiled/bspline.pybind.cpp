@@ -20,7 +20,7 @@ void bind(pybind11::module& m) {
   m.def(
       "interpolate2",
       py::overload_cast< TView<Real, 2, D>, TView<Eigen::Matrix<Real, 2, 1>, 1, D> >(
-        &ndspline<2, 3, D, Real, Int>::interpolate),
+        &ndspline<2, 3, D, Real, Int>::interpolate_tv),
       "data"_a,
       "X"_a);
 
@@ -32,7 +32,7 @@ void bind(pybind11::module& m) {
   m.def(
       "interpolate3",
       py::overload_cast< TView<Real, 3, D>, TView<Eigen::Matrix<Real, 3, 1>, 1, D> >(
-        &ndspline<3, 3, D, Real, Int>::interpolate),
+        &ndspline<3, 3, D, Real, Int>::interpolate_tv),
       "data"_a,
       "X"_a);
 
@@ -44,7 +44,7 @@ void bind(pybind11::module& m) {
   m.def(
       "interpolate4",
       py::overload_cast< TView<Real, 4, D>, TView<Eigen::Matrix<Real, 4, 1>, 1, D> >(
-        &ndspline<4, 3, D, Real, Int>::interpolate),
+        &ndspline<4, 3, D, Real, Int>::interpolate_tv),
       "data"_a,
       "X"_a);
 

@@ -32,14 +32,14 @@ struct DunbrackDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
 
-      TCollection<Real, 2, D> rotameric_prob_tables,
-      TCollection<Real, 2, D> rotameric_neglnprob_tables,
-      TCollection<Real, 2, D> rotameric_mean_tables,
-      TCollection<Real, 2, D> rotameric_sdev_tables,
+      TCollection<Real, 3, D> rotameric_prob_tables,
+      TCollection<Real, 3, D> rotameric_neglnprob_tables,
+      TCollection<Real, 3, D> rotameric_mean_tables,
+      TCollection<Real, 3, D> rotameric_sdev_tables,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,  // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,  // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,  // ntable-set entries
-      TCollection<Real, 3, D> semirotameric_tables, // n-semirot-tabset
+      TCollection<Real, 4, D> semirotameric_tables, // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_start, // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_step, // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_periodicity, // n-semirot-tabset
@@ -54,10 +54,10 @@ struct DunbrackDispatch {
       TView<Int, 1, D> nchi_for_res, // nres x 1
       TView<Int, 1, D> nrotameric_chi_for_res, // nres x 1
       TView<Int, 1, D> rotres2resid, // nres x 1
-      TView<Int, 1, D> prob_table_offset_for_rotresidue, // n-rotameric-res x 1
+      //TView<Int, 1, D> prob_table_offset_for_rotresidue, // n-rotameric-res x 1
       TView<Int, 1, D> rotind2tableind_offset_for_res, // n-res x 1
 
-      TView<Int, 1, D> rotmean_table_offset_for_residue, // n-res x 1
+      //TView<Int, 1, D> rotmean_table_offset_for_residue, // n-res x 1
 
       TView<Int, 2, D> rotameric_chi_desc, // n-rotameric-chi x 2
       // rotchi_desc[:,0] == residue index for this chi
@@ -83,7 +83,7 @@ struct DunbrackDispatch {
     TPack<CoordQuad, 2, D> >  // d(-ln(prob_nonrotameric)) / dtor -- nsemirot-res x 3
   {
     Int const nres(nrotameric_chi_for_res.size(0));
-    Int const n_rotameric_res(prob_table_offset_for_rotresidue.size(0));
+    Int const n_rotameric_res(rotres2resid.size(0));
     Int const n_rotameric_chi(rotameric_chi_desc.size(0));
     Int const n_semirotameric_res(semirotameric_chi_desc.size(0));
     Int const n_dihedrals(dihedral_atom_inds.size(0));
@@ -156,7 +156,7 @@ struct DunbrackDispatch {
 	  rotameric_bb_start,
 	  rotameric_bb_step,
 	  rotameric_bb_periodicity,
-	  prob_table_offset_for_rotresidue,
+	  //prob_table_offset_for_rotresidue,
 	  dihedrals,
 	  dihedral_offset_for_res,
 	  rottable_set_for_res,
@@ -184,7 +184,7 @@ struct DunbrackDispatch {
         dihedrals,
         dihedral_offset_for_res,
         rottable_set_for_res,
-        rotmean_table_offset_for_residue,
+        //rotmean_table_offset_for_residue,
         rotameric_rottable_assignment,
         rotameric_chi_desc,
         nchi_for_res,

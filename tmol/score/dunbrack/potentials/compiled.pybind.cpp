@@ -42,10 +42,10 @@ void bind_dispatch(pybind11::module& m) {
       "nchi_for_res"_a,
       "nrotameric_chi_for_res"_a,
       "rotres2resid"_a,
-      "prob_table_offset_for_rotresidue"_a,
+      //"prob_table_offset_for_rotresidue"_a,
       "rotind2tableind_offset_for_res"_a,
 
-      "rotmean_table_offset_for_residue"_a,
+      //"rotmean_table_offset_for_residue"_a,
 
       "rotameric_chi_desc"_a,
       "semirotameric_chi_desc"_a,
