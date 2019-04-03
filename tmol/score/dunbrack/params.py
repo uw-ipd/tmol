@@ -99,11 +99,11 @@ class PackedDunbrackDatabase(ConvertAttrs):
 
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedDunbrackDatabaseAux(ConvertAttrs):
-    rotameric_prob_tableset_offsets: Tensor(torch.int32)[:]
-    rotameric_meansdev_tableset_offsets: Tensor(torch.int32)[:]
+    # rotameric_prob_tableset_offsets: Tensor(torch.int32)[:]
+    # rotameric_meansdev_tableset_offsets: Tensor(torch.int32)[:]
     nchi_for_table_set: Tensor(torch.int32)[:]
     rotind2tableind_offsets: Tensor(torch.int32)[:]
-    semirotameric_tableset_offsets: Tensor(torch.int32)[:]
+    # semirotameric_tableset_offsets: Tensor(torch.int32)[:]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -173,20 +173,24 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
         rotameric_prob_tables = [
-            torch.tensor(rotlib.rotameric_data.rotamer_probabilities[i,])
+            [
+                torch.tensor(rotlib.rotameric_data.rotamer_probabilities[i,])
+                for i in range(rotlib.rotameric_data.rotamer_probabilities.shape[0])
+            ]
             for rotlib in all_rotlibs
-            for i in range(rotlib.rotameric_data.rotamer_probabilities.shape[0])
         ]
-        for table in rotameric_prob_tables:
-            table[table == 0] = 1e-6
+        for table_set in rotameric_prob_tables:
+            for table in table_set:
+                table[table == 0] = 1e-6
         rotameric_neglnprob_tables = [
-            -1 * torch.log(table) for table in rotameric_prob_tables
+            [-1 * torch.log(table) for table in table_set]
+            for table_set in rotameric_prob_tables
         ]
 
-        prob_table_name_and_nrots = [
-            (rotlib.table_name, rotlib.rotameric_data.rotamer_probabilities.shape[0])
-            for rotlib in all_rotlibs
-        ]
+        # prob_table_name_and_nrots = [
+        #     (rotlib.table_name, rotlib.rotameric_data.rotamer_probabilities.shape[0])
+        #     for rotlib in all_rotlibs
+        # ]
         # print("prob_table_name_and_nrots")
         # print(prob_table_name_and_nrots)
 
@@ -204,59 +208,115 @@ class DunbrackParamResolver(ValidateAttrs):
             dtype=torch.int32,
             device=device,
         )
-        prob_table_offsets = exclusive_cumsum(prob_table_nrots)
+        prob_table_offsets = exclusive_cumsum(
+            prob_table_nrots
+        )  # probably no longer necessary
+
         # print("prob_table_offsets")
         # print_row_numbered_tensor(prob_table_offsets)
 
         prob_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_prob_tables
+            [
+                BSplineInterpolation.from_coordinates(table).coeffs.to(device)
+                for table in table_set
+            ]
+            for table_set in rotameric_prob_tables
         ]
+        prob_coeffs_collapsed = [
+            torch.zeros(
+                (len(table_set), *table_set[0].shape), dtype=torch.float, device=device
+            )
+            for table_set in prob_coeffs
+        ]
+        for i, table_set in enumerate(prob_coeffs):
+            for j, table in enumerate(table_set):
+                prob_coeffs_collapsed[i][j, :] = table
 
         neglnprob_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_neglnprob_tables
+            [
+                BSplineInterpolation.from_coordinates(table).coeffs.to(device)
+                for table in table_set
+            ]
+            for table_set in rotameric_neglnprob_tables
         ]
+        neglnprob_coeffs_collapsed = [
+            torch.zeros(
+                (len(table_set), *table_set[0].shape), dtype=torch.float, device=device
+            )
+            for table_set in neglnprob_coeffs
+        ]
+        for i, table_set in enumerate(neglnprob_coeffs):
+            for j, table in enumerate(table_set):
+                neglnprob_coeffs_collapsed[i][j, :] = table
 
         rotameric_mean_tables = [
-            torch.tensor(rotlib.rotameric_data.rotamer_means[i, :, :, j])
+            [
+                torch.tensor(rotlib.rotameric_data.rotamer_means[i, :, :, j])
+                for i in range(rotlib.rotameric_data.rotamer_means.shape[0])
+                for j in range(rotlib.rotameric_data.rotamer_means.shape[3])
+            ]
             for rotlib in all_rotlibs
-            for i in range(rotlib.rotameric_data.rotamer_means.shape[0])
-            for j in range(rotlib.rotameric_data.rotamer_means.shape[3])
         ]
 
         # if the mean is near -180, wrap it towards +180
-        for x in rotameric_mean_tables:
-            x[x < -120] = x[x < -120] + 360
-            x *= numpy.pi / 180
+        for table_set in rotameric_mean_tables:
+            for x in table_set:
+                x[x < -120] = x[x < -120] + 360
+                x *= numpy.pi / 180
 
-        mean_table_n_entries = [0] + [
-            rotlib.rotameric_data.rotamer_means.shape[0]
-            * rotlib.rotameric_data.rotamer_means.shape[3]
-            for rotlib in all_rotlibs
-        ][:-1]
-        rotameric_mean_offsets = torch.cumsum(
-            torch.tensor(mean_table_n_entries, dtype=torch.int32, device=device), 0
-        )
+        # ?? mean_table_n_entries = [0] + [
+        # ??     rotlib.rotameric_data.rotamer_means.shape[0]
+        # ??     * rotlib.rotameric_data.rotamer_means.shape[3]
+        # ??     for rotlib in all_rotlibs
+        # ?? ][:-1]
+        # ?? rotameric_mean_offsets = torch.cumsum(
+        # ??     torch.tensor(mean_table_n_entries, dtype=torch.int32, device=device), 0
+        # ?? )
 
         rotameric_sdev_tables = [
-            torch.tensor(rotlib.rotameric_data.rotamer_stdvs[i, :, :, j])
-            * numpy.pi
-            / 180
+            [
+                torch.tensor(rotlib.rotameric_data.rotamer_stdvs[i, :, :, j])
+                * numpy.pi
+                / 180
+                for i in range(rotlib.rotameric_data.rotamer_stdvs.shape[0])
+                for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[3])
+            ]
             for rotlib in all_rotlibs
-            for i in range(rotlib.rotameric_data.rotamer_stdvs.shape[0])
-            for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[3])
         ]
 
         mean_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_mean_tables
+            [
+                BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+                for t in table_set
+            ]
+            for table_set in rotameric_mean_tables
         ]
+        mean_coeffs_collapsed = [
+            torch.zeros(
+                (len(table_set), *table_set[0].shape), dtype=torch.float, device=device
+            )
+            for table_set in mean_coeffs
+        ]
+        for i, table_set in enumerate(mean_coeffs):
+            for j, table in enumerate(table_set):
+                mean_coeffs_collapsed[i][j, :] = table
 
         sdev_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_sdev_tables
+            [
+                BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+                for t in table_set
+            ]
+            for table_set in rotameric_sdev_tables
         ]
+        sdev_coeffs_collapsed = [
+            torch.zeros(
+                (len(table_set), *table_set[0].shape), dtype=torch.float, device=device
+            )
+            for table_set in sdev_coeffs
+        ]
+        for i, table_set in enumerate(sdev_coeffs):
+            for j, table in enumerate(table_set):
+                sdev_coeffs_collapsed[i][j, :] = table
 
         rotameric_bb_start = torch.tensor(
             [
@@ -381,27 +441,43 @@ class DunbrackParamResolver(ValidateAttrs):
 
         # ======
 
-        nsemirot_rotamers = [0] + [
-            rotlib.nonrotameric_chi_probabilities.shape[0]
-            for rotlib in dun_database.semi_rotameric_libraries
-        ][:-1]
-        semirotameric_tableset_offsets = torch.cumsum(
-            torch.tensor(nsemirot_rotamers, dtype=torch.int32, device=device), 0
-        )
+        # ?? nsemirot_rotamers = [0] + [
+        # ??     rotlib.nonrotameric_chi_probabilities.shape[0]
+        # ??     for rotlib in dun_database.semi_rotameric_libraries
+        # ?? ][:-1]
+        # ?? semirotameric_tableset_offsets = torch.cumsum(
+        # ??     torch.tensor(nsemirot_rotamers, dtype=torch.int32, device=device), 0
+        # ?? )
+
         semirotameric_prob_tables = [
-            torch.tensor(rotlib.nonrotameric_chi_probabilities[i,])
+            [
+                torch.tensor(rotlib.nonrotameric_chi_probabilities[i,])
+                for i in range(rotlib.nonrotameric_chi_probabilities.shape[0])
+            ]
             for rotlib in dun_database.semi_rotameric_libraries
-            for i in range(rotlib.nonrotameric_chi_probabilities.shape[0])
         ]
         # these aren't used for rotamer building, so we'll just use this for the neglnprobs
-        for table in semirotameric_prob_tables:
-            table[table == 0] = 1e-6
-            table[:] = -1 * torch.log(table)
+        for table_set in semirotameric_prob_tables:
+            for table in table_set:
+                table[table == 0] = 1e-6
+                table[:] = -1 * torch.log(table)
 
         semirot_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in semirotameric_prob_tables
+            [
+                BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+                for t in table_set
+            ]
+            for table_set in semirotameric_prob_tables
         ]
+        semirot_coeffs_collapsed = [
+            torch.zeros(
+                (len(table_set), *table_set[0].shape), dtype=torch.float, device=device
+            )
+            for table_set in semirot_coeffs
+        ]
+        for i, table_set in enumerate(semirot_coeffs):
+            for j, table in enumerate(table_set):
+                semirot_coeffs_collapsed[i][j, :] = table
 
         semirot_start = torch.zeros(
             (len(dun_database.semi_rotameric_libraries), 3),
@@ -455,26 +531,26 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
         packed_db = PackedDunbrackDatabase(
-            rotameric_prob_tables=prob_coeffs,
-            rotameric_neglnprob_tables=neglnprob_coeffs,
-            rotameric_mean_tables=mean_coeffs,
-            rotameric_sdev_tables=sdev_coeffs,
+            rotameric_prob_tables=prob_coeffs_collapsed,
+            rotameric_neglnprob_tables=neglnprob_coeffs_collapsed,
+            rotameric_mean_tables=mean_coeffs_collapsed,
+            rotameric_sdev_tables=sdev_coeffs_collapsed,
             rotameric_bb_start=rotameric_bb_start,
             rotameric_bb_step=rotameric_bb_step,
             rotameric_bb_periodicity=rotameric_bb_periodicity,
             rotameric_rotind2tableind=rotameric_rotind2tableind,
             semirotameric_rotind2tableind=semirotameric_rotind2tableind,
-            semirotameric_tables=semirot_coeffs,
+            semirotameric_tables=semirot_coeffs_collapsed,
             semirot_start=semirot_start,
             semirot_step=semirot_step,
             semirot_periodicity=semirot_periodicity,
         )
         packed_db_aux = PackedDunbrackDatabaseAux(
-            rotameric_prob_tableset_offsets=prob_table_offsets,
-            rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
+            # rotameric_prob_tableset_offsets=prob_table_offsets,
+            # rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
             nchi_for_table_set=nchi_for_table_set,
             rotind2tableind_offsets=rotind2tableind_offsets,
-            semirotameric_tableset_offsets=semirotameric_tableset_offsets,
+            # semirotameric_tableset_offsets=semirotameric_tableset_offsets,
         )
 
         # rama_params = PackedRamaDatabase(

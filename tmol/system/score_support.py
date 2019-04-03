@@ -283,7 +283,7 @@ def dunbrack_graph_inputs(
     # print(sort_inds)
     dun_chi = join_chi[sort_inds, :]
 
-    numpy.set_printoptions(threshold=100000)
+    # numpy.set_printoptions(threshold=100000)
     # print("dun_chi")
     # print(dun_chi.shape)
     # print(dun_chi)
