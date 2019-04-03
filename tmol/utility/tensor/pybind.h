@@ -89,6 +89,8 @@ struct type_caster<tmol::TView<T, N, D, P>> {
       return true;
     } catch (at::Error err) {
 #ifdef DEBUG
+      print("err.what()");
+      print(err.what());
 
       print(
           "Error casting to TView:",

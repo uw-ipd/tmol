@@ -17,6 +17,8 @@
 //#include "compiled.hh"
 #include "potentials.hh"
 
+#include <nvToolsExt.h>
+
 namespace tmol {
 namespace score {
 namespace dunbrack {
@@ -86,6 +88,8 @@ struct DunbrackDispatch {
           TPack<CoordQuad, 2, D> >  // d(-ln(prob_nonrotameric)) / dtor --
                                     // nsemirot-res x 3
   {
+    nvtxRangePushA("dunbrack::cuda");
+
     Int const nres(nrotameric_chi_for_res.size(0));
     Int const n_rotameric_res(prob_table_offset_for_rotresidue.size(0));
     Int const n_rotameric_chi(rotameric_chi_desc.size(0));
@@ -130,8 +134,10 @@ struct DunbrackDispatch {
           coords, i, dihedral_atom_inds, dihedrals, ddihe_dxyz);
     });
     mgpu::standard_context_t context;
+    nvtxRangePushA("dunbrack::measure_dihedrals");
     mgpu::transform(
         [=] MGPU_DEVICE(int idx) { func_dihe(idx); }, n_dihedrals, context);
+    nvtxRangePop();
 
     // 2.
     auto func_rot = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -148,7 +154,9 @@ struct DunbrackDispatch {
           i);
     });
 
+    nvtxRangePushA("dunbrack::classify_rotamer");
     mgpu::transform([=] MGPU_DEVICE(int idx) { func_rot(idx); }, nres, context);
+    nvtxRangePop();
 
     // 3.
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i) {
@@ -168,10 +176,12 @@ struct DunbrackDispatch {
           ddihe_dxyz,
           i);
     });
+    nvtxRangePushA("dunbrack::rotameric neglnprobE");
     mgpu::transform(
         [=] MGPU_DEVICE(int idx) { func_rotameric_prob(idx); },
         n_rotameric_res,
         context);
+    nvtxRangePop();
 
     // 4.
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -193,10 +203,12 @@ struct DunbrackDispatch {
           ddihe_dxyz,
           i);
     });
+    nvtxRangePushA("dunbrack::chi dev pen");
     mgpu::transform(
         [=] MGPU_DEVICE(int idx) { func_chidevpen(idx); },
         n_rotameric_chi,
         context);
+    nvtxRangePop();
 
     // 5.
     auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -214,11 +226,14 @@ struct DunbrackDispatch {
           dneglnprob_nonrot_dtor_xyz,
           ddihe_dxyz);
     });
+    nvtxRangePushA("dunbrack::semirotameric neglnprobE");
     mgpu::transform(
         [=] MGPU_DEVICE(int idx) { func_semirot(idx); },
         n_semirotameric_res,
         context);
+    nvtxRangePop();
 
+    nvtxRangePop();
     return {neglnprob_rot_tpack,
             dneglnprob_rot_dbb_xyz_tpack,
 

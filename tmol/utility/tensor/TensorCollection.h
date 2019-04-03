@@ -17,6 +17,8 @@
 
 #include <pybind11/pybind11.h>
 
+#include <tmol/utility/nvtx.hh>
+
 namespace tmol {
 
 // a container for an arbitrary sized set of TViews
@@ -27,6 +29,8 @@ class TCollection {
   AT_HOST TCollection() {}
 
   AT_HOST TCollection(std::vector<at::Tensor> &tviews) {
+    nvtx_range_function();
+
     int n = tviews.size();
 
     tensors.resize(n);
