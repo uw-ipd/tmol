@@ -21,14 +21,16 @@ def _setup_inputs(coords, params, donors, acceptors, torch_device):
         return t
 
     return dict(
-        D=_t(coords[donors["d"]]),
-        H=_t(coords[donors["h"]]),
+        donor_coords=_t(coords),
+        acceptor_coords=_t(coords),
+        D=_t(donors["d"]),
+        H=_t(donors["h"]),
         donor_type=_t(params.donor_type_index.get_indexer(donors["donor_type"])).to(
             torch.int32
         ),
-        A=_t(coords[acceptors["a"]]),
-        B=_t(coords[acceptors["b"]]),
-        B0=_t(coords[acceptors["b0"]]),
+        A=_t(acceptors["a"]),
+        B=_t(acceptors["b"]),
+        B0=_t(acceptors["b0"]),
         acceptor_type=_t(
             params.acceptor_type_index.get_indexer(acceptors["acceptor_type"])
         ).to(torch.int32),
@@ -74,16 +76,35 @@ def test_score_op(default_database, ubq_system, torch_device):
     ### score via op
 
     op = HBondOp.from_database(default_database.scoring.hbond, hbond_param_resolver)
-    (dind, aind), op_scores = op.score(**inputs)
-    assert (op_scores < 0).sum() > 10
+    op_score = op.score(**inputs)
 
     # Verify scores via back comparison to explicit evaluation
+    dind, aind = map(
+        torch.flatten,
+        torch.meshgrid((torch.arange(len(donors)), torch.arange(len(acceptors)))),
+    )
     hbond_param_resolver = HBondParamResolver.from_database(
         default_database.chemical, default_database.scoring.hbond, torch.device("cpu")
     )
     batch_coords = _setup_inputs(
         coords, hbond_param_resolver, donors[dind], acceptors[aind], torch.device("cpu")
     )
+    donor_coords = batch_coords["donor_coords"]
+    D = batch_coords["D"]
+    D = donor_coords[D]
+
+    H = batch_coords["H"]
+    H = donor_coords[H]
+
+    acceptor_coords = batch_coords["acceptor_coords"]
+    A = batch_coords["A"]
+    A = acceptor_coords[A]
+
+    B = batch_coords["B"]
+    B = acceptor_coords[B]
+
+    B0 = batch_coords["B0"]
+    B0 = acceptor_coords[B0]
 
     gparams = attr.asdict(default_database.scoring.hbond.global_parameters)
     batch_params = valmap(
@@ -95,12 +116,12 @@ def test_score_op(default_database, ubq_system, torch_device):
     )
 
     batch_scores, *batch_derivs = ignore_unused_kwargs(compiled.hbond_score_V_dV)(
-        **merge(batch_coords, batch_params, gparams)
+        **merge(dict(D=D, H=H, A=A, B=B, B0=B0), batch_params, gparams)
     )
 
     torch.testing.assert_allclose(
-        op_scores,
-        torch.from_numpy(batch_scores).to(device=torch_device, dtype=torch.float),
+        op_score,
+        torch.from_numpy(batch_scores).to(device=torch_device, dtype=torch.float).sum(),
     )
     # Derivative values validated via gradcheck
 
@@ -145,6 +166,4 @@ def test_score_op_gradcheck(default_database, ubq_system, torch_device):
     }
     input_args = bind_to_args(op.score, **inputs)
 
-    gradcheck(
-        lambda *i: op.score(*i)[1].sum(), input_args, eps=1e-2, rtol=2.5e-3, nfail=1
-    )
+    gradcheck(lambda *i: op.score(*i), input_args, eps=1e-3, rtol=2.5e-3, nfail=1)

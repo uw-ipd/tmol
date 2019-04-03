@@ -243,110 +243,124 @@ def B0BAH_chi_V_dV(
   }
 }
 
+template <typename Real>
+struct hbond_score_V_dV_t {
+  Real V;
+
+  Real3 dV_dD;
+  Real3 dV_dH;
+
+  Real3 dV_dA;
+  Real3 dV_dB;
+  Real3 dV_dB0;
+};
+
 template <typename Real, typename Int>
-def hbond_score_V_dV(
-    // coordinates
-    Real3 D,
-    Real3 H,
-    Real3 A,
-    Real3 B,
-    Real3 B0,
+struct hbond_score {
+  static def V_dV(
+      // coordinates
+      Real3 D,
+      Real3 H,
+      Real3 A,
+      Real3 B,
+      Real3 B0,
 
-    // type pair parameters
-    Int acceptor_hybridization,
-    Real acceptor_weight,
-    Real donor_weight,
+      // type pair parameters
+      Int acceptor_hybridization,
+      Real acceptor_weight,
+      Real donor_weight,
 
-    Vec<double, 11> AHdist_coeffs,
-    Vec<double, 2> AHdist_range,
-    Vec<double, 2> AHdist_bound,
+      Vec<double, 11> AHdist_coeffs,
+      Vec<double, 2> AHdist_range,
+      Vec<double, 2> AHdist_bound,
 
-    Vec<double, 11> cosBAH_coeffs,
-    Vec<double, 2> cosBAH_range,
-    Vec<double, 2> cosBAH_bound,
+      Vec<double, 11> cosBAH_coeffs,
+      Vec<double, 2> cosBAH_range,
+      Vec<double, 2> cosBAH_bound,
 
-    Vec<double, 11> cosAHD_coeffs,
-    Vec<double, 2> cosAHD_range,
-    Vec<double, 2> cosAHD_bound,
+      Vec<double, 11> cosAHD_coeffs,
+      Vec<double, 2> cosAHD_range,
+      Vec<double, 2> cosAHD_bound,
 
-    // Global score parameters
-    Real hb_sp2_range_span,
-    Real hb_sp2_BAH180_rise,
-    Real hb_sp2_outer_width,
-    Real hb_sp3_softmax_fade)
-    ->tuple<Real, Real3, Real3, Real3, Real3, Real3> {
-  Real E = 0.0;
-  Real3 dE_dD = {0, 0, 0};
-  Real3 dE_dH = {0, 0, 0};
-  Real3 dE_dA = {0, 0, 0};
-  Real3 dE_dB = {0, 0, 0};
-  Real3 dE_dB0 = {0, 0, 0};
+      // Global score parameters
+      Real hb_sp2_range_span,
+      Real hb_sp2_BAH180_rise,
+      Real hb_sp2_outer_width,
+      Real hb_sp3_softmax_fade)
+      ->hbond_score_V_dV_t<Real> {
+    Real E = 0.0;
+    Real3 dE_dD = {0, 0, 0};
+    Real3 dE_dH = {0, 0, 0};
+    Real3 dE_dA = {0, 0, 0};
+    Real3 dE_dB = {0, 0, 0};
+    Real3 dE_dB0 = {0, 0, 0};
 
-  // A-H Distance Component
-  iadd(
-      tie(E, dE_dA, dE_dH),
-      AH_dist_V_dV(A, H, AHdist_coeffs, AHdist_range, AHdist_bound));
+    // A-H Distance Component
+    iadd(
+        tie(E, dE_dA, dE_dH),
+        AH_dist_V_dV(A, H, AHdist_coeffs, AHdist_range, AHdist_bound));
 
-  // AHD Angle Component
-  iadd(
-      tie(E, dE_dA, dE_dH, dE_dD),
-      AHD_angle_V_dV(A, H, D, cosAHD_coeffs, cosAHD_range, cosAHD_bound));
+    // AHD Angle Component
+    iadd(
+        tie(E, dE_dA, dE_dH, dE_dD),
+        AHD_angle_V_dV(A, H, D, cosAHD_coeffs, cosAHD_range, cosAHD_bound));
 
-  // BAH Angle Component
-  iadd(
-      tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
-      BAH_angle_V_dV(
-          B,
-          B0,
-          A,
-          H,
-          acceptor_hybridization,
-          cosBAH_coeffs,
-          cosBAH_range,
-          cosBAH_bound,
-          hb_sp3_softmax_fade));
+    // BAH Angle Component
+    iadd(
+        tie(E, dE_dB, dE_dB0, dE_dA, dE_dH),
+        BAH_angle_V_dV(
+            B,
+            B0,
+            A,
+            H,
+            acceptor_hybridization,
+            cosBAH_coeffs,
+            cosBAH_range,
+            cosBAH_bound,
+            hb_sp3_softmax_fade));
 
-  // B0BAH Chi Component
-  iadd(
-      tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
-      B0BAH_chi_V_dV(
-          B0,
-          B,
-          A,
-          H,
-          acceptor_hybridization,
-          hb_sp2_BAH180_rise,
-          hb_sp2_range_span,
-          hb_sp2_outer_width));
+    // B0BAH Chi Component
+    iadd(
+        tie(E, dE_dB0, dE_dB, dE_dA, dE_dH),
+        B0BAH_chi_V_dV(
+            B0,
+            B,
+            A,
+            H,
+            acceptor_hybridization,
+            hb_sp2_BAH180_rise,
+            hb_sp2_range_span,
+            hb_sp2_outer_width));
 
-  // Donor/Acceptor Weighting
-  E *= acceptor_weight * donor_weight;
-  dE_dD *= acceptor_weight * donor_weight;
-  dE_dH *= acceptor_weight * donor_weight;
-  dE_dA *= acceptor_weight * donor_weight;
-  dE_dB *= acceptor_weight * donor_weight;
-  dE_dB0 *= acceptor_weight * donor_weight;
+    // Donor/Acceptor Weighting
+    E *= acceptor_weight * donor_weight;
+    dE_dD *= acceptor_weight * donor_weight;
+    dE_dH *= acceptor_weight * donor_weight;
+    dE_dA *= acceptor_weight * donor_weight;
+    dE_dB *= acceptor_weight * donor_weight;
+    dE_dB0 *= acceptor_weight * donor_weight;
 
-  // Truncate and Fade [-0.1,0.1] to [-0.1,0.0]
-  if (E > 0.1) {
-    E = 0;
-    dE_dD = {0, 0, 0};
-    dE_dH = {0, 0, 0};
-    dE_dA = {0, 0, 0};
-    dE_dB = {0, 0, 0};
-    dE_dB0 = {0, 0, 0};
+    // Truncate and Fade [-0.1,0.1] to [-0.1,0.0]
+    if (E > 0.1) {
+      E = 0;
+      dE_dD = {0, 0, 0};
+      dE_dH = {0, 0, 0};
+      dE_dA = {0, 0, 0};
+      dE_dB = {0, 0, 0};
+      dE_dB0 = {0, 0, 0};
 
-  } else if (E > -0.1) {
-    E = (-0.025 + 0.5 * E - 2.5 * E * E);
-    dE_dD *= -5.0 * E + 0.5;
-    dE_dH *= -5.0 * E + 0.5;
-    dE_dA *= -5.0 * E + 0.5;
-    dE_dB *= -5.0 * E + 0.5;
-    dE_dB0 *= -5.0 * E + 0.5;
+    } else if (E > -0.1) {
+      E = (-0.025 + 0.5 * E - 2.5 * E * E);
+      dE_dD *= -5.0 * E + 0.5;
+      dE_dH *= -5.0 * E + 0.5;
+      dE_dA *= -5.0 * E + 0.5;
+      dE_dB *= -5.0 * E + 0.5;
+      dE_dB0 *= -5.0 * E + 0.5;
+    }
+
+    return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
   }
-
-  return {E, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0};
-}
+};
 
 #undef Real3
 #undef def

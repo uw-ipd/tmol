@@ -20,16 +20,21 @@ warnings.filterwarnings(
 
 _default_include_paths = list(tmol_include_paths() + extern_include_paths())
 
-_required_flags = ["--std=c++14"]
-# _default_flags = ["-O3 -DDEBUG"]
-# _default_flags = ["-O3"]
-_default_flags = ["-g", "-Og", "-DDEBUG"]
+_required_flags = ["--std=c++14", "-DWITH_NVTX"]
+_default_flags = ["-O3"]
+# _default_flags = ["-g", "-Og"]
 
 _required_cuda_flags = [
     "-std=c++14",
     "--expt-extended-lambda",
     "--expt-relaxed-constexpr",
+    "-DWITH_NVTX",
 ]
+
+if torch.cuda.is_available():
+    _major, _minor = torch.cuda.get_device_capability(0)
+    _required_cuda_flags.append(f"--gpu-architecture=sm_{_major}{_minor}")
+
 _default_cuda_flags = []
 
 

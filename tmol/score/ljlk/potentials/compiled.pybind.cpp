@@ -2,7 +2,8 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
-#include "dispatch.hh"
+#include "lj.dispatch.hh"
+#include "lk_isotropic.dispatch.hh"
 #include "params.pybind.hh"
 
 #include <tmol/utility/function_dispatch/pybind.hh>
@@ -16,12 +17,11 @@ template <tmol::Device Dev, typename Real, typename Int>
 void bind_dispatch(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace tmol::utility::function_dispatch;
-  using tmol::score::common::NaiveDispatch;
 
   add_dispatch_impl<Dev, Real>(
       m,
       "lk_isotropic",
-      &LKIsotropicDispatch<NaiveDispatch, Dev, Real, Int>::f,
+      &LKIsotropicDispatch<AABBDispatch, Dev, Real, Int>::f,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -33,7 +33,7 @@ void bind_dispatch(pybind11::module& m) {
   add_dispatch_impl<Dev, Real>(
       m,
       "lk_isotropic_triu",
-      &LKIsotropicDispatch<NaiveTriuDispatch, Dev, Real, Int>::f,
+      &LKIsotropicDispatch<AABBTriuDispatch, Dev, Real, Int>::f,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -45,7 +45,7 @@ void bind_dispatch(pybind11::module& m) {
   add_dispatch_impl<Dev, Real>(
       m,
       "lj",
-      &LJDispatch<NaiveDispatch, Dev, Real, Int>::f,
+      &LJDispatch<AABBDispatch, Dev, Real, Int>::f,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,
@@ -57,7 +57,7 @@ void bind_dispatch(pybind11::module& m) {
   add_dispatch_impl<Dev, Real>(
       m,
       "lj_triu",
-      &LJDispatch<NaiveTriuDispatch, Dev, Real, Int>::f,
+      &LJDispatch<AABBTriuDispatch, Dev, Real, Int>::f,
       "coords_i"_a,
       "atom_type_i"_a,
       "coords_j"_a,

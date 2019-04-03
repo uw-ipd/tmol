@@ -102,12 +102,13 @@ auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
 
   AT_ASSERTM(input_t.dim() == N, "Wrong dimensionality.")
   AT_ASSERTM(
-      (input_t.size(N - 1) % stride_factor == 0)
-          || (N >= 2
-              && input_t.size(N - 1) * input_t.size(N - 2) % stride_factor
-                     == 0),
-      "Low-dimension(s) shape must be even multiple of adjusted stride.")
-  AT_ASSERTM(input_t.stride(N - 1) == 1, "Must be c-contiguous.")
+      input_t.size(N - 1) % stride_factor == 0,
+      "Low-dimension shape must be even multiple of adjusted stride.")
+
+  if (stride_factor != 1) {
+    AT_ASSERTM(input_t.stride(N - 1) == 1, "Must be c-contiguous.")
+  }
+
   AT_ASSERTM(
       input_t.device().type() == D, "_view_tensor of incorrect device type.")
 
@@ -127,7 +128,14 @@ auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   }
 
   sizes[N - 1] = input.size(N - 1) / stride_factor;
-  strides[N - 1] = 1;
+  if (stride_factor != 1) {
+    // If composite type is not same size as input type then is c-contig in
+    // minor dimension.
+    strides[N - 1] = 1;
+  } else {
+    // The types are the same size, and can be non-contiguous in minor dim.
+    strides[N - 1] = input.stride(N - 1);
+  }
 
   return tmol::TView<T, N, D, P>(
       reinterpret_cast<T*>(input_t.data_ptr()), sizes, strides);

@@ -24,13 +24,16 @@ template <
     typename Int>
 struct HBondDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, Dev> D,
-      TView<Vec<Real, 3>, 1, Dev> H,
+      TView<Vec<Real, 3>, 1, Dev> donor_coords,
+      TView<Vec<Real, 3>, 1, Dev> acceptor_coords,
+
+      TView<int64_t, 1, Dev> D,
+      TView<int64_t, 1, Dev> H,
       TView<Int, 1, Dev> donor_type,
 
-      TView<Vec<Real, 3>, 1, Dev> A,
-      TView<Vec<Real, 3>, 1, Dev> B,
-      TView<Vec<Real, 3>, 1, Dev> B0,
+      TView<int64_t, 1, Dev> A,
+      TView<int64_t, 1, Dev> B,
+      TView<int64_t, 1, Dev> B0,
       TView<Int, 1, Dev> acceptor_type,
 
       TView<Int, 2, Dev> acceptor_hybridization,
@@ -49,17 +52,13 @@ struct HBondDispatch {
       TView<Vec<double, 2>, 2, Dev> cosAHD_range,
       TView<Vec<double, 2>, 2, Dev> cosAHD_bound,
 
-      Real hb_sp2_range_span,
-      Real hb_sp2_BAH180_rise,
-      Real hb_sp2_outer_width,
-      Real hb_sp3_softmax_fade,
-      Real threshold_distance)
+      TView<Real, 1, Dev> hb_sp2_range_span,
+      TView<Real, 1, Dev> hb_sp2_BAH180_rise,
+      TView<Real, 1, Dev> hb_sp2_outer_width,
+      TView<Real, 1, Dev> hb_sp3_softmax_fade,
+      TView<Real, 1, Dev> threshold_distance)
       -> std::tuple<
-          TPack<int64_t, 2, Dev>,
           TPack<Real, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>>;
 };

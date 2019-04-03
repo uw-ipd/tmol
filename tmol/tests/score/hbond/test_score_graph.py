@@ -33,7 +33,7 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
 
     intra_graph = hbond_graph.intra_score()
 
-    ind, score = intra_graph.hbond
+    score = intra_graph.total_hbond
     nan_scores = torch.nonzero(torch.isnan(score))
     assert len(nan_scores) == 0
     assert (intra_graph.total_hbond != 0).all()
@@ -59,8 +59,6 @@ def test_hbond_score_setup(benchmark, ubq_system, torch_device):
         score_graph.hbond_acceptor_indices
 
         return score_graph
-
-    # TODO fordas add test assertions
 
 
 def test_hbond_database_clone_factory(ubq_system):
