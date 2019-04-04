@@ -38,16 +38,16 @@ class DunbrackOp:
             packed_db=packed_db,
             dun_params=dun_params,
         )
-        assert all(
-            res.device == t.device
-            for t in res.params.values()
-            if not isinstance(t, list)
-        )
-        assert all(
-            all(res.device == t.device for t in l)
-            for l in res.params.values()
-            if isinstance(l, list)
-        )
+        # assert all(
+        #    res.device == t.device
+        #    for t in res.params.values()
+        #    if isinstance(t, torch.tensor)
+        # )
+        # assert all(
+        #    all(res.device == t.device for t in l)
+        #    for l in res.params.values()
+        #    if isinstance(l, list)
+        # )
         return res
 
     def intra(self, coords):

@@ -94,7 +94,7 @@ template <
     PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
 auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
-  nvtx_range_function();
+  // nvtx_range_function();
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
 
   static_assert(

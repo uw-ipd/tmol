@@ -87,6 +87,56 @@ class Tensor(TensorType, typing._TypingBase, _root=True):
         return value
 
 
+@attr.s(frozen=True, auto_attribs=True, repr=False)
+class TensorCollection(TensorType, typing._TypingBase, _root=True):
+    dtype: torch.dtype = attr.ib(converter=torch_dtype)
+    shape: Shape = Shape.spec[...]
+
+    def convert(self, value):
+        # dunno what this function is meant to do!
+        return value
+
+    def validate(self, value):
+        import tmol.utility.tensor.compiled as tutc
+
+        if shape[0] == 1:
+            if (
+                isinstance(value, tutc.TCollection_float_1_cpu)
+                or isinstance(value, tutc.TCollection_double_1_cpu)
+                or isinstance(value, tutc.TCollection_float_1_cuda)
+            ):
+                return True
+            else:
+                return False
+        if shape[0] == 2:
+            if (
+                isinstance(value, tutc.TCollection_float_2_cpu)
+                or isinstance(value, tutc.TCollection_double_2_cpu)
+                or isinstance(value, tutc.TCollection_float_2_cuda)
+            ):
+                return True
+            else:
+                return False
+        if shape[0] == 3:
+            if (
+                isinstance(value, tutc.TCollection_float_3_cpu)
+                or isinstance(value, tutc.TCollection_double_3_cpu)
+                or isinstance(value, tutc.TCollection_float_3_cuda)
+            ):
+                return True
+            else:
+                return False
+        if shape[0] == 4:
+            if (
+                isinstance(value, tutc.TCollection_float_4_cpu)
+                or isinstance(value, tutc.TCollection_double_4_cpu)
+                or isinstance(value, tutc.TCollection_float_4_cuda)
+            ):
+                return True
+            else:
+                return False
+
+
 @_cat_internal.register(torch.Tensor)
 def _cat_tensor(first, rest, dim=0, out=None):
     return torch.cat([first] + list(rest), dim=dim, out=out)

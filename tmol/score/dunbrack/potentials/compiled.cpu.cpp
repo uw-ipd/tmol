@@ -81,7 +81,7 @@ struct DunbrackDispatch {
     TPack<CoordQuad, 2, D>,  // ddevpen_dtor_xyz -- nrotchi x (nbb+1)
     TPack<Real, 1, D>,       // -ln(prob_nonrotameric)
     TPack<CoordQuad, 2, D> >  // d(-ln(prob_nonrotameric)) / dtor -- nsemirot-res x 3
-  {
+  {    
     Int const nres(nrotameric_chi_for_res.size(0));
     Int const n_rotameric_res(rotres2resid.size(0));
     Int const n_rotameric_chi(rotameric_chi_desc.size(0));

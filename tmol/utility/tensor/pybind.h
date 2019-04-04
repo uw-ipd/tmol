@@ -154,22 +154,28 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
   // C++ -> Python cast operation not supported.
 };
 
-template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
-struct type_caster<tmol::TCollection<T, N, D, P>> {
- public:
-  typedef tmol::TCollection<T, N, D, P> ViewCollType;
-  PYBIND11_TYPE_CASTER(ViewCollType, handle_type_name<ViewCollType>::name);
-
-  bool load(handle src, bool convert) {
-    type_caster<std::vector<at::Tensor>> conv;
-
-    if (conv.load(src, convert)) {
-      value = tmol::TCollection<T, N, D, P>(conv);
-      return true;
-    }
-    return false;
-  }
-};
+// template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
+// struct type_caster<tmol::TCollection<T, N, D, P>> {
+// public:
+//  typedef tmol::TCollection<T, N, D, P> ViewCollType;
+//  PYBIND11_TYPE_CASTER(ViewCollType, handle_type_name<ViewCollType>::name);
+//
+//  bool load(handle src, bool convert) {
+//    type_caster<std::vector<at::Tensor>> conv;
+//
+//    if (conv.load(src, convert)) {
+//      value = tmol::TCollection<T, N, D, P>(conv);
+//      return true;
+//    }
+//    return false;
+//  }
+//
+//  //static handle cast(TCollection<T, N, D, P> src, return_value_policy /*
+//  policy */, handle /* parent */) {
+//  //  return PyType_Type(src);
+//  //}
+//
+//};
 
 }  // namespace detail
 }  // namespace pybind11

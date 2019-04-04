@@ -11,7 +11,7 @@ import itertools
 from typing import List, Tuple
 
 from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
+from tmol.types.torch import Tensor, TensorCollection
 from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
 from tmol.types.functional import validate_args
@@ -24,6 +24,11 @@ from tmol.database.scoring.dunbrack_libraries import (
     SemiRotamericAADunbrackLibrary,
     DunMappingParams,
     DunbrackRotamerLibrary,
+)
+
+from tmol.utility.tensor.compiled import (
+    create_tensor_collection3,
+    create_tensor_collection4,
 )
 
 
@@ -79,10 +84,10 @@ class DunbrackParams(TensorGroup):
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedDunbrackDatabase(ConvertAttrs):
 
-    rotameric_prob_tables: List
-    rotameric_neglnprob_tables: List
-    rotameric_mean_tables: List
-    rotameric_sdev_tables: List
+    rotameric_prob_tables: TensorCollection(torch.float)[3]
+    rotameric_neglnprob_tables: TensorCollection(torch.float)[3]
+    rotameric_mean_tables: TensorCollection(torch.float)[3]
+    rotameric_sdev_tables: TensorCollection(torch.float)[3]
 
     rotameric_bb_start: Tensor(torch.float)[:, :]
     rotameric_bb_step: Tensor(torch.float)[:, :]
@@ -91,7 +96,7 @@ class PackedDunbrackDatabase(ConvertAttrs):
     rotameric_rotind2tableind: Tensor(torch.int32)[:]
     semirotameric_rotind2tableind: Tensor(torch.int32)[:]
 
-    semirotameric_tables: List
+    semirotameric_tables: TensorCollection(torch.float)[4]
     semirot_start: Tensor(torch.float)[:, :]
     semirot_step: Tensor(torch.float)[:, :]
     semirot_periodicity: Tensor(torch.float)[:, :]
@@ -228,6 +233,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(prob_coeffs):
             for j, table in enumerate(table_set):
                 prob_coeffs_collapsed[i][j, :] = table
+        prob_coeffs_collapsed = create_tensor_collection3(prob_coeffs_collapsed)
 
         neglnprob_coeffs = [
             [
@@ -245,6 +251,9 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(neglnprob_coeffs):
             for j, table in enumerate(table_set):
                 neglnprob_coeffs_collapsed[i][j, :] = table
+        neglnprob_coeffs_collapsed = create_tensor_collection3(
+            neglnprob_coeffs_collapsed
+        )
 
         rotameric_mean_tables = [
             [
@@ -297,6 +306,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(mean_coeffs):
             for j, table in enumerate(table_set):
                 mean_coeffs_collapsed[i][j, :] = table
+        mean_coeffs_collapsed = create_tensor_collection3(mean_coeffs_collapsed)
 
         sdev_coeffs = [
             [
@@ -314,6 +324,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(sdev_coeffs):
             for j, table in enumerate(table_set):
                 sdev_coeffs_collapsed[i][j, :] = table
+        sdev_coeffs_collapsed = create_tensor_collection3(sdev_coeffs_collapsed)
 
         rotameric_bb_start = torch.tensor(
             [
@@ -475,6 +486,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(semirot_coeffs):
             for j, table in enumerate(table_set):
                 semirot_coeffs_collapsed[i][j, :] = table
+        semirot_coeffs_collapsed = create_tensor_collection4(semirot_coeffs_collapsed)
 
         semirot_start = torch.zeros(
             (len(dun_database.semi_rotameric_libraries), 3),

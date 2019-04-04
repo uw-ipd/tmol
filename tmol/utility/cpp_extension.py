@@ -29,6 +29,8 @@ _required_cuda_flags = [
     "--expt-extended-lambda",
     "--expt-relaxed-constexpr",
     "-DWITH_NVTX",
+    "-Xptxas -O3,-v",
+    "-O3",
 ]
 
 if torch.cuda.is_available():
