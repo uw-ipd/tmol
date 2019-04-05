@@ -32,13 +32,13 @@ class KinematicDunbrackGraph(
     pass
 
 
-def skip_test_dunbrack_score_graph_smoke(ubq_system, default_database, torch_device):
+def test_dunbrack_score_graph_smoke(ubq_system, default_database, torch_device):
     dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=torch_device, parameter_database=default_database
     )
 
 
-def skip_test_dunbrack_score_setup(ubq_system, default_database, torch_device):
+def test_dunbrack_score_setup(ubq_system, default_database, torch_device):
     dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=torch_device, parameter_database=default_database
     )

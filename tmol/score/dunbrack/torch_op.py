@@ -2,7 +2,7 @@ import attr
 from attr import asdict
 from typing import Mapping, Callable
 
-from .params import PackedDunbrackDatabase, DunbrackParams
+from .params import PackedDunbrackDatabase, DunbrackParams, DunbrackScratch
 
 import torch
 from tmol.utility.nvtx import nvtx_range
@@ -14,6 +14,7 @@ class DunbrackOp:
     params: Mapping[str, torch.Tensor]
     packed_db: PackedDunbrackDatabase
     dun_params: DunbrackParams
+    scratch: DunbrackScratch
 
     f: Callable = attr.ib()
     df: Callable = attr.ib()
@@ -31,18 +32,24 @@ class DunbrackOp:
         return compiled.dunbrack_deriv
 
     @classmethod
-    def from_params(cls, packed_db: PackedDunbrackDatabase, dun_params: DunbrackParams):
+    def from_params(
+        cls,
+        packed_db: PackedDunbrackDatabase,
+        dun_params: DunbrackParams,
+        dun_scratch: DunbrackScratch,
+    ):
+
         res = cls(
             device=packed_db.rotameric_bb_start.device,
-            params={**asdict(packed_db), **asdict(dun_params)},
+            params={**asdict(packed_db), **asdict(dun_params), **asdict(dun_scratch)},
             packed_db=packed_db,
             dun_params=dun_params,
+            scratch=dun_scratch,
         )
-        # assert all(
-        #    res.device == t.device
-        #    for t in res.params.values()
-        #    if isinstance(t, torch.tensor)
-        # )
+        assert all(
+            res.device == t.device for t in res.params.values() if hasattr(t, "device")
+        )
+
         # assert all(
         #    all(res.device == t.device for t in l)
         #    for l in res.params.values()
@@ -61,67 +68,39 @@ class DunbrackScoreFun(torch.autograd.Function):
 
     def forward(ctx, coords):
         with nvtx_range("DunbrackScoreFun.forward"):
-            # allocate the temporary tensors to hold information needed
-            ndihe = ctx.op.dun_params.dihedral_atom_inds.shape[0]
-            nrotchi = ctx.op.dun_params.rotameric_chi_desc.shape[0]
-            nres = ctx.op.dun_params.ndihe_for_res.shape[0]
-
-            dihedrals = torch.zeros((ndihe,), dtype=torch.float, device=ctx.op.device)
-            ddihe_dxyz = torch.zeros(
-                (ndihe, 4, 3), dtype=torch.float, device=ctx.op.device
+            rot_nlpE, drot_nlp_dbb, devpen, ddevpen_dtor, nonrot_nlpE, dnonrot_nlpE_dtor = ctx.op.f(
+                coords, **ctx.op.params
             )
-            rotameric_rottable_assignment = torch.zeros(
-                (nres,), dtype=torch.int32, device=ctx.op.device
-            )
-            semirotameric_rottable_assignment = torch.zeros(
-                (nres,), dtype=torch.int32, device=ctx.op.device
-            )
-
-            # for key, val in ctx.op.params.items():
-            #    print("key in ctx.op.params:", key, print(type(val)))
-
-            # dE_dphi/psi are returned as ntors x 12 arrays
-            with nvtx_range("DunbrackScoreFun.forward.kernel"):
-                rot_nlpE, drot_nlp_dbb, devpen, ddevpen_dtor, nonrot_nlpE, dnonrot_nlpE_dtor = ctx.op.f(
-                    coords,
-                    dihedrals=dihedrals,
-                    ddihe_dxyz=ddihe_dxyz,
-                    # rotchi_devpen=rotchi_devpen,
-                    # ddevpen_dbb=ddevpen_dbb,
-                    rotameric_rottable_assignment=rotameric_rottable_assignment,
-                    semirotameric_rottable_assignment=semirotameric_rottable_assignment,
-                    **ctx.op.params,
-                )
 
             ctx.save_for_backward(coords, drot_nlp_dbb, ddevpen_dtor, dnonrot_nlpE_dtor)
-
             return rot_nlpE, devpen, nonrot_nlpE
 
     def backward(ctx, dE_drotnlp, dE_ddevpen, dE_dnonrotnlp):
-        coords, drot_nlp_dbb, ddevpen_dtor, dnonrot_nlpE_dtor = ctx.saved_tensors
+        with nvtx_range("DunbrackScoreFun.backward"):
+            coords, drot_nlp_dbb, ddevpen_dtor, dnonrot_nlpE_dtor = ctx.saved_tensors
 
-        dE_drotnlp = dE_drotnlp.contiguous()
-        dE_ddevpen = dE_ddevpen.contiguous()
-        dE_dnonrotnlp = dE_dnonrotnlp.contiguous()
+            dE_drotnlp = dE_drotnlp.contiguous()
+            dE_ddevpen = dE_ddevpen.contiguous()
+            dE_dnonrotnlp = dE_dnonrotnlp.contiguous()
 
-        # print("dE_drotnlp", dE_drotnlp.shape, dE_drotnlp.dtype)
+            # print("dE_drotnlp", dE_drotnlp.shape, dE_drotnlp.dtype)
 
-        # dE_dxyz = torch.zeros(ctx.coords_shape, dtype=torch.float, device=drot_nlp_dphi.device)
-        dE_dxyz = ctx.op.df(
-            coords,
-            dE_drotnlp=dE_drotnlp,
-            drot_nlp_dbb_xyz=drot_nlp_dbb,
-            dE_ddevpen=dE_ddevpen,
-            ddevpen_dtor_xyz=ddevpen_dtor,
-            dE_dnonrotnlp=dE_dnonrotnlp,
-            dnonrot_nlp_dtor_xyz=dnonrot_nlpE_dtor,
-            dihedral_offset_for_res=ctx.op.dun_params.dihedral_offset_for_res,
-            dihedral_atom_inds=ctx.op.dun_params.dihedral_atom_inds,
-            rotres2resid=ctx.op.dun_params.rotres2resid,
-            rotameric_chi_desc=ctx.op.dun_params.rotameric_chi_desc,
-            semirotameric_chi_desc=ctx.op.dun_params.semirotameric_chi_desc,
-        )
-        return dE_dxyz
+            # dE_dxyz = torch.zeros(ctx.coords_shape, dtype=torch.float, device=drot_nlp_dphi.device)
+            dE_dxyz = ctx.op.df(
+                coords,
+                dE_drotnlp=dE_drotnlp,
+                drot_nlp_dbb_xyz=drot_nlp_dbb,
+                dE_ddevpen=dE_ddevpen,
+                ddevpen_dtor_xyz=ddevpen_dtor,
+                dE_dnonrotnlp=dE_dnonrotnlp,
+                dnonrot_nlp_dtor_xyz=dnonrot_nlpE_dtor,
+                dihedral_offset_for_res=ctx.op.dun_params.dihedral_offset_for_res,
+                dihedral_atom_inds=ctx.op.dun_params.dihedral_atom_inds,
+                rotres2resid=ctx.op.dun_params.rotres2resid,
+                rotameric_chi_desc=ctx.op.dun_params.rotameric_chi_desc,
+                semirotameric_chi_desc=ctx.op.dun_params.semirotameric_chi_desc,
+            )
+            return dE_dxyz
 
         # return dE_dxyz
         # return (dE_dxyz, None, None, None)

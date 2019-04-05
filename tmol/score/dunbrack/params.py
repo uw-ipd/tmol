@@ -80,6 +80,14 @@ class DunbrackParams(TensorGroup):
     semirotameric_chi_desc: Tensor(torch.int32)[:, 4]
 
 
+@attr.s(auto_attribs=True)
+class DunbrackScratch(TensorGroup):
+    dihedrals: Tensor(torch.float)[:]
+    ddihe_dxyz: Tensor(torch.float)[:, 4, 3]
+    rotameric_rottable_assignment: Tensor(torch.int32)[:]
+    semirotameric_rottable_assignment: Tensor(torch.int32)[:]
+
+
 # the rama database on the device
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedDunbrackDatabase(ConvertAttrs):
@@ -598,10 +606,6 @@ class DunbrackParamResolver(ValidateAttrs):
         chi: Tensor(torch.int32)[:, 6],
         torch_device: torch.device,
     ) -> DunbrackParams:
-        # soon dfphi = pandas.DataFrame(phi.cpu().numpy())
-        # soon dfpsi = pandas.DataFrame(psi.cpu().numpy())
-        # soon phipsi = dfphi.merge(dfpsi, left_on=0, right_on=0, suffixes=("_phi","_psi")).values[:,:]
-        # soon all_defined = numpy.all(phipsi != -1)
 
         phi = phi.clone()
         psi = psi.clone()
@@ -609,14 +613,6 @@ class DunbrackParamResolver(ValidateAttrs):
         phi[phi_not_defined, 1:] = -1
         psi_not_defined = (psi == -1).byte().any(1)
         psi[psi_not_defined, 1:] = -2
-
-        # torch.set_printoptions(threshold=5000)
-        # print("phi")
-        # print(phi)
-        # print("psi")
-        # print(psi)
-        # print("chi")
-        # print(chi)
 
         rns_inds, r_inds, s_inds = self.resolve_dun_indices(res_names, torch_device)
 
@@ -732,6 +728,31 @@ class DunbrackParamResolver(ValidateAttrs):
             rotind2tableind_offset_for_res=rotind2tableind_offset_for_res,
             rotameric_chi_desc=rotameric_chi_desc,
             semirotameric_chi_desc=semirotameric_chi_desc,
+        )
+
+    @validate_args
+    def allocate_dunbrack_scratch_space(
+        self, params: DunbrackParams
+    ) -> DunbrackScratch:
+        ndihe = params.dihedral_atom_inds.shape[0]
+        nrotchi = params.rotameric_chi_desc.shape[0]
+        nres = params.ndihe_for_res.shape[0]
+        device = params.dihedral_atom_inds.device
+
+        dihedrals = torch.zeros((ndihe,), dtype=torch.float, device=device)
+        ddihe_dxyz = torch.zeros((ndihe, 4, 3), dtype=torch.float, device=device)
+        rotameric_rottable_assignment = torch.zeros(
+            (nres,), dtype=torch.int32, device=device
+        )
+        semirotameric_rottable_assignment = torch.zeros(
+            (nres,), dtype=torch.int32, device=device
+        )
+
+        return DunbrackScratch(
+            dihedrals=dihedrals,
+            ddihe_dxyz=ddihe_dxyz,
+            rotameric_rottable_assignment=rotameric_rottable_assignment,
+            semirotameric_rottable_assignment=semirotameric_rottable_assignment,
         )
 
     def resolve_dun_indices(

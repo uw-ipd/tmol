@@ -21,7 +21,7 @@ from ..bonded_atom import BondedAtomScoreGraph
 from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
-from .params import DunbrackParamResolver, DunbrackParams
+from .params import DunbrackParamResolver, DunbrackParams, DunbrackScratch
 from .torch_op import DunbrackOp
 
 
@@ -73,9 +73,13 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def dunbrack_op(
-        dun_param_resolver: DunbrackParamResolver, dun_resolve_indices: DunbrackParams
+        dun_param_resolver: DunbrackParamResolver,
+        dun_resolve_indices: DunbrackParams,
+        dun_scratch: DunbrackScratch,
     ) -> DunbrackOp:
-        return DunbrackOp.from_params(dun_param_resolver.packed_db, dun_resolve_indices)
+        return DunbrackOp.from_params(
+            dun_param_resolver.packed_db, dun_resolve_indices, dun_scratch
+        )
 
     @reactive_property
     @validate_args
@@ -98,3 +102,10 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         return dun_param_resolver.resolve_dunbrack_parameters(
             res_names[0, dun_phi[:, 2]], dun_phi, dun_psi, dun_chi, device
         )
+
+    @reactive_property
+    @validate_args
+    def dun_scratch(
+        dun_param_resolver: DunbrackParamResolver, dun_resolve_indices: DunbrackParams
+    ) -> DunbrackScratch:
+        return dun_param_resolver.allocate_dunbrack_scratch_space(dun_resolve_indices)

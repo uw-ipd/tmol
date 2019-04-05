@@ -96,18 +96,21 @@ struct DunbrackDispatch {
     Int const n_rotameric_chi(rotameric_chi_desc.size(0));
     Int const n_semirotameric_res(semirotameric_chi_desc.size(0));
     Int const n_dihedrals(dihedral_atom_inds.size(0));
+    mgpu::standard_context_t context;
 
-    auto neglnprob_rot_tpack = TPack<Real, 1, D>::zeros(n_rotameric_res);
+    nvtxRangePushA("dunbrack::allocate");
+    auto neglnprob_rot_tpack = TPack<Real, 1, D>::empty(n_rotameric_res);
     auto dneglnprob_rot_dbb_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_rotameric_res, 2});
+        TPack<CoordQuad, 2, D>::empty({n_rotameric_res, 2});
 
-    auto rotchi_devpen_tpack = TPack<Real, 1, D>::zeros(n_rotameric_chi);
+    auto rotchi_devpen_tpack = TPack<Real, 1, D>::empty(n_rotameric_chi);
     auto drotchi_devpen_dtor_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_rotameric_chi, 3});
+        TPack<CoordQuad, 2, D>::empty({n_rotameric_chi, 3});
 
-    auto neglnprob_nonrot_tpack = TPack<Real, 1, D>::zeros(n_semirotameric_res);
+    auto neglnprob_nonrot_tpack = TPack<Real, 1, D>::empty(n_semirotameric_res);
     auto dneglnprob_nonrot_dtor_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_semirotameric_res, 3});
+        TPack<CoordQuad, 2, D>::empty({n_semirotameric_res, 3});
+    nvtxRangePop();
     auto neglnprob_rot = neglnprob_rot_tpack.view;
     auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_tpack.view;
 
@@ -129,12 +132,49 @@ struct DunbrackDispatch {
     // 4. compute the chi-deviation penalty for all rotameric chi
     // 5. compute the -ln(P) energy for the semi-rotameric residues
 
+    // 0. zero tensors
+    auto func_zero1 =
+        ([=] EIGEN_DEVICE_FUNC(int i, TView<Real, 1, D> tv) { tv[i] = 0; });
+    nvtxRangePushA("dun:zero");
+    // mgpu::transform([=] MGPU_DEVICE(int idx) { func_zero1(idx,
+    // neglnprob_rot);}, n_rotameric_res, context); mgpu::transform([=]
+    // MGPU_DEVICE(int idx) { func_zero1(idx, rotchi_devpen);}, n_rotameric_chi,
+    // context); mgpu::transform([=] MGPU_DEVICE(int idx) { func_zero1(idx,
+    // neglnprob_nonrot);}, n_semirotameric_res, context);
+
+    auto func_zeroCQ2 =
+        ([=] EIGEN_DEVICE_FUNC(int i, TView<CoordQuad, 2, D> tv) {
+          for (int ii = 0; ii < tv.size(1); ++ii) {
+            for (int jj = 0; jj < 4; ++jj) {
+              for (int kk = 0; kk < 3; ++kk) {
+                tv[i][ii](jj, kk) = 0;
+              }
+            }
+          }
+        });
+    mgpu::transform(
+        [=] MGPU_DEVICE(int idx) { func_zeroCQ2(idx, dneglnprob_rot_dbb_xyz); },
+        n_rotameric_res,
+        context);
+    mgpu::transform(
+        [=] MGPU_DEVICE(int idx) {
+          func_zeroCQ2(idx, drotchi_devpen_dtor_xyz);
+        },
+        n_rotameric_chi,
+        context);
+    mgpu::transform(
+        [=] MGPU_DEVICE(int idx) {
+          func_zeroCQ2(idx, dneglnprob_nonrot_dtor_xyz);
+        },
+        n_semirotameric_res,
+        context);
+    nvtxRangePop();
+
     // 1.
     auto func_dihe = ([=] EIGEN_DEVICE_FUNC(int i) {
       measure_dihedrals_V_dV(
           coords, i, dihedral_atom_inds, dihedrals, ddihe_dxyz);
     });
-    mgpu::standard_context_t context;
     nvtxRangePushA("dunbrack::measure_dihedrals");
     mgpu::transform(
         [=] MGPU_DEVICE(int idx) { func_dihe(idx); }, n_dihedrals, context);

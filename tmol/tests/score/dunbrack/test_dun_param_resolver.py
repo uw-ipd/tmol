@@ -43,8 +43,6 @@ def test_packed_dun_database_construction(default_database, torch_device):
     # properties that will depend on the libraries that are read in
     dunlib = default_database.scoring.dun
     nlibs = len(dunlib.rotameric_libraries) + len(dunlib.semi_rotameric_libraries)
-    # assert packed_db_aux.rotameric_prob_tableset_offsets.shape[0] == nlibs
-    # assert packed_db_aux.rotameric_meansdev_tableset_offsets.shape[0] == nlibs
     assert packed_db.rotameric_bb_start.shape[0] == nlibs
     assert packed_db.rotameric_bb_step.shape[0] == nlibs
     assert packed_db.rotameric_bb_periodicity.shape[0] == nlibs
