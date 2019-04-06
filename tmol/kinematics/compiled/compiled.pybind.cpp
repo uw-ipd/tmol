@@ -41,6 +41,16 @@ void bind_dispatch(pybind11::module& m) {
       "frame_y"_a,
       "frame_z"_a,
       "dofs"_a);
+
+  add_dispatch_impl<Dev, Real>(
+      m,
+      "f1f2_to_deriv",
+      &f1f2ToDerivsDispatch<Dev, Real, Int>::f,
+      "hts"_a,
+      "dofs"_a,
+      "doftypes"_a,
+      "parents"_a,
+      "f1f2s"_a);
 };
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

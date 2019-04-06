@@ -22,3 +22,9 @@ def dof_transforms(*args, **kwargs):
 
 def backward_kin(*args, **kwargs):
     return _compiled.backward_kin[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+
+
+def f1f2_to_deriv(*args, **kwargs):
+    return _compiled.f1f2_to_deriv[(args[0].device.type, args[0].dtype)](
+        *args, **kwargs
+    )

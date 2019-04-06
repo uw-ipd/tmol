@@ -159,6 +159,40 @@ struct BackwardKinDispatch {
   }
 };
 
+template <tmol::Device D, typename Real, typename Int>
+struct f1f2ToDerivsDispatch {
+  static auto f(
+      TView<HomogeneousTransform, 1, D> hts,
+      TView<Vec<Real, 9>, 1, D> dofs,
+      TView<Int, 1, D> doftypes,
+      TView<Int, 1, D> parents,
+      TView<Vec<Real, 6>, 1, D> f1f2s) -> TPack<Vec<Real, 9>, 1, D> {
+    auto num_atoms = dofs.size(0);
+    auto dsc_ddofs_t = TPack<Vec<Real, 9>, 1, D>::empty({num_atoms});
+    auto dsc_ddofs = dsc_ddofs_t.view;
+
+    auto k_f1f2s2derivs = ([=] EIGEN_DEVICE_FUNC(int i) {
+      Vec<Real, 3> f1 = f1f2s[i].topRows(3);
+      Vec<Real, 3> f2 = f1f2s[i].bottomRows(3);
+      if (doftypes[i] == ROOT) {
+        dsc_ddofs[i] = Vec<Real, 9>::Constant(0);
+      } else if (doftypes[i] == JUMP) {
+        dsc_ddofs[i]= common<D,Real,Int>::jumpDerivatives(
+          dofs[i], hts[i], hts[parents[i]], f1, f2 );
+      } else if (doftypes[i] == BOND) {
+        dsc_ddofs[i]= common<D,Real,Int>::bondDerivatives(
+          dofs[i], hts[i], hts[parents[i]], f1, f2 );
+      }
+    });
+
+    for (int i = 0; i < num_atoms; i++) {
+      k_f1f2s2derivs(i);
+    }
+
+    return dsc_ddofs_t;
+  }
+};
+
 
 template struct ForwardKinDispatch<tmol::Device::CPU, float, int32_t>;
 template struct ForwardKinDispatch<tmol::Device::CPU, double, int32_t>;
@@ -166,6 +200,8 @@ template struct DOFTransformsDispatch<tmol::Device::CPU, float, int32_t>;
 template struct DOFTransformsDispatch<tmol::Device::CPU, double, int32_t>;
 template struct BackwardKinDispatch<tmol::Device::CPU, float, int32_t>;
 template struct BackwardKinDispatch<tmol::Device::CPU, double, int32_t>;
+template struct f1f2ToDerivsDispatch<tmol::Device::CPU, float, int32_t>;
+template struct f1f2ToDerivsDispatch<tmol::Device::CPU, double, int32_t>;
 
 #undef HomogeneousTransform
 #undef QuatPlusTranslation

@@ -44,6 +44,16 @@ struct BackwardKinDispatch {
       TView<Vec<Real, 9>, 1, D> dofs) -> TPack<HomogeneousTransform, 1, D>;
 };
 
+template <tmol::Device D, typename Real, typename Int>
+struct f1f2ToDerivsDispatch {
+  static auto f(
+      TView<HomogeneousTransform, 1, D> hts,
+      TView<Vec<Real, 9>, 1, D> dofs,
+      TView<Int, 1, D> doftypes,
+      TView<Int, 1, D> parents,
+      TView<Vec<Real, 6>, 1, D> f1f2s) -> TPack<Vec<Real, 9>, 1, D>;
+};
+
 #undef HomogeneousTransform
 
 }  // namespace kinematics
