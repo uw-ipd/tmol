@@ -9,7 +9,7 @@ from tmol.types.attrs import ValidateAttrs
 
 from tmol.kinematics.compiled import compiled
 
-from .datatypes import NodeType, KinTree, KinDOF, BondDOF, JumpDOF
+from .datatypes import NodeType, KinTree, KinDOF
 from .gpu_operations import GPUKinTreeReordering
 from .cpu_operations import iterative_f1f2_summation
 
