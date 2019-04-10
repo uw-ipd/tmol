@@ -193,6 +193,39 @@ struct f1f2ToDerivsDispatch {
   }
 };
 
+template <tmol::Device D, typename Real, typename Int>
+struct SegscanF1f2sDispatch {
+  static void f(
+      TView<Vec<Real, 6>, 1, D> f1f2s,
+      TCollection<Int, 1, D> nodes,
+      TCollection<Int, 1, D> scans) {
+    auto num_atoms = f1f2s.size(0);
+
+    auto nodeview = nodes.view;
+    auto scansview = scans.view;
+
+    // scan and accumulate f1s/f2s up atom tree
+    auto k_compose = ([=] EIGEN_DEVICE_FUNC(int p, int i) {
+        f1f2s[i] = f1f2s[i] + f1f2s[p];
+    });
+
+    // note: if this is parallelized (over j/k) 
+    //   then k_compose needs to be atomic
+    auto ngens = nodeview.size(0);
+    for (int i = 0; i < ngens; i++) { // loop over generations
+        auto nscans = scansview[i].size(0);
+        for (int j = 0; j < nscans; j++) { // loop over scans
+            auto scanstart = scansview[i][j];
+            auto scanstop = (j==nscans-1) ? nodeview[i].size(0) : scansview[i][j+1];
+            for (int k = scanstart; k < scanstop-1; k++) { // loop over path
+                k_compose(nodeview[i][k], nodeview[i][k+1]);
+            }
+        }
+    }
+
+    return;
+  }
+};
 
 template struct ForwardKinDispatch<tmol::Device::CPU, float, int32_t>;
 template struct ForwardKinDispatch<tmol::Device::CPU, double, int32_t>;
@@ -202,6 +235,8 @@ template struct BackwardKinDispatch<tmol::Device::CPU, float, int32_t>;
 template struct BackwardKinDispatch<tmol::Device::CPU, double, int32_t>;
 template struct f1f2ToDerivsDispatch<tmol::Device::CPU, float, int32_t>;
 template struct f1f2ToDerivsDispatch<tmol::Device::CPU, double, int32_t>;
+template struct SegscanF1f2sDispatch<tmol::Device::CPU, float, int32_t>;
+template struct SegscanF1f2sDispatch<tmol::Device::CPU, double, int32_t>;
 
 #undef HomogeneousTransform
 #undef QuatPlusTranslation

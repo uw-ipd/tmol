@@ -28,3 +28,9 @@ def f1f2_to_deriv(*args, **kwargs):
     return _compiled.f1f2_to_deriv[(args[0].device.type, args[0].dtype)](
         *args, **kwargs
     )
+
+
+def segscan_f1f2s(*args, **kwargs):
+    return _compiled.segscan_f1f2s[(args[0].device.type, args[0].dtype)](
+        *args, **kwargs
+    )

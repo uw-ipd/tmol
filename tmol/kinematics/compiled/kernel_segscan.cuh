@@ -37,7 +37,8 @@ struct cta_lbs_segscan_t {
       output_it output,
       type_t* carry_out_values,
       int* carry_out_codes,
-      storage_t& storage) {
+      storage_t& storage,
+      scan_type_t type = scan_type_inc) {
     // scan through workunits for this thread
     int cur_item = placement.a_index;
     bool carry_in = false;
@@ -85,7 +86,11 @@ struct cta_lbs_segscan_t {
     carry_in = tid > 0;
     iterate<vt>([&](int i) {
       if (p[i]) {
-        output[cur_item++] = carry_in ? op(result.scan, x[i]) : x[i];
+        if (type == scan_type_inc) {
+          output[cur_item++] = carry_in ? op(result.scan, x[i]) : x[i];
+        } else {
+          output[cur_item++] = carry_in ? result.scan : init;
+        }
       } else {
         carry_in = false;
       }
@@ -95,7 +100,13 @@ struct cta_lbs_segscan_t {
     if (tid == nt - 1) {
       // p[vt-1] checks if the current node (the last of the cta)
       //   is a segment node.  If so, no carryout.
-      carry_out_values[cta] = p[vt - 1] ? output[cur_item - 1] : init;
+      if (p[vt - 1]) {
+        carry_out_values[cta] = (type == scan_type_inc)
+                                    ? output[cur_item - 1]
+                                    : op(output[cur_item - 1], x[vt - 1]);
+      } else {
+        carry_out_values[cta] = init;
+      }
     }
 
     // store when the first input scan stops
@@ -190,6 +201,7 @@ void spine_segreduce(
 // segscan kernel
 template <
     typename launch_arg_t = empty_t,
+    scan_type_t scan_type = scan_type_inc,
     typename func_t,
     typename segments_it,
     typename output_it,
@@ -276,7 +288,8 @@ void kernel_segscan(
         output,
         carry_out_data,
         codes_data,
-        shared.mysegscan);
+        shared.mysegscan,
+        scan_type);
   };
   cta_launch<launch_t>(k_scan, num_ctas, context);
 

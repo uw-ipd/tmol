@@ -133,6 +133,7 @@ class KinTreeScanOrdering(ValidateAttrs):
     kintree_cache_key = "__KinTreeScanOrdering_cache__"
 
     forward_scan_paths: KinTreeScanData
+    backward_scan_paths: KinTreeScanData
 
     @classmethod
     @validate_args
@@ -181,4 +182,23 @@ class KinTreeScanOrdering(ValidateAttrs):
 
         forward_scan_paths = KinTreeScanData(nodes=nodesList, scans=scansList)
 
-        return KinTreeScanOrdering(forward_scan_paths=forward_scan_paths)
+        # reverse forward scan paths --> deriv scans
+        ngens = len(nodesList)
+        nodesListR = []
+        scansListR = []
+        for i in range(ngens):
+            nodesListR_i = nodesList[ngens - i - 1].flip(0)
+            scansListR_i = scansList[ngens - i - 1].clone()
+            if scansListR_i.shape[0] > 1:
+                scansListR_i[1:] = scansListR_i[1:].flip(0)
+                scansListR_i[1:] = nodesListR_i.shape[0] - scansListR_i[1:]
+
+            nodesListR.append(nodesListR_i)
+            scansListR.append(scansListR_i)
+
+        backward_scan_paths = KinTreeScanData(nodes=nodesListR, scans=scansListR)
+
+        return KinTreeScanOrdering(
+            forward_scan_paths=forward_scan_paths,
+            backward_scan_paths=backward_scan_paths,
+        )

@@ -18,21 +18,38 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 #define HomogeneousTransform Eigen::Matrix<Real, 4, 4>
 #define QuatTranslation Eigen::Matrix<Real, 7, 1>
 #define QuatTransRawBuffer std::array<Real, 7>
+#define f1f2Vectors Eigen::Matrix<Real, 6, 1>
+#define f1f2VecsRawBuffer std::array<Real, 6>
 
-// the composite operation: apply a transform
+// the composite operation for the forward pass: apply a transform
 //   qt1/qt2 -> HT1/HT2 -> HT1*HT2 -> qt12' -> norm(qt12')
 template <tmol::Device D, typename Real, typename Int>
 struct qcompose_t : public std::binary_function<
-                        std::array<Real, 7>,
-                        std::array<Real, 7>,
-                        std::array<Real, 7>> {
-  MGPU_HOST_DEVICE std::array<Real, 7> operator()(
-      std::array<Real, 7> p, std::array<Real, 7> i) const {
+                        QuatTransRawBuffer,
+                        QuatTransRawBuffer,
+                        QuatTransRawBuffer> {
+  MGPU_HOST_DEVICE QuatTransRawBuffer
+  operator()(QuatTransRawBuffer p, QuatTransRawBuffer i) const {
     QuatTranslation ab = common<D, Real, Int>::quat_trans_compose(
         Eigen::Map<QuatTranslation>(i.data()),
         Eigen::Map<QuatTranslation>(p.data()));
 
     return *((QuatTransRawBuffer*)ab.data());
+  }
+};
+
+// the composite operation for the backward pass: sum f1s & f2s
+template <tmol::Device D, typename Real, typename Int>
+struct f1f2compose_t : public std::binary_function<
+                           f1f2VecsRawBuffer,
+                           f1f2VecsRawBuffer,
+                           f1f2VecsRawBuffer> {
+  MGPU_HOST_DEVICE f1f2VecsRawBuffer
+  operator()(f1f2VecsRawBuffer p, f1f2VecsRawBuffer i) const {
+    f1f2Vectors ab =
+        Eigen::Map<f1f2Vectors>(i.data()) + Eigen::Map<f1f2Vectors>(p.data());
+
+    return *((f1f2VecsRawBuffer*)ab.data());
   }
 };
 
@@ -236,6 +253,65 @@ struct f1f2ToDerivsDispatch {
   }
 };
 
+template <tmol::Device D, typename Real, typename Int>
+struct SegscanF1f2sDispatch {
+  static void f(
+      TView<Vec<Real, 6>, 1, D> f1f2s,
+      TCollection<Int, 1, D> nodes,
+      TCollection<Int, 1, D> scans) {
+    auto num_atoms = f1f2s.size(0);
+
+    auto nodeview = nodes.view;
+
+    mgpu::standard_context_t context;
+
+    // temp memory for scan (longest scan possible is 2 times # atoms)
+    auto f1f2scan_t = TPack<f1f2Vectors, 1, D>::empty({2 * num_atoms});
+    auto f1f2scan = f1f2scan_t.view;
+    f1f2VecsRawBuffer init = {0, 0, 0, 0, 0, 0};  // identity
+
+    auto ngens = nodeview.size(0);
+    for (int i = 0; i < ngens; ++i) {
+      int nnodes = nodes.tensors[i].size(0);
+      int nscans = scans.tensors[i].size(0);
+
+      // reindexing function
+      auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
+        return *((f1f2VecsRawBuffer*)f1f2s[nodeview[i][index]].data());
+      };
+
+      // mgpu does not play nicely with eigen types
+      // instead, we wrap the raw data buffer
+      //      and use eigen:map to reconstruct on device
+      tmol::kinematics::
+          kernel_segscan<mgpu::launch_params_t<256, 1>, scan_type_exc>(
+              k_reindex,
+              nnodes,
+              scans.tensors[i].view.data(),  // get a single tensor view on CPU
+              nscans,
+              (f1f2VecsRawBuffer*)(f1f2scan.data()->data()),
+              f1f2compose_t<D, Real, Int>(),
+              init,
+              context);
+
+      // unindex for gen i.  ENSURE ATOMIC
+      auto k_unindex = [=] MGPU_DEVICE(int index) {
+            index, f1f2scan[index][0],
+            nodeview[i][index], f1f2s[nodeview[i][index]][0],
+            f1f2scan[index][0] + f1f2s[nodeview[i][index]][0]
+        );
+            for (int kk = 0; kk < 6; ++kk) {
+              atomicAdd(&(f1f2s[nodeview[i][index]][kk]), f1f2scan[index][kk]);
+            }
+      };
+
+      mgpu::transform(k_unindex, nnodes, context);
+    }
+
+    return;
+  }
+};
+
 template struct ForwardKinDispatch<tmol::Device::CUDA, float, int32_t>;
 template struct ForwardKinDispatch<tmol::Device::CUDA, double, int32_t>;
 template struct DOFTransformsDispatch<tmol::Device::CUDA, float, int32_t>;
@@ -244,10 +320,14 @@ template struct BackwardKinDispatch<tmol::Device::CUDA, float, int32_t>;
 template struct BackwardKinDispatch<tmol::Device::CUDA, double, int32_t>;
 template struct f1f2ToDerivsDispatch<tmol::Device::CUDA, float, int32_t>;
 template struct f1f2ToDerivsDispatch<tmol::Device::CUDA, double, int32_t>;
+template struct SegscanF1f2sDispatch<tmol::Device::CUDA, float, int32_t>;
+template struct SegscanF1f2sDispatch<tmol::Device::CUDA, double, int32_t>;
 
 #undef HomogeneousTransform
 #undef QuatTranslation
 #undef QuatTransRawBuffer
+#undef f1f2Vectors
+#undef f1f2VecsRawBuffer
 
 }  // namespace kinematics
 }  // namespace tmol

@@ -54,6 +54,14 @@ struct f1f2ToDerivsDispatch {
       TView<Vec<Real, 6>, 1, D> f1f2s) -> TPack<Vec<Real, 9>, 1, D>;
 };
 
+template <tmol::Device D, typename Real, typename Int>
+struct SegscanF1f2sDispatch {
+  static void f(
+      TView<Vec<Real, 6>, 1, D> f1f2s,
+      TCollection<Int, 1, D> nodes,
+      TCollection<Int, 1, D> scans);
+};
+
 #undef HomogeneousTransform
 
 }  // namespace kinematics

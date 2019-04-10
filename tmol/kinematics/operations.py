@@ -10,8 +10,9 @@ from tmol.types.attrs import ValidateAttrs
 from tmol.kinematics.compiled import compiled
 
 from .datatypes import NodeType, KinTree, KinDOF
-from .gpu_operations import GPUKinTreeReordering
-from .cpu_operations import iterative_f1f2_summation
+
+# from .gpu_operations import GPUKinTreeReordering
+# from .cpu_operations import iterative_f1f2_summation
 
 from .scan_ordering import KinTreeScanOrdering
 
@@ -105,22 +106,13 @@ def resolveDerivs(
 
     # 1) local f1/f2s
     Xs = HTs[:, 0:3, 3]
-
     f1s = torch.cross(Xs, Xs - dsc_dx)
     f2s = dsc_dx.clone()  # clone input buffer before aggregation
-
-    # 2) pass f1/f2s up tree
     f1f2s = torch.cat((f1s, f2s), 1)
 
-    if f1f2s.device.type == "cuda":
-        (
-            GPUKinTreeReordering.for_kintree(kintree).derivsum_ordering.segscan_f1f2s(
-                f1f2s, inplace=True
-            )
-        )
-
-    else:
-        iterative_f1f2_summation(f1f2s, kintree.parent, inplace=True)
+    # 2) pass f1/f2s up tree
+    ordering = KinTreeScanOrdering.for_kintree(kintree)
+    compiled.segscan_f1f2s(f1f2s, **attr.asdict(ordering.backward_scan_paths))
 
     # 3) convert to dscore/dtors
     dsc_ddofs = compiled.f1f2_to_deriv(
