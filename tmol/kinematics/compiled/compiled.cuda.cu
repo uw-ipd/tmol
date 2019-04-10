@@ -296,13 +296,9 @@ struct SegscanF1f2sDispatch {
 
       // unindex for gen i.  ENSURE ATOMIC
       auto k_unindex = [=] MGPU_DEVICE(int index) {
-            index, f1f2scan[index][0],
-            nodeview[i][index], f1f2s[nodeview[i][index]][0],
-            f1f2scan[index][0] + f1f2s[nodeview[i][index]][0]
-        );
-            for (int kk = 0; kk < 6; ++kk) {
-              atomicAdd(&(f1f2s[nodeview[i][index]][kk]), f1f2scan[index][kk]);
-            }
+        for (int kk = 0; kk < 6; ++kk) {
+          atomicAdd(&(f1f2s[nodeview[i][index]][kk]), f1f2scan[index][kk]);
+        }
       };
 
       mgpu::transform(k_unindex, nnodes, context);
