@@ -89,9 +89,12 @@ void bind_dispatch(pybind11::module& m) {
     (#precision == "float" ? "f" : "d") + "_" +	\
     #ndim + "_" + \
       (#dev == "tmol::Device::CPU" ? "cpu" : "cuda")).c_str()) \
-    .def_property_readonly( "device", [](TCollection<precision, ndim, dev> const & tc) { return py_device(tc.device());}, "the device for the tensors in the TCollection" ) \
-    .def( "__len__", &TCollection<precision, ndim, dev>::size, "the number of Tensors in the collection" ) \
-    .def( "shape", [](TCollection<precision, ndim, dev> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" )
+    .def_property_readonly( "device", [](TCollection<precision, ndim, dev> const & tc) {\
+	return py_device(tc.device());}, "the device for the tensors in the TCollection" ) \
+    .def( "__len__", &TCollection<precision, ndim, dev>::size,\
+      "the number of Tensors in the collection" )			\
+    .def( "shape", [](TCollection<precision, ndim, dev> const & tc, size_t entry) {\
+	return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" )
 
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
