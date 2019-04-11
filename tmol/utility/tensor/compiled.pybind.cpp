@@ -6,6 +6,9 @@
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/function_dispatch/pybind.hh>
 
+#include <torch/csrc/Device.h>
+#include <torch/csrc/Size.h>
+
 namespace tmol {
 namespace utility {
 namespace tensor {
@@ -21,6 +24,34 @@ struct TensorCollectionCreator {
     return std::make_unique< TCollection<Real, N, D> >(tensors);
   }
 };
+
+
+pybind11::handle
+py_device( at::Device const & device )
+{
+  // ATen provided wrapper for an at::Device
+  PyObject * ptr = THPDevice_New(device);
+  pybind11::handle h(ptr);
+  return h;
+}
+
+pybind11::handle
+py_shape_from_tensor( at::Tensor const & tensor )
+{
+  PyObject * ptr = THPSize_NewFromSizes(tensor.dim(), tensor.sizes().data());
+  return pybind11::handle(ptr);
+}
+
+template <typename T, size_t N, Device D, PtrTag P>
+pybind11::handle
+py_shape( tmol::TCollection<T, N, D, P> const & tc, size_t entry )
+{
+  AT_ASSERTM(
+    entry < tc.tensors.size(),
+    "requested tensor is out of range for TCollection");
+  return py_shape_from_tensor(tc.tensors[entry].tensor);
+}
+
 
 template <tmol::Device Dev, typename Real>
 void bind_dispatch(pybind11::module& m) {
@@ -58,38 +89,61 @@ void bind_dispatch(pybind11::module& m) {
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
-  py::class_<TCollection<float, 1, tmol::Device::CPU> >(m, "TCollection_f_1_cpu");
-    //.def( "device", (PyObject* (TCollection<float, 1, tmol::Device::CPU>::*)() ) &TCollection<float, 1, tmol::Device::CPU>::py_device, "device" );
-  py::class_<TCollection<float, 2, tmol::Device::CPU> >(m, "TCollection_f_2_cpu");
-    //.def( "device", &TCollection<float, 2, tmol::Device::CPU>::py_device, "device" );
-  py::class_<TCollection<float, 3, tmol::Device::CPU> >(m, "TCollection_f_3_cpu");
-    //.def( "device", (PyObject* (TCollection<float, 3, tmol::Device::CPU>::*)() ) &TCollection<float, 3, tmol::Device::CPU>::py_device, "device" );
-  py::class_<TCollection<float, 4, tmol::Device::CPU> >(m, "TCollection_f_4_cpu");
-    //.def( "device", (PyObject* (TCollection<float, 4, tmol::Device::CPU>::*)() ) &TCollection<float, 4, tmol::Device::CPU>::py_device, "device" );
+  py::class_<TCollection<float, 1, tmol::Device::CPU> >(m, "TCollection_f_1_cpu")
+    .def_property_readonly( "device", [](TCollection<float, 1, tmol::Device::CPU> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<float, 1, tmol::Device::CPU>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<float, 1, tmol::Device::CPU> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<float, 2, tmol::Device::CPU> >(m, "TCollection_f_2_cpu")
+    .def_property_readonly( "device", [](TCollection<float, 2, tmol::Device::CPU> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<float, 2, tmol::Device::CPU>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<float, 2, tmol::Device::CPU> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<float, 3, tmol::Device::CPU> >(m, "TCollection_f_3_cpu")
+    .def_property_readonly( "device", [](TCollection<float, 3, tmol::Device::CPU> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<float, 3, tmol::Device::CPU>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<float, 3, tmol::Device::CPU> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<float, 4, tmol::Device::CPU> >(m, "TCollection_f_4_cpu")
+    .def_property_readonly( "device", [](TCollection<float, 4, tmol::Device::CPU> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<float, 4, tmol::Device::CPU>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<float, 4, tmol::Device::CPU> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
 
-  py::class_<TCollection<double, 1, tmol::Device::CPU> >(m, "TCollection_double_1_cpu");
-    //.def( "device", (PyObject* (TCollection<double, 1, tmol::Device::CPU>::*)() ) &TCollection<double, 1, tmol::Device::CPU>::py_device, "device" );
-  py::class_<TCollection<double, 2, tmol::Device::CPU> >(m, "TCollection_double_2_cpu");
-    //.def( "device", (PyObject* (TCollection<double, 2, tmol::Device::CPU>::*)() ) &TCollection<double, 2, tmol::Device::CPU>::py_device, "device" );
-  py::class_<TCollection<double, 3, tmol::Device::CPU> >(m, "TCollection_double_3_cpu");
-    //.def( "device", (PyObject* (TCollection<double, 3, tmol::Device::CPU>::*)() ) &TCollection<double, 3, tmol::Device::CPU>::py_device, "device" );
-  py::class_<TCollection<double, 4, tmol::Device::CPU> >(m, "TCollection_double_4_cpu");
-    //.def( "device", (PyObject* (TCollection<double, 4, tmol::Device::CPU>::*)() ) &TCollection<double, 4, tmol::Device::CPU>::py_device, "device" );
+  py::class_<TCollection<double, 1, tmol::Device::CPU> >(m, "TCollection_double_1_cpu")
+    .def_property_readonly( "device", [](TCollection<double, 1, tmol::Device::CPU> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<double, 1, tmol::Device::CPU>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<double, 1, tmol::Device::CPU> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<double, 2, tmol::Device::CPU> >(m, "TCollection_double_2_cpu")
+    .def_property_readonly( "device", [](TCollection<double, 2, tmol::Device::CPU> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<double, 2, tmol::Device::CPU>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<double, 2, tmol::Device::CPU> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<double, 3, tmol::Device::CPU> >(m, "TCollection_double_3_cpu")
+    .def_property_readonly( "device", [](TCollection<double, 3, tmol::Device::CPU> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<double, 3, tmol::Device::CPU>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<double, 3, tmol::Device::CPU> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<double, 4, tmol::Device::CPU> >(m, "TCollection_double_4_cpu")
+    .def_property_readonly( "device", [](TCollection<double, 4, tmol::Device::CPU> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<double, 4, tmol::Device::CPU>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<double, 4, tmol::Device::CPU> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
 
   bind_dispatch<tmol::Device::CPU, float>(m);
   bind_dispatch<tmol::Device::CPU, double>(m);
 
-  py::class_<TCollection<float, 1, tmol::Device::CUDA> >(m, "TCollection_f_1_cuda");
-    //.def( "device", (PyObject* (TCollection<float, 1, tmol::Device::CUDA>::*)() ) &TCollection<float, 1, tmol::Device::CUDA>::py_device, "device" );
-  py::class_<TCollection<float, 2, tmol::Device::CUDA> >(m, "TCollection_f_2_cuda");
-    //.def( "device", (PyObject* (TCollection<float, 2, tmol::Device::CUDA>::*)() ) &TCollection<float, 2, tmol::Device::CUDA>::py_device, "device" );
-  py::class_<TCollection<float, 3, tmol::Device::CUDA> >(m, "TCollection_f_3_cuda");
-    //.def( "device", (PyObject* (TCollection<float, 3, tmol::Device::CUDA>::*)() ) &TCollection<float, 3, tmol::Device::CUDA>::py_device, "device" );
-  py::class_<TCollection<float, 4, tmol::Device::CUDA> >(m, "TCollection_f_4_cuda");
-    //.def( "device", (PyObject* (TCollection<float, 4, tmol::Device::CUDA>::*)() ) &TCollection<float, 4, tmol::Device::CUDA>::py_device, "device" );
+  py::class_<TCollection<float, 1, tmol::Device::CUDA> >(m, "TCollection_f_1_cuda")
+    .def_property_readonly( "device", [](TCollection<float, 1, tmol::Device::CUDA> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<float, 1, tmol::Device::CUDA>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<float, 1, tmol::Device::CUDA> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<float, 2, tmol::Device::CUDA> >(m, "TCollection_f_2_cuda")
+    .def_property_readonly( "device", [](TCollection<float, 2, tmol::Device::CUDA> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<float, 2, tmol::Device::CUDA>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<float, 2, tmol::Device::CUDA> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<float, 3, tmol::Device::CUDA> >(m, "TCollection_f_3_cuda")
+    .def_property_readonly( "device", [](TCollection<float, 3, tmol::Device::CUDA> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<float, 3, tmol::Device::CUDA>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<float, 3, tmol::Device::CUDA> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
+  py::class_<TCollection<float, 4, tmol::Device::CUDA> >(m, "TCollection_f_4_cuda")
+    .def_property_readonly( "device", [](TCollection<float, 4, tmol::Device::CUDA> const & tc) { return py_device(tc.device());}, "device" )
+    .def( "__len__", &TCollection<float, 4, tmol::Device::CUDA>::size, "the number of Tensors in the collection" )
+    .def( "shape", [](TCollection<float, 4, tmol::Device::CUDA> const & tc, size_t entry) {return py_shape(tc, entry);}, "the shape for a particular tensor in the collection" );
 
   bind_dispatch<tmol::Device::CUDA, float>(m);
-  //bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
 
 }
 

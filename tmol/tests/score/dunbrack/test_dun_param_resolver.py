@@ -10,20 +10,6 @@ from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.types.torch import Tensor, TensorCollection
 
 
-@attr.s(frozen=True, auto_attribs=True, repr=False)
-class Dummy:
-    foo: TensorCollection(torch.float)[2]
-
-
-def test_tensor_collection_validation():
-    import tmol.utility.tensor.compiled as tutc
-
-    tensor = torch.zeros([2, 3], dtype=torch.float)
-    tensor_list = [tensor]
-    tcollection = tutc.create_tensor_collection2(tensor_list)
-    d = Dummy(foo=tcollection)
-
-
 def test_packed_dun_database_construction(default_database, torch_device):
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
@@ -67,7 +53,7 @@ def test_packed_dun_database_construction(default_database, torch_device):
     ):
         assert (
             rotlib.rotameric_data.rotamers.shape[0]
-            == packed_db.rotameric_prob_tables[i].shape[0]
+            == packed_db.rotameric_prob_tables.shape(i)[0]
         )
 
     # nchitot = sum(
@@ -87,7 +73,7 @@ def test_packed_dun_database_construction(default_database, torch_device):
         assert (
             rotlib.rotameric_data.rotamers.shape[0]
             * rotlib.rotameric_data.rotamers.shape[1]
-            == packed_db.rotameric_mean_tables[i].shape[0]
+            == packed_db.rotameric_mean_tables.shape(i)[0]
         )
 
     max_nrots = sum(
@@ -100,10 +86,18 @@ def test_packed_dun_database_construction(default_database, torch_device):
     assert packed_db.rotameric_rotind2tableind.shape[0] == max_nrots
 
     # ok, this kinda makes assumptions about the step + periodicity; I ought to fix this
-    for table in packed_db.rotameric_mean_tables:
-        assert len(table.shape) == 3 and table.shape[1] == 36 and table.shape[2] == 36
-    for table in packed_db.rotameric_sdev_tables:
-        assert len(table.shape) == 3 and table.shape[1] == 36 and table.shape[2] == 36
+    for i in range(len(packed_db.rotameric_mean_tables)):
+        assert (
+            len(packed_db.rotameric_mean_tables.shape(i)) == 3
+            and packed_db.rotameric_mean_tables.shape(i)[1] == 36
+            and packed_db.rotameric_mean_tables.shape(i)[2] == 36
+        )
+    for i in range(len(packed_db.rotameric_sdev_tables)):
+        assert (
+            len(packed_db.rotameric_sdev_tables.shape(i)) == 3
+            and packed_db.rotameric_sdev_tables.shape(i)[1] == 36
+            and packed_db.rotameric_sdev_tables.shape(i)[2] == 36
+        )
 
     nrotameric_libs = len(dunlib.rotameric_libraries)
     assert len(resolver.rotameric_table_indices) == nrotameric_libs
@@ -118,11 +112,11 @@ def test_packed_dun_database_construction(default_database, torch_device):
     for i, rotlib in enumerate(dunlib.semi_rotameric_libraries):
         assert (
             rotlib.rotameric_chi_rotamers.shape[0]
-            == packed_db.semirotameric_tables[i].shape[0]
+            == packed_db.semirotameric_tables.shape(i)[0]
         )
 
     # now let's make sure that everything lives on the proper device
-    for table in itertools.chain(
+    for table in (
         packed_db.rotameric_prob_tables,
         packed_db.rotameric_mean_tables,
         packed_db.rotameric_sdev_tables,

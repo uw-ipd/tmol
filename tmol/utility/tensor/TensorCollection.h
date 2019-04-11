@@ -59,6 +59,18 @@ class TCollection {
     view = data.view;
   }
 
+  at::Device device() const {
+    if (tensors.size() > 0) {
+      return tensors[0].tensor.device();
+    } else if (D == tmol::Device::CPU) {
+      return at::Device(at::Device::Type::CPU);
+    } else if (D == tmol::Device::CUDA) {
+      return at::Device(at::Device::Type::CUDA);
+    }
+  }
+
+  size_t size() const { return tensors.size(); }
+
   static constexpr size_t blocksize = sizeof(tmol::TView<T, N, D, P>);
   std::vector<tmol::TPack<T, N, D, P>> tensors;
   tmol::TPack<tmol::TView<T, N, D, P>, 1, D, P> data;
