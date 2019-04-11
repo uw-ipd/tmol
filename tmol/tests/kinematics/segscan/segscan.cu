@@ -14,11 +14,11 @@ namespace cpp_extension {
 using tmol::TPack;
 using tmol::TView;
 
-template <typename Real, tmol::Device D>
+template <typename Real, tmol::Device D, mgpu::scan_type_t scan_type>
 struct segscan {};
 
-template <typename Real>
-struct segscan<Real, tmol::Device::CPU> {
+template <typename Real, mgpu::scan_type_t scan_type>
+struct segscan<Real, tmol::Device::CPU, scan_type> {
   static const tmol::Device D = tmol::Device::CPU;
 
   static auto f(TView<Real, 1, D> t, TView<int32_t, 1, D> segs)
@@ -33,7 +33,12 @@ struct segscan<Real, tmol::Device::CPU> {
       int lb = (i == 0) ? 0 : segs[i - 1];
       int ub = (i == nsegs) ? nelts : segs[i];
       for (int j = lb; j < ub; ++j) {
-        res[j] = (j == lb) ? t[j] : res[j - 1] + t[j];
+        if (j == lb) {
+          res[j] = scan_type == mgpu::scan_type_inc ? t[j] : 0;
+        } else {
+          res[j] =
+              res[j - 1] + (scan_type == mgpu::scan_type_inc ? t[j] : t[j - 1]);
+        }
       }
     }
 
@@ -41,8 +46,8 @@ struct segscan<Real, tmol::Device::CPU> {
   }
 };
 
-template <typename Real>
-struct segscan<Real, tmol::Device::CUDA> {
+template <typename Real, mgpu::scan_type_t scan_type>
+struct segscan<Real, tmol::Device::CUDA, scan_type> {
   static const tmol::Device D = tmol::Device::CUDA;
 
   static auto f(TView<Real, 1, D> t, TView<int32_t, 1, D> segs)
@@ -60,7 +65,7 @@ struct segscan<Real, tmol::Device::CUDA> {
     };
 
     mgpu::standard_context_t context;
-    tmol::kinematics::kernel_segscan<mgpu::launch_params_t<256, 3> >(
+    tmol::kinematics::kernel_segscan<mgpu::launch_params_t<256, 3>, scan_type>(
         data_loader,
         nelts,
         segs.data(),
@@ -76,8 +81,26 @@ struct segscan<Real, tmol::Device::CUDA> {
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
-  m.def("segscan", &segscan<float, tmol::Device::CUDA>::f, "t"_a, "segs"_a);
-  m.def("segscan", &segscan<float, tmol::Device::CPU>::f, "t"_a, "segs"_a);
+  m.def(
+      "segscan_incl",
+      &segscan<float, tmol::Device::CUDA, mgpu::scan_type_inc>::f,
+      "t"_a,
+      "segs"_a);
+  m.def(
+      "segscan_incl",
+      &segscan<float, tmol::Device::CPU, mgpu::scan_type_inc>::f,
+      "t"_a,
+      "segs"_a);
+  m.def(
+      "segscan_excl",
+      &segscan<float, tmol::Device::CUDA, mgpu::scan_type_exc>::f,
+      "t"_a,
+      "segs"_a);
+  m.def(
+      "segscan_excl",
+      &segscan<float, tmol::Device::CPU, mgpu::scan_type_exc>::f,
+      "t"_a,
+      "segs"_a);
 }
 
 }  // namespace cpp_extension

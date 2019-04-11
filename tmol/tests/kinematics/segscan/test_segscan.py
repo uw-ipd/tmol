@@ -18,13 +18,20 @@ def test_segscan(extension):
     """CUDA segscan code
     """
 
-    x = torch.ones(1000000, dtype=torch.float32)
-    segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
+    # x = torch.ones(1000000, dtype=torch.float32)
+    # segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
+    x = torch.ones(1000, dtype=torch.float32)
+    segs = torch.tensor([13], dtype=torch.int)
     xcuda = x.to(device="cuda")
     segscuda = segs.to(device="cuda")
 
-    y = extension.segscan(x, segs)
-    ycuda = extension.segscan(xcuda, segscuda)
+    y = extension.segscan_incl(x, segs)
+    ycuda = extension.segscan_incl(xcuda, segscuda)
+
+    torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
+
+    y = extension.segscan_excl(x, segs)
+    ycuda = extension.segscan_excl(xcuda, segscuda)
 
     torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
 
@@ -426,8 +433,8 @@ def test_segscan_highly_segmented(extension):
 
     xcuda = x.to(device="cuda")
     segscuda = segs.to(device="cuda")
-    y = extension.segscan(x, segs)
-    ycuda = extension.segscan(xcuda, segscuda)
+    y = extension.segscan_incl(x, segs)
+    ycuda = extension.segscan_incl(xcuda, segscuda)
     torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
 
     x = torch.ones(840, dtype=torch.float32)
@@ -741,14 +748,14 @@ def test_segscan_highly_segmented(extension):
 
     xcuda = x.to(device="cuda")
     segscuda = segs.to(device="cuda")
-    y = extension.segscan(x, segs)
-    ycuda = extension.segscan(xcuda, segscuda)
+    y = extension.segscan_incl(x, segs)
+    ycuda = extension.segscan_incl(xcuda, segscuda)
     torch.testing.assert_allclose(ycuda.to(device="cpu"), y)
 
 
 @requires_cuda
 @pytest.mark.benchmark
-def test_segscan_cuda_bench(benchmark, extension):
+def test_segscan_excl_cuda_bench(benchmark, extension):
     """CUDA segscan benchmark
     """
     x = torch.ones(10000000, dtype=torch.float32)
@@ -757,7 +764,23 @@ def test_segscan_cuda_bench(benchmark, extension):
     segscuda = segs.to(device="cuda")
 
     def cuda_segscan():
-        return extension.segscan(xcuda, segscuda)
+        return extension.segscan_excl(xcuda, segscuda)
+
+    benchmark(cuda_segscan)
+
+
+@requires_cuda
+@pytest.mark.benchmark
+def test_segscan_incl_cuda_bench(benchmark, extension):
+    """CUDA segscan benchmark
+    """
+    x = torch.ones(10000000, dtype=torch.float32)
+    segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
+    xcuda = x.to(device="cuda")
+    segscuda = segs.to(device="cuda")
+
+    def cuda_segscan():
+        return extension.segscan_incl(xcuda, segscuda)
 
     benchmark(cuda_segscan)
 
@@ -771,6 +794,6 @@ def test_segscan_cpu_bench(benchmark, extension):
     segs = torch.tensor([4, 7, 35, 273, 1129, 43567, 143678, 567778], dtype=torch.int)
 
     def cpu_segscan():
-        return extension.segscan(x, segs)
+        return extension.segscan_incl(x, segs)
 
     benchmark(cpu_segscan)

@@ -87,10 +87,13 @@ struct cta_lbs_segscan_t {
     iterate<vt>([&](int i) {
       if (p[i]) {
         if (type == scan_type_inc) {
-          output[cur_item++] = carry_in ? op(result.scan, x[i]) : x[i];
+          output[cur_item] = carry_in ? op(result.scan, x[i]) : x[i];
         } else {
-          output[cur_item++] = carry_in ? result.scan : init;
+          output[cur_item] =
+              i == 0 ? result.scan
+                     : (carry_in ? op(result.scan, x[i - 1]) : x[i - 1]);
         }
+        cur_item++;
       } else {
         carry_in = false;
       }
@@ -103,7 +106,7 @@ struct cta_lbs_segscan_t {
       if (p[vt - 1]) {
         carry_out_values[cta] = (type == scan_type_inc)
                                     ? output[cur_item - 1]
-                                    : op(output[cur_item - 1], x[vt - 1]);
+                                    : op(result.scan, x[vt - 1]);
       } else {
         carry_out_values[cta] = init;
       }
@@ -239,7 +242,7 @@ void kernel_segscan(
   // "upward" scan:
   //   - within each CTA, run the forward segscan
   //   - compute the value to be passed to the next CTA (carry_out_data)
-  //   - compute whether or not this segment
+  //   - compute whether or not this segment allows passthrough (codes_data)
   auto k_scan = [=] MGPU_DEVICE(int tid, int cta) {
     typedef typename launch_t::sm_ptx params_t;
     enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };

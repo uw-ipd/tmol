@@ -29,7 +29,6 @@ class BackKinResult(ValidateAttrs):
 @validate_args
 def backwardKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
     """xyzs -> HTs, dofs
-
       - "backward" kinematics
     """
     natoms = coords.shape[0]

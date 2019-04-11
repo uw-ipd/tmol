@@ -1,12 +1,15 @@
 import pytest
 
+import attr
 import torch
 import numpy
 
-from tmol.kinematics.operations import backwardKin, forwardKin
+from tmol.kinematics.operations import backwardKin, forwardKin, resolveDerivs
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 from tmol.tests.torch import requires_cuda
+
+from tmol.kinematics.compiled import compiled
 
 
 def system_kintree(target_system):
@@ -88,3 +91,43 @@ def test_refold_values_cpp(benchmark, big_system):
     assert hts_cuda.hts.device.type == "cuda"
     assert hts_cpu.hts.device.type == "cpu"
     torch.testing.assert_allclose(hts_cuda.hts.cpu(), hts_cpu.hts)
+
+
+@requires_cuda
+@pytest.mark.benchmark(group="kinematic_op_micro_derivsum")
+def test_derivsum_values_cpp(benchmark, big_system):
+    target_device = torch.device("cuda")
+    torch.manual_seed(1663)
+
+    kintree_cpu = system_kintree(big_system)
+
+    coords_cuda = torch.tensor(big_system.coords[kintree_cpu.id]).to(
+        device=target_device
+    )
+    kintree_cuda = kintree_cpu.to(device=target_device)
+
+    dsc_dx = (torch.rand_like(coords_cuda) * 2) - 1
+    f1s = torch.cross(coords_cuda, coords_cuda - dsc_dx)
+    f2s = dsc_dx.clone()
+    f1f2s_cuda = torch.cat((f1s, f2s), 1)
+    f1f2s_cpu = f1f2s_cuda.cpu()
+
+    ordering_cuda = KinTreeScanOrdering.for_kintree(kintree_cuda)
+
+    @benchmark
+    def parallel_f1f2_sums_cpp():
+        f1f2s_cuda_copy = f1f2s_cuda.clone()
+        compiled.segscan_f1f2s(
+            f1f2s_cuda_copy, **attr.asdict(ordering_cuda.backward_scan_paths)
+        )
+        return f1f2s_cuda_copy
+
+    f1f2s_cuda = parallel_f1f2_sums_cpp
+
+    # same calc on CPU
+    ordering_cpu = KinTreeScanOrdering.for_kintree(kintree_cpu)
+    compiled.segscan_f1f2s(f1f2s_cpu, **attr.asdict(ordering_cpu.backward_scan_paths))
+
+    assert f1f2s_cuda.device.type == "cuda"
+    assert f1f2s_cpu.device.type == "cpu"
+    torch.testing.assert_allclose(f1f2s_cuda.cpu(), f1f2s_cpu)
