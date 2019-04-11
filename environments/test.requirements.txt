@@ -4,7 +4,7 @@ pre-commit
 
 flake8-bugbear
 
-pytest-xdist
+pytest-xdist==1.26.1
 pytest-faulthandler
 git+http://github.com/uw-ipd/pytest-benchmark@9e50085
 
