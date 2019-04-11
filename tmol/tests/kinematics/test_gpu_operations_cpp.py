@@ -4,7 +4,7 @@ import attr
 import torch
 import numpy
 
-from tmol.kinematics.operations import backwardKin, forwardKin, resolveDerivs
+from tmol.kinematics.operations import backwardKin, forwardKin
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 from tmol.tests.torch import requires_cuda

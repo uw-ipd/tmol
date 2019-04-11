@@ -2,7 +2,7 @@ import torch
 import attr
 
 from tmol.kinematics.compiled import compiled
-from tmol.kinematics.scan_ordering import KinTreeScanData, KinTreeScanOrdering
+from tmol.kinematics.scan_ordering import KinTreeScanData
 
 
 def test_deriv_passing(torch_device):
