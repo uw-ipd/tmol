@@ -2,12 +2,11 @@
 
 #include <array>
 
-#include <ATen/Error.h>
 #include <ATen/Functions.h>
 #include <ATen/ScalarType.h>
 #include <ATen/Tensor.h>
 
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>

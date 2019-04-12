@@ -45,8 +45,6 @@ class ScoreSetup:
         indexed_bonds = IndexedBonds.from_bonds(
             IndexedBonds.to_directed(system.bonds), minlength=system_size
         )
-        print(system.bonds.shape)
-        print(indexed_bonds.bonds.shape)
         param_resolver = CartBondedParamResolver.from_database(
             database.scoring.cartbonded, torch_device
         )

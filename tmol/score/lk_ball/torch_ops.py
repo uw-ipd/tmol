@@ -82,8 +82,8 @@ class LKBallFun(torch.autograd.Function):
 
         ind, dV_dCI, dV_dCJ, dV_dWI, dV_dWJ = compiled.lk_ball_dV(*ctx.inputs)
 
-        ind_I = i_idx[ind[:, 0]]
-        ind_J = j_idx[ind[:, 1]]
+        ind_I = i_idx[ind[:, 0]].detach()
+        ind_J = j_idx[ind[:, 1]].detach()
 
         dT_dI = (
             torch.sparse_coo_tensor(

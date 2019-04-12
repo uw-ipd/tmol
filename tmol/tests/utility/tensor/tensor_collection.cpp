@@ -1,4 +1,4 @@
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/pybind.h>

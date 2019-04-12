@@ -98,7 +98,7 @@ class HBondFun(torch.autograd.Function):
 
     def backward(ctx, _ind_grads, dV_dE):
         ind, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0 = ctx.saved_tensors
-        donor_ind, acceptor_ind = ind
+        donor_ind, acceptor_ind = ind.detach()
 
         def _chain_donor(dE_dDonor):
             return torch.sparse_coo_tensor(

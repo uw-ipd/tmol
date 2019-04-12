@@ -173,7 +173,7 @@ def test_water_generation(test_case, default_database):
     gradcheck(water_gradf, (coords.requires_grad_(True),), eps=4e-3)
 
     ind, V = lkb_op.apply(coords, coords, waters, waters, atom_types, atom_types, bpl)
-    scores = torch.sparse_coo_tensor(ind, V).to_dense()
+    scores = torch.sparse_coo_tensor(ind.detach(), V).to_dense()
 
     for (i, j), escores in test_case.scores.items():
         torch.testing.assert_allclose(scores[i][j], escores, rtol=1e-5, atol=1e-4)
