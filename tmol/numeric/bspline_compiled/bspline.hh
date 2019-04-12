@@ -30,7 +30,7 @@ template <
 struct ndspline {
   // 1D stripe setter
   static auto EIGEN_DEVICE_FUNC _put_line(
-      TView<Real, NDIM, D> coeffs,
+      TensorAccessor<Real, NDIM, D> coeffs,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> line,
       Int start,
       Int step) {
@@ -43,7 +43,7 @@ struct ndspline {
 
   // 1D stripe getter
   static auto EIGEN_DEVICE_FUNC _get_line(
-      TView<Real, NDIM, D> coeffs,
+      TensorAccessor<Real, NDIM, D> coeffs,
       Eigen::Matrix<Real, Eigen::Dynamic, 1> &line,
       Int start,
       Int step) {
@@ -161,7 +161,7 @@ struct ndspline {
   // compute coefficients (in-place)
   static auto EIGEN_DEVICE_FUNC computeCoeffs(TView<Real, NDIM, D> values) {
     // 'values' must be C-contiguous.
-    //   -> this is currently guaranteed by TView
+    //   -> this is currently guaranteed by TensorAccessor
     auto poles = _get_poles();
 
     Int npoints = 1;
@@ -320,8 +320,18 @@ struct ndspline {
     return dwts;
   }
 
-  static auto EIGEN_DEVICE_FUNC interpolate(
+  static auto EIGEN_DEVICE_FUNC interpolate_tv(
       TView<Real, NDIM, D> coeffs, TView<Eigen::Matrix<Real, NDIM, 1>, 1, D> Xs)
+      -> tmol::score::common::
+          tuple<TPack<Real, 1, D>, TPack<Eigen::Matrix<Real, NDIM, 1>, 1, D> > {
+    return interpolate(
+        TensorAccessor<Real, NDIM, D>(coeffs),
+        TensorAccessor<Eigen::Matrix<Real, NDIM, 1>, 1, D>(Xs));
+  }
+
+  static auto EIGEN_DEVICE_FUNC interpolate(
+      TensorAccessor<Real, NDIM, D> coeffs,
+      TensorAccessor<Eigen::Matrix<Real, NDIM, 1>, 1, D> Xs)
       -> tmol::score::common::
           tuple<TPack<Real, 1, D>, TPack<Eigen::Matrix<Real, NDIM, 1>, 1, D> > {
     auto num_Vs = Xs.size(0);
@@ -338,8 +348,8 @@ struct ndspline {
     return {Vs_t, dV_dIs_t};
   }
 
-  static auto EIGEN_DEVICE_FUNC
-  interpolate(TView<Real, NDIM, D> coeffs, Eigen::Matrix<Real, NDIM, 1> X)
+  static auto EIGEN_DEVICE_FUNC interpolate(
+      TensorAccessor<Real, NDIM, D> coeffs, Eigen::Matrix<Real, NDIM, 1> X)
       -> tmol::score::common::tuple<Real, Eigen::Matrix<Real, NDIM, 1> > {
     typedef Eigen::Matrix<Real, NDIM, 1> RealN;
     typedef Eigen::Matrix<Int, NDIM, 1> IntN;

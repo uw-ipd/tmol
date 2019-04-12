@@ -14,6 +14,8 @@
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 
+//#include <tmol/utility/nvtx.hh>
+
 namespace tmol {
 
 inline bool operator==(const tmol::Device& lhs, const at::Device::Type& rhs) {
@@ -128,6 +130,11 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   for (int d = 0; d < N; ++d) {
     sizes[d] = input.size(d);
     strides[d] = input.stride(d) / stride_factor;
+    if (strides[d] == 0) {  // stride_factor > input.stride(d)
+      sizes[d] = 1;
+      strides[d] = 1;
+      stride_factor /= input.size(d);
+    }
   }
 
   return tmol::TView<T, N, D, P>(

@@ -66,7 +66,7 @@ class TensorAccessorBase {
 
   AT_HOST_DEVICE int64_t stride(int64_t i) const { return strides_[i]; }
   AT_HOST_DEVICE int64_t size(int64_t i) const { return sizes_[i]; }
-  AT_HOST_DEVICE const int64_t dim() const { return N; }
+  AT_HOST_DEVICE int64_t dim() const { return N; }
   AT_HOST_DEVICE T* data() { return data_; }
   AT_HOST_DEVICE const T* data() const { return data_; }
 
@@ -142,7 +142,7 @@ class TViewBase {
     std::copy(sizes_, sizes_ + N, std::begin(this->sizes_));
     std::copy(strides_, strides_ + N, std::begin(this->strides_));
   }
-  AT_HOST_DEVICE const int64_t dim() const { return N; }
+  AT_HOST_DEVICE int64_t dim() const { return N; }
   AT_HOST_DEVICE const int64_t& stride(int64_t i) const { return strides_[i]; }
   AT_HOST_DEVICE const int64_t& size(int64_t i) const { return sizes_[i]; }
 
@@ -164,6 +164,11 @@ class TView : public TViewBase<T, N, D, P> {
       : TViewBase<T, N, D, P>(data_, sizes_, strides_){};
 
   AT_HOST TView() : TViewBase<T, N, D, P>(){};
+
+  AT_HOST_DEVICE operator TensorAccessor<T, N, D, P>() const {
+    return TensorAccessor<T, N, D, P>(
+        this->data_, this->sizes_, this->strides_);
+  }
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1, D, P> operator[](int64_t i) {
     int64_t* new_sizes = this->sizes_ + 1;
@@ -190,6 +195,11 @@ class TView<T, 1, D, P> : public TViewBase<T, 1, D, P> {
       : TViewBase<T, 1, D, P>(data_, sizes_, strides_){};
 
   AT_HOST TView() : TViewBase<T, 1, D, P>(){};
+
+  AT_HOST_DEVICE operator TensorAccessor<T, 1, D, P>() const {
+    return TensorAccessor<T, 1, D, P>(
+        this->data_, this->sizes_, this->strides_);
+  }
 
   AT_HOST_DEVICE T& operator[](int64_t i) {
     return this->data_[this->strides_[0] * i];

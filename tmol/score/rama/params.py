@@ -10,19 +10,21 @@ import toolz.functoolz
 from typing import List
 
 from tmol.types.array import NDArray
-from tmol.types.torch import Tensor
+from tmol.types.torch import Tensor, TensorCollection
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
 from tmol.types.functional import validate_args
 
 from tmol.numeric.bspline import BSplineInterpolation
 
 from tmol.database.scoring.rama import RamaDatabase
-
+from tmol.utility.tensor.compiled import create_tensor_collection
 
 # the rama database on the device
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedRamaDatabase(ConvertAttrs):
-    tables: List  # mapped to C++ via TCollection
+    tables: TensorCollection(torch.float)[
+        2
+    ]  # List of 2D Tensors of (possibly) varying sizes
     bbsteps: Tensor(torch.float)[...]
     bbstarts: Tensor(torch.float)[...]
 
@@ -63,12 +65,14 @@ class RamaParamResolver(ValidateAttrs):
 
         rama_params = PackedRamaDatabase(
             # interpolate on CPU then move coeffs to CUDA
-            tables=[
-                BSplineInterpolation.from_coordinates(
-                    torch.tensor(f.table, dtype=torch.float)
-                ).coeffs.to(device=device)
-                for f in rama_database.rama_tables
-            ],
+            tables=create_tensor_collection(
+                [
+                    BSplineInterpolation.from_coordinates(
+                        torch.tensor(f.table, dtype=torch.float)
+                    ).coeffs.to(device=device)
+                    for f in rama_database.rama_tables
+                ]
+            ),
             bbsteps=torch.tensor(
                 [f.bbstep for f in rama_database.rama_tables],
                 dtype=torch.float,

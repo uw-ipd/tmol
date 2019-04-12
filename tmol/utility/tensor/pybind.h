@@ -12,6 +12,7 @@
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+//#include <tmol/utility/nvtx.hh>
 
 namespace pybind11 {
 namespace detail {
@@ -70,6 +71,8 @@ struct type_caster<tmol::TView<T, N, D, P>> {
   PYBIND11_TYPE_CASTER(ViewType, handle_type_name<ViewType>::name);
 
   bool load(handle src, bool convert) {
+    // nvtx_range_function();
+
     using pybind11::print;
 
     type_caster<at::Tensor> conv;
@@ -86,11 +89,17 @@ struct type_caster<tmol::TView<T, N, D, P>> {
       return true;
     } catch (at::Error err) {
 #ifdef DEBUG
+      print("err.what()");
+      print(err.what());
+
       print(
-          "Error casting to TView type: ",
+          "Error casting to TView:",
+          "\ntype:\n",
           type_id<ViewType>(),
-          " value: ",
-          src);
+          "\nvalue:\n",
+          src,
+          "\nerror:\n",
+          err.what_without_backtrace());
 #endif
       return false;
     }
@@ -106,6 +115,8 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
   PYBIND11_TYPE_CASTER(PackType, handle_type_name<PackType>::name);
 
   bool load(handle src, bool convert) {
+    // nvtx_range_function();
+
     using pybind11::print;
 
     type_caster<at::Tensor> conv;
@@ -122,6 +133,8 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
       return true;
     } catch (at::Error err) {
 #ifdef DEBUG
+      print("err.what()");
+      print(err.what());
       print(
           "Error casting to TPack type: ",
           type_id<PackType>(),
@@ -133,28 +146,36 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
   }
 
   static handle cast(PackType src, return_value_policy policy, handle parent) {
+    // nvtx_range_function();
+
     return type_caster<at::Tensor>::cast(src.tensor, policy, parent);
   }
 
   // C++ -> Python cast operation not supported.
 };
 
-template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
-struct type_caster<tmol::TCollection<T, N, D, P>> {
- public:
-  typedef tmol::TCollection<T, N, D, P> ViewCollType;
-  PYBIND11_TYPE_CASTER(ViewCollType, handle_type_name<ViewCollType>::name);
-
-  bool load(handle src, bool convert) {
-    type_caster<std::vector<at::Tensor>> conv;
-
-    if (conv.load(src, convert)) {
-      value = tmol::TCollection<T, N, D, P>(conv);
-      return true;
-    }
-    return false;
-  }
-};
+// template <typename T, size_t N, tmol::Device D, tmol::PtrTag P>
+// struct type_caster<tmol::TCollection<T, N, D, P>> {
+// public:
+//  typedef tmol::TCollection<T, N, D, P> ViewCollType;
+//  PYBIND11_TYPE_CASTER(ViewCollType, handle_type_name<ViewCollType>::name);
+//
+//  bool load(handle src, bool convert) {
+//    type_caster<std::vector<at::Tensor>> conv;
+//
+//    if (conv.load(src, convert)) {
+//      value = tmol::TCollection<T, N, D, P>(conv);
+//      return true;
+//    }
+//    return false;
+//  }
+//
+//  //static handle cast(TCollection<T, N, D, P> src, return_value_policy /*
+//  policy */, handle /* parent */) {
+//  //  return PyType_Type(src);
+//  //}
+//
+//};
 
 }  // namespace detail
 }  // namespace pybind11
