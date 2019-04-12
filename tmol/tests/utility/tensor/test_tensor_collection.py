@@ -77,8 +77,8 @@ def test_tensor_collection_validation_failure(torch_device):
     emsg = [
         "expected TCollection element 0 of shape Shape(dims=(Dim(size=4),)),"
         + " but its shape is torch.Size([3])",
-        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4))),"
-        + " but its shape is torch.Size([3, 3])",
+        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4),"
+        + " Dim(size=4))), but its shape is torch.Size([3, 3])",
         "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4),"
         + " Dim(size=4))), but its shape is torch.Size([3, 3, 3])",
         "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4),"
