@@ -7,8 +7,6 @@ import torch
 
 import toolz.functoolz
 
-from typing import List
-
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor, TensorCollection
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
@@ -22,9 +20,7 @@ from tmol.utility.tensor.compiled import create_tensor_collection
 # the rama database on the device
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedRamaDatabase(ConvertAttrs):
-    tables: TensorCollection(torch.float)[
-        2
-    ]  # List of 2D Tensors of (possibly) varying sizes
+    tables: TensorCollection(torch.float)[:, :]
     bbsteps: Tensor(torch.float)[...]
     bbstarts: Tensor(torch.float)[...]
 

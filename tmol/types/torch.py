@@ -99,42 +99,62 @@ class TensorCollection(TensorType, typing._TypingBase, _root=True):
     def validate(self, value):
         import tmol.utility.tensor.compiled as tutc
 
-        if shape[0] == 1:
+        if len(self.shape.dims) == 1:
             if (
-                isinstance(value, tutc.TCollection_float_1_cpu)
-                or isinstance(value, tutc.TCollection_double_1_cpu)
-                or isinstance(value, tutc.TCollection_float_1_cuda)
+                isinstance(value, tutc._compiled.TCollection_f_1_cpu)
+                or isinstance(value, tutc._compiled.TCollection_d_1_cpu)
+                or isinstance(value, tutc._compiled.TCollection_f_1_cuda)
+                or isinstance(value, tutc._compiled.TCollection_d_1_cuda)
             ):
-                return True
+                pass
             else:
-                return False
-        if shape[0] == 2:
+                raise TypeError(
+                    f"expected TCollection of 1D tensors, receieved {type(value)!r}"
+                )
+        if len(self.shape.dims) == 2:
             if (
-                isinstance(value, tutc.TCollection_float_2_cpu)
-                or isinstance(value, tutc.TCollection_double_2_cpu)
-                or isinstance(value, tutc.TCollection_float_2_cuda)
+                isinstance(value, tutc._compiled.TCollection_f_2_cpu)
+                or isinstance(value, tutc._compiled.TCollection_d_2_cpu)
+                or isinstance(value, tutc._compiled.TCollection_f_2_cuda)
+                or isinstance(value, tutc._compiled.TCollection_d_2_cuda)
             ):
-                return True
+                pass
             else:
-                return False
-        if shape[0] == 3:
+                raise TypeError(
+                    f"expected TCollection of 2D tensors, receieved {type(value)!r}"
+                )
+        if len(self.shape.dims) == 3:
             if (
-                isinstance(value, tutc.TCollection_float_3_cpu)
-                or isinstance(value, tutc.TCollection_double_3_cpu)
-                or isinstance(value, tutc.TCollection_float_3_cuda)
+                isinstance(value, tutc._compiled.TCollection_f_3_cpu)
+                or isinstance(value, tutc._compiled.TCollection_d_3_cpu)
+                or isinstance(value, tutc._compiled.TCollection_f_3_cuda)
+                or isinstance(value, tutc._compiled.TCollection_d_3_cuda)
             ):
-                return True
+                pass
             else:
-                return False
-        if shape[0] == 4:
+                raise TypeError(
+                    f"expected TCollection of 3D tensors, receieved {type(value)!r}"
+                )
+        if len(self.shape.dims) == 4:
             if (
-                isinstance(value, tutc.TCollection_float_4_cpu)
-                or isinstance(value, tutc.TCollection_double_4_cpu)
-                or isinstance(value, tutc.TCollection_float_4_cuda)
+                isinstance(value, tutc._compiled.TCollection_f_4_cpu)
+                or isinstance(value, tutc._compiled.TCollection_d_4_cpu)
+                or isinstance(value, tutc._compiled.TCollection_f_4_cuda)
+                or isinstance(value, tutc._compiled.TCollection_d_4_cuda)
             ):
-                return True
+                pass
             else:
-                return False
+                raise TypeError(
+                    f"expected TCollection of 4D tensors, receieved {type(value)!r}"
+                )
+        for i in range(len(value)):
+            try:
+                self.shape.validate(value.shape(i))
+            except ValueError as e:
+                raise ValueError(
+                    f"expected TCollection element {i} of shape {self.shape!r}, but its shape is {value.shape(i)!r}"
+                )
+        return True
 
 
 @_cat_internal.register(torch.Tensor)
