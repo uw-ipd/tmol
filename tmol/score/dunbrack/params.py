@@ -26,10 +26,7 @@ from tmol.database.scoring.dunbrack_libraries import (
     DunbrackRotamerLibrary,
 )
 
-from tmol.utility.tensor.compiled import (
-    create_tensor_collection3,
-    create_tensor_collection4,
-)
+from tmol.utility.tensor.compiled import create_tensor_collection
 
 
 def exclusive_cumsum(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
@@ -241,7 +238,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(prob_coeffs):
             for j, table in enumerate(table_set):
                 prob_coeffs_collapsed[i][j, :] = table
-        prob_coeffs_collapsed = create_tensor_collection3(prob_coeffs_collapsed)
+        prob_coeffs_collapsed = create_tensor_collection(prob_coeffs_collapsed)
 
         neglnprob_coeffs = [
             [
@@ -259,7 +256,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(neglnprob_coeffs):
             for j, table in enumerate(table_set):
                 neglnprob_coeffs_collapsed[i][j, :] = table
-        neglnprob_coeffs_collapsed = create_tensor_collection3(
+        neglnprob_coeffs_collapsed = create_tensor_collection(
             neglnprob_coeffs_collapsed
         )
 
@@ -314,7 +311,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(mean_coeffs):
             for j, table in enumerate(table_set):
                 mean_coeffs_collapsed[i][j, :] = table
-        mean_coeffs_collapsed = create_tensor_collection3(mean_coeffs_collapsed)
+        mean_coeffs_collapsed = create_tensor_collection(mean_coeffs_collapsed)
 
         sdev_coeffs = [
             [
@@ -332,7 +329,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(sdev_coeffs):
             for j, table in enumerate(table_set):
                 sdev_coeffs_collapsed[i][j, :] = table
-        sdev_coeffs_collapsed = create_tensor_collection3(sdev_coeffs_collapsed)
+        sdev_coeffs_collapsed = create_tensor_collection(sdev_coeffs_collapsed)
 
         rotameric_bb_start = torch.tensor(
             [
@@ -494,7 +491,7 @@ class DunbrackParamResolver(ValidateAttrs):
         for i, table_set in enumerate(semirot_coeffs):
             for j, table in enumerate(table_set):
                 semirot_coeffs_collapsed[i][j, :] = table
-        semirot_coeffs_collapsed = create_tensor_collection4(semirot_coeffs_collapsed)
+        semirot_coeffs_collapsed = create_tensor_collection(semirot_coeffs_collapsed)
 
         semirot_start = torch.zeros(
             (len(dun_database.semi_rotameric_libraries), 3),
