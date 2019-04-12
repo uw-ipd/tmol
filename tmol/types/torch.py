@@ -150,9 +150,10 @@ class TensorCollection(TensorType, typing._TypingBase, _root=True):
         for i in range(len(value)):
             try:
                 self.shape.validate(value.shape(i))
-            except ValueError as e:
+            except ValueError:
                 raise ValueError(
-                    f"expected TCollection element {i} of shape {self.shape!r}, but its shape is {value.shape(i)!r}"
+                    f"expected TCollection element {i} of shape {self.shape!r},"
+                    + f" but its shape is {value.shape(i)!r}"
                 )
         return True
 

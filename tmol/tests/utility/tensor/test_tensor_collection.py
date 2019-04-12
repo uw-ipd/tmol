@@ -75,10 +75,14 @@ def test_tensor_collection_validation_failure(torch_device):
     ]
 
     emsg = [
-        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4),)), but its shape is torch.Size([3])",
-        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4))), but its shape is torch.Size([3, 3])",
-        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4), Dim(size=4))), but its shape is torch.Size([3, 3, 3])",
-        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4), Dim(size=4), Dim(size=4))), but its shape is torch.Size([3, 3, 3, 3])",
+        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4),)),"
+        + " but its shape is torch.Size([3])",
+        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4))),"
+        + " but its shape is torch.Size([3, 3])",
+        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4),"
+        + " Dim(size=4))), but its shape is torch.Size([3, 3, 3])",
+        "expected TCollection element 0 of shape Shape(dims=(Dim(size=4), Dim(size=4),"
+        + " Dim(size=4), Dim(size=4))), but its shape is torch.Size([3, 3, 3, 3])",
     ]
 
     for ndim in range(1, 5):
@@ -89,6 +93,6 @@ def test_tensor_collection_validation_failure(torch_device):
         assert tcollection.device == torch_device
         try:
             tctypes[ndim - 1].validate(tcollection)
-            assert False
+            raise AssertionError("TCollection validation should have failed")
         except ValueError as e:
             assert str(e) == emsg[ndim - 1]

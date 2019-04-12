@@ -34,7 +34,8 @@ def create_tensor_collection(tensor_list: List):
         return _create_tensor_collection4(tensor_list)
     else:
         raise ValueError(
-            "highest supported dimension for TensorCollection is 4; input tensors are of dimension "
+            "highest supported dimension for TensorCollection is"
+            + " 4; input tensors are of dimension "
             + str(len(tensor_list[0].shape))
         )
 
