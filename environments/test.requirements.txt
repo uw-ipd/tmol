@@ -2,9 +2,9 @@ codecov
 black==18.6b4
 pre-commit
 
-flake8-bugbear
+flake8-bugbear==18.8.0
 
-pytest-xdist
+pytest-xdist==1.26.1
 pytest-faulthandler
 git+http://github.com/uw-ipd/pytest-benchmark@9e50085
 
