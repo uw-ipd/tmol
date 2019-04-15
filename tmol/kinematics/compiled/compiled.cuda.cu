@@ -82,8 +82,7 @@ struct ForwardKinDispatch {
     });
 
     mgpu::standard_context_t context;
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { k_dof2qt(idx); }, num_atoms, context);
+    mgpu::transform(k_dof2qt, num_atoms, context);
 
     // memory for scan (longest scan possible is 2 times # atoms)
     auto QTscan_t = TPack<QuatTranslation, 1, D>::empty({2 * num_atoms});
@@ -131,8 +130,7 @@ struct ForwardKinDispatch {
       HTs[i] = common<D, Real, Int>::quat_trans2ht(QTs[i]);
     });
 
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { k_qt2dof(idx); }, num_atoms, context);
+    mgpu::transform(k_qt2dof, num_atoms, context);
 
     return HTs_t;
   }
@@ -161,8 +159,7 @@ struct DOFTransformsDispatch {
     });
 
     mgpu::standard_context_t context;
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { k_dof2ht(idx); }, num_atoms, context);
+    mgpu::transform(k_dof2ht, num_atoms, context);
 
     return HTs_t;
   }
@@ -196,8 +193,7 @@ struct BackwardKinDispatch {
     });
 
     mgpu::standard_context_t context;
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { k_coords2hts(idx); }, num_atoms, context);
+    mgpu::transform(k_coords2hts, num_atoms, context);
 
     auto k_hts2dofs = ([=] EIGEN_DEVICE_FUNC(int i) {
       HomogeneousTransform lclHT;
@@ -212,8 +208,7 @@ struct BackwardKinDispatch {
       }
     });
 
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { k_hts2dofs(idx); }, num_atoms, context);
+    mgpu::transform(k_hts2dofs, num_atoms, context);
 
     return HTs_t;
   }
@@ -246,8 +241,7 @@ struct f1f2ToDerivsDispatch {
     });
 
     mgpu::standard_context_t context;
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { k_f1f2s2derivs(idx); }, num_atoms, context);
+    mgpu::transform(k_f1f2s2derivs, num_atoms, context);
 
     return dsc_ddofs_t;
   }
