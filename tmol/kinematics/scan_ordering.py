@@ -103,8 +103,8 @@ def get_scans(parents, roots):
                     # generation and is not the first child of another scan.
                     continue
 
-                #  add the node as the start of a new scan
-                # -> numbering is w.r.t. generation
+                # add the node as the start of a new scan
+                # -> numbering is w.r.t. generation (hence subtracting gen start)
                 scanStarts[scanidx] = nodeidx - genStarts[genidx, 0]
                 scanidx += 1
 
@@ -125,7 +125,8 @@ def get_scans(parents, roots):
                         # At a leaf node, scan path terminates.
                         break
                     else:
-                        # Extend path through the child with greatest number of descendants.
+                        # Extend path through the child with
+                        #  greatest number of descendants.
                         nextExtension = child_list[child_list_span[expandedNode, 0]]
                         for k in range(
                             child_list_span[expandedNode, 0] + 1,
