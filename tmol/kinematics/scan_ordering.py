@@ -130,7 +130,7 @@ def get_scans(parents, roots):
                         nextExtension = child_list[child_list_span[expandedNode, 0]]
                         for k in range(
                             child_list_span[expandedNode, 0] + 1,
-                            child_list_span[currRoot, 1],
+                            child_list_span[expandedNode, 1],
                         ):
                             candidate = child_list[k]
                             if n_children[candidate] > n_children[nextExtension]:
