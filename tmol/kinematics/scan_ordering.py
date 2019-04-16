@@ -20,26 +20,44 @@ from tmol.types.functional import validate_args
 #            a graph with many disconnected components
 # returns:
 #    nodes - a 1D array with the node indices of each scan, concatenated
-#    scanStarts - a 1D index array in 'scans' where each individual scan begins
+#    scanStarts - a 1D index array in 'nodes' where each individual scan begins
 #    genStarts - an N x 2 array giving indices where each gen begins
-#         genStarts[:,0] indexes scans
+#         genStarts[:,0] indexes nodes
 #         genStarts[:,1] indexes scanStarts
 @jit(nopython=True)
 def get_scans(parents, roots):
     nelts = parents.shape[0]
 
-    # count number of children
-    nchildren = numpy.ones(nelts, dtype=numpy.int32)
-    for i in range(nelts - 1, 0, -1):
-        nchildren[parents[i]] += nchildren[i]
+    # Pass 1, count number of children for each parent.
+    n_immediate_children = numpy.full(nelts, 0, dtype=numpy.int32)
+    for i in range(nelts):
+        p = parents[i]
+        assert p <= i, "Invalid kinematic tree ordering, parent index >= child index."
+        if p == i:  # root
+            continue
+        n_immediate_children[p] += 1
 
-    # map parent idx -> child idx
-    p2c = numpy.full((nelts, 4), -1, dtype=numpy.int32)
-    p2c_i = numpy.full(nelts, 0, dtype=numpy.int32)
+    # Pass 2, mark the span of each parent in the child node list.
+    child_list = numpy.full(nelts, -1, dtype=numpy.int32)
+    child_list_span = numpy.empty((nelts, 2), dtype=numpy.int32)
+
+    child_list_span[0, 0] = 0
+    child_list_span[0, 1] = n_immediate_children[0]
     for i in range(1, nelts):
-        par_i = parents[i]
-        p2c[par_i, p2c_i[par_i]] = i
-        p2c_i[par_i] += 1
+        child_list_span[i, 0] = child_list_span[i - 1, 1]
+        child_list_span[i, 1] = child_list_span[i, 0] + n_immediate_children[i]
+
+    # Pass 3, fill the child list for each parent.
+    # As we do this, sum total # of descendents at each node, used to
+    #   prioritize scan ordering in DFS
+    n_children = numpy.ones(nelts, dtype=numpy.int32)
+    for i in range(nelts - 1, 0, -1):
+        p = parents[i]
+        if p == i:  # root
+            continue
+        n_children[p] += n_children[i]
+        child_list[child_list_span[p, 0] + n_immediate_children[p] - 1] = i
+        n_immediate_children[p] -= 1
 
     # scan storage - allocate upper bound for 4-connected graph
     # scan indices are emitted as a 1D array of nodes ('scans') with:
@@ -57,7 +75,16 @@ def get_scans(parents, roots):
     nActiveFront = roots.shape[0]
     activeFront[:nActiveFront] = roots
 
-    # DFS traversal using #children to choose paths
+    # DFS traversal through forest-of-rooted-trees drawing generational scan
+    # paths. Each pass through the DFS search follows a set of scan paths
+    # beginning from the current set of roots, following nodes to the full
+    # depth of the scan path. At each node the scan is extended through the
+    # child with the most descendents and the node is added to the generation
+    # n+1 roots, where is will root 0-or-more scans in the n+1 generation
+    # passing through it's additional children.
+    #
+    # In typical kinematic trees this will minimize the total number of scan
+    # generations by tracing a long backbone path with many short side paths.
     marked = numpy.zeros(nelts, dtype=numpy.int32)
     marked[0] = 1
     while not numpy.all(marked):
@@ -65,44 +92,53 @@ def get_scans(parents, roots):
         for i in range(nActiveFront):
             currRoot = activeFront[i]
 
-            # active front "roots" have already been generated
-            #   so can participate in >1 scan
-            for j in range(p2c_i[currRoot]):
-                expandedNode = p2c[currRoot, j]
+            # Active front nodes are members of an existing scan passing through
+            # to one child (or are gen 0) and may root 1-or-more scans through
+            # any additional children.
+            for j in range(child_list_span[currRoot, 0], child_list_span[currRoot, 1]):
+                expandedNode = child_list[j]
+
                 if marked[expandedNode] != 0:
+                    # Child node has already been 'scanned' in a prev
+                    # generation and is not the first child of another scan.
                     continue
 
-                # this is the first root expansion,
                 #  add the node as the start of a new scan
-                scanStarts[scanidx] = nodeidx - genStarts[genidx, 0]
                 # -> numbering is w.r.t. generation
+                scanStarts[scanidx] = nodeidx - genStarts[genidx, 0]
                 scanidx += 1
+
+                # Set root as start of the scan.
                 nodes[nodeidx] = currRoot
-                nodes[nodeidx + 1] = expandedNode
-                nodeidx += 2
+                nodeidx += 1
 
-                marked[expandedNode] = 1
+                while True:
+                    # Extend scan path into selected child and mark it.
+                    marked[expandedNode] = 1
+                    nodes[nodeidx] = expandedNode
+                    nodeidx += 1
 
-                while expandedNode != -1:
-                    prevExpNode = expandedNode
-                    expandedNode = -1
-                    for k in range(p2c_i[prevExpNode]):
-                        candidate = p2c[prevExpNode, k]
-                        if marked[candidate] != 0:
-                            continue
-                        if (
-                            expandedNode == -1
-                            or nchildren[candidate] > nchildren[expandedNode]
+                    if (
+                        child_list_span[expandedNode, 0]
+                        == child_list_span[expandedNode, 1]
+                    ):
+                        # At a leaf node, scan path terminates.
+                        break
+                    else:
+                        # Extend path through the child with greatest number of descendants.
+                        nextExtension = child_list[child_list_span[expandedNode, 0]]
+                        for k in range(
+                            child_list_span[expandedNode, 0] + 1,
+                            child_list_span[currRoot, 1],
                         ):
-                            expandedNode = candidate
+                            candidate = child_list[k]
+                            if n_children[candidate] > n_children[nextExtension]:
+                                nextExtension = candidate
 
-                    if expandedNode != -1:
-                        marked[expandedNode] = 1
-                        nodes[nodeidx] = expandedNode
-                        nodeidx += 1
+                        expandedNode = nextExtension
 
-        # generate active front for next generation
-        #  as anything added this generation (if anything was added)
+        # Mark any node scanned in this generation as a potential root.
+        # Old roots and nodes with 1 child will be filtered during expansion.
         if genStarts[genidx, 1] < scanidx:
             lastgenScan0 = genStarts[genidx, 0]
             activeFront.fill(-1)
@@ -112,7 +148,7 @@ def get_scans(parents, roots):
         # next generation
         genidx += 1
 
-    # pad scanStarts and genStarts by 1 to make downstream code cleaner
+    # Pad genStarts by 1 to make downstream code cleaner
     genStarts[genidx, :] = [nodeidx, scanidx]
     genidx += 1
 
@@ -181,12 +217,12 @@ class KinTreeScanOrdering(ValidateAttrs):
         genStartsR[1:, 1] = scanStarts.shape[0] - numpy.flipud(genStarts[:-1, 1])
 
         # perhaps this can be simplified? (reversing scan indices)
-        ngens = genStarts.shape[0]
+        ngens = genStarts.shape[0] - 1
         scanStartsR = numpy.zeros_like(scanStarts)
-        for i in range(1, ngens):
-            genstart = genStartsR[i - 1, 1]
-            genstop = genStartsR[i, 1]
-            nodes_i = genStartsR[i, 0] - genStartsR[i - 1, 0]
+        for i in range(ngens):
+            genstart = genStartsR[i, 1]
+            genstop = genStartsR[i + 1, 1]
+            nodes_i = genStartsR[i + 1, 0] - genStartsR[i, 0]
             scan_i = nodes_i - numpy.ascontiguousarray(
                 numpy.flipud(
                     scanStarts[

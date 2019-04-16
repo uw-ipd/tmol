@@ -15,11 +15,13 @@ template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define HomogeneousTransform Eigen::Matrix<Real, 4, 4>
+#define Dofs Eigen::Matrix<Real, 9, 1>
+#define Coord Eigen::Matrix<Real, 3, 1>
 
 template <tmol::Device D, typename Real, typename Int>
 struct ForwardKinDispatch {
   static auto f(
-      TView<Vec<Real, 9>, 1, D> dofs,
+      TView<Dofs, 1, D> dofs,
       TView<Int, 1, D> doftypes,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
@@ -36,7 +38,7 @@ struct DOFTransformsDispatch {
 template <tmol::Device D, typename Real, typename Int>
 struct BackwardKinDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, D> ht,
+      TView<Coord, 1, D> coord,
       TView<Int, 1, D> doftypes,
       TView<Int, 1, D> parents,
       TView<Int, 1, D> frame_x,
@@ -49,7 +51,7 @@ template <tmol::Device D, typename Real, typename Int>
 struct f1f2ToDerivsDispatch {
   static auto f(
       TView<HomogeneousTransform, 1, D> hts,
-      TView<Vec<Real, 9>, 1, D> dofs,
+      TView<Dofs, 1, D> dofs,
       TView<Int, 1, D> doftypes,
       TView<Int, 1, D> parents,
       TView<Vec<Real, 6>, 1, D> f1f2s) -> TPack<Vec<Real, 9>, 1, D>;
@@ -65,6 +67,8 @@ struct SegscanF1f2sDispatch {
 };
 
 #undef HomogeneousTransform
+#undef Dofs
+#undef Coord
 
 }  // namespace kinematics
 }  // namespace tmol
