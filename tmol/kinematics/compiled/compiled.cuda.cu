@@ -1,6 +1,5 @@
 #include <Eigen/Core>
 
-#include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
 #include <tmol/kinematics/compiled/kernel_segscan.cuh>
@@ -58,10 +57,10 @@ struct ForwardKinDispatch {
   static auto f(
       TView<Vec<Real, 9>, 1, D> dofs,
       TView<Int, 1, D> doftypes,
-      TCollection<Int, 1, D> nodes,
-      TCollection<Int, 1, D> scans) -> TPack<HomogeneousTransform, 1, D> {
-    auto nodeview = nodes.view;
-
+      TView<Int, 1, D> nodes,
+      TView<Int, 1, D> scans,
+      TView<Vec<Int, 2>, 1, tmol::Device::CPU> gens)
+      -> TPack<HomogeneousTransform, 1, D> {
     auto num_atoms = dofs.size(0);
 
     auto QTs_t = TPack<QuatTranslation, 1, D>::empty({num_atoms});
@@ -89,14 +88,15 @@ struct ForwardKinDispatch {
     auto QTscan = QTscan_t.view;
     QuatTransRawBuffer init = {0, 0, 0, 1, 0, 0, 0};  // identity xform
 
-    auto ngens = nodeview.size(0);
-    for (int i = 0; i < ngens; ++i) {
-      int nnodes = nodes.tensors[i].size(0);
-      int nscans = scans.tensors[i].size(0);
+    auto ngens = gens.size(0) - 1;
+    for (int gen = 0; gen < ngens; ++gen) {
+      int nodestart = gens[gen][0], scanstart = gens[gen][1];
+      int nnodes = gens[gen + 1][0] - nodestart;
+      int nscans = gens[gen + 1][1] - scanstart;
 
       // reindexing function
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
-        return *((QuatTransRawBuffer*)QTs[nodeview[i][index]].data());
+        return *((QuatTransRawBuffer*)QTs[nodes[nodestart + index]].data());
       };
 
       // mgpu does not play nicely with eigen types
@@ -105,7 +105,7 @@ struct ForwardKinDispatch {
       tmol::kinematics::kernel_segscan<mgpu::launch_params_t<256, 3>>(
           k_reindex,
           nnodes,
-          scans.tensors[i].view.data(),  // get a single tensor view on CPU
+          &scans.data()[scanstart],
           nscans,
           (QuatTransRawBuffer*)(QTscan.data()->data()),
           qcompose_t<D, Real, Int>(),
@@ -116,7 +116,7 @@ struct ForwardKinDispatch {
       // this would be nice to incorporate into kernel_segscan (as the indexing
       // is)
       auto k_unindex = [=] MGPU_DEVICE(int index) {
-        QTs[nodeview[i][index]] = QTscan[index];
+        QTs[nodes[nodestart + index]] = QTscan[index];
       };
 
       mgpu::transform(k_unindex, nnodes, context);
@@ -249,29 +249,29 @@ struct f1f2ToDerivsDispatch {
 
 template <tmol::Device D, typename Real, typename Int>
 struct SegscanF1f2sDispatch {
-  static void f(
+  static auto f(
       TView<Vec<Real, 6>, 1, D> f1f2s,
-      TCollection<Int, 1, D> nodes,
-      TCollection<Int, 1, D> scans) {
+      TView<Int, 1, D> nodes,
+      TView<Int, 1, D> scans,
+      TView<Vec<Int, 2>, 1, tmol::Device::CPU> gens) -> void {
     auto num_atoms = f1f2s.size(0);
-
-    auto nodeview = nodes.view;
-
-    mgpu::standard_context_t context;
 
     // temp memory for scan (longest scan possible is 2 times # atoms)
     auto f1f2scan_t = TPack<f1f2Vectors, 1, D>::empty({2 * num_atoms});
     auto f1f2scan = f1f2scan_t.view;
     f1f2VecsRawBuffer init = {0, 0, 0, 0, 0, 0};  // identity
 
-    auto ngens = nodeview.size(0);
-    for (int i = 0; i < ngens; ++i) {
-      int nnodes = nodes.tensors[i].size(0);
-      int nscans = scans.tensors[i].size(0);
+    mgpu::standard_context_t context;
+
+    auto ngens = gens.size(0) - 1;
+    for (int gen = 0; gen < ngens; ++gen) {
+      int nodestart = gens[gen][0], scanstart = gens[gen][1];
+      int nnodes = gens[gen + 1][0] - nodestart;
+      int nscans = gens[gen + 1][1] - scanstart;
 
       // reindexing function
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
-        return *((f1f2VecsRawBuffer*)f1f2s[nodeview[i][index]].data());
+        return *((f1f2VecsRawBuffer*)f1f2s[nodes[nodestart + index]].data());
       };
 
       // mgpu does not play nicely with eigen types
@@ -281,7 +281,7 @@ struct SegscanF1f2sDispatch {
           kernel_segscan<mgpu::launch_params_t<256, 1>, scan_type_exc>(
               k_reindex,
               nnodes,
-              scans.tensors[i].view.data(),  // get a single tensor view on CPU
+              &scans.data()[scanstart],
               nscans,
               (f1f2VecsRawBuffer*)(f1f2scan.data()->data()),
               f1f2compose_t<D, Real, Int>(),
@@ -291,7 +291,8 @@ struct SegscanF1f2sDispatch {
       // unindex for gen i.  ENSURE ATOMIC
       auto k_unindex = [=] MGPU_DEVICE(int index) {
         for (int kk = 0; kk < 6; ++kk) {
-          atomicAdd(&(f1f2s[nodeview[i][index]][kk]), f1f2scan[index][kk]);
+          atomicAdd(
+              &(f1f2s[nodes[nodestart + index]][kk]), f1f2scan[index][kk]);
         }
       };
 

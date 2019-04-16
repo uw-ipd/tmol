@@ -21,7 +21,8 @@ void bind_dispatch(pybind11::module& m) {
       "dofs"_a,
       "doftypes"_a,
       "nodes"_a,
-      "scans"_a);
+      "scans"_a,
+      "gens"_a);
 
   add_dispatch_impl<Dev, Real>(
       m,
@@ -58,7 +59,8 @@ void bind_dispatch(pybind11::module& m) {
       &SegscanF1f2sDispatch<Dev, Real, Int>::f,
       "f1f2s"_a,
       "nodes"_a,
-      "scans"_a);
+      "scans"_a,
+      "gens"_a);
 };
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {

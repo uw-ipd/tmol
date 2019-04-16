@@ -2,11 +2,10 @@ import attr
 import numpy
 import torch
 
-from typing import List
-
 from .datatypes import KinTree
 
 from numba import jit
+from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ConvertAttrs, ValidateAttrs
 
@@ -20,9 +19,11 @@ from tmol.types.functional import validate_args
 #    roots - the initial root nodes.  The code will efficiently support
 #            a graph with many disconnected components
 # returns:
-#    scans - 1 1D array with the node indeices of each scan, concatenated
-#    scanStarts - the index in 'scans' where each individual scan begins
-#    genStarts - the index in 'scanStarts' where each generation begins
+#    nodes - a 1D array with the node indices of each scan, concatenated
+#    scanStarts - a 1D index array in 'scans' where each individual scan begins
+#    genStarts - an N x 2 array giving indices where each gen begins
+#         genStarts[:,0] indexes scans
+#         genStarts[:,1] indexes scanStarts
 @jit(nopython=True)
 def get_scans(parents, roots):
     nelts = parents.shape[0]
@@ -44,9 +45,9 @@ def get_scans(parents, roots):
     # scan indices are emitted as a 1D array of nodes ('scans') with:
     #   scanStarts: indices in 'scans' where individual scans start
     #   genStarts: indices in 'scanStarts' where generations start
-    scans = numpy.full(4 * nelts, -1, dtype=numpy.int32)
+    nodes = numpy.full(4 * nelts, -1, dtype=numpy.int32)
     scanStarts = numpy.full(nelts, -1, dtype=numpy.int32)
-    genStarts = numpy.full(nelts, -1, dtype=numpy.int32)
+    genStarts = numpy.full((nelts, 2), -1, dtype=numpy.int32)
 
     # curr idx in each array
     genidx, scanidx, nodeidx = 0, 0, 0
@@ -60,8 +61,7 @@ def get_scans(parents, roots):
     marked = numpy.zeros(nelts, dtype=numpy.int32)
     marked[0] = 1
     while not numpy.all(marked):
-        genStarts[genidx] = scanidx
-        genidx += 1
+        genStarts[genidx, :] = [nodeidx, scanidx]
         for i in range(nActiveFront):
             currRoot = activeFront[i]
 
@@ -74,11 +74,13 @@ def get_scans(parents, roots):
 
                 # this is the first root expansion,
                 #  add the node as the start of a new scan
-                scanStarts[scanidx] = nodeidx
+                scanStarts[scanidx] = nodeidx - genStarts[genidx, 0]
+                # -> numbering is w.r.t. generation
                 scanidx += 1
-                scans[nodeidx] = currRoot
-                scans[nodeidx + 1] = expandedNode
+                nodes[nodeidx] = currRoot
+                nodes[nodeidx + 1] = expandedNode
                 nodeidx += 2
+
                 marked[expandedNode] = 1
 
                 while expandedNode != -1:
@@ -96,30 +98,32 @@ def get_scans(parents, roots):
 
                     if expandedNode != -1:
                         marked[expandedNode] = 1
-                        scans[nodeidx] = expandedNode
+                        nodes[nodeidx] = expandedNode
                         nodeidx += 1
 
         # generate active front for next generation
         #  as anything added this generation (if anything was added)
-        if genStarts[genidx - 1] < scanidx:
-            lastgenScan0 = scanStarts[genStarts[genidx - 1]]
+        if genStarts[genidx, 1] < scanidx:
+            lastgenScan0 = genStarts[genidx, 0]
             activeFront.fill(-1)
             nActiveFront = nodeidx - lastgenScan0
-            activeFront[:nActiveFront] = scans[lastgenScan0:nodeidx]
+            activeFront[:nActiveFront] = nodes[lastgenScan0:nodeidx]
+
+        # next generation
+        genidx += 1
 
     # pad scanStarts and genStarts by 1 to make downstream code cleaner
-    scanStarts[scanidx] = nodeidx  # one past end
-    genStarts[genidx] = scanidx  # to end
-    scanidx += 1
+    genStarts[genidx, :] = [nodeidx, scanidx]
     genidx += 1
 
-    return scans[:nodeidx], scanStarts[:scanidx], genStarts[:genidx]
+    return nodes[:nodeidx], scanStarts[:scanidx], genStarts[:genidx, :]
 
 
 @attr.s(auto_attribs=True, frozen=True)
 class KinTreeScanData(TensorGroup, ConvertAttrs):
-    nodes: List  # mapped to C++ via TCollection
-    scans: List  # mapped to C++ via TCollection
+    nodes: Tensor(torch.int)
+    scans: Tensor(torch.int)
+    gens: Tensor(torch.int)
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -163,40 +167,43 @@ class KinTreeScanOrdering(ValidateAttrs):
         nodes, scanStarts, genStarts = get_scans(
             kintree.parent.cpu().numpy(), numpy.array([0])
         )
+        forward_scan_paths = KinTreeScanData(
+            nodes=torch.from_numpy(nodes).to(device=kintree.parent.device),
+            scans=torch.from_numpy(scanStarts).to(device=kintree.parent.device),
+            gens=torch.from_numpy(genStarts),
+        )  # keep gens on CPU!
 
-        # seperate by generation
-        nodesList = []
-        scansList = []
-        for i in range(1, genStarts.shape[0]):
-            scansList.append(
-                torch.from_numpy(
-                    scanStarts[genStarts[i - 1] : genStarts[i]]
-                    - scanStarts[genStarts[i - 1]]
-                ).to(device=kintree.parent.device)
+        # reverse the scan paths for derivative scans
+        nodesR = numpy.ascontiguousarray(numpy.flipud(nodes))
+
+        genStartsR = numpy.zeros_like(genStarts)
+        genStartsR[1:, 0] = nodes.shape[0] - numpy.flipud(genStarts[:-1, 0])
+        genStartsR[1:, 1] = scanStarts.shape[0] - numpy.flipud(genStarts[:-1, 1])
+
+        # perhaps this can be simplified? (reversing scan indices)
+        ngens = genStarts.shape[0]
+        scanStartsR = numpy.zeros_like(scanStarts)
+        for i in range(1, ngens):
+            genstart = genStartsR[i - 1, 1]
+            genstop = genStartsR[i, 1]
+            nodes_i = genStartsR[i, 0] - genStartsR[i - 1, 0]
+            scan_i = nodes_i - numpy.ascontiguousarray(
+                numpy.flipud(
+                    scanStarts[
+                        (scanStarts.shape[0] - genstop) : (
+                            scanStarts.shape[0] - genstart
+                        )
+                    ]
+                )
             )
-            nodesList.append(
-                torch.from_numpy(
-                    nodes[scanStarts[genStarts[i - 1]] : scanStarts[genStarts[i]]]
-                ).to(device=kintree.parent.device)
-            )
+            scanStartsR[genstart] = 0
+            scanStartsR[(genstart + 1) : genstop] = scan_i[:-1]
 
-        forward_scan_paths = KinTreeScanData(nodes=nodesList, scans=scansList)
-
-        # reverse forward scan paths --> deriv scans
-        ngens = len(nodesList)
-        nodesListR = []
-        scansListR = []
-        for i in range(ngens):
-            nodesListR_i = nodesList[ngens - i - 1].flip(0)
-            scansListR_i = scansList[ngens - i - 1].clone()
-            if scansListR_i.shape[0] > 1:
-                scansListR_i[1:] = scansListR_i[1:].flip(0)
-                scansListR_i[1:] = nodesListR_i.shape[0] - scansListR_i[1:]
-
-            nodesListR.append(nodesListR_i)
-            scansListR.append(scansListR_i)
-
-        backward_scan_paths = KinTreeScanData(nodes=nodesListR, scans=scansListR)
+        backward_scan_paths = KinTreeScanData(
+            nodes=torch.from_numpy(nodesR).to(device=kintree.parent.device),
+            scans=torch.from_numpy(scanStartsR).to(device=kintree.parent.device),
+            gens=torch.from_numpy(genStartsR),
+        )  # keep gens on CPU!
 
         return KinTreeScanOrdering(
             forward_scan_paths=forward_scan_paths,

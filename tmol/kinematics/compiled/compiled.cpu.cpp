@@ -1,7 +1,6 @@
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorPack.h>
-#include <tmol/utility/tensor/TensorCollection.h>
 
 #include "common.hh"
 
@@ -19,13 +18,11 @@ struct ForwardKinDispatch {
   static auto f(
       TView<Vec<Real, 9>, 1, D> dofs,
       TView<Int, 1, D> doftypes,
-      TCollection<Int, 1, D> nodes,
-      TCollection<Int, 1, D> scans)
+      TView<Int, 1, D> nodes,
+      TView<Int, 1, D> scans,
+      TView<Vec<Int, 2>, 1, tmol::Device::CPU> gens)
       -> TPack<HomogeneousTransform, 1, D> {
     auto num_atoms = dofs.size(0);
-
-    auto nodeview = nodes.view;
-    auto scansview = scans.view;
 
     auto QTs_t = TPack<QuatPlusTranslation, 1, D>::empty({num_atoms});
     auto QTs = QTs_t.view;
@@ -55,17 +52,17 @@ struct ForwardKinDispatch {
         QTs[i] = common<D,Real,Int>::quat_trans_compose(QTs[i], QTs[p]);
     });
 
-    auto ngens = nodeview.size(0);
-    for (int i = 0; i < ngens; i++) { // loop over generations
-        // one could trivially parallelize this loop over j!
-        auto nscans = scansview[i].size(0);
-        for (int j = 0; j < nscans; j++) { // loop over scans
-            auto scanstart = scansview[i][j];
-            auto scanstop = (j==nscans-1) ? nodeview[i].size(0) : scansview[i][j+1];
-            for (int k = scanstart; k < scanstop-1; k++) { // loop over path
-                k_compose(nodeview[i][k], nodeview[i][k+1]);
-            }
+    int ngens = gens.size(0) - 1;
+    for (int gen = 0; gen < ngens; gen++) { // loop over generations
+      int scanstart = gens[gen][1];
+      int scanstop = gens[gen+1][1];
+      for (int j = scanstart; j < scanstop; j++) { // loop over scans
+        int nodestart = gens[gen][0] + scans[j];
+        int nodestop = (j == scanstop-1) ? gens[gen+1][0] : (gens[gen][0] + scans[j+1]);
+        for (int k = nodestart; k < nodestop-1; k++) { // loop over path
+            k_compose(nodes[k], nodes[k+1]);
         }
+      }
     }
 
     for (int i = 0; i < num_atoms; i++) {
@@ -195,14 +192,12 @@ struct f1f2ToDerivsDispatch {
 
 template <tmol::Device D, typename Real, typename Int>
 struct SegscanF1f2sDispatch {
-  static void f(
+  static auto f(
       TView<Vec<Real, 6>, 1, D> f1f2s,
-      TCollection<Int, 1, D> nodes,
-      TCollection<Int, 1, D> scans) {
+      TView<Int, 1, D> nodes,
+      TView<Int, 1, D> scans,
+      TView<Vec<Int, 2>, 1, tmol::Device::CPU> gens) -> void {
     auto num_atoms = f1f2s.size(0);
-
-    auto nodeview = nodes.view;
-    auto scansview = scans.view;
 
     // scan and accumulate f1s/f2s up atom tree
     auto k_compose = ([=] EIGEN_DEVICE_FUNC(int p, int i) {
@@ -211,16 +206,17 @@ struct SegscanF1f2sDispatch {
 
     // note: if this is parallelized (over j/k) 
     //   then k_compose needs to be atomic
-    auto ngens = nodeview.size(0);
-    for (int i = 0; i < ngens; i++) { // loop over generations
-        auto nscans = scansview[i].size(0);
-        for (int j = 0; j < nscans; j++) { // loop over scans
-            auto scanstart = scansview[i][j];
-            auto scanstop = (j==nscans-1) ? nodeview[i].size(0) : scansview[i][j+1];
-            for (int k = scanstart; k < scanstop-1; k++) { // loop over path
-                k_compose(nodeview[i][k], nodeview[i][k+1]);
-            }
+    int ngens = gens.size(0) - 1;
+    for (int gen = 0; gen < ngens; gen++) { // loop over generations
+      int scanstart = gens[gen][1];
+      int scanstop = gens[gen+1][1];
+      for (int j = scanstart; j < scanstop; j++) { // loop over scans
+        int nodestart = gens[gen][0] + scans[j];
+        int nodestop = (j == scanstop-1) ? gens[gen+1][0] : (gens[gen][0] + scans[j+1]);
+        for (int k = nodestart; k < nodestop-1; k++) { // loop over path
+            k_compose(nodes[k], nodes[k+1]);
         }
+      }
     }
 
     return;

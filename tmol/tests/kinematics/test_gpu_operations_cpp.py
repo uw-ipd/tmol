@@ -37,24 +37,30 @@ def test_refold_data_construction(benchmark, ubq_system):
     #   - all connected nodes are parent->child
     natms = kintree.id.shape[0]
     generated = numpy.zeros(natms, dtype=numpy.int32)
-    ngens = len(kinorder.forward_scan_paths.nodes)
-    assert ngens == len(kinorder.forward_scan_paths.scans)
+    ngens = len(kinorder.forward_scan_paths.gens)
 
-    for i in range(ngens):
-        nscans = kinorder.forward_scan_paths.scans[i].shape[0]
-        assert kinorder.forward_scan_paths.scans[i][0] == 0
-        for j in range(nscans):
+    for i in range(ngens - 1):
+        scanstart = kinorder.forward_scan_paths.gens[i][1]
+        scanstop = kinorder.forward_scan_paths.gens[i + 1][1]
+        for j in range(scanstart, scanstop):
+            nodestart = (
+                kinorder.forward_scan_paths.gens[i][0]
+                + kinorder.forward_scan_paths.scans[j]
+            )
+            nodestop = kinorder.forward_scan_paths.gens[i + 1][0]
+            if j < scanstop - 1:
+                nodestop = (
+                    kinorder.forward_scan_paths.gens[i][0]
+                    + kinorder.forward_scan_paths.scans[j + 1]
+                )
+
             # tag the root(s) as generated
             if i == 0:
-                generated[kinorder.forward_scan_paths.nodes[i][0]] += 1
+                generated[kinorder.forward_scan_paths.nodes[nodestart]] += 1
 
-            scanstart = kinorder.forward_scan_paths.scans[i][j]
-            scanstop = kinorder.forward_scan_paths.nodes[i].shape[0]
-            if j != nscans - 1:
-                scanstop = kinorder.forward_scan_paths.scans[i][j + 1]
-            for k in range(scanstart, scanstop - 1):
-                parent = kinorder.forward_scan_paths.nodes[i][k]
-                child = kinorder.forward_scan_paths.nodes[i][k + 1]
+            for k in range(nodestart, nodestop - 1):
+                parent = kinorder.forward_scan_paths.nodes[k]
+                child = kinorder.forward_scan_paths.nodes[k + 1]
                 assert kintree.parent[child].to(dtype=torch.int) == parent
 
                 # tag the child as visited

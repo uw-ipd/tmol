@@ -4,7 +4,6 @@
 #include <tuple>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
-#include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
 #include "common.hh"
@@ -22,8 +21,10 @@ struct ForwardKinDispatch {
   static auto f(
       TView<Vec<Real, 9>, 1, D> dofs,
       TView<Int, 1, D> doftypes,
-      TCollection<Int, 1, D> nodes,
-      TCollection<Int, 1, D> scans) -> TPack<HomogeneousTransform, 1, D>;
+      TView<Int, 1, D> nodes,
+      TView<Int, 1, D> scans,
+      TView<Vec<Int, 2>, 1, tmol::Device::CPU> gens)
+      -> TPack<HomogeneousTransform, 1, D>;
 };
 
 template <tmol::Device D, typename Real, typename Int>
@@ -56,10 +57,11 @@ struct f1f2ToDerivsDispatch {
 
 template <tmol::Device D, typename Real, typename Int>
 struct SegscanF1f2sDispatch {
-  static void f(
+  static auto f(
       TView<Vec<Real, 6>, 1, D> f1f2s,
-      TCollection<Int, 1, D> nodes,
-      TCollection<Int, 1, D> scans);
+      TView<Int, 1, D> nodes,
+      TView<Int, 1, D> scans,
+      TView<Vec<Int, 2>, 1, tmol::Device::CPU> gens) -> void;
 };
 
 #undef HomogeneousTransform
