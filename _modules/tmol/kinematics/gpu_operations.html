@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.gpu_operations &mdash; TMol 0.0.0-165-g1fa9ddfe documentation</title>
+  <title>tmol.kinematics.gpu_operations &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-165-g1fa9ddfe',
+              VERSION:'0.0.0-166-g12d61a08',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-165-g1fa9ddfe
+                0.0.0-166-g12d61a08
               </div>
             
           
@@ -176,6 +176,7 @@
             
   <h1>Source code for tmol.kinematics.gpu_operations</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.attrs</span> <span class="k">import</span> <span class="n">ValidateAttrs</span>
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
@@ -276,7 +277,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">scan_paths</span> <span class="o">=</span> <span class="n">PathPartitioning</span><span class="o">.</span><span class="n">minimum_subpath_depth</span><span class="p">(</span>
-            <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="p">)</span>
 
         <span class="n">refold_ordering</span> <span class="o">=</span> <span class="n">RefoldOrdering</span><span class="o">.</span><span class="n">for_scan_paths</span><span class="p">(</span><span class="n">scan_paths</span><span class="p">)</span>

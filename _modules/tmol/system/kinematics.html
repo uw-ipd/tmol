@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.kinematics &mdash; TMol 0.0.0-165-g1fa9ddfe documentation</title>
+  <title>tmol.system.kinematics &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-165-g1fa9ddfe',
+              VERSION:'0.0.0-166-g12d61a08',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-165-g1fa9ddfe
+                0.0.0-166-g12d61a08
               </div>
             
           
@@ -239,7 +239,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1"># Extract current state coordinates to render current dofs</span>
-        <span class="n">kincoords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">coords</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+        <span class="n">kincoords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">coords</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)]</span>
 
         <span class="c1"># Convert the -1 origin, a nan-coord, to zero</span>
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span>

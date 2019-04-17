@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.datatypes &mdash; TMol 0.0.0-165-g1fa9ddfe documentation</title>
+  <title>tmol.kinematics.datatypes &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-165-g1fa9ddfe',
+              VERSION:'0.0.0-166-g12d61a08',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-165-g1fa9ddfe
+                0.0.0-166-g12d61a08
               </div>
             
           
@@ -230,12 +230,12 @@
 <span class="sd">        frame_z = kin-atom index of grandparent</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="nb">id</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>  <span class="c1"># used as an index so long</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>  <span class="c1"># used as an index so long</span>
     <span class="n">doftype</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">parent</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>  <span class="c1"># used as an index so long</span>
-    <span class="n">frame_x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">frame_y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
-    <span class="n">frame_z</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">parent</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>  <span class="c1"># used as an index so long</span>
+    <span class="n">frame_x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">frame_y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
+    <span class="n">frame_z</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span>
 
 <div class="viewcode-block" id="KinTree.node"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.KinTree.node">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@convert_args</span>

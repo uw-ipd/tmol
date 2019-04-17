@@ -15,8 +15,10 @@ tmol.kinematics
        tmol.kinematics.datatypes
        tmol.kinematics.metadata
        tmol.kinematics.operations
+       tmol.kinematics.scan_ordering
        tmol.kinematics.torch_op
   
+       tmol.kinematics.compiled
        tmol.kinematics.cpu_operations
        tmol.kinematics.gpu_operations
 

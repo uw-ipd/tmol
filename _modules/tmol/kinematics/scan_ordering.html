@@ -1,0 +1,467 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.scan_ordering &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/kinematics/scan_ordering.html"/>
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../',
+              VERSION:'0.0.0-166-g12d61a08',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-166-g12d61a08
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.kinematics.scan_ordering</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.kinematics.scan_ordering</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="kn">from</span> <span class="nn">.datatypes</span> <span class="k">import</span> <span class="n">KinTree</span>
+
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">TensorGroup</span>
+<span class="kn">from</span> <span class="nn">tmol.types.attrs</span> <span class="k">import</span> <span class="n">ConvertAttrs</span><span class="p">,</span> <span class="n">ValidateAttrs</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
+
+
+<span class="c1"># jitted scan operation</span>
+<span class="c1"># inputs:</span>
+<span class="c1">#    parents - the &quot;parents&quot; array from the kinematic tree</span>
+<span class="c1">#              assumes proper ordering: child index &gt; parent index</span>
+<span class="c1">#    roots - the initial root nodes.  The code will efficiently support</span>
+<span class="c1">#            a graph with many disconnected components</span>
+<span class="c1"># returns:</span>
+<span class="c1">#    nodes - a 1D array with the node indices of each scan, concatenated</span>
+<span class="c1">#    scanStarts - a 1D index array in &#39;nodes&#39; where each individual scan begins</span>
+<span class="c1">#    genStarts - an N x 2 array giving indices where each gen begins</span>
+<span class="c1">#         genStarts[:,0] indexes nodes</span>
+<span class="c1">#         genStarts[:,1] indexes scanStarts</span>
+<div class="viewcode-block" id="get_scans"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.scan_ordering.html#tmol.kinematics.scan_ordering.get_scans">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">get_scans</span><span class="p">(</span><span class="n">parents</span><span class="p">,</span> <span class="n">roots</span><span class="p">):</span>
+    <span class="n">nelts</span> <span class="o">=</span> <span class="n">parents</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Pass 1, count number of children for each parent.</span>
+    <span class="n">n_immediate_children</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelts</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">parents</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="n">i</span><span class="p">,</span> <span class="s2">&quot;Invalid kinematic tree ordering, parent index &gt;= child index.&quot;</span>
+        <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>  <span class="c1"># root</span>
+            <span class="k">continue</span>
+        <span class="n">n_immediate_children</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Pass 2, mark the span of each parent in the child node list.</span>
+    <span class="n">child_list</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">child_list_span</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">nelts</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">child_list_span</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">child_list_span</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_immediate_children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nelts</span><span class="p">):</span>
+        <span class="n">child_list_span</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">child_list_span</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">child_list_span</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">child_list_span</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_immediate_children</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="c1"># Pass 3, fill the child list for each parent.</span>
+    <span class="c1"># As we do this, sum total # of descendents at each node, used to</span>
+    <span class="c1">#   prioritize scan ordering in DFS</span>
+    <span class="n">n_children</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nelts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">parents</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>  <span class="c1"># root</span>
+            <span class="k">continue</span>
+        <span class="n">n_children</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">+=</span> <span class="n">n_children</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">child_list</span><span class="p">[</span><span class="n">child_list_span</span><span class="p">[</span><span class="n">p</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">n_immediate_children</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="n">n_immediate_children</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+
+    <span class="c1"># scan storage - allocate upper bound for 4-connected graph</span>
+    <span class="c1"># scan indices are emitted as a 1D array of nodes (&#39;scans&#39;) with:</span>
+    <span class="c1">#   scanStarts: indices in &#39;scans&#39; where individual scans start</span>
+    <span class="c1">#   genStarts: indices in &#39;scanStarts&#39; where generations start</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">nelts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">scanStarts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">genStarts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nelts</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># curr idx in each array</span>
+    <span class="n">genidx</span><span class="p">,</span> <span class="n">scanidx</span><span class="p">,</span> <span class="n">nodeidx</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+    <span class="c1"># store the active pool we are expanding</span>
+    <span class="n">activeFront</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">nActiveFront</span> <span class="o">=</span> <span class="n">roots</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">activeFront</span><span class="p">[:</span><span class="n">nActiveFront</span><span class="p">]</span> <span class="o">=</span> <span class="n">roots</span>
+
+    <span class="c1"># DFS traversal through forest-of-rooted-trees drawing generational scan</span>
+    <span class="c1"># paths. Each pass through the DFS search follows a set of scan paths</span>
+    <span class="c1"># beginning from the current set of roots, following nodes to the full</span>
+    <span class="c1"># depth of the scan path. At each node the scan is extended through the</span>
+    <span class="c1"># child with the most descendents and the node is added to the generation</span>
+    <span class="c1"># n+1 roots, where is will root 0-or-more scans in the n+1 generation</span>
+    <span class="c1"># passing through it&#39;s additional children.</span>
+    <span class="c1">#</span>
+    <span class="c1"># In typical kinematic trees this will minimize the total number of scan</span>
+    <span class="c1"># generations by tracing a long backbone path with many short side paths.</span>
+    <span class="n">marked</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nelts</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">marked</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">marked</span><span class="p">):</span>
+        <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodeidx</span><span class="p">,</span> <span class="n">scanidx</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nActiveFront</span><span class="p">):</span>
+            <span class="n">currRoot</span> <span class="o">=</span> <span class="n">activeFront</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="c1"># Active front nodes are members of an existing scan passing through</span>
+            <span class="c1"># to one child (or are gen 0) and may root 1-or-more scans through</span>
+            <span class="c1"># any additional children.</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">child_list_span</span><span class="p">[</span><span class="n">currRoot</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">child_list_span</span><span class="p">[</span><span class="n">currRoot</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
+                <span class="n">expandedNode</span> <span class="o">=</span> <span class="n">child_list</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">marked</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Child node has already been &#39;scanned&#39; in a prev</span>
+                    <span class="c1"># generation and is not the first child of another scan.</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># add the node as the start of a new scan</span>
+                <span class="c1"># -&gt; numbering is w.r.t. generation (hence subtracting gen start)</span>
+                <span class="n">scanStarts</span><span class="p">[</span><span class="n">scanidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodeidx</span> <span class="o">-</span> <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">scanidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="c1"># Set root as start of the scan.</span>
+                <span class="n">nodes</span><span class="p">[</span><span class="n">nodeidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">currRoot</span>
+                <span class="n">nodeidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                    <span class="c1"># Extend scan path into selected child and mark it.</span>
+                    <span class="n">marked</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">nodes</span><span class="p">[</span><span class="n">nodeidx</span><span class="p">]</span> <span class="o">=</span> <span class="n">expandedNode</span>
+                    <span class="n">nodeidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                        <span class="o">==</span> <span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="p">):</span>
+                        <span class="c1"># At a leaf node, scan path terminates.</span>
+                        <span class="k">break</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Extend path through the child with</span>
+                        <span class="c1">#  greatest number of descendants.</span>
+                        <span class="n">nextExtension</span> <span class="o">=</span> <span class="n">child_list</span><span class="p">[</span><span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+                        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+                            <span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                            <span class="n">child_list_span</span><span class="p">[</span><span class="n">expandedNode</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                        <span class="p">):</span>
+                            <span class="n">candidate</span> <span class="o">=</span> <span class="n">child_list</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">n_children</span><span class="p">[</span><span class="n">candidate</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">n_children</span><span class="p">[</span><span class="n">nextExtension</span><span class="p">]:</span>
+                                <span class="n">nextExtension</span> <span class="o">=</span> <span class="n">candidate</span>
+
+                        <span class="n">expandedNode</span> <span class="o">=</span> <span class="n">nextExtension</span>
+
+        <span class="c1"># Mark any node scanned in this generation as a potential root.</span>
+        <span class="c1"># Old roots and nodes with 1 child will be filtered during expansion.</span>
+        <span class="k">if</span> <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">scanidx</span><span class="p">:</span>
+            <span class="n">lastgenScan0</span> <span class="o">=</span> <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">activeFront</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">nActiveFront</span> <span class="o">=</span> <span class="n">nodeidx</span> <span class="o">-</span> <span class="n">lastgenScan0</span>
+            <span class="n">activeFront</span><span class="p">[:</span><span class="n">nActiveFront</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span><span class="p">[</span><span class="n">lastgenScan0</span><span class="p">:</span><span class="n">nodeidx</span><span class="p">]</span>
+
+        <span class="c1"># next generation</span>
+        <span class="n">genidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Pad genStarts by 1 to make downstream code cleaner</span>
+    <span class="n">genStarts</span><span class="p">[</span><span class="n">genidx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">nodeidx</span><span class="p">,</span> <span class="n">scanidx</span><span class="p">]</span>
+    <span class="n">genidx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">nodes</span><span class="p">[:</span><span class="n">nodeidx</span><span class="p">],</span> <span class="n">scanStarts</span><span class="p">[:</span><span class="n">scanidx</span><span class="p">],</span> <span class="n">genStarts</span><span class="p">[:</span><span class="n">genidx</span><span class="p">,</span> <span class="p">:]</span></div>
+
+
+<div class="viewcode-block" id="KinTreeScanData"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.scan_ordering.html#tmol.kinematics.scan_ordering.KinTreeScanData">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">KinTreeScanData</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">,</span> <span class="n">ConvertAttrs</span><span class="p">):</span>
+    <span class="n">nodes</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+    <span class="n">scans</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+    <span class="n">gens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KinTreeScanOrdering"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.scan_ordering.html#tmol.kinematics.scan_ordering.KinTreeScanOrdering">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">KinTreeScanOrdering</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Scan ordering for parallel kinematic operations.</span>
+
+<span class="sd">    Following the previous version, this is attached to the kintree object.</span>
+<span class="sd">    Unlike previous version this is sent to device on creation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">kintree_cache_key</span> <span class="o">=</span> <span class="s2">&quot;__KinTreeScanOrdering_cache__&quot;</span>
+
+    <span class="n">forward_scan_paths</span><span class="p">:</span> <span class="n">KinTreeScanData</span>
+    <span class="n">backward_scan_paths</span><span class="p">:</span> <span class="n">KinTreeScanData</span>
+
+<div class="viewcode-block" id="KinTreeScanOrdering.for_kintree"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.scan_ordering.html#tmol.kinematics.scan_ordering.KinTreeScanOrdering.for_kintree">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">for_kintree</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">kintree</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Calculate and cache refold ordering over kintree</span>
+
+<span class="sd">        KinTree data structure is frozen; so it is safe to cache the gpu scan</span>
+<span class="sd">        ordering for a single object. Store as a private property of the input</span>
+<span class="sd">        kintree, lifetime of the cache will then be managed via the target</span>
+<span class="sd">        object.</span>
+<span class="sd">        .&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">kintree</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">kintree_cache_key</span><span class="p">):</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
+                <span class="n">kintree</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">kintree_cache_key</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">calculate_from_kintree</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">kintree</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">kintree_cache_key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KinTreeScanOrdering.calculate_from_kintree"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.scan_ordering.html#tmol.kinematics.scan_ordering.KinTreeScanOrdering.calculate_from_kintree">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">calculate_from_kintree</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Setup for operations over KinTree.</span>
+<span class="sd">        ``device`` is inferred from kintree tensor device.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">nodes</span><span class="p">,</span> <span class="n">scanStarts</span><span class="p">,</span> <span class="n">genStarts</span> <span class="o">=</span> <span class="n">get_scans</span><span class="p">(</span>
+            <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">forward_scan_paths</span> <span class="o">=</span> <span class="n">KinTreeScanData</span><span class="p">(</span>
+            <span class="n">nodes</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">scans</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">scanStarts</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">gens</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">genStarts</span><span class="p">),</span>
+        <span class="p">)</span>  <span class="c1"># keep gens on CPU!</span>
+
+        <span class="c1"># reverse the scan paths for derivative scans</span>
+        <span class="n">nodesR</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">nodes</span><span class="p">))</span>
+
+        <span class="n">genStartsR</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">genStarts</span><span class="p">)</span>
+        <span class="n">genStartsR</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">genStarts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="n">genStartsR</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">scanStarts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span><span class="n">genStarts</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># perhaps this can be simplified? (reversing scan indices)</span>
+        <span class="n">ngens</span> <span class="o">=</span> <span class="n">genStarts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">scanStartsR</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">scanStarts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ngens</span><span class="p">):</span>
+            <span class="n">genstart</span> <span class="o">=</span> <span class="n">genStartsR</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">genstop</span> <span class="o">=</span> <span class="n">genStartsR</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">nodes_i</span> <span class="o">=</span> <span class="n">genStartsR</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">genStartsR</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">scan_i</span> <span class="o">=</span> <span class="n">nodes_i</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">flipud</span><span class="p">(</span>
+                    <span class="n">scanStarts</span><span class="p">[</span>
+                        <span class="p">(</span><span class="n">scanStarts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">genstop</span><span class="p">)</span> <span class="p">:</span> <span class="p">(</span>
+                            <span class="n">scanStarts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">genstart</span>
+                        <span class="p">)</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">scanStartsR</span><span class="p">[</span><span class="n">genstart</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">scanStartsR</span><span class="p">[(</span><span class="n">genstart</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="p">:</span> <span class="n">genstop</span><span class="p">]</span> <span class="o">=</span> <span class="n">scan_i</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">backward_scan_paths</span> <span class="o">=</span> <span class="n">KinTreeScanData</span><span class="p">(</span>
+            <span class="n">nodes</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">nodesR</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">scans</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">scanStartsR</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">gens</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">genStartsR</span><span class="p">),</span>
+        <span class="p">)</span>  <span class="c1"># keep gens on CPU!</span>
+
+        <span class="k">return</span> <span class="n">KinTreeScanOrdering</span><span class="p">(</span>
+            <span class="n">forward_scan_paths</span><span class="o">=</span><span class="n">forward_scan_paths</span><span class="p">,</span>
+            <span class="n">backward_scan_paths</span><span class="o">=</span><span class="n">backward_scan_paths</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

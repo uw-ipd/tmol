@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.metadata &mdash; TMol 0.0.0-165-g1fa9ddfe documentation</title>
+  <title>tmol.kinematics.metadata &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-165-g1fa9ddfe',
+              VERSION:'0.0.0-166-g12d61a08',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-165-g1fa9ddfe
+                0.0.0-166-g12d61a08
               </div>
             
           
@@ -230,10 +230,11 @@
         <span class="c1"># Setup a dof type table the same shape as the kinematic dofs,</span>
         <span class="c1"># marking all potential movable dofs with the abstract dof type.</span>
         <span class="c1"># Leaving all non-movable or invalid dofs as nan.</span>
+        <span class="n">parentIdx</span> <span class="o">=</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
         <span class="n">dof_types</span> <span class="o">=</span> <span class="n">KinDOF</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">kintree</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
         <span class="n">node_has_children</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">put_</span><span class="p">(</span>
-                <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">),</span> <span class="kc">True</span>
+                <span class="n">parentIdx</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">),</span> <span class="kc">True</span>
             <span class="p">)</span>
             <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="p">)</span>
@@ -265,7 +266,7 @@
             <span class="n">dof_idx</span><span class="o">=</span><span class="n">dof_idx</span><span class="p">,</span>
             <span class="n">dof_type</span><span class="o">=</span><span class="n">dof_types</span><span class="o">.</span><span class="n">raw</span><span class="p">[</span><span class="n">node_idx</span><span class="p">,</span> <span class="n">dof_idx</span><span class="p">],</span>
             <span class="n">child_id</span><span class="o">=</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="n">node_idx</span><span class="p">],</span>
-            <span class="n">parent_id</span><span class="o">=</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">node_idx</span><span class="p">]],</span>
+            <span class="n">parent_id</span><span class="o">=</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="n">parentIdx</span><span class="p">[</span><span class="n">node_idx</span><span class="p">]],</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="DOFMetadata.to_frame"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.metadata.html#tmol.kinematics.metadata.DOFMetadata.to_frame">[docs]</a>    <span class="k">def</span> <span class="nf">to_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>

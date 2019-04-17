@@ -7,7 +7,7 @@ tmol.kinematics.operations
 .. currentmodule:: tmol.kinematics.operations
 
 .. automodule:: tmol.kinematics.operations
-    :members: BackKinResult, BondDerivatives, BondTransforms, DOFTransforms, EPS, ForwardKinResult, HTinv, HTs_from_frames, InvBondTransforms, InvJumpTransforms, JumpDerivatives, JumpTransforms, backwardKin, forwardKin, resolveDerivs
+    :members: BackKinResult, DOFTransforms, ForwardKinResult, backwardKin, forwardKin, resolveDerivs
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -30,15 +30,7 @@ tmol.kinematics.operations
     .. autosummary::
         :nosignatures:
 
-        BondDerivatives
-        BondTransforms
         DOFTransforms
-        HTinv
-        HTs_from_frames
-        InvBondTransforms
-        InvJumpTransforms
-        JumpDerivatives
-        JumpTransforms
         backwardKin
         forwardKin
         resolveDerivs

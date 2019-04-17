@@ -1,0 +1,321 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.kinematics.scan_ordering &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.kinematics.scan_ordering.html"/>
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../',
+              VERSION:'0.0.0-166-g12d61a08',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="tmol.kinematics.torch_op" href="tmol.kinematics.torch_op.html" />
+    <link rel="prev" title="tmol.kinematics.operations" href="tmol.kinematics.operations.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-166-g12d61a08
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="tmol.kinematics.html">tmol.kinematics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.datatypes.html">tmol.kinematics.datatypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.kinematics.scan_ordering</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.compiled.html">tmol.kinematics.compiled</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="tmol.kinematics.html">tmol.kinematics</a> &raquo;</li>
+        
+      <li>tmol.kinematics.scan_ordering</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/apidoc/tmol.kinematics.scan_ordering.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-tmol.kinematics.scan_ordering">
+<span id="tmol-kinematics-scan-ordering"></span><h1>tmol.kinematics.scan_ordering<a class="headerlink" href="#module-tmol.kinematics.scan_ordering" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.scan_ordering.KinTreeScanData" title="tmol.kinematics.scan_ordering.KinTreeScanData"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KinTreeScanData</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.scan_ordering.KinTreeScanOrdering" title="tmol.kinematics.scan_ordering.KinTreeScanOrdering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KinTreeScanOrdering</span></code></a></td>
+<td>Scan ordering for parallel kinematic operations.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="attribute">
+<dt id="tmol.kinematics.scan_ordering.get_scans">
+<code class="descclassname">tmol.kinematics.scan_ordering.</code><code class="descname">get_scans</code><a class="reference internal" href="../_modules/tmol/kinematics/scan_ordering.html#get_scans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.scan_ordering.get_scans" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.scan_ordering.KinTreeScanData">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.scan_ordering.</code><code class="descname">KinTreeScanData</code><span class="sig-paren">(</span><em>nodes: Tensor(torch.int32)[...], scans: Tensor(torch.int32)[...], gens: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/scan_ordering.html#KinTreeScanData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.scan_ordering.KinTreeScanData" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ConvertAttrs" title="tmol.types.attrs.ConvertAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ConvertAttrs</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.kinematics.scan_ordering.KinTreeScanOrdering">
+<em class="property">class </em><code class="descclassname">tmol.kinematics.scan_ordering.</code><code class="descname">KinTreeScanOrdering</code><span class="sig-paren">(</span><em>forward_scan_paths: tmol.kinematics.scan_ordering.KinTreeScanData</em>, <em>backward_scan_paths: tmol.kinematics.scan_ordering.KinTreeScanData</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/scan_ordering.html#KinTreeScanOrdering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.scan_ordering.KinTreeScanOrdering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
+<p>Scan ordering for parallel kinematic operations.</p>
+<p>Following the previous version, this is attached to the kintree object.
+Unlike previous version this is sent to device on creation.</p>
+<dl class="attribute">
+<dt id="tmol.kinematics.scan_ordering.KinTreeScanOrdering.kintree_cache_key">
+<code class="descname">kintree_cache_key</code><em class="property"> = '__KinTreeScanOrdering_cache__'</em><a class="headerlink" href="#tmol.kinematics.scan_ordering.KinTreeScanOrdering.kintree_cache_key" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.kinematics.scan_ordering.KinTreeScanOrdering.for_kintree">
+<em class="property">classmethod </em><code class="descname">for_kintree</code><span class="sig-paren">(</span><em>kintree</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/scan_ordering.html#KinTreeScanOrdering.for_kintree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.scan_ordering.KinTreeScanOrdering.for_kintree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate and cache refold ordering over kintree</p>
+<p>KinTree data structure is frozen; so it is safe to cache the gpu scan
+ordering for a single object. Store as a private property of the input
+kintree, lifetime of the cache will then be managed via the target
+object.
+.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.kinematics.scan_ordering.KinTreeScanOrdering.calculate_from_kintree">
+<em class="property">classmethod </em><code class="descname">calculate_from_kintree</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/scan_ordering.html#KinTreeScanOrdering.calculate_from_kintree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.scan_ordering.KinTreeScanOrdering.calculate_from_kintree" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup for operations over KinTree.
+<code class="docutils literal notranslate"><span class="pre">device</span></code> is inferred from kintree tensor device.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="tmol.kinematics.torch_op.html" class="btn btn-neutral float-right" title="tmol.kinematics.torch_op" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="tmol.kinematics.operations.html" class="btn btn-neutral float-left" title="tmol.kinematics.operations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
