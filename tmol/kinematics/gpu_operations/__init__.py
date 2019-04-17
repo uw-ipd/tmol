@@ -1,4 +1,5 @@
 import attr
+import torch
 
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.functional import validate_args
@@ -99,7 +100,7 @@ class GPUKinTreeReordering(ValidateAttrs):
         """
 
         scan_paths = PathPartitioning.minimum_subpath_depth(
-            kintree.parent.cpu().numpy()
+            kintree.parent.to(device=torch.device("cpu"), dtype=torch.long).numpy()
         )
 
         refold_ordering = RefoldOrdering.for_scan_paths(scan_paths)

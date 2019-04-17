@@ -91,6 +91,7 @@ struct type_caster<tmol::TView<T, N, D, P>> {
           type_id<ViewType>(),
           " value: ",
           src);
+      print(err.what_without_backtrace());
 #endif
       return false;
     }

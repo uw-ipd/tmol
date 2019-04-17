@@ -53,12 +53,12 @@ class KinTree(TensorGroup, ConvertAttrs):
         frame_z = kin-atom index of grandparent
     """
 
-    id: Tensor(torch.long)[...]  # used as an index so long
+    id: Tensor(torch.int)[...]  # used as an index so long
     doftype: Tensor(torch.int)[...]
-    parent: Tensor(torch.long)[...]  # used as an index so long
-    frame_x: Tensor(torch.long)[...]
-    frame_y: Tensor(torch.long)[...]
-    frame_z: Tensor(torch.long)[...]
+    parent: Tensor(torch.int)[...]  # used as an index so long
+    frame_x: Tensor(torch.int)[...]
+    frame_y: Tensor(torch.int)[...]
+    frame_z: Tensor(torch.int)[...]
 
     @classmethod
     @convert_args
