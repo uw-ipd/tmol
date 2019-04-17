@@ -53,10 +53,11 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
         # Setup a dof type table the same shape as the kinematic dofs,
         # marking all potential movable dofs with the abstract dof type.
         # Leaving all non-movable or invalid dofs as nan.
+        parentIdx = kintree.parent.to(dtype=torch.long)
         dof_types = KinDOF.full(kintree.shape, math.nan)
         node_has_children = (
             torch.zeros_like(kintree.id).put_(
-                kintree.parent, torch.ones_like(kintree.parent), True
+                parentIdx, torch.ones_like(kintree.parent), True
             )
             > 0
         )
@@ -88,7 +89,7 @@ class DOFMetadata(TensorGroup, ConvertAttrs):
             dof_idx=dof_idx,
             dof_type=dof_types.raw[node_idx, dof_idx],
             child_id=kintree.id[node_idx],
-            parent_id=kintree.id[kintree.parent[node_idx]],
+            parent_id=kintree.id[parentIdx[node_idx]],
         )
 
     def to_frame(self) -> pandas.DataFrame:
