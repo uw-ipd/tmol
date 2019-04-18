@@ -27,8 +27,13 @@ _default_flags = ["-O3"]
 _required_cuda_flags = [
     "-std=c++14",
     "--expt-extended-lambda",
-    "--expt-relaxed-constexpr",
+    # "--expt-relaxed-constexpr", #fd: causes compiler errors in CUDA 10.0
 ]
+
+if torch.cuda.is_available():
+    _major, _minor = torch.cuda.get_device_capability(0)
+    _required_cuda_flags.append(f"--gpu-architecture=sm_{_major}{_minor}")
+
 _default_cuda_flags = []
 
 
