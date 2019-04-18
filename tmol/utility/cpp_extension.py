@@ -29,11 +29,6 @@ _required_cuda_flags = [
     "--expt-extended-lambda",
     "--expt-relaxed-constexpr",
 ]
-
-if torch.cuda.is_available():
-    _major, _minor = torch.cuda.get_device_capability(0)
-    _required_cuda_flags.append(f"--gpu-architecture=sm_{_major}{_minor}")
-
 _default_cuda_flags = []
 
 
