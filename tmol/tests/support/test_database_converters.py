@@ -14,7 +14,7 @@ def test_hbond_param_import(rosetta_database):
         os.path.join(rosetta_database, "scoring/score_functions/hbonds/sp2_elec_params")
     )
 
-    yaml.load(params.to_yaml())
+    yaml.safe_load(params.to_yaml())
 
 
 @requires_rosetta_database

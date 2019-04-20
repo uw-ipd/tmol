@@ -11,7 +11,7 @@ from tmol.types.array import NDArray
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaMappingParams:
-    name: str
+    table_id: str
     res_middle: str
     res_upper: str = "_"
     invert_phi: bool = False
@@ -20,7 +20,7 @@ class RamaMappingParams:
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class RamaTables:
-    name: str
+    table_id: str
     table: NDArray(float)
     bbstep: Tuple[float, float]
     bbstart: Tuple[float, float]
@@ -33,7 +33,7 @@ def load_tables_from_zarr(path_tables):
     for aa in root:
         alltables.append(
             RamaTables(
-                name=aa,
+                table_id=aa,
                 table=numpy.array(root[aa]["prob"]),
                 bbstep=root[aa]["prob"].attrs["bbstep"],
                 bbstart=root[aa]["prob"].attrs["bbstart"],
@@ -51,7 +51,7 @@ class RamaDatabase:
     @classmethod
     def from_files(cls, path_lookup, path_tables):
         with open(path_lookup, "r") as infile_lookup:
-            raw = yaml.load(infile_lookup)
+            raw = yaml.safe_load(infile_lookup)
             rama_lookup = cattr.structure(
                 raw["rama_lookup"], attr.fields(cls).rama_lookup.type
             )
