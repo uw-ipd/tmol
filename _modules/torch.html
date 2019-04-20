@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torch &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
+  <title>torch &mdash; TMol 0.0.0-167-gc7024829 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-166-g12d61a08',
+              VERSION:'0.0.0-167-gc7024829',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-166-g12d61a08
+                0.0.0-167-gc7024829
               </div>
             
           
@@ -197,7 +197,7 @@
     <span class="s1">&#39;typename&#39;</span><span class="p">,</span> <span class="s1">&#39;is_tensor&#39;</span><span class="p">,</span> <span class="s1">&#39;is_storage&#39;</span><span class="p">,</span> <span class="s1">&#39;set_default_tensor_type&#39;</span><span class="p">,</span>
     <span class="s1">&#39;set_rng_state&#39;</span><span class="p">,</span> <span class="s1">&#39;get_rng_state&#39;</span><span class="p">,</span> <span class="s1">&#39;manual_seed&#39;</span><span class="p">,</span> <span class="s1">&#39;initial_seed&#39;</span><span class="p">,</span>
     <span class="s1">&#39;save&#39;</span><span class="p">,</span> <span class="s1">&#39;load&#39;</span><span class="p">,</span> <span class="s1">&#39;set_printoptions&#39;</span><span class="p">,</span> <span class="s1">&#39;chunk&#39;</span><span class="p">,</span> <span class="s1">&#39;split&#39;</span><span class="p">,</span> <span class="s1">&#39;stack&#39;</span><span class="p">,</span> <span class="s1">&#39;matmul&#39;</span><span class="p">,</span>
-    <span class="s1">&#39;no_grad&#39;</span><span class="p">,</span> <span class="s1">&#39;enable_grad&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;no_grad&#39;</span><span class="p">,</span> <span class="s1">&#39;enable_grad&#39;</span><span class="p">,</span> <span class="s1">&#39;rand&#39;</span><span class="p">,</span> <span class="s1">&#39;randn&#39;</span><span class="p">,</span>
     <span class="s1">&#39;DoubleStorage&#39;</span><span class="p">,</span> <span class="s1">&#39;FloatStorage&#39;</span><span class="p">,</span> <span class="s1">&#39;LongStorage&#39;</span><span class="p">,</span> <span class="s1">&#39;IntStorage&#39;</span><span class="p">,</span>
     <span class="s1">&#39;ShortStorage&#39;</span><span class="p">,</span> <span class="s1">&#39;CharStorage&#39;</span><span class="p">,</span> <span class="s1">&#39;ByteStorage&#39;</span><span class="p">,</span>
     <span class="s1">&#39;DoubleTensor&#39;</span><span class="p">,</span> <span class="s1">&#39;FloatTensor&#39;</span><span class="p">,</span> <span class="s1">&#39;LongTensor&#39;</span><span class="p">,</span> <span class="s1">&#39;IntTensor&#39;</span><span class="p">,</span>
@@ -230,9 +230,13 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="s1">&#39;&#39;</span>
 
+    <span class="n">py_dll_path</span> <span class="o">=</span> <span class="n">_dl_flags</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_dl_flags</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">),</span> <span class="s1">&#39;Library</span><span class="se">\\</span><span class="s1">bin&#39;</span><span class="p">)</span>
+    <span class="n">th_dll_path</span> <span class="o">=</span> <span class="n">_dl_flags</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">lib</span><span class="se">\\</span><span class="s1">&#39;</span>
+
+    <span class="n">dll_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">th_dll_path</span><span class="p">,</span> <span class="n">py_dll_path</span><span class="p">,</span> <span class="n">get_nvToolsExt_path</span><span class="p">(),</span> <span class="n">_dl_flags</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PATH&#39;</span><span class="p">]]</span>
+
     <span class="c1"># then add the path to env</span>
-    <span class="n">_dl_flags</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PATH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dl_flags</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span>
-        <span class="vm">__file__</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">lib</span><span class="se">\\</span><span class="s1">;&#39;</span> <span class="o">+</span> <span class="n">get_nvToolsExt_path</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;;&#39;</span> <span class="o">+</span> <span class="n">_dl_flags</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PATH&#39;</span><span class="p">]</span>
+    <span class="n">_dl_flags</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PATH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dll_paths</span><span class="p">)</span>
 
 <span class="k">else</span><span class="p">:</span>
     <span class="c1"># first check if the os package has the required flags</span>
@@ -424,6 +428,8 @@
 <span class="k">del</span> <span class="n">manager_path</span>
 
 <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">_C</span><span class="o">.</span><span class="n">_VariableFunctions</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;__&#39;</span><span class="p">):</span>
+        <span class="k">continue</span>
     <span class="nb">globals</span><span class="p">()[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">_C</span><span class="o">.</span><span class="n">_VariableFunctions</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 
 <span class="c1">################################################################################</span>
@@ -452,6 +458,7 @@
 
 <span class="kn">import</span> <span class="nn">torch.cuda</span>
 <span class="kn">import</span> <span class="nn">torch.autograd</span>
+<span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="k">import</span> <span class="n">no_grad</span><span class="p">,</span> <span class="n">enable_grad</span><span class="p">,</span> <span class="n">set_grad_enabled</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span>
 <span class="kn">import</span> <span class="nn">torch.optim</span>
 <span class="kn">import</span> <span class="nn">torch.multiprocessing</span>
@@ -464,13 +471,21 @@
 <span class="kn">import</span> <span class="nn">torch.testing</span>
 <span class="kn">import</span> <span class="nn">torch.backends.cuda</span>
 <span class="kn">import</span> <span class="nn">torch.backends.mkl</span>
-<span class="kn">from</span> <span class="nn">torch.autograd</span> <span class="k">import</span> <span class="n">no_grad</span><span class="p">,</span> <span class="n">enable_grad</span><span class="p">,</span> <span class="n">set_grad_enabled</span>
 
 <span class="n">_C</span><span class="o">.</span><span class="n">_init_names</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">_storage_classes</span><span class="p">))</span>
 
 <span class="c1"># attach docstrings to torch and tensor functions</span>
 <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_torch_docs</span><span class="p">,</span> <span class="n">_tensor_docs</span><span class="p">,</span> <span class="n">_storage_docs</span>
 <span class="k">del</span> <span class="n">_torch_docs</span><span class="p">,</span> <span class="n">_tensor_docs</span><span class="p">,</span> <span class="n">_storage_docs</span>
+
+
+<span class="k">def</span> <span class="nf">compiled_with_cxx11_abi</span><span class="p">():</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Returns whether PyTorch was built with _GLIBCXX_USE_CXX11_ABI=1&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_C</span><span class="o">.</span><span class="n">_GLIBCXX_USE_CXX11_ABI</span>
+
+
+<span class="c1"># Import the ops &quot;namespace&quot;</span>
+<span class="kn">from</span> <span class="nn">torch._ops</span> <span class="k">import</span> <span class="n">ops</span>
 </pre></div>
 
            </div>

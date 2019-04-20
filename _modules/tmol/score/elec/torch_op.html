@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.elec.torch_op &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
+  <title>tmol.score.elec.torch_op &mdash; TMol 0.0.0-167-gc7024829 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-166-g12d61a08',
+              VERSION:'0.0.0-167-gc7024829',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-166-g12d61a08
+                0.0.0-167-gc7024829
               </div>
             
           
@@ -277,7 +277,7 @@
 
 <div class="viewcode-block" id="_ElecScoreFun.backward"><a class="viewcode-back" href="../../../../apidoc/tmol.score.elec.torch_op.html#tmol.score.elec.torch_op._ElecScoreFun.backward">[docs]</a>    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">_ind_grads</span><span class="p">,</span> <span class="n">dV_dE</span><span class="p">):</span>
         <span class="n">ind</span><span class="p">,</span> <span class="n">dE_dI</span><span class="p">,</span> <span class="n">dE_dJ</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
-        <span class="n">ind_I</span><span class="p">,</span> <span class="n">ind_J</span> <span class="o">=</span> <span class="n">ind</span>
+        <span class="n">ind_I</span><span class="p">,</span> <span class="n">ind_J</span> <span class="o">=</span> <span class="n">ind</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
         <span class="n">dV_dI</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
             <span class="n">ind_I</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dV_dE</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">dE_dI</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">shape_I</span> <span class="o">+</span> <span class="p">(</span><span class="mi">3</span><span class="p">,)</span>

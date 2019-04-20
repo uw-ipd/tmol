@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.lk_ball.torch_ops &mdash; TMol 0.0.0-166-g12d61a08 documentation</title>
+  <title>tmol.score.lk_ball.torch_ops &mdash; TMol 0.0.0-167-gc7024829 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-166-g12d61a08',
+              VERSION:'0.0.0-167-gc7024829',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-166-g12d61a08
+                0.0.0-167-gc7024829
               </div>
             
           
@@ -261,8 +261,8 @@
 
         <span class="n">ind</span><span class="p">,</span> <span class="n">dV_dCI</span><span class="p">,</span> <span class="n">dV_dCJ</span><span class="p">,</span> <span class="n">dV_dWI</span><span class="p">,</span> <span class="n">dV_dWJ</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">lk_ball_dV</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
 
-        <span class="n">ind_I</span> <span class="o">=</span> <span class="n">i_idx</span><span class="p">[</span><span class="n">ind</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span>
-        <span class="n">ind_J</span> <span class="o">=</span> <span class="n">j_idx</span><span class="p">[</span><span class="n">ind</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">ind_I</span> <span class="o">=</span> <span class="n">i_idx</span><span class="p">[</span><span class="n">ind</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+        <span class="n">ind_J</span> <span class="o">=</span> <span class="n">j_idx</span><span class="p">[</span><span class="n">ind</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
         <span class="n">dT_dI</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">sparse_coo_tensor</span><span class="p">(</span>
