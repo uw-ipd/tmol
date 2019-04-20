@@ -9,33 +9,47 @@ def test_load():
         is_python_module=False,
     )
 
-    cpow = torch.ops.tmol.CPow
+    cpow = torch.ops.tmol.cpow
     assert cpow is not None
 
-    @torch.jit.script
-    def pow3(x):
-        return cpow(x, 3.0)
+    def check_form(pow3_f):
+        # Checkout without autograd trace
+        i: torch.Tensor = torch.arange(10).to(torch.float)
+        result = pow3_f(i)
+        expected = i.pow(3.0)
 
-    i = torch.arange(10).to(torch.float)
-    res = cpow(i, 3.0)
-    jres = pow3(i)
-    eres = i.pow(3.0)
+        torch.testing.assert_allclose(result, expected)
 
-    assert not res.requires_grad
-    assert not jres.requires_grad
-    assert not eres.requires_grad
+        assert not result.requires_grad
+        assert not expected.requires_grad
 
-    torch.testing.assert_allclose(eres, res)
-    torch.testing.assert_allclose(eres, jres)
+        # Check with autograd
+        i = torch.arange(10).to(torch.float).requires_grad_(True)
+        result = pow3_f(i)
+        expected = i.pow(3.0)
 
-    gi = torch.arange(10).to(torch.float).requires_grad_(True)
-    gres = cpow(gi, 3.0)
-    gjres = pow3(gi)
-    geres = gi.pow(3.0)
+        torch.testing.assert_allclose(result, expected)
 
-    torch.testing.assert_allclose(geres, gres)
-    torch.testing.assert_allclose(geres, gjres)
+        assert result.requires_grad
+        assert expected.requires_grad
 
-    assert gres.requires_grad
-    assert gjres.requires_grad
-    assert geres.requires_grad
+        # Check matching grads
+        i = torch.arange(10).to(torch.float).requires_grad_(True)
+        i.pow(3.0).sum().backward()
+        expected_grad = i.grad
+
+        i = torch.arange(10).to(torch.float).requires_grad_(True)
+        pow3_f(i).sum().backward()
+        result_grad = i.grad
+
+        torch.testing.assert_allclose(result_grad, expected_grad)
+
+    def pow3(t):
+        return cpow(t, 3.0)
+
+    t_pow3 = torch.jit.trace(pow3, torch.rand(10))
+    s_pow3 = torch.jit.script(pow3)
+
+    check_form(pow3)
+    check_form(t_pow3)
+    check_form(s_pow3)
