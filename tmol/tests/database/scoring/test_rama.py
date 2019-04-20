@@ -1,8 +1,3 @@
-import pandas
-import cattr
-import numpy
-
-
 def test_rama(default_database):
     db = default_database.scoring.rama
 
