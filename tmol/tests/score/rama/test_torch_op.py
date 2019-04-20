@@ -176,8 +176,8 @@ def test_rama_intra(default_database, ubq_system, torch_device):
         ]
     )
 
-    numpy.testing.assert_allclose(batch_scores, target_scores, atol=1e-4)
-    numpy.testing.assert_allclose(batch_scores.sum(), -12.743369, atol=1e-4)
+    numpy.testing.assert_allclose(batch_scores.cpu(), target_scores, atol=1e-4)
+    numpy.testing.assert_allclose(batch_scores.sum().cpu(), -12.743369, atol=1e-4)
 
 
 # torch gradcheck

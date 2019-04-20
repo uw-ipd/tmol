@@ -16,39 +16,47 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define HomogeneousTransform Eigen::Matrix<Real, 4, 4>
 #define QuatTranslation Eigen::Matrix<Real, 7, 1>
-#define QuatTransRawBuffer std::array<Real, 7>
 #define f1f2Vectors Eigen::Matrix<Real, 6, 1>
-#define f1f2VecsRawBuffer std::array<Real, 6>
+
+template <typename Real>
+struct QuatTransRawBuffer {
+  Real data[7];
+};
+
+template <typename Real>
+struct f1f2VecsRawBuffer {
+  Real data[6];
+};
 
 // the composite operation for the forward pass: apply a transform
 //   qt1/qt2 -> HT1/HT2 -> HT1*HT2 -> qt12' -> norm(qt12')
 template <tmol::Device D, typename Real, typename Int>
 struct qcompose_t : public std::binary_function<
-                        QuatTransRawBuffer,
-                        QuatTransRawBuffer,
-                        QuatTransRawBuffer> {
-  MGPU_HOST_DEVICE QuatTransRawBuffer
-  operator()(QuatTransRawBuffer p, QuatTransRawBuffer i) const {
+                        QuatTransRawBuffer<Real>,
+                        QuatTransRawBuffer<Real>,
+                        QuatTransRawBuffer<Real>> {
+  MGPU_HOST_DEVICE QuatTransRawBuffer<Real> operator()(
+      QuatTransRawBuffer<Real> p, QuatTransRawBuffer<Real> i) const {
     QuatTranslation ab = common<D, Real, Int>::quat_trans_compose(
-        Eigen::Map<QuatTranslation>(i.data()),
-        Eigen::Map<QuatTranslation>(p.data()));
+        Eigen::Map<QuatTranslation>(i.data),
+        Eigen::Map<QuatTranslation>(p.data));
 
-    return *((QuatTransRawBuffer*)ab.data());
+    return *((QuatTransRawBuffer<Real>*)ab.data());
   }
 };
 
 // the composite operation for the backward pass: sum f1s & f2s
 template <tmol::Device D, typename Real, typename Int>
 struct f1f2compose_t : public std::binary_function<
-                           f1f2VecsRawBuffer,
-                           f1f2VecsRawBuffer,
-                           f1f2VecsRawBuffer> {
-  MGPU_HOST_DEVICE f1f2VecsRawBuffer
-  operator()(f1f2VecsRawBuffer p, f1f2VecsRawBuffer i) const {
+                           f1f2VecsRawBuffer<Real>,
+                           f1f2VecsRawBuffer<Real>,
+                           f1f2VecsRawBuffer<Real>> {
+  MGPU_HOST_DEVICE f1f2VecsRawBuffer<Real> operator()(
+      f1f2VecsRawBuffer<Real> p, f1f2VecsRawBuffer<Real> i) const {
     f1f2Vectors ab =
-        Eigen::Map<f1f2Vectors>(i.data()) + Eigen::Map<f1f2Vectors>(p.data());
+        Eigen::Map<f1f2Vectors>(i.data) + Eigen::Map<f1f2Vectors>(p.data);
 
-    return *((f1f2VecsRawBuffer*)ab.data());
+    return *((f1f2VecsRawBuffer<Real>*)ab.data());
   }
 };
 
@@ -86,7 +94,7 @@ struct ForwardKinDispatch {
     // memory for scan (longest scan possible is 2 times # atoms)
     auto QTscan_t = TPack<QuatTranslation, 1, D>::empty({2 * num_atoms});
     auto QTscan = QTscan_t.view;
-    QuatTransRawBuffer init = {0, 0, 0, 1, 0, 0, 0};  // identity xform
+    QuatTransRawBuffer<Real> init = {0, 0, 0, 1, 0, 0, 0};  // identity xform
 
     auto ngens = gens.size(0) - 1;
     for (int gen = 0; gen < ngens; ++gen) {
@@ -96,7 +104,8 @@ struct ForwardKinDispatch {
 
       // reindexing function
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
-        return *((QuatTransRawBuffer*)QTs[nodes[nodestart + index]].data());
+        return *(
+            (QuatTransRawBuffer<Real>*)QTs[nodes[nodestart + index]].data());
       };
 
       // mgpu does not play nicely with eigen types
@@ -107,7 +116,7 @@ struct ForwardKinDispatch {
           nnodes,
           &scans.data()[scanstart],
           nscans,
-          (QuatTransRawBuffer*)(QTscan.data()->data()),
+          (QuatTransRawBuffer<Real>*)(QTscan.data()->data()),
           qcompose_t<D, Real, Int>(),
           init,
           context);
@@ -259,7 +268,7 @@ struct SegscanF1f2sDispatch {
     // temp memory for scan (longest scan possible is 2 times # atoms)
     auto f1f2scan_t = TPack<f1f2Vectors, 1, D>::empty({2 * num_atoms});
     auto f1f2scan = f1f2scan_t.view;
-    f1f2VecsRawBuffer init = {0, 0, 0, 0, 0, 0};  // identity
+    f1f2VecsRawBuffer<Real> init = {0, 0, 0, 0, 0, 0};  // identity
 
     mgpu::standard_context_t context;
 
@@ -271,7 +280,8 @@ struct SegscanF1f2sDispatch {
 
       // reindexing function
       auto k_reindex = [=] MGPU_DEVICE(int index, int seg, int rank) {
-        return *((f1f2VecsRawBuffer*)f1f2s[nodes[nodestart + index]].data());
+        return *(
+            (f1f2VecsRawBuffer<Real>*)f1f2s[nodes[nodestart + index]].data());
       };
 
       // mgpu does not play nicely with eigen types
@@ -283,7 +293,7 @@ struct SegscanF1f2sDispatch {
               nnodes,
               &scans.data()[scanstart],
               nscans,
-              (f1f2VecsRawBuffer*)(f1f2scan.data()->data()),
+              (f1f2VecsRawBuffer<Real>*)(f1f2scan.data()->data()),
               f1f2compose_t<D, Real, Int>(),
               init,
               context);
@@ -316,9 +326,7 @@ template struct SegscanF1f2sDispatch<tmol::Device::CUDA, double, int32_t>;
 
 #undef HomogeneousTransform
 #undef QuatTranslation
-#undef QuatTransRawBuffer
 #undef f1f2Vectors
-#undef f1f2VecsRawBuffer
 
 }  // namespace kinematics
 }  // namespace tmol

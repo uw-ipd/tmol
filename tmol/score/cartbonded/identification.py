@@ -111,7 +111,6 @@ class CartBondedIdentification:
     ):
         bonds = indexed_bonds.bonds.numpy()
         spans = indexed_bonds.bond_spans.numpy()
-        print(bonds.shape)
         bond_selector = bonds[:, 0] < bonds[:, 1]
 
         lengths = bonds[bond_selector].copy()

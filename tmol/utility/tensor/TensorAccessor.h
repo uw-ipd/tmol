@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ATen/Tensor.h>
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <stdint.h>
 #include <algorithm>
