@@ -2,7 +2,6 @@ import pytest
 
 from . import pdb
 from . import rosetta_baseline
-from . import structure
 
 
 @pytest.fixture(scope="session")
