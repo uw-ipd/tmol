@@ -8,6 +8,7 @@ _compiled = load(
             __file__,
             [
                 "compiled.pybind.cpp",
+                "compiled.ops.cpp",
                 "lj.compiled.cpu.cpp",
                 "lj.compiled.cuda.cu",
                 "lk_isotropic.compiled.cpu.cpp",
