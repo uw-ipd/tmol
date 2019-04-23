@@ -104,6 +104,13 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     def torch_val():
         return op.intra(s.tcoords, s.ttype, s.tbpl)
 
+    @subfixture(benchmark)
+    def torch_full():
+        res = op.intra(s.tcoords, s.ttype, s.tbpl)
+        res.backward()
+
+        return res
+
     torch.testing.assert_allclose(
         torch_val, torch.tensor(expected_dense).to(torch_device).sum()
     )
@@ -113,9 +120,30 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     ts_op.to(s.tcoords)
 
     @subfixture(benchmark)
-    def torchscript_val():
+    def op_val():
         return ts_op(s.tcoords, s.ttype, s.tbpl)
 
+    @subfixture(benchmark)
+    def op_full():
+        res = ts_op(s.tcoords, s.ttype, s.tbpl)
+        res.backward()
+
+        return res
+
     torch.testing.assert_allclose(
-        torchscript_val, torch.tensor(expected_dense).to(torch_device).sum()
+        op_val, torch.tensor(expected_dense).to(torch_device).sum()
     )
+
+    torch.testing.assert_allclose(
+        op_val, torch.tensor(expected_dense).to(torch_device).sum()
+    )
+
+    subind = torch.arange(0, 100, 5)
+
+    def op_subset(c):
+        fcoords = s.tcoords.clone()
+        fcoords[subind] = c
+
+        return ts_op(fcoords, s.ttype, s.tbpl)
+
+    gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)
