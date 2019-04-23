@@ -37,6 +37,63 @@ struct LJGlobalParams {
   Real lj_hbond_hdis;
 };
 
+template <typename Real, tmol::Device D>
+struct LJTypeParamTensors {
+  TView<Real, 1, D> lj_radius;
+  TView<Real, 1, D> lj_wdepth;
+  TView<bool, 1, D> is_donor;
+  TView<bool, 1, D> is_hydroxyl;
+  TView<bool, 1, D> is_polarh;
+  TView<bool, 1, D> is_acceptor;
+
+  template <typename Idx>
+  auto operator[](Idx i) const {
+    return LJTypeParams<Real>{lj_radius[i],
+                              lj_wdepth[i],
+                              is_donor[i],
+                              is_hydroxyl[i],
+                              is_polarh[i],
+                              is_acceptor[i]};
+  }
+};
+
+template <typename Real, tmol::Device D>
+struct LKTypeParamTensors {
+  TView<Real, 1, D> lj_radius;
+  TView<Real, 1, D> lk_dgfree;
+  TView<Real, 1, D> lk_lambda;
+  TView<Real, 1, D> lk_volume;
+  TView<bool, 1, D> is_donor;
+  TView<bool, 1, D> is_hydroxyl;
+  TView<bool, 1, D> is_polarh;
+  TView<bool, 1, D> is_acceptor;
+
+  template <typename Idx>
+  auto operator[](Idx i) const {
+    return LKTypeParams<Real>{lj_radius[i],
+                              lk_dgfree[i],
+                              lk_lambda[i],
+                              lk_volume[i],
+                              is_donor[i],
+                              is_hydroxyl[i],
+                              is_polarh[i],
+                              is_acceptor[i]};
+  }
+};
+
+template <typename Real, tmol::Device D>
+struct LJGlobalParamTensors {
+  TView<Real, 1, D> lj_hbond_dis;
+  TView<Real, 1, D> lj_hbond_OH_donor_dis;
+  TView<Real, 1, D> lj_hbond_hdis;
+
+  template <typename Idx>
+  auto operator[](Idx i) const {
+    return LJGlobalParams<Real>{
+        lj_hbond_dis[i], lj_hbond_OH_donor_dis[i], lj_hbond_hdis[i]};
+  }
+};
+
 }  // namespace potentials
 }  // namespace ljlk
 }  // namespace score

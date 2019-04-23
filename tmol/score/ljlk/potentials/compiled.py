@@ -17,19 +17,3 @@ _compiled = load(
     ),
     is_python_module=False,
 )
-
-
-def lk_isotropic(*args, **kwargs):
-    raise NotImplementedError()
-
-
-def lk_isotropic_triu(*args, **kwargs):
-    raise NotImplementedError()
-
-
-def lj(*args, **kwargs):
-    raise NotImplementedError()
-
-
-def lj_triu(*args, **kwargs):
-    raise NotImplementedError()

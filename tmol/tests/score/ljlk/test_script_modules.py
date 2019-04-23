@@ -14,6 +14,13 @@ from tmol.tests.autograd import gradcheck
 
 from tmol.tests.benchmark import subfixture
 
+from tmol.score.ljlk.script_modules import (
+    LJIntraModule,
+    LJInterModule,
+    LKIsotropicIntraModule,
+    LKIsotropicInterModule,
+)
+
 
 @attr.s(auto_attribs=True)
 class ScoreSetup:
@@ -86,8 +93,6 @@ def _dense_potential(potential, coords, atom_type_idx, atom_pair_bpl, param_reso
 
 def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     """LJIntraModule returns sum of triu entries of the dense lj score matrix."""
-    from tmol.score.ljlk.modules import LJIntraModule
-
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
     expected_dense = numpy.triu(
@@ -131,7 +136,6 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
 
 def test_lj_inter_op(default_database, torch_device, ubq_system):
     """LJInterModule returns sum of the dense lj score matrix."""
-    from tmol.score.ljlk.modules import LJInterModule
 
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
@@ -176,7 +180,6 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
 def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
     """LKIsotropicIntraModule returns sum of triu entries of the dense
     lk_isotropic score matrix."""
-    from tmol.score.ljlk.modules import LKIsotropicIntraModule
 
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
@@ -221,7 +224,6 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
 
 def test_lk_inter_op(default_database, torch_device, ubq_system):
     """LKIsotropicInterModule returns sum of the dense lj score matrix."""
-    from tmol.score.ljlk.modules import LKIsotropicInterModule
 
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
