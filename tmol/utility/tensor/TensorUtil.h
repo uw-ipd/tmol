@@ -97,7 +97,7 @@ struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
 
 template <
     typename T,
-    int N,
+    size_t N,
     Device D,
     PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
@@ -135,11 +135,11 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
 
 template <
     typename T,
-    int N,
+    size_t N,
     Device D,
     PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-auto view_tensor(at::Tensor tensor, std::string name)
+auto view_tensor(at::Tensor tensor, const std::string& name)
     -> tmol::TView<T, N, D, P> {
   try {
     return view_tensor<T, N, D, P>(tensor);
