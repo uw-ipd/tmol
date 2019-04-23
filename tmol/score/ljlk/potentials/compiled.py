@@ -7,7 +7,6 @@ _compiled = load(
         relpaths(
             __file__,
             [
-                "compiled.pybind.cpp",
                 "compiled.ops.cpp",
                 "lj.compiled.cpu.cpp",
                 "lj.compiled.cuda.cu",
@@ -16,22 +15,21 @@ _compiled = load(
             ],
         )
     ),
+    is_python_module=False,
 )
 
 
 def lk_isotropic(*args, **kwargs):
-    return _compiled.lk_isotropic[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+    raise NotImplementedError()
 
 
 def lk_isotropic_triu(*args, **kwargs):
-    return _compiled.lk_isotropic_triu[(args[0].device.type, args[0].dtype)](
-        *args, **kwargs
-    )
+    raise NotImplementedError()
 
 
 def lj(*args, **kwargs):
-    return _compiled.lj[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+    raise NotImplementedError()
 
 
 def lj_triu(*args, **kwargs):
-    return _compiled.lj_triu[(args[0].device.type, args[0].dtype)](*args, **kwargs)
+    raise NotImplementedError()

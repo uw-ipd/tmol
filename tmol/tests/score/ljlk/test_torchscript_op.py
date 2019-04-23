@@ -3,10 +3,8 @@ import attr
 
 import numpy
 import torch
-import sparse
 
 from tmol.score.ljlk.numba.vectorized import lj, lk_isotropic
-from tmol.score.ljlk.torch_op import LJOp, LKOp
 from tmol.score.bonded_atom import bonded_path_length
 
 import tmol.database
@@ -98,52 +96,78 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
         )
     )
 
-    op = LJOp(s.param_resolver)
-
-    @subfixture(benchmark)
-    def torch_val():
-        return op.intra(s.tcoords, s.ttype, s.tbpl)
-
-    @subfixture(benchmark)
-    def torch_full():
-        res = op.intra(s.tcoords, s.ttype, s.tbpl)
-        res.backward()
-
-        return res
-
-    torch.testing.assert_allclose(
-        torch_val, torch.tensor(expected_dense).to(torch_device).sum()
-    )
-
-    ts_op = LJIntraModule(s.param_resolver)
-
-    ts_op.to(s.tcoords)
+    op = LJIntraModule(s.param_resolver)
+    op.to(s.tcoords)
 
     @subfixture(benchmark)
     def op_val():
-        return ts_op(s.tcoords, s.ttype, s.tbpl)
+        return op(s.tcoords, s.ttype, s.tbpl)
+
+    torch.testing.assert_allclose(
+        op_val, torch.tensor(expected_dense).to(torch_device).sum()
+    )
 
     @subfixture(benchmark)
     def op_full():
-        res = ts_op(s.tcoords, s.ttype, s.tbpl)
+        res = op(s.tcoords, s.ttype, s.tbpl)
         res.backward()
 
         return res
 
     torch.testing.assert_allclose(
-        op_val, torch.tensor(expected_dense).to(torch_device).sum()
+        op_full, torch.tensor(expected_dense).to(torch_device).sum()
     )
 
-    torch.testing.assert_allclose(
-        op_val, torch.tensor(expected_dense).to(torch_device).sum()
-    )
-
-    subind = torch.arange(0, 100, 5)
+    subind = torch.arange(0, s.tcoords.shape[0], 100)
 
     def op_subset(c):
         fcoords = s.tcoords.clone()
         fcoords[subind] = c
 
-        return ts_op(fcoords, s.ttype, s.tbpl)
+        return op(fcoords, s.ttype, s.tbpl)
+
+    gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)
+
+
+def test_lj_inter_op(default_database, torch_device, ubq_system):
+    """LJOp.inter returns sum of the dense lj score matrix."""
+    from tmol.score.ljlk.modules import LJInterModule
+
+    s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
+
+    part = ubq_system.system_size // 2
+
+    expected_dense = numpy.nan_to_num(
+        _dense_lj(s.coords, s.atom_type_idx, s.atom_pair_bpl, s.param_resolver)
+    )[:part, part:]
+
+    op = LJInterModule(s.param_resolver)
+    op.to(s.tcoords)
+
+    val = op(
+        s.tcoords[:part],
+        s.ttype[:part],
+        s.tcoords[part:],
+        s.ttype[part:],
+        s.tbpl[:part, part:],
+    )
+
+    torch.testing.assert_allclose(
+        val, torch.tensor(expected_dense).to(torch_device).sum()
+    )
+
+    subind = torch.arange(0, s.tcoords.shape[0], 100)
+
+    def op_subset(c):
+        fcoords = s.tcoords.clone()
+        fcoords[subind] = c
+
+        return op(
+            fcoords[:part],
+            s.ttype[:part],
+            fcoords[part:],
+            s.ttype[part:],
+            s.tbpl[:part, part:],
+        )
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)

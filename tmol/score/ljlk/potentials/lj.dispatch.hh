@@ -35,8 +35,8 @@ struct LJDispatch {
       TView<Int, 1, D> atom_type_j,
 
       TView<Real, 2, D> bonded_path_lengths,
-      LJTypeParamTensors<Real, D> type_params,
-      LJGlobalParamTensors<Real, D> global_params)
+      TView<LJTypeParams<Real>, 1, D> type_params,
+      TView<LJGlobalParams<Real>, 1, D> global_params)
       -> std::tuple<
           TPack<Real, 1, D>,
           TPack<Vec<Real, 3>, 1, D>,

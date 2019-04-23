@@ -13,7 +13,7 @@ if "to" in torch.jit.ScriptModule.__dict__:
     delattr(torch.jit.ScriptModule, "to")
 
 
-class LJIntraModule(torch.jit.ScriptModule):
+class _LJScoreModule(torch.jit.ScriptModule):
     @classmethod
     def from_database(
         cls,
@@ -34,19 +34,42 @@ class LJIntraModule(torch.jit.ScriptModule):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
-        self.lj_radius = _p(param_resolver.type_params.lj_radius)
-        self.lj_wdepth = _p(param_resolver.type_params.lj_wdepth)
-        self.is_donor = _p(param_resolver.type_params.is_donor)
-        self.is_hydroxyl = _p(param_resolver.type_params.is_hydroxyl)
-        self.is_polarh = _p(param_resolver.type_params.is_polarh)
-        self.is_acceptor = _p(param_resolver.type_params.is_acceptor)
+        def _t(ts):
+            return tuple(map(lambda t: t.to(torch.float), ts))
 
-        self.lj_hbond_dis = _p(param_resolver.global_params.lj_hbond_dis)
-        self.lj_hbond_OH_donor_dis = _p(
-            param_resolver.global_params.lj_hbond_OH_donor_dis
+        # Pack parameters into dense tensor. Parameter ordering must match
+        # struct layout declared in `potentials/params.hh`.
+        self.type_params = _p(
+            torch.stack(
+                _t(
+                    [
+                        param_resolver.type_params.lj_radius,
+                        param_resolver.type_params.lj_wdepth,
+                        param_resolver.type_params.is_donor,
+                        param_resolver.type_params.is_hydroxyl,
+                        param_resolver.type_params.is_polarh,
+                        param_resolver.type_params.is_acceptor,
+                    ]
+                ),
+                dim=1,
+            )
         )
-        self.lj_hbond_hdis = _p(param_resolver.global_params.lj_hbond_hdis)
 
+        self.global_params = _p(
+            torch.stack(
+                _t(
+                    [
+                        param_resolver.global_params.lj_hbond_dis,
+                        param_resolver.global_params.lj_hbond_OH_donor_dis,
+                        param_resolver.global_params.lj_hbond_hdis,
+                    ]
+                ),
+                dim=1,
+            )
+        )
+
+
+class LJIntraModule(_LJScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, bonded_path_lengths):
         return torch.ops.tmol.score_ljlk_lj_triu(
@@ -55,13 +78,20 @@ class LJIntraModule(torch.jit.ScriptModule):
             I,
             atom_type_I,
             bonded_path_lengths,
-            [
-                self.lj_radius,
-                self.lj_wdepth,
-                self.is_donor,
-                self.is_hydroxyl,
-                self.is_polarh,
-                self.is_acceptor,
-            ],
-            [self.lj_hbond_dis, self.lj_hbond_OH_donor_dis, self.lj_hbond_hdis],
+            self.type_params,
+            self.global_params,
+        )
+
+
+class LJInterModule(_LJScoreModule):
+    @torch.jit.script_method
+    def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+        return torch.ops.tmol.score_ljlk_lj(
+            I,
+            atom_type_I,
+            J,
+            atom_type_J,
+            bonded_path_lengths,
+            self.type_params,
+            self.global_params,
         )
