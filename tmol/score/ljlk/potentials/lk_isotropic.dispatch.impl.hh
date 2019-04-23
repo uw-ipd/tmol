@@ -10,7 +10,6 @@
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
-#include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
 
@@ -40,8 +39,8 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
 
     TView<Real, 2, D> bonded_path_lengths,
 
-    LKTypeParamTensors<Real, D> type_params,
-    LJGlobalParamTensors<Real, D> global_params)
+    TView<LKTypeParams<Real>, 1, D> type_params,
+    TView<LJGlobalParams<Real>, 1, D> global_params)
     -> std::tuple<
         TPack<Real, 1, D>,
         TPack<Vec<Real, 3>, 1, D>,
