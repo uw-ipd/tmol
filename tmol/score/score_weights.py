@@ -9,7 +9,7 @@ class ScoreWeights:
     """Mixin for scoring system enabling per-term reweighing
 
     Stores a dictionary matching score terms (strings) to weights (reals)
-    which are used in per-term reweighting in 'total' in both 
+    which are used in per-term reweighting in 'total' in both
     Intra and Inter scores
     """
 

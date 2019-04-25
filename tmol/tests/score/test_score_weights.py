@@ -1,5 +1,3 @@
-import pytest
-
 import torch
 
 from tmol.score.ljlk import LJScoreGraph

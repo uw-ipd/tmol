@@ -118,11 +118,9 @@ to a target ``_ScoreComponent`` object.
 
 |
 """
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple
 import operator
 import collections.abc
-
-from functools import singledispatch
 
 import attr
 import toolz

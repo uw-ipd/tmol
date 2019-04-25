@@ -1,18 +1,15 @@
 import pytest
 import torch
 
-from tmol.utility.reactive import reactive_property
 
 from tmol.score import TotalScoreGraph
 
 from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
-from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.score_components import ScoreComponentClasses, IntraScore
 
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
-    KinematicAtomicCoordinateProvider,
+    # KinematicAtomicCoordinateProvider,
 )
 
 
@@ -61,7 +58,7 @@ def test_setup(
             device=torch_device,
             component_weights=default_component_weights,
         )
-        total = score_graph.intra_score().total
+        score_graph.intra_score().total
 
     setup
 
@@ -77,7 +74,7 @@ def test_full(
         device=torch_device,
         component_weights=default_component_weights,
     )
-    total = score_graph.intra_score().total
+    score_graph.intra_score().total
 
     @benchmark
     def forward_backward():
