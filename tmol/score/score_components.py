@@ -186,8 +186,11 @@ class InterScore:
     target_j: "_ScoreComponent" = attr.ib()
 
     @staticmethod
-    def total(target, **component_totals):
-        if not hasattr(target, "component_weights") or target.component_weights is None:
+    def total(target_i, target_j, **component_totals):
+        if (
+            not hasattr(target_i, "component_weights")
+            or target_i.component_weights is None
+        ):
             # no weights provided, simple sum components
             return toolz.reduce(operator.add, component_totals.values())
         else:

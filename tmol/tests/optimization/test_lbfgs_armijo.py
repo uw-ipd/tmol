@@ -39,7 +39,7 @@ def test_lbfgs_armijo(ubq_system):
     x = torch.randn(Natoms, 3, device=device, dtype=dtype, requires_grad=True)
     scorefunc = SimpleLJScore(r_m=1.0, epsilon=1.0)
 
-    optimizer = LBFGS_Armijo([x], lr=1.0, reltol=1e-2, gradtol=1e-2)
+    optimizer = LBFGS_Armijo([x], lr=1.0, rtol=1e-2, gradtol=1e-2)
 
     def closure():
         optimizer.zero_grad()
