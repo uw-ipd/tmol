@@ -9,12 +9,15 @@ from tmol.score.device import TorchDevice
 
 from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
-    # KinematicAtomicCoordinateProvider,
+    KinematicAtomicCoordinateProvider,
 )
+
+from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
+from tmol.optimization.modules import TorsionalEnergyNetwork
 
 
 @score_graph
-class TotalScore(CartesianAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
+class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
     pass
 
 
@@ -84,3 +87,41 @@ def test_full(
         return total
 
     forward_backward
+
+
+@pytest.mark.benchmark(group="total_score_onepass")
+@pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
+def test_minimize_25steps(
+    benchmark, systems_bysize, system_size, torch_device, default_component_weights
+):
+    score_graph = TotalScore.build_for(
+        systems_bysize[system_size],
+        requires_grad=True,
+        device=torch_device,
+        component_weights=default_component_weights,
+    )
+    score_graph.intra_score().total
+
+    # score
+    score_graph.intra_score().total
+    model = TorsionalEnergyNetwork(score_graph)
+
+    # set tol to 0 so we are guaranteed to hit the iteration limit
+    optimizer = LBFGS_Armijo(model.parameters(), lr=1.0, max_iter=25, atol=0, rtol=0)
+
+    # score once to initialize
+    score_graph.intra_score().total
+
+    def closure():
+        optimizer.zero_grad()
+        score_graph.reset_coords()  # this line is necessary!
+
+        E = model()
+        E.backward()
+        return E
+
+    @benchmark
+    def min_25_steps():
+        optimizer.step(closure)
+
+    min_25_steps

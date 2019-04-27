@@ -1,5 +1,6 @@
 import torch
-import lbfgs_armijo
+
+from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 
 
 class SimpleLJScore:
@@ -16,7 +17,7 @@ class SimpleLJScore:
 
         dist = torch.norm(deltas, 2, -1)
 
-        fd = (self.r_m / dist)
+        fd = self.r_m / dist
         fd2 = fd * fd
         fd6 = fd2 * fd2 * fd2
         fd12 = fd6 * fd6
@@ -30,7 +31,7 @@ class SimpleLJScore:
         return self
 
 
-if __name__ == '__main__':
+def test_lbfgs_armijo(ubq_system):
     dtype = torch.float
     device = torch.device("cpu")
 
@@ -40,7 +41,7 @@ if __name__ == '__main__':
 
     learning_rate = 1e-3
 
-    optimizer = lbfgs_armijo.LBFGS_Armijo([x])
+    optimizer = LBFGS_Armijo([x], lr=1.0, reltol=1e-2, gradtol=1e-2)
 
     def closure():
         optimizer.zero_grad()
@@ -48,6 +49,8 @@ if __name__ == '__main__':
         E.total_score.backward()
         return E.total_score
 
-    print(closure())
+    score_start = closure()
     optimizer.step(closure)
-    print(closure())
+    score_stop = closure()
+
+    assert score_start > score_stop

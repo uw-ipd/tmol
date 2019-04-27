@@ -4,14 +4,14 @@ from torch.optim import Optimizer
 
 
 def armijo_linesearch(
-        func,
-        derphi0,
-        old_fval,
-        alpha0=1,
-        factor=0.5,
-        sigma_decrease=0.1,
-        sigma_increase=0.8,
-        minstep=1e-12
+    func,
+    derphi0,
+    old_fval,
+    alpha0=1,
+    factor=0.5,
+    sigma_decrease=0.1,
+    sigma_increase=0.8,
+    minstep=1e-12,
 ):
     """Minimize over alpha, the function ``f(xk+alpha pk)``.
 
@@ -66,7 +66,7 @@ def armijo_linesearch(
         # attempt to increase stepsize
         alpha1 = alpha0 / factor
         phi_a1 = func(alpha1)
-        if (phi_a1 < phi_a0):
+        if phi_a1 < phi_a0:
             return alpha1, phi_a1
 
         # step back
@@ -75,7 +75,7 @@ def armijo_linesearch(
     # next, we check if we need to decrease the stepsize
     alpha1 = alpha0
     phi_a1 = phi_a0
-    while (phi_a1 > phi0 + alpha1 * sigma_decrease * derphi0):
+    while phi_a1 > phi0 + alpha1 * sigma_decrease * derphi0:
         # (fd) check for search failure.  In R3, "Inaccurate G!" is reported
         # (fd) I have made a few modifications to this from R3
         #      (1) there is no relative stepsize check, only an absolute one
@@ -85,12 +85,16 @@ def armijo_linesearch(
         # (fd) I think change (1) is hit reasonably often in R3
         #      (and while usually bad is not necessarily so, particularly on 1st step)
         # (fd) Change (2) probably is infrequent (and might slow things down?)
-        if (alpha1 < minstep):
-            if (phi_a1 >= phi0):
+        if alpha1 < minstep:
+            if phi_a1 >= phi0:
                 finite_diff = (phi_a1 - phi0) / alpha1
                 print(
-                    "Inaccurate G! Step=", alpha1, " Deriv=", derphi0,
-                    " Finite=", finite_diff
+                    "Inaccurate G! Step=",
+                    alpha1,
+                    " Deriv=",
+                    derphi0,
+                    " Finite=",
+                    finite_diff,
                 )
                 return 0.0, phi0
             return alpha1, phi_a1
@@ -109,44 +113,38 @@ class LBFGS_Armijo(Optimizer):
     Parameters:
         lr (float): learning rate (default: 1)
         max_iter (int): maximal number of iterations (default: 200)
-        reltol (float): relative tolerance (default: 1e-6)
-        abstol (float): absolute tolerance (default: 0)
+        rtol (float): relative tolerance (default: 1e-6)
+        atol (float): absolute tolerance (default: 0)
         gradtol (float): an absolute tolerance on max_i df/dx_i (default: 1e-4)
         history_size (int): update history size (default: 128).
     """
 
     def __init__(
-            self,
-            params,
-            lr=1,
-            max_iter=200,
-            reltol=1e-6,
-            abstol=0,
-            gradtol=1e-4,
-            history_size=128
+        self,
+        params,
+        lr=1,
+        max_iter=200,
+        rtol=1e-6,
+        atol=0,
+        gradtol=1e-4,
+        history_size=128,
     ):
         defaults = dict(
             lr=lr,
             max_iter=max_iter,
-            reltol=reltol,
-            abstol=abstol,
+            rtol=rtol,
+            atol=atol,
             gradtol=gradtol,
-            history_size=history_size
+            history_size=history_size,
         )
         super(LBFGS_Armijo, self).__init__(params, defaults)
 
         if len(self.param_groups) != 1:
             raise ValueError(
-                "LBFGS doesn't support per-parameter options "
-                "(parameter groups)"
+                "LBFGS doesn't support per-parameter options " "(parameter groups)"
             )
 
-        if (reltol == 0 and abstol == 0):
-            raise ValueError(
-                "Must specify non-zero value for reltol _or_ abstol"
-            )
-
-        self._params = self.param_groups[0]['params']
+        self._params = self.param_groups[0]["params"]
         self._numel_cache = None
 
     # LBFGS (as implemented) treats parameter groups all equally
@@ -189,7 +187,7 @@ class LBFGS_Armijo(Optimizer):
         for p in self._params:
             numel = p.numel()
             # view as to avoid deprecated pointwise semantics
-            p.data.copy_(update[offset:offset + numel].view_as(p.data))
+            p.data.copy_(update[offset : offset + numel].view_as(p.data))
             offset += numel
         assert offset == self._numel()
 
@@ -210,24 +208,24 @@ class LBFGS_Armijo(Optimizer):
         assert len(self.param_groups) == 1
 
         group = self.param_groups[0]
-        lr = group['lr']
-        max_iter = group['max_iter']
-        reltol = group['reltol']
-        abstol = group['abstol']
-        gradtol = group['gradtol']
-        history_size = group['history_size']
+        lr = group["lr"]
+        max_iter = group["max_iter"]
+        rtol = group["rtol"]
+        atol = group["atol"]
+        gradtol = group["gradtol"]
+        history_size = group["history_size"]
 
         # NOTE: LBFGS has only global state, but we register it as state for
         # the first param, because this helps with casting in load_state_dict
         state = self.state[self._params[0]]
-        state.setdefault('func_evals', 0)
-        state.setdefault('n_iter', 0)
+        state.setdefault("func_evals", 0)
+        state.setdefault("n_iter", 0)
 
         # evaluate initial f(x)
         orig_loss = closure()
         loss = float(orig_loss)
         current_evals = 1
-        state['func_evals'] += 1
+        state["func_evals"] += 1
 
         # ... and df/dx
         x = self._gather_flat_x()
@@ -235,23 +233,23 @@ class LBFGS_Armijo(Optimizer):
         max_grad = flat_grad.max()
 
         # tensors cached in state
-        d = state.get('d')  # search direction
-        t = state.get('t')  # stepsize
+        d = state.get("d")  # search direction
+        t = state.get("t")  # stepsize
 
-        old_dirs = state.get('old_dirs')  # history of directions
-        old_stps = state.get('old_stps')  # history of stepsizes
+        old_dirs = state.get("old_dirs")  # history of directions
+        old_stps = state.get("old_stps")  # history of stepsizes
 
-        prev_flat_grad = state.get('prev_flat_grad')  # previous grad
-        prev_loss = state.get('prev_loss')  # previous energy
+        prev_flat_grad = state.get("prev_flat_grad")  # previous grad
+        prev_loss = state.get("prev_loss")  # previous energy
 
         n_iter = 0
 
         while n_iter < max_iter:
             n_iter += 1
-            state['n_iter'] += 1
+            state["n_iter"] += 1
 
             ## LBFGS updates taken from torch LBFGS
-            if state['n_iter'] == 1:
+            if state["n_iter"] == 1:
                 # initialize
                 d = flat_grad.neg()
                 old_dirs = []
@@ -276,11 +274,11 @@ class LBFGS_Armijo(Optimizer):
                 # multiplied by the gradient
                 num_old = len(old_dirs)
 
-                if 'ro' not in state:
-                    state['ro'] = [None] * history_size
-                    state['al'] = [None] * history_size
-                ro = state['ro']
-                al = state['al']
+                if "ro" not in state:
+                    state["ro"] = [None] * history_size
+                    state["al"] = [None] * history_size
+                ro = state["ro"]
+                al = state["al"]
 
                 for i in range(num_old):
                     ro[i] = 1. / old_dirs[i].dot(old_stps[i])
@@ -305,7 +303,7 @@ class LBFGS_Armijo(Optimizer):
 
             # Armijo updates will track step length during optimization
             # thus, "learning rate" is only applied for the initial step
-            if state['n_iter'] == 1:
+            if state["n_iter"] == 1:
                 t = lr
 
             # directional derivative
@@ -314,15 +312,13 @@ class LBFGS_Armijo(Optimizer):
             # (fd) this is some hacky stuff I put in R3 that is not typically part
             # (fd)   of lbfgs because the bfgs update had us frequently searching
             # (fd)   in positive grad directions
-            # (fd) Perhaps there are better ways to do this?
-
             # check 1: if dir. deriv. is positive, flip signs of positive components
-            if (gtd > -1e-5):
+            if gtd > -1e-5:
                 d *= -torch.sign(flat_grad * d)
                 gtd = flat_grad.dot(d)
 
             # check 2: if derivative is still positive, reset Hessian
-            if (gtd > -1e-5):
+            if gtd > -1e-5:
                 d = flat_grad.neg()
                 old_dirs = []
                 old_stps = []
@@ -336,57 +332,55 @@ class LBFGS_Armijo(Optimizer):
                 self.ls_func_evals += 1
                 self._set_x_from_flat(x + alpha_test * d)
                 E = closure()
-                return E
+                return E.to(dtype=gtd.dtype)
 
             # do the line search
             t, loss = armijo_linesearch(
-                linefn,     # callback for energy eval
-                gtd,        # directional derivative
+                linefn,  # callback for energy eval
+                gtd,  # directional derivative
                 prev_loss,  # current function value (at x)
-                alpha0=t,   # stepsize
+                alpha0=t,  # stepsize
                 factor=0.5,
                 sigma_decrease=0.1,
                 sigma_increase=0.8,
-                minstep=1e-12
+                minstep=1e-12,
             )
 
             # update
             x = x + t * d
             self._set_x_from_flat(x)
-            closure(
-            )  # fd: needed for derivatives, but adds an extra func eval...
+            closure()  # fd: needed for derivatives, but adds an extra func eval...
             flat_grad = self._gather_flat_grad()
             max_grad = flat_grad.max()
 
             # update func eval
             current_evals += self.ls_func_evals
-            state['func_evals'] += self.ls_func_evals
+            state["func_evals"] += self.ls_func_evals
 
             # converge check 1: gradient
             if max_grad <= gradtol:
                 break
 
             # converge check 2: abs tol
-            if abs(loss - prev_loss) <= abstol:
+            if abs(loss - prev_loss) <= atol:
                 break
 
             # converge check 3: rel tol
-            if 2 * abs(loss - prev_loss) <= reltol * (
-                    abs(loss) + abs(prev_loss) + 1e-10):
+            if 2 * abs(loss - prev_loss) <= rtol * (abs(loss) + abs(prev_loss) + 1e-10):
                 break
 
             # report if we have hit max cycles (mimicing R3)
-            if state['n_iter'] == max_iter - 1:
-                print(
-                    "LBFGS_Armijo finished ", max_iter,
-                    " cycles without converging."
-                )
+            # if state['n_iter'] == max_iter - 1:
+            #    print(
+            #        "LBFGS_Armijo finished ", max_iter,
+            #        " cycles without converging."
+            #    )
 
-        state['d'] = d
-        state['t'] = t
-        state['old_dirs'] = old_dirs
-        state['old_stps'] = old_stps
-        state['prev_flat_grad'] = prev_flat_grad
-        state['prev_loss'] = prev_loss
+        state["d"] = d
+        state["t"] = t
+        state["old_dirs"] = old_dirs
+        state["old_stps"] = old_stps
+        state["prev_flat_grad"] = prev_flat_grad
+        state["prev_loss"] = prev_loss
 
         return orig_loss
