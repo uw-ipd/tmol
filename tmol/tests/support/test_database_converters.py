@@ -34,7 +34,7 @@ def test_rama_table_read(rosetta_database, default_database):
     ramatables = default_database.scoring.rama.rama_tables
 
     assert len(ramatables) == 40
-    table_keys = [i.name for i in ramatables]
+    table_keys = [i.table_id for i in ramatables]
     for aa in r3_general:
         gen_idx = table_keys.index(aa)
         numpy.testing.assert_allclose(r3_general[aa], ramatables[gen_idx].table)
