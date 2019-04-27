@@ -150,7 +150,7 @@ class IntraScore:
 
     @staticmethod
     def total(target, **component_totals):
-        if target.component_weights is None:
+        if not hasattr(target, "component_weights") or target.component_weights is None:
             # no weights provided, simple sum components
             return toolz.reduce(operator.add, component_totals.values())
         else:
@@ -187,7 +187,7 @@ class InterScore:
 
     @staticmethod
     def total(target, **component_totals):
-        if target.component_weights is None:
+        if not hasattr(target, "component_weights") or target.component_weights is None:
             # no weights provided, simple sum components
             return toolz.reduce(operator.add, component_totals.values())
         else:
