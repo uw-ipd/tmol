@@ -1,5 +1,3 @@
-import torch
-
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.optimization.modules import CartesianEnergyNetwork, TorsionalEnergyNetwork
 

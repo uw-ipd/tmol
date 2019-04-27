@@ -1,7 +1,4 @@
 import torch
-import math
-
-from tmol.kinematics.metadata import DOFTypes
 
 # modules for cartesian and torsion-space optimization
 #

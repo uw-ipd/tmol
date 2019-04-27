@@ -7,10 +7,7 @@ from tmol.score import TotalScoreGraph
 from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
 
-from tmol.score.coordinates import (
-    CartesianAtomicCoordinateProvider,
-    KinematicAtomicCoordinateProvider,
-)
+from tmol.score.coordinates import KinematicAtomicCoordinateProvider
 
 from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
 from tmol.optimization.modules import TorsionalEnergyNetwork
