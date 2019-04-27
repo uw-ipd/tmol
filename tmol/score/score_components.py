@@ -201,8 +201,8 @@ class InterScore:
             #     current graph are silently ignored
             total_score = torch.zeros_like(next(iter(component_totals.values())))
             for comp, score in component_totals.items():
-                if comp in target.component_weights:
-                    total_score += target.component_weights[comp] * score
+                if comp in target_i.component_weights:
+                    total_score += target_i.component_weights[comp] * score
             return total_score
 
 
