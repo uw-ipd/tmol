@@ -204,7 +204,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
         rotameric_prob_tables = [
-            torch.tensor(rotlib.rotameric_data.rotamer_probabilities[i,])
+            torch.tensor(rotlib.rotameric_data.rotamer_probabilities[i, :, :])
             for rotlib in all_rotlibs
             for i in range(rotlib.rotameric_data.rotamer_probabilities.shape[0])
         ]
@@ -414,7 +414,7 @@ class DunbrackParamResolver(ValidateAttrs):
             torch.tensor(nsemirot_rotamers, dtype=torch.int32, device=device), 0
         )
         semirotameric_prob_tables = [
-            torch.tensor(rotlib.nonrotameric_chi_probabilities[i,])
+            torch.tensor(rotlib.nonrotameric_chi_probabilities[i, :, :, :])
             for rotlib in dun_database.semi_rotameric_libraries
             for i in range(rotlib.nonrotameric_chi_probabilities.shape[0])
         ]
