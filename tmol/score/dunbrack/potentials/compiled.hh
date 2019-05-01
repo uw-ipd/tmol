@@ -24,14 +24,20 @@ struct DunbrackDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
 
-      TCollection<Real, 2, D> rotameric_prob_tables,
-      TCollection<Real, 2, D> rotameric_neglnprob_tables,
-      TCollection<Real, 2, D> rotameric_mean_tables,
-      TCollection<Real, 2, D> rotameric_sdev_tables,
+      TView<Real, 3, D> rotameric_prob_tables,
+      TView<Real, 3, D> rotameric_neglnprob_tables,
+      TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
+      TView<Vec<int64_t, 2>, 1, D> rotprob_table_strides,
+      TView<Real, 3, D> rotameric_mean_tables,
+      TView<Real, 3, D> rotameric_sdev_tables,
+      TView<Vec<int64_t, 2>, 1, D> rotmean_table_sizes,
+      TView<Vec<int64_t, 2>, 1, D> rotmean_table_strides,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,        // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,         // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,  // ntable-set entries
-      TCollection<Real, 3, D> semirotameric_tables,        // n-semirot-tabset
+      TView<Real, 4, D> semirotameric_tables,              // n-semirot-tabset
+      TView<Vec<int64_t, 3>, 1, D> semirot_table_sizes,    // n-semirot-tabset
+      TView<Vec<int64_t, 3>, 1, D> semirot_table_strides,  // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_start,             // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_step,              // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset

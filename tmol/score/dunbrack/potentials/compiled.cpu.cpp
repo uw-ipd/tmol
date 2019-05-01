@@ -32,14 +32,20 @@ struct DunbrackDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
 
-      TCollection<Real, 2, D> rotameric_prob_tables,
-      TCollection<Real, 2, D> rotameric_neglnprob_tables,
-      TCollection<Real, 2, D> rotameric_mean_tables,
-      TCollection<Real, 2, D> rotameric_sdev_tables,
+      TView<Real, 3, D> rotameric_prob_tables,
+      TView<Real, 3, D> rotameric_neglnprob_tables,
+      TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
+      TView<Vec<int64_t, 2>, 1, D> rotprob_table_strides,
+      TView<Real, 3, D> rotameric_mean_tables,
+      TView<Real, 3, D> rotameric_sdev_tables,
+      TView<Vec<int64_t, 2>, 1, D> rotmean_table_sizes,
+      TView<Vec<int64_t, 2>, 1, D> rotmean_table_strides,
       TView<Vec<Real, 2>, 1, D> rotameric_bb_start,  // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_step,  // ntable-set entries
       TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,  // ntable-set entries
-      TCollection<Real, 3, D> semirotameric_tables, // n-semirot-tabset
+      TView<Real, 4, D> semirotameric_tables, // n-semirot-tabset
+      TView<Vec<int64_t, 3>, 1, D> semirot_table_sizes,
+      TView<Vec<int64_t, 3>, 1, D> semirot_table_strides,
       TView<Vec<Real, 3>, 1, D> semirot_start, // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_step, // n-semirot-tabset
       TView<Vec<Real, 3>, 1, D> semirot_periodicity, // n-semirot-tabset
@@ -105,11 +111,6 @@ struct DunbrackDispatch {
     auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
     auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_tpack.view;
 
-    auto rotameric_neglnprob_tables_view = rotameric_neglnprob_tables.view;
-    auto rotameric_mean_tables_view = rotameric_mean_tables.view;
-    auto rotameric_sdev_tables_view = rotameric_sdev_tables.view;
-    auto semirotameric_tables_view = semirotameric_tables.view;
-    
     // Five steps to this calculation
     // 0. (Initialization)
     // 1. compute the dihedrals and put them into the dihedrals array
@@ -152,7 +153,9 @@ struct DunbrackDispatch {
     // 3.
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i){
 	rotameric_chi_probability_for_res(
-	  rotameric_neglnprob_tables_view,
+	  rotameric_neglnprob_tables,
+	  rotprob_table_sizes,
+	  rotprob_table_strides,
 	  rotameric_bb_start,
 	  rotameric_bb_step,
 	  rotameric_bb_periodicity,
@@ -176,8 +179,10 @@ struct DunbrackDispatch {
     // 4.
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
       deviation_penalty_for_chi(
-        rotameric_mean_tables_view,
-        rotameric_sdev_tables_view,
+        rotameric_mean_tables,
+        rotameric_sdev_tables,
+	rotprob_table_sizes,
+	rotprob_table_strides,
         rotameric_bb_start,
         rotameric_bb_step,
         rotameric_bb_periodicity,
@@ -200,7 +205,9 @@ struct DunbrackDispatch {
     // 5.
     auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int i) {
 	semirotameric_energy(
-	  semirotameric_tables_view,
+	  semirotameric_tables,
+	  semirot_table_sizes,
+	  semirot_table_strides,
 	  semirot_start,
 	  semirot_step,
 	  semirot_periodicity,

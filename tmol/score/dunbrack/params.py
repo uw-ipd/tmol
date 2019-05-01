@@ -59,6 +59,38 @@ def print_row_numbered_tensor(tensor):
         )
 
 
+# @validate_args
+def nplus1d_tensor_from_list(
+    tensors: List
+):  # -> Tuple[Tensor, Tensor(torch.long)[:,:], Tensor(torch.long)[:,;]] :
+    assert len(tensors) > 0
+
+    for tensor in tensors:
+        assert len(tensor.shape) == len(tensors[0].shape)
+        assert tensor.dtype == tensors[0].dtype
+        assert tensor.device == tensors[0].device
+
+    max_sizes = [max(t.shape[i] for t in tensors) for i in range(len(tensors[0].shape))]
+    newdimsizes = [len(tensors)] + max_sizes
+
+    newt = torch.zeros(newdimsizes, dtype=tensors[0].dtype, device=tensors[0].device)
+    sizes = torch.zeros(
+        (len(tensors), tensors[0].dim()), dtype=torch.long, device=tensors[0].device
+    )
+    strides = torch.zeros(
+        (len(tensors), tensors[0].dim()), dtype=torch.long, device=tensors[0].device
+    )
+
+    for i, t in enumerate(tensors):
+        ti = newt[i, :]
+        for j in range(t.dim()):
+            ti = ti.narrow(j, 0, t.shape[j])
+        ti[:] = t
+        sizes[i, :] = torch.tensor(t.shape, dtype=torch.long, device=t.device)
+        strides[i, :] = torch.tensor(t.stride(), dtype=torch.long, device=t.device)
+    return newt, sizes, strides
+
+
 @attr.s(auto_attribs=True)
 class DunbrackParams(TensorGroup):
     ndihe_for_res: Tensor(torch.int32)[:]
@@ -79,10 +111,14 @@ class DunbrackParams(TensorGroup):
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedDunbrackDatabase(ConvertAttrs):
 
-    rotameric_prob_tables: List
-    rotameric_neglnprob_tables: List
-    rotameric_mean_tables: List
-    rotameric_sdev_tables: List
+    rotameric_prob_tables: Tensor(torch.float)[:, :, :]
+    rotameric_neglnprob_tables: Tensor(torch.float)[:, :, :]
+    rotprob_table_sizes: Tensor(torch.long)[:, 2]
+    rotprob_table_strides: Tensor(torch.long)[:, 2]
+    rotameric_mean_tables: Tensor(torch.float)[:, :, :]
+    rotameric_sdev_tables: Tensor(torch.float)[:, :, :]
+    rotmean_table_sizes: Tensor(torch.long)[:, 2]
+    rotmean_table_strides: Tensor(torch.long)[:, 2]
 
     rotameric_bb_start: Tensor(torch.float)[:, :]
     rotameric_bb_step: Tensor(torch.float)[:, :]
@@ -91,7 +127,9 @@ class PackedDunbrackDatabase(ConvertAttrs):
     rotameric_rotind2tableind: Tensor(torch.int32)[:]
     semirotameric_rotind2tableind: Tensor(torch.int32)[:]
 
-    semirotameric_tables: List
+    semirotameric_tables: Tensor(torch.float)[:, :, :, :]
+    semirot_table_sizes: Tensor(torch.long)[:, 3]
+    semirot_table_strides: Tensor(torch.long)[:, 3]
     semirot_start: Tensor(torch.float)[:, :]
     semirot_step: Tensor(torch.float)[:, :]
     semirot_periodicity: Tensor(torch.float)[:, :]
@@ -212,11 +250,15 @@ class DunbrackParamResolver(ValidateAttrs):
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_prob_tables
         ]
+        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides = nplus1d_tensor_from_list(
+            prob_coeffs
+        )
 
         neglnprob_coeffs = [
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_neglnprob_tables
         ]
+        neglnprob_coeffs, _, _2 = nplus1d_tensor_from_list(neglnprob_coeffs)
 
         rotameric_mean_tables = [
             torch.tensor(rotlib.rotameric_data.rotamer_means[i, :, :, j])
@@ -252,11 +294,15 @@ class DunbrackParamResolver(ValidateAttrs):
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_mean_tables
         ]
+        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = nplus1d_tensor_from_list(
+            mean_coeffs
+        )
 
         sdev_coeffs = [
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_sdev_tables
         ]
+        sdev_coeffs, _, _2 = nplus1d_tensor_from_list(sdev_coeffs)
 
         rotameric_bb_start = torch.tensor(
             [
@@ -402,6 +448,9 @@ class DunbrackParamResolver(ValidateAttrs):
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in semirotameric_prob_tables
         ]
+        semirot_coeffs, semirot_sizes, semirot_strides = nplus1d_tensor_from_list(
+            semirot_coeffs
+        )
 
         semirot_start = torch.zeros(
             (len(dun_database.semi_rotameric_libraries), 3),
@@ -457,14 +506,20 @@ class DunbrackParamResolver(ValidateAttrs):
         packed_db = PackedDunbrackDatabase(
             rotameric_prob_tables=prob_coeffs,
             rotameric_neglnprob_tables=neglnprob_coeffs,
+            rotprob_table_sizes=prob_coeffs_sizes,
+            rotprob_table_strides=prob_coeffs_strides,
             rotameric_mean_tables=mean_coeffs,
             rotameric_sdev_tables=sdev_coeffs,
+            rotmean_table_sizes=mean_coeffs_sizes,
+            rotmean_table_strides=mean_coeffs_strides,
             rotameric_bb_start=rotameric_bb_start,
             rotameric_bb_step=rotameric_bb_step,
             rotameric_bb_periodicity=rotameric_bb_periodicity,
             rotameric_rotind2tableind=rotameric_rotind2tableind,
             semirotameric_rotind2tableind=semirotameric_rotind2tableind,
             semirotameric_tables=semirot_coeffs,
+            semirot_table_sizes=semirot_sizes,
+            semirot_table_strides=semirot_strides,
             semirot_start=semirot_start,
             semirot_step=semirot_step,
             semirot_periodicity=semirot_periodicity,
