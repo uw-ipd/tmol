@@ -203,34 +203,3 @@ class DunbrackRotamerLibrary:
             rotameric_libraries=rotameric_libraries,
             semi_rotameric_libraries=semi_rotameric_libraries,
         )
-
-
-#   @attr.s(auto_attribs=True, slots=True, frozen=True)
-#   class CompactedDunbrackRotamerLibrary:
-#
-#       bbstart: Tensor(torch.float)[:, :]  # ntables x nbb
-#       bbstep: Tensor(torch.float)[:, :]  # ntables x nbb
-#
-#       offset_for_prob_rotameric_table: Tuple[int, ...]
-#       rotameric_prob_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
-#
-#       offset_for_mean_rotameric_table: Tuple[int, ...]
-#       rotameric_mean_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
-#       rotameric_sdev_interp_tables: Tuple[Tensor(torch.float), ...]  # nbb-dim tensors
-#
-#       non_rot_chi_start: Tensor(torch.float)[:]
-#       non_rot_chi_step: Tensor(torch.float)[:]
-#       non_rot_chi_period: Tensor(torch.float)[:]
-#       offset_for_semirotameric_table: Tuple[int, ...]
-#       semirotameric_prob_interp_tables: Tuple[
-#           Tensor(torch.float), ...
-#       ]  # nbb+1-dim tensors
-#
-#       @classmethod
-#       def from_dunbrack_rotlib(cls, drl):
-#           # here we will create an indexing of the rotameric tables
-#           # including the semi-rotameric tables
-#           # and for each one will create the interpolation coefficients
-#           # tensor
-#           #
-#           pass
