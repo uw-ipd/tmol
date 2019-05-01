@@ -1,13 +1,9 @@
-import attr
-import pandas
-
 import numpy
 import torch
 
 import itertools
 
 from tmol.score.dunbrack.params import DunbrackParamResolver, nplus1d_tensor_from_list
-from tmol.types.torch import Tensor
 
 
 def test_nplus1d_tensor_from_list():
@@ -29,7 +25,7 @@ def test_nplus1d_tensor_from_list():
                 )
 
 
-def skip_test_dun_param_resolver_construction(default_database, torch_device):
+def test_dun_param_resolver_construction(default_database, torch_device):
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
@@ -85,7 +81,7 @@ def skip_test_dun_param_resolver_construction(default_database, torch_device):
         3 ** rotlib.rotameric_chi_rotamers.shape[1]
         for rotlib in dunlib.semi_rotameric_libraries
     )
-    assert dun_params.rotind2tableind.shape[0] == max_nrots
+    assert dun_params.rotameric_rotind2tableind.shape[0] == max_nrots
 
     # ok, this kinda makes assumptions about the step + periodicity; I ought to fix this
     for table in dun_params.rotameric_mean_tables:
@@ -101,7 +97,7 @@ def skip_test_dun_param_resolver_construction(default_database, torch_device):
     assert dun_params.semirot_start.shape[0] == nsemirotameric_libs
     assert dun_params.semirot_step.shape[0] == nsemirotameric_libs
     assert dun_params.semirot_periodicity.shape[0] == nsemirotameric_libs
-    assert dun_params.semirotameric_tableset_offsets.shape[0] == nsemirotameric_libs
+    assert dun_params_aux.semirotameric_tableset_offsets.shape[0] == nsemirotameric_libs
 
     n_rotameric_rots_of_semirot_tables = sum(
         rotlib.rotameric_chi_rotamers.shape[0]
@@ -118,15 +114,16 @@ def skip_test_dun_param_resolver_construction(default_database, torch_device):
     ):
         assert table.device == torch_device
 
-    assert dun_params.rotameric_prob_tableset_offsets.device == torch_device
-    assert dun_params.rotameric_meansdev_tableset_offsets.device == torch_device
+    assert dun_params_aux.rotameric_prob_tableset_offsets.device == torch_device
+    assert dun_params_aux.rotameric_meansdev_tableset_offsets.device == torch_device
     assert dun_params.rotameric_bb_start.device == torch_device
     assert dun_params.rotameric_bb_step.device == torch_device
     assert dun_params.rotameric_bb_periodicity.device == torch_device
-    assert dun_params.nchi_for_table_set.device == torch_device
-    assert dun_params.rotind2tableind.device == torch_device
-    assert dun_params.rotind2tableind_offsets.device == torch_device
-    assert dun_params.semirotameric_tableset_offsets.device == torch_device
+    assert dun_params_aux.nchi_for_table_set.device == torch_device
+    assert dun_params.rotameric_rotind2tableind.device == torch_device
+    assert dun_params.semirotameric_rotind2tableind.device == torch_device
+    assert dun_params_aux.rotind2tableind_offsets.device == torch_device
+    assert dun_params_aux.semirotameric_tableset_offsets.device == torch_device
     assert dun_params.semirot_start.device == torch_device
     assert dun_params.semirot_step.device == torch_device
     assert dun_params.semirot_periodicity.device == torch_device
@@ -134,7 +131,7 @@ def skip_test_dun_param_resolver_construction(default_database, torch_device):
     # ok; everything is the right size.
     # make sure that the data has been properly initialized.
 
-    rotprob_offsets = dun_params.rotameric_prob_tableset_offsets.cpu().numpy()
+    rotprob_offsets = dun_params_aux.rotameric_prob_tableset_offsets.cpu().numpy()
     assert rotprob_offsets[0] == 0
     all_rotdat = [
         rotlib.rotameric_data
@@ -148,7 +145,7 @@ def skip_test_dun_param_resolver_construction(default_database, torch_device):
             == rotprob_offsets[i]
         )
 
-    rotmean_offsets = dun_params.rotameric_meansdev_tableset_offsets.cpu().numpy()
+    rotmean_offsets = dun_params_aux.rotameric_meansdev_tableset_offsets.cpu().numpy()
     rotsandchi = [
         rotdat.rotamers.shape[0] * rotdat.rotamers.shape[1] for rotdat in all_rotdat
     ]
@@ -157,29 +154,39 @@ def skip_test_dun_param_resolver_construction(default_database, torch_device):
         assert rotmean_offsets[i - 1] + rotsandchi[i - 1] == rotmean_offsets[i]
 
     nchi = [rotdat.rotamers.shape[1] for rotdat in all_rotdat]
-    nchi_for_set = dun_params.nchi_for_table_set.cpu().numpy()
+    nchi_for_set = dun_params_aux.nchi_for_table_set.cpu().numpy()
     numpy.testing.assert_array_equal(nchi, nchi_for_set)
 
-    ri2ti_offsets = dun_params.rotind2tableind_offsets.cpu().numpy()
-    ri2ti = dun_params.rotind2tableind.cpu().numpy()
+    rotameric_ri2ti_offsets = dun_params_aux.rotind2tableind_offsets.cpu().numpy()
+    rotameric_ri2ti = dun_params.rotameric_rotind2tableind.cpu().numpy()
     rotamers = [
         rotlib.rotameric_data.rotamers for rotlib in dunlib.rotameric_libraries
     ] + [rotlib.rotameric_chi_rotamers for rotlib in dunlib.semi_rotameric_libraries]
-    assert ri2ti_offsets[0] == 0
-    for i in range(ri2ti_offsets.shape[0]):
+    assert rotameric_ri2ti_offsets[0] == 0
+    for i in range(rotameric_ri2ti_offsets.shape[0]):
         assert (
             i == 0
-            or ri2ti_offsets[i - 1] + 3 ** rotamers[i - 1].shape[1] == ri2ti_offsets[i]
+            or rotameric_ri2ti_offsets[i - 1] + 3 ** rotamers[i - 1].shape[1]
+            == rotameric_ri2ti_offsets[i]
         )
 
         dim_prods = numpy.power(3, numpy.flip(numpy.arange(rotamers[i].shape[1]), 0))
+        n_nonrot_bins = (
+            0
+            if i < nrotameric_libs
+            else dunlib.semi_rotameric_libraries[
+                i - nrotameric_libs
+            ].rotameric_data.rotamers.shape[0]
+            / 3 ** rotamers[i].shape[1]
+        )
         for j in range(rotamers[i].shape[0]):
-            rotind = ri2ti_offsets[i] + numpy.sum(
+            rotind = rotameric_ri2ti_offsets[i] + numpy.sum(
                 (rotamers[i].numpy()[j, :] - 1) * dim_prods, 0
             )
-            assert ri2ti[rotind] == j
+            tableind = j if i < nrotameric_libs else n_nonrot_bins * j
+            assert rotameric_ri2ti[rotind] == tableind
 
-    semirot_offsets = dun_params.semirotameric_tableset_offsets.cpu().numpy()
+    semirot_offsets = dun_params_aux.semirotameric_tableset_offsets.cpu().numpy()
     semirot_rotamers = [
         rotlib.rotameric_chi_rotamers for rotlib in dunlib.semi_rotameric_libraries
     ]
@@ -191,7 +198,7 @@ def skip_test_dun_param_resolver_construction(default_database, torch_device):
         )
 
 
-def skip_test_dun_param_resolver_construction(default_database, torch_device):
+def test_dun_param_resolver_construction2(default_database, torch_device):
 
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
@@ -338,7 +345,20 @@ def skip_test_dun_param_resolver_construction(default_database, torch_device):
     )
 
     rotameric_chi_desc_gold = numpy.array(
-        [[1, 0], [1, 1], [1, 2], [1, 3], [2, 0], [2, 1], [4, 0], [4, 1], [4, 2]],
+        [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [1, 2],
+            [1, 3],
+            [2, 0],
+            [2, 1],
+            [3, 0],
+            [3, 1],
+            [4, 0],
+            [4, 1],
+            [4, 2],
+        ],
         dtype=int,
     )
     numpy.testing.assert_array_equal(

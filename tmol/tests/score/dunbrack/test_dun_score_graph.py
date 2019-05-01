@@ -1,10 +1,5 @@
-import attr
-import pandas
-
 import numpy
 import torch
-
-import itertools
 
 from tmol.system.packed import PackedResidueSystem
 from tmol.score.coordinates import (
@@ -12,10 +7,8 @@ from tmol.score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 from tmol.score.device import TorchDevice
-from tmol.score.dunbrack.params import DunbrackParamResolver
 from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
 from tmol.score.score_graph import score_graph
-from tmol.types.torch import Tensor
 
 
 @score_graph
@@ -33,7 +26,7 @@ class KinematicDunbrackGraph(
 
 
 def test_dunbrack_score_graph_smoke(ubq_system, default_database, torch_device):
-    dunbrack_graph = CartDunbrackGraph.build_for(
+    CartDunbrackGraph.build_for(
         ubq_system, device=torch_device, parameter_database=default_database
     )
 
