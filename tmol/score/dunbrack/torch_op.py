@@ -2,7 +2,7 @@ import attr
 from attr import asdict
 from typing import Mapping, Callable
 
-from .params import PackedDunbrackDatabase, DunbrackParams
+from .params import PackedDunbrackDatabase, DunbrackParams, DunbrackScratch
 
 import torch
 
@@ -13,6 +13,7 @@ class DunbrackOp:
     params: Mapping[str, torch.Tensor]
     packed_db: PackedDunbrackDatabase
     dun_params: DunbrackParams
+    scratch: DunbrackScratch
 
     f: Callable = attr.ib()
     df: Callable = attr.ib()
@@ -30,12 +31,18 @@ class DunbrackOp:
         return compiled.dunbrack_deriv
 
     @classmethod
-    def from_params(cls, packed_db: PackedDunbrackDatabase, dun_params: DunbrackParams):
+    def from_params(
+        cls,
+        packed_db: PackedDunbrackDatabase,
+        dun_params: DunbrackParams,
+        dun_scratch: DunbrackScratch,
+    ):
         res = cls(
             device=packed_db.rotameric_bb_start.device,
-            params={**asdict(packed_db), **asdict(dun_params)},
+            params={**asdict(packed_db), **asdict(dun_params), **asdict(dun_scratch)},
             packed_db=packed_db,
             dun_params=dun_params,
+            scratch=dun_scratch,
         )
         assert all(
             res.device == t.device
@@ -60,33 +67,9 @@ class DunbrackScoreFun(torch.autograd.Function):
 
     def forward(ctx, coords):
 
-        # allocate the temporary tensors to hold information needed
-        ndihe = ctx.op.dun_params.dihedral_atom_inds.shape[0]
-        nrotchi = ctx.op.dun_params.rotameric_chi_desc.shape[0]
-        nres = ctx.op.dun_params.ndihe_for_res.shape[0]
-
-        dihedrals = torch.zeros((ndihe,), dtype=torch.float, device=ctx.op.device)
-        ddihe_dxyz = torch.zeros((ndihe, 4, 3), dtype=torch.float, device=ctx.op.device)
-        rotameric_rottable_assignment = torch.zeros(
-            (nres,), dtype=torch.int32, device=ctx.op.device
-        )
-        semirotameric_rottable_assignment = torch.zeros(
-            (nres,), dtype=torch.int32, device=ctx.op.device
-        )
-
-        # for key, val in ctx.op.params.items():
-        #    print("key in ctx.op.params:", key, print(type(val)))
-
         # dE_dphi/psi are returned as ntors x 12 arrays
         rot_nlpE, drot_nlp_dbb, devpen, ddevpen_dtor, nonrot_nlpE, dnonrot_nlpE_dtor = ctx.op.f(
-            coords,
-            dihedrals=dihedrals,
-            ddihe_dxyz=ddihe_dxyz,
-            # rotchi_devpen=rotchi_devpen,
-            # ddevpen_dbb=ddevpen_dbb,
-            rotameric_rottable_assignment=rotameric_rottable_assignment,
-            semirotameric_rottable_assignment=semirotameric_rottable_assignment,
-            **ctx.op.params,
+            coords, **ctx.op.params
         )
 
         ctx.save_for_backward(coords, drot_nlp_dbb, ddevpen_dtor, dnonrot_nlpE_dtor)
