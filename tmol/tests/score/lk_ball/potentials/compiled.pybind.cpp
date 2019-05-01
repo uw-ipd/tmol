@@ -1,6 +1,6 @@
 #include <pybind11/eigen.h>
 #include <tmol/utility/tensor/pybind.h>
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <tmol/score/ljlk/potentials/params.pybind.hh>
 #include <tmol/score/lk_ball/potentials/datatypes.pybind.hh>

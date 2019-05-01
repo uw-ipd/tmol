@@ -1,5 +1,5 @@
 #include <pybind11/pybind11.h>
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>

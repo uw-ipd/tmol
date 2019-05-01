@@ -62,7 +62,7 @@ class KinematicDescription:
         """
 
         # Extract current state coordinates to render current dofs
-        kincoords = torch.from_numpy(coords)[self.kintree.id]
+        kincoords = torch.from_numpy(coords)[self.kintree.id.to(torch.long)]
 
         # Convert the -1 origin, a nan-coord, to zero
         assert self.kintree.id[0] == -1

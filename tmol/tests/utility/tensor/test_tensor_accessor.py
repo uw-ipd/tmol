@@ -17,25 +17,34 @@ def tensor_accessor():
 
 @pytest.fixture
 def accessor_funcs(tensor_accessor):
-    targets = (
-        "aten",
-        "accessor",
-        "accessor_arg",
-        "eigen",
-        "eigen_squeeze",
-        "eigen_arg",
-        "eigen_arg_squeeze",
-    )
+    targets = ("aten", "accessor", "accessor_arg", "eigen", "eigen_vector_arg")
 
     return {t: getattr(tensor_accessor, t) for t in targets}
 
 
-def test_tensor_accessors(accessor_funcs):
+def test_tensor_vector_accessors(accessor_funcs):
 
     tvec = torch.arange(30, dtype=torch.float).reshape(10, 3)
     expected = tvec.norm(dim=-1)
 
     results = {t: f(tvec) for t, f in accessor_funcs.items()}
+
+    for _rn, r in results.items():
+        torch.testing.assert_allclose(r, expected)
+
+
+@pytest.fixture
+def matrix_accessor_funcs(tensor_accessor):
+    targets = ("eigen_matrix_arg",)
+
+    return {t: getattr(tensor_accessor, t) for t in targets}
+
+
+def test_tensor_matrix_accessors(matrix_accessor_funcs):
+    tvec = torch.arange(90, dtype=torch.float).reshape(10, 3, 3)
+    expected = tvec.sum(dim=-1).sum(dim=-1)
+
+    results = {t: f(tvec) for t, f in matrix_accessor_funcs.items()}
 
     for _rn, r in results.items():
         torch.testing.assert_allclose(r, expected)
@@ -51,9 +60,8 @@ def test_tensor_accessor_device_conversion(accessor_funcs):
         "accessor": RuntimeError,  # AT_ASSERT failure
         "accessor_arg": TypeError,  # pybind converter
         "eigen": RuntimeError,  # AT_ASSERT failure
-        "eigen_squeeze": RuntimeError,  # AT_ASSERT failure
-        "eigen_arg": TypeError,  # pybind converter
-        "eigen_arg_squeeze": TypeError,  # pybind converter
+        "eigen_vector_arg": TypeError,  # pybind converter
+        "eigen_matrix_arg": TypeError,  # pybind converter
     }
 
     tvec = torch.arange(30, dtype=torch.float, device="cuda").reshape(10, 3)
@@ -65,6 +73,15 @@ def test_tensor_accessor_device_conversion(accessor_funcs):
                 f(tvec)
         else:
             torch.testing.assert_allclose(f(tvec), expected)
+
+
+def test_tensor_pack_eigen_matrix(tensor_accessor):
+    eshape = (2, 5, 3, 3)
+    res = tensor_accessor.tensor_pack_construct_eigen_matrix()
+
+    torch.testing.assert_allclose(res[1], torch.ones(eshape))
+    torch.testing.assert_allclose(res[2], torch.zeros(eshape))
+    torch.testing.assert_allclose(res[3], torch.full(eshape, math.nan))
 
 
 def test_tensor_pack_constructors(tensor_accessor):

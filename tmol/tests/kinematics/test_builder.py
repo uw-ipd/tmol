@@ -19,7 +19,8 @@ def test_builder_refold(ubq_system, torch_device):
     )
 
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
-    refold_kincoords = forwardKin(kintree, backwardKin(kintree, kincoords).dofs).coords
+    dofs = backwardKin(kintree, kincoords).dofs
+    refold_kincoords = forwardKin(kintree, dofs).coords
 
     assert numpy.all(refold_kincoords[0] == 0)
 
@@ -77,5 +78,6 @@ def test_builder_framing(ubq_system):
         kintree.frame_y[normal_atoms], kintree.parent[normal_atoms]
     )
     numpy.testing.assert_array_equal(
-        kintree.frame_z[normal_atoms], kintree.parent[kintree.parent[normal_atoms]]
+        kintree.frame_z[normal_atoms],
+        kintree.parent[kintree.parent[normal_atoms].to(dtype=torch.long)],
     )

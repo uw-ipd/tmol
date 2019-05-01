@@ -103,7 +103,7 @@ class _AtomScoreFun(torch.autograd.Function):
 
     def backward(ctx, _ind_grads, dV_dE):
         ind, dE_dI, dE_dJ = ctx.saved_tensors
-        ind_I, ind_J = ind
+        ind_I, ind_J = ind.detach()
 
         dV_dI = torch.sparse_coo_tensor(
             ind_I[None, :], dV_dE[..., None] * dE_dI, ctx.shape_I + (3,)

@@ -173,9 +173,11 @@ class KinematicBuilder:
 
         kin_stree.frame_x[[root, root_c1]] = root_c1 + kin_start
         kin_stree.frame_y[[root, root_c1]] = root + kin_start
-        kin_stree.frame_z[[root, root_c1]] = first(root_sibs) + kin_start
+        kin_stree.frame_z[[root, root_c1]] = (
+            first(root_sibs).to(dtype=torch.int) + kin_start
+        )
 
-        kin_stree.frame_x[root_sibs] = root_sibs + kin_start
+        kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
         kin_stree.frame_y[root_sibs] = root + kin_start
         kin_stree.frame_z[root_sibs] = root_c1 + kin_start
 

@@ -4,7 +4,9 @@ import numpy
 import torch
 import numba
 
-from tmol.kinematics.operations import DOFTransforms, backwardKin, iterative_refold
+from tmol.kinematics.operations import DOFTransforms, backwardKin
+from tmol.kinematics.cpu_operations import iterative_refold
+
 from tmol.kinematics.gpu_operations import (
     GPUKinTreeReordering,
     RefoldOrdering,
@@ -36,10 +38,10 @@ def test_gpu_refold_data_construction(benchmark, ubq_system):
     kintree = system_kintree(ubq_system)
 
     @benchmark
-    def tree_reordering() -> GPUKinTreeReordering:
+    def tree_reordering_numba() -> GPUKinTreeReordering:
         return GPUKinTreeReordering.calculate_from_kintree(kintree)
 
-    o = tree_reordering
+    o = tree_reordering_numba
 
     ### Validate path definitions
     sp: PathPartitioning = o.scan_paths
@@ -110,7 +112,7 @@ def test_refold_values(benchmark, big_system, segscan_num_threads):
     coords = torch.tensor(big_system.coords[target_kintree.id]).to(device=target_device)
     kintree = target_kintree.to(device=target_device)
 
-    bkin = backwardKin(target_kintree, coords)
+    bkin = backwardKin(kintree, coords)
 
     local_hts = DOFTransforms(kintree.doftype, bkin.dofs)
 
@@ -124,7 +126,7 @@ def test_refold_values(benchmark, big_system, segscan_num_threads):
     iterative_refold_hts_inplace = local_hts.clone().cpu()
     iterative_refold(iterative_refold_hts_inplace, kintree.parent.cpu(), inplace=True)
 
-    numpy.testing.assert_allclose(bkin.hts, iterative_refold_hts, atol=1e-6)
+    numpy.testing.assert_allclose(bkin.hts.cpu(), iterative_refold_hts, atol=1e-6)
     numpy.testing.assert_allclose(
         iterative_refold_hts, iterative_refold_hts_inplace, atol=1e-6
     )
@@ -146,14 +148,16 @@ def test_refold_values(benchmark, big_system, segscan_num_threads):
     object.__setattr__(refold_ordering, "segscan_num_threads", segscan_num_threads)
 
     @benchmark
-    def parallel_refold_hts():
+    def parallel_refold_hts_numba():
         result = refold_ordering.segscan_hts(local_hts, inplace=False)
         numba.cuda.synchronize()
         return result
 
-    numpy.testing.assert_allclose(bkin.hts, parallel_refold_hts, atol=1e-6)
     numpy.testing.assert_allclose(
-        parallel_refold_hts, parallel_refold_hts_inplace, atol=1e-6
+        bkin.hts.cpu(), parallel_refold_hts_numba.cpu(), atol=1e-6
+    )
+    numpy.testing.assert_allclose(
+        parallel_refold_hts_numba.cpu(), parallel_refold_hts_inplace.cpu(), atol=1e-6
     )
 
     # results must be consistent over repeated invocations, tests issue 90
@@ -166,8 +170,8 @@ def test_refold_values(benchmark, big_system, segscan_num_threads):
     )
 
     numpy.testing.assert_allclose(
-        repeated_parallel_results,
-        torch.cat([bkin.hts[None, ...] for _ in range(niter)]),
+        repeated_parallel_results.cpu(),
+        torch.cat([bkin.hts[None, ...] for _ in range(niter)]).cpu(),
         atol=1e-6,
     )
 
@@ -194,12 +198,12 @@ def test_derivsum_values(benchmark, big_system, segscan_num_threads):
     # inplace should match non-inplace operations
 
     iterative_f1f2_sums = cpu_operations.iterative_f1f2_summation(
-        f1f2s.cpu(), kintree.parent, inplace=False
+        f1f2s.cpu(), kintree.parent.cpu(), inplace=False
     )
 
     iterative_f1f2_sums_inplace = f1f2s.clone().cpu()
     cpu_operations.iterative_f1f2_summation(
-        iterative_f1f2_sums_inplace, kintree.parent, inplace=True
+        iterative_f1f2_sums_inplace, kintree.parent.cpu(), inplace=True
     )
 
     numpy.testing.assert_array_almost_equal(
@@ -223,7 +227,7 @@ def test_derivsum_values(benchmark, big_system, segscan_num_threads):
     object.__setattr__(derivsum_ordering, "segscan_num_threads", segscan_num_threads)
 
     @benchmark
-    def parallel_f1f2_sums():
+    def parallel_f1f2_sums_numba():
         result = derivsum_ordering.segscan_f1f2s(f1f2s, inplace=False)
         numba.cuda.synchronize()
         return result
@@ -231,10 +235,12 @@ def test_derivsum_values(benchmark, big_system, segscan_num_threads):
     # deriv summation sould be equivalent in both interative and parallel mode
     # (can't compare to "standard" value as in refold case
 
-    numpy.testing.assert_allclose(iterative_f1f2_sums, parallel_f1f2_sums)
+    numpy.testing.assert_allclose(iterative_f1f2_sums, parallel_f1f2_sums_numba.cpu())
 
     # inplace should match non-inplace operations
-    numpy.testing.assert_allclose(parallel_f1f2_sums, parallel_f1f2_sums_inplace)
+    numpy.testing.assert_allclose(
+        parallel_f1f2_sums_numba.cpu(), parallel_f1f2_sums_inplace.cpu()
+    )
 
     # results must be consistent over repeated invocations, tests issue 90
     niter = CONSISTENCY_CHECK_NITER
@@ -248,4 +254,6 @@ def test_derivsum_values(benchmark, big_system, segscan_num_threads):
         [iterative_f1f2_sums[None, ...] for _ in range(niter)]
     )
 
-    numpy.testing.assert_allclose(repeated_parallel_results, repeated_iterative_results)
+    numpy.testing.assert_allclose(
+        repeated_parallel_results.cpu(), repeated_iterative_results.cpu()
+    )

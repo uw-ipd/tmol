@@ -83,7 +83,8 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
             requires_grad=False,
         )
 
-        coords[kinop.kintree.id[1:]] = kincoords[1:]
+        idIdx = kinop.kintree.id[1:].to(dtype=torch.long)
+        coords[idIdx] = kincoords[1:]
 
         return coords.to(torch.float)[None, ...]
 

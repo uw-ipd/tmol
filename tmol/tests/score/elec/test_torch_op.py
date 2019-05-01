@@ -160,7 +160,8 @@ def test_elec_sweep_gradcheck(default_database, torch_device):
     for i in range(60):
         eps = 1e-5
         tcoords[1, 2] = i / 10.0
-        _, dscores_A[i, :] = eval_intra(tcoords)
+        _, dsc_A_t = eval_intra(tcoords)
+        dscores_A[i, :] = dsc_A_t.cpu()
         for j in range(3):
             tcoords[0, j] = eps
             score_p, _ = eval_intra(tcoords)
@@ -179,7 +180,9 @@ def test_elec_intra(default_database, ubq_system, torch_device):
 
     pairs, batch_scores = func.intra(s.tcoords[0], s.tpcs[0], s.trbpl[0])
 
-    numpy.testing.assert_allclose(batch_scores.detach().sum(), -131.9225, atol=1e-4)
+    numpy.testing.assert_allclose(
+        batch_scores.detach().sum().cpu(), -131.9225, atol=1e-4
+    )
 
 
 # torch gradcheck

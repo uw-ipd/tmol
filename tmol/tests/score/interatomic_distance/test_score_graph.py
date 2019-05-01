@@ -62,8 +62,8 @@ def test_interatomic_distance_ubq_smoke(
     assert (layer == 0).all()
 
     numpy.testing.assert_allclose(
-        numpy.nan_to_num(squareform(scipy_distance)[fa, ta]),
-        numpy.nan_to_num(dgraph.atom_pair_dist.detach()),
+        numpy.nan_to_num(squareform(scipy_distance)[fa.cpu(), ta.cpu()]),
+        numpy.nan_to_num(dgraph.atom_pair_dist.detach().cpu()),
         rtol=1e-4,
     )
 

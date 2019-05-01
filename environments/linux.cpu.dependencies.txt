@@ -1,2 +1,2 @@
-pytorch::pytorch-cpu=0.4.1
+pytorch::pytorch-cpu=1.0.1
 gxx_linux-64=7.3

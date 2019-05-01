@@ -2,12 +2,11 @@
 
 #include <array>
 
-#include <ATen/Error.h>
 #include <ATen/Functions.h>
 #include <ATen/ScalarType.h>
 #include <ATen/Tensor.h>
 
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -49,6 +48,8 @@ struct enable_tensor_view {
   struct enable_tensor_view<ctype> {                 \
     static const bool enabled = true;                \
     static const at::ScalarType scalar_type = stype; \
+    static const int nconsumed_dims = 0;             \
+    static int consumed_dims(int) { return 0; }      \
     typedef ctype PrimitiveType;                     \
   };
 
@@ -60,13 +61,26 @@ struct enable_tensor_view<bool> {
   static const bool enabled = enable_tensor_view<uint8_t>::enabled;
   static const at::ScalarType scalar_type =
       enable_tensor_view<uint8_t>::scalar_type;
+  static const int nconsumed_dims = 0;
+  static int consumed_dims(int) { return 0; }
   typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
+};
+
+template <typename T, int M>
+struct enable_tensor_view<Eigen::Matrix<T, M, 1>> {
+  static const bool enabled = enable_tensor_view<T>::enabled;
+  static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
+  static const int nconsumed_dims = 1;
+  static int consumed_dims(int i) { return (i == 0) ? M : 0; }
+  typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
 template <typename T, int M, int N>
 struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
+  static const int nconsumed_dims = 2;
+  static int consumed_dims(int i) { return (i == 0) ? M : (i == 1) ? N : 0; }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
@@ -74,64 +88,10 @@ template <typename T, int N>
 struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
+  static const int nconsumed_dims = 1;
+  static int consumed_dims(int i) { return (i == 0) ? N : 0; }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
-
-template <typename T, size_t N, Device D, PtrTag P>
-struct enable_tensor_view<tmol::TView<T, N, D, P>> {
-  static const bool enabled = enable_tensor_view<uint8_t>::enabled;
-  static const at::ScalarType scalar_type =
-      enable_tensor_view<uint8_t>::scalar_type;
-  typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
-};
-
-template <
-    typename T,
-    int N,
-    Device D,
-    PtrTag P = PtrTag::Restricted,
-    typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-auto _view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
-  typedef typename enable_tensor_view<T>::PrimitiveType FromT;
-
-  static_assert(
-      sizeof(T) % sizeof(FromT) == 0,
-      "Cast target type must be even multiple size of source type.");
-
-  int64_t stride_factor = sizeof(T) / sizeof(FromT);
-
-  AT_ASSERTM(input_t.dim() == N, "Wrong dimensionality.")
-  AT_ASSERTM(
-      (input_t.size(N - 1) % stride_factor == 0)
-          || (N >= 2
-              && input_t.size(N - 1) * input_t.size(N - 2) % stride_factor
-                     == 0),
-      "Low-dimension(s) shape must be even multiple of adjusted stride.")
-  AT_ASSERTM(input_t.stride(N - 1) == 1, "Must be c-contiguous.")
-  AT_ASSERTM(
-      input_t.device().type() == D, "_view_tensor of incorrect device type.")
-
-  auto input = input_t.accessor<FromT, N>();
-
-  int64_t sizes[N];
-  int64_t strides[N];
-
-  for (int d = 0; d < N - 1; ++d) {
-    sizes[d] = input.size(d);
-    strides[d] = input.stride(d) / stride_factor;
-    if (strides[d] == 0) {  // stride_factor > input.stride(d)
-      sizes[d] = 1;
-      strides[d] = 1;
-      stride_factor /= input.size(d);
-    }
-  }
-
-  sizes[N - 1] = input.size(N - 1) / stride_factor;
-  strides[N - 1] = 1;
-
-  return tmol::TView<T, N, D, P>(
-      reinterpret_cast<T*>(input_t.data_ptr()), sizes, strides);
-}
 
 template <
     typename T,
@@ -143,33 +103,32 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   typedef typename enable_tensor_view<T>::PrimitiveType FromT;
   int64_t stride_factor = sizeof(T) / sizeof(FromT);
 
-  if (input_t.dim() == N + 2
-      && input_t.size(N) * input_t.size(N + 1) == stride_factor) {
-    // Implicitly convert an input tensor of result dims [..., 1, 1]
-    // into a dim-2 view, squeezing off the last two dimensions.
-    auto full_view = _view_tensor<T, N + 2, D, P>(input_t);
+  constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
+  auto consumed_dims = enable_tensor_view<T>::consumed_dims;
 
+  AT_ASSERTM(
+      input_t.dim() == N + nconsumed_dims,
+      "view_tensor of wrong dimensionality.");
+  for (int d = N; d < input_t.dim(); ++d) {
     AT_ASSERTM(
-        full_view.size(N) == 1, "Expected low-dimension result shape 1.");
-    AT_ASSERTM(
-        full_view.size(N + 1) == 1, "Expected low-dimension result shape 1.");
-
-    return tmol::TView<T, N, D, P>(
-        full_view.data(), &full_view.size(0), &full_view.stride(0));
+        input_t.size(d) == consumed_dims(d - N),
+        "squeezed dimension mismatch in view_tensor.");
   }
-  if (input_t.dim() == N + 1 && input_t.size(N) == stride_factor) {
-    // Implicitly convert an input tensor of result dims [..., 1]
-    // into a dim-1 view, squeezing off the last dimension.
-    auto full_view = _view_tensor<T, N + 1, D, P>(input_t);
+  AT_ASSERTM(
+      input_t.device().type() == D, "view_tensor of incorrect device type.")
 
-    AT_ASSERTM(
-        full_view.size(N) == 1, "Expected low-dimension result shape 1.");
+  auto input = input_t.accessor<FromT, N + nconsumed_dims>();
 
-    return tmol::TView<T, N, D, P>(
-        full_view.data(), &full_view.size(0), &full_view.stride(0));
-  } else {
-    return _view_tensor<T, N, D, P>(input_t);
+  int64_t sizes[N];
+  int64_t strides[N];
+
+  for (int d = 0; d < N; ++d) {
+    sizes[d] = input.size(d);
+    strides[d] = input.stride(d) / stride_factor;
   }
+
+  return tmol::TView<T, N, D, P>(
+      reinterpret_cast<T*>(input_t.data_ptr()), sizes, strides);
 };
 
 template <

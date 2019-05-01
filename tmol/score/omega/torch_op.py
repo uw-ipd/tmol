@@ -58,5 +58,4 @@ class OmegaScoreFun(torch.autograd.Function):
                 (ctx.coords_shape),
             ).to_dense()
 
-        print(dVdA[:10])
         return (dVdA, None, None)

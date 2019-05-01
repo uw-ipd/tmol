@@ -45,8 +45,6 @@ class ScoreSetup:
         indexed_bonds = IndexedBonds.from_bonds(
             IndexedBonds.to_directed(system.bonds), minlength=system_size
         )
-        print(system.bonds.shape)
-        print(indexed_bonds.bonds.shape)
         param_resolver = CartBondedParamResolver.from_database(
             database.scoring.cartbonded, torch_device
         )
@@ -168,7 +166,7 @@ def test_cartbonded_length_op(default_database, ubq_system, torch_device):
 
     V = op.score(s.tcoords[0, :], s.tbondlength_atom_indices, s.tbondlength_indices)
 
-    numpy.testing.assert_allclose(V.detach().sum(), 37.78476, atol=1e-3, rtol=0)
+    numpy.testing.assert_allclose(V.detach().sum().cpu(), 37.78476, atol=1e-3, rtol=0)
 
 
 def test_cartbonded_length_gradcheck(default_database, ubq_system, torch_device):
@@ -195,7 +193,7 @@ def test_cartbonded_angle_op(default_database, ubq_system, torch_device):
 
     V = op.score(s.tcoords[0, :], s.tbondangle_atom_indices, s.tbondangle_indices)
 
-    numpy.testing.assert_allclose(V.detach().sum(), 183.578, atol=1e-3, rtol=0)
+    numpy.testing.assert_allclose(V.detach().sum().cpu(), 183.578, atol=1e-3, rtol=0)
 
 
 def test_cartbonded_angle_gradcheck(default_database, ubq_system, torch_device):
@@ -222,7 +220,7 @@ def test_cartbonded_torsion_op(default_database, ubq_system, torch_device):
 
     V = op.score(s.tcoords[0, :], s.ttorsion_atom_indices, s.ttorsion_indices)
 
-    numpy.testing.assert_allclose(V.detach().sum(), 50.5842, atol=1e-3, rtol=0)
+    numpy.testing.assert_allclose(V.detach().sum().cpu(), 50.5842, atol=1e-3, rtol=0)
 
 
 def test_cartbonded_torsion_gradcheck(default_database, ubq_system, torch_device):
@@ -249,7 +247,7 @@ def test_cartbonded_improper_op(default_database, ubq_system, torch_device):
 
     V = op.score(s.tcoords[0, :], s.timproper_atom_indices, s.timproper_indices)
 
-    numpy.testing.assert_allclose(V.detach().sum(), 9.43055, atol=1e-3, rtol=0)
+    numpy.testing.assert_allclose(V.detach().sum().cpu(), 9.43055, atol=1e-3, rtol=0)
 
 
 def test_cartbonded_improper_gradcheck(default_database, ubq_system, torch_device):
@@ -276,7 +274,7 @@ def test_cartbonded_hxltorsion_op(default_database, ubq_system, torch_device):
 
     V = op.score(s.tcoords[0, :], s.thxltorsion_atom_indices, s.thxltorsion_indices)
 
-    numpy.testing.assert_allclose(V.detach().sum(), 47.4197, atol=1e-3, rtol=0)
+    numpy.testing.assert_allclose(V.detach().sum().cpu(), 47.4197, atol=1e-3, rtol=0)
 
 
 def test_cartbonded_hxltorsion_gradcheck(default_database, ubq_system, torch_device):
