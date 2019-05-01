@@ -140,8 +140,7 @@ struct DunbrackDispatch {
           coords, i, dihedral_atom_inds, dihedrals, ddihe_dxyz);
     });
     mgpu::standard_context_t context;
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { func_dihe(idx); }, n_dihedrals, context);
+    mgpu::transform(func_dihe, n_dihedrals, context);
 
     // 2.
     auto func_rot = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -158,7 +157,7 @@ struct DunbrackDispatch {
           i);
     });
 
-    mgpu::transform([=] MGPU_DEVICE(int idx) { func_rot(idx); }, nres, context);
+    mgpu::transform(func_rot, nres, context);
 
     // 3.
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i) {
@@ -180,10 +179,7 @@ struct DunbrackDispatch {
           ddihe_dxyz,
           i);
     });
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { func_rotameric_prob(idx); },
-        n_rotameric_res,
-        context);
+    mgpu::transform(func_rotameric_prob, n_rotameric_res, context);
 
     // 4.
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -207,10 +203,7 @@ struct DunbrackDispatch {
           ddihe_dxyz,
           i);
     });
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { func_chidevpen(idx); },
-        n_rotameric_chi,
-        context);
+    mgpu::transform(func_chidevpen, n_rotameric_chi, context);
 
     // 5.
     auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -230,10 +223,7 @@ struct DunbrackDispatch {
           dneglnprob_nonrot_dtor_xyz,
           ddihe_dxyz);
     });
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { func_semirot(idx); },
-        n_semirotameric_res,
-        context);
+    mgpu::transform(func_semirot, n_semirotameric_res, context);
 
     return {neglnprob_rot_tpack,
             dneglnprob_rot_dbb_xyz_tpack,
@@ -284,10 +274,7 @@ struct DunbrackDispatch {
       }
     });
     mgpu::standard_context_t context;
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { func_accum_rotnlp(idx); },
-        n_rotameric_res,
-        context);
+    mgpu::transform(func_accum_rotnlp, n_rotameric_res, context);
 
     auto func_accum_chidev = ([=] __device__(int i) {
       int ires = rotameric_chi_desc[i][0];
@@ -307,13 +294,8 @@ struct DunbrackDispatch {
         }
       }
     });
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { func_accum_chidev(idx); },
-        n_rotameric_chi,
-        context);
-    //
-    // for ( int i = 0; i < n_rotameric_chi; ++i ) {
-    //}
+    mgpu::transform(func_accum_chidev, n_rotameric_chi, context);
+
     auto func_accum_nonrotnlp = ([=] __device__(int i) {
       int ires = semirotameric_chi_desc[i][0];
       int ires_dihe_offset = dihedral_offset_for_res[ires];
@@ -331,10 +313,7 @@ struct DunbrackDispatch {
         }
       }
     });
-    mgpu::transform(
-        [=] MGPU_DEVICE(int idx) { func_accum_nonrotnlp(idx); },
-        n_semirotameric_res,
-        context);
+    mgpu::transform(func_accum_nonrotnlp, n_semirotameric_res, context);
 
     return dE_dxyz_tpack;
   }
