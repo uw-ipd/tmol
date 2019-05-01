@@ -18,13 +18,7 @@ from tmol.types.functional import validate_args
 
 from tmol.numeric.bspline import BSplineInterpolation
 
-from tmol.database.scoring.dunbrack_libraries import (
-    RotamericDataForAA,
-    RotamericAADunbrackLibrary,
-    SemiRotamericAADunbrackLibrary,
-    DunMappingParams,
-    DunbrackRotamerLibrary,
-)
+from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 
 
 def exclusive_cumsum(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
@@ -181,10 +175,6 @@ class DunbrackParamResolver(ValidateAttrs):
             )
         ]
 
-        for rotlib in all_rotlibs:
-            rotamers = rotlib.rotameric_data.rotamers
-            rotmeans = rotlib.rotameric_data.rotamer_means
-
         all_table_names = [x.table_name for x in all_rotlibs]
         all_table_lookup = (
             pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
@@ -224,10 +214,10 @@ class DunbrackParamResolver(ValidateAttrs):
             -1 * torch.log(table) for table in rotameric_prob_tables
         ]
 
-        prob_table_name_and_nrots = [
-            (rotlib.table_name, rotlib.rotameric_data.rotamer_probabilities.shape[0])
-            for rotlib in all_rotlibs
-        ]
+        # prob_table_name_and_nrots = [
+        #     (rotlib.table_name, rotlib.rotameric_data.rotamer_probabilities.shape[0])
+        #     for rotlib in all_rotlibs
+        # ]
 
         nchi_for_table_set = torch.tensor(
             [rotlib.rotameric_data.rotamers.shape[1] for rotlib in all_rotlibs],
@@ -371,8 +361,9 @@ class DunbrackParamResolver(ValidateAttrs):
             )
             semirotameric_rotind2tableind.extend(list(sr_ri2ti))
 
-            # OK: this code assumes that a) for the rotameric data, all combinations of rotameric-chi rotamers +
-            # binned-non-rotameric-chi are defined (an assumption not needed for rotameric residues) so that
+            # OK: this code assumes that a) for the rotameric data, all combinations
+            # of rotameric-chi rotamers + binned-non-rotameric-chi are defined
+            # (an assumption not needed for rotameric residues) so that
             # 3^(n-rotameric-chi) divides n-rotameric-rotamers cleanly , and
             # b) the rotamers stored in the rotameric_data are in sorted order
 
@@ -427,7 +418,8 @@ class DunbrackParamResolver(ValidateAttrs):
             for rotlib in dun_database.semi_rotameric_libraries
             for i in range(rotlib.nonrotameric_chi_probabilities.shape[0])
         ]
-        # these aren't used for rotamer building, so we'll just use this for the neglnprobs
+        # these aren't used for rotamer building, so we'll just use this for
+        # the neglnprobs
         for table in semirotameric_prob_tables:
             table[table == 0] = 1e-6
             table[:] = -1 * torch.log(table)
@@ -587,7 +579,7 @@ class DunbrackParamResolver(ValidateAttrs):
         # are semi-rotameric.
 
         dun_residues = torch.unique(chi_selected[:, 0], sorted=True).type(torch.int64)
-        n_dun_residues = dun_residues.shape[0]
+        # n_dun_residues = dun_residues.shape[0]
         r_inds = r_inds[dun_residues]
         s_inds = s_inds[dun_residues]
 
@@ -612,15 +604,16 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
         dun_rotres = r_inds[r_inds != -1]
-        n_rotameric_res = dun_rotres.shape[0]
-        prob_table_offset_for_rotresidue = self.packed_db_aux.rotameric_prob_tableset_offsets[
+        # n_rotameric_res = dun_rotres.shape[0]
+        db_aux = self.packed_db_aux
+        prob_table_offset_for_rotresidue = db_aux.rotameric_prob_tableset_offsets[
             dun_rotres
         ]
-        rotmean_table_offset_for_residue = self.packed_db_aux.rotameric_meansdev_tableset_offsets[
+        rotmean_table_offset_for_residue = db_aux.rotameric_meansdev_tableset_offsets[
             rottable_set_for_res64
         ]
 
-        rotind2tableind_offset_for_res = self.packed_db_aux.rotind2tableind_offsets[
+        rotind2tableind_offset_for_res = db_aux.rotind2tableind_offsets[
             rottable_set_for_res64
         ]
 
@@ -652,7 +645,6 @@ class DunbrackParamResolver(ValidateAttrs):
         self, params: DunbrackParams
     ) -> DunbrackScratch:
         ndihe = params.dihedral_atom_inds.shape[0]
-        nrotchi = params.rotameric_chi_desc.shape[0]
         nres = params.ndihe_for_res.shape[0]
         device = params.dihedral_atom_inds.device
 
@@ -779,7 +771,8 @@ class DunbrackParamResolver(ValidateAttrs):
         # semirotchi_desc[:,0] == residue index
         # semirotchi_desc[:,1] == semirotchi_dihedral_index res
         # semirotchi_desc[:,2] == semirot_table_offset
-        # semirotchi_desc[:,3] == semirot_table_set (in the range 0-7 for the 8 semirot aas)
+        # semirotchi_desc[:,3] == semirot_table_set (in the range 0-7
+        #                         for the 8 semirot aas)
 
         n_semirotameric_res = torch.sum(s_inds != -1)
         semirotameric_chi_desc = torch.zeros(

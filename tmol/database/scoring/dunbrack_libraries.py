@@ -123,8 +123,6 @@ class SemiRotamericAADunbrackLibrary:
         )
 
         rot_probs = rotameric_data.rotamer_probabilities
-        # print("rot_probs.shape",rot_probs.shape)
-        # print("nonrotameric_chi_probabilities.shape",nonrotameric_chi_probabilities.shape)
         for i in range(1, len(rot_probs.shape)):
             assert rot_probs.shape[i] == nonrotameric_chi_probabilities.shape[i]
         assert (
@@ -135,7 +133,6 @@ class SemiRotamericAADunbrackLibrary:
             non_rot_chi_period // non_rot_chi_step
             == nonrotameric_chi_probabilities.shape[-1]
         )
-        # print("rotamer_boundaries.shape[0] == rotameric_data.nrotamers()", rotamer_boundaries.shape[0],"==", rotameric_data.nrotamers())
         assert rotamer_boundaries.shape[0] == rotameric_data.nrotamers()
         assert rotamer_boundaries.shape[1] == 2
 

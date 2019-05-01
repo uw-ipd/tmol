@@ -320,28 +320,30 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
         rotres2resid_gold, dun_params.rotres2resid.cpu().numpy()
     )
 
-    prob_table_offset_for_rotresidue_gold = resolver.packed_db_aux.rotameric_prob_tableset_offsets[
+    # prob_table_offset_for_rotresidue_gold = ptofrr_gold
+    # annoyingly had to be renamed because flake8 and black couldn't
+    # agree on how to treat a long line
+    ptofrr_gold = resolver.packed_db_aux.rotameric_prob_tableset_offsets[
         rottable_set_for_res_gold[dun_params.rotres2resid]
     ]
     numpy.testing.assert_array_equal(
-        prob_table_offset_for_rotresidue_gold,
-        dun_params.prob_table_offset_for_rotresidue.cpu().numpy(),
+        ptofrr_gold, dun_params.prob_table_offset_for_rotresidue.cpu().numpy()
     )
 
-    rotmean_table_offset_for_residue_gold = resolver.packed_db_aux.rotameric_meansdev_tableset_offsets[
+    # rotmean_table_offset_for_residue_gold
+    rmtofr_gold = resolver.packed_db_aux.rotameric_meansdev_tableset_offsets[
         rottable_set_for_res_gold
     ]
     numpy.testing.assert_array_equal(
-        rotmean_table_offset_for_residue_gold,
-        dun_params.rotmean_table_offset_for_residue.cpu().numpy(),
+        rmtofr_gold, dun_params.rotmean_table_offset_for_residue.cpu().numpy()
     )
 
-    rotind2tableind_offset_for_res_gold = resolver.packed_db_aux.rotind2tableind_offsets[
+    # rotind2tableind_offset_for_res_gold =
+    ri2tiofr_gold = resolver.packed_db_aux.rotind2tableind_offsets[
         rottable_set_for_res_gold
     ]
     numpy.testing.assert_array_equal(
-        rotind2tableind_offset_for_res_gold,
-        dun_params.rotind2tableind_offset_for_res.cpu().numpy(),
+        ri2tiofr_gold, dun_params.rotind2tableind_offset_for_res.cpu().numpy()
     )
 
     rotameric_chi_desc_gold = numpy.array(
