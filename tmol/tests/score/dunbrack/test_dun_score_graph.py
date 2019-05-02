@@ -345,6 +345,8 @@ def test_dunbrack_score(ubq_system, torch_device, default_database):
 
     numpy.testing.assert_almost_equal(rotE, gold_rotprobE, 1e-5)
     numpy.testing.assert_almost_equal(devpenE, gold_devpenE, 1e-5)
+    print("semiE")
+    print(semiE)
     numpy.testing.assert_almost_equal(semiE, gold_semirotprobE, 1e-5)
 
 
