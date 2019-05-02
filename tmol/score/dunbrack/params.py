@@ -192,7 +192,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
         sdev_coeffs = cls.calculate_rot_sdev_coeffs(all_rotlibs, device)
 
-        rotameric_bb_start, rotameric_bb_step, rotameric_bb_periodicity = cls.create_rot_periodicities(
+        rot_bb_start, rot_bb_step, rot_bb_per = cls.create_rot_periodicities(
             all_rotlibs, device
         )
 
@@ -218,9 +218,9 @@ class DunbrackParamResolver(ValidateAttrs):
             rotameric_sdev_tables=sdev_coeffs,
             rotmean_table_sizes=mc_sizes,
             rotmean_table_strides=mc_strides,
-            rotameric_bb_start=rotameric_bb_start,
-            rotameric_bb_step=rotameric_bb_step,
-            rotameric_bb_periodicity=rotameric_bb_periodicity,
+            rotameric_bb_start=rot_bb_start,
+            rotameric_bb_step=rot_bb_step,
+            rotameric_bb_periodicity=rot_bb_per,
             rotameric_rotind2tableind=rot_ri2ti,
             semirotameric_rotind2tableind=semirot_ri2ti,
             semirotameric_tables=sr_coeffs,
@@ -237,24 +237,6 @@ class DunbrackParamResolver(ValidateAttrs):
             rotind2tableind_offsets=rotind2tableind_offsets,
             semirotameric_tableset_offsets=sr_tableset_offsets,
         )
-
-        # rama_params = PackedRamaDatabase(
-        #     tables=[
-        #         BSplineInterpolation.from_coordinates(
-        #             torch.tensor(f.table, dtype=torch.float, device=device)
-        #         )
-        #         for f in rama_database.rama_tables
-        #     ],
-        #     bbsteps=[
-        #         torch.tensor(f.bbstep, dtype=torch.float, device=device)
-        #         for f in rama_database.rama_tables
-        #     ],
-        #     bbstarts=[
-        #         torch.tensor(f.bbstart, dtype=torch.float, device=device)
-        #         for f in rama_database.rama_tables
-        #     ],
-        # )
-        #
 
         return cls(
             packed_db=packed_db,
