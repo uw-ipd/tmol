@@ -310,9 +310,11 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
         nchi_for_res_gold, dun_params.nchi_for_res.cpu().numpy()
     )
 
-    nrotameric_chi_for_res_gold = numpy.array([1, 4, 2, 2, 3])
+    nrotameric_chi_for_res_gold = numpy.array([1, 4, 2, 2, 3], dtype=int)
+    print("nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res")
+    print(nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res)
     numpy.testing.assert_array_equal(
-        nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res
+        nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res.cpu().numpy()
     )
 
     rotres2resid_gold = numpy.array([1, 2, 4])
@@ -323,25 +325,35 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
     # prob_table_offset_for_rotresidue_gold = ptofrr_gold
     # annoyingly had to be renamed because flake8 and black couldn't
     # agree on how to treat a long line
-    ptofrr_gold = resolver.packed_db_aux.rotameric_prob_tableset_offsets[
-        rottable_set_for_res_gold[dun_params.rotres2resid]
-    ]
+    ptofrr_gold = (
+        resolver.packed_db_aux.rotameric_prob_tableset_offsets[
+            rottable_set_for_res_gold[dun_params.rotres2resid.cpu().numpy()]
+        ]
+        .cpu()
+        .numpy()
+    )
     numpy.testing.assert_array_equal(
         ptofrr_gold, dun_params.prob_table_offset_for_rotresidue.cpu().numpy()
     )
 
     # rotmean_table_offset_for_residue_gold
-    rmtofr_gold = resolver.packed_db_aux.rotameric_meansdev_tableset_offsets[
-        rottable_set_for_res_gold
-    ]
+    rmtofr_gold = (
+        resolver.packed_db_aux.rotameric_meansdev_tableset_offsets[
+            rottable_set_for_res_gold
+        ]
+        .cpu()
+        .numpy()
+    )
     numpy.testing.assert_array_equal(
         rmtofr_gold, dun_params.rotmean_table_offset_for_residue.cpu().numpy()
     )
 
     # rotind2tableind_offset_for_res_gold =
-    ri2tiofr_gold = resolver.packed_db_aux.rotind2tableind_offsets[
-        rottable_set_for_res_gold
-    ]
+    ri2tiofr_gold = (
+        resolver.packed_db_aux.rotind2tableind_offsets[rottable_set_for_res_gold]
+        .cpu()
+        .numpy()
+    )
     numpy.testing.assert_array_equal(
         ri2tiofr_gold, dun_params.rotind2tableind_offset_for_res.cpu().numpy()
     )
@@ -372,9 +384,11 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
 
     semirotameric_chi_desc_gold = numpy.array([[0, 3, 0, 0], [3, 18, 0, 0]], dtype=int)
     semirotameric_chi_desc_gold[:, 3] = semirot_res_inds
-    semirotameric_chi_desc_gold[
-        :, 2
-    ] = resolver.packed_db_aux.semirotameric_tableset_offsets[semirot_res_inds]
+    semirotameric_chi_desc_gold[:, 2] = (
+        resolver.packed_db_aux.semirotameric_tableset_offsets[semirot_res_inds]
+        .cpu()
+        .numpy()
+    )
     numpy.testing.assert_array_equal(
         semirotameric_chi_desc_gold, dun_params.semirotameric_chi_desc.cpu().numpy()
     )
