@@ -181,7 +181,7 @@ class DunbrackParamResolver(ValidateAttrs):
         nchi_for_table_set = cls.create_nchi_for_table_set(all_rotlibs, device)
 
         prob_table_offsets = cls.create_prob_table_offsets(all_rotlibs, device)
-        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides, neglnprob_coeffs = cls.compute_rotamer_probability_coefficients(
+        p_coeffs, pc_sizes, pc_strides, nlp_coeffs = cls.compute_rotprob_coeffs(
             all_rotlibs, device
         )
 
@@ -209,10 +209,10 @@ class DunbrackParamResolver(ValidateAttrs):
         sr_tableset_offsets = cls.create_semirot_offsets(dun_database, device)
 
         packed_db = PackedDunbrackDatabase(
-            rotameric_prob_tables=prob_coeffs,
-            rotameric_neglnprob_tables=neglnprob_coeffs,
-            rotprob_table_sizes=prob_coeffs_sizes,
-            rotprob_table_strides=prob_coeffs_strides,
+            rotameric_prob_tables=p_coeffs,
+            rotameric_neglnprob_tables=nlp_coeffs,
+            rotprob_table_sizes=pc_sizes,
+            rotprob_table_strides=pc_strides,
             rotameric_mean_tables=mean_coeffs,
             rotameric_sdev_tables=sdev_coeffs,
             rotmean_table_sizes=mean_coeffs_sizes,
@@ -317,7 +317,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return exclusive_cumsum(prob_table_nrots)
 
     @classmethod
-    def compute_rotamer_probability_coefficients(cls, all_rotlibs, device):
+    def compute_rotprob_coeffs(cls, all_rotlibs, device):
         rotameric_prob_tables = [
             rotlib.rotameric_data.rotamer_probabilities[i, :, :].clone().detach()
             for rotlib in all_rotlibs
