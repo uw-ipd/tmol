@@ -13,8 +13,6 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 
-#define DEBUG
-
 namespace pybind11 {
 namespace detail {
 
