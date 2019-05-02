@@ -187,9 +187,10 @@ class DunbrackParamResolver(ValidateAttrs):
 
         rotameric_mean_offsets = cls.create_rot_mean_offsets(all_rotlibs, device)
 
-        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides, sdev_coeffs = cls.calculate_rot_mean_sdev_coeffs(
+        mean_coeffs, mc_sizes, mc_strides = cls.calculate_rot_mean_coeffs(
             all_rotlibs, device
         )
+        sdev_coeffs = cls.calculate_rot_sdev_coeffs(all_rotlibs, device)
 
         rotameric_bb_start, rotameric_bb_step, rotameric_bb_periodicity = cls.create_rot_periodicities(
             all_rotlibs, device
@@ -215,8 +216,8 @@ class DunbrackParamResolver(ValidateAttrs):
             rotprob_table_strides=pc_strides,
             rotameric_mean_tables=mean_coeffs,
             rotameric_sdev_tables=sdev_coeffs,
-            rotmean_table_sizes=mean_coeffs_sizes,
-            rotmean_table_strides=mean_coeffs_strides,
+            rotmean_table_sizes=mc_sizes,
+            rotmean_table_strides=mc_strides,
             rotameric_bb_start=rotameric_bb_start,
             rotameric_bb_step=rotameric_bb_step,
             rotameric_bb_periodicity=rotameric_bb_periodicity,
@@ -356,7 +357,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
     @classmethod
-    def calculate_rot_mean_sdev_coeffs(cls, all_rotlibs, device):
+    def calculate_rot_mean_coeffs(cls, all_rotlibs, device):
         rotameric_mean_tables = [
             rotlib.rotameric_data.rotamer_means[i, :, :, j].clone().detach()
             for rotlib in all_rotlibs
@@ -369,6 +370,18 @@ class DunbrackParamResolver(ValidateAttrs):
             x[x < -120] = x[x < -120] + 360
             x *= numpy.pi / 180
 
+        mean_coeffs = [
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_mean_tables
+        ]
+        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = nplus1d_tensor_from_list(
+            mean_coeffs
+        )
+
+        return mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides
+
+    @classmethod
+    def calculate_rot_sdev_coeffs(cls, all_rotlibs, device):
         rotameric_sdev_tables = [
             rotlib.rotameric_data.rotamer_stdvs[i, :, :, j].clone().detach()
             * numpy.pi
@@ -378,20 +391,12 @@ class DunbrackParamResolver(ValidateAttrs):
             for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[3])
         ]
 
-        mean_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_mean_tables
-        ]
-        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = nplus1d_tensor_from_list(
-            mean_coeffs
-        )
-
         sdev_coeffs = [
             BSplineInterpolation.from_coordinates(t).coeffs.to(device)
             for t in rotameric_sdev_tables
         ]
         sdev_coeffs, _, _2 = nplus1d_tensor_from_list(sdev_coeffs)
-        return mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides, sdev_coeffs
+        return sdev_coeffs
 
     @classmethod
     def create_rot_periodicities(cls, all_rotlibs, device):
