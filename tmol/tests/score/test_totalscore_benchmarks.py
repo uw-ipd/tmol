@@ -58,9 +58,10 @@ def test_setup(
             device=torch_device,
             component_weights=default_component_weights,
         )
-        score_graph.intra_score().total
+        return score_graph.intra_score().total
 
-    setup
+    score = setup
+    assert score == score
 
 
 @pytest.mark.benchmark(group="total_score_onepass")
@@ -88,7 +89,7 @@ def test_full(
 
 @pytest.mark.benchmark(group="total_score_onepass")
 @pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
-def test_minimize_25steps(
+def test_minimize_10steps(
     benchmark, systems_bysize, system_size, torch_device, default_component_weights
 ):
     score_graph = TotalScore.build_for(
@@ -100,14 +101,10 @@ def test_minimize_25steps(
     score_graph.intra_score().total
 
     # score
-    score_graph.intra_score().total
     model = TorsionalEnergyNetwork(score_graph)
 
     # set tol to 0 so we are guaranteed to hit the iteration limit
-    optimizer = LBFGS_Armijo(model.parameters(), lr=1.0, max_iter=25, atol=0, rtol=0)
-
-    # score once to initialize
-    score_graph.intra_score().total
+    optimizer = LBFGS_Armijo(model.parameters(), lr=1.0, max_iter=10, atol=0, rtol=0)
 
     def closure():
         optimizer.zero_grad()
@@ -118,7 +115,7 @@ def test_minimize_25steps(
         return E
 
     @benchmark
-    def min_25_steps():
+    def min_10_steps():
         optimizer.step(closure)
 
-    min_25_steps
+    min_10_steps
