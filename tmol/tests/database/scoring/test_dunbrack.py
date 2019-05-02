@@ -12,4 +12,4 @@ def test_load_dunbrack_from_binary(benchmark):
             "tmol/database/default/scoring/dunbrack.bin",
         )
 
-    assert db != None
+    assert db is not None

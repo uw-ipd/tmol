@@ -495,8 +495,8 @@ def semirotameric_energy(
   Int table_ind =
       semirotameric_rottable_assignment[resid] + semirot_table_offset;
   for (int ii = 0; ii < NbbP2 - 1; ++ii) {
-    int ii_dihe_ind = ii == NbbP2 - 1 - 1 ? semirot_dihedral_index
-                                          : (res_dihedral_offset + ii);
+    int ii_dihe_ind =
+        ii == NbbP2 - 2 ? semirot_dihedral_index : (res_dihedral_offset + ii);
     Real wrap_iidihe =
         dihedrals[ii_dihe_ind] - semirot_start[semirot_table_set][ii];
     temp_dihe_start(ii) = semirot_start[semirot_table_set][ii] * 180 / M_PI;

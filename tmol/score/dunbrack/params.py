@@ -332,10 +332,6 @@ class DunbrackParamResolver(ValidateAttrs):
                 len(rotlib.rotameric_data.rotamer_alias.shape) == 2
                 and rotlib.rotameric_data.rotamer_alias.shape[0] > 0
             ):
-                print(
-                    "rotlib.rotameric_data.rotamer_alias",
-                    rotlib.rotameric_data.rotamer_alias,
-                )
                 orig_rotids = (
                     rotlib.rotameric_data.rotamer_alias[:, 0 : rotamers.shape[1]]
                     .clone()
@@ -346,9 +342,6 @@ class DunbrackParamResolver(ValidateAttrs):
                     .clone()
                     .detach()
                 )
-                print("prods", prods)
-                print("orig_rotids", orig_rotids)
-                print("alt_rotids", alt_rotids)
                 orig_inds = torch.sum((orig_rotids - 1) * prods, 1)
                 alt_inds = torch.sum((alt_rotids - 1) * prods, 1)
                 ri2ti[orig_inds.type(torch.long)] = ri2ti[alt_inds.type(torch.long)]
@@ -426,7 +419,7 @@ class DunbrackParamResolver(ValidateAttrs):
             torch.tensor(nsemirot_rotamers, dtype=torch.int32, device=device), 0
         )
         semirotameric_prob_tables = [
-            rotlib.nonrotameric_chi_probabilities[i, :, :, :]
+            rotlib.nonrotameric_chi_probabilities[i, :, :, :].clone().detach()
             for rotlib in dun_database.semi_rotameric_libraries
             for i in range(rotlib.nonrotameric_chi_probabilities.shape[0])
         ]
