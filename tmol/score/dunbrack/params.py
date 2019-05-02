@@ -175,144 +175,24 @@ class DunbrackParamResolver(ValidateAttrs):
             )
         ]
 
-        all_table_names = [x.table_name for x in all_rotlibs]
-        all_table_lookup = (
-            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
-            .set_index("dun_table_name")
-            .reindex(all_table_names)
-        )
-        all_table_indices = pandas.Index(all_table_lookup["residue_name"])
+        all_table_indices = cls.create_all_table_indices(all_rotlibs, dun_database)
+        rotameric_table_indices = cls.create_rotameric_indices(dun_database)
+        semirotameric_table_indices = cls.create_semirotameric_indices(dun_database)
+        nchi_for_table_set = cls.create_nchi_for_table_set(all_rotlibs, device)
 
-        rotameric_table_names = [x.table_name for x in dun_database.rotameric_libraries]
-        rotameric_table_lookup = (
-            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
-            .set_index("dun_table_name")
-            .reindex(rotameric_table_names)
-        )
-        rotameric_table_indices = pandas.Index(rotameric_table_lookup["residue_name"])
-
-        semirotameric_table_names = [
-            x.table_name for x in dun_database.semi_rotameric_libraries
-        ]
-        semirotameric_table_lookup = (
-            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
-            .set_index("dun_table_name")
-            .reindex(semirotameric_table_names)
-        )
-        semirotameric_table_indices = pandas.Index(
-            semirotameric_table_lookup["residue_name"]
+        prob_table_offsets = cls.create_prob_table_offsets(all_rotlibs, device)
+        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides, neglnprob_coeffs = cls.compute_rotamer_probability_coefficients(
+            all_rotlibs, device
         )
 
-        rotameric_prob_tables = [
-            rotlib.rotameric_data.rotamer_probabilities[i, :, :].clone().detach()
-            for rotlib in all_rotlibs
-            for i in range(rotlib.rotameric_data.rotamer_probabilities.shape[0])
-        ]
-        for table in rotameric_prob_tables:
-            table[table == 0] = 1e-6
-        rotameric_neglnprob_tables = [
-            -1 * torch.log(table) for table in rotameric_prob_tables
-        ]
+        rotameric_mean_offsets = cls.create_rot_mean_offsets(all_rotlibs, device)
 
-        # prob_table_name_and_nrots = [
-        #     (rotlib.table_name, rotlib.rotameric_data.rotamer_probabilities.shape[0])
-        #     for rotlib in all_rotlibs
-        # ]
-
-        nchi_for_table_set = torch.tensor(
-            [rotlib.rotameric_data.rotamers.shape[1] for rotlib in all_rotlibs],
-            dtype=torch.int32,
-            device=device,
+        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides, sdev_coeffs = cls.calculate_rot_mean_sdev_coeffs(
+            all_rotlibs, device
         )
 
-        prob_table_nrots = torch.tensor(
-            [
-                rotlib.rotameric_data.rotamer_probabilities.shape[0]
-                for rotlib in all_rotlibs
-            ],
-            dtype=torch.int32,
-            device=device,
-        )
-        prob_table_offsets = exclusive_cumsum(prob_table_nrots)
-
-        prob_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_prob_tables
-        ]
-        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides = nplus1d_tensor_from_list(
-            prob_coeffs
-        )
-
-        neglnprob_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_neglnprob_tables
-        ]
-        neglnprob_coeffs, _, _2 = nplus1d_tensor_from_list(neglnprob_coeffs)
-
-        rotameric_mean_tables = [
-            rotlib.rotameric_data.rotamer_means[i, :, :, j].clone().detach()
-            for rotlib in all_rotlibs
-            for i in range(rotlib.rotameric_data.rotamer_means.shape[0])
-            for j in range(rotlib.rotameric_data.rotamer_means.shape[3])
-        ]
-
-        # if the mean is near -180, wrap it towards +180
-        for x in rotameric_mean_tables:
-            x[x < -120] = x[x < -120] + 360
-            x *= numpy.pi / 180
-
-        mean_table_n_entries = [0] + [
-            rotlib.rotameric_data.rotamer_means.shape[0]
-            * rotlib.rotameric_data.rotamer_means.shape[3]
-            for rotlib in all_rotlibs
-        ][:-1]
-        rotameric_mean_offsets = torch.cumsum(
-            torch.tensor(mean_table_n_entries, dtype=torch.int32, device=device), 0
-        )
-
-        rotameric_sdev_tables = [
-            rotlib.rotameric_data.rotamer_stdvs[i, :, :, j].clone().detach()
-            * numpy.pi
-            / 180
-            for rotlib in all_rotlibs
-            for i in range(rotlib.rotameric_data.rotamer_stdvs.shape[0])
-            for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[3])
-        ]
-
-        mean_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_mean_tables
-        ]
-        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = nplus1d_tensor_from_list(
-            mean_coeffs
-        )
-
-        sdev_coeffs = [
-            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
-            for t in rotameric_sdev_tables
-        ]
-        sdev_coeffs, _, _2 = nplus1d_tensor_from_list(sdev_coeffs)
-
-        rotameric_bb_start = torch.tensor(
-            [
-                list(rotlib.rotameric_data.backbone_dihedral_start)
-                for rotlib in all_rotlibs
-            ],
-            dtype=torch.float,
-            device=device,
-        )
-        rotameric_bb_start *= numpy.pi / 180
-        rotameric_bb_step = torch.tensor(
-            [
-                list(rotlib.rotameric_data.backbone_dihedral_step)
-                for rotlib in all_rotlibs
-            ],
-            dtype=torch.float,
-            device=device,
-        )
-        rotameric_bb_step *= numpy.pi / 180
-        rotameric_bb_periodicity = (
-            rotameric_bb_step.new_ones(rotameric_bb_step.shape) * 2 * numpy.pi
+        rotameric_bb_start, rotameric_bb_step, rotameric_bb_periodicity = cls.create_rot_periodicities(
+            all_rotlibs, device
         )
 
         rot_ri2ti, semirot_ri2ti = cls.create_rotind2tableinds(dun_database, device)
@@ -320,7 +200,6 @@ class DunbrackParamResolver(ValidateAttrs):
         rotind2tableind_offsets = cls.create_rotameric_rotind2tableind_offsets(
             dun_database, device
         )
-        # ======
 
         sr_coeffs, sr_sizes, sr_strides = cls.calc_semirot_coeffs(dun_database, device)
 
@@ -384,6 +263,160 @@ class DunbrackParamResolver(ValidateAttrs):
             semirotameric_table_indices=semirotameric_table_indices,
             device=device,
         )
+
+    @classmethod
+    def create_all_table_indices(cls, all_rotlibs, dun_database):
+        all_table_names = [x.table_name for x in all_rotlibs]
+        all_table_lookup = (
+            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
+            .set_index("dun_table_name")
+            .reindex(all_table_names)
+        )
+        return pandas.Index(all_table_lookup["residue_name"])
+
+    @classmethod
+    def create_rotameric_indices(cls, dun_database):
+        rotameric_table_names = [x.table_name for x in dun_database.rotameric_libraries]
+        rotameric_table_lookup = (
+            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
+            .set_index("dun_table_name")
+            .reindex(rotameric_table_names)
+        )
+        return pandas.Index(rotameric_table_lookup["residue_name"])
+
+    @classmethod
+    def create_semirotameric_indices(cls, dun_database):
+        semirotameric_table_names = [
+            x.table_name for x in dun_database.semi_rotameric_libraries
+        ]
+        semirotameric_table_lookup = (
+            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
+            .set_index("dun_table_name")
+            .reindex(semirotameric_table_names)
+        )
+        return pandas.Index(semirotameric_table_lookup["residue_name"])
+
+    @classmethod
+    def create_nchi_for_table_set(cls, all_rotlibs, device):
+        return torch.tensor(
+            [rotlib.rotameric_data.rotamers.shape[1] for rotlib in all_rotlibs],
+            dtype=torch.int32,
+            device=device,
+        )
+
+    @classmethod
+    def create_prob_table_offsets(cls, all_rotlibs, device):
+        prob_table_nrots = torch.tensor(
+            [
+                rotlib.rotameric_data.rotamer_probabilities.shape[0]
+                for rotlib in all_rotlibs
+            ],
+            dtype=torch.int32,
+            device=device,
+        )
+        return exclusive_cumsum(prob_table_nrots)
+
+    @classmethod
+    def compute_rotamer_probability_coefficients(cls, all_rotlibs, device):
+        rotameric_prob_tables = [
+            rotlib.rotameric_data.rotamer_probabilities[i, :, :].clone().detach()
+            for rotlib in all_rotlibs
+            for i in range(rotlib.rotameric_data.rotamer_probabilities.shape[0])
+        ]
+        for table in rotameric_prob_tables:
+            table[table == 0] = 1e-6
+        rotameric_neglnprob_tables = [
+            -1 * torch.log(table) for table in rotameric_prob_tables
+        ]
+
+        prob_coeffs = [
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_prob_tables
+        ]
+        prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides = nplus1d_tensor_from_list(
+            prob_coeffs
+        )
+
+        neglnprob_coeffs = [
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_neglnprob_tables
+        ]
+        neglnprob_coeffs, _, _2 = nplus1d_tensor_from_list(neglnprob_coeffs)
+        return prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides, neglnprob_coeffs
+
+    @classmethod
+    def create_rot_mean_offsets(cls, all_rotlibs, device):
+        mean_table_n_entries = [0] + [
+            rotlib.rotameric_data.rotamer_means.shape[0]
+            * rotlib.rotameric_data.rotamer_means.shape[3]
+            for rotlib in all_rotlibs
+        ][:-1]
+        return torch.cumsum(
+            torch.tensor(mean_table_n_entries, dtype=torch.int32, device=device), 0
+        )
+
+    @classmethod
+    def calculate_rot_mean_sdev_coeffs(cls, all_rotlibs, device):
+        rotameric_mean_tables = [
+            rotlib.rotameric_data.rotamer_means[i, :, :, j].clone().detach()
+            for rotlib in all_rotlibs
+            for i in range(rotlib.rotameric_data.rotamer_means.shape[0])
+            for j in range(rotlib.rotameric_data.rotamer_means.shape[3])
+        ]
+
+        # if the mean is near -180, wrap it towards +180
+        for x in rotameric_mean_tables:
+            x[x < -120] = x[x < -120] + 360
+            x *= numpy.pi / 180
+
+        rotameric_sdev_tables = [
+            rotlib.rotameric_data.rotamer_stdvs[i, :, :, j].clone().detach()
+            * numpy.pi
+            / 180
+            for rotlib in all_rotlibs
+            for i in range(rotlib.rotameric_data.rotamer_stdvs.shape[0])
+            for j in range(rotlib.rotameric_data.rotamer_stdvs.shape[3])
+        ]
+
+        mean_coeffs = [
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_mean_tables
+        ]
+        mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides = nplus1d_tensor_from_list(
+            mean_coeffs
+        )
+
+        sdev_coeffs = [
+            BSplineInterpolation.from_coordinates(t).coeffs.to(device)
+            for t in rotameric_sdev_tables
+        ]
+        sdev_coeffs, _, _2 = nplus1d_tensor_from_list(sdev_coeffs)
+        return mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides, sdev_coeffs
+
+    @classmethod
+    def create_rot_periodicities(cls, all_rotlibs, device):
+        rotameric_bb_start = torch.tensor(
+            [
+                list(rotlib.rotameric_data.backbone_dihedral_start)
+                for rotlib in all_rotlibs
+            ],
+            dtype=torch.float,
+            device=device,
+        )
+        rotameric_bb_start *= numpy.pi / 180
+        rotameric_bb_step = torch.tensor(
+            [
+                list(rotlib.rotameric_data.backbone_dihedral_step)
+                for rotlib in all_rotlibs
+            ],
+            dtype=torch.float,
+            device=device,
+        )
+        rotameric_bb_step *= numpy.pi / 180
+        rotameric_bb_periodicity = (
+            rotameric_bb_step.new_ones(rotameric_bb_step.shape) * 2 * numpy.pi
+        )
+        return rotameric_bb_start, rotameric_bb_step, rotameric_bb_periodicity
 
     @classmethod
     def create_rotind2tableinds(cls, dun_database, device):
