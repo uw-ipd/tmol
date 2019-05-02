@@ -22,6 +22,7 @@ tmol.score
        tmol.score.interatomic_distance
        tmol.score.score_components
        tmol.score.score_graph
+       tmol.score.score_weights
        tmol.score.stacked_system
        tmol.score.viewer
   

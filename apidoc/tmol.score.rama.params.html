@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.rama.params &mdash; TMol 0.0.0-167-gc7024829 documentation</title>
+  <title>tmol.score.rama.params &mdash; TMol 0.0.0-168-g6b121031 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-167-gc7024829',
+              VERSION:'0.0.0-168-g6b121031',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-167-gc7024829
+                0.0.0-168-g6b121031
               </div>
             
           
@@ -114,6 +114,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.score_graph.html">tmol.score.score_graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_weights.html">tmol.score.score_weights</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.cartbonded.html">tmol.score.cartbonded</a></li>
@@ -262,7 +263,7 @@
 
 <dl class="class">
 <dt id="tmol.score.rama.params.RamaParamResolver">
-<em class="property">class </em><code class="descclassname">tmol.score.rama.params.</code><code class="descname">RamaParamResolver</code><span class="sig-paren">(</span><em>rama_indices: pandas.core.indexes.base.Index</em>, <em>rama_params: tmol.score.rama.params.PackedRamaDatabase</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/params.html#RamaParamResolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.params.RamaParamResolver" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.rama.params.</code><code class="descname">RamaParamResolver</code><span class="sig-paren">(</span><em>rama_lookup: pandas.core.frame.DataFrame</em>, <em>rama_params: tmol.score.rama.params.PackedRamaDatabase</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/params.html#RamaParamResolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.params.RamaParamResolver" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.score.rama.params.RamaParamResolver._from_rama_db_cache">
@@ -270,8 +271,8 @@
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.rama.params.RamaParamResolver.rama_indices">
-<code class="descname">rama_indices</code><a class="headerlink" href="#tmol.score.rama.params.RamaParamResolver.rama_indices" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.rama.params.RamaParamResolver.rama_lookup">
+<code class="descname">rama_lookup</code><a class="headerlink" href="#tmol.score.rama.params.RamaParamResolver.rama_lookup" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -286,7 +287,7 @@
 
 <dl class="method">
 <dt id="tmol.score.rama.params.RamaParamResolver.resolve_ramatables">
-<code class="descname">resolve_ramatables</code><span class="sig-paren">(</span><em>resnames0: NDArray(dtype('O'))[...], resnames1: NDArray(dtype('O'))[...]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('int64'))[...]<a class="reference internal" href="../_modules/tmol/score/rama/params.html#RamaParamResolver.resolve_ramatables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.params.RamaParamResolver.resolve_ramatables" title="Permalink to this definition">¶</a></dt>
+<code class="descname">resolve_ramatables</code><span class="sig-paren">(</span><em>r1: NDArray(dtype('O'))[...], r2: NDArray(dtype('O'))[...]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('int64'))[...]<a class="reference internal" href="../_modules/tmol/score/rama/params.html#RamaParamResolver.resolve_ramatables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.params.RamaParamResolver.resolve_ramatables" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">

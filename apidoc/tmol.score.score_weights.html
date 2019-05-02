@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.device &mdash; TMol 0.0.0-168-g6b121031 documentation</title>
+  <title>tmol.score.score_weights &mdash; TMol 0.0.0-168-g6b121031 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.device.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.score_weights.html"/>
   
 
   
@@ -47,8 +47,8 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.score.factory_mixin" href="tmol.score.factory_mixin.html" />
-    <link rel="prev" title="tmol.score.database" href="tmol.score.database.html" /> 
+    <link rel="next" title="tmol.score.stacked_system" href="tmol.score.stacked_system.html" />
+    <link rel="prev" title="tmol.score.score_graph" href="tmol.score.score_graph.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -109,7 +109,12 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.chemical_database.html">tmol.score.chemical_database</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.coordinates.html">tmol.score.coordinates</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.database.html">tmol.score.database</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.score.device</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.device.html">tmol.score.device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.factory_mixin.html">tmol.score.factory_mixin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_graph.html">tmol.score.score_graph</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">tmol.score.score_weights</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#summary">Summary</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#classes">Classes</a></li>
 </ul>
@@ -117,11 +122,6 @@
 <li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.score.factory_mixin.html">tmol.score.factory_mixin</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.score.interatomic_distance.html">tmol.score.interatomic_distance</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_components.html">tmol.score.score_components</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_graph.html">tmol.score.score_graph</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.score.score_weights.html">tmol.score.score_weights</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.stacked_system.html">tmol.score.stacked_system</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.viewer.html">tmol.score.viewer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.cartbonded.html">tmol.score.cartbonded</a></li>
@@ -192,13 +192,13 @@
         
           <li><a href="tmol.score.html">tmol.score</a> &raquo;</li>
         
-      <li>tmol.score.device</li>
+      <li>tmol.score.score_weights</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.score.device.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.score.score_weights.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -211,8 +211,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.score.device">
-<span id="tmol-score-device"></span><h1>tmol.score.device<a class="headerlink" href="#module-tmol.score.device" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-tmol.score.score_weights">
+<span id="tmol-score-score-weights"></span><h1>tmol.score.score_weights<a class="headerlink" href="#module-tmol.score.score_weights" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="classes">
@@ -223,8 +223,8 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TorchDevice</span></code></a></td>
-<td>Graph component specifying the target compute device.</td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.score_weights.ScoreWeights" title="tmol.score.score_weights.ScoreWeights"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScoreWeights</span></code></a></td>
+<td>Mixin for scoring system enabling per-term reweighing</td>
 </tr>
 </tbody>
 </table>
@@ -233,62 +233,58 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="tmol.score.device.TorchDevice">
-<em class="property">class </em><code class="descclassname">tmol.score.device.</code><code class="descname">TorchDevice</code><span class="sig-paren">(</span><em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/device.html#TorchDevice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.device.TorchDevice" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.score_weights.ScoreWeights">
+<em class="property">class </em><code class="descclassname">tmol.score.score_weights.</code><code class="descname">ScoreWeights</code><span class="sig-paren">(</span><em>component_weights: Dict[str, float]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_weights.html#ScoreWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_weights.ScoreWeights" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Graph component specifying the target compute device.</p>
-<dl class="attribute">
-<dt id="tmol.score.device.TorchDevice.device">
-<code class="descname">device</code><a class="headerlink" href="#tmol.score.device.TorchDevice.device" title="Permalink to this definition">¶</a></dt>
-<dd><p>The common torch compute device used for all operations.</p>
-</dd></dl>
-
+<p>Mixin for scoring system enabling per-term reweighing</p>
+<p>Stores a dictionary matching score terms (strings) to weights (reals)
+which are used in per-term reweighting in ‘total’ in both
+Intra and Inter scores</p>
 <dl class="staticmethod">
-<dt id="tmol.score.device.TorchDevice.factory_for">
-<em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>val</em>, <em>device: Union[torch.device</em>, <em>NoneType] = None</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/device.html#TorchDevice.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.device.TorchDevice.factory_for" title="Permalink to this definition">¶</a></dt>
-<dd><p>Overridable clone-constructor.</p>
-<p>Initialize from <code class="docutils literal notranslate"><span class="pre">val.device</span></code> if possible, otherwise defaulting to cpu.</p>
+<dt id="tmol.score.score_weights.ScoreWeights.factory_for">
+<em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>other</em>, <em>component_weights=None</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_weights.html#ScoreWeights.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_weights.ScoreWeights.factory_for" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="tmol.kinematics.datatypes.html#tmol.kinematics.datatypes.KinDOF.clone" title="tmol.kinematics.datatypes.KinDOF.clone"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">clone</span></code></a>-factory, extract weights from other.</p>
 </dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.device.TorchDevice._inter_score_type">
-<em class="property">classmethod </em><code class="descname">_inter_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="headerlink" href="#tmol.score.device.TorchDevice._inter_score_type" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.score_weights.ScoreWeights._inter_score_type">
+<em class="property">classmethod </em><code class="descname">_inter_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="headerlink" href="#tmol.score.score_weights.ScoreWeights._inter_score_type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compose and create InterScore type for all ScoreComponents in class.</p>
 </dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.device.TorchDevice._intra_score_type">
-<em class="property">classmethod </em><code class="descname">_intra_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="headerlink" href="#tmol.score.device.TorchDevice._intra_score_type" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.score_weights.ScoreWeights._intra_score_type">
+<em class="property">classmethod </em><code class="descname">_intra_score_type</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; type<a class="headerlink" href="#tmol.score.score_weights.ScoreWeights._intra_score_type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compose and create IntraScore type for all ScoreComponents in class.</p>
 </dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.device.TorchDevice._score_components">
-<em class="property">classmethod </em><code class="descname">_score_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.device.TorchDevice._score_components" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.score_weights.ScoreWeights._score_components">
+<em class="property">classmethod </em><code class="descname">_score_components</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.score_weights.ScoreWeights._score_components" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gather all <code class="docutils literal notranslate"><span class="pre">total_score_components</span></code> defined in class bases.</p>
 </dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.device.TorchDevice.build_for">
-<em class="property">classmethod </em><code class="descname">build_for</code><span class="sig-paren">(</span><em>val</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.device.TorchDevice.build_for" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.score_weights.ScoreWeights.build_for">
+<em class="property">classmethod </em><code class="descname">build_for</code><span class="sig-paren">(</span><em>val</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.score_weights.ScoreWeights.build_for" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct score graph for val, defaults to cloning val.</p>
 </dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.device.TorchDevice.init_parameters_for">
-<em class="property">classmethod </em><code class="descname">init_parameters_for</code><span class="sig-paren">(</span><em>val</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.device.TorchDevice.init_parameters_for" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.score_weights.ScoreWeights.init_parameters_for">
+<em class="property">classmethod </em><code class="descname">init_parameters_for</code><span class="sig-paren">(</span><em>val</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#tmol.score.score_weights.ScoreWeights.init_parameters_for" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get score graph params for val, defaults to cloning.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.device.TorchDevice.inter_score">
-<code class="descname">inter_score</code><span class="sig-paren">(</span><em>other: tmol.score.score_components._ScoreComponent</em><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.InterScore<a class="headerlink" href="#tmol.score.device.TorchDevice.inter_score" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.score_weights.ScoreWeights.inter_score">
+<code class="descname">inter_score</code><span class="sig-paren">(</span><em>other: tmol.score.score_components._ScoreComponent</em><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.InterScore<a class="headerlink" href="#tmol.score.score_weights.ScoreWeights.inter_score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create inter-score container for this component and other.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.device.TorchDevice.intra_score">
-<code class="descname">intra_score</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.IntraScore<a class="headerlink" href="#tmol.score.device.TorchDevice.intra_score" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.score_weights.ScoreWeights.intra_score">
+<code class="descname">intra_score</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; tmol.score.score_components.IntraScore<a class="headerlink" href="#tmol.score.score_weights.ScoreWeights.intra_score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create intra-score container over this component.</p>
 </dd></dl>
 
@@ -305,10 +301,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.score.factory_mixin.html" class="btn btn-neutral float-right" title="tmol.score.factory_mixin" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.stacked_system.html" class="btn btn-neutral float-right" title="tmol.score.stacked_system" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="tmol.score.database.html" class="btn btn-neutral float-left" title="tmol.score.database" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tmol.score.score_graph.html" class="btn btn-neutral float-left" title="tmol.score.score_graph" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

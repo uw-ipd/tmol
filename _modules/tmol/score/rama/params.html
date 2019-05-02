@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.rama.params &mdash; TMol 0.0.0-167-gc7024829 documentation</title>
+  <title>tmol.score.rama.params &mdash; TMol 0.0.0-168-g6b121031 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-167-gc7024829',
+              VERSION:'0.0.0-168-g6b121031',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-167-gc7024829
+                0.0.0-168-g6b121031
               </div>
             
           
@@ -210,20 +210,24 @@
 <span class="k">class</span> <span class="nc">RamaParamResolver</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
     <span class="n">_from_rama_db_cache</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="n">rama_indices</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span>
+    <span class="c1"># respair -&gt; table index mapping</span>
+    <span class="n">rama_lookup</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>
+
+    <span class="c1"># array of tables</span>
     <span class="n">rama_params</span><span class="p">:</span> <span class="n">PackedRamaDatabase</span>
 
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
 
 <div class="viewcode-block" id="RamaParamResolver.resolve_ramatables"><a class="viewcode-back" href="../../../../apidoc/tmol.score.rama.params.html#tmol.score.rama.params.RamaParamResolver.resolve_ramatables">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_ramatables</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">resnames0</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span> <span class="n">resnames1</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">r1</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span> <span class="n">r2</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]:</span>
-        <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rama_indices</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">resnames0</span><span class="p">,</span> <span class="n">resnames1</span><span class="p">])</span>
-        <span class="n">wildcard</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames1</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
-        <span class="n">indices</span><span class="p">[</span><span class="n">indices</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rama_indices</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">resnames0</span><span class="p">[</span><span class="n">indices</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">wildcard</span><span class="p">[</span><span class="n">indices</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">l_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rama_lookup</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">])</span>
+        <span class="n">wildcard</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+        <span class="n">l_idx</span><span class="p">[</span><span class="n">l_idx</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rama_lookup</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">r1</span><span class="p">[</span><span class="n">l_idx</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">wildcard</span><span class="p">[</span><span class="n">l_idx</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">indices</span></div>
+        <span class="n">t_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rama_lookup</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">l_idx</span><span class="p">,</span> <span class="p">:][</span><span class="s2">&quot;table_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">return</span> <span class="n">t_idx</span></div>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>
@@ -232,13 +236,14 @@
         <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">uniq_id</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
     <span class="p">)</span>
     <span class="k">def</span> <span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">rama_database</span><span class="p">:</span> <span class="n">RamaDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-        <span class="c1"># build name-&gt;index mapping</span>
-        <span class="n">rama_records</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">rama_database</span><span class="o">.</span><span class="n">rama_lookup</span><span class="p">))</span>
-            <span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">reindex</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rama_database</span><span class="o">.</span><span class="n">rama_tables</span><span class="p">])</span>
-        <span class="p">)</span>
-        <span class="n">rama_indices</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">rama_records</span><span class="p">[[</span><span class="s2">&quot;res_middle&quot;</span><span class="p">,</span> <span class="s2">&quot;res_upper&quot;</span><span class="p">]])</span>
+        <span class="c1"># setup name to index mapping</span>
+        <span class="n">rama_lookup</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
+            <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">rama_database</span><span class="o">.</span><span class="n">rama_lookup</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s2">&quot;res_middle&quot;</span><span class="p">,</span> <span class="s2">&quot;res_upper&quot;</span><span class="p">])</span>
+        <span class="n">tindices</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">table_id</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">rama_database</span><span class="o">.</span><span class="n">rama_tables</span><span class="p">])</span>
+
+        <span class="c1"># map table names to indices</span>
+        <span class="n">rama_lookup</span><span class="o">.</span><span class="n">table_id</span> <span class="o">=</span> <span class="n">tindices</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">rama_lookup</span><span class="o">.</span><span class="n">table_id</span><span class="p">)</span>
 
         <span class="n">rama_params</span> <span class="o">=</span> <span class="n">PackedRamaDatabase</span><span class="p">(</span>
             <span class="c1"># interpolate on CPU then move coeffs to CUDA</span>
@@ -260,7 +265,7 @@
             <span class="p">),</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rama_indices</span><span class="o">=</span><span class="n">rama_indices</span><span class="p">,</span> <span class="n">rama_params</span><span class="o">=</span><span class="n">rama_params</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">rama_lookup</span><span class="o">=</span><span class="n">rama_lookup</span><span class="p">,</span> <span class="n">rama_params</span><span class="o">=</span><span class="n">rama_params</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

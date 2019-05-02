@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring.rama &mdash; TMol 0.0.0-167-gc7024829 documentation</title>
+  <title>tmol.database.scoring.rama &mdash; TMol 0.0.0-168-g6b121031 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-167-gc7024829',
+              VERSION:'0.0.0-168-g6b121031',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-167-gc7024829
+                0.0.0-168-g6b121031
               </div>
             
           
@@ -192,7 +192,7 @@
 
 <div class="viewcode-block" id="RamaMappingParams"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.rama.html#tmol.database.scoring.rama.RamaMappingParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">RamaMappingParams</span><span class="p">:</span>
-    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">table_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">res_middle</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">res_upper</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;_&quot;</span>
     <span class="n">invert_phi</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
@@ -201,7 +201,7 @@
 
 <div class="viewcode-block" id="RamaTables"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.rama.html#tmol.database.scoring.rama.RamaTables">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">RamaTables</span><span class="p">:</span>
-    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">table_id</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">table</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">bbstep</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
     <span class="n">bbstart</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span></div>
@@ -214,7 +214,7 @@
     <span class="k">for</span> <span class="n">aa</span> <span class="ow">in</span> <span class="n">root</span><span class="p">:</span>
         <span class="n">alltables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">RamaTables</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">aa</span><span class="p">,</span>
+                <span class="n">table_id</span><span class="o">=</span><span class="n">aa</span><span class="p">,</span>
                 <span class="n">table</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">root</span><span class="p">[</span><span class="n">aa</span><span class="p">][</span><span class="s2">&quot;prob&quot;</span><span class="p">]),</span>
                 <span class="n">bbstep</span><span class="o">=</span><span class="n">root</span><span class="p">[</span><span class="n">aa</span><span class="p">][</span><span class="s2">&quot;prob&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;bbstep&quot;</span><span class="p">],</span>
                 <span class="n">bbstart</span><span class="o">=</span><span class="n">root</span><span class="p">[</span><span class="n">aa</span><span class="p">][</span><span class="s2">&quot;prob&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;bbstart&quot;</span><span class="p">],</span>
@@ -232,7 +232,7 @@
 <div class="viewcode-block" id="RamaDatabase.from_files"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.rama.html#tmol.database.scoring.rama.RamaDatabase.from_files">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_files</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path_lookup</span><span class="p">,</span> <span class="n">path_tables</span><span class="p">):</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path_lookup</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile_lookup</span><span class="p">:</span>
-            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile_lookup</span><span class="p">)</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">infile_lookup</span><span class="p">)</span>
             <span class="n">rama_lookup</span> <span class="o">=</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span>
                 <span class="n">raw</span><span class="p">[</span><span class="s2">&quot;rama_lookup&quot;</span><span class="p">],</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">rama_lookup</span><span class="o">.</span><span class="n">type</span>
             <span class="p">)</span>
