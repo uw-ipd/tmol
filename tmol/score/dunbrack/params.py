@@ -315,6 +315,78 @@ class DunbrackParamResolver(ValidateAttrs):
             rotameric_bb_step.new_ones(rotameric_bb_step.shape) * 2 * numpy.pi
         )
 
+        rot_ri2ti, semirot_ri2ti = cls.create_rotind2tableinds(dun_database, device)
+
+        rotind2tableind_offsets = cls.create_rotameric_rotind2tableind_offsets(
+            dun_database, device
+        )
+        # ======
+
+        sr_coeffs, sr_sizes, sr_strides = cls.calc_semirot_coeffs(dun_database, device)
+
+        sr_start, sr_step, sr_periodicity = cls.create_semirot_periodicity(
+            dun_database, device
+        )
+        sr_tableset_offsets = cls.create_semirot_offsets(dun_database, device)
+
+        packed_db = PackedDunbrackDatabase(
+            rotameric_prob_tables=prob_coeffs,
+            rotameric_neglnprob_tables=neglnprob_coeffs,
+            rotprob_table_sizes=prob_coeffs_sizes,
+            rotprob_table_strides=prob_coeffs_strides,
+            rotameric_mean_tables=mean_coeffs,
+            rotameric_sdev_tables=sdev_coeffs,
+            rotmean_table_sizes=mean_coeffs_sizes,
+            rotmean_table_strides=mean_coeffs_strides,
+            rotameric_bb_start=rotameric_bb_start,
+            rotameric_bb_step=rotameric_bb_step,
+            rotameric_bb_periodicity=rotameric_bb_periodicity,
+            rotameric_rotind2tableind=rot_ri2ti,
+            semirotameric_rotind2tableind=semirot_ri2ti,
+            semirotameric_tables=sr_coeffs,
+            semirot_table_sizes=sr_sizes,
+            semirot_table_strides=sr_strides,
+            semirot_start=sr_start,
+            semirot_step=sr_step,
+            semirot_periodicity=sr_periodicity,
+        )
+        packed_db_aux = PackedDunbrackDatabaseAux(
+            rotameric_prob_tableset_offsets=prob_table_offsets,
+            rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
+            nchi_for_table_set=nchi_for_table_set,
+            rotind2tableind_offsets=rotind2tableind_offsets,
+            semirotameric_tableset_offsets=sr_tableset_offsets,
+        )
+
+        # rama_params = PackedRamaDatabase(
+        #     tables=[
+        #         BSplineInterpolation.from_coordinates(
+        #             torch.tensor(f.table, dtype=torch.float, device=device)
+        #         )
+        #         for f in rama_database.rama_tables
+        #     ],
+        #     bbsteps=[
+        #         torch.tensor(f.bbstep, dtype=torch.float, device=device)
+        #         for f in rama_database.rama_tables
+        #     ],
+        #     bbstarts=[
+        #         torch.tensor(f.bbstart, dtype=torch.float, device=device)
+        #         for f in rama_database.rama_tables
+        #     ],
+        # )
+        #
+
+        return cls(
+            packed_db=packed_db,
+            packed_db_aux=packed_db_aux,
+            all_table_indices=all_table_indices,
+            rotameric_table_indices=rotameric_table_indices,
+            semirotameric_table_indices=semirotameric_table_indices,
+            device=device,
+        )
+
+    @classmethod
+    def create_rotind2tableinds(cls, dun_database, device):
         rotameric_rotind2tableind = []
         semirotameric_rotind2tableind = []
         ntablerots = [0]
@@ -390,7 +462,10 @@ class DunbrackParamResolver(ValidateAttrs):
         semirotameric_rotind2tableind = torch.tensor(
             semirotameric_rotind2tableind, dtype=torch.int32, device=device
         ).reshape((-1,))
+        return rotameric_rotind2tableind, semirotameric_rotind2tableind
 
+    @classmethod
+    def create_rotameric_rotind2tableind_offsets(cls, dun_database, device):
         rotamer_sets = [
             rotlib.rotameric_data.rotamers
             for rotlib in dun_database.rotameric_libraries
@@ -400,78 +475,13 @@ class DunbrackParamResolver(ValidateAttrs):
         ]
 
         # same for both rotameric and semi-rotameric rotind2tableind tables
-        rotind2tableind_offsets = torch.cumsum(
+        return torch.cumsum(
             torch.tensor(
                 [0] + [3 ** rotamers.shape[1] for rotamers in rotamer_sets][:-1],
                 dtype=torch.int32,
                 device=device,
             ),
             0,
-        )
-
-        # ======
-
-        sr_coeffs, sr_sizes, sr_strides = cls.calc_semirot_coeffs(dun_database, device)
-
-        sr_start, sr_step, sr_periodicity = cls.create_semirot_periodicity(
-            dun_database, device
-        )
-        sr_tableset_offsets = cls.create_semirot_offsets(dun_database, device)
-
-        packed_db = PackedDunbrackDatabase(
-            rotameric_prob_tables=prob_coeffs,
-            rotameric_neglnprob_tables=neglnprob_coeffs,
-            rotprob_table_sizes=prob_coeffs_sizes,
-            rotprob_table_strides=prob_coeffs_strides,
-            rotameric_mean_tables=mean_coeffs,
-            rotameric_sdev_tables=sdev_coeffs,
-            rotmean_table_sizes=mean_coeffs_sizes,
-            rotmean_table_strides=mean_coeffs_strides,
-            rotameric_bb_start=rotameric_bb_start,
-            rotameric_bb_step=rotameric_bb_step,
-            rotameric_bb_periodicity=rotameric_bb_periodicity,
-            rotameric_rotind2tableind=rotameric_rotind2tableind,
-            semirotameric_rotind2tableind=semirotameric_rotind2tableind,
-            semirotameric_tables=sr_coeffs,
-            semirot_table_sizes=sr_sizes,
-            semirot_table_strides=sr_strides,
-            semirot_start=sr_start,
-            semirot_step=sr_step,
-            semirot_periodicity=sr_periodicity,
-        )
-        packed_db_aux = PackedDunbrackDatabaseAux(
-            rotameric_prob_tableset_offsets=prob_table_offsets,
-            rotameric_meansdev_tableset_offsets=rotameric_mean_offsets,
-            nchi_for_table_set=nchi_for_table_set,
-            rotind2tableind_offsets=rotind2tableind_offsets,
-            semirotameric_tableset_offsets=sr_tableset_offsets,
-        )
-
-        # rama_params = PackedRamaDatabase(
-        #     tables=[
-        #         BSplineInterpolation.from_coordinates(
-        #             torch.tensor(f.table, dtype=torch.float, device=device)
-        #         )
-        #         for f in rama_database.rama_tables
-        #     ],
-        #     bbsteps=[
-        #         torch.tensor(f.bbstep, dtype=torch.float, device=device)
-        #         for f in rama_database.rama_tables
-        #     ],
-        #     bbstarts=[
-        #         torch.tensor(f.bbstart, dtype=torch.float, device=device)
-        #         for f in rama_database.rama_tables
-        #     ],
-        # )
-        #
-
-        return cls(
-            packed_db=packed_db,
-            packed_db_aux=packed_db_aux,
-            all_table_indices=all_table_indices,
-            rotameric_table_indices=rotameric_table_indices,
-            semirotameric_table_indices=semirotameric_table_indices,
-            device=device,
         )
 
     @classmethod
