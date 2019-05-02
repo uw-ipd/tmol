@@ -50,7 +50,10 @@ def lj_score_V(
 
   Real d_lin = sigma * 0.6;
   Real cpoly_dmin = 4.5;
+  if (sigma > cpoly_dmin) cpoly_dmin = sigma;
+
   Real cpoly_dmax = 6.0;
+  if (cpoly_dmin > cpoly_dmax - 0.1) cpoly_dmin = cpoly_dmax - 0.1;
 
   if (dist < d_lin) {
     Real vdw, d_vdw_d_dist;
@@ -87,7 +90,10 @@ def lj_score_V_dV(
 
   Real d_lin = sigma * 0.6;
   Real cpoly_dmin = 4.5;
+  if (sigma > cpoly_dmin) cpoly_dmin = sigma;
+
   Real cpoly_dmax = 6.0;
+  if (cpoly_dmin > cpoly_dmax - 0.1) cpoly_dmin = cpoly_dmax - 0.1;
 
   Real vdw, d_vdw_d_dist;
   Real lj, d_lj_d_dist;

@@ -33,7 +33,7 @@ def f_desolv_V(
   const Real pi = EIGEN_PI;
 
   // clang-format off
-  return (
+  Real desolv = (
       -lk_volume_j
       * lk_dgfree_i
       / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
@@ -41,6 +41,8 @@ def f_desolv_V(
       * exp(-pow((dist - lj_radius_i) / lk_lambda_i, 2))
   );
   // clang-format on
+
+  return desolv;
 }
 
 def f_desolv_V_dV(
@@ -94,7 +96,10 @@ def lk_isotropic_pair_V(
     ->Real {
   Real d_min = lj_sigma_ij * .89;
 
-  Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
+  Real cpoly_close_dmin = d_min * d_min - 1.45;
+  if (cpoly_close_dmin < 0.01) cpoly_close_dmin = 0.01;
+  cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
+
   Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
   Real cpoly_far_dmin = 4.5;
@@ -150,7 +155,11 @@ def lk_isotropic_pair_V_dV(
     ->tuple<Real, Real> {
   Real d_min = lj_sigma_ij * .89;
 
-  Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
+  // this matches R3 as closely as possible
+  Real cpoly_close_dmin = d_min * d_min - 1.45;
+  if (cpoly_close_dmin < 0.01) cpoly_close_dmin = 0.01;
+  cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
+
   Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
   Real cpoly_far_dmin = 4.5;

@@ -91,6 +91,6 @@ class ChemicalDatabase:
     def from_file(cls, path):
         path = os.path.join(path, "chemical.yaml")
         with open(path, "r") as infile:
-            raw = yaml.load(infile)
+            raw = yaml.safe_load(infile)
 
         return cattr.structure(raw, cls)

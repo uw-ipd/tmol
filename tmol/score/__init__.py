@@ -12,6 +12,7 @@ from . import (  # noqa: F401
     omega,
     coordinates,
     score_graph,
+    score_weights,
     viewer,  # import viewer to register io overloads
 )
 
@@ -25,6 +26,7 @@ class TotalScoreGraph(
     omega.OmegaScoreGraph,
     elec.ElecScoreGraph,
     cartbonded.CartBondedScoreGraph,
+    score_weights.ScoreWeights,  # per-term reweighing
 ):
     pass
 
