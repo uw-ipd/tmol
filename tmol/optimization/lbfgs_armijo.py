@@ -186,8 +186,13 @@ class LBFGS_Armijo(Optimizer):
         offset = 0
         for p in self._params:
             numel = p.numel()
-            # view as to avoid deprecated pointwise semantics
-            p.data.copy_(update[offset : offset + numel].view_as(p.data))
+            if p.data.is_sparse:
+                p.data.copy_(
+                    update[offset : offset + numel].view_as(p.data).to_sparse()
+                )
+            else:
+                # view as to avoid deprecated pointwise semantics
+                p.data.copy_(update[offset : offset + numel].view_as(p.data))
             offset += numel
         assert offset == self._numel()
 
