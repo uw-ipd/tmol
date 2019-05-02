@@ -40,13 +40,13 @@ struct f_desolv {
     const Real pi = EIGEN_PI;
 
     // clang-format off
-  return (
+    return (
       -lk_volume_j
       * lk_dgfree_i
       / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
       / (dist * dist)
       * exp(-pow((dist - lj_radius_i) / lk_lambda_i, 2))
-  );
+    );
     // clang-format on
   }
 
@@ -62,15 +62,15 @@ struct f_desolv {
     const Real pi = EIGEN_PI;
 
     // clang-format off
-  Real desolv = (
+    Real desolv = (
       -lk_volume_j
       * lk_dgfree_i
       / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
       / (dist * dist)
       * exp(-pow((dist - lj_radius_i) / lk_lambda_i, 2))
-  );
+    );
 
-  Real d_desolv_d_dist = (
+    Real d_desolv_d_dist = (
       -lk_volume_j
       * lk_dgfree_i
       / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
@@ -84,7 +84,7 @@ struct f_desolv {
           * exp(-pow(dist - lj_radius_i, 2) / pow(lk_lambda_i, 2))
         )
       )
-  );
+    );
     // clang-format on
 
     return {desolv, d_desolv_d_dist};
@@ -111,7 +111,10 @@ struct lk_isotropic_pair {
       ->Real {
     Real d_min = lj_sigma_ij * .89;
 
-    Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
+    Real cpoly_close_dmin = d_min * d_min - 1.45;
+    if (cpoly_close_dmin < 0.01) cpoly_close_dmin = 0.01;
+    cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
+
     Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
     Real cpoly_far_dmin = 4.5;
@@ -153,7 +156,6 @@ struct lk_isotropic_pair {
           f_desolv_at_dmin.V,
           f_desolv_at_dmin.dV_ddist,
           cpoly_far_dmax);
-
     } else {
       lk = 0.0;
     }
@@ -172,7 +174,10 @@ struct lk_isotropic_pair {
       ->V_dV_t {
     Real d_min = lj_sigma_ij * .89;
 
-    Real cpoly_close_dmin = std::sqrt(d_min * d_min - 1.45);
+    Real cpoly_close_dmin = d_min * d_min - 1.45;
+    if (cpoly_close_dmin < 0.01) cpoly_close_dmin = 0.01;
+    cpoly_close_dmin = std::sqrt(cpoly_close_dmin);
+
     Real cpoly_close_dmax = std::sqrt(d_min * d_min + 1.05);
 
     Real cpoly_far_dmin = 4.5;

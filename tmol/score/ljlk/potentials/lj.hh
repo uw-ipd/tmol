@@ -67,7 +67,10 @@ struct lj_score {
 
     Real d_lin = sigma * 0.6;
     Real cpoly_dmin = 4.5;
+    if (sigma > cpoly_dmin) cpoly_dmin = sigma;
+
     Real cpoly_dmax = 6.0;
+    if (cpoly_dmin > cpoly_dmax - 0.1) cpoly_dmin = cpoly_dmax - 0.1;
 
     if (dist < d_lin) {
       auto vdw_at_d_lin = vdw<Real>::V_dV(d_lin, sigma, epsilon);
@@ -102,7 +105,10 @@ struct lj_score {
 
     Real d_lin = sigma * 0.6;
     Real cpoly_dmin = 4.5;
+    if (sigma > cpoly_dmin) cpoly_dmin = sigma;
+
     Real cpoly_dmax = 6.0;
+    if (cpoly_dmin > cpoly_dmax - 0.1) cpoly_dmin = cpoly_dmax - 0.1;
 
     Real lj, d_lj_d_dist;
 

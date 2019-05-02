@@ -31,20 +31,24 @@ class PackedRamaDatabase(ConvertAttrs):
 class RamaParamResolver(ValidateAttrs):
     _from_rama_db_cache = {}
 
-    rama_indices: pandas.Index
+    # respair -> table index mapping
+    rama_lookup: pandas.DataFrame
+
+    # array of tables
     rama_params: PackedRamaDatabase
 
     device: torch.device
 
     def resolve_ramatables(
-        self, resnames0: NDArray(object), resnames1: NDArray(object)
+        self, r1: NDArray(object), r2: NDArray(object)
     ) -> NDArray("i8")[...]:
-        indices = self.rama_indices.get_indexer([resnames0, resnames1])
-        wildcard = numpy.full_like(resnames1, "_")
-        indices[indices == -1] = self.rama_indices.get_indexer(
-            [resnames0[indices == -1], wildcard[indices == -1]]
+        l_idx = self.rama_lookup.index.get_indexer([r1, r2])
+        wildcard = numpy.full_like(r1, "_")
+        l_idx[l_idx == -1] = self.rama_lookup.index.get_indexer(
+            [r1[l_idx == -1], wildcard[l_idx == -1]]
         )
-        return indices
+        t_idx = self.rama_lookup.iloc[l_idx, :]["table_id"].values
+        return t_idx
 
     @classmethod
     @validate_args
@@ -53,13 +57,14 @@ class RamaParamResolver(ValidateAttrs):
         key=lambda args, kwargs: (args[1].uniq_id, args[2].type, args[2].index),
     )
     def from_database(cls, rama_database: RamaDatabase, device: torch.device):
-        # build name->index mapping
-        rama_records = (
-            pandas.DataFrame.from_records(cattr.unstructure(rama_database.rama_lookup))
-            .set_index("name")
-            .reindex([x.name for x in rama_database.rama_tables])
-        )
-        rama_indices = pandas.Index(rama_records[["res_middle", "res_upper"]])
+        # setup name to index mapping
+        rama_lookup = pandas.DataFrame.from_records(
+            cattr.unstructure(rama_database.rama_lookup)
+        ).set_index(["res_middle", "res_upper"])
+        tindices = pandas.Index([f.table_id for f in rama_database.rama_tables])
+
+        # map table names to indices
+        rama_lookup.table_id = tindices.get_indexer(rama_lookup.table_id)
 
         rama_params = PackedRamaDatabase(
             # interpolate on CPU then move coeffs to CUDA
@@ -81,4 +86,4 @@ class RamaParamResolver(ValidateAttrs):
             ),
         )
 
-        return cls(rama_indices=rama_indices, rama_params=rama_params, device=device)
+        return cls(rama_lookup=rama_lookup, rama_params=rama_params, device=device)
