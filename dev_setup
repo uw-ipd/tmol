@@ -78,7 +78,7 @@ if len(envpath) >= 1:
 else:
     raise ValueError("Target env not present.")
 
-check_call("%s/bin/pip install -e ." % envpath)
+check_call("%s/bin/pip install --no-use-pep517 -e ." % envpath)
 
 call("ln -sf ../../.post-checkout .git/hooks/post-checkout")
 check_call("%s/bin/pre-commit install " % envpath)
