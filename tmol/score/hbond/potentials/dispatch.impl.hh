@@ -12,6 +12,8 @@
 
 #include <tmol/score/hbond/potentials/potentials.hh>
 
+#include <tmol/utility/nvtx.hh>
+
 namespace tmol {
 namespace score {
 namespace hbond {
@@ -66,6 +68,7 @@ struct HBondDispatch {
           TPack<Vec<Real, 3>, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>> {
+    nvtxRangePush("hbond dispatch f");
     AT_ASSERTM(
         donor_type.size(0) == D.size(0), "Invalid donor coordinate shapes.");
     AT_ASSERTM(
@@ -82,8 +85,11 @@ struct HBondDispatch {
         "Invalid acceptor coordinate shapes.");
 
     Dispatch<Dev> dispatcher(H.size(0), A.size(0));
+    nvtxRangePush("dispatcher.scan");
     auto nresult = dispatcher.scan(threshold_distance, H, A);
+    nvtxRangePop();
 
+    nvtxRangePush("allocate empty tensors");
     auto ind_t = TPack<int64_t, 2, Dev>::empty({nresult, 2});
     auto E_t = TPack<Real, 1, Dev>::empty({nresult});
     auto dE_dD_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
@@ -91,6 +97,7 @@ struct HBondDispatch {
     auto dE_dA_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
     auto dE_dB_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
     auto dE_dB0_t = TPack<Vec<Real, 3>, 1, Dev>::empty({nresult});
+    nvtxRangePop();
 
     auto ind = ind_t.view;
     auto E = E_t.view;
@@ -100,6 +107,7 @@ struct HBondDispatch {
     auto dE_dB = dE_dB_t.view;
     auto dE_dB0 = dE_dB0_t.view;
 
+    nvtxRangePush("dispatcher.score");
     dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int di, int ai) {
       ind[o][0] = di;
       ind[o][1] = ai;
@@ -137,7 +145,9 @@ struct HBondDispatch {
               hb_sp2_outer_width,
               hb_sp3_softmax_fade);
     });
+    nvtxRangePop();
 
+    nvtxRangePop();
     return {ind_t, E_t, dE_dD_t, dE_dH_t, dE_dA_t, dE_dB_t, dE_dB0_t};
   }
 };

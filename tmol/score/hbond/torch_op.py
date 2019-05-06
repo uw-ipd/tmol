@@ -7,6 +7,7 @@ import torch
 from tmol.utility.dicttoolz import flat_items, merge
 
 from tmol.database.scoring import HBondDatabase
+from tmol.utility.nvtx import nvtx_range
 from .params import HBondParamResolver
 
 
@@ -77,9 +78,10 @@ class HBondFun(torch.autograd.Function):
         assert A.shape[:1] == acceptor_type.shape
         assert not acceptor_type.requires_grad
 
-        inds, E, *dE_dC = ctx.op.hbond_pair_score(
-            D, H, donor_type, A, B, B0, acceptor_type, **ctx.op.params
-        )
+        with nvtx_range("HBondFun::forward"):
+            inds, E, *dE_dC = ctx.op.hbond_pair_score(
+                D, H, donor_type, A, B, B0, acceptor_type, **ctx.op.params
+            )
 
         # Assert of returned shape of indicies and scores. Seeing strange
         # results w/ reversed ordering if mgpu::tuple converted std::tuple
