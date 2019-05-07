@@ -64,13 +64,7 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
     @staticmethod
     def factory_for(val, device: torch.device, **_):
         """Overridable clone-constructor.
-
-        Initialize from ``val.ljlk_database`` if possible, otherwise from
-        ``parameter_database.scoring.ljlk``.
         """
-        if device.type != "cpu":
-            raise NotImplementedError("lk_ball not supported on non-cpu devices.")
-
         return dict()
 
     total_score_components = [
@@ -94,11 +88,6 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
     def lkball_waters(
         coords, ljlk_atom_types, indexed_bonds, atom_type_params, ljlk_param_resolver
     ):
-        if coords.device.type != "cpu":
-            raise NotImplementedError(
-                "lk_ball score graph does not support cuda execution."
-            )
-
         return AttachedWaters(
             atom_type_params, ljlk_param_resolver.global_params
         ).apply(coords[0], ljlk_atom_types[0], indexed_bonds)

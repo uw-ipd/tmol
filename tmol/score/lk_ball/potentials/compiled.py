@@ -1,6 +1,13 @@
-from tmol.utility.cpp_extension import load, modulename, relpaths
+from tmol.utility.cpp_extension import load, modulename, relpaths, cuda_if_available
 
-_compiled = load(modulename(__name__), relpaths(__file__, "compiled.cc"))
+_compiled = load(
+    modulename(__name__),
+    cuda_if_available(
+        relpaths(
+            __file__, ["compiled.pybind.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"]
+        )
+    ),
+)
 
 
 def lk_ball_V(*args, **kwargs):

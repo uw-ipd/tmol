@@ -44,8 +44,8 @@ struct lk_fraction {
   static def square(Real v)->Real { return v * v; }
 
   static def V(WatersMat WI, Real3 J, Real lj_radius_j)->Real {
-    Real d2_low =
-        std::max((Real)0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
+    Real d2_low = square(1.4 + lj_radius_j) - ramp_width_A2;
+    if (d2_low < 0.0) d2_low = 0.0;
 
     Real wted_d2_delta = 0;
     for (int w = 0; w < MAX_WATER; ++w) {
@@ -68,8 +68,8 @@ struct lk_fraction {
   }
 
   static def dV(WatersMat WI, Real3 J, Real lj_radius_j)->dV_t {
-    Real d2_low =
-        std::max((Real)0.0, square(1.4 + lj_radius_j) - ramp_width_A2);
+    Real d2_low = square(1.4 + lj_radius_j) - ramp_width_A2;
+    if (d2_low < 0.0) d2_low = 0.0;
 
     Real wted_d2_delta = 0.0;
     Real3 d_wted_d2_delta_d_J = Real3::Zero();
@@ -159,11 +159,10 @@ struct lk_bridge_fraction {
       // square-square -> 1 as x -> 0
       overlapfrac = square(1 - square(wted_d2_delta / overlap_width_A2));
     }
-
     // base angle
     Real overlap_target_len2 = 8.0 / 3.0 * square(lkb_water_dist);
     Real overlap_len2 = (I - J).squaredNorm();
-    Real base_delta = std::abs(overlap_len2 - overlap_target_len2);
+    Real base_delta = fabs(overlap_len2 - overlap_target_len2);
 
     Real anglefrac;
     if (base_delta > angle_overlap_A2) {
@@ -350,7 +349,6 @@ struct lk_ball_score {
         i.lk_dgfree,
         i.lk_lambda,
         j.lk_volume);
-
     Real frac_IJ_desolv = lk_fraction<Real, MAX_WATER>::V(WI, J, j.lj_radius);
 
     Real frac_IJ_water_overlap;

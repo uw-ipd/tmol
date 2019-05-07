@@ -19,7 +19,7 @@ struct IndexedBonds {
 
   struct BondJIter {
     Int bidx;
-    IndexedBonds<Int, D>& parent;
+    IndexedBonds<Int, D> const& parent;
 
     def operator++()->BondJIter& {
       bidx++;
@@ -33,7 +33,7 @@ struct IndexedBonds {
 
   struct BoundAtomRange {
     Int i;
-    IndexedBonds<Int, D>& parent;
+    IndexedBonds<Int, D> const& parent;
 
     def begin()->BondJIter {
       return BondJIter{parent.bond_spans[i][0], parent};
@@ -42,7 +42,7 @@ struct IndexedBonds {
     def end()->BondJIter { return BondJIter{parent.bond_spans[i][1], parent}; }
   };
 
-  BoundAtomRange bound_to(Int i) { return BoundAtomRange{i, *this}; }
+  BoundAtomRange bound_to(Int i) const { return BoundAtomRange{i, *this}; }
 };
 
 #undef def
