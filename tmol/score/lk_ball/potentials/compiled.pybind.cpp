@@ -2,15 +2,15 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/extension.h>
 
-#include <tmol/score/common/dispatch.cpu.impl.hh>
+#include <tmol/score/common/dispatch.hh>
+#include <tmol/score/lk_ball/potentials/dispatch.hh>
 #include <tmol/utility/function_dispatch/pybind.hh>
 
 #include <tmol/score/ljlk/potentials/params.pybind.hh>
 #include "../../bonded_atom.pybind.hh"
 #include "datatypes.pybind.hh"
 
-#include "dispatch.impl.hh"
-#include "water.hh"
+#include "compiled.hh"
 
 namespace tmol {
 namespace score {
@@ -25,7 +25,7 @@ void bind_dispatch(pybind11::module& m) {
   add_dispatch_impl<Dev, Real>(
       m,
       "attached_waters_forward",
-      attached_waters<Real, Int, Dev, 4>::forward,
+      attached_waters<Dev, Real, Int, 4>::forward,
       "coords"_a,
       "indexed_bonds"_a,
       "atom_types"_a,
@@ -34,7 +34,7 @@ void bind_dispatch(pybind11::module& m) {
   add_dispatch_impl<Dev, Real>(
       m,
       "attached_waters_backward",
-      attached_waters<Real, Int, Dev, 4>::backward,
+      attached_waters<Dev, Real, Int, 4>::backward,
       "dE_dW"_a,
       "coords"_a,
       "indexed_bonds"_a,
@@ -76,6 +76,12 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   using namespace pybind11::literals;
 
   bind_dispatch<tmol::Device::CPU, float, int64_t>(m);
+  bind_dispatch<tmol::Device::CPU, double, int64_t>(m);
+
+#ifdef WITH_CUDA
+  bind_dispatch<tmol::Device::CUDA, float, int64_t>(m);
+  bind_dispatch<tmol::Device::CUDA, double, int64_t>(m);
+#endif
 }
 
 }  // namespace potentials

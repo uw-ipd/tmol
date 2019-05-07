@@ -11,6 +11,8 @@
 #include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
 
+#include <tmol/score/ljlk/potentials/params.hh>
+
 #include "datatypes.hh"
 #include "lk_ball.hh"
 
@@ -46,12 +48,12 @@ struct LKBallDispatch {
       LKTypeParamTensors<Real, D> type_params,
       LKBallGlobalParameters<Real, D> global_lkb_params,
       LJGlobalParams<Real> global_lj_params)
-      -> std::tuple<TPack<int64_t, 2, D>, TPack<Real, 2, D>> {
+      -> std::tuple<TPack<Int, 2, D>, TPack<Real, 2, D>> {
     Dispatch<D> dispatcher(coords_i.size(0), coords_j.size(0));
     Real threshold_distance = 6.0;
     auto num_Vs = dispatcher.scan(threshold_distance, coords_i, coords_j);
 
-    auto inds_t = TPack<int64_t, 2, D>::empty({num_Vs, 2});
+    auto inds_t = TPack<Int, 2, D>::empty({num_Vs, 2});
     auto Vs_t = TPack<Real, 2, D>::empty({num_Vs, 4});
 
     auto inds = inds_t.view;

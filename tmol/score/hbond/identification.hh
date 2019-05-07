@@ -37,8 +37,7 @@ struct AcceptorBases {
       IndexedBonds<Int, D> bonds,
       TView<bool, 1, D> atom_is_hydrogen)
       ->AcceptorBases {
-    Int B = -1;
-    Int B0 = -1;
+    Int B = -1, B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
       if (!atom_is_hydrogen[other_atom]) {

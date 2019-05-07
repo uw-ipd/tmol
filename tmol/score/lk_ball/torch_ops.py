@@ -14,7 +14,7 @@ class LKBall:
     @classmethod
     def from_database(cls, database, torch_device):
         atom_resolver = AtomTypeParamResolver.from_database(
-            database.chemical, torch.device("cpu")
+            database.chemical, torch_device
         )
         param_resolver = LJLKParamResolver.from_param_resolver(
             atom_resolver, database.scoring.ljlk
@@ -143,9 +143,9 @@ class AttachedWaters:
     @classmethod
     def from_database(cls, database, torch_device):
         return cls(
-            AtomTypeParamResolver.from_database(database.chemical, torch.device("cpu")),
+            AtomTypeParamResolver.from_database(database.chemical, torch_device),
             global_params=LJLKParamResolver.from_database(
-                database.chemical, database.scoring.ljlk, torch.device("cpu")
+                database.chemical, database.scoring.ljlk, torch_device
             ).global_params,
         )
 
