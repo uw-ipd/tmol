@@ -87,7 +87,11 @@ def test_score_op(default_database, ubq_system, torch_device):
         default_database.chemical, default_database.scoring.hbond, torch.device("cpu")
     )
     batch_coords = _setup_inputs(
-        coords, hbond_param_resolver, donors[dind], acceptors[aind], torch.device("cpu")
+        coords,
+        hbond_param_resolver,
+        donors[dind.cpu()],
+        acceptors[aind.cpu()],
+        torch.device("cpu"),
     )
     donor_coords = batch_coords["donor_coords"]
     D = batch_coords["D"]

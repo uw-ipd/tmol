@@ -1,6 +1,8 @@
 import numpy
 import torch
 
+from typing import Optional
+
 from ..types.functional import validate_args
 
 from ..kinematics.torch_op import KinematicOp
@@ -8,7 +10,9 @@ from ..kinematics.metadata import DOFTypes
 
 from ..score.stacked_system import StackedSystem
 from ..score.bonded_atom import BondedAtomScoreGraph
-
+from ..score.rama.score_graph import RamaScoreGraph
+from ..score.omega.score_graph import OmegaScoreGraph
+from tmol.database.scoring import RamaDatabase
 from ..score.coordinates import (
     CartesianAtomicCoordinateProvider,
     KinematicAtomicCoordinateProvider,
@@ -16,6 +20,8 @@ from ..score.coordinates import (
 
 from .packed import PackedResidueSystem
 from .kinematics import KinematicDescription
+
+from tmol.database import ParameterDatabase
 
 
 @StackedSystem.factory_for.register(PackedResidueSystem)
@@ -99,3 +105,67 @@ def system_torsion_graph_inputs(
     return dict(
         dofs=kinop.src_mobile_dofs.clone().requires_grad_(requires_grad), kinop=kinop
     )
+
+
+@RamaScoreGraph.factory_for.register(PackedResidueSystem)
+@validate_args
+def rama_graph_inputs(
+    system: PackedResidueSystem,
+    parameter_database: ParameterDatabase,
+    rama_database: Optional[RamaDatabase] = None,
+    **_,
+):
+    """Constructor parameters for rama scoring.
+
+    Extract the atom indices of the 'phi' and 'psi' torsions
+    from the torsion_metadata object, and the database.
+    """
+    if rama_database is None:
+        rama_database = parameter_database.scoring.rama
+
+    phis = numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "phi"]
+        ]
+    )
+
+    psis = numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "psi"]
+        ]
+    )
+
+    return dict(rama_database=rama_database, allphis=phis, allpsis=psis)
+
+
+@OmegaScoreGraph.factory_for.register(PackedResidueSystem)
+@validate_args
+def omega_graph_inputs(system: PackedResidueSystem, **_):
+    """Constructor parameters for omega scoring.
+
+    Extract the atom indices of the 'omega' torsions
+    from the torsion_metadata object.
+    """
+
+    omegas = numpy.array(
+        [
+            [x["atom_index_a"], x["atom_index_b"], x["atom_index_c"], x["atom_index_d"]]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "omega"]
+        ]
+    )
+
+    return dict(allomegas=omegas)

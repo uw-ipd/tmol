@@ -11,6 +11,8 @@
 
 #include "datatypes.hh"
 
+#undef B0
+
 namespace tmol {
 namespace score {
 namespace lk_ball {

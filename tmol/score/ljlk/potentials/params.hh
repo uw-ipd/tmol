@@ -81,19 +81,6 @@ struct LJGlobalParams {
   Real lj_hbond_hdis;
 };
 
-template <typename Real, tmol::Device D>
-struct LJGlobalParamTensors {
-  TView<Real, 1, D> lj_hbond_dis;
-  TView<Real, 1, D> lj_hbond_OH_donor_dis;
-  TView<Real, 1, D> lj_hbond_hdis;
-
-  template <typename Idx>
-  auto operator[](Idx i) const {
-    return LJGlobalParams<Real>{
-        lj_hbond_dis[i], lj_hbond_OH_donor_dis[i], lj_hbond_hdis[i]};
-  }
-};
-
 }  // namespace potentials
 }  // namespace ljlk
 }  // namespace score

@@ -120,3 +120,64 @@ class HBondFun(torch.autograd.Function):
                 None,
                 None,
             )
+
+
+## master     def forward(ctx, D, H, donor_type, A, B, B0, acceptor_type):
+## master         assert D.dim() == 2
+## master         assert D.shape[1] == 3
+## master         assert D.shape == H.shape
+## master         assert D.shape[:1] == donor_type.shape
+## master         assert not donor_type.requires_grad
+## master
+## master         assert A.dim() == 2
+## master         assert A.shape[1] == 3
+## master         assert A.shape == B.shape
+## master         assert A.shape == B0.shape
+## master         assert A.shape[:1] == acceptor_type.shape
+## master         assert not acceptor_type.requires_grad
+## master
+## master         inds, E, *dE_dC = ctx.op.hbond_pair_score(
+## master             D, H, donor_type, A, B, B0, acceptor_type, **ctx.op.params
+## master         )
+## master
+## master         # Assert of returned shape of indicies and scores. Seeing strange
+## master         # results w/ reversed ordering if mgpu::tuple converted std::tuple
+## master         assert inds.dim() == 2
+## master         assert inds.shape[1] == 2
+## master         assert inds.shape[0] == E.shape[0]
+## master
+## master         inds = inds.transpose(0, 1)
+## master
+## master         ctx.donor_shape = donor_type.shape
+## master         ctx.acceptor_shape = acceptor_type.shape
+## master
+## master         ctx.save_for_backward(*([inds] + dE_dC))
+## master
+## master         return (inds, E)
+## master
+## master     def backward(ctx, _ind_grads, dV_dE):
+## master         ind, dE_dD, dE_dH, dE_dA, dE_dB, dE_dB0 = ctx.saved_tensors
+## master         donor_ind, acceptor_ind = ind.detach()
+## master
+## master         def _chain_donor(dE_dDonor):
+## master             return torch.sparse_coo_tensor(
+## master                 donor_ind[None, :], dV_dE[..., None] * dE_dDonor, ctx.donor_shape + (3,)
+## master             ).to_dense()
+## master
+## master         def _chain_acceptor(dE_dAcceptor):
+## master             return torch.sparse_coo_tensor(
+## master                 acceptor_ind[None, :],
+## master                 dV_dE[..., None] * dE_dAcceptor,
+## master                 ctx.acceptor_shape + (3,),
+## master             ).to_dense()
+## master
+## master         return (
+## master             _chain_donor(dE_dD),
+## master             _chain_donor(dE_dH),
+## master             None,
+## master             _chain_acceptor(dE_dA),
+## master             _chain_acceptor(dE_dB),
+## master             _chain_acceptor(dE_dB0),
+## master             None,
+## master         )
+## master

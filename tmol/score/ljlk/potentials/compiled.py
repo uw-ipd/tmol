@@ -5,14 +5,7 @@ _compiled = load(
     modulename(__name__),
     cuda_if_available(
         relpaths(
-            __file__,
-            [
-                "compiled.pybind.cpp",
-                "lj.compiled.cpu.cpp",
-                "lj.compiled.cuda.cu",
-                "lk_isotropic.compiled.cpu.cpp",
-                "lk_isotropic.compiled.cuda.cu",
-            ],
+            __file__, ["compiled.pybind.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"]
         )
     ),
 )

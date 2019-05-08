@@ -1,6 +1,6 @@
 #include <pybind11/eigen.h>
 #include <tmol/utility/tensor/pybind.h>
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <tmol/score/common/dispatch.cpu.impl.hh>
 #include <tmol/utility/function_dispatch/pybind.hh>

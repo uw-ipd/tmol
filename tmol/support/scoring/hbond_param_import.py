@@ -26,7 +26,7 @@ import os
 import io
 import IPython.lib.pretty
 
-table_schema = yaml.load(
+table_schema = yaml.safe_load(
     """
     HBondWeightType:
       - id

@@ -1,5 +1,5 @@
 #include <pybind11/eigen.h>
-#include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <tmol/score/common/geom.hh>
 

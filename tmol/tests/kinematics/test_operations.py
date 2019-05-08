@@ -370,14 +370,14 @@ def test_forward_refold(kintree, coords, torch_device):
     bkin = backwardKin(kintree, coords)
 
     fkin = forwardKin(kintree, bkin.dofs)
-    numpy.testing.assert_allclose(coords, fkin.coords, atol=1e-6)
+    numpy.testing.assert_allclose(coords.cpu(), fkin.coords.cpu(), atol=1e-6)
 
 
 def test_perturb(kintree, coords, torch_device):
     dofs = backwardKin(kintree, coords).dofs
 
     pcoords = forwardKin(kintree, dofs).coords
-    assert numpy.allclose(coords, pcoords)
+    assert numpy.allclose(coords.cpu(), pcoords.cpu())
 
     def coord_changed(a, b, atol=1e-3):
         return numpy.abs(a - b) > atol
@@ -390,10 +390,10 @@ def test_perturb(kintree, coords, torch_device):
     t_dofs.jump.RBz[6] += 0.2
     pcoords = forwardKin(kintree, t_dofs).coords
 
-    numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
-    assert numpy.all(coord_changed(pcoords[6:11], coords[6:11]))
-    numpy.testing.assert_allclose(pcoords[11:16], coords[11:16], atol=1e-6)
-    numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
+    numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
+    assert numpy.all(coord_changed(pcoords[6:11].cpu(), coords[6:11].cpu()))
+    numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
+    numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
 
     # Rotate jump dof "delta"
     rd_dofs = dofs.clone()
@@ -407,11 +407,13 @@ def test_perturb(kintree, coords, torch_device):
     rd_dofs.jump.RBdel_gamma[6] += 0.3
 
     pcoords = forwardKin(kintree, rd_dofs).coords
-    numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
-    numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
-    assert numpy.all(numpy.any(coord_changed(pcoords[7:11], coords[7:11]), axis=-1))
-    numpy.testing.assert_allclose(pcoords[11:16], coords[11:16], atol=1e-6)
-    numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
+    numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
+    numpy.testing.assert_allclose(pcoords[6].cpu(), coords[6].cpu(), atol=1e-6)
+    assert numpy.all(
+        numpy.any(coord_changed(pcoords[7:11].cpu(), coords[7:11].cpu()), axis=-1)
+    )
+    numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
+    numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
 
     # Rotate jump dof
     r_dofs = dofs.clone()
@@ -420,11 +422,13 @@ def test_perturb(kintree, coords, torch_device):
     r_dofs.jump.RBbeta[6] += 0.2
     r_dofs.jump.RBgamma[6] += 0.3
     pcoords = forwardKin(kintree, r_dofs).coords
-    numpy.testing.assert_allclose(pcoords[1:6], coords[1:6], atol=1e-6)
-    numpy.testing.assert_allclose(pcoords[6], coords[6], atol=1e-6)
-    assert numpy.all(numpy.any(coord_changed(pcoords[7:11], coords[7:11]), axis=-1))
-    numpy.testing.assert_allclose(pcoords[11:16], coords[11:16], atol=1e-6)
-    numpy.testing.assert_allclose(pcoords[16:21], coords[16:21], atol=1e-6)
+    numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
+    numpy.testing.assert_allclose(pcoords[6].cpu(), coords[6].cpu(), atol=1e-6)
+    assert numpy.all(
+        numpy.any(coord_changed(pcoords[7:11].cpu(), coords[7:11].cpu()), axis=-1)
+    )
+    numpy.testing.assert_allclose(pcoords[11:16].cpu(), coords[11:16].cpu(), atol=1e-6)
+    numpy.testing.assert_allclose(pcoords[16:21].cpu(), coords[16:21].cpu(), atol=1e-6)
 
 
 def test_root_sibling_derivs(torch_device):
@@ -519,26 +523,38 @@ def compute_verify_derivs(kintree, coords, expected_analytic_derivs=None):
         # * numeric v analytic comparison is still at 1e-7 so these changes
         #     are likely due to changes in the "dummy score"
         numpy.testing.assert_allclose(
-            dsc_dtors_analytic.raw[1:], expected_analytic_derivs[1:], atol=1e-4
+            dsc_dtors_analytic.raw[1:].cpu(),
+            expected_analytic_derivs[1:].cpu(),
+            atol=1e-4,
         )
 
 
 def assert_bond_dof_allclose(actual, expected, **kwargs):
-    numpy.testing.assert_allclose(actual.phi_p, expected.phi_p, **kwargs)
-    numpy.testing.assert_allclose(actual.theta, expected.theta, **kwargs)
-    numpy.testing.assert_allclose(actual.d, expected.d, **kwargs)
-    numpy.testing.assert_allclose(actual.phi_c, expected.phi_c, **kwargs)
+    numpy.testing.assert_allclose(actual.phi_p.cpu(), expected.phi_p.cpu(), **kwargs)
+    numpy.testing.assert_allclose(actual.theta.cpu(), expected.theta.cpu(), **kwargs)
+    numpy.testing.assert_allclose(actual.d.cpu(), expected.d.cpu(), **kwargs)
+    numpy.testing.assert_allclose(actual.phi_c.cpu(), expected.phi_c.cpu(), **kwargs)
 
 
 def assert_jump_dof_allclose(actual, expected, **kwargs):
-    numpy.testing.assert_allclose(actual.RBx, expected.RBx, **kwargs)
-    numpy.testing.assert_allclose(actual.RBy, expected.RBy, **kwargs)
-    numpy.testing.assert_allclose(actual.RBz, expected.RBz, **kwargs)
+    numpy.testing.assert_allclose(actual.RBx.cpu(), expected.RBx.cpu(), **kwargs)
+    numpy.testing.assert_allclose(actual.RBy.cpu(), expected.RBy.cpu(), **kwargs)
+    numpy.testing.assert_allclose(actual.RBz.cpu(), expected.RBz.cpu(), **kwargs)
 
-    numpy.testing.assert_allclose(actual.RBdel_alpha, expected.RBdel_alpha, **kwargs)
-    numpy.testing.assert_allclose(actual.RBdel_beta, expected.RBdel_beta, **kwargs)
-    numpy.testing.assert_allclose(actual.RBdel_gamma, expected.RBdel_gamma, **kwargs)
+    numpy.testing.assert_allclose(
+        actual.RBdel_alpha.cpu(), expected.RBdel_alpha.cpu(), **kwargs
+    )
+    numpy.testing.assert_allclose(
+        actual.RBdel_beta.cpu(), expected.RBdel_beta.cpu(), **kwargs
+    )
+    numpy.testing.assert_allclose(
+        actual.RBdel_gamma.cpu(), expected.RBdel_gamma.cpu(), **kwargs
+    )
 
-    numpy.testing.assert_allclose(actual.RBalpha, expected.RBalpha, **kwargs)
-    numpy.testing.assert_allclose(actual.RBbeta, expected.RBbeta, **kwargs)
-    numpy.testing.assert_allclose(actual.RBgamma, expected.RBgamma, **kwargs)
+    numpy.testing.assert_allclose(
+        actual.RBalpha.cpu(), expected.RBalpha.cpu(), **kwargs
+    )
+    numpy.testing.assert_allclose(actual.RBbeta.cpu(), expected.RBbeta.cpu(), **kwargs)
+    numpy.testing.assert_allclose(
+        actual.RBgamma.cpu(), expected.RBgamma.cpu(), **kwargs
+    )

@@ -8,8 +8,11 @@ from . import (  # noqa: F401
     elec,
     cartbonded,
     hbond,
+    rama,
+    omega,
     coordinates,
     score_graph,
+    score_weights,
     viewer,  # import viewer to register io overloads
 )
 
@@ -19,8 +22,11 @@ class TotalScoreGraph(
     ljlk.LJScoreGraph,
     ljlk.LKScoreGraph,
     hbond.HBondScoreGraph,
+    rama.RamaScoreGraph,
+    omega.OmegaScoreGraph,
     elec.ElecScoreGraph,
     cartbonded.CartBondedScoreGraph,
+    score_weights.ScoreWeights,  # per-term reweighing
 ):
     pass
 

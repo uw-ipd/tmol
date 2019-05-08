@@ -27,8 +27,7 @@ _default_flags = ["-O3"]
 _required_cuda_flags = [
     "-std=c++14",
     "--expt-extended-lambda",
-    "--expt-relaxed-constexpr",
-    "-DWITH_NVTX",
+    # "--expt-relaxed-constexpr", #fd: causes compiler errors in CUDA 10.0
 ]
 
 if torch.cuda.is_available():
