@@ -6,8 +6,6 @@ from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.lk_ball.score_graph import LKBallScoreGraph
 
-from tmol.tests.torch import cuda_not_implemented
-
 from tmol.system.packed import PackedResidueSystem
 
 
