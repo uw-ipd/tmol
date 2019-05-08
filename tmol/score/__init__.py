@@ -5,6 +5,7 @@ from . import (  # noqa: F401
     bonded_atom,
     interatomic_distance,
     ljlk,
+    lk_ball,
     elec,
     cartbonded,
     hbond,
@@ -21,6 +22,7 @@ from . import (  # noqa: F401
 class TotalScoreGraph(
     ljlk.LJScoreGraph,
     ljlk.LKScoreGraph,
+    lk_ball.LKBallScoreGraph,
     hbond.HBondScoreGraph,
     rama.RamaScoreGraph,
     omega.OmegaScoreGraph,

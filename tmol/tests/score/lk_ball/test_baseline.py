@@ -42,7 +42,6 @@ comparisons = {
     list(comparisons.values()),
     ids=list(comparisons.keys()),
 )
-# @cuda_not_implemented
 def test_baseline_comparison(
     ubq_rosetta_baseline, torch_device, graph_class, expected_scores
 ):

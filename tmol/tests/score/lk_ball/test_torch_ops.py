@@ -146,40 +146,42 @@ test_cases = dict(
 @pytest.mark.parametrize(
     "test_case", list(test_cases.values()), ids=list(test_cases.keys())
 )
-def test_water_generation(test_case, default_database):
+def test_water_generation(test_case, torch_device, default_database):
     from tmol.score.lk_ball.torch_ops import AttachedWaters, LKBall
 
-    water_op = AttachedWaters.from_database(default_database, torch.device("cpu"))
-    lkb_op = LKBall.from_database(default_database, torch.device("cpu"))
+    water_op = AttachedWaters.from_database(default_database, torch_device)
+    lkb_op = LKBall.from_database(default_database, torch_device)
 
-    coords = test_case.coords.to(torch.float)
+    coords = test_case.coords.to(dtype=torch.float, device=torch_device)
     indexed_bonds = IndexedBonds.from_bonds(IndexedBonds.to_directed(test_case.bonds))
+    tindexed_bonds = indexed_bonds.to(torch_device)
     bpl = torch.from_numpy(
         bonded_path_length(indexed_bonds.bonds.numpy(), len(coords), 5)
-    ).to(torch.float)
+    ).to(dtype=torch.float, device=torch_device)
+
     atom_types = water_op.atom_resolver.type_idx(test_case.atom_type_names)
 
-    waters = water_op.apply(coords, atom_types, indexed_bonds)
+    waters = water_op.apply(coords, atom_types, tindexed_bonds)
 
     assert list((~torch.isnan(waters[..., 0])).sum(dim=-1)) == test_case.num_water
     for i, ewaters in test_case.waters.items():
-        torch.testing.assert_allclose(waters[i], ewaters)
+        torch.testing.assert_allclose(waters[i].cpu(), ewaters)
 
     def water_gradf(coords):
-        waters = water_op.apply(coords, atom_types, indexed_bonds)
+        waters = water_op.apply(coords, atom_types, tindexed_bonds)
         return waters[~torch.isnan(waters)]
 
     # Increased eps for single-precision gradcheck.
-    gradcheck(water_gradf, (coords.requires_grad_(True),), eps=4e-3)
+    gradcheck(water_gradf, (coords.requires_grad_(True),), eps=1e-3, atol=5e-4)
 
     ind, V = lkb_op.apply(coords, coords, waters, waters, atom_types, atom_types, bpl)
     scores = torch.sparse_coo_tensor(ind.detach(), V).to_dense()
 
     for (i, j), escores in test_case.scores.items():
-        torch.testing.assert_allclose(scores[i][j], escores, rtol=1e-5, atol=1e-4)
+        torch.testing.assert_allclose(scores[i][j].cpu(), escores, rtol=1e-5, atol=1e-4)
 
     def score_gradf(coords):
-        waters = water_op.apply(coords, atom_types, indexed_bonds)
+        waters = water_op.apply(coords, atom_types, tindexed_bonds)
         ind, V = lkb_op.apply(
             coords, coords, waters, waters, atom_types, atom_types, bpl
         )
@@ -188,4 +190,4 @@ def test_water_generation(test_case, default_database):
 
     c2 = coords.detach().requires_grad_(True)
 
-    gradcheck(score_gradf, (c2,), eps=1e-3, rtol=6e-3)
+    gradcheck(score_gradf, (c2,), eps=1e-3, atol=5e-4)
