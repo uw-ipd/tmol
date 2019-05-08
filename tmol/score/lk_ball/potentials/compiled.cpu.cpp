@@ -45,24 +45,28 @@ struct attached_waters {
 
         Real dist;
         Real angle;
-        TView<Real, 1, D> tors;
+        Real *tors;
+        Int ntors;
 
         if (hyb == AcceptorHybridization::sp2) {
           dist = global_params.lkb_water_dist;
           angle = global_params.lkb_water_angle_sp2;
-          tors = global_params.lkb_water_tors_sp2;
+          ntors = global_params.lkb_water_tors_sp2.size(0);
+          tors = global_params.lkb_water_tors_sp2.data();
         } else if (hyb == AcceptorHybridization::sp3) {
           dist = global_params.lkb_water_dist;
           angle = global_params.lkb_water_angle_sp3;
-          tors = global_params.lkb_water_tors_sp3;
+          ntors = global_params.lkb_water_tors_sp3.size(0);
+          tors = global_params.lkb_water_tors_sp3.data();
         } else if (hyb == AcceptorHybridization::ring) {
           dist = global_params.lkb_water_dist;
           angle = global_params.lkb_water_angle_ring;
-          tors = global_params.lkb_water_tors_ring;
+          ntors = global_params.lkb_water_tors_ring.size(0);
+          tors = global_params.lkb_water_tors_ring.data();
           XB = 0.5 * (XB + XB0);
         }
 
-        for (int ti = 0; ti < tors.size(0); ti++) {
+        for (int ti = 0; ti < ntors; ti++) {
           waters[i][wi] =
               build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
           wi++;
@@ -102,13 +106,13 @@ struct attached_waters {
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
+    int num_Vs = coords.size(0);
+
     auto dE_d_coord_t =
         TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0), MAX_WATER});
     auto dE_d_coord = dE_d_coord_t.view;
 
-    //static_assert(D == tmol::Device::CPU, "Invalid target device.");
-
-    for (int i : iter::range(coords.size(0))) {
+    auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int i) {
       int wi = 0;
 
       if (atom_types.is_acceptor[i]) {
@@ -128,24 +132,28 @@ struct attached_waters {
 
         Real dist;
         Real angle;
-        TView<Real, 1, D> tors;
+        Real *tors;
+        Int ntors;
 
         if (hyb == AcceptorHybridization::sp2) {
           dist = global_params.lkb_water_dist;
           angle = global_params.lkb_water_angle_sp2;
-          tors = global_params.lkb_water_tors_sp2;
+          ntors = global_params.lkb_water_tors_sp2.size(0);
+          tors = global_params.lkb_water_tors_sp2.data();
         } else if (hyb == AcceptorHybridization::sp3) {
           dist = global_params.lkb_water_dist;
           angle = global_params.lkb_water_angle_sp3;
-          tors = global_params.lkb_water_tors_sp3;
+          ntors = global_params.lkb_water_tors_sp3.size(0);
+          tors = global_params.lkb_water_tors_sp3.data();
         } else if (hyb == AcceptorHybridization::ring) {
           dist = global_params.lkb_water_dist;
           angle = global_params.lkb_water_angle_ring;
-          tors = global_params.lkb_water_tors_ring;
+          ntors = global_params.lkb_water_tors_ring.size(0);
+          tors = global_params.lkb_water_tors_ring.data();
           XB = 0.5 * (XB + XB0);
         }
 
-        for (int ti = 0; ti < tors.size(0); ti++) {
+        for (int ti = 0; ti < ntors; ti++) {
           auto dW =
               build_acc_water<Real>::dV(XA, XB, XB0, dist, angle, tors[ti]);
           auto dE_dWi = dE_dW[i][wi];
@@ -183,6 +191,10 @@ struct attached_waters {
           };
         }
       }
+    });
+
+    for (int i=0; i<num_Vs; ++i) {
+        f_watergen(i);
     }
 
     return dE_d_coord_t;
@@ -194,6 +206,7 @@ template struct LKBallDispatch<common::NaiveDispatch, tmol::Device::CPU, float, 
 template struct LKBallDispatch<common::NaiveDispatch, tmol::Device::CPU, double, int32_t>;
 template struct LKBallDispatch<common::NaiveDispatch, tmol::Device::CPU, float, int64_t>;
 template struct LKBallDispatch<common::NaiveDispatch, tmol::Device::CPU, double, int64_t>;
+
 template struct attached_waters<tmol::Device::CPU, float, int32_t, 4>;
 template struct attached_waters<tmol::Device::CPU, double, int32_t, 4>;
 template struct attached_waters<tmol::Device::CPU, float, int64_t, 4>;
