@@ -81,10 +81,10 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
       acceptor_type.size(0) == B0.size(0),
       "Invalid acceptor coordinate shapes.");
 
-  auto V_t = TPack<Real, 1, Dev>::empty({1});
-  auto dV_d_don_t = TPack<Vec<Real, 3>, 1, Dev>::empty({donor_coords.size(0)});
+  auto V_t = TPack<Real, 1, Dev>::zeros({1});
+  auto dV_d_don_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({donor_coords.size(0)});
   auto dV_d_acc_t =
-      TPack<Vec<Real, 3>, 1, Dev>::empty({acceptor_coords.size(0)});
+      TPack<Vec<Real, 3>, 1, Dev>::zeros({acceptor_coords.size(0)});
 
   auto V = V_t.view;
   auto dV_d_don = dV_d_don_t.view;
@@ -132,10 +132,10 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
             cosAHD_range[dt][at],
             cosAHD_bound[dt][at],
 
-            hb_sp2_range_span[1],
-            hb_sp2_BAH180_rise[1],
-            hb_sp2_outer_width[1],
-            hb_sp3_softmax_fade[1]);
+            hb_sp2_range_span[0],
+            hb_sp2_BAH180_rise[0],
+            hb_sp2_outer_width[0],
+            hb_sp3_softmax_fade[0]);
 
         accumulate<Dev, Real>::add(V[0], hbond.V);
 

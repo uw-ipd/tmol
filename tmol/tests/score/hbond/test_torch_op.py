@@ -154,8 +154,8 @@ def test_score_op_gradcheck(default_database, ubq_system, torch_device):
         bonds=bonds,
     )
 
-    donors = hbond_elements.donors[:10]
-    acceptors = hbond_elements.acceptors[:10]
+    donors = hbond_elements.donors[:30]
+    acceptors = hbond_elements.acceptors[:30]
 
     op = HBondOp.from_database(
         default_database.scoring.hbond, hbond_param_resolver, dtype=torch.float64
@@ -170,4 +170,6 @@ def test_score_op_gradcheck(default_database, ubq_system, torch_device):
     }
     input_args = bind_to_args(op.score, **inputs)
 
-    gradcheck(lambda *i: op.score(*i), input_args, eps=1e-3, rtol=2.5e-3, nfail=1)
+    gradcheck(
+        lambda *i: op.score(*i), input_args, eps=1e-2, atol=1e-3, rtol=1e-2, nfail=1
+    )
