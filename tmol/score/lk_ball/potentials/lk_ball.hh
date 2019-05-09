@@ -7,6 +7,8 @@
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/ljlk/potentials/lk_isotropic.hh>
 
+#include "params.hh"
+
 namespace tmol {
 namespace score {
 namespace lk_ball {
@@ -17,6 +19,7 @@ namespace potentials {
 using tmol::score::ljlk::potentials::LJGlobalParams;
 using tmol::score::ljlk::potentials::LKTypeParams;
 
+// fd  these could be exposed as global parameters
 template <typename Real>
 struct lkball_globals {
   static constexpr Real overlap_gap_A2 = 0.5;
@@ -323,10 +326,9 @@ struct lk_ball_score {
       WatersMat WI,
       WatersMat WJ,
       Real bonded_path_length,
-      Real lkb_water_dist,
-      LKTypeParams<Real> i,
-      LKTypeParams<Real> j,
-      LJGlobalParams<Real> global)
+      LKBallTypeParams<Real> i,
+      LKBallTypeParams<Real> j,
+      LKBallGlobalParams<Real> global)
       ->lk_ball_Vt<Real> {
     using tmol::score::common::distance;
     using tmol::score::ljlk::potentials::lj_sigma;
@@ -353,8 +355,8 @@ struct lk_ball_score {
 
     Real frac_IJ_water_overlap;
     if (j.is_donor || j.is_acceptor) {
-      frac_IJ_water_overlap =
-          lk_bridge_fraction<Real, MAX_WATER>::V(I, J, WI, WJ, lkb_water_dist);
+      frac_IJ_water_overlap = lk_bridge_fraction<Real, MAX_WATER>::V(
+          I, J, WI, WJ, global.lkb_water_dist);
     } else {
       frac_IJ_water_overlap = 0.0;
     }
@@ -373,10 +375,9 @@ struct lk_ball_score {
       WatersMat WI,
       WatersMat WJ,
       Real bonded_path_length,
-      Real lkb_water_dist,
-      LKTypeParams<Real> i,
-      LKTypeParams<Real> j,
-      LJGlobalParams<Real> global)
+      LKBallTypeParams<Real> i,
+      LKBallTypeParams<Real> j,
+      LKBallGlobalParams<Real> global)
       ->lk_ball_dVt<Real, MAX_WATER> {
     using tmol::score::common::distance;
     using tmol::score::common::get;
@@ -411,10 +412,10 @@ struct lk_ball_score {
     Real frac_IJ_water_overlap;
     typename lk_bridge_fraction<Real, MAX_WATER>::dV_t d_frac_IJ_water_overlap;
     if (j.is_donor || j.is_acceptor) {
-      frac_IJ_water_overlap =
-          lk_bridge_fraction<Real, MAX_WATER>::V(I, J, WI, WJ, lkb_water_dist);
-      d_frac_IJ_water_overlap =
-          lk_bridge_fraction<Real, MAX_WATER>::dV(I, J, WI, WJ, lkb_water_dist);
+      frac_IJ_water_overlap = lk_bridge_fraction<Real, MAX_WATER>::V(
+          I, J, WI, WJ, global.lkb_water_dist);
+      d_frac_IJ_water_overlap = lk_bridge_fraction<Real, MAX_WATER>::dV(
+          I, J, WI, WJ, global.lkb_water_dist);
     } else {
       frac_IJ_water_overlap = 0.0;
       d_frac_IJ_water_overlap = decltype(d_frac_IJ_water_overlap)::Zero();

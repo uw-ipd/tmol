@@ -19,8 +19,15 @@ void id_acceptor_bases(
     TView<bool, 1, D> atom_is_hydrogen,
     IndexedBonds<Int, D> bonds) {
   for (int ai : iter::range(A_idx.size(0))) {
+    // fd temporary:
+    // fd  currently is_hydrogen is denormalized here but not in lk_ball
+    // fd  handle both cases w/o duplicating logic
+    // fd this layer will be unneeded following torchscripting of hbond
+    auto is_hydrogen =
+        ([&] EIGEN_DEVICE_FUNC(int j) { return atom_is_hydrogen[j]; });
+
     auto bases = AcceptorBases<Int>::for_acceptor(
-        A_idx[ai], atom_hybridization[A_idx[ai]], bonds, atom_is_hydrogen);
+        A_idx[ai], atom_hybridization[A_idx[ai]], bonds, is_hydrogen);
 
     A_idx[ai] = bases.A;
     B_idx[ai] = bases.B;
