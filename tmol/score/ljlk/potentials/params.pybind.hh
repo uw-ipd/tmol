@@ -12,6 +12,7 @@ namespace detail {
   try {                                                          \
     TARGET.NAME = SRC.attr(#NAME).cast<decltype(TARGET.NAME)>(); \
   } catch (pybind11::cast_error) {                               \
+    pybind11::print("Error casting: ", #NAME);                   \
     return false;                                                \
   }
 

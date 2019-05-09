@@ -9,7 +9,7 @@
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/hbond/identification.hh>
 
-#include "datatypes.hh"
+#include "params.hh"
 
 #undef B0
 
