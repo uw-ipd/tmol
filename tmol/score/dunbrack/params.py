@@ -155,9 +155,9 @@ class DunbrackParamResolver(ValidateAttrs):
     packed_db_aux: PackedDunbrackDatabaseAux
 
     # This will live on the CPU
-    all_table_indices: pandas.Index
-    rotameric_table_indices: pandas.Index
-    semirotameric_table_indices: pandas.Index
+    all_table_indices: pandas.DataFrame
+    rotameric_table_indices: pandas.DataFrame
+    semirotameric_table_indices: pandas.DataFrame
 
     device: torch.device
 
@@ -175,7 +175,9 @@ class DunbrackParamResolver(ValidateAttrs):
             )
         ]
 
-        all_table_indices = cls.create_all_table_indices(all_rotlibs, dun_database)
+        all_table_indices = cls.create_all_table_indices(
+            [x.table_name for x in all_rotlibs], dun_database.dun_lookup
+        )
         rotameric_table_indices = cls.create_rotameric_indices(dun_database)
         semirotameric_table_indices = cls.create_semirotameric_indices(dun_database)
         nchi_for_table_set = cls.create_nchi_for_table_set(all_rotlibs, device)
@@ -248,36 +250,42 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
     @classmethod
-    def create_all_table_indices(cls, all_rotlibs, dun_database):
-        all_table_names = [x.table_name for x in all_rotlibs]
-        all_table_lookup = (
-            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
-            .set_index("dun_table_name")
-            .reindex(all_table_names)
+    def create_all_table_indices(cls, all_table_names, dun_lookup):
+        # all_table_names = [x.table_name for x in all_rotlibs]
+        all_table_lookup = pandas.DataFrame.from_records(
+            cattr.unstructure(dun_lookup)
+        ).set_index("residue_name")
+        dun_indices = pandas.Index(all_table_names)
+        all_table_lookup.dun_table_name = dun_indices.get_indexer(
+            all_table_lookup.dun_table_name
         )
-        return pandas.Index(all_table_lookup["residue_name"])
+        return all_table_lookup
 
     @classmethod
     def create_rotameric_indices(cls, dun_database):
         rotameric_table_names = [x.table_name for x in dun_database.rotameric_libraries]
-        rotameric_table_lookup = (
-            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
-            .set_index("dun_table_name")
-            .reindex(rotameric_table_names)
+        rotameric_table_lookup = pandas.DataFrame.from_records(
+            cattr.unstructure(dun_database.dun_lookup)
+        ).set_index("residue_name")
+        indices = pandas.Index(rotameric_table_names)
+        rotameric_table_lookup.dun_table_name = indices.get_indexer(
+            rotameric_table_lookup.dun_table_name
         )
-        return pandas.Index(rotameric_table_lookup["residue_name"])
+        return rotameric_table_lookup
 
     @classmethod
     def create_semirotameric_indices(cls, dun_database):
         semirotameric_table_names = [
             x.table_name for x in dun_database.semi_rotameric_libraries
         ]
-        semirotameric_table_lookup = (
-            pandas.DataFrame.from_records(cattr.unstructure(dun_database.dun_lookup))
-            .set_index("dun_table_name")
-            .reindex(semirotameric_table_names)
+        semirotameric_table_lookup = pandas.DataFrame.from_records(
+            cattr.unstructure(dun_database.dun_lookup)
+        ).set_index("residue_name")
+        indices = pandas.Index(semirotameric_table_names)
+        semirotameric_table_lookup.dun_table_name = indices.get_indexer(
+            semirotameric_table_lookup.dun_table_name
         )
-        return pandas.Index(semirotameric_table_lookup["residue_name"])
+        return semirotameric_table_lookup
 
     @classmethod
     def create_nchi_for_table_set(cls, all_rotlibs, device):
@@ -712,17 +720,22 @@ class DunbrackParamResolver(ValidateAttrs):
             semirotameric_rottable_assignment=semirotameric_rottable_assignment,
         )
 
+    def indices_from_names(
+        self, dataframe: pandas.DataFrame, names: NDArray(object), device: torch.device
+    ):
+        inds = dataframe.index.get_indexer(names)
+        inds[inds != -1] = dataframe.iloc[inds[inds != -1]]["dun_table_name"].values
+        return torch.tensor(inds, dtype=torch.int64, device=device)
+
     def resolve_dun_indices(
         self, resnames: NDArray(object), device: torch.device
     ) -> Tuple[Tensor(torch.int32)[:], Tensor(torch.int32)[:], Tensor(torch.int32)[:]]:
-        rns_inds = self.all_table_indices.get_indexer(resnames)
-        r_inds = self.rotameric_table_indices.get_indexer(resnames)
-        s_inds = self.semirotameric_table_indices.get_indexer(resnames)
 
-        rns_inds = torch.tensor(rns_inds, dtype=torch.int64, device=device)
-        r_inds = torch.tensor(r_inds, dtype=torch.int64, device=device)
-        s_inds = torch.tensor(s_inds, dtype=torch.int64, device=device)
-
+        rns_inds = self.indices_from_names(self.all_table_indices, resnames, device)
+        r_inds = self.indices_from_names(self.rotameric_table_indices, resnames, device)
+        s_inds = self.indices_from_names(
+            self.semirotameric_table_indices, resnames, device
+        )
         return rns_inds, r_inds, s_inds
 
     def determine_nchi_for_res(self, nres, rns_inds, torch_device):

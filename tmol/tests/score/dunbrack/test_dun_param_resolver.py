@@ -49,7 +49,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     assert dun_params.rotameric_bb_start.shape[0] == nlibs
     assert dun_params.rotameric_bb_step.shape[0] == nlibs
     assert dun_params.rotameric_bb_periodicity.shape[0] == nlibs
-    assert len(resolver.all_table_indices) == nlibs
+    # assert len(resolver.all_table_indices) == nlibs
     assert dun_params_aux.nchi_for_table_set.shape[0] == nlibs
 
     nrotameric_rots = sum(
@@ -90,10 +90,10 @@ def test_dun_param_resolver_construction(default_database, torch_device):
         assert len(table.shape) == 2 and table.shape[0] == 36 and table.shape[1] == 36
 
     nrotameric_libs = len(dunlib.rotameric_libraries)
-    assert len(resolver.rotameric_table_indices) == nrotameric_libs
+    # assert len(resolver.rotameric_table_indices) == nrotameric_libs
 
     nsemirotameric_libs = len(dunlib.semi_rotameric_libraries)
-    assert len(resolver.semirotameric_table_indices) == nsemirotameric_libs
+    # assert len(resolver.semirotameric_table_indices) == nsemirotameric_libs
     assert dun_params.semirot_start.shape[0] == nsemirotameric_libs
     assert dun_params.semirot_step.shape[0] == nsemirotameric_libs
     assert dun_params.semirot_periodicity.shape[0] == nsemirotameric_libs
@@ -299,7 +299,10 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
         dihedral_atom_indices_gold, dun_params.dihedral_atom_inds.cpu().numpy()
     )
 
-    rns_inds = resolver.all_table_indices.get_indexer(example_names)
+    rns_inds = resolver.all_table_indices.index.get_indexer(example_names)
+    rns_inds[rns_inds != -1] = resolver.all_table_indices.iloc[
+        rns_inds[rns_inds != -1]
+    ]["dun_table_name"].values
     rottable_set_for_res_gold = rns_inds[rns_inds != -1]
     numpy.testing.assert_array_equal(
         rottable_set_for_res_gold, dun_params.rottable_set_for_res.cpu().numpy()
@@ -311,8 +314,6 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
     )
 
     nrotameric_chi_for_res_gold = numpy.array([1, 4, 2, 2, 3], dtype=int)
-    print("nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res")
-    print(nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res)
     numpy.testing.assert_array_equal(
         nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res.cpu().numpy()
     )
@@ -379,7 +380,10 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
         rotameric_chi_desc_gold, dun_params.rotameric_chi_desc.cpu().numpy()
     )
 
-    s_inds = resolver.semirotameric_table_indices.get_indexer(example_names)
+    s_inds = resolver.semirotameric_table_indices.index.get_indexer(example_names)
+    s_inds[s_inds != -1] = resolver.semirotameric_table_indices.iloc[
+        s_inds[s_inds != -1]
+    ]["dun_table_name"].values
     semirot_res_inds = s_inds[s_inds != -1]
 
     semirotameric_chi_desc_gold = numpy.array([[0, 3, 0, 0], [3, 18, 0, 0]], dtype=int)

@@ -251,7 +251,18 @@ def write_binary_version_of_dunbrack_rotamer_library(
 
     # Rotameric residues:
     # CYS, ILE, LYS, LEU, MET, PRO, ARG, SER, THR, VAL
-    rotameric_aas = ["cys", "ile", "lys", "met", "pro", "arg", "ser", "thr", "val"]
+    rotameric_aas = [
+        "cys",
+        "ile",
+        "lys",
+        "leu",
+        "met",
+        "pro",
+        "arg",
+        "ser",
+        "thr",
+        "val",
+    ]
     rotameric_zgroup = zgroup.create_group("rotameric_tables")
     rotameric_zgroup.attrs.update(tables=rotameric_aas)
     lib_files = [
