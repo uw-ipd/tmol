@@ -1,6 +1,5 @@
 import gzip
 import numpy
-import torch
 import zarr
 import os
 
@@ -210,8 +209,7 @@ def write_semi_rotameric_aa_dunbrack_library(
     semirot_lib_group.array("nonrotameric_chi_probabilities", nrc_probs)
 
     rotamer_boundaries = numpy.zeros([n_rotamers, 2], dtype=float)
-    count_rotamers = 0
-    for i, line in enumerate(bbind_rotamer_def_lines):
+    for line in bbind_rotamer_def_lines:
         if len(line) == 0 or line[0] == "#":
             continue
         cols = line.split()
