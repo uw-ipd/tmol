@@ -89,7 +89,7 @@ bb_hbond_config = """
 @pytest.fixture
 def bb_hbond_database():
     return cattr.structure(
-        yaml.load(bb_hbond_config), tmol.database.scoring.HBondDatabase
+        yaml.safe_load(bb_hbond_config), tmol.database.scoring.HBondDatabase
     )
 
 

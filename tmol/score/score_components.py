@@ -125,6 +125,8 @@ import collections.abc
 import attr
 import toolz
 
+import torch
+
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
 
@@ -147,8 +149,21 @@ class IntraScore:
     target: "_ScoreComponent" = attr.ib()
 
     @staticmethod
-    def total(**component_totals):
-        return toolz.reduce(operator.add, component_totals.values())
+    def total(target, **component_totals):
+        if not hasattr(target, "component_weights") or target.component_weights is None:
+            # no weights provided, simple sum components
+            return toolz.reduce(operator.add, component_totals.values())
+        else:
+            # weights provided, use to rescale
+            # Note:
+            #  1) weights not provided in input dict are assumed == 0
+            #  2) tags in input dict not used in
+            #     current graph are silently ignored
+            total_score = torch.zeros_like(next(iter(component_totals.values())))
+            for comp, score in component_totals.items():
+                if comp in target.component_weights:
+                    total_score += target.component_weights[comp] * score
+            return total_score
 
 
 @attr.s
@@ -171,8 +186,24 @@ class InterScore:
     target_j: "_ScoreComponent" = attr.ib()
 
     @staticmethod
-    def total(**component_totals):
-        return toolz.reduce(operator.add, component_totals.values())
+    def total(target_i, target_j, **component_totals):
+        if (
+            not hasattr(target_i, "component_weights")
+            or target_i.component_weights is None
+        ):
+            # no weights provided, simple sum components
+            return toolz.reduce(operator.add, component_totals.values())
+        else:
+            # weights provided, use to rescale
+            # Note:
+            #  1) weights not provided in input dict are assumed == 0
+            #  2) tags in input dict not used in
+            #     current graph are silently ignored
+            total_score = torch.zeros_like(next(iter(component_totals.values())))
+            for comp, score in component_totals.items():
+                if comp in target_i.component_weights:
+                    total_score += target_i.component_weights[comp] * score
+            return total_score
 
 
 @attr.s(slots=True, frozen=True, auto_attribs=True)

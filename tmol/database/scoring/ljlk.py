@@ -44,5 +44,5 @@ class LJLKDatabase:
     @classmethod
     def from_file(cls, path):
         with open(path, "r") as infile:
-            raw = yaml.load(infile)
+            raw = yaml.safe_load(infile)
         return cattr.structure(raw, cls)
