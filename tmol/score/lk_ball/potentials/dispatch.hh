@@ -44,6 +44,7 @@ struct LKBallDispatch {
       TView<LKBallGlobalParams<Real>, 1, D> global_params) -> TPack<Real, 1, D>;
 
   static auto backward(
+      TView<Real, 1, D> dTdV,
       TView<Vec<Real, 3>, 1, D> coords_i,
       TView<Int, 1, D> atom_type_i,
       TView<Vec<Real, 3>, 2, D> waters_i,
@@ -57,10 +58,10 @@ struct LKBallDispatch {
       TView<LKBallTypeParams<Real>, 1, D> type_params,
       TView<LKBallGlobalParams<Real>, 1, D> global_params)
       -> std::tuple<
+          TPack<Vec<Real, 3>, 1, D>,
+          TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 2, D>,
-          TPack<Vec<Real, 3>, 2, D>,
-          TPack<Vec<Real, 3>, 3, D>,
-          TPack<Vec<Real, 3>, 3, D> >;
+          TPack<Vec<Real, 3>, 2, D> >;
 };
 
 }  // namespace potentials

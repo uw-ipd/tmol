@@ -27,8 +27,8 @@ class _LKBallScoreModule(torch.jit.ScriptModule):
                 chemical_database, ljlk_database, device
             ),
             # additional resolution needed for is_hydrogen, acceptor_type
-            atom_resolver=AtomTypeParamResolver.from_database(
-                chemical_database, torch_device
+            atom_type_resolver=AtomTypeParamResolver.from_database(
+                chemical_database, device
             ),
         )
 
@@ -175,47 +175,44 @@ class LKBallInterModule(_LKBallScoreModule):
         indexed_bond_bonds,
         indexed_bond_spans,
     ):
-        pass
+        waters_I = torch.ops.tmol.watergen_lkball(
+            I,
+            atom_type_I,
+            indexed_bond_bonds,
+            indexed_bond_spans,
+            self.watergen_type_params,
+            self.watergen_global_params,
+            self.watergen_water_tors_sp2,
+            self.watergen_water_tors_sp3,
+            self.watergen_water_tors_ring,
+        )
 
+        waters_J = torch.ops.tmol.watergen_lkball(
+            J,
+            atom_type_J,
+            indexed_bond_bonds,
+            indexed_bond_spans,
+            self.watergen_type_params,
+            self.watergen_global_params,
+            self.watergen_water_tors_sp2,
+            self.watergen_water_tors_sp3,
+            self.watergen_water_tors_ring,
+        )
 
-#         waters_I = torch.ops.tmol.watergen_lkball(
-#             I,
-#             atom_type_I,
-#             indexed_bond_bonds,
-#             indexed_bond_spans,
-#             self.watergen_type_params,
-#             self.watergen_global_params,
-#             self.watergen_water_tors_sp2,
-#             self.watergen_water_tors_sp3,
-#             self.watergen_water_tors_ring
-#         )
-#
-#         waters_J = torch.ops.tmol.watergen_lkball(
-#             J,
-#             atom_type_J,
-#             indexed_bond_bonds,
-#             indexed_bond_spans,
-#             self.watergen_type_params,
-#             self.watergen_global_params,
-#             self.watergen_water_tors_sp2,
-#             self.watergen_water_tors_sp3,
-#             self.watergen_water_tors_ring
-#         )
-#
-#         I_heavyatom_mask = ~self.heavyatom_mask[atom_type_I]
-#         I_idx = torch.nonzero(I_heavyatom_mask)[:, 0]
-#
-#         J_heavyatom_mask = ~self.heavyatom_mask[atom_type_J]
-#         J_idx = torch.nonzero(J_heavyatom_mask)[:, 0]
-#
-#         return torch.ops.tmol.score_lk_ball(
-#             I[I_idx],
-#             atom_type_I[I_idx],
-#             waters_I[I_idx],
-#             J[J_idx],
-#             atom_type_J[J_idx],
-#             waters_J[J_idx],
-#             bonded_path_lengths[I_idx,:][:,J_idx],
-#             self.lkball_type_params,
-#             self.lkball_global_params,
-#         )
+        I_heavyatom_mask = self.heavyatom_mask[atom_type_I]
+        I_idx = torch.nonzero(I_heavyatom_mask)[:, 0]
+
+        J_heavyatom_mask = self.heavyatom_mask[atom_type_J]
+        J_idx = torch.nonzero(J_heavyatom_mask)[:, 0]
+
+        return torch.ops.tmol.score_lk_ball(
+            I[I_idx],
+            atom_type_I[I_idx],
+            waters_I[I_idx],
+            J[J_idx],
+            atom_type_J[J_idx],
+            waters_J[J_idx],
+            bonded_path_lengths[I_idx, :][:, J_idx],
+            self.lkball_type_params,
+            self.lkball_global_params,
+        )
