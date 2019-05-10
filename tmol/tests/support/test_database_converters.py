@@ -1,6 +1,7 @@
 import os
 import yaml
 import numpy
+import torch
 
 from .rosetta import requires_rosetta_database
 
@@ -9,6 +10,7 @@ from tmol.support.scoring.rewrite_rama_binary import parse_all_tables
 from tmol.support.scoring.rewrite_dunbrack_binary import (
     write_binary_version_of_dunbrack_rotamer_library
 )
+from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 
 
 @requires_rosetta_database
@@ -61,13 +63,18 @@ def test_rama_table_read(rosetta_database, default_database):
 
 @requires_rosetta_database
 def test_dunbrack_table_read(rosetta_database, default_database):
+    # clean up if previous unit test execution failed
+    if os.path.isfile("test_dunbrack.bin"):
+        os.remove("test_dunbrack.bin")
+
     r3_beta16_dunbrack_dir = os.path.join(rosetta_database, "rotamer/beta_nov2016")
     r3_beta15_dunbrack_dir = os.path.join(rosetta_database, "rotamer/ExtendedOpt1-5")
-    write_binary_verion_of_dunbrack_rotamer_library(
+    write_binary_version_of_dunbrack_rotamer_library(
         r3_beta16_dunbrack_dir, r3_beta15_dunbrack_dir, "test_dunbrack.bin"
     )
     fresh = DunbrackRotamerLibrary.from_zarr_archive(
-        "test_dunbrack.bin", os.path.join(os.path.dirname(__file), "copy_dunbrack.yml")
+        os.path.join(os.path.dirname(__file__), "copy_dunbrack.yml"),
+        "test_dunbrack.bin",
     )
 
     default = default_database.scoring.dun
@@ -95,7 +102,10 @@ def test_dunbrack_table_read(rosetta_database, default_database):
         )
 
     for i in range(len(default.rotameric_libraries)):
-        assert default.rotameric_libraries[i].name == fresh.rotameric_libraries[i].name
+        assert (
+            default.rotameric_libraries[i].table_name
+            == fresh.rotameric_libraries[i].table_name
+        )
         compare_rotameric_data(
             default.rotameric_libraries[i].rotameric_data,
             fresh.rotameric_libraries[i].rotameric_data,
@@ -123,11 +133,12 @@ def test_dunbrack_table_read(rosetta_database, default_database):
             default_srdat.rotamer_boundaries, fresh_srdat.rotamer_boundaries
         )
 
-    for i in range(len(default.semirotameric_libraries)):
+    for i in range(len(default.semi_rotameric_libraries)):
         assert (
-            default.semi_rotameric_libraries[i].name
-            == fresh.semi_rotameric_libraries[i].name
+            default.semi_rotameric_libraries[i].table_name
+            == fresh.semi_rotameric_libraries[i].table_name
         )
         compare_semirotameric_data(
             default.semi_rotameric_libraries[i], fresh.semi_rotameric_libraries[i]
         )
+    os.remove("test_dunbrack.bin")

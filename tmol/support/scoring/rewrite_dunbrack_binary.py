@@ -2,9 +2,14 @@ import gzip
 import numpy
 import torch
 import zarr
+import os
+
+rotamer_aliases = {
+    "pro": numpy.array([[1, 3, 1, 1, 1, 1], [3, 1, 3, 2, 1, 1]], dtype=int)
+}
 
 
-def write_rotameric_data_for_aa(aa_lines, nchi, zgroup):
+def write_rotameric_data_for_aa(aa_lines, nchi, zgroup, rotamer_alias=None):
     rotamers = []
     rotamers_set = set([])
     for line in aa_lines:
@@ -25,6 +30,8 @@ def write_rotameric_data_for_aa(aa_lines, nchi, zgroup):
     stdvs = numpy.zeros([nrots, 36, 36, nchi], dtype=float)
     prob_sorted_rots_by_phi_psi = numpy.zeros([36, 36, nrots], dtype=int)
     count_rots_in_ppbin = numpy.zeros([36, 36], dtype=int)
+    if rotamer_alias is None:
+        rotamer_alias = numpy.zeros([0, nchi], dtype=int)
 
     for line in aa_lines:
         cols = line.split()
@@ -59,6 +66,7 @@ def write_rotameric_data_for_aa(aa_lines, nchi, zgroup):
     rotamer_group.array("prob_sorted_rot_inds", prob_sorted_rots_by_phi_psi)
     rotamer_group.array("backbone_dihedral_start", [-180, -180])
     rotamer_group.array("backbone_dihedral_step", [10, 10])
+    rotamer_group.array("rotamer_alias", rotamer_alias)
 
 
 # def write_semi_rotameric_chi_table(
@@ -110,9 +118,9 @@ def strip_comments(lines):
     return [line for line in lines if (len(line) > 0 and line[0] != "#")]
 
 
-def write_rotameric_aa_dunbrack_library(aa3, aa_lines, nchi, zgroup):
+def write_rotameric_aa_dunbrack_library(aa3, aa_lines, nchi, zgroup, rotamer_alias):
     lib_group = zgroup.create_group(aa3)
-    write_rotameric_data_for_aa(aa_lines, nchi, lib_group)
+    write_rotameric_data_for_aa(aa_lines, nchi, lib_group, rotamer_alias)
 
 
 def write_semi_rotameric_aa_dunbrack_library(
@@ -246,15 +254,25 @@ def write_binary_version_of_dunbrack_rotamer_library(
     rotameric_aas = ["cys", "ile", "lys", "met", "pro", "arg", "ser", "thr", "val"]
     rotameric_zgroup = zgroup.create_group("rotameric_tables")
     rotameric_zgroup.attrs.update(tables=rotameric_aas)
-    lib_files = [(path_to_db_dir + x + ".bbdep.rotamers.lib.gz") for x in rotameric_aas]
+    lib_files = [
+        os.path.join(path_to_db_dir, x + ".bbdep.rotamers.lib.gz")
+        for x in rotameric_aas
+    ]
     for i, lib_file in enumerate(lib_files):
         print("processing", lib_file)
         with gzip.GzipFile(lib_file) as fid:
             lines = [x.decode("utf-8") for x in fid.readlines()]
         lines = strip_comments(lines)
         aa = rotameric_aas[i]
+        rotamer_alias = None
+        if aa in rotamer_aliases:
+            rotamer_alias = rotamer_aliases[aa]
         write_rotameric_aa_dunbrack_library(
-            rotameric_aas[i], lines, nchi_for_aa[aa.upper()], rotameric_zgroup
+            rotameric_aas[i],
+            lines,
+            nchi_for_aa[aa.upper()],
+            rotameric_zgroup,
+            rotamer_alias,
         )
 
     semirot_aas = ["asp", "glu", "phe", "his", "asn", "gln", "trp", "tyr"]
@@ -262,14 +280,13 @@ def write_binary_version_of_dunbrack_rotamer_library(
     semirotameric_zgroup.attrs.update(tables=semirot_aas)
     lib_files = [
         (
-            path_to_db_dir + x + ".bbdep.rotamers.lib.gz",
-            path_to_db_dir + x + ".bbdep.densities.lib.gz",
-            path_to_reference_db_dir + x + ".bbdep.densities.lib.gz",
-            path_to_db_dir
-            + x
-            + ".bbind.chi"
-            + str(nchi_for_aa[x.upper()])
-            + ".Definitions.lib.gz",
+            os.path.join(path_to_db_dir, x + ".bbdep.rotamers.lib.gz"),
+            os.path.join(path_to_db_dir, x + ".bbdep.densities.lib.gz"),
+            os.path.join(path_to_reference_db_dir, x + ".bbdep.densities.lib.gz"),
+            os.path.join(
+                path_to_db_dir,
+                x + ".bbind.chi" + str(nchi_for_aa[x.upper()]) + ".Definitions.lib.gz",
+            ),
         )
         for x in semirot_aas
     ]
