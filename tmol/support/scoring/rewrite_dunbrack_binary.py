@@ -132,9 +132,9 @@ def write_semi_rotameric_aa_dunbrack_library(
     bbind_rotamer_def_lines,
     zgroup,
 ):
-    print("Creating", aa3, "group")
+    # print("Creating", aa3, "group")
     semirot_lib_group = zgroup.create_group(aa3)
-    print("Created", aa3, "group")
+    # print("Created", aa3, "group")
     n_rotameric_chi = nchi - 1
     bb_rotamer_lines = strip_comments(bb_rotamer_lines)
 
@@ -154,7 +154,7 @@ def write_semi_rotameric_aa_dunbrack_library(
             continue
         assert i >= 2
         desc_line = ref_bbdep_density_lines[i - 2]
-        print("desc line:", desc_line)
+        # print("desc line:", desc_line)
         cols = desc_line[1:].split()
         chi_labels = [int(x) for x in cols[(5 + 3 * n_rotameric_chi) :]]
         nrc_n_samples = len(chi_labels)
@@ -202,8 +202,9 @@ def write_semi_rotameric_aa_dunbrack_library(
         phi_ind, psi_ind = (int(x) // 10 + 18 for x in cols[1:3])
         if phi_ind >= 36 or psi_ind >= 36:
             continue
+        base_prob = float(cols[4 + n_rotameric_chi])
         rot = tuple(int(x) for x in cols[4 : (4 + n_rotameric_chi)])
-        chi = [float(x) for x in cols[(5 + 3 * n_rotameric_chi) :]]
+        chi = [base_prob * float(x) for x in cols[(5 + 3 * n_rotameric_chi) :]]
         rot_ind = rotameric_rot_to_rot_ind[rot]
         nrc_probs[rot_ind, phi_ind, psi_ind, :] = chi
     semirot_lib_group.array("nonrotameric_chi_probabilities", nrc_probs)
@@ -270,7 +271,7 @@ def write_binary_version_of_dunbrack_rotamer_library(
         for x in rotameric_aas
     ]
     for i, lib_file in enumerate(lib_files):
-        print("processing", lib_file)
+        # print("processing", lib_file)
         with gzip.GzipFile(lib_file) as fid:
             lines = [x.decode("utf-8") for x in fid.readlines()]
         lines = strip_comments(lines)
@@ -302,7 +303,7 @@ def write_binary_version_of_dunbrack_rotamer_library(
         for x in semirot_aas
     ]
     for i, files in enumerate(lib_files):
-        print("opening files", files)
+        # print("opening files", files)
         with gzip.GzipFile(files[0]) as fid:
             rotamer_lines = [x.decode("utf-8") for x in fid.readlines()]
         with gzip.GzipFile(files[1]) as fid:
@@ -311,7 +312,7 @@ def write_binary_version_of_dunbrack_rotamer_library(
             ref_density_lines = [x.decode("utf-8") for x in fid.readlines()]
         with gzip.GzipFile(files[3]) as fid:
             bbind_rotamer_lines = [x.decode("utf-8") for x in fid.readlines()]
-        print("processing", files[0], files[1], files[2], files[3])
+        # print("processing", files[0], files[1], files[2], files[3])
         write_semi_rotameric_aa_dunbrack_library(
             semirot_aas[i],
             nchi_for_aa[semirot_aas[i].upper()],
