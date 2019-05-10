@@ -97,6 +97,7 @@ struct LKBallDispatch {
   }
 
   static auto backward(
+      TView<Real, 1, D> dTdV,
       TView<Vec<Real, 3>, 1, D> coords_i,
       TView<Int, 1, D> atom_type_i,
       TView<Vec<Real, 3>, 2, D> waters_i,
@@ -110,20 +111,20 @@ struct LKBallDispatch {
       TView<LKBallTypeParams<Real>, 1, D> type_params,
       TView<LKBallGlobalParams<Real>, 1, D> global_params)
       -> std::tuple<
+          TPack<Vec<Real, 3>, 1, D>,
+          TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 2, D>,
-          TPack<Vec<Real, 3>, 2, D>,
-          TPack<Vec<Real, 3>, 3, D>,
-          TPack<Vec<Real, 3>, 3, D>> {
+          TPack<Vec<Real, 3>, 2, D>> {
     NVTXRange _function(__FUNCTION__);
 
     nvtx_range_push("dispatch::dscore");
     // deriv w.r.t. heavyatom position
-    auto dV_dI_t = TPack<Vec<Real, 3>, 2, D>::empty({coords_i.size(0), 4});
-    auto dV_dJ_t = TPack<Vec<Real, 3>, 2, D>::empty({coords_j.size(0), 4});
+    auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
+    auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
 
     // deriv w.r.t. water position
-    auto dW_dI_t = TPack<Vec<Real, 3>, 3, D>::empty({coords_i.size(0), 4, 4});
-    auto dW_dJ_t = TPack<Vec<Real, 3>, 3, D>::empty({coords_j.size(0), 4, 4});
+    auto dW_dI_t = TPack<Vec<Real, 3>, 2, D>::zeros({coords_i.size(0), 4});
+    auto dW_dJ_t = TPack<Vec<Real, 3>, 2, D>::zeros({coords_j.size(0), 4});
 
     auto dV_dI = dV_dI_t.view;
     auto dV_dJ = dV_dJ_t.view;
@@ -161,42 +162,44 @@ struct LKBallDispatch {
               global_params[0]);
 
           common::accumulate<D, Vec<Real, 3>>::add(
-              dV_dI[i][0], dV.dI.d_lkball_iso);
+              dV_dI[i], dTdV[0] * dV.dI.d_lkball_iso);
           common::accumulate<D, Vec<Real, 3>>::add(
-              dV_dJ[j][0], dV.dJ.d_lkball_iso);
-          common::accumulate<D, Vec<Real, 3>>::add(dV_dI[i][1], dV.dI.d_lkball);
-          common::accumulate<D, Vec<Real, 3>>::add(dV_dJ[j][1], dV.dJ.d_lkball);
+              dV_dJ[j], dTdV[0] * dV.dJ.d_lkball_iso);
           common::accumulate<D, Vec<Real, 3>>::add(
-              dV_dI[i][1], dV.dI.d_lkbridge);
+              dV_dI[i], dTdV[1] * dV.dI.d_lkball);
           common::accumulate<D, Vec<Real, 3>>::add(
-              dV_dJ[j][1], dV.dJ.d_lkbridge);
+              dV_dJ[j], dTdV[1] * dV.dJ.d_lkball);
           common::accumulate<D, Vec<Real, 3>>::add(
-              dV_dI[i][1], dV.dI.d_lkbridge_uncpl);
+              dV_dI[i], dTdV[2] * dV.dI.d_lkbridge);
           common::accumulate<D, Vec<Real, 3>>::add(
-              dV_dJ[j][1], dV.dJ.d_lkbridge_uncpl);
+              dV_dJ[j], dTdV[2] * dV.dJ.d_lkbridge);
+          common::accumulate<D, Vec<Real, 3>>::add(
+              dV_dI[i], dTdV[3] * dV.dI.d_lkbridge_uncpl);
+          common::accumulate<D, Vec<Real, 3>>::add(
+              dV_dJ[j], dTdV[3] * dV.dJ.d_lkbridge_uncpl);
 
           for (int wi = 0; wi < 4; wi++) {
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dI[i][0][wi], dV.dWI.d_lkball_iso.row(wi));
+                dW_dI[i][wi], dTdV[0] * dV.dWI.d_lkball_iso.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dJ[j][0][wi], dV.dWJ.d_lkball_iso.row(wi));
+                dW_dJ[j][wi], dTdV[0] * dV.dWJ.d_lkball_iso.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dI[i][1][wi], dV.dWI.d_lkball.row(wi));
+                dW_dI[i][wi], dTdV[1] * dV.dWI.d_lkball.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dJ[j][1][wi], dV.dWJ.d_lkball.row(wi));
+                dW_dJ[j][wi], dTdV[1] * dV.dWJ.d_lkball.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dI[i][2][wi], dV.dWI.d_lkbridge.row(wi));
+                dW_dI[i][wi], dTdV[2] * dV.dWI.d_lkbridge.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dJ[j][2][wi], dV.dWJ.d_lkbridge.row(wi));
+                dW_dJ[j][wi], dTdV[2] * dV.dWJ.d_lkbridge.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dI[i][3][wi], dV.dWI.d_lkbridge_uncpl.row(wi));
+                dW_dI[i][wi], dTdV[3] * dV.dWI.d_lkbridge_uncpl.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dJ[j][3][wi], dV.dWJ.d_lkbridge_uncpl.row(wi));
+                dW_dJ[j][wi], dTdV[3] * dV.dWJ.d_lkbridge_uncpl.row(wi));
           }
         });
     nvtx_range_pop();
 
-    return std::make_tuple(dV_dI_t, dV_dJ_t, dW_dI_t, dW_dJ_t);
+    return {dV_dI_t, dV_dJ_t, dW_dI_t, dW_dJ_t};
   }
 };
 
