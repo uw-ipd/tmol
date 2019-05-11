@@ -47,7 +47,7 @@ def default_component_weights(torch_device):
 
 
 @pytest.mark.benchmark(group="total_score_setup")
-@pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
+@pytest.mark.parametrize("system_size", [40, 75, 150, 300])  # , 600])
 def test_setup(
     benchmark, systems_bysize, system_size, torch_device, default_component_weights
 ):
@@ -66,7 +66,7 @@ def test_setup(
 
 
 @pytest.mark.benchmark(group="total_score_onepass")
-@pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
+@pytest.mark.parametrize("system_size", [40, 75, 150, 300])  # , 600])
 def test_full(
     benchmark, systems_bysize, system_size, torch_device, default_component_weights
 ):
@@ -89,7 +89,7 @@ def test_full(
 
 
 @pytest.mark.benchmark(group="total_score_onepass")
-@pytest.mark.parametrize("system_size", [40, 75, 150, 300, 600])
+@pytest.mark.parametrize("system_size", [40, 75, 150, 300])  # , 600])
 def test_minimize_10steps(
     benchmark, systems_bysize, system_size, torch_device, default_component_weights
 ):
