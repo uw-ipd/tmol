@@ -16,9 +16,6 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-using tmol::score::ljlk::potentials::LJGlobalParams;
-using tmol::score::ljlk::potentials::LKTypeParamTensors;
-
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 

@@ -3,7 +3,7 @@
 #include <torch/extension.h>
 
 #include <tmol/score/ljlk/potentials/params.pybind.hh>
-#include <tmol/score/lk_ball/potentials/datatypes.pybind.hh>
+#include <tmol/score/lk_ball/potentials/params.pybind.hh>
 #include <tmol/score/lk_ball/potentials/lk_ball.hh>
 #include <tmol/score/lk_ball/potentials/water.hh>
 
@@ -110,7 +110,6 @@ void bind_potentials(pybind11::module& m) {
       "waters_i"_a,
       "waters_j"_a,
       "bonded_path_length"_a,
-      "lkb_water_dist"_a,
       "params_i"_a,
       "params_j"_a,
       "params_global"_a);
@@ -123,7 +122,6 @@ void bind_potentials(pybind11::module& m) {
       "waters_i"_a,
       "waters_j"_a,
       "bonded_path_length"_a,
-      "lkb_water_dist"_a,
       "params_i"_a,
       "params_j"_a,
       "params_global"_a);

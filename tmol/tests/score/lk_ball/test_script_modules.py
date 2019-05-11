@@ -126,3 +126,57 @@ def test_lkball_intra(test_case, torch_device, default_database):
         return op(c, atom_types, bpl, indexed_bonds.bonds, indexed_bonds.bond_spans)
 
     gradcheck(val, (coords.requires_grad_(True),), eps=1e-3, atol=5e-4)
+
+
+@pytest.mark.parametrize(
+    "test_case", list(test_cases.values()), ids=list(test_cases.keys())
+)
+def test_lkball_inter(test_case, torch_device, default_database):
+    param_resolver = LJLKParamResolver.from_database(
+        default_database.chemical, default_database.scoring.ljlk, torch_device
+    )
+    atom_type_resolver = AtomTypeParamResolver.from_database(
+        default_database.chemical, torch_device
+    )
+    op = LKBallInterModule(param_resolver, atom_type_resolver)
+
+    coords = test_case.coords.to(dtype=torch.float, device=torch_device)
+    indexed_bonds = IndexedBonds.from_bonds(
+        IndexedBonds.to_directed(test_case.bonds)
+    ).to(torch_device)
+    bpl = torch.from_numpy(
+        bonded_path_length(indexed_bonds.bonds.cpu().numpy(), len(coords), 5)
+    ).to(dtype=torch.float, device=torch_device)
+
+    atom_types = atom_type_resolver.type_idx(test_case.atom_type_names)
+
+    op.to(coords)
+
+    val = op(
+        coords[: test_case.split],
+        atom_types[: test_case.split],
+        coords[test_case.split :],
+        atom_types[test_case.split :],
+        bpl[: test_case.split, test_case.split :],
+        indexed_bonds.bonds,
+        indexed_bonds.bond_spans,
+    )
+
+    torch.testing.assert_allclose(
+        val.cpu(), test_case.expected_score, atol=1e-4, rtol=1e-3
+    )
+
+    def val(c):
+        return op(
+            c,
+            atom_types[: test_case.split],
+            coords[test_case.split :],
+            atom_types[test_case.split :],
+            bpl,
+            indexed_bonds.bonds,
+            indexed_bonds.bond_spans,
+        )
+
+    gradcheck(
+        val, (coords[: test_case.split].requires_grad_(True),), eps=1e-3, atol=5e-4
+    )
