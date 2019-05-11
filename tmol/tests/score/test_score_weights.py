@@ -52,4 +52,4 @@ def test_score_weights_grad(ubq_res):
         real_space.coords = state_coords
         return real_space.intra_score().total
 
-    assert gradcheck(total_score, (start_coords,), eps=1e-3, atol=1e-3, nfail=0)
+    assert gradcheck(total_score, (start_coords,), eps=1e-3, atol=2e-3, nfail=0)

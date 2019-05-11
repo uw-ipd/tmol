@@ -28,15 +28,14 @@ def test_lj_nan_prop(ubq_system, torch_device):
 
     intra_graph = lj_graph.intra_score()
 
-    save_intermediate_grad(intra_graph.lj[1])
-    # save_intermediate_grad(intra_graph.lk[1])
+    save_intermediate_grad(intra_graph.total_lj)
 
     intra_graph.total.backward(retain_graph=True)
 
     assert (intra_graph.total != 0).all()
 
-    lj_nan_scores = torch.nonzero(torch.isnan(intra_graph.lj[1]))
-    lj_nan_grads = torch.nonzero(torch.isnan(intra_graph.lj[1].grad))
+    lj_nan_scores = torch.nonzero(torch.isnan(intra_graph.total_lj))
+    lj_nan_grads = torch.nonzero(torch.isnan(intra_graph.total_lj.grad))
     assert len(lj_nan_scores) == 0
     assert len(lj_nan_grads) == 0
     assert (intra_graph.total_lj != 0).all()

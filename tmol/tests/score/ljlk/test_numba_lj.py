@@ -116,8 +116,8 @@ def test_lj_spotcheck(params):
     assert eval_lj(.6 * sigma - 1.0) == approx(
         eval_lj(.6 * sigma) - eval_d_lj_d_dist(.6 * sigma)
     )
-    assert eval_d_lj_d_dist(numpy.linspace(0, .6 * sigma)) == approx(
-        eval_d_lj_d_dist(.6 * sigma)
+    assert eval_d_lj_d_dist(numpy.linspace(0, .6 * sigma, 50)) == approx(
+        eval_d_lj_d_dist(.6 * sigma).repeat(50)
     )
 
     # Minimum value at sigma

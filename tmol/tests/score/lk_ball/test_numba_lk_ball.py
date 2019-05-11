@@ -357,18 +357,23 @@ def test_lkball_deriv(default_database):
 def _get_params(param_resolver: LJLKParamResolver):
     """Pack ljlk param tensors into numpy arrays for numba potential."""
 
-    def _t(t):
+    def _t(kvp):
+        n, t = kvp
         t = t.cpu().numpy()
         if t.ndim == 0:
-            return t[()]
-        return t
+            return (n, t[()])
+        if t.ndim == 1 and t.shape == (1,) and "water_tors" not in n:
+            return (n, t[0])
+        return (n, t)
 
-    return toolz.valmap(
-        _t,
-        toolz.merge(
-            attr.asdict(param_resolver.type_params),
-            attr.asdict(param_resolver.global_params),
-        ),
+    return dict(
+        map(
+            _t,
+            toolz.merge(
+                attr.asdict(param_resolver.type_params),
+                attr.asdict(param_resolver.global_params),
+            ).items(),
+        )
     )
 
 
