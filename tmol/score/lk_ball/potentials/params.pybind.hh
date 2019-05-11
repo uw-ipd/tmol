@@ -3,6 +3,7 @@
 #include <pybind11/pybind11.h>
 #include <tmol/utility/tensor/pybind.h>
 
+#include "lk_ball.hh"
 #include "params.hh"
 
 namespace pybind11 {
@@ -17,9 +18,9 @@ namespace detail {
   }
 
 template <typename Real>
-struct type_caster<tmol::score::ljlk::potentials::LKBallTypeParams<Real>> {
+struct type_caster<tmol::score::lk_ball::potentials::LKBallTypeParams<Real>> {
  public:
-  typedef tmol::score::ljlk::potentials::LKBallTypeParams<Real> T;
+  typedef tmol::score::lk_ball::potentials::LKBallTypeParams<Real> T;
 
   PYBIND11_TYPE_CASTER(T, _<T>());
 
@@ -40,9 +41,9 @@ struct type_caster<tmol::score::ljlk::potentials::LKBallTypeParams<Real>> {
 };
 
 template <typename Real>
-struct type_caster<tmol::score::ljlk::potentials::LKBallGlobalParams<Real>> {
+struct type_caster<tmol::score::lk_ball::potentials::LKBallGlobalParams<Real>> {
  public:
-  typedef tmol::score::ljlk::potentials::LKBallGlobalParams<Real> T;
+  typedef tmol::score::lk_ball::potentials::LKBallGlobalParams<Real> T;
 
   PYBIND11_TYPE_CASTER(T, _<T>());
 
@@ -52,6 +53,7 @@ struct type_caster<tmol::score::ljlk::potentials::LKBallGlobalParams<Real>> {
     CAST_ATTR(src, value, lj_hbond_dis);
     CAST_ATTR(src, value, lj_hbond_OH_donor_dis);
     CAST_ATTR(src, value, lj_hbond_hdis);
+    CAST_ATTR(src, value, lkb_water_dist);
 
     return true;
   }
@@ -59,9 +61,9 @@ struct type_caster<tmol::score::ljlk::potentials::LKBallGlobalParams<Real>> {
 
 template <typename Int>
 struct type_caster<
-    tmol::score::ljlk::potentials::LKBallWaterGenTypeParams<Int>> {
+    tmol::score::lk_ball::potentials::LKBallWaterGenTypeParams<Int>> {
  public:
-  typedef tmol::score::ljlk::potentials::LKBallWaterGenTypeParams<Int> T;
+  typedef tmol::score::lk_ball::potentials::LKBallWaterGenTypeParams<Int> T;
 
   PYBIND11_TYPE_CASTER(T, _<T>());
 
@@ -77,13 +79,11 @@ struct type_caster<
   }
 };
 
-template <typename Real, int MAX_WATER>
-struct type_caster<tmol::score::ljlk::potentials::
-                       LKBallWaterGenGlobalParams<Real, MAX_WATER>> {
+template <typename Real>
+struct type_caster<
+    tmol::score::lk_ball::potentials::LKBallWaterGenGlobalParams<Real>> {
  public:
-  typedef tmol::score::ljlk::potentials::
-      LKBallWaterGenGlobalParams<Real, MAX_WATER>
-          T;
+  typedef tmol::score::lk_ball::potentials::LKBallWaterGenGlobalParams<Real> T;
 
   PYBIND11_TYPE_CASTER(T, _<T>());
 
@@ -94,11 +94,67 @@ struct type_caster<tmol::score::ljlk::potentials::
     CAST_ATTR(src, value, lkb_water_angle_sp2);
     CAST_ATTR(src, value, lkb_water_angle_sp3);
     CAST_ATTR(src, value, lkb_water_angle_ring);
-    CAST_ATTR(src, value, lkb_water_tors_sp2);
-    CAST_ATTR(src, value, lkb_water_tors_sp3);
-    CAST_ATTR(src, value, lkb_water_tors_ring);
 
     return true;
+  }
+};
+
+template <typename Real>
+struct type_caster<tmol::score::lk_ball::potentials::lk_ball_Vt<Real>> {
+  typedef tmol::score::lk_ball::potentials::lk_ball_Vt<Real> T;
+  PYBIND11_TYPE_CASTER(T, _<T>());
+
+  static handle cast(
+      T src, return_value_policy /* policy */, handle /* parent */) {
+    return pybind11::make_tuple(
+               src.lkball_iso, src.lkball, src.lkbridge, src.lkbridge_uncpl)
+        .release();
+  }
+};
+
+template <typename Real>
+struct type_caster<tmol::score::lk_ball::potentials::lk_ball_dV_dReal3<Real>> {
+  typedef tmol::score::lk_ball::potentials::lk_ball_dV_dReal3<Real> T;
+  PYBIND11_TYPE_CASTER(T, _<T>());
+
+  static handle cast(
+      T src, return_value_policy /* policy */, handle /* parent */) {
+    return pybind11::make_tuple(
+               src.d_lkball_iso,
+               src.d_lkball,
+               src.d_lkbridge,
+               src.d_lkbridge_uncpl)
+        .release();
+  }
+};
+
+template <typename Real, int MAX_WATER>
+struct type_caster<
+    tmol::score::lk_ball::potentials::lk_ball_dV_dWater<Real, MAX_WATER>> {
+  typedef tmol::score::lk_ball::potentials::lk_ball_dV_dWater<Real, MAX_WATER>
+      T;
+  PYBIND11_TYPE_CASTER(T, _<T>());
+
+  static handle cast(
+      T src, return_value_policy /* policy */, handle /* parent */) {
+    return pybind11::make_tuple(
+               src.d_lkball_iso,
+               src.d_lkball,
+               src.d_lkbridge,
+               src.d_lkbridge_uncpl)
+        .release();
+  }
+};
+
+template <typename Real, int MAX_WATER>
+struct type_caster<
+    tmol::score::lk_ball::potentials::lk_ball_dVt<Real, MAX_WATER>> {
+  typedef tmol::score::lk_ball::potentials::lk_ball_dVt<Real, MAX_WATER> T;
+  PYBIND11_TYPE_CASTER(T, _<T>());
+
+  static handle cast(
+      T src, return_value_policy /* policy */, handle /* parent */) {
+    return pybind11::make_tuple(src.dI, src.dJ, src.dWI, src.dWJ).release();
   }
 };
 

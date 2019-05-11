@@ -224,7 +224,9 @@ struct GenerateWaters {
             common::accumulate<D, Vec<Real, 3>>::add(
                 dE_d_coord[i], dW.dD * dE_dWi);
             common::accumulate<D, Vec<Real, 3>>::add(
-                dE_d_coord[i], dW.dH * dE_dWi);
+                dE_d_coord[other_atom], dW.dH * dE_dWi);
+
+            wi++;
           };
         }
       }

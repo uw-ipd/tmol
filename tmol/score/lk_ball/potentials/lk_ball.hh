@@ -16,9 +16,6 @@ namespace potentials {
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
-using tmol::score::ljlk::potentials::LJGlobalParams;
-using tmol::score::ljlk::potentials::LKTypeParams;
-
 // fd  these could be exposed as global parameters
 template <typename Real>
 struct lkball_globals {

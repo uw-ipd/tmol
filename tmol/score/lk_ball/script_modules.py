@@ -164,7 +164,7 @@ class LKBallIntraModule(_LKBallScoreModule):
 
 
 class LKBallInterModule(_LKBallScoreModule):
-    @torch.jit.script_method
+    # @torch.jit.script_method
     def forward(
         self,
         I,
@@ -205,7 +205,7 @@ class LKBallInterModule(_LKBallScoreModule):
         J_heavyatom_mask = self.heavyatom_mask[atom_type_J]
         J_idx = torch.nonzero(J_heavyatom_mask)[:, 0]
 
-        return torch.ops.tmol.score_lk_ball(
+        V_ij = torch.ops.tmol.score_lkball(
             I[I_idx],
             atom_type_I[I_idx],
             waters_I[I_idx],
@@ -216,3 +216,17 @@ class LKBallInterModule(_LKBallScoreModule):
             self.lkball_type_params,
             self.lkball_global_params,
         )
+
+        V_ji = torch.ops.tmol.score_lkball(
+            J[J_idx],
+            atom_type_J[J_idx],
+            waters_J[J_idx],
+            I[I_idx],
+            atom_type_I[I_idx],
+            waters_I[I_idx],
+            bonded_path_lengths[I_idx, :][:, J_idx].t(),
+            self.lkball_type_params,
+            self.lkball_global_params,
+        )
+
+        return V_ij + V_ji
