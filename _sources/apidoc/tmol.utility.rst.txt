@@ -21,6 +21,7 @@ tmol.utility
        tmol.utility.log
        tmol.utility.mixins
        tmol.utility.numba
+       tmol.utility.nvtx
        tmol.utility.reactive
        tmol.utility.units
   

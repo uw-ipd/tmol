@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-168-g6b121031 documentation</title>
+  <title>tmol.score.ljlk.params &mdash; TMol 0.0.0-169-g2ac79752 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-168-g6b121031',
+              VERSION:'0.0.0-169-g2ac79752',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-168-g6b121031
+                0.0.0-169-g2ac79752
               </div>
             
           
@@ -296,9 +296,15 @@
         <span class="n">device</span> <span class="o">=</span> <span class="n">atom_type_resolver</span><span class="o">.</span><span class="n">device</span>
 
         <span class="c1"># Convert float entries into 1-d tensors</span>
+        <span class="k">def</span> <span class="nf">at_least_1d</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">expand</span><span class="p">((</span><span class="mi">1</span><span class="p">,))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">t</span>
+
         <span class="n">global_params</span> <span class="o">=</span> <span class="n">LJLKGlobalParams</span><span class="p">(</span>
             <span class="o">**</span><span class="p">{</span>
-                <span class="n">n</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+                <span class="n">n</span><span class="p">:</span> <span class="n">at_least_1d</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">))</span>
                 <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">ljlk_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="p">}</span>
         <span class="p">)</span>

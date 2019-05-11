@@ -13,7 +13,7 @@ tmol.score.ljlk
   
        tmol.score.ljlk.params
        tmol.score.ljlk.score_graph
-       tmol.score.ljlk.torch_op
+       tmol.score.ljlk.script_modules
   
        tmol.score.ljlk.numba
 
