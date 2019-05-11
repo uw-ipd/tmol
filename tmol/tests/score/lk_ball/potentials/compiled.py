@@ -8,7 +8,6 @@ from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 
 from tmol.score.ljlk.params import LJLKParamResolver
-from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.score.chemical_database import AtomTypeParamResolver
 
 from tmol.utility.cpp_extension import load, relpaths, modulename

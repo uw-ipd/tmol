@@ -1,6 +1,4 @@
-from typing import List, Dict, Tuple
-
-from math import nan
+from typing import List
 
 import attr
 import pytest
