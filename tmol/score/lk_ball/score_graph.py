@@ -9,18 +9,8 @@ from ..score_graph import score_graph
 from ..ljlk.score_graph import _LJLKCommonScoreGraph
 
 from .script_modules import LKBallIntraModule
-from tmol.score.ljlk.params import LJLKParamResolver, LJLKGlobalParams
+from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.score.chemical_database import AtomTypeParamResolver
-
-
-@reactive_attrs
-class LKBallIntraScore(IntraScore):
-    @reactive_property
-    @validate_args
-    def total_lj(target):
-        return target.lkball_intra_module(
-            target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
-        )
 
 
 @reactive_attrs
