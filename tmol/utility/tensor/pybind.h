@@ -94,9 +94,10 @@ struct type_caster<tmol::TView<T, N, D, P>> {
           "Error casting to TView:",
           "\ntype:\n",
           type_id<ViewType>(),
-          " value: ",
-          src);
-      print(err.what_without_backtrace());
+          "\nvalue:\n",
+          src,
+          "\nerror:\n",
+          err.what_without_backtrace());
 #endif
       return false;
     }

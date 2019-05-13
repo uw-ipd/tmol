@@ -6,7 +6,6 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
-#include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
 
 #include "lk_isotropic.hh"
@@ -36,8 +35,8 @@ struct LKIsotropicDispatch {
 
       TView<Real, 2, D> bonded_path_lengths,
 
-      LKTypeParamTensors<Real, D> type_params,
-      LJGlobalParamTensors<Real, D> global_params)
+      TView<LKTypeParams<Real>, 1, D> type_params,
+      TView<LJGlobalParams<Real>, 1, D> global_params)
       -> std::tuple<
           TPack<Real, 1, D>,
           TPack<Vec<Real, 3>, 1, D>,

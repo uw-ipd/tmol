@@ -117,9 +117,15 @@ class LJLKParamResolver(ValidateAttrs):
         device = atom_type_resolver.device
 
         # Convert float entries into 1-d tensors
+        def at_least_1d(t):
+            if t.dim() == 0:
+                return t.expand((1,))
+            else:
+                return t
+
         global_params = LJLKGlobalParams(
             **{
-                n: torch.tensor(v, device=device)
+                n: at_least_1d(torch.tensor(v, device=device))
                 for n, v in cattr.unstructure(ljlk_database.global_parameters).items()
             }
         )
