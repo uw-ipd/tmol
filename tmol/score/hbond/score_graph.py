@@ -13,7 +13,8 @@ from ..score_graph import score_graph
 from .identification import HBondElementAnalysis
 from .params import HBondParamResolver
 
-from .torch_op import HBondOp
+# from .torch_op import HBondOp
+from .script_modules import HBondIntraModule
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import HBondDatabase
@@ -58,9 +59,14 @@ class HBondIntraScore(IntraScore):
         """total hbond score"""
         with nvtx_range("HBondIntraScore.hbond"):
             with nvtx_range("HBondIntraScore.hbond.coords"):
-                coords = target.coords[0]
+                return hbond_score[0]
 
-            return target.hbond_op.score(
+    @reactive_property
+    @validate_args
+    def hbond_score(target):
+        with nvtx_range("HBondIntraScore.hbond.coords"):
+            coords = target.coords[0]
+            return target.hbond_intra_module(
                 coords,
                 coords,
                 target.hbond_donor_indices.D,
@@ -136,10 +142,10 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     @validate_args
-    def hbond_op(
+    def hbond_intra_module(
         hbond_database: HBondDatabase, hbond_param_resolver: HBondParamResolver
-    ) -> HBondOp:
-        return HBondOp.from_database(hbond_database, hbond_param_resolver)
+    ) -> HBondIntraModule:
+        return HBondIntraModule(hbond_database, hbond_param_resolver)
 
     @reactive_property
     @validate_args

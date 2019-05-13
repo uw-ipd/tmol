@@ -58,6 +58,11 @@ class HBondOp:
             for n, v in attr.asdict(database.global_parameters).items()
         }
 
+        for name in pair_params:
+            print("HBondParams.from_database pair_params", name)
+        for name in global_params:
+            print("HBondParams.from_database global_params", name)
+
         return cls(params=merge(pair_params, global_params))
 
     def score(
@@ -86,6 +91,9 @@ class HBondFun(torch.autograd.Function):
             assert A.shape == B.shape
             assert A.shape == B0.shape
             assert A.shape == acceptor_type.shape
+
+        for n in ctx.op.params:
+            print("hbond param named", n)
 
         with nvtx_range("HBondFun.forward.pair_score"):
             E, *dE_d_coords = ctx.op.hbond_pair_score(
