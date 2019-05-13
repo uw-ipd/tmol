@@ -1,0 +1,425 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.database.scoring.dunbrack_libraries &mdash; TMol 0.0.0-170-g2d3344a5 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/database/scoring/dunbrack_libraries.html"/>
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../../',
+              VERSION:'0.0.0-170-g2d3344a5',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-170-g2d3344a5
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+          <li><a href="../../database.html">tmol.database</a> &raquo;</li>
+        
+          <li><a href="../scoring.html">tmol.database.scoring</a> &raquo;</li>
+        
+      <li>tmol.database.scoring.dunbrack_libraries</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.database.scoring.dunbrack_libraries</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">attr</span>
+<span class="kn">import</span> <span class="nn">cattr</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">zarr</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+
+
+<div class="viewcode-block" id="RotamericDataForAA"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.RotamericDataForAA">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">RotamericDataForAA</span><span class="p">:</span>
+    <span class="n">rotamers</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:]</span>  <span class="c1"># nrotamers x nchi</span>
+    <span class="n">rotamer_probabilities</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>  <span class="c1"># (1 + n-bb) dimensional table</span>
+    <span class="n">rotamer_means</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span>
+        <span class="nb">float</span>
+    <span class="p">)</span>  <span class="c1"># (1 + n-bb + 1) dimensional table: nrots x [nbb] x nchi</span>
+    <span class="n">rotamer_stdvs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span>
+        <span class="nb">float</span>
+    <span class="p">)</span>  <span class="c1"># ( 1 + n-bb + 1 ) dimensional table: nrotx x [nbb] x nchi</span>
+    <span class="n">prob_sorted_rot_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>  <span class="c1"># (n-bb+1)-dimensional table</span>
+    <span class="n">backbone_dihedral_start</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:]</span>
+    <span class="n">backbone_dihedral_step</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:]</span>
+    <span class="n">rotamer_alias</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:]</span>
+
+<div class="viewcode-block" id="RotamericDataForAA.from_zgroup"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.RotamericDataForAA.from_zgroup">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_zgroup</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">zgroup</span><span class="p">):</span>
+        <span class="n">rotgrp</span> <span class="o">=</span> <span class="n">zgroup</span><span class="p">[</span><span class="s2">&quot;rotameric_data&quot;</span><span class="p">]</span>
+        <span class="n">rotamers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rotgrp</span><span class="p">[</span><span class="s2">&quot;rotamers&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">rot_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rotgrp</span><span class="p">[</span><span class="s2">&quot;probabilities&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="n">rot_means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rotgrp</span><span class="p">[</span><span class="s2">&quot;means&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="n">rot_stdvs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rotgrp</span><span class="p">[</span><span class="s2">&quot;stdvs&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span>
+        <span class="n">prob_sorted_rot_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">rotgrp</span><span class="p">[</span><span class="s2">&quot;prob_sorted_rot_inds&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+        <span class="n">bb_dihe_start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">rotgrp</span><span class="p">[</span><span class="s2">&quot;backbone_dihedral_start&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span>
+        <span class="p">)</span>
+        <span class="n">bb_dihe_step</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">rotgrp</span><span class="p">[</span><span class="s2">&quot;backbone_dihedral_step&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span>
+        <span class="p">)</span>
+        <span class="n">rotamer_alias</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">rotgrp</span><span class="p">[</span><span class="s2">&quot;rotamer_alias&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="c1"># print(&quot;rotamer_alias&quot;)</span>
+        <span class="c1"># print(rotamer_alias)</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="n">bb_dihe_start</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">bb_dihe_step</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">rot_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="n">bb_dihe_start</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">rot_means</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="n">bb_dihe_start</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">rot_stdvs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="n">bb_dihe_start</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">prob_sorted_rot_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="n">bb_dihe_start</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="k">assert</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">rot_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">rot_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">rot_stdvs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">rot_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">rot_stdvs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">nbb_samps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">div</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)</span> <span class="o">*</span> <span class="mi">360</span><span class="p">,</span> <span class="n">bb_dihe_step</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">bb</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bb_dihe_start</span><span class="p">)):</span>
+            <span class="k">assert</span> <span class="n">rot_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">bb</span><span class="p">]</span> <span class="o">==</span> <span class="n">nbb_samps</span><span class="p">[</span><span class="n">bb</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">rot_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">bb</span><span class="p">]</span> <span class="o">==</span> <span class="n">nbb_samps</span><span class="p">[</span><span class="n">bb</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">rot_stdvs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">bb</span><span class="p">]</span> <span class="o">==</span> <span class="n">nbb_samps</span><span class="p">[</span><span class="n">bb</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">rotamers</span><span class="o">=</span><span class="n">rotamers</span><span class="p">,</span>
+            <span class="n">rotamer_probabilities</span><span class="o">=</span><span class="n">rot_probs</span><span class="p">,</span>
+            <span class="n">rotamer_means</span><span class="o">=</span><span class="n">rot_means</span><span class="p">,</span>
+            <span class="n">rotamer_stdvs</span><span class="o">=</span><span class="n">rot_stdvs</span><span class="p">,</span>
+            <span class="n">prob_sorted_rot_inds</span><span class="o">=</span><span class="n">prob_sorted_rot_inds</span><span class="p">,</span>
+            <span class="n">backbone_dihedral_start</span><span class="o">=</span><span class="n">bb_dihe_start</span><span class="p">,</span>
+            <span class="n">backbone_dihedral_step</span><span class="o">=</span><span class="n">bb_dihe_step</span><span class="p">,</span>
+            <span class="n">rotamer_alias</span><span class="o">=</span><span class="n">rotamer_alias</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="RotamericDataForAA.nrotamers"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.RotamericDataForAA.nrotamers">[docs]</a>    <span class="k">def</span> <span class="nf">nrotamers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="RotamericDataForAA.nchi"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.RotamericDataForAA.nchi">[docs]</a>    <span class="k">def</span> <span class="nf">nchi</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="RotamericAADunbrackLibrary"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.RotamericAADunbrackLibrary">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">RotamericAADunbrackLibrary</span><span class="p">:</span>
+    <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">rotameric_data</span><span class="p">:</span> <span class="n">RotamericDataForAA</span>
+
+<div class="viewcode-block" id="RotamericAADunbrackLibrary.from_zgroup"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.RotamericAADunbrackLibrary.from_zgroup">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_zgroup</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">zgroup</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">lib_group</span> <span class="o">=</span> <span class="n">zgroup</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">rotameric_data</span> <span class="o">=</span> <span class="n">RotamericDataForAA</span><span class="o">.</span><span class="n">from_zgroup</span><span class="p">(</span><span class="n">lib_group</span><span class="p">)</span>
+        <span class="c1"># print(&quot;rotameric library&quot;, name, rotameric_data.nchi())</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">table_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">rotameric_data</span><span class="o">=</span><span class="n">rotameric_data</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SemiRotamericAADunbrackLibrary"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.SemiRotamericAADunbrackLibrary">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">SemiRotamericAADunbrackLibrary</span><span class="p">:</span>
+    <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">rotameric_data</span><span class="p">:</span> <span class="n">RotamericDataForAA</span>
+    <span class="n">non_rot_chi_start</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">non_rot_chi_step</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">non_rot_chi_period</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># 180 or 360, e.g.</span>
+    <span class="n">rotameric_chi_rotamers</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:]</span>  <span class="c1"># nrots x n-rotameric-chi</span>
+    <span class="n">nonrotameric_chi_probabilities</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>  <span class="c1"># (1+nbb+1)-dimensional table</span>
+    <span class="n">rotamer_boundaries</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># 2nd dimension: 0=left, 1=right</span>
+
+<div class="viewcode-block" id="SemiRotamericAADunbrackLibrary.from_zgroup"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.SemiRotamericAADunbrackLibrary.from_zgroup">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_zgroup</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">zgroup</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">semirot_group</span> <span class="o">=</span> <span class="n">zgroup</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">rotameric_data</span> <span class="o">=</span> <span class="n">RotamericDataForAA</span><span class="o">.</span><span class="n">from_zgroup</span><span class="p">(</span><span class="n">semirot_group</span><span class="p">)</span>
+        <span class="n">non_rot_chi_start</span> <span class="o">=</span> <span class="n">semirot_group</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;nonrot_chi_start&quot;</span><span class="p">]</span>
+        <span class="n">non_rot_chi_step</span> <span class="o">=</span> <span class="n">semirot_group</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;nonrot_chi_step&quot;</span><span class="p">]</span>
+        <span class="n">non_rot_chi_period</span> <span class="o">=</span> <span class="n">semirot_group</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;nonrot_chi_period&quot;</span><span class="p">]</span>
+        <span class="n">rotameric_chi_rotamers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">semirot_group</span><span class="p">[</span><span class="s2">&quot;rotameric_chi_rotamers&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+        <span class="n">nonrotameric_chi_probabilities</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">semirot_group</span><span class="p">[</span><span class="s2">&quot;nonrotameric_chi_probabilities&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span>
+        <span class="p">)</span>
+        <span class="n">rotamer_boundaries</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">semirot_group</span><span class="p">[</span><span class="s2">&quot;rotamer_boundaries&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+
+        <span class="n">rot_probs</span> <span class="o">=</span> <span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_probabilities</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">rot_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">)):</span>
+            <span class="k">assert</span> <span class="n">rot_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">nonrotameric_chi_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">nonrotameric_chi_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">rotameric_chi_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">rotameric_data</span><span class="o">.</span><span class="n">nchi</span><span class="p">()</span> <span class="o">==</span> <span class="n">rotameric_chi_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="p">(</span>
+            <span class="n">non_rot_chi_period</span> <span class="o">//</span> <span class="n">non_rot_chi_step</span>
+            <span class="o">==</span> <span class="n">nonrotameric_chi_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">rotamer_boundaries</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">rotameric_data</span><span class="o">.</span><span class="n">nrotamers</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">rotamer_boundaries</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="c1"># print(&quot;semi-rotameric library&quot;, name, rotameric_data.nchi())</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">table_name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">rotameric_data</span><span class="o">=</span><span class="n">rotameric_data</span><span class="p">,</span>
+            <span class="n">non_rot_chi_start</span><span class="o">=</span><span class="n">non_rot_chi_start</span><span class="p">,</span>
+            <span class="n">non_rot_chi_step</span><span class="o">=</span><span class="n">non_rot_chi_step</span><span class="p">,</span>
+            <span class="n">non_rot_chi_period</span><span class="o">=</span><span class="n">non_rot_chi_period</span><span class="p">,</span>
+            <span class="n">rotameric_chi_rotamers</span><span class="o">=</span><span class="n">rotameric_chi_rotamers</span><span class="p">,</span>
+            <span class="n">nonrotameric_chi_probabilities</span><span class="o">=</span><span class="n">nonrotameric_chi_probabilities</span><span class="p">,</span>
+            <span class="n">rotamer_boundaries</span><span class="o">=</span><span class="n">rotamer_boundaries</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="DunMappingParams"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.DunMappingParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DunMappingParams</span><span class="p">:</span>
+    <span class="n">dun_table_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">residue_name</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+<div class="viewcode-block" id="load_tables_from_zarr"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.load_tables_from_zarr">[docs]</a><span class="k">def</span> <span class="nf">load_tables_from_zarr</span><span class="p">(</span><span class="n">path_tables</span><span class="p">):</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">ZipStore</span><span class="p">(</span><span class="n">path_tables</span><span class="p">)</span>
+    <span class="n">zgroup</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">)</span>
+    <span class="n">rotameric_group</span> <span class="o">=</span> <span class="n">zgroup</span><span class="p">[</span><span class="s2">&quot;rotameric_tables&quot;</span><span class="p">]</span>
+    <span class="n">table_name_list</span> <span class="o">=</span> <span class="n">rotameric_group</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;tables&quot;</span><span class="p">]</span>
+    <span class="n">rotameric_libraries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">table_name_list</span><span class="p">:</span>
+        <span class="n">rotameric_libraries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">RotamericAADunbrackLibrary</span><span class="o">.</span><span class="n">from_zgroup</span><span class="p">(</span><span class="n">rotameric_group</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="n">semirotameric_group</span> <span class="o">=</span> <span class="n">zgroup</span><span class="p">[</span><span class="s2">&quot;semirotameric_tables&quot;</span><span class="p">]</span>
+    <span class="n">table_name_list</span> <span class="o">=</span> <span class="n">semirotameric_group</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;tables&quot;</span><span class="p">]</span>
+    <span class="n">semi_rotameric_libraries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">table_name_list</span><span class="p">:</span>
+        <span class="n">semi_rotameric_libraries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">SemiRotamericAADunbrackLibrary</span><span class="o">.</span><span class="n">from_zgroup</span><span class="p">(</span><span class="n">semirotameric_group</span><span class="p">,</span> <span class="n">table</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rotameric_libraries</span><span class="p">),</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">semi_rotameric_libraries</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DunbrackRotamerLibrary"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.DunbrackRotamerLibrary">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DunbrackRotamerLibrary</span><span class="p">:</span>
+    <span class="n">dun_lookup</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DunMappingParams</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">rotameric_libraries</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">RotamericAADunbrackLibrary</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">semi_rotameric_libraries</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">SemiRotamericAADunbrackLibrary</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+<div class="viewcode-block" id="DunbrackRotamerLibrary.from_zarr_archive"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.DunbrackRotamerLibrary.from_zarr_archive">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_zarr_archive</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path_lookup</span><span class="p">,</span> <span class="n">path_tables</span><span class="p">):</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path_lookup</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile_lookup</span><span class="p">:</span>
+            <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile_lookup</span><span class="p">)</span>
+            <span class="n">dun_lookup</span> <span class="o">=</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span>
+                <span class="n">raw</span><span class="p">[</span><span class="s2">&quot;dunbrack_lookup&quot;</span><span class="p">],</span> <span class="n">attr</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">dun_lookup</span><span class="o">.</span><span class="n">type</span>
+            <span class="p">)</span>
+
+        <span class="n">rotameric_libraries</span><span class="p">,</span> <span class="n">semi_rotameric_libraries</span> <span class="o">=</span> <span class="n">load_tables_from_zarr</span><span class="p">(</span>
+            <span class="n">path_tables</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">DunbrackRotamerLibrary</span><span class="p">(</span>
+            <span class="n">dun_lookup</span><span class="o">=</span><span class="n">dun_lookup</span><span class="p">,</span>
+            <span class="n">rotameric_libraries</span><span class="o">=</span><span class="n">rotameric_libraries</span><span class="p">,</span>
+            <span class="n">semi_rotameric_libraries</span><span class="o">=</span><span class="n">semi_rotameric_libraries</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

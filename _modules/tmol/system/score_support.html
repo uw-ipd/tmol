@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.score_support &mdash; TMol 0.0.0-169-g2ac79752 documentation</title>
+  <title>tmol.system.score_support &mdash; TMol 0.0.0-170-g2d3344a5 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-169-g2ac79752',
+              VERSION:'0.0.0-170-g2d3344a5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-169-g2ac79752
+                0.0.0-170-g2d3344a5
               </div>
             
           
@@ -189,6 +189,7 @@
 <span class="kn">from</span> <span class="nn">..score.bonded_atom</span> <span class="k">import</span> <span class="n">BondedAtomScoreGraph</span>
 <span class="kn">from</span> <span class="nn">..score.rama.score_graph</span> <span class="k">import</span> <span class="n">RamaScoreGraph</span>
 <span class="kn">from</span> <span class="nn">..score.omega.score_graph</span> <span class="k">import</span> <span class="n">OmegaScoreGraph</span>
+<span class="kn">from</span> <span class="nn">..score.dunbrack.score_graph</span> <span class="k">import</span> <span class="n">DunbrackScoreGraph</span>
 <span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">RamaDatabase</span>
 <span class="kn">from</span> <span class="nn">..score.coordinates</span> <span class="k">import</span> <span class="p">(</span>
     <span class="n">CartesianAtomicCoordinateProvider</span><span class="p">,</span>
@@ -346,6 +347,133 @@
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">allomegas</span><span class="o">=</span><span class="n">omegas</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="dunbrack_graph_inputs"><a class="viewcode-back" href="../../../apidoc/tmol.system.score_support.html#tmol.system.score_support.dunbrack_graph_inputs">[docs]</a><span class="nd">@DunbrackScoreGraph</span><span class="o">.</span><span class="n">factory_for</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">PackedResidueSystem</span><span class="p">)</span>
+<span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">dunbrack_graph_inputs</span><span class="p">(</span>
+    <span class="n">system</span><span class="p">:</span> <span class="n">PackedResidueSystem</span><span class="p">,</span>
+    <span class="n">parameter_database</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">_</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">dun_phi</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;residue_index&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_a&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_d&quot;</span><span class="p">],</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;phi&quot;</span><span class="p">]</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">dun_psi</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;residue_index&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_a&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_d&quot;</span><span class="p">],</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;psi&quot;</span><span class="p">]</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">dun_chi1</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;residue_index&quot;</span><span class="p">],</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_a&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_d&quot;</span><span class="p">],</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;chi1&quot;</span><span class="p">]</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># print(&quot;dun_chi1&quot;)</span>
+    <span class="c1"># print(dun_chi1)</span>
+
+    <span class="n">dun_chi2</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;residue_index&quot;</span><span class="p">],</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_a&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_d&quot;</span><span class="p">],</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;chi2&quot;</span><span class="p">]</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">dun_chi3</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;residue_index&quot;</span><span class="p">],</span>
+                <span class="mi">2</span><span class="p">,</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_a&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_d&quot;</span><span class="p">],</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;chi3&quot;</span><span class="p">]</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">dun_chi4</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="p">[</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;residue_index&quot;</span><span class="p">],</span>
+                <span class="mi">3</span><span class="p">,</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_a&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_b&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_c&quot;</span><span class="p">],</span>
+                <span class="n">x</span><span class="p">[</span><span class="s2">&quot;atom_index_d&quot;</span><span class="p">],</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">torsion_metadata</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;chi4&quot;</span><span class="p">]</span>
+        <span class="p">],</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># print(&quot;dun_chi1.shape&quot;,dun_chi.shape)</span>
+    <span class="c1"># print(&quot;dun_chi1.shape&quot;,dun_chi.shape)</span>
+
+    <span class="c1"># merge the 4 chi tensors, sorting by residue index and chi index</span>
+    <span class="n">join_chi</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">dun_chi1</span><span class="p">,</span> <span class="n">dun_chi2</span><span class="p">,</span> <span class="n">dun_chi3</span><span class="p">,</span> <span class="n">dun_chi4</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">chi_res</span> <span class="o">=</span> <span class="n">join_chi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">chi_inds</span> <span class="o">=</span> <span class="n">join_chi</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">sort_inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">lexsort</span><span class="p">((</span><span class="n">chi_inds</span><span class="p">,</span> <span class="n">chi_res</span><span class="p">))</span>
+    <span class="c1"># print(&quot;sort_inds&quot;)</span>
+    <span class="c1"># print(sort_inds.shape)</span>
+    <span class="c1"># print(sort_inds)</span>
+    <span class="n">dun_chi</span> <span class="o">=</span> <span class="n">join_chi</span><span class="p">[</span><span class="n">sort_inds</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="n">numpy</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mi">100000</span><span class="p">)</span>
+    <span class="c1"># print(&quot;dun_chi&quot;)</span>
+    <span class="c1"># print(dun_chi.shape)</span>
+    <span class="c1"># print(dun_chi)</span>
+    <span class="c1"># print(&quot;end dun chi&quot;)</span>
+
+    <span class="c1"># print(dun_chi)</span>
+
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">dun_phi</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dun_phi</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">dun_psi</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dun_psi</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">dun_chi</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dun_chi</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">dun_database</span><span class="o">=</span><span class="n">parameter_database</span><span class="o">.</span><span class="n">scoring</span><span class="o">.</span><span class="n">dun</span><span class="p">,</span>
+    <span class="p">)</span></div>
 </pre></div>
 
            </div>

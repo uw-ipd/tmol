@@ -28,6 +28,7 @@ tmol.score
   
        tmol.score.cartbonded
        tmol.score.common
+       tmol.score.dunbrack
        tmol.score.elec
        tmol.score.hbond
        tmol.score.ljlk

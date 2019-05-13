@@ -1,0 +1,553 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>tmol.support.scoring.rewrite_dunbrack_binary &mdash; TMol 0.0.0-170-g2d3344a5 documentation</title>
+  
+
+  
+  
+  
+  
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/_modules/tmol/support/scoring/rewrite_dunbrack_binary.html"/>
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript">
+          var DOCUMENTATION_OPTIONS = {
+              URL_ROOT:'../../../../',
+              VERSION:'0.0.0-170-g2d3344a5',
+              LANGUAGE:'None',
+              COLLAPSE_INDEX:false,
+              FILE_SUFFIX:'.html',
+              HAS_SOURCE:  true,
+              SOURCELINK_SUFFIX: '.txt'
+          };
+      </script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> TMol
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.0-170-g2d3344a5
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../datatypes.html">Datatypes</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Packages</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.system.html">tmol.system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.score.html">tmol.score</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.database.html">tmol.database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.kinematics.html">tmol.kinematics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.numeric.html">tmol.numeric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.types.html">tmol.types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.utility.html">tmol.utility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.io.html">tmol.io</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.viewer.html">tmol.viewer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.support.html">tmol.support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../apidoc/tmol.extern.html">tmol.extern</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TMol</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>tmol.support.scoring.rewrite_dunbrack_binary</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for tmol.support.scoring.rewrite_dunbrack_binary</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">zarr</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">rotamer_aliases</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;pro&quot;</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="write_rotameric_data_for_aa"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.rewrite_dunbrack_binary.html#tmol.support.scoring.rewrite_dunbrack_binary.write_rotameric_data_for_aa">[docs]</a><span class="k">def</span> <span class="nf">write_rotameric_data_for_aa</span><span class="p">(</span><span class="n">aa_lines</span><span class="p">,</span> <span class="n">nchi</span><span class="p">,</span> <span class="n">zgroup</span><span class="p">,</span> <span class="n">rotamer_alias</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">rotamers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">rotamers_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">aa_lines</span><span class="p">:</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">rot_id</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">4</span> <span class="p">:</span> <span class="p">(</span><span class="mi">4</span> <span class="o">+</span> <span class="n">nchi</span><span class="p">)]])</span>
+        <span class="k">if</span> <span class="n">rot_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rotamers_set</span><span class="p">:</span>
+            <span class="n">rotamers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rot_id</span><span class="p">)</span>
+            <span class="n">rotamers_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rot_id</span><span class="p">)</span>
+
+    <span class="n">sorted_rots</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">rotamers</span><span class="p">)</span>
+    <span class="n">sorted_rots_array</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sorted_rots</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="c1"># sorted_rots_str = [[str(well) for well in rot] for rot in sorted_rots]</span>
+    <span class="n">rot_to_rot_ind</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sorted_rots</span><span class="p">)}</span>
+    <span class="n">nrots</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sorted_rots</span><span class="p">)</span>
+
+    <span class="n">probabilities</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">nrots</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">36</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">means</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">nrots</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="n">nchi</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">stdvs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">nrots</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="n">nchi</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">prob_sorted_rots_by_phi_psi</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">36</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="n">nrots</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">count_rots_in_ppbin</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">36</span><span class="p">,</span> <span class="mi">36</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rotamer_alias</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rotamer_alias</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="n">nchi</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">aa_lines</span><span class="p">:</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">dihe</span><span class="p">)</span> <span class="o">//</span> <span class="mi">10</span> <span class="o">+</span> <span class="mi">18</span> <span class="k">for</span> <span class="n">dihe</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">phi_ind</span> <span class="o">&gt;=</span> <span class="mi">36</span> <span class="ow">or</span> <span class="n">psi_ind</span> <span class="o">&gt;=</span> <span class="mi">36</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">rot_id</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">4</span> <span class="p">:</span> <span class="p">(</span><span class="mi">4</span> <span class="o">+</span> <span class="n">nchi</span><span class="p">)]])</span>
+        <span class="n">rot_ind</span> <span class="o">=</span> <span class="n">rot_to_rot_ind</span><span class="p">[</span><span class="n">rot_id</span><span class="p">]</span>
+
+        <span class="n">probabilities</span><span class="p">[</span><span class="n">rot_ind</span><span class="p">,</span> <span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+        <span class="n">means</span><span class="p">[</span><span class="n">rot_ind</span><span class="p">,</span> <span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">9</span> <span class="p">:</span> <span class="p">(</span><span class="mi">9</span> <span class="o">+</span> <span class="n">nchi</span><span class="p">)]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span>
+        <span class="p">)</span>
+        <span class="n">stdvs</span><span class="p">[</span><span class="n">rot_ind</span><span class="p">,</span> <span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">13</span> <span class="p">:</span> <span class="p">(</span><span class="mi">13</span> <span class="o">+</span> <span class="n">nchi</span><span class="p">)]],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span>
+        <span class="p">)</span>
+        <span class="n">count_for_ppbin</span> <span class="o">=</span> <span class="n">count_rots_in_ppbin</span><span class="p">[</span><span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span><span class="p">]</span>
+        <span class="n">prob_sorted_rots_by_phi_psi</span><span class="p">[</span><span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span><span class="p">,</span> <span class="n">count_for_ppbin</span><span class="p">]</span> <span class="o">=</span> <span class="n">rot_to_rot_ind</span><span class="p">[</span>
+            <span class="n">rot_id</span>
+        <span class="p">]</span>
+        <span class="n">count_rots_in_ppbin</span><span class="p">[</span><span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span><span class="p">]</span> <span class="o">=</span> <span class="n">count_for_ppbin</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="n">numpy</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span>
+        <span class="n">count_rots_in_ppbin</span><span class="p">,</span> <span class="n">nrots</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="mi">36</span><span class="p">,</span> <span class="mi">36</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">rotamer_group</span> <span class="o">=</span> <span class="n">zgroup</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;rotameric_data&quot;</span><span class="p">)</span>
+    <span class="n">rotamer_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;rotamers&quot;</span><span class="p">,</span> <span class="n">sorted_rots_array</span><span class="p">)</span>
+    <span class="n">rotamer_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;probabilities&quot;</span><span class="p">,</span> <span class="n">probabilities</span><span class="p">)</span>
+    <span class="n">rotamer_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;means&quot;</span><span class="p">,</span> <span class="n">means</span><span class="p">)</span>
+    <span class="n">rotamer_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;stdvs&quot;</span><span class="p">,</span> <span class="n">stdvs</span><span class="p">)</span>
+    <span class="n">rotamer_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;prob_sorted_rot_inds&quot;</span><span class="p">,</span> <span class="n">prob_sorted_rots_by_phi_psi</span><span class="p">)</span>
+    <span class="n">rotamer_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;backbone_dihedral_start&quot;</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="o">-</span><span class="mi">180</span><span class="p">])</span>
+    <span class="n">rotamer_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;backbone_dihedral_step&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>
+    <span class="n">rotamer_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;rotamer_alias&quot;</span><span class="p">,</span> <span class="n">rotamer_alias</span><span class="p">)</span></div>
+
+
+<span class="c1"># def write_semi_rotameric_chi_table(</span>
+<span class="c1">#    indent, rotchi_ind, lines_for_rotchi, n_rotameric_chi, trailing_comma, out_lines</span>
+<span class="c1"># ):</span>
+<span class="c1">#    prob_start_col = 5 + 3 * n_rotameric_chi</span>
+<span class="c1">#    chi_prob_table = [[None for _a in range(36)] for _b in range(36)]</span>
+<span class="c1">#    for line in lines_for_rotchi:</span>
+<span class="c1">#        cols = line.split()</span>
+<span class="c1">#        phi_ind, psi_ind = (int(dihe) // 10 + 18 for dihe in cols[1:3])</span>
+<span class="c1">#        if phi_ind == 36 or psi_ind == 36:</span>
+<span class="c1">#            continue</span>
+<span class="c1">#        chi_prob_table[phi_ind][psi_ind] = cols[prob_start_col:]</span>
+<span class="c1">#    out_lines.append(</span>
+<span class="c1">#        &quot;&quot;.join(</span>
+<span class="c1">#            [</span>
+<span class="c1">#                &quot; &quot; * indent,</span>
+<span class="c1">#                &#39;{&quot;rotameric_rot_index&quot;: %d, &quot;probabilities&quot;:\n&#39; % rotchi_ind,</span>
+<span class="c1">#            ]</span>
+<span class="c1">#        )</span>
+<span class="c1">#    )</span>
+<span class="c1">#    write_3d_table(indent + 1, chi_prob_table, False, out_lines)</span>
+<span class="c1">#    out_lines.append(&quot;&quot;.join([&quot; &quot; * indent, &quot;}&quot;, &quot;,&quot; if trailing_comma else &quot;&quot;]))</span>
+
+
+<span class="c1"># def write_semi_rotameric_rotamer_definition(</span>
+<span class="c1">#    indent, line, nchi, trailing_comma, output_lines</span>
+<span class="c1"># ):</span>
+<span class="c1">#    cols = line.split()</span>
+<span class="c1">#    output_lines.append(</span>
+<span class="c1">#        &quot;&quot;.join(</span>
+<span class="c1">#            [</span>
+<span class="c1">#                &quot; &quot; * indent,</span>
+<span class="c1">#                &#39;{&quot;rotamer&quot;: [&#39;,</span>
+<span class="c1">#                &quot;, &quot;.join(cols[0:nchi]),</span>
+<span class="c1">#                &#39;], &quot;left&quot;: &#39;,</span>
+<span class="c1">#                cols[6],</span>
+<span class="c1">#                &#39;, &quot;right&quot;: &#39;,</span>
+<span class="c1">#                cols[8],</span>
+<span class="c1">#                &quot;}&quot;,</span>
+<span class="c1">#                &quot;,&quot; if trailing_comma else &quot;&quot;,</span>
+<span class="c1">#                &quot;\n&quot;,</span>
+<span class="c1">#            ]</span>
+<span class="c1">#        )</span>
+<span class="c1">#    )</span>
+
+
+<div class="viewcode-block" id="strip_comments"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.rewrite_dunbrack_binary.html#tmol.support.scoring.rewrite_dunbrack_binary.strip_comments">[docs]</a><span class="k">def</span> <span class="nf">strip_comments</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">line</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span> <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="write_rotameric_aa_dunbrack_library"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.rewrite_dunbrack_binary.html#tmol.support.scoring.rewrite_dunbrack_binary.write_rotameric_aa_dunbrack_library">[docs]</a><span class="k">def</span> <span class="nf">write_rotameric_aa_dunbrack_library</span><span class="p">(</span><span class="n">aa3</span><span class="p">,</span> <span class="n">aa_lines</span><span class="p">,</span> <span class="n">nchi</span><span class="p">,</span> <span class="n">zgroup</span><span class="p">,</span> <span class="n">rotamer_alias</span><span class="p">):</span>
+    <span class="n">lib_group</span> <span class="o">=</span> <span class="n">zgroup</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">aa3</span><span class="p">)</span>
+    <span class="n">write_rotameric_data_for_aa</span><span class="p">(</span><span class="n">aa_lines</span><span class="p">,</span> <span class="n">nchi</span><span class="p">,</span> <span class="n">lib_group</span><span class="p">,</span> <span class="n">rotamer_alias</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="write_semi_rotameric_aa_dunbrack_library"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.rewrite_dunbrack_binary.html#tmol.support.scoring.rewrite_dunbrack_binary.write_semi_rotameric_aa_dunbrack_library">[docs]</a><span class="k">def</span> <span class="nf">write_semi_rotameric_aa_dunbrack_library</span><span class="p">(</span>
+    <span class="n">aa3</span><span class="p">,</span>
+    <span class="n">nchi</span><span class="p">,</span>
+    <span class="n">bb_rotamer_lines</span><span class="p">,</span>
+    <span class="n">bbdep_density_lines</span><span class="p">,</span>
+    <span class="n">ref_bbdep_density_lines</span><span class="p">,</span>
+    <span class="n">bbind_rotamer_def_lines</span><span class="p">,</span>
+    <span class="n">zgroup</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="c1"># print(&quot;Creating&quot;, aa3, &quot;group&quot;)</span>
+    <span class="n">semirot_lib_group</span> <span class="o">=</span> <span class="n">zgroup</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">aa3</span><span class="p">)</span>
+    <span class="c1"># print(&quot;Created&quot;, aa3, &quot;group&quot;)</span>
+    <span class="n">n_rotameric_chi</span> <span class="o">=</span> <span class="n">nchi</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">bb_rotamer_lines</span> <span class="o">=</span> <span class="n">strip_comments</span><span class="p">(</span><span class="n">bb_rotamer_lines</span><span class="p">)</span>
+
+    <span class="n">write_rotameric_data_for_aa</span><span class="p">(</span><span class="n">bb_rotamer_lines</span><span class="p">,</span> <span class="n">nchi</span><span class="p">,</span> <span class="n">semirot_lib_group</span><span class="p">)</span>
+    <span class="n">rotameric_data_group</span> <span class="o">=</span> <span class="n">semirot_lib_group</span><span class="p">[</span><span class="s2">&quot;rotameric_data&quot;</span><span class="p">]</span>
+    <span class="n">rotameric_rotamers</span> <span class="o">=</span> <span class="n">rotameric_data_group</span><span class="p">[</span><span class="s2">&quot;rotamers&quot;</span><span class="p">][:]</span>
+    <span class="n">n_rotamers</span> <span class="o">=</span> <span class="n">rotameric_rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">allchi_rot_to_rot_ind</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="nb">tuple</span><span class="p">(</span><span class="n">rotameric_rotamers</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_rotamers</span><span class="p">)</span>
+    <span class="p">}</span>
+
+    <span class="c1"># read the chi labels, the number of non-rotameric chi samples, and the</span>
+    <span class="c1"># non-rotameric chi start, step and period from the comments at the top</span>
+    <span class="c1"># of the file, in the second to last line of comments</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ref_bbdep_density_lines</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">assert</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+        <span class="n">desc_line</span> <span class="o">=</span> <span class="n">ref_bbdep_density_lines</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="c1"># print(&quot;desc line:&quot;, desc_line)</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">desc_line</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">chi_labels</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[(</span><span class="mi">5</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">n_rotameric_chi</span><span class="p">)</span> <span class="p">:]]</span>
+        <span class="n">nrc_n_samples</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chi_labels</span><span class="p">)</span>
+        <span class="n">nonrot_chi_start</span> <span class="o">=</span> <span class="n">chi_labels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">nonrot_chi_step</span> <span class="o">=</span> <span class="n">chi_labels</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">nonrot_chi_start</span>
+        <span class="n">nonrot_chi_period</span> <span class="o">=</span> <span class="n">chi_labels</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">nonrot_chi_start</span> <span class="o">+</span> <span class="n">nonrot_chi_step</span>
+        <span class="k">break</span>
+
+    <span class="c1"># nonrot_chi_sampling_data = numpy.zeros((3,), dtype=float)</span>
+    <span class="c1"># nonrot_chi_sampling_data[0] = nonrot_chi_start</span>
+    <span class="c1"># nonrot_chi_sampling_data[1] = nonrot_chi_step</span>
+    <span class="c1"># nonrot_chi_sampling_data[2] = nonrot_chi_period</span>
+    <span class="c1"># semirot_lib_group.array(&quot;nonrot_chi_sampling_data&quot;, nonrot_chi_sampling_data)</span>
+    <span class="n">semirot_lib_group</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="n">nonrot_chi_start</span><span class="o">=</span><span class="n">nonrot_chi_start</span><span class="p">,</span>
+        <span class="n">nonrot_chi_step</span><span class="o">=</span><span class="n">nonrot_chi_step</span><span class="p">,</span>
+        <span class="n">nonrot_chi_period</span><span class="o">=</span><span class="n">nonrot_chi_period</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">rotchi_rotamers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">rotchi_rotamers_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([])</span>
+    <span class="n">rot_cols</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span> <span class="o">+</span> <span class="n">n_rotameric_chi</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">bbdep_density_lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">rot</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="n">rot_cols</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">rot</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">rotchi_rotamers_set</span><span class="p">:</span>
+            <span class="n">rotchi_rotamers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
+            <span class="n">rotchi_rotamers_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">rot</span><span class="p">)</span>
+
+    <span class="n">sorted_rotchi_rotamers</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">rotchi_rotamers</span><span class="p">)</span>
+    <span class="n">sorted_rotchi_rotamers_array</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sorted_rotchi_rotamers</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">n_rotchi_rotamers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sorted_rotchi_rotamers</span><span class="p">)</span>
+    <span class="n">rotameric_rot_to_rot_ind</span> <span class="o">=</span> <span class="p">{</span><span class="n">x</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sorted_rotchi_rotamers</span><span class="p">)}</span>
+
+    <span class="n">semirot_lib_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;rotameric_chi_rotamers&quot;</span><span class="p">,</span> <span class="n">sorted_rotchi_rotamers_array</span><span class="p">)</span>
+
+    <span class="c1"># non-rotameric-chi (nrc) probabilities</span>
+    <span class="n">nrc_probs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n_rotchi_rotamers</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="n">nrc_n_samples</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">bbdep_density_lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">//</span> <span class="mi">10</span> <span class="o">+</span> <span class="mi">18</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">phi_ind</span> <span class="o">&gt;=</span> <span class="mi">36</span> <span class="ow">or</span> <span class="n">psi_ind</span> <span class="o">&gt;=</span> <span class="mi">36</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">base_prob</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="mi">4</span> <span class="o">+</span> <span class="n">n_rotameric_chi</span><span class="p">])</span>
+        <span class="n">rot</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">4</span> <span class="p">:</span> <span class="p">(</span><span class="mi">4</span> <span class="o">+</span> <span class="n">n_rotameric_chi</span><span class="p">)])</span>
+        <span class="n">chi</span> <span class="o">=</span> <span class="p">[</span><span class="n">base_prob</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[(</span><span class="mi">5</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">n_rotameric_chi</span><span class="p">)</span> <span class="p">:]]</span>
+        <span class="n">rot_ind</span> <span class="o">=</span> <span class="n">rotameric_rot_to_rot_ind</span><span class="p">[</span><span class="n">rot</span><span class="p">]</span>
+        <span class="n">nrc_probs</span><span class="p">[</span><span class="n">rot_ind</span><span class="p">,</span> <span class="n">phi_ind</span><span class="p">,</span> <span class="n">psi_ind</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">chi</span>
+    <span class="n">semirot_lib_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;nonrotameric_chi_probabilities&quot;</span><span class="p">,</span> <span class="n">nrc_probs</span><span class="p">)</span>
+
+    <span class="n">rotamer_boundaries</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n_rotamers</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">bbind_rotamer_def_lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">rot</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">nchi</span><span class="p">])</span>
+        <span class="n">rot_ind</span> <span class="o">=</span> <span class="n">allchi_rot_to_rot_ind</span><span class="p">[</span><span class="n">rot</span><span class="p">]</span>
+        <span class="c1"># nab columns 6 and 8</span>
+        <span class="n">rotamer_boundaries</span><span class="p">[</span><span class="n">rot_ind</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">9</span><span class="p">:</span><span class="mi">2</span><span class="p">]]</span>
+
+    <span class="n">semirot_lib_group</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="s2">&quot;rotamer_boundaries&quot;</span><span class="p">,</span> <span class="n">rotamer_boundaries</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="write_binary_version_of_dunbrack_rotamer_library"><a class="viewcode-back" href="../../../../apidoc/tmol.support.scoring.rewrite_dunbrack_binary.html#tmol.support.scoring.rewrite_dunbrack_binary.write_binary_version_of_dunbrack_rotamer_library">[docs]</a><span class="k">def</span> <span class="nf">write_binary_version_of_dunbrack_rotamer_library</span><span class="p">(</span>
+    <span class="n">path_to_db_dir</span><span class="p">,</span> <span class="n">path_to_reference_db_dir</span><span class="p">,</span> <span class="n">out_path</span>
+<span class="p">):</span>
+    <span class="n">nchi_for_aa</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;CYS&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;ASP&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;GLU&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s2">&quot;PHE&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;HIS&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;ILE&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;LYS&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s2">&quot;LEU&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;MET&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s2">&quot;ASN&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;PRO&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s2">&quot;GLN&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="s2">&quot;ARG&quot;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s2">&quot;SER&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;THR&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;VAL&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s2">&quot;TRP&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;TYR&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">store</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">ZipStore</span><span class="p">(</span><span class="n">out_path</span><span class="p">)</span>
+    <span class="n">zgroup</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">store</span><span class="o">=</span><span class="n">store</span><span class="p">)</span>
+
+    <span class="c1"># Rotameric residues:</span>
+    <span class="c1"># CYS, ILE, LYS, LEU, MET, PRO, ARG, SER, THR, VAL</span>
+    <span class="n">rotameric_aas</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;cys&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ile&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;lys&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;leu&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;met&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;pro&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;arg&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ser&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;thr&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;val&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">rotameric_zgroup</span> <span class="o">=</span> <span class="n">zgroup</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;rotameric_tables&quot;</span><span class="p">)</span>
+    <span class="n">rotameric_zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">tables</span><span class="o">=</span><span class="n">rotameric_aas</span><span class="p">)</span>
+    <span class="n">lib_files</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_db_dir</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="s2">&quot;.bbdep.rotamers.lib.gz&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rotameric_aas</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">lib_file</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lib_files</span><span class="p">):</span>
+        <span class="c1"># print(&quot;processing&quot;, lib_file)</span>
+        <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">lib_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fid</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">strip_comments</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+        <span class="n">aa</span> <span class="o">=</span> <span class="n">rotameric_aas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">rotamer_alias</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">aa</span> <span class="ow">in</span> <span class="n">rotamer_aliases</span><span class="p">:</span>
+            <span class="n">rotamer_alias</span> <span class="o">=</span> <span class="n">rotamer_aliases</span><span class="p">[</span><span class="n">aa</span><span class="p">]</span>
+        <span class="n">write_rotameric_aa_dunbrack_library</span><span class="p">(</span>
+            <span class="n">rotameric_aas</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">lines</span><span class="p">,</span>
+            <span class="n">nchi_for_aa</span><span class="p">[</span><span class="n">aa</span><span class="o">.</span><span class="n">upper</span><span class="p">()],</span>
+            <span class="n">rotameric_zgroup</span><span class="p">,</span>
+            <span class="n">rotamer_alias</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">semirot_aas</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;asp&quot;</span><span class="p">,</span> <span class="s2">&quot;glu&quot;</span><span class="p">,</span> <span class="s2">&quot;phe&quot;</span><span class="p">,</span> <span class="s2">&quot;his&quot;</span><span class="p">,</span> <span class="s2">&quot;asn&quot;</span><span class="p">,</span> <span class="s2">&quot;gln&quot;</span><span class="p">,</span> <span class="s2">&quot;trp&quot;</span><span class="p">,</span> <span class="s2">&quot;tyr&quot;</span><span class="p">]</span>
+    <span class="n">semirotameric_zgroup</span> <span class="o">=</span> <span class="n">zgroup</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s2">&quot;semirotameric_tables&quot;</span><span class="p">)</span>
+    <span class="n">semirotameric_zgroup</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">tables</span><span class="o">=</span><span class="n">semirot_aas</span><span class="p">)</span>
+    <span class="n">lib_files</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_db_dir</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="s2">&quot;.bbdep.rotamers.lib.gz&quot;</span><span class="p">),</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_db_dir</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="s2">&quot;.bbdep.densities.lib.gz&quot;</span><span class="p">),</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path_to_reference_db_dir</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="s2">&quot;.bbdep.densities.lib.gz&quot;</span><span class="p">),</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">path_to_db_dir</span><span class="p">,</span>
+                <span class="n">x</span> <span class="o">+</span> <span class="s2">&quot;.bbind.chi&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">nchi_for_aa</span><span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">upper</span><span class="p">()])</span> <span class="o">+</span> <span class="s2">&quot;.Definitions.lib.gz&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">semirot_aas</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lib_files</span><span class="p">):</span>
+        <span class="c1"># print(&quot;opening files&quot;, files)</span>
+        <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+            <span class="n">rotamer_lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fid</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
+        <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+            <span class="n">density_lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fid</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
+        <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+            <span class="n">ref_density_lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fid</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
+        <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="k">as</span> <span class="n">fid</span><span class="p">:</span>
+            <span class="n">bbind_rotamer_lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fid</span><span class="o">.</span><span class="n">readlines</span><span class="p">()]</span>
+        <span class="c1"># print(&quot;processing&quot;, files[0], files[1], files[2], files[3])</span>
+        <span class="n">write_semi_rotameric_aa_dunbrack_library</span><span class="p">(</span>
+            <span class="n">semirot_aas</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">nchi_for_aa</span><span class="p">[</span><span class="n">semirot_aas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()],</span>
+            <span class="n">rotamer_lines</span><span class="p">,</span>
+            <span class="n">density_lines</span><span class="p">,</span>
+            <span class="n">ref_density_lines</span><span class="p">,</span>
+            <span class="n">bbind_rotamer_lines</span><span class="p">,</span>
+            <span class="n">semirotameric_zgroup</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">store</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+
+    <span class="n">write_binary_version_of_dunbrack_rotamer_library</span><span class="p">(</span>
+        <span class="s2">&quot;/home/andrew/rosetta/GIT/Rosetta/main/database/rotamer/beta_nov2016/&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;/home/andrew/rosetta/GIT/Rosetta/main/database/rotamer/ExtendedOpt1-5/&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dunbrack.bin&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="c1"># open(&quot;dunbrack_library2.json&quot;, &quot;w&quot;).writelines(outlines)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, TMol Contributers
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
