@@ -30,6 +30,7 @@ def default_component_weights(torch_device):
         "total_lk_ball_bridge_uncpl": torch.tensor(-0.33, device=torch_device),
         "total_hbond": torch.tensor(1.0, device=torch_device),
         "total_rama": torch.tensor(1.0, device=torch_device),  # renormalized
+        "total_dun": torch.tensor(1.0, device=torch_device),  # renormalized
         "total_omega": torch.tensor(0.48, device=torch_device),
         "total_cartbonded_length": torch.tensor(1.0, device=torch_device),
         "total_cartbonded_angle": torch.tensor(1.0, device=torch_device),
