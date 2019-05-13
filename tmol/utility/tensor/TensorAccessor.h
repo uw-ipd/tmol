@@ -142,6 +142,12 @@ class TViewBase {
     std::copy(sizes_, sizes_ + N, std::begin(this->sizes_));
     std::copy(strides_, strides_ + N, std::begin(this->strides_));
   }
+
+  AT_HOST_DEVICE operator TensorAccessor<T, N, D, P>() const {
+    return TensorAccessor<T, N, D, P>(
+        this->data_, this->sizes_, this->strides_);
+  }
+
   AT_HOST_DEVICE const int64_t dim() const { return N; }
   AT_HOST_DEVICE const int64_t& stride(int64_t i) const { return strides_[i]; }
   AT_HOST_DEVICE const int64_t& size(int64_t i) const { return sizes_[i]; }
