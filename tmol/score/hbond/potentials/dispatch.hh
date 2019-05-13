@@ -61,6 +61,14 @@ struct HBondDispatch {
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>>;
+
+  //  static auto backward(
+  //    TView<Real, 1, Dev> dTdV,
+  //    TView<Real, 2, Dev> dV_d_don,
+  //    TView<Real, 2, Dev> dV_d_acc)
+  //    -> std::tuple<
+  //        TPack<Real, 2, Dev>,
+  //        TPack<Real, 2, Dev>>;
 };
 
 }  // namespace potentials

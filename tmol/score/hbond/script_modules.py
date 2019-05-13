@@ -71,9 +71,9 @@ class HBondIntraModule(_HBondScoreModule):
             B,
             B0,
             acceptor_type,
-            ctx.params.donor_weight,
-            ctx.params.acceptor_weight,
             ctx.params.acceptor_hybridization,
+            ctx.params.acceptor_weight,
+            ctx.params.donor_weight,
             ctx.params.AHdist_range,
             ctx.params.AHdist_bound,
             ctx.params.AHdist_coeffs,
@@ -83,6 +83,11 @@ class HBondIntraModule(_HBondScoreModule):
             ctx.params.cosAHD_range,
             ctx.params.cosAHD_bound,
             ctx.params.cosAHD_coeffs,
+            ctx.params.hb_sp2_range_span,
+            ctx.params.hb_sp2_BAH180_rise,
+            ctx.params.hb_sp2_outer_width,
+            ctx.params.hb_sp3_softmax_fade,
+            ctx.params.threshold_distance,
         )
 
 
