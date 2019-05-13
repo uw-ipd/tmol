@@ -56,8 +56,7 @@ class CartBondedIntraScore(IntraScore):
     @validate_args
     def total_cartbonded_length(cartbonded_length):
         """total cartbonded length score"""
-        score_val = cartbonded_length
-        return score_val.sum()
+        return cartbonded_length
 
     @reactive_property
     @validate_args
@@ -72,8 +71,7 @@ class CartBondedIntraScore(IntraScore):
     @validate_args
     def total_cartbonded_angle(cartbonded_angle):
         """total cartbonded angle score"""
-        score_val = cartbonded_angle
-        return score_val.sum()
+        return cartbonded_angle
 
     @reactive_property
     @validate_args
@@ -88,8 +86,7 @@ class CartBondedIntraScore(IntraScore):
     @validate_args
     def total_cartbonded_torsion(cartbonded_torsion):
         """total cartbonded torsion score"""
-        score_val = cartbonded_torsion
-        return score_val.sum()
+        return cartbonded_torsion
 
     @reactive_property
     @validate_args
@@ -104,8 +101,7 @@ class CartBondedIntraScore(IntraScore):
     @validate_args
     def total_cartbonded_improper(cartbonded_improper):
         """total cartbonded improper score"""
-        score_val = cartbonded_improper
-        return score_val.sum()
+        return cartbonded_improper
 
     @reactive_property
     @validate_args
@@ -120,8 +116,7 @@ class CartBondedIntraScore(IntraScore):
     @validate_args
     def total_cartbonded_hxltorsion(cartbonded_hxltorsion):
         """total cartbonded hxltorsion score"""
-        score_val = cartbonded_hxltorsion
-        return score_val.sum()
+        return cartbonded_hxltorsion
 
     @reactive_property
     @validate_args

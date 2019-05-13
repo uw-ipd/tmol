@@ -24,10 +24,7 @@ struct CartBondedLengthDispatch {
       TView<Int, 1, D> parameter_indices,
       TView<Real, 1, D> K,
       TView<Real, 1, D> x0)
-      -> std::tuple<
-          TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D> >;
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
 template <tmol::Device D, typename Real, typename Int>
@@ -38,11 +35,7 @@ struct CartBondedAngleDispatch {
       TView<Int, 1, D> parameter_indices,
       TView<Real, 1, D> K,
       TView<Real, 1, D> x0)
-      -> std::tuple<
-          TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D> >;
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
 template <tmol::Device D, typename Real, typename Int>
@@ -54,12 +47,7 @@ struct CartBondedTorsionDispatch {
       TView<Real, 1, D> K,
       TView<Real, 1, D> x0,
       TView<Int, 1, D> period)
-      -> std::tuple<
-          TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D> >;
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
 template <tmol::Device D, typename Real, typename Int>
@@ -74,12 +62,7 @@ struct CartBondedHxlTorsionDispatch {
       TView<Real, 1, D> phi1,
       TView<Real, 1, D> phi2,
       TView<Real, 1, D> phi3)
-      -> std::tuple<
-          TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D> >;
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
 }  // namespace potentials
