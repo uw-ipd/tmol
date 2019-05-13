@@ -191,26 +191,14 @@ class CartBondedLengthFun(torch.autograd.Function):
         assert parameter_indices.shape[0] == atmpair_indices.shape[0]
 
         ctx.coords_shape = coords.size()
-        E, dE_dA, dE_dB = ctx.op.f(
-            coords, atmpair_indices, parameter_indices, **ctx.op.params
-        )
-
-        atmpair_indices = atmpair_indices.transpose(0, 1)  # coo_tensor wants this
-        ctx.save_for_backward(atmpair_indices, dE_dA, dE_dB)
+        E, dE_dx = ctx.op.f(coords, atmpair_indices, parameter_indices, **ctx.op.params)
+        ctx.save_for_backward(dE_dx)
 
         return E
 
     def backward(ctx, dV_dE):
-        ind_ij, dE_dI, dE_dJ = ctx.saved_tensors
-
-        dV_dA = torch.sparse_coo_tensor(
-            ind_ij[0, None, :], dV_dE[..., None] * dE_dI, (ctx.coords_shape)
-        ).to_dense()
-        dV_dB = torch.sparse_coo_tensor(
-            ind_ij[1, None, :], dV_dE[..., None] * dE_dJ, (ctx.coords_shape)
-        ).to_dense()
-
-        return ((dV_dA + dV_dB), None, None)
+        dE_dx, = ctx.saved_tensors
+        return (dV_dE * dE_dx, None, None)
 
 
 class CartBondedAngleFun(torch.autograd.Function):
@@ -225,29 +213,16 @@ class CartBondedAngleFun(torch.autograd.Function):
         assert parameter_indices.shape[0] == atmtriple_indices.shape[0]
 
         ctx.coords_shape = coords.size()
-        E, dE_dA, dE_dB, dE_dC = ctx.op.f(
+        E, dE_dx = ctx.op.f(
             coords, atmtriple_indices, parameter_indices, **ctx.op.params
         )
-
-        atmtriple_indices = atmtriple_indices.transpose(0, 1)  # coo_tensor wants this
-        ctx.save_for_backward(atmtriple_indices, dE_dA, dE_dB, dE_dC)
+        ctx.save_for_backward(dE_dx)
 
         return E
 
     def backward(ctx, dV_dE):
-        ind_ijk, dE_dI, dE_dJ, dE_dK = ctx.saved_tensors
-
-        dV_dA = torch.sparse_coo_tensor(
-            ind_ijk[0, None, :], dV_dE[..., None] * dE_dI, (ctx.coords_shape)
-        ).to_dense()
-        dV_dB = torch.sparse_coo_tensor(
-            ind_ijk[1, None, :], dV_dE[..., None] * dE_dJ, (ctx.coords_shape)
-        ).to_dense()
-        dV_dC = torch.sparse_coo_tensor(
-            ind_ijk[2, None, :], dV_dE[..., None] * dE_dK, (ctx.coords_shape)
-        ).to_dense()
-
-        return ((dV_dA + dV_dB + dV_dC), None, None)
+        dE_dx, = ctx.saved_tensors
+        return (dV_dE * dE_dx, None, None)
 
 
 class CartBondedTorsionFun(torch.autograd.Function):
@@ -262,29 +237,11 @@ class CartBondedTorsionFun(torch.autograd.Function):
         assert parameter_indices.shape[0] == atmquad_indices.shape[0]
 
         ctx.coords_shape = coords.size()
-        E, dE_dA, dE_dB, dE_dC, dE_dD = ctx.op.f(
-            coords, atmquad_indices, parameter_indices, **ctx.op.params
-        )
-
-        atmquad_indices = atmquad_indices.transpose(0, 1)  # coo_tensor wants this
-        ctx.save_for_backward(atmquad_indices, dE_dA, dE_dB, dE_dC, dE_dD)
+        E, dE_dx = ctx.op.f(coords, atmquad_indices, parameter_indices, **ctx.op.params)
+        ctx.save_for_backward(dE_dx)
 
         return E
 
     def backward(ctx, dV_dE):
-        ind_ijkl, dE_dI, dE_dJ, dE_dK, dE_dL = ctx.saved_tensors
-
-        dV_dA = torch.sparse_coo_tensor(
-            ind_ijkl[0, None, :], dV_dE[..., None] * dE_dI, (ctx.coords_shape)
-        ).to_dense()
-        dV_dB = torch.sparse_coo_tensor(
-            ind_ijkl[1, None, :], dV_dE[..., None] * dE_dJ, (ctx.coords_shape)
-        ).to_dense()
-        dV_dC = torch.sparse_coo_tensor(
-            ind_ijkl[2, None, :], dV_dE[..., None] * dE_dK, (ctx.coords_shape)
-        ).to_dense()
-        dV_dD = torch.sparse_coo_tensor(
-            ind_ijkl[3, None, :], dV_dE[..., None] * dE_dL, (ctx.coords_shape)
-        ).to_dense()
-
-        return ((dV_dA + dV_dB + dV_dC + dV_dD), None, None)
+        dE_dx, = ctx.saved_tensors
+        return (dV_dE * dE_dx, None, None)

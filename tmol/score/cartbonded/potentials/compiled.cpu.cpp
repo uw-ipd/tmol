@@ -23,31 +23,33 @@ struct CartBondedLengthDispatch {
       TView<Real, 1, D> x0)
       -> std::tuple<
           TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 1, D> > {
     auto num_Vs = parameter_indices.size(0);
 
-    auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
-    auto dV_dIs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dJs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
+    auto V_t = TPack<Real, 1, D>::zeros({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 
-    auto Vs = Vs_t.view;
-    auto dV_dIs = dV_dIs_t.view;
-    auto dV_dJs = dV_dJs_t.view;
+    auto V = V_t.view;
+    auto dV_dx = dV_dx_t.view;
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atompair_indices[i][0];
       Int atj = atompair_indices[i][1];
       Int pari = parameter_indices[i];
-      tie(Vs[i], dV_dIs[i], dV_dJs[i]) =
-          cblength_V_dV(coords[ati], coords[atj], K[pari], x0[pari]);
+
+      auto cblength = cblength_V_dV(
+          coords[ati], coords[atj], K[pari], x0[pari]);
+
+      V[0] += std::get<0>(cblength);
+      dV_dx[ati] += std::get<1>(cblength);
+      dV_dx[atj] += std::get<2>(cblength);
     });
 
     for (int i = 0; i < num_Vs; i++) {
       f_i(i);
     }
 
-    return {Vs_t, dV_dIs_t, dV_dJs_t};
+    return {V_t, dV_dx_t};
   }
 };
 
@@ -61,35 +63,35 @@ struct CartBondedAngleDispatch {
       TView<Real, 1, D> x0)
       -> std::tuple<
           TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 1, D> > {
     auto num_Vs = parameter_indices.size(0);
 
-    auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
-    auto dV_dIs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dJs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dKs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
+    auto V_t = TPack<Real, 1, D>::zeros({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 
-    auto Vs = Vs_t.view;
-    auto dV_dIs = dV_dIs_t.view;
-    auto dV_dJs = dV_dJs_t.view;
-    auto dV_dKs = dV_dKs_t.view;
+    auto V = V_t.view;
+    auto dV_dx = dV_dx_t.view;
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atomtriple_indices[i][0];
       Int atj = atomtriple_indices[i][1];
       Int atk = atomtriple_indices[i][2];
       Int pari = parameter_indices[i];
-      tie(Vs[i], dV_dIs[i], dV_dJs[i], dV_dKs[i]) = cbangle_V_dV(
+      auto cbangle = cbangle_V_dV(
           coords[ati], coords[atj], coords[atk], K[pari], x0[pari]);
+
+      V[0] += std::get<0>(cbangle);
+      dV_dx[ati] += std::get<1>(cbangle);
+      dV_dx[atj] += std::get<2>(cbangle); 
+      dV_dx[atk] += std::get<3>(cbangle);
+
     });
 
     for (int i = 0; i < num_Vs; i++) {
       f_i(i);
     }
 
-    return {Vs_t, dV_dIs_t, dV_dJs_t, dV_dKs_t};
+    return {V_t, dV_dx_t};
   }
 };
 
@@ -104,23 +106,14 @@ struct CartBondedTorsionDispatch {
       TView<Int, 1, D> period)
       -> std::tuple<
           TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 1, D> > {
     auto num_Vs = parameter_indices.size(0);
 
-    auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
-    auto dV_dIs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dJs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dKs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dLs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
+    auto V_t = TPack<Real, 1, D>::zeros({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 
-    auto Vs = Vs_t.view;
-    auto dV_dIs = dV_dIs_t.view;
-    auto dV_dJs = dV_dJs_t.view;
-    auto dV_dKs = dV_dKs_t.view;
-    auto dV_dLs = dV_dLs_t.view;
+    auto V = V_t.view;
+    auto dV_dx = dV_dx_t.view;
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atomquad_indices[i][0];
@@ -128,7 +121,7 @@ struct CartBondedTorsionDispatch {
       Int atk = atomquad_indices[i][2];
       Int atl = atomquad_indices[i][3];
       Int pari = parameter_indices[i];
-      tie(Vs[i], dV_dIs[i], dV_dJs[i], dV_dKs[i], dV_dLs[i]) = cbtorsion_V_dV(
+      auto cbtorsion = cbtorsion_V_dV(
           coords[ati],
           coords[atj],
           coords[atk],
@@ -136,13 +129,19 @@ struct CartBondedTorsionDispatch {
           K[pari],
           x0[pari],
           period[pari]);
+
+      V[0] += std::get<0>(cbtorsion);
+      dV_dx[ati] += std::get<1>(cbtorsion);
+      dV_dx[atj] += std::get<2>(cbtorsion); 
+      dV_dx[atk] += std::get<3>(cbtorsion);
+      dV_dx[atl] += std::get<4>(cbtorsion);
     });
 
     for (int i = 0; i < num_Vs; i++) {
       f_i(i);
     }
 
-    return {Vs_t, dV_dIs_t, dV_dJs_t, dV_dKs_t, dV_dLs_t};
+    return {V_t, dV_dx_t};
   }
 };
 
@@ -160,23 +159,14 @@ struct CartBondedHxlTorsionDispatch {
       TView<Real, 1, D> phi3)
       -> std::tuple<
           TPack<Real, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 1, D> > {
     auto num_Vs = parameter_indices.size(0);
 
-    auto Vs_t = TPack<Real, 1, D>::empty({num_Vs});
-    auto dV_dIs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dJs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dKs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
-    auto dV_dLs_t = TPack<Vec<Real, 3>, 1, D>::empty(num_Vs);
+    auto V_t = TPack<Real, 1, D>::zeros({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 
-    auto Vs = Vs_t.view;
-    auto dV_dIs = dV_dIs_t.view;
-    auto dV_dJs = dV_dJs_t.view;
-    auto dV_dKs = dV_dKs_t.view;
-    auto dV_dLs = dV_dLs_t.view;
+    auto V = V_t.view;
+    auto dV_dx = dV_dx_t.view;
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atomquad_indices[i][0];
@@ -184,7 +174,7 @@ struct CartBondedHxlTorsionDispatch {
       Int atk = atomquad_indices[i][2];
       Int atl = atomquad_indices[i][3];
       Int pari = parameter_indices[i];
-      tie(Vs[i], dV_dIs[i], dV_dJs[i], dV_dKs[i], dV_dLs[i]) =
+      auto cbhxltorsion =
           cbhxltorsion_V_dV(
               coords[ati],
               coords[atj],
@@ -196,13 +186,20 @@ struct CartBondedHxlTorsionDispatch {
               phi1[pari],
               phi2[pari],
               phi3[pari]);
+
+      V[0] += std::get<0>(cbhxltorsion);
+      dV_dx[ati] += std::get<1>(cbhxltorsion);
+      dV_dx[atj] += std::get<2>(cbhxltorsion); 
+      dV_dx[atk] += std::get<3>(cbhxltorsion);
+      dV_dx[atl] += std::get<4>(cbhxltorsion);
+
     });
 
     for (int i = 0; i < num_Vs; i++) {
       f_i(i);
     }
 
-    return {Vs_t, dV_dIs_t, dV_dJs_t, dV_dKs_t, dV_dLs_t};
+    return {V_t, dV_dx_t};
   }
 };
 
