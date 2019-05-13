@@ -23,6 +23,8 @@ struct type_caster<tmol::score::ljlk::potentials::LJTypeParams<Real>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
+    nvtx_range_function();
+
     CAST_ATTR(src, value, lj_radius);
     CAST_ATTR(src, value, lj_wdepth);
     CAST_ATTR(src, value, is_donor);
@@ -42,6 +44,8 @@ struct type_caster<tmol::score::ljlk::potentials::LJTypeParamTensors<Real, D>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
+    nvtx_range_function();
+
     CAST_ATTR(src, value, lj_radius);
     CAST_ATTR(src, value, lj_wdepth);
     CAST_ATTR(src, value, is_donor);
@@ -61,6 +65,8 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParams<Real>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
+    nvtx_range_function();
+
     CAST_ATTR(src, value, lj_radius);
     CAST_ATTR(src, value, lk_dgfree);
     CAST_ATTR(src, value, lk_lambda);
@@ -82,6 +88,8 @@ struct type_caster<tmol::score::ljlk::potentials::LKTypeParamTensors<Real, D>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
+    nvtx_range_function();
+
     CAST_ATTR(src, value, lj_radius);
     CAST_ATTR(src, value, lk_dgfree);
     CAST_ATTR(src, value, lk_lambda);
@@ -103,7 +111,26 @@ struct type_caster<tmol::score::ljlk::potentials::LJGlobalParams<Real>> {
   PYBIND11_TYPE_CASTER(T, _<T>());
 
   bool load(handle src, bool convert) {
-    using namespace pybind11::detail;
+    nvtx_range_function();
+
+    CAST_ATTR(src, value, lj_hbond_dis);
+    CAST_ATTR(src, value, lj_hbond_OH_donor_dis);
+    CAST_ATTR(src, value, lj_hbond_hdis);
+
+    return true;
+  }
+};
+
+template <typename Real, tmol::Device D>
+struct type_caster<
+    tmol::score::ljlk::potentials::LJGlobalParamTensors<Real, D>> {
+ public:
+  typedef tmol::score::ljlk::potentials::LJGlobalParamTensors<Real, D> T;
+
+  PYBIND11_TYPE_CASTER(T, _<T>());
+
+  bool load(handle src, bool convert) {
+    nvtx_range_function();
 
     CAST_ATTR(src, value, lj_hbond_dis);
     CAST_ATTR(src, value, lj_hbond_OH_donor_dis);

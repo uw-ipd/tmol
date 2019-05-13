@@ -28,6 +28,8 @@ def combine_params(params_i, params_j, global_params):
         # Coerce 0-d to scalars for numba
         if t.dim() == 0:
             return t.numpy()[()]
+        if t.dim() == 1 and t.shape == (1,):
+            return t.numpy()[0]
         else:
             return t.numpy()
 

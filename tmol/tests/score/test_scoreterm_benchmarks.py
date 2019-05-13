@@ -174,15 +174,19 @@ _non_cuda_components = (LKBallScoreGraph,)
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
 @pytest.mark.benchmark(group="score_components")
 def test_end_to_end_score_graph(
-    benchmark, benchmark_pass, graph_class, ubq_system, torch_device
+    benchmark, benchmark_pass, graph_class, torch_device, ubq_system
 ):
+    target_system = ubq_system
+
     if issubclass(graph_class, _non_cuda_components) and torch_device.type == "cuda":
         with pytest.raises(NotImplementedError):
-            graph_class.build_for(ubq_system, requires_grad=True, device=torch_device)
+            graph_class.build_for(
+                target_system, requires_grad=True, device=torch_device
+            )
         return
 
     score_graph = graph_class.build_for(
-        ubq_system, requires_grad=True, device=torch_device
+        target_system, requires_grad=True, device=torch_device
     )
 
     run = benchmark_score_pass(benchmark, score_graph, benchmark_pass)

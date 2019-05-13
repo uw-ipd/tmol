@@ -19,57 +19,27 @@ from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
 from .params import LJLKParamResolver
-from .torch_op import LJOp, LKOp
+from .script_modules import LJIntraModule, LKIsotropicIntraModule
 
 
 @reactive_attrs
 class LJIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def lj(target):
-        assert target.coords.dim() == 3
-        assert target.coords.shape[0] == 1
-
-        assert target.ljlk_atom_types.dim() == 2
-        assert target.ljlk_atom_types.shape[0] == 1
-
-        assert target.bonded_path_length.dim() == 3
-        assert target.bonded_path_length.shape[0] == 1
-
-        return LJOp(target.ljlk_param_resolver).intra(
+    def total_lj(target):
+        return target.lj_intra_module(
             target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
         )
-
-    @reactive_property
-    def total_lj(lj):
-        """total inter-atomic lj"""
-        score_ind, score_val = lj
-        return score_val.sum()
 
 
 @reactive_attrs
 class LKIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def lk(target):
-        assert target.coords.dim() == 3
-        assert target.coords.shape[0] == 1
-
-        assert target.ljlk_atom_types.dim() == 2
-        assert target.ljlk_atom_types.shape[0] == 1
-
-        assert target.bonded_path_length.dim() == 3
-        assert target.bonded_path_length.shape[0] == 1
-
-        return LKOp(target.ljlk_param_resolver).intra(
+    def total_lk(target):
+        return target.lk_intra_module(
             target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
         )
-
-    @reactive_property
-    def total_lk(lk):
-        """total inter-atomic lk"""
-        score_ind, score_val = lk
-        return score_val.sum()
 
 
 @score_graph
@@ -122,9 +92,19 @@ class LJScoreGraph(_LJLKCommonScoreGraph):
         ScoreComponentClasses("lj", intra_container=LJIntraScore, inter_container=None)
     ]
 
+    @reactive_property
+    def lj_intra_module(ljlk_param_resolver: LJLKParamResolver) -> LJIntraModule:
+        return LJIntraModule(ljlk_param_resolver)
+
 
 @reactive_attrs(auto_attribs=True)
 class LKScoreGraph(_LJLKCommonScoreGraph):
     total_score_components = [
         ScoreComponentClasses("lk", intra_container=LKIntraScore, inter_container=None)
     ]
+
+    @reactive_property
+    def lk_intra_module(
+        ljlk_param_resolver: LJLKParamResolver
+    ) -> LKIsotropicIntraModule:
+        return LKIsotropicIntraModule(ljlk_param_resolver)

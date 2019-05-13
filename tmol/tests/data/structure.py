@@ -9,6 +9,7 @@ class TestStructure:
     def pose(pdb):
         import pyrosetta.distributed.io
         import pyrosetta.distributed.packed_pose
+        import tmol.support.rosetta.init  # noqa
 
         return pyrosetta.distributed.io.pose_from_pdbstring(pdb)
 

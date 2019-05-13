@@ -1,7 +1,5 @@
 #pragma once
 
-#include <nvToolsExt.h>
-
 #include <cassert>
 #include <exception>
 #include <memory>
@@ -91,11 +89,9 @@ class standard_context_t : public context_t {
 
   void _init_event() {
     if (!_has_event) {
-      nvtxRangePushA("mgpu::standard_context_t::_init_event");
       cudaEventCreate(&_timer[0]);
       cudaEventCreate(&_timer[1]);
       cudaEventCreate(&_event);
-      nvtxRangePop();
       _has_event = true;
     }
   }
@@ -131,7 +127,6 @@ class standard_context_t : public context_t {
       cudaError_t result = cudaFuncGetAttributes(&attr, dummy_k<0>);
       if (cudaSuccess != result) throw cuda_exception_t(result);
       _ptx_version = attr.ptxVersion;
-      nvtxRangePop();
     }
 
     return _ptx_version;

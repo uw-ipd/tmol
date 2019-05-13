@@ -95,7 +95,7 @@ struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
 
 template <
     typename T,
-    int N,
+    size_t N,
     Device D,
     PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
@@ -106,16 +106,30 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
   constexpr int nconsumed_dims = enable_tensor_view<T>::nconsumed_dims;
   auto consumed_dims = enable_tensor_view<T>::consumed_dims;
 
-  AT_ASSERTM(
+  AT_CHECK(
       input_t.dim() == N + nconsumed_dims,
-      "view_tensor of wrong dimensionality.");
+      "view_tensor of wrong dimensionality.",
+      " dim: ",
+      input_t.dim(),
+      " expected: ",
+      N + nconsumed_dims);
   for (int d = N; d < input_t.dim(); ++d) {
-    AT_ASSERTM(
+    AT_CHECK(
         input_t.size(d) == consumed_dims(d - N),
-        "squeezed dimension mismatch in view_tensor.");
+        "squeezed dimension mismatch in view_tensor.",
+        " d: ",
+        d,
+        " size: ",
+        input_t.size(d),
+        " expected: ",
+        consumed_dims(d - N));
   }
-  AT_ASSERTM(
-      input_t.device().type() == D, "view_tensor of incorrect device type.")
+
+  AT_CHECK(
+      input_t.device().type() == D,
+      "view_tensor of incorrect device type.",
+      " device: ",
+      input_t.device().type());
 
   auto input = input_t.accessor<FromT, N + nconsumed_dims>();
 
@@ -133,11 +147,11 @@ auto view_tensor(at::Tensor input_t) -> tmol::TView<T, N, D, P> {
 
 template <
     typename T,
-    int N,
+    size_t N,
     Device D,
     PtrTag P = PtrTag::Restricted,
     typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
-auto view_tensor(at::Tensor tensor, std::string name)
+auto view_tensor(at::Tensor tensor, const std::string& name)
     -> tmol::TView<T, N, D, P> {
   try {
     return view_tensor<T, N, D, P>(tensor);

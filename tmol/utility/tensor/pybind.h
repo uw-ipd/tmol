@@ -12,6 +12,7 @@
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/nvtx.hh>
 
 namespace pybind11 {
 namespace detail {
@@ -70,6 +71,8 @@ struct type_caster<tmol::TView<T, N, D, P>> {
   PYBIND11_TYPE_CASTER(ViewType, handle_type_name<ViewType>::name);
 
   bool load(handle src, bool convert) {
+    nvtx_range_function();
+
     using pybind11::print;
 
     type_caster<at::Tensor> conv;
@@ -86,14 +89,15 @@ struct type_caster<tmol::TView<T, N, D, P>> {
       return true;
     } catch (at::Error err) {
 #ifdef DEBUG
-      print("err.what()");
-      print(err.what());
+
       print(
-          "Error casting to TView type: ",
+          "Error casting to TView:",
+          "\ntype:\n",
           type_id<ViewType>(),
-          " value: ",
-          src);
-      print(err.what_without_backtrace());
+          "\nvalue:\n",
+          src,
+          "\nerror:\n",
+          err.what_without_backtrace());
 #endif
       return false;
     }
@@ -109,6 +113,8 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
   PYBIND11_TYPE_CASTER(PackType, handle_type_name<PackType>::name);
 
   bool load(handle src, bool convert) {
+    nvtx_range_function();
+
     using pybind11::print;
 
     type_caster<at::Tensor> conv;
@@ -138,6 +144,8 @@ struct type_caster<tmol::TPack<T, N, D, P>> {
   }
 
   static handle cast(PackType src, return_value_policy policy, handle parent) {
+    nvtx_range_function();
+
     return type_caster<at::Tensor>::cast(src.tensor, policy, parent);
   }
 
