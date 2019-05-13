@@ -26,22 +26,22 @@ template <
     template <tmol::Device>
     class DispatchMethod>
 struct HBScoreOpBackward : public torch::autograd::Function {
-  torch::autograd::SavedVariable saved_dv_d_don;
-  torch::autograd::SavedVariable saved_dv_d_acc
+  torch::autograd::SavedVariable saved_dV_d_don;
+  torch::autograd::SavedVariable saved_dV_d_acc;
 
   void release_variables() override {
-    saved_dv_d_don.reset_data();
-    saved_dv_d_don.reset_grad_function();
-    saved_dv_d_acc.reset_data();
-    saved_dv_d_acc.reset_grad_function();
+    saved_dV_d_don.reset_data();
+    saved_dV_d_don.reset_grad_function();
+    saved_dV_d_acc.reset_data();
+    saved_dV_d_acc.reset_grad_function();
   }
 
   HBScoreOpBackward(
-    torch::autograd::Variable dv_d_don,
-    torch::autograd::Variable dv_d_acc,
+    torch::autograd::Variable dV_d_don,
+    torch::autograd::Variable dV_d_acc
   )   :
-    saved_dv_d_don(dv_d_don, false),
-    saved_dv_d_acc(dv_d_acc, false)
+    saved_dV_d_don(dV_d_don, false),
+    saved_dV_d_acc(dV_d_acc, false)
   {}
 
   torch::autograd::variable_list apply(
@@ -50,8 +50,8 @@ struct HBScoreOpBackward : public torch::autograd::Function {
     // computed on the forward pass, but, I'm keeping this lkball code
     // here for the time being
 
-    auto dv_d_don = saved_dv_d_don.unpack();
-    auto dv_d_acc = saved_dv_d_acc.unpack();
+    auto dV_d_don = saved_dV_d_don.unpack();
+    auto dV_d_acc = saved_dV_d_acc.unpack();
 
     //at::Tensor dV_dI, dV_dJ, dW_dI, dW_dJ;
     //using Int = int64_t;
@@ -82,7 +82,7 @@ struct HBScoreOpBackward : public torch::autograd::Function {
     //  }));
     //
     //
-    return {dv_d_don, dv_d_acc};
+    return {dV_d_don, dV_d_acc};
   }
 };
 
@@ -157,14 +157,14 @@ Tensor score_op(
             TCAST(cosAHD_coeffs));
 
         score = std::get<0>(result).tensor;
-	dv_d_don = std::get<1>(result).tensor;
-	dv_d_acc = std::get<2>(result).tensor;
+	dV_d_don = std::get<1>(result).tensor;
+	dV_d_acc = std::get<2>(result).tensor;
       }));
 
-  return connect_backward_pass({dv_d_don, dv_d_acc}, score, [&]() {
+  return connect_backward_pass({dV_d_don, dV_d_acc}, score, [&]() {
     return std::shared_ptr<HBScoreOpBackward<HBondDispatch, common::AABBDispatch>>(
         new ScoreOpBackward<HBondDispatch, common::AABBDispatch>(
-	  dv_d_don, dv_d_acc
+	  dV_d_don, dV_d_acc
 	),
         torch::autograd::deleteFunction);
   });
