@@ -125,15 +125,15 @@ Tensor score_op(
     Tensor acceptor_hybridization,
     Tensor acceptor_weight,
     Tensor donor_weight,
+    Tensor AHdist_coeffs,
     Tensor AHdist_range,
     Tensor AHdist_bound,
-    Tensor AHdist_coeffs,
+    Tensor cosBAH_coeffs,
     Tensor cosBAH_range,
     Tensor cosBAH_bound,
-    Tensor cosBAH_coeffs,
+    Tensor cosAHD_coeffs,
     Tensor cosAHD_range,
     Tensor cosAHD_bound,
-    Tensor cosAHD_coeffs,
     Tensor hb_sp2_range_span,
     Tensor hb_sp2_BAH180_rise,
     Tensor hb_sp2_outer_width,
@@ -147,7 +147,7 @@ Tensor score_op(
   at::Tensor dV_d_don;
   at::Tensor dV_d_acc;
 
-  using Int = int64_t;
+  using Int = int32_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
       donor_coords.type(), "score_op", ([&] {
@@ -167,15 +167,15 @@ Tensor score_op(
             TCAST(acceptor_hybridization),
             TCAST(acceptor_weight),
             TCAST(donor_weight),
+            TCAST(AHdist_coeffs),
             TCAST(AHdist_range),
             TCAST(AHdist_bound),
-            TCAST(AHdist_coeffs),
+            TCAST(cosBAH_coeffs),
             TCAST(cosBAH_range),
             TCAST(cosBAH_bound),
-            TCAST(cosBAH_coeffs),
+            TCAST(cosAHD_coeffs),
             TCAST(cosAHD_range),
             TCAST(cosAHD_bound),
-            TCAST(cosAHD_coeffs),
 	    TCAST(hb_sp2_range_span),
 	    TCAST(hb_sp2_BAH180_rise),
 	    TCAST(hb_sp2_outer_width),

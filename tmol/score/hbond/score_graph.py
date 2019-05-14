@@ -55,28 +55,25 @@ class HBondDescr(TensorGroup):
 class HBondIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def total_hbond(target):
+    def total_hbond(target, hbond_score):
         """total hbond score"""
-        with nvtx_range("HBondIntraScore.hbond"):
-            with nvtx_range("HBondIntraScore.hbond.coords"):
-                return hbond_score[0]
+        return hbond_score[0]
 
     @reactive_property
     @validate_args
     def hbond_score(target):
-        with nvtx_range("HBondIntraScore.hbond.coords"):
-            coords = target.coords[0]
-            return target.hbond_intra_module(
-                coords,
-                coords,
-                target.hbond_donor_indices.D,
-                target.hbond_donor_indices.H,
-                target.hbond_donor_indices.donor_type,
-                target.hbond_acceptor_indices.A,
-                target.hbond_acceptor_indices.B,
-                target.hbond_acceptor_indices.B0,
-                target.hbond_acceptor_indices.acceptor_type,
-            )
+        coords = target.coords[0]
+        return target.hbond_intra_module(
+            coords,
+            coords,
+            target.hbond_donor_indices.D,
+            target.hbond_donor_indices.H,
+            target.hbond_donor_indices.donor_type,
+            target.hbond_acceptor_indices.A,
+            target.hbond_acceptor_indices.B,
+            target.hbond_acceptor_indices.B0,
+            target.hbond_acceptor_indices.acceptor_type,
+        )
 
     @reactive_property
     @validate_args
@@ -145,7 +142,9 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     def hbond_intra_module(
         hbond_database: HBondDatabase, hbond_param_resolver: HBondParamResolver
     ) -> HBondIntraModule:
-        return HBondIntraModule(hbond_database, hbond_param_resolver)
+        return HBondIntraModule(
+            {"database": hbond_database, "param_resolver": hbond_param_resolver}
+        )
 
     @reactive_property
     @validate_args

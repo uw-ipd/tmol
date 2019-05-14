@@ -10,20 +10,26 @@ from tmol.database.scoring import HBondDatabase
 from .params import HBondParamResolver
 
 from tmol.utility.nvtx import nvtx_range
+import tmol.score.hbond.potentials.compiled  # noqa
 
 
-@attr.s(auto_attribs=True, frozen=True)
+# Workaround for https://github.com/pytorch/pytorch/pull/15340
+# on torch<1.0.1
+if "to" in torch.jit.ScriptModule.__dict__:
+    delattr(torch.jit.ScriptModule, "to")
+
+
 class _HBondScoreModule(torch.jit.ScriptModule):
     """torch.autograd hbond baseline operator."""
 
-    params: Mapping[str, Union[float, torch.Tensor]]
-    hbond_pair_score: Callable = attr.ib()
+    # params: Mapping[str, Union[float, torch.Tensor]]
+    # hbond_pair_score: Callable = attr.ib()
 
-    @hbond_pair_score.default
-    def _load_hbond_pair_score(self):
-        from .potentials.compiled import hbond_pair_score
-
-        return hbond_pair_score
+    # @hbond_pair_score.default
+    # def _load_hbond_pair_score(self):
+    #    from .potentials.compiled import hbond_pair_score
+    #
+    #    return hbond_pair_score
 
     @staticmethod
     def _setup_pair_params(param_resolver, dtype):
@@ -43,23 +49,38 @@ class _HBondScoreModule(torch.jit.ScriptModule):
             for k, v in flat_items(attr.asdict(param_resolver.pair_params))
         }
 
-    def __init__(self, database: HBondDatabase, param_resolver: HBondParamResolver):
+    def __init__(self, param_dict):
+        print("_HBondScoreModule.__init__")
         super().__init__()
 
-        pair_params = _HBondScoreModule._setup_pair_params(param_resolver, dtype)
+        database = param_dict["database"]
+        param_resolver = param_dict["param_resolver"]
+        pair_params = _HBondScoreModule._setup_pair_params(
+            param_resolver, dtype=torch.float32
+        )
 
         global_params = {
-            n: torch.tensor(v, device=param_resolver.device).expand(1).to(dtype)
+            n: torch.tensor(v, device=param_resolver.device)
+            .expand(1)
+            .to(dtype=torch.float32)
             for n, v in attr.asdict(database.global_parameters).items()
         }
 
-        self.params = merge(pair_params, global_params)
+        self.acceptor_hybridization = torch.nn.Parameter(
+            torch.zeros(5), requires_grad=False
+        )
+        for n, v in merge(pair_params, global_params).items():
+            # print("setting attribute", n)
+            setattr(self, n, torch.nn.Parameter(v, requires_grad=False))
 
 
 class HBondIntraModule(_HBondScoreModule):
+    def __init__(self, param_dict):
+        super().__init__(param_dict)
+
     @torch.jit.script_method
     def forward(
-        ctx, donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
+        self, donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
     ):
         return torch.ops.tmol.score_hbond(
             donor_coords,
@@ -71,23 +92,23 @@ class HBondIntraModule(_HBondScoreModule):
             B,
             B0,
             acceptor_type,
-            ctx.params.acceptor_hybridization,
-            ctx.params.acceptor_weight,
-            ctx.params.donor_weight,
-            ctx.params.AHdist_range,
-            ctx.params.AHdist_bound,
-            ctx.params.AHdist_coeffs,
-            ctx.params.cosBAH_range,
-            ctx.params.cosBAH_bound,
-            ctx.params.cosBAH_coeffs,
-            ctx.params.cosAHD_range,
-            ctx.params.cosAHD_bound,
-            ctx.params.cosAHD_coeffs,
-            ctx.params.hb_sp2_range_span,
-            ctx.params.hb_sp2_BAH180_rise,
-            ctx.params.hb_sp2_outer_width,
-            ctx.params.hb_sp3_softmax_fade,
-            ctx.params.threshold_distance,
+            self.acceptor_hybridization,
+            self.acceptor_weight,
+            self.donor_weight,
+            self.AHdist_coeffs,
+            self.AHdist_range,
+            self.AHdist_bound,
+            self.cosBAH_coeffs,
+            self.cosBAH_range,
+            self.cosBAH_bound,
+            self.cosAHD_coeffs,
+            self.cosAHD_range,
+            self.cosAHD_bound,
+            self.hb_sp2_range_span,
+            self.hb_sp2_BAH180_rise,
+            self.hb_sp2_outer_width,
+            self.hb_sp3_softmax_fade,
+            self.threshold_distance,
         )
 
 

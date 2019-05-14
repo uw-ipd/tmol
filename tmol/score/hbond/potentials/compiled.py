@@ -5,6 +5,7 @@ _compiled = load(
     cuda_if_available(
         relpaths(__file__, ["compiled.ops.cpp", "compiled.cpu.cpp", "compiled.cuda.cu"])
     ),
+    is_python_module=False,
 )
 
 
