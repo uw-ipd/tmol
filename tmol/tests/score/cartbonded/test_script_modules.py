@@ -14,8 +14,6 @@ from tmol.score.cartbonded.params import CartBondedParamResolver
 from tmol.score.cartbonded.identification import CartBondedIdentification
 from tmol.score.bonded_atom import IndexedBonds
 
-from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
-
 import tmol.database
 
 
@@ -179,7 +177,7 @@ def test_cartbonded_length_gradcheck(default_database, ubq_system, torch_device)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
-    initial_gradcheck = torch.autograd.gradcheck(
+    torch.autograd.gradcheck(
         eval_cbl, (masked_coords.requires_grad_(True),), eps=5e-3, atol=5e-3
     )
 
