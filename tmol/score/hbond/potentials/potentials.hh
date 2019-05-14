@@ -10,6 +10,8 @@
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
 
+#include "params.hh"
+
 #undef B0
 
 namespace tmol {
@@ -270,9 +272,10 @@ struct hbond_score {
       Real acceptor_weight,
       Real donor_weight,
 
-      Vec<double, 11> AHdist_coeffs,
-      Vec<double, 2> AHdist_range,
-      Vec<double, 2> AHdist_bound,
+      HBondPoly<double> AHdist_poly,
+      // Vec<double, 11> AHdist_coeffs,
+      // Vec<double, 2> AHdist_range,
+      // Vec<double, 2> AHdist_bound,
 
       Vec<double, 11> cosBAH_coeffs,
       Vec<double, 2> cosBAH_range,
@@ -298,7 +301,8 @@ struct hbond_score {
     // A-H Distance Component
     iadd(
         tie(E, dE_dA, dE_dH),
-        AH_dist_V_dV(A, H, AHdist_coeffs, AHdist_range, AHdist_bound));
+        AH_dist_V_dV(
+            A, H, AHdist_poly.coeffs, AHdist_poly.range, AHdist_poly.bound));
 
     // AHD Angle Component
     iadd(

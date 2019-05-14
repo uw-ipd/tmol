@@ -45,9 +45,10 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
     TView<Real, 2, Dev> acceptor_weight,
     TView<Real, 2, Dev> donor_weight,
 
-    TView<Vec<double, 11>, 2, Dev> AHdist_coeffs,
-    TView<Vec<double, 2>, 2, Dev> AHdist_range,
-    TView<Vec<double, 2>, 2, Dev> AHdist_bound,
+    TView<HBondPoly<double>, 2, Dev> AHdist_polys,
+    // TView<Vec<double, 11>, 2, Dev> AHdist_coeffs,
+    // TView<Vec<double, 2>, 2, Dev> AHdist_range,
+    // TView<Vec<double, 2>, 2, Dev> AHdist_bound,
 
     TView<Vec<double, 11>, 2, Dev> cosBAH_coeffs,
     TView<Vec<double, 2>, 2, Dev> cosBAH_range,
@@ -120,9 +121,10 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
             acceptor_weight[dt][at],
             donor_weight[dt][at],
 
-            AHdist_coeffs[dt][at],
-            AHdist_range[dt][at],
-            AHdist_bound[dt][at],
+            AHdist_polys[dt][at],
+            // AHdist_coeffs[dt][at],
+            // AHdist_range[dt][at],
+            // AHdist_bound[dt][at],
 
             cosBAH_coeffs[dt][at],
             cosBAH_range[dt][at],

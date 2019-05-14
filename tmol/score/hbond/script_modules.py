@@ -73,6 +73,24 @@ class _HBondScoreModule(torch.jit.ScriptModule):
             # print("setting attribute", n)
             setattr(self, n, torch.nn.Parameter(v, requires_grad=False))
 
+        pad = torch.zeros(
+            [self.AHdist_coeffs.shape[0], self.AHdist_coeffs.shape[1], 1],
+            device=self.AHdist_coeffs.device,
+            dtype=torch.float64,
+        )
+        self.AHdist_poly = torch.nn.Parameter(
+            torch.cat(
+                [self.AHdist_coeffs, pad, self.AHdist_range, self.AHdist_bound], 2
+            ),
+            requires_grad=False,
+        )
+        print("AHdist_poly", self.AHdist_poly.shape, self.AHdist_poly.stride())
+
+        print("self.AHdist_coeffs[0,0,:]", self.AHdist_coeffs[0, 0, :])
+        print("self.AHdist_range[0,0,:]", self.AHdist_range[0, 0, :])
+        print("self.AHdist_bound[0,0,:]", self.AHdist_bound[0, 0, :])
+        print("self.AHdist_poly[0,0,:]", self.AHdist_poly[0, 0, :])
+
 
 class HBondIntraModule(_HBondScoreModule):
     def __init__(self, param_dict):
@@ -95,9 +113,7 @@ class HBondIntraModule(_HBondScoreModule):
             self.acceptor_hybridization,
             self.acceptor_weight,
             self.donor_weight,
-            self.AHdist_coeffs,
-            self.AHdist_range,
-            self.AHdist_bound,
+            self.AHdist_poly,
             self.cosBAH_coeffs,
             self.cosBAH_range,
             self.cosBAH_bound,

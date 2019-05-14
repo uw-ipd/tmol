@@ -6,6 +6,8 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
+#include "params.hh"
+
 #undef B0
 
 namespace tmol {
@@ -40,9 +42,10 @@ struct HBondDispatch {
       TView<Real, 2, Dev> acceptor_weight,
       TView<Real, 2, Dev> donor_weight,
 
-      TView<Vec<double, 11>, 2, Dev> AHdist_coeffs,
-      TView<Vec<double, 2>, 2, Dev> AHdist_range,
-      TView<Vec<double, 2>, 2, Dev> AHdist_bound,
+      TView<HBondPoly<double>, 2, Dev> AHdist_polys,
+      // TView<Vec<double, 11>, 2, Dev> AHdist_coeffs,
+      // TView<Vec<double, 2>, 2, Dev> AHdist_range,
+      // TView<Vec<double, 2>, 2, Dev> AHdist_bound,
 
       TView<Vec<double, 11>, 2, Dev> cosBAH_coeffs,
       TView<Vec<double, 2>, 2, Dev> cosBAH_range,
