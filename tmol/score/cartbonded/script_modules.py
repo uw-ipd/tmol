@@ -1,5 +1,4 @@
 import torch
-import attr
 
 from tmol.score.cartbonded.params import CartBondedParamResolver
 from tmol.database.scoring import CartBondedDatabase

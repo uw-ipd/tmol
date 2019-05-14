@@ -1,4 +1,3 @@
-import attr
 from typing import Optional
 
 import torch
@@ -28,7 +27,6 @@ from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
 from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
 
 
 @reactive_attrs
