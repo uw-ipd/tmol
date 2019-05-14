@@ -24,7 +24,7 @@ class CartHarmonicParams(TensorGroup, ConvertAttrs):
 class CartSimpleSinusoidalParams(TensorGroup, ConvertAttrs):
     K: Tensor(torch.float)[...]
     x0: Tensor(torch.float)[...]
-    period: Tensor(torch.int)[...]
+    period: Tensor(torch.float)[...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)

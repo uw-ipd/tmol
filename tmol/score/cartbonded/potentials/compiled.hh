@@ -6,6 +6,7 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
+#include "params.hh"
 #include "potentials.hh"
 
 namespace tmol {
@@ -20,10 +21,8 @@ template <tmol::Device D, typename Real, typename Int>
 struct CartBondedLengthDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<Vec<Int, 2>, 1, D> atompair_indices,
-      TView<Int, 1, D> parameter_indices,
-      TView<Real, 1, D> K,
-      TView<Real, 1, D> x0)
+      TView<CartBondedLengthParams<Int>, 1, D> atom_indices,
+      TView<CartBondedHarmonicTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
@@ -31,10 +30,8 @@ template <tmol::Device D, typename Real, typename Int>
 struct CartBondedAngleDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<Vec<Int, 3>, 1, D> atomtriple_indices,
-      TView<Int, 1, D> parameter_indices,
-      TView<Real, 1, D> K,
-      TView<Real, 1, D> x0)
+      TView<CartBondedAngleParams<Int>, 1, D> atom_indices,
+      TView<CartBondedHarmonicTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
@@ -42,11 +39,8 @@ template <tmol::Device D, typename Real, typename Int>
 struct CartBondedTorsionDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<Vec<Int, 4>, 1, D> atomquad_indices,
-      TView<Int, 1, D> parameter_indices,
-      TView<Real, 1, D> K,
-      TView<Real, 1, D> x0,
-      TView<Int, 1, D> period)
+      TView<CartBondedTorsionParams<Int>, 1, D> atom_indices,
+      TView<CartBondedPeriodicTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
@@ -54,14 +48,8 @@ template <tmol::Device D, typename Real, typename Int>
 struct CartBondedHxlTorsionDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<Vec<Int, 4>, 1, D> atomquad_indices,
-      TView<Int, 1, D> parameter_indices,
-      TView<Real, 1, D> K1,
-      TView<Real, 1, D> K2,
-      TView<Real, 1, D> K3,
-      TView<Real, 1, D> phi1,
-      TView<Real, 1, D> phi2,
-      TView<Real, 1, D> phi3)
+      TView<CartBondedTorsionParams<Int>, 1, D> atom_indices,
+      TView<CartBondedSinusoidalTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 

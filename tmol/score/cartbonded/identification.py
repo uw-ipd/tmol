@@ -16,7 +16,7 @@ from numba import jit
 def find_angles(bonds, bond_spans):
     nbonds = bonds.shape[0]
     max_angles = int(nbonds * 3 / 2)  # assumes each node has at most 4 connections
-    angles = numpy.zeros((max_angles, 3), dtype=numpy.int32)
+    angles = numpy.zeros((max_angles, 3), dtype=numpy.int64)
     nangles = 0
 
     # use atm1:atm3 ordering to ensure no duplication
@@ -36,7 +36,7 @@ def find_angles(bonds, bond_spans):
 def find_torsions(bonds, bond_spans):
     nbonds = bonds.shape[0]
     max_torsions = int(nbonds * 9 / 2)  # assumes each node has at most 4 connections
-    torsions = numpy.zeros((max_torsions, 4), dtype=numpy.int32)
+    torsions = numpy.zeros((max_torsions, 4), dtype=numpy.int64)
     ntorsions = 0
 
     # use atm0:atm3 ordering to ensure no duplication
@@ -72,7 +72,7 @@ def find_torsions(bonds, bond_spans):
 def find_impropers(bonds, bond_spans):
     nbonds = bonds.shape[0]
     max_impropers = nbonds * 6  # assumes each node has at most 4 connections
-    improper = numpy.zeros((max_impropers, 4), dtype=numpy.int32)
+    improper = numpy.zeros((max_impropers, 4), dtype=numpy.int64)
     nimproper = 0
 
     # note: ABCD and BACD are considered separate terms
