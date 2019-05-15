@@ -41,28 +41,9 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
     TView<int64_t, 1, Dev> B0,
     TView<Int, 1, Dev> acceptor_type,
 
-    TView<Int, 2, Dev> acceptor_hybridization,
-    TView<Real, 2, Dev> acceptor_weight,
-    TView<Real, 2, Dev> donor_weight,
-
-    TView<HBondPoly<double>, 2, Dev> AHdist_polys,
-    // TView<Vec<double, 11>, 2, Dev> AHdist_coeffs,
-    // TView<Vec<double, 2>, 2, Dev> AHdist_range,
-    // TView<Vec<double, 2>, 2, Dev> AHdist_bound,
-
-    TView<Vec<double, 11>, 2, Dev> cosBAH_coeffs,
-    TView<Vec<double, 2>, 2, Dev> cosBAH_range,
-    TView<Vec<double, 2>, 2, Dev> cosBAH_bound,
-
-    TView<Vec<double, 11>, 2, Dev> cosAHD_coeffs,
-    TView<Vec<double, 2>, 2, Dev> cosAHD_range,
-    TView<Vec<double, 2>, 2, Dev> cosAHD_bound,
-
-    TView<Real, 1, Dev> hb_sp2_range_span,
-    TView<Real, 1, Dev> hb_sp2_BAH180_rise,
-    TView<Real, 1, Dev> hb_sp2_outer_width,
-    TView<Real, 1, Dev> hb_sp3_softmax_fade,
-    TView<Real, 1, Dev> threshold_distance)
+    TView<HBondPairParams<Real>, 2, Dev> pair_params,
+    TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+    TView<HBondGlobalParams<Real>, 1, Dev> global_params)
     -> std::tuple<
         TPack<Real, 1, Dev>,
         TPack<Vec<Real, 3>, 1, Dev>,
@@ -82,6 +63,16 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
       acceptor_type.size(0) == B0.size(0),
       "Invalid acceptor coordinate shapes.");
 
+  AT_ASSERTM(
+      pair_params.size(0) == pair_polynomials.size(0),
+      "Disagreement on number of donor types.");
+  AT_ASSERTM(
+      pair_params.size(1) == pair_polynomials.size(1),
+      "Disagreement on number of acceptor types.");
+
+  AT_ASSERTM(
+      global_params.size(0) == 1, "Invalid number of global parameters.");
+
   auto V_t = TPack<Real, 1, Dev>::zeros({1});
   auto dV_d_don_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({donor_coords.size(0)});
   auto dV_d_acc_t =
@@ -91,7 +82,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   auto dV_d_don = dV_d_don_t.view;
   auto dV_d_acc = dV_d_acc_t.view;
 
-  Real _threshold_distance = 6.0;
+  Real _threshold_distance = 6.0;  // what about the global threshold distance?
 
   Dispatch<Dev>::forall_idx_pairs(
       _threshold_distance,
@@ -117,27 +108,13 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
             acceptor_coords[B[ai]],
             acceptor_coords[B0[ai]],
 
-            acceptor_hybridization[dt][at],
-            acceptor_weight[dt][at],
-            donor_weight[dt][at],
+            pair_params[dt][at],
+            pair_polynomials[dt][at],
+            global_params[0]);
 
-            AHdist_polys[dt][at],
-            // AHdist_coeffs[dt][at],
-            // AHdist_range[dt][at],
-            // AHdist_bound[dt][at],
-
-            cosBAH_coeffs[dt][at],
-            cosBAH_range[dt][at],
-            cosBAH_bound[dt][at],
-
-            cosAHD_coeffs[dt][at],
-            cosAHD_range[dt][at],
-            cosAHD_bound[dt][at],
-
-            hb_sp2_range_span[0],
-            hb_sp2_BAH180_rise[0],
-            hb_sp2_outer_width[0],
-            hb_sp3_softmax_fade[0]);
+        // if ( hbond.V != 0) {
+        //  printf("%d %d, E= %5.3f\n", ai, di, hbond.V);
+        //}
 
         accumulate<Dev, Real>::add(V[0], hbond.V);
 

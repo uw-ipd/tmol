@@ -38,40 +38,13 @@ struct HBondDispatch {
       TView<int64_t, 1, Dev> B0,
       TView<Int, 1, Dev> acceptor_type,
 
-      TView<Int, 2, Dev> acceptor_hybridization,
-      TView<Real, 2, Dev> acceptor_weight,
-      TView<Real, 2, Dev> donor_weight,
-
-      TView<HBondPoly<double>, 2, Dev> AHdist_polys,
-      // TView<Vec<double, 11>, 2, Dev> AHdist_coeffs,
-      // TView<Vec<double, 2>, 2, Dev> AHdist_range,
-      // TView<Vec<double, 2>, 2, Dev> AHdist_bound,
-
-      TView<Vec<double, 11>, 2, Dev> cosBAH_coeffs,
-      TView<Vec<double, 2>, 2, Dev> cosBAH_range,
-      TView<Vec<double, 2>, 2, Dev> cosBAH_bound,
-
-      TView<Vec<double, 11>, 2, Dev> cosAHD_coeffs,
-      TView<Vec<double, 2>, 2, Dev> cosAHD_range,
-      TView<Vec<double, 2>, 2, Dev> cosAHD_bound,
-
-      TView<Real, 1, Dev> hb_sp2_range_span,
-      TView<Real, 1, Dev> hb_sp2_BAH180_rise,
-      TView<Real, 1, Dev> hb_sp2_outer_width,
-      TView<Real, 1, Dev> hb_sp3_softmax_fade,
-      TView<Real, 1, Dev> threshold_distance)
+      TView<HBondPairParams<Real>, 2, Dev> pair_params,
+      TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
+      TView<HBondGlobalParams<Real>, 1, Dev> global_params)
       -> std::tuple<
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>>;
-
-  //  static auto backward(
-  //    TView<Real, 1, Dev> dTdV,
-  //    TView<Real, 2, Dev> dV_d_don,
-  //    TView<Real, 2, Dev> dV_d_acc)
-  //    -> std::tuple<
-  //        TPack<Real, 2, Dev>,
-  //        TPack<Real, 2, Dev>>;
 };
 
 }  // namespace potentials

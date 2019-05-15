@@ -11,6 +11,7 @@ import toolz
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
+from tmol.types.functional import validate_args
 
 from tmol.database.scoring.hbond import HBondDatabase
 from tmol.database.chemical import ChemicalDatabase
@@ -168,4 +169,105 @@ class HBondParamResolver(ValidateAttrs):
             acceptor_type_index=acceptor_type_index,
             pair_params=pair_params.to(device),
             device=device,
+        )
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
+class CompactedHBondDatabase(ValidateAttrs):
+    _from_db_cache = {}
+
+    global_param_table: Tensor(torch.float32)[:, :]
+    pair_param_table: Tensor(torch.float32)[:, :, :]
+    pair_poly_table: Tensor(torch.float64)[:, :, :]
+
+    @classmethod
+    # @validate_args
+    # @toolz.functoolz.memoize(
+    #     cache=_from_db_cache,
+    #     key=lambda args, kwargs: (id(args[1]), id(args[2]), args[3].type, args[3].index),
+    # )
+    def from_database(
+        cls,
+        chemical_database: ChemicalDatabase,
+        hbond_database: HBondDatabase,
+        device: torch.device,
+    ):
+        def _p(t):
+            return torch.nn.Parameter(t, requires_grad=False)
+
+        def _tcat(ts, dim):
+            return torch.cat(ts, dim)
+
+        def _stack(ts):
+            return _tcat([t.unsqueeze(-1) for t in ts], -1)
+
+        def _f32(ts):
+            return [t.to(torch.float32) for t in ts]
+
+        global_params = {
+            n: torch.tensor(v, device=device).expand(1).to(dtype=torch.float32)
+            for n, v in attr.asdict(hbond_database.global_parameters).items()
+        }
+
+        global_param_table = _p(
+            (
+                torch.cat(
+                    [
+                        global_params["hb_sp2_range_span"],
+                        global_params["hb_sp2_BAH180_rise"],
+                        global_params["hb_sp2_outer_width"],
+                        global_params["hb_sp3_softmax_fade"],
+                        global_params["threshold_distance"],
+                    ],
+                    0,
+                )
+            ).unsqueeze(0)
+        )
+        # print()
+        # print("global_param_table", global_param_table.size())
+
+        resolver = HBondParamResolver.from_database(
+            chemical_database=chemical_database,
+            hbond_database=hbond_database,
+            device=device,
+        )
+        pp = resolver.pair_params
+
+        pair_param_table = _p(
+            _stack(
+                _f32([pp.acceptor_hybridization, pp.acceptor_weight, pp.donor_weight])
+            )
+        )
+        # print("Pair param table", pair_param_table.shape)
+        pad = torch.zeros(
+            [pp.AHdist.coeffs.shape[0], pp.AHdist.coeffs.shape[1], 1],
+            device=device,
+            dtype=torch.float64,
+        )
+
+        pair_poly_table = _p(
+            _tcat(
+                [
+                    pp.AHdist.coeffs,
+                    pad,
+                    pp.AHdist.range,
+                    pp.AHdist.bound,
+                    pp.cosBAH.coeffs,
+                    pad,
+                    pp.cosBAH.range,
+                    pp.cosBAH.bound,
+                    pp.cosAHD.coeffs,
+                    pad,
+                    pp.cosAHD.range,
+                    pp.cosAHD.bound,
+                ],
+                2,
+            )
+        )
+        # print("Pair poly table", pair_poly_table.shape)
+
+        return cls(
+            global_param_table=global_param_table,
+            pair_param_table=pair_param_table,
+            pair_poly_table=pair_poly_table,
         )

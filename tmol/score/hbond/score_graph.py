@@ -11,7 +11,7 @@ from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
 from .identification import HBondElementAnalysis
-from .params import HBondParamResolver
+from .params import HBondParamResolver, CompactedHBondDatabase
 
 # from .torch_op import HBondOp
 from .script_modules import HBondIntraModule
@@ -76,16 +76,16 @@ class HBondIntraScore(IntraScore):
             target.hbond_acceptor_indices.acceptor_type,
         )
 
-    @reactive_property
-    @validate_args
-    def hbond_descr(target, hbond) -> HBondDescr:
-        """All hbond pairs, in order of "sp2"/"sp3"/"ring"."""
-        (di, ai), score = hbond
-        return HBondDescr(
-            donor=target.hbond_donor_indices[di],
-            acceptor=target.hbond_acceptor_indices[ai],
-            score=score,
-        )
+    # @reactive_property
+    # @validate_args
+    # def hbond_descr(target, hbond) -> HBondDescr:
+    #     """All hbond pairs, in order of "sp2"/"sp3"/"ring"."""
+    #     (di, ai), score = hbond
+    #     return HBondDescr(
+    #         donor=target.hbond_donor_indices[di],
+    #         acceptor=target.hbond_acceptor_indices[ai],
+    #         score=score,
+    #     )
 
 
 @score_graph
@@ -140,12 +140,22 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     @validate_args
-    def hbond_intra_module(
-        hbond_database: HBondDatabase, hbond_param_resolver: HBondParamResolver
-    ) -> HBondIntraModule:
-        return HBondIntraModule(
-            {"database": hbond_database, "param_resolver": hbond_param_resolver}
+    def compacted_hbond_database(
+        parameter_database: ParameterDatabase,
+        hbond_database: HBondDatabase,
+        device: torch.device,
+    ) -> CompactedHBondDatabase:
+        "two-tensor representation of hbond parameters on the device"
+        return CompactedHBondDatabase.from_database(
+            parameter_database.chemical, hbond_database, device
         )
+
+    @reactive_property
+    @validate_args
+    def hbond_intra_module(
+        compacted_hbond_database: CompactedHBondDatabase
+    ) -> HBondIntraModule:
+        return HBondIntraModule(compacted_hbond_database)
 
     @reactive_property
     @validate_args

@@ -122,24 +122,9 @@ Tensor score_op(
     Tensor B,
     Tensor B0,
     Tensor acceptor_type,
-    Tensor acceptor_hybridization,
-    Tensor acceptor_weight,
-    Tensor donor_weight,
-    Tensor AHdist_poly,
-    //Tensor AHdist_coeffs,
-    //Tensor AHdist_range,
-    //Tensor AHdist_bound,
-    Tensor cosBAH_coeffs,
-    Tensor cosBAH_range,
-    Tensor cosBAH_bound,
-    Tensor cosAHD_coeffs,
-    Tensor cosAHD_range,
-    Tensor cosAHD_bound,
-    Tensor hb_sp2_range_span,
-    Tensor hb_sp2_BAH180_rise,
-    Tensor hb_sp2_outer_width,
-    Tensor hb_sp3_softmax_fade,
-    Tensor threshold_distance	    
+    Tensor pair_params,
+    Tensor pair_polynomials,
+    Tensor global_params
 ) {
   using tmol::utility::connect_backward_pass;
   using tmol::utility::SavedGradsBackward;
@@ -165,24 +150,9 @@ Tensor score_op(
             TCAST(B),
             TCAST(B0),
             TCAST(acceptor_type),
-            TCAST(acceptor_hybridization),
-            TCAST(acceptor_weight),
-            TCAST(donor_weight),
-	    TCAST(AHdist_poly),
-            // TCAST(AHdist_coeffs),
-            // TCAST(AHdist_range),
-            // TCAST(AHdist_bound),
-            TCAST(cosBAH_coeffs),
-            TCAST(cosBAH_range),
-            TCAST(cosBAH_bound),
-            TCAST(cosAHD_coeffs),
-            TCAST(cosAHD_range),
-            TCAST(cosAHD_bound),
-	    TCAST(hb_sp2_range_span),
-	    TCAST(hb_sp2_BAH180_rise),
-	    TCAST(hb_sp2_outer_width),
-	    TCAST(hb_sp3_softmax_fade),
-	    TCAST(threshold_distance)	    
+	    TCAST(pair_params),
+	    TCAST(pair_polynomials),
+	    TCAST(global_params)	    
 	);
 
         score = std::get<0>(result).tensor;
