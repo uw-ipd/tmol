@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.lk_ball.score_graph &mdash; TMol 0.0.0-170-g2d3344a5 documentation</title>
+  <title>tmol.score.lk_ball.score_graph &mdash; TMol 0.0.0-171-g01444331 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-170-g2d3344a5',
+              VERSION:'0.0.0-171-g01444331',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -47,7 +47,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.score.lk_ball.torch_ops" href="tmol.score.lk_ball.torch_ops.html" />
+    <link rel="next" title="tmol.score.lk_ball.script_modules" href="tmol.score.lk_ball.script_modules.html" />
     <link rel="prev" title="tmol.score.lk_ball" href="tmol.score.lk_ball.html" /> 
 </head>
 
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-170-g2d3344a5
+                0.0.0-171-g01444331
               </div>
             
           
@@ -129,7 +129,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.lk_ball.torch_ops.html">tmol.score.lk_ball.torch_ops</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.lk_ball.script_modules.html">tmol.score.lk_ball.script_modules</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.lk_ball.potentials.html">tmol.score.lk_ball.potentials</a></li>
 </ul>
 </li>
@@ -245,33 +245,29 @@
 <em class="property">class </em><code class="descclassname">tmol.score.lk_ball.score_graph.</code><code class="descname">LKBallIntraScore</code><span class="sig-paren">(</span><em>target: _ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/score_graph.html#LKBallIntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallIntraScore" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.score.score_components.html#tmol.score.score_components.IntraScore" title="tmol.score.score_components.IntraScore"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_components.IntraScore</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.score.lk_ball.score_graph.LKBallIntraScore.lkball_scores">
-<code class="descname">lkball_scores</code><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallIntraScore.lkball_scores" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.lk_ball.score_graph.LKBallIntraScore.lkball_score">
+<code class="descname">lkball_score</code><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallIntraScore.lkball_score" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.lk_ball.score_graph.LKBallIntraScore.total_lk_ball_iso">
 <code class="descname">total_lk_ball_iso</code><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallIntraScore.total_lk_ball_iso" title="Permalink to this definition">¶</a></dt>
-<dd><p>total hbond score</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.lk_ball.score_graph.LKBallIntraScore.total_lk_ball">
 <code class="descname">total_lk_ball</code><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallIntraScore.total_lk_ball" title="Permalink to this definition">¶</a></dt>
-<dd><p>total hbond score</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.lk_ball.score_graph.LKBallIntraScore.total_lk_ball_bridge">
 <code class="descname">total_lk_ball_bridge</code><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallIntraScore.total_lk_ball_bridge" title="Permalink to this definition">¶</a></dt>
-<dd><p>total hbond score</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.lk_ball.score_graph.LKBallIntraScore.total_lk_ball_bridge_uncpl">
 <code class="descname">total_lk_ball_bridge_uncpl</code><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallIntraScore.total_lk_ball_bridge_uncpl" title="Permalink to this definition">¶</a></dt>
-<dd><p>total hbond score</p>
-</dd></dl>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -283,8 +279,6 @@
 <dt id="tmol.score.lk_ball.score_graph.LKBallScoreGraph.factory_for">
 <em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>val</em>, <em>device: torch.device</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/lk_ball/score_graph.html#LKBallScoreGraph.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallScoreGraph.factory_for" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overridable clone-constructor.</p>
-<p>Initialize from <code class="docutils literal notranslate"><span class="pre">val.ljlk_database</span></code> if possible, otherwise from
-<code class="docutils literal notranslate"><span class="pre">parameter_database.scoring.ljlk</span></code>.</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -293,8 +287,8 @@
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.lk_ball.score_graph.LKBallScoreGraph.lkball_waters">
-<code class="descname">lkball_waters</code><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallScoreGraph.lkball_waters" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.lk_ball.score_graph.LKBallScoreGraph.lkball_intra_module">
+<code class="descname">lkball_intra_module</code><a class="headerlink" href="#tmol.score.lk_ball.score_graph.LKBallScoreGraph.lkball_intra_module" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
@@ -352,7 +346,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.score.lk_ball.torch_ops.html" class="btn btn-neutral float-right" title="tmol.score.lk_ball.torch_ops" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.lk_ball.script_modules.html" class="btn btn-neutral float-right" title="tmol.score.lk_ball.script_modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tmol.score.lk_ball.html" class="btn btn-neutral float-left" title="tmol.score.lk_ball" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

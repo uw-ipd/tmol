@@ -12,7 +12,7 @@ tmol.score.lk_ball
        :maxdepth: 1
   
        tmol.score.lk_ball.score_graph
-       tmol.score.lk_ball.torch_ops
+       tmol.score.lk_ball.script_modules
   
        tmol.score.lk_ball.potentials
 

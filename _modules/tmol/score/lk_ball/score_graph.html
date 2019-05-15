@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.lk_ball.score_graph &mdash; TMol 0.0.0-170-g2d3344a5 documentation</title>
+  <title>tmol.score.lk_ball.score_graph &mdash; TMol 0.0.0-171-g01444331 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-170-g2d3344a5',
+              VERSION:'0.0.0-171-g01444331',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-170-g2d3344a5
+                0.0.0-171-g01444331
               </div>
             
           
@@ -180,62 +180,46 @@
 <span></span><span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 
 <span class="kn">from</span> <span class="nn">..score_components</span> <span class="k">import</span> <span class="n">ScoreComponentClasses</span><span class="p">,</span> <span class="n">IntraScore</span>
 <span class="kn">from</span> <span class="nn">..score_graph</span> <span class="k">import</span> <span class="n">score_graph</span>
 
 <span class="kn">from</span> <span class="nn">..ljlk.score_graph</span> <span class="k">import</span> <span class="n">_LJLKCommonScoreGraph</span>
 
-<span class="kn">from</span> <span class="nn">.torch_ops</span> <span class="k">import</span> <span class="n">AttachedWaters</span><span class="p">,</span> <span class="n">LKBall</span>
+<span class="kn">from</span> <span class="nn">.script_modules</span> <span class="k">import</span> <span class="n">LKBallIntraModule</span>
+<span class="kn">from</span> <span class="nn">tmol.score.ljlk.params</span> <span class="k">import</span> <span class="n">LJLKParamResolver</span>
+<span class="kn">from</span> <span class="nn">tmol.score.chemical_database</span> <span class="k">import</span> <span class="n">AtomTypeParamResolver</span>
 
 
 <div class="viewcode-block" id="LKBallIntraScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.lk_ball.score_graph.html#tmol.score.lk_ball.score_graph.LKBallIntraScore">[docs]</a><span class="nd">@reactive_attrs</span>
 <span class="k">class</span> <span class="nc">LKBallIntraScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">lkball_scores</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
-        <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
-
-        <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">ljlk_atom_types</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
-        <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">ljlk_atom_types</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
-
-        <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
-        <span class="k">assert</span> <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
-        <span class="n">lkball_op</span> <span class="o">=</span> <span class="n">LKBall</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">atom_type_params</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">ljlk_param_resolver</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">lkball_op</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">lkball_score</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">lkball_intra_module</span><span class="p">(</span>
             <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">lkball_waters</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">lkball_waters</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="n">target</span><span class="o">.</span><span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">indexed_bonds</span><span class="o">.</span><span class="n">bonds</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">indexed_bonds</span><span class="o">.</span><span class="n">bond_spans</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">total_lk_ball_iso</span><span class="p">(</span><span class="n">lkball_scores</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;total hbond score&quot;&quot;&quot;</span>
-        <span class="n">score_ind</span><span class="p">,</span> <span class="n">score_val</span> <span class="o">=</span> <span class="n">lkball_scores</span>
-        <span class="k">return</span> <span class="n">score_val</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">total_lk_ball_iso</span><span class="p">(</span><span class="n">lkball_score</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">lkball_score</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">total_lk_ball</span><span class="p">(</span><span class="n">lkball_scores</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;total hbond score&quot;&quot;&quot;</span>
-        <span class="n">score_ind</span><span class="p">,</span> <span class="n">score_val</span> <span class="o">=</span> <span class="n">lkball_scores</span>
-        <span class="k">return</span> <span class="n">score_val</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">total_lk_ball</span><span class="p">(</span><span class="n">lkball_score</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">lkball_score</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">total_lk_ball_bridge</span><span class="p">(</span><span class="n">lkball_scores</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;total hbond score&quot;&quot;&quot;</span>
-        <span class="n">score_ind</span><span class="p">,</span> <span class="n">score_val</span> <span class="o">=</span> <span class="n">lkball_scores</span>
-        <span class="k">return</span> <span class="n">score_val</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">total_lk_ball_bridge</span><span class="p">(</span><span class="n">lkball_score</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">lkball_score</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">total_lk_ball_bridge_uncpl</span><span class="p">(</span><span class="n">lkball_scores</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;total hbond score&quot;&quot;&quot;</span>
-        <span class="n">score_ind</span><span class="p">,</span> <span class="n">score_val</span> <span class="o">=</span> <span class="n">lkball_scores</span>
-        <span class="k">return</span> <span class="n">score_val</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span></div>
+    <span class="k">def</span> <span class="nf">total_lk_ball_bridge_uncpl</span><span class="p">(</span><span class="n">lkball_score</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">lkball_score</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="LKBallScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.lk_ball.score_graph.html#tmol.score.lk_ball.score_graph.LKBallScoreGraph">[docs]</a><span class="nd">@score_graph</span>
@@ -243,13 +227,7 @@
 <div class="viewcode-block" id="LKBallScoreGraph.factory_for"><a class="viewcode-back" href="../../../../apidoc/tmol.score.lk_ball.score_graph.html#tmol.score.lk_ball.score_graph.LKBallScoreGraph.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">factory_for</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">_</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Overridable clone-constructor.</span>
-
-<span class="sd">        Initialize from ``val.ljlk_database`` if possible, otherwise from</span>
-<span class="sd">        ``parameter_database.scoring.ljlk``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;lk_ball not supported on non-cpu devices.&quot;</span><span class="p">)</span>
-
         <span class="k">return</span> <span class="nb">dict</span><span class="p">()</span></div>
 
     <span class="n">total_score_components</span> <span class="o">=</span> <span class="p">[</span>
@@ -270,17 +248,10 @@
     <span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">lkball_waters</span><span class="p">(</span>
-        <span class="n">coords</span><span class="p">,</span> <span class="n">ljlk_atom_types</span><span class="p">,</span> <span class="n">indexed_bonds</span><span class="p">,</span> <span class="n">atom_type_params</span><span class="p">,</span> <span class="n">ljlk_param_resolver</span>
-    <span class="p">):</span>
-        <span class="k">if</span> <span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-                <span class="s2">&quot;lk_ball score graph does not support cuda execution.&quot;</span>
-            <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">AttachedWaters</span><span class="p">(</span>
-            <span class="n">atom_type_params</span><span class="p">,</span> <span class="n">ljlk_param_resolver</span><span class="o">.</span><span class="n">global_params</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">indexed_bonds</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">lkball_intra_module</span><span class="p">(</span>
+        <span class="n">ljlk_param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span><span class="p">,</span> <span class="n">atom_type_params</span><span class="p">:</span> <span class="n">AtomTypeParamResolver</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LKBallIntraModule</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">LKBallIntraModule</span><span class="p">(</span><span class="n">ljlk_param_resolver</span><span class="p">,</span> <span class="n">atom_type_params</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
