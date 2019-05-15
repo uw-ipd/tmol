@@ -181,11 +181,16 @@ class CompactedHBondDatabase(ValidateAttrs):
     pair_poly_table: Tensor(torch.float64)[:, :, :]
 
     @classmethod
-    # @validate_args
-    # @toolz.functoolz.memoize(
-    #     cache=_from_db_cache,
-    #     key=lambda args, kwargs: (id(args[1]), id(args[2]), args[3].type, args[3].index),
-    # )
+    @validate_args
+    @toolz.functoolz.memoize(
+        cache=_from_db_cache,
+        key=lambda args, kwargs: (
+            id(args[1]),
+            id(args[2]),
+            args[3].type,
+            args[3].index,
+        ),
+    )
     def from_database(
         cls,
         chemical_database: ChemicalDatabase,
