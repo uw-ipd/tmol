@@ -2,6 +2,7 @@
 
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/accumulate.hh>
+#include <tmol/utility/nvtx.hh>
 
 #include <moderngpu/kernel_compact.hxx>
 #include <moderngpu/transform.hxx>
