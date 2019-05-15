@@ -2,7 +2,8 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/extension.h>
 
-#include "compiled.hh"
+#include <tmol/score/common/forall_dispatch.hh>
+#include "dispatch.hh"
 
 #include <tmol/utility/function_dispatch/pybind.hh>
 
@@ -19,7 +20,7 @@ void bind_dispatch(pybind11::module& m) {
   add_dispatch_impl<Dev, Real>(
       m,
       "rama",
-      &RamaDispatch<Dev, Real, Int>::f,
+      &RamaDispatch<common::ForallDispatch, Dev, Real, Int>::f,
       "coords"_a,
       "phi_indices"_a,
       "psi_indices"_a,

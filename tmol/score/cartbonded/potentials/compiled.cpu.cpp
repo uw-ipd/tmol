@@ -1,11 +1,8 @@
 #include <Eigen/Core>
 
 #include <tmol/score/common/forall_dispatch.cpu.impl.hh>
-#include <tmol/utility/tensor/TensorPack.h>
-#include <tmol/score/common/geom.hh>
 
 #include "dispatch.impl.hh"
-#include "params.hh"
 
 namespace tmol {
 namespace score {

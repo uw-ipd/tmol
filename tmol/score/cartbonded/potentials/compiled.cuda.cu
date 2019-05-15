@@ -1,16 +1,8 @@
 #include <Eigen/Core>
 
-#include <tmol/utility/tensor/TensorPack.h>
-#include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
-#include <tmol/utility/nvtx.hh>
-
-#include <moderngpu/kernel_compact.hxx>
-#include <moderngpu/transform.hxx>
-#include <moderngpu/tuple.hxx>
 
 #include "dispatch.impl.hh"
-#include "params.hh"
 
 namespace tmol {
 namespace score {
