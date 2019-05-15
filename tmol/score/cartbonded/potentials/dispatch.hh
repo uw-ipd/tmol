@@ -1,13 +1,13 @@
 #pragma once
 
 #include <Eigen/Core>
-#include <tuple>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 
+#include <tmol/score/common/dispatch.hh>
+
 #include "params.hh"
-#include "potentials.hh"
 
 namespace tmol {
 namespace score {
@@ -17,7 +17,15 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <tmol::Device D, typename Real, typename Int>
+template <typename Real, int N>
+using Vec = Eigen::Matrix<Real, N, 1>;
+
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 struct CartBondedLengthDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
@@ -26,7 +34,12 @@ struct CartBondedLengthDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
-template <tmol::Device D, typename Real, typename Int>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 struct CartBondedAngleDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
@@ -35,7 +48,12 @@ struct CartBondedAngleDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
-template <tmol::Device D, typename Real, typename Int>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 struct CartBondedTorsionDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
@@ -44,7 +62,12 @@ struct CartBondedTorsionDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 
-template <tmol::Device D, typename Real, typename Int>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 struct CartBondedHxlTorsionDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
