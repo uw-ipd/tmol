@@ -22,9 +22,9 @@ from tmol.database.scoring.rama import RamaDatabase
 # the rama database on the device
 @attr.s(auto_attribs=True, slots=True, frozen=True)
 class PackedRamaDatabase(ConvertAttrs):
-    tables: List  # mapped to C++ via TCollection
-    bbsteps: Tensor(torch.float)[...]
-    bbstarts: Tensor(torch.float)[...]
+    tables: Tensor(torch.float)[:, :, :]
+    bbsteps: Tensor(torch.float)[:, :]
+    bbstarts: Tensor(torch.float)[:, :]
 
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
@@ -34,7 +34,7 @@ class RamaParamResolver(ValidateAttrs):
     # respair -> table index mapping
     rama_lookup: pandas.DataFrame
 
-    # array of tables
+    # rama tables (spline coeffs)
     rama_params: PackedRamaDatabase
 
     device: torch.device
@@ -66,14 +66,19 @@ class RamaParamResolver(ValidateAttrs):
         # map table names to indices
         rama_lookup.table_id = tindices.get_indexer(rama_lookup.table_id)
 
+        # interpolate spline tables
+        ntables = len(rama_database.rama_tables)
+        assert ntables > 0
+        tablesize = rama_database.rama_tables[0].table.shape
+        tables = torch.empty((ntables, *tablesize))
+        for i, t_i in enumerate(rama_database.rama_tables):
+            tables[i, ...] = BSplineInterpolation.from_coordinates(
+                torch.tensor(t_i.table, dtype=torch.float)
+            ).coeffs
+
         rama_params = PackedRamaDatabase(
-            # interpolate on CPU then move coeffs to CUDA
-            tables=[
-                BSplineInterpolation.from_coordinates(
-                    torch.tensor(f.table, dtype=torch.float)
-                ).coeffs.to(device=device)
-                for f in rama_database.rama_tables
-            ],
+            # interpolate on CPU then move coeffs to GPU
+            tables=tables.to(device=device),
             bbsteps=torch.tensor(
                 [f.bbstep for f in rama_database.rama_tables],
                 dtype=torch.float,
