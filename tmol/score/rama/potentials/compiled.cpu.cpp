@@ -9,8 +9,6 @@ namespace potentials {
 
 template struct RamaDispatch<common::ForallDispatch, tmol::Device::CPU,float,int32_t>;
 template struct RamaDispatch<common::ForallDispatch, tmol::Device::CPU,double,int32_t>;
-template struct RamaDispatch<common::ForallDispatch, tmol::Device::CPU,float,int64_t>;
-template struct RamaDispatch<common::ForallDispatch, tmol::Device::CPU,double,int64_t>;
 
 }  // namespace potentials
 }  // namespace rama

@@ -8,6 +8,8 @@
 
 #include <ATen/Tensor.h>
 
+#include "params.hh"
+
 namespace tmol {
 namespace score {
 namespace rama {
@@ -25,12 +27,9 @@ template <
 struct RamaDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<Vec<Int, 4>, 1, D> phi_indices,
-      TView<Vec<Int, 4>, 1, D> psi_indices,
-      TView<Int, 1, D> parameter_indices,
+      TView<RamaParameters<Int>, 1, D> params,
       TView<Real, 3, D> tables,
-      TView<Vec<Real, 2>, 1, D> bbstarts,
-      TView<Vec<Real, 2>, 1, D> bbsteps)
+      TView<RamaTableParams<Real>, 1, D> table_params)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
 };
 

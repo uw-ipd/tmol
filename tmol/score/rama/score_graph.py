@@ -15,8 +15,8 @@ from ..score_graph import score_graph
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import RamaDatabase
-from .params import RamaParamResolver
-from .torch_op import RamaOp
+from .params import RamaParamResolver, RamaParams
+from .script_modules import RamaScoreModule
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
@@ -24,26 +24,13 @@ from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
 from tmol.types.torch import Tensor
-from tmol.types.tensor import TensorGroup
-
-
-@attr.s(auto_attribs=True)
-class RamaParams(TensorGroup):
-    phi_indices: Tensor(torch.int32)[..., 4]
-    psi_indices: Tensor(torch.int32)[..., 4]
-    param_indices: Tensor(torch.int32)[...]
 
 
 @reactive_attrs
 class RamaIntraScore(IntraScore):
     @reactive_property
     def total_rama(target):
-        return target.rama_op.intra(
-            target.coords[0, ...],
-            target.rama_resolve_indices.phi_indices,
-            target.rama_resolve_indices.psi_indices,
-            target.rama_resolve_indices.param_indices,
-        )
+        return target.rama_module(target.coords[0, ...])
 
 
 @score_graph
@@ -75,8 +62,10 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     @validate_args
-    def rama_op(rama_param_resolver: RamaParamResolver,) -> RamaOp:
-        return RamaOp.from_param_resolver(rama_param_resolver)
+    def rama_module(
+        rama_param_resolver: RamaParamResolver, rama_resolve_indices: RamaParams
+    ) -> RamaScoreModule:
+        return RamaScoreModule(rama_resolve_indices, rama_param_resolver)
 
     @reactive_property
     @validate_args

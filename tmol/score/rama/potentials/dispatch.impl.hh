@@ -10,6 +10,7 @@
 
 #include <ATen/Tensor.h>
 
+#include "params.hh"
 #include "potentials.hh"
 
 namespace tmol {
@@ -31,15 +32,10 @@ template <
 struct RamaDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<Vec<Int, 4>, 1, D> phi_indices,
-      TView<Vec<Int, 4>, 1, D> psi_indices,
-      TView<Int, 1, D> parameter_indices,
+      TView<RamaParameters<Int>, 1, D> params,
       TView<Real, 3, D> tables,
-      TView<Vec<Real, 2>, 1, D> bbstarts,
-      TView<Vec<Real, 2>, 1, D> bbsteps)
+      TView<RamaTableParams<Real>, 1, D> table_params)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
-    int num_Vs = phi_indices.size(0);
-
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 
@@ -48,29 +44,31 @@ struct RamaDispatch {
 
     auto func = ([=] EIGEN_DEVICE_FUNC(int i) {
       CoordQuad phicoords;
-      phicoords.row(0) = coords[phi_indices[i][0]];
-      phicoords.row(1) = coords[phi_indices[i][1]];
-      phicoords.row(2) = coords[phi_indices[i][2]];
-      phicoords.row(3) = coords[phi_indices[i][3]];
       CoordQuad psicoords;
-      psicoords.row(0) = coords[psi_indices[i][0]];
-      psicoords.row(1) = coords[psi_indices[i][1]];
-      psicoords.row(2) = coords[psi_indices[i][2]];
-      psicoords.row(3) = coords[psi_indices[i][3]];
+      for (int j = 0; j < 4; ++j) {
+        phicoords.row(j) = coords[params[i].phis[j]];
+        psicoords.row(j) = coords[params[i].psis[j]];
+      }
 
-      Int pari = parameter_indices[i];
+      Int idx = params[i].table_index;
+
       auto rama = rama_V_dV<D, Real, Int>(
-          phicoords, psicoords, tables[pari], bbstarts[pari], bbsteps[pari]);
+          phicoords,
+          psicoords,
+          tables[idx],
+          Eigen::Map<Vec<Real, 2>>(table_params[idx].bbstarts),
+          Eigen::Map<Vec<Real, 2>>(table_params[idx].bbsteps));
 
       accumulate<D, Real>::add(V[0], common::get<0>(rama));
       for (int j = 0; j < 4; ++j) {
         accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[phi_indices[i][j]], common::get<1>(rama).row(j));
+            dV_dx[params[i].phis[j]], common::get<1>(rama).row(j));
         accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[psi_indices[i][j]], common::get<2>(rama).row(j));
+            dV_dx[params[i].psis[j]], common::get<2>(rama).row(j));
       }
     });
 
+    int num_Vs = params.size(0);
     Dispatch<D>::forall(num_Vs, func);
 
     return {V_t, dV_dx_t};
