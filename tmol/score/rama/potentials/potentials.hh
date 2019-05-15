@@ -34,7 +34,7 @@ template <tmol::Device D, typename Real, typename Int>
 def rama_V_dV(
     CoordQuad phi,
     CoordQuad psi,
-    TView<Real, 2, D> coeffs,
+    TensorAccessor<Real, 2, D> coeffs,
     Real2 bbstart,
     Real2 bbstep)
     ->tuple<Real, CoordQuad, CoordQuad> {
@@ -65,12 +65,6 @@ def rama_V_dV(
   dV_dpsiatm.row(1) = psiang.dV_dJ / bbstep[1];
   dV_dpsiatm.row(2) = psiang.dV_dK / bbstep[1];
   dV_dpsiatm.row(3) = psiang.dV_dL / bbstep[1];
-
-  // printf("%f %f -> %f %f -> %f\n",
-  //  phiang.V*57.29577951308232,
-  //  psiang.V*57.29577951308232,
-  //  phipsi_idx[0], phipsi_idx[1],
-  //  V);
 
   return {V, dVdphipsi[0] * dV_dphiatm, dVdphipsi[1] * dV_dpsiatm};
 }

@@ -37,14 +37,7 @@ class RamaParams(TensorGroup):
 @reactive_attrs
 class RamaIntraScore(IntraScore):
     @reactive_property
-    @validate_args
-    def total_rama(rama_score):
-        score_val = rama_score
-        return score_val.sum()
-
-    @reactive_property
-    @validate_args
-    def rama_score(target):
+    def total_rama(target):
         return target.rama_op.intra(
             target.coords[0, ...],
             target.rama_resolve_indices.phi_indices,
