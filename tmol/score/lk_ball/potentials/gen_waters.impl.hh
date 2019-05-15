@@ -1,9 +1,20 @@
-#include <tmol/score/common/dispatch.cpu.impl.hh>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
-#include "dispatch.impl.hh"
-#include "water.hh"
+#include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/tensor/TensorPack.h>
+#include <tmol/utility/tensor/TensorStruct.h>
+#include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/nvtx.hh>
+
+#include <tmol/score/common/accumulate.hh>
+#include <tmol/score/common/dispatch.hh>
+#include <tmol/score/common/geom.hh>
 
 #include <tmol/score/hbond/identification.hh>
+#include <tmol/score/ljlk/potentials/params.hh>
+
+#include "water.hh"
 
 namespace tmol {
 namespace score {
@@ -12,7 +23,13 @@ namespace potentials {
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
-template <tmol::Device D, typename Real, typename Int, int MAX_WATER>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int,
+    int MAX_WATER>
 struct GenerateWaters {
   static def forward(
       TView<Vec<Real, 3>, 1, D> coords,
@@ -42,7 +59,7 @@ struct GenerateWaters {
     int nsp3wats = sp3_water_tors.size(0);
     int nringwats = ring_water_tors.size(0);
 
-    auto is_hydrogen = ([&] EIGEN_DEVICE_FUNC(int j) {
+    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
       return (bool)type_params[atom_types[j]].is_hydrogen;
     });
 
@@ -105,9 +122,7 @@ struct GenerateWaters {
       }
     });
 
-    for (int i = 0; i < num_Vs; ++i) {
-      f_watergen(i);
-    }
+    Dispatch<D>::forall(num_Vs, f_watergen);
 
     return waters_t;
   };
@@ -141,11 +156,11 @@ struct GenerateWaters {
     int nsp3wats = sp3_water_tors.size(0);
     int nringwats = ring_water_tors.size(0);
 
-    auto is_hydrogen = ([&] EIGEN_DEVICE_FUNC(int j) {
+    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
       return (bool)type_params[atom_types[j]].is_hydrogen;
     });
 
-    auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int i) {
+    auto df_watergen = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atom_types[i];
       int wi = 0;
 
@@ -198,16 +213,18 @@ struct GenerateWaters {
           wi++;
         }
 
-        dE_d_coord[bases.A] += dE_dXA;
+        common::accumulate<D, Vec<Real, 3>>::add(dE_d_coord[bases.A], dE_dXA);
 
         if (hyb == AcceptorHybridization::ring) {
-          dE_d_coord[bases.B] += dE_dXB / 2;
-          dE_d_coord[bases.B0] += dE_dXB / 2;
+          common::accumulate<D, Vec<Real, 3>>::add(
+              dE_d_coord[bases.B], dE_dXB / 2.0);
+          common::accumulate<D, Vec<Real, 3>>::add(
+              dE_d_coord[bases.B0], dE_dXB / 2.0);
         } else {
-          dE_d_coord[bases.B] += dE_dXB;
+          common::accumulate<D, Vec<Real, 3>>::add(dE_d_coord[bases.B], dE_dXB);
         }
 
-        dE_d_coord[bases.B0] += dE_dXB0;
+        common::accumulate<D, Vec<Real, 3>>::add(dE_d_coord[bases.B0], dE_dXB0);
       }
 
       if (type_params[ati].is_donor) {
@@ -217,8 +234,10 @@ struct GenerateWaters {
             auto dW = build_don_water<Real>::dV(
                 coords[i], coords[other_atom], global_params[0].lkb_water_dist);
 
-            dE_d_coord[i] += dW.dD * dE_dWi;
-            dE_d_coord[other_atom] += dW.dH * dE_dWi;
+            common::accumulate<D, Vec<Real, 3>>::add(
+                dE_d_coord[i], dW.dD * dE_dWi);
+            common::accumulate<D, Vec<Real, 3>>::add(
+                dE_d_coord[other_atom], dW.dH * dE_dWi);
 
             wi++;
           };
@@ -226,9 +245,7 @@ struct GenerateWaters {
       }
     });
 
-    for (int i = 0; i < num_Vs; ++i) {
-      f_watergen(i);
-    }
+    Dispatch<D>::forall(num_Vs, df_watergen);
 
     return dE_d_coord_t;
   };

@@ -1,7 +1,8 @@
 #include <tmol/score/common/simple_dispatch.cpu.impl.hh>
+#include <tmol/score/common/forall_dispatch.cpu.impl.hh>
 
 #include "dispatch.impl.hh"
-#include "gen_waters.cpu.hh"
+#include "gen_waters.impl.hh"
 #include "water.hh"
 
 #include <tmol/score/hbond/identification.hh>
@@ -16,10 +17,10 @@ template struct LKBallDispatch<common::AABBDispatch, tmol::Device::CPU, double, 
 template struct LKBallDispatch<common::AABBDispatch, tmol::Device::CPU, float, int64_t>;
 template struct LKBallDispatch<common::AABBDispatch, tmol::Device::CPU, double, int64_t>;
 
-template struct GenerateWaters<tmol::Device::CPU, float, int32_t, 4>;
-template struct GenerateWaters<tmol::Device::CPU, double, int32_t, 4>;
-template struct GenerateWaters<tmol::Device::CPU, float, int64_t, 4>;
-template struct GenerateWaters<tmol::Device::CPU, double, int64_t, 4>;
+template struct GenerateWaters<common::ForallDispatch,tmol::Device::CPU, float, int32_t, 4>;
+template struct GenerateWaters<common::ForallDispatch,tmol::Device::CPU, double, int32_t, 4>;
+template struct GenerateWaters<common::ForallDispatch,tmol::Device::CPU, float, int64_t, 4>;
+template struct GenerateWaters<common::ForallDispatch,tmol::Device::CPU, double, int64_t, 4>;
 
 #undef def
 

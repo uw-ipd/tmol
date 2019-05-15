@@ -5,6 +5,7 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
+#include <tmol/score/common/forall_dispatch.hh>
 #include "dispatch.hh"
 #include "gen_waters.hh"
 
@@ -185,11 +186,15 @@ Tensor score_op(
 
 template <
     template <
+        template <tmol::Device>
+        class Dispatch,
         tmol::Device D,
         typename Real,
         typename Int,
         int MAX_WATER>
-    class WaterGenDispatch>
+    class WaterGenDispatch,
+    template <tmol::Device>
+    class DispatchMethod>
 struct WaterGenOpBackward : public torch::autograd::Function {
   torch::autograd::SavedVariable saved_coords;
   torch::autograd::SavedVariable saved_atom_types;
@@ -268,7 +273,7 @@ struct WaterGenOpBackward : public torch::autograd::Function {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = WaterGenDispatch<Dev, Real, Int, MAX_WATER>::backward(
+        auto result = WaterGenDispatch<DispatchMethod, Dev, Real, Int, MAX_WATER>::backward(
             TCAST(dTdV),
             TCAST(coords),
             TCAST(atom_types),
@@ -289,11 +294,15 @@ struct WaterGenOpBackward : public torch::autograd::Function {
 
 template <
     template <
+        template <tmol::Device>
+        class Dispatch,
         tmol::Device D,
         typename Real,
         typename Int,
         int MAX_WATER>
-    class WaterGenDispatch>
+    class WaterGenDispatch,
+    template <tmol::Device>
+    class DispatchMethod>
 Tensor watergen_op(
     Tensor coords,
     Tensor atom_types,
@@ -317,7 +326,7 @@ Tensor watergen_op(
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = WaterGenDispatch<Dev, Real, Int, MAX_WATER>::forward(
+        auto result = WaterGenDispatch<DispatchMethod, Dev, Real, Int, MAX_WATER>::forward(
             TCAST(coords),
             TCAST(atom_types),
             TCAST(indexed_bonds),
@@ -332,8 +341,8 @@ Tensor watergen_op(
       }));
 
   return connect_backward_pass({coords}, score, [&]() {
-    return std::shared_ptr<WaterGenOpBackward<GenerateWaters>>(
-        new WaterGenOpBackward<GenerateWaters>( 
+    return std::shared_ptr<WaterGenOpBackward<GenerateWaters, common::ForallDispatch>>(
+        new WaterGenOpBackward<GenerateWaters, common::ForallDispatch>( 
             coords, 
             atom_types, 
             indexed_bonds,
@@ -350,7 +359,7 @@ Tensor watergen_op(
 static auto registry =
     torch::jit::RegisterOperators()
         .op("tmol::score_lkball", &score_op<LKBallDispatch, common::AABBDispatch>)
-        .op("tmol::watergen_lkball", &watergen_op<GenerateWaters>);
+        .op("tmol::watergen_lkball", &watergen_op<GenerateWaters, common::ForallDispatch>);
 
 }  // namespace potentials
 }  // namespace ljlk

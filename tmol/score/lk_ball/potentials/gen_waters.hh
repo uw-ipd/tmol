@@ -8,7 +8,13 @@ namespace potentials {
 
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 
-template <tmol::Device D, typename Real, typename Int, int MAX_WATER>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int,
+    int MAX_WATER>
 struct GenerateWaters {
   static def forward(
       TView<Vec<Real, 3>, 1, D> coords,
