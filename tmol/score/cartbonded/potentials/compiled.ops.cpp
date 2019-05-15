@@ -5,10 +5,10 @@
 #include <tmol/utility/function_dispatch/aten.hh>
 #include <tmol/utility/nvtx.hh>
 
-#include <tmol/score/common/simple_dispatch.hh>
+#include <tmol/score/common/forall_dispatch.hh>
 
 #include "params.hh"
-#include "compiled.hh"
+#include "dispatch.hh"
 
 namespace tmol {
 namespace score {
@@ -17,6 +17,7 @@ namespace potentials {
 
 using torch::Tensor;
 
+template < template <tmol::Device> class DispatchMethod >
 Tensor cbl_score_op(
       Tensor coords,
       Tensor atom_indices,
@@ -36,7 +37,7 @@ Tensor cbl_score_op(
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = CartBondedLengthDispatch<Dev, Real, Int>::f(
+        auto result = CartBondedLengthDispatch<DispatchMethod, Dev, Real, Int>::f(
             TCAST(coords),
             TCAST(atom_indices),
             TCAST(param_table));
@@ -53,6 +54,8 @@ Tensor cbl_score_op(
   return backward_op;
 };
 
+
+template < template <tmol::Device> class DispatchMethod >
 Tensor cba_score_op(
       Tensor coords,
       Tensor atom_indices,
@@ -72,7 +75,7 @@ Tensor cba_score_op(
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = CartBondedAngleDispatch<Dev, Real, Int>::f(
+        auto result = CartBondedAngleDispatch<DispatchMethod, Dev, Real, Int>::f(
             TCAST(coords),
             TCAST(atom_indices),
             TCAST(param_table));
@@ -87,6 +90,8 @@ Tensor cba_score_op(
   });
 };
 
+
+template < template <tmol::Device> class DispatchMethod >
 Tensor cbt_score_op(
       Tensor coords,
       Tensor atom_indices,
@@ -106,7 +111,7 @@ Tensor cbt_score_op(
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = CartBondedTorsionDispatch<Dev, Real, Int>::f(
+        auto result = CartBondedTorsionDispatch<DispatchMethod, Dev, Real, Int>::f(
             TCAST(coords),
             TCAST(atom_indices),
             TCAST(param_table));
@@ -123,6 +128,8 @@ Tensor cbt_score_op(
   return backward_op;
 };
 
+
+template < template <tmol::Device> class DispatchMethod >
 Tensor cbht_score_op(
       Tensor coords,
       Tensor atom_indices,
@@ -142,7 +149,7 @@ Tensor cbht_score_op(
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = CartBondedHxlTorsionDispatch<Dev, Real, Int>::f(
+        auto result = CartBondedHxlTorsionDispatch<DispatchMethod, Dev, Real, Int>::f(
             TCAST(coords),
             TCAST(atom_indices),
             TCAST(param_table));
@@ -161,10 +168,10 @@ Tensor cbht_score_op(
 
 static auto registry =
     torch::jit::RegisterOperators()
-        .op("tmol::score_cartbonded_length", &cbl_score_op)
-        .op("tmol::score_cartbonded_angle", &cba_score_op)
-        .op("tmol::score_cartbonded_torsion", &cbt_score_op)
-        .op("tmol::score_cartbonded_hxltorsion", &cbht_score_op);
+        .op("tmol::score_cartbonded_length", &cbl_score_op<common::ForallDispatch>)
+        .op("tmol::score_cartbonded_angle", &cba_score_op<common::ForallDispatch>)
+        .op("tmol::score_cartbonded_torsion", &cbt_score_op<common::ForallDispatch>)
+        .op("tmol::score_cartbonded_hxltorsion", &cbht_score_op<common::ForallDispatch>);
 
 }  // namespace potentials
 }  // namespace ljlk
