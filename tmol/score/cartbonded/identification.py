@@ -109,8 +109,8 @@ class CartBondedIdentification:
     def setup(
         cls, cartbonded_database: CartBondedDatabase, indexed_bonds: IndexedBonds
     ):
-        bonds = indexed_bonds.bonds.numpy()
-        spans = indexed_bonds.bond_spans.numpy()
+        bonds = indexed_bonds.bonds.cpu().numpy()
+        spans = indexed_bonds.bond_spans.cpu().numpy()
         bond_selector = bonds[:, 0] < bonds[:, 1]
 
         lengths = bonds[bond_selector].copy()

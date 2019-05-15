@@ -30,18 +30,17 @@ struct AcceptorBases {
   Int B;
   Int B0;
 
-  template <tmol::Device D>
+  template <typename func_t, tmol::Device D>
   static def sp2_acceptor_base(
       Int A,
       Int hybridization,
       IndexedBonds<Int, D> bonds,
-      TView<bool, 1, D> atom_is_hydrogen)
+      func_t atom_is_hydrogen)
       ->AcceptorBases {
-    Int B = -1;
-    Int B0 = -1;
+    Int B = -1, B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (!atom_is_hydrogen[other_atom]) {
+      if (!atom_is_hydrogen(other_atom)) {
         B = other_atom;
         break;
       }
@@ -65,18 +64,18 @@ struct AcceptorBases {
     return {A, B, B0};
   }
 
-  template <tmol::Device D>
+  template <typename func_t, tmol::Device D>
   static def sp3_acceptor_base(
       Int A,
       Int hybridization,
       IndexedBonds<Int, D> bonds,
-      TView<bool, 1, D> atom_is_hydrogen)
+      func_t atom_is_hydrogen)
       ->AcceptorBases {
     Int B = -1;
     Int B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (atom_is_hydrogen[other_atom]) {
+      if (atom_is_hydrogen(other_atom)) {
         B0 = other_atom;
         break;
       }
@@ -100,18 +99,18 @@ struct AcceptorBases {
     return {A, B, B0};
   }
 
-  template <tmol::Device D>
+  template <typename func_t, tmol::Device D>
   static def ring_acceptor_base(
       Int A,
       Int hybridization,
       IndexedBonds<Int, D> bonds,
-      TView<bool, 1, D> atom_is_hydrogen)
+      func_t atom_is_hydrogen)
       ->AcceptorBases {
     Int B = -1;
     Int B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (!atom_is_hydrogen[other_atom]) {
+      if (!atom_is_hydrogen(other_atom)) {
         B = other_atom;
         break;
       }
@@ -122,7 +121,7 @@ struct AcceptorBases {
     }
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (other_atom != B && !atom_is_hydrogen[other_atom]) {
+      if (other_atom != B && !atom_is_hydrogen(other_atom)) {
         B0 = other_atom;
         break;
       }
@@ -135,12 +134,12 @@ struct AcceptorBases {
     return {A, B, B0};
   }
 
-  template <tmol::Device D>
+  template <typename func_t, tmol::Device D>
   static def for_acceptor(
       Int A,
       Int hybridization,
       IndexedBonds<Int, D> bonds,
-      TView<bool, 1, D> atom_is_hydrogen)
+      func_t atom_is_hydrogen)
       ->AcceptorBases {
     if (hybridization == AcceptorHybridization::sp2) {
       return sp2_acceptor_base(A, hybridization, bonds, atom_is_hydrogen);

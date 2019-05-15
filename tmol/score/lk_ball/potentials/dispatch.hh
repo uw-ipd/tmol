@@ -9,15 +9,12 @@
 
 #include <tmol/score/ljlk/potentials/params.hh>
 
-#include "datatypes.hh"
+#include "params.hh"
 
 namespace tmol {
 namespace score {
 namespace lk_ball {
 namespace potentials {
-
-using tmol::score::ljlk::potentials::LJGlobalParams;
-using tmol::score::ljlk::potentials::LKTypeParamTensors;
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
@@ -29,25 +26,39 @@ template <
     typename Real,
     typename Int>
 struct LKBallDispatch {
-  static auto f(
+  static auto forward(
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j,
-
+      TView<Int, 1, D> atom_type_i,
       TView<Vec<Real, 3>, 2, D> waters_i,
+
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      TView<Int, 1, D> atom_type_j,
       TView<Vec<Real, 3>, 2, D> waters_j,
 
+      TView<Real, 2, D> bonded_path_lengths,
+
+      TView<LKBallTypeParams<Real>, 1, D> type_params,
+      TView<LKBallGlobalParams<Real>, 1, D> global_params) -> TPack<Real, 1, D>;
+
+  static auto backward(
+      TView<Real, 1, D> dTdV,
+      TView<Vec<Real, 3>, 1, D> coords_i,
       TView<Int, 1, D> atom_type_i,
+      TView<Vec<Real, 3>, 2, D> waters_i,
+
+      TView<Vec<Real, 3>, 1, D> coords_j,
       TView<Int, 1, D> atom_type_j,
+      TView<Vec<Real, 3>, 2, D> waters_j,
 
       TView<Real, 2, D> bonded_path_lengths,
-      LKTypeParamTensors<Real, D> type_params,
-      LKBallGlobalParameters<Real, D> global_lkb_params,
-      LJGlobalParams<Real> global_lj_params)
+
+      TView<LKBallTypeParams<Real>, 1, D> type_params,
+      TView<LKBallGlobalParams<Real>, 1, D> global_params)
       -> std::tuple<
-          TPack<int64_t, 2, D>,
-          TPack<Real, 1, D>,
           TPack<Vec<Real, 3>, 1, D>,
-          TPack<Vec<Real, 3>, 1, D> >;
+          TPack<Vec<Real, 3>, 1, D>,
+          TPack<Vec<Real, 3>, 2, D>,
+          TPack<Vec<Real, 3>, 2, D> >;
 };
 
 }  // namespace potentials
