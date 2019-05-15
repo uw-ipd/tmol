@@ -18,6 +18,7 @@ from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.elec import ElecScoreGraph
 from tmol.score.rama import RamaScoreGraph
+from tmol.score.dunbrack import DunbrackScoreGraph
 from tmol.score.omega import OmegaScoreGraph
 from tmol.score.cartbonded import CartBondedScoreGraph
 from tmol.score.lk_ball import LKBallScoreGraph
@@ -61,6 +62,11 @@ class ElecScore(CartesianAtomicCoordinateProvider, ElecScoreGraph, TorchDevice):
 
 @score_graph
 class RamaScore(CartesianAtomicCoordinateProvider, RamaScoreGraph, TorchDevice):
+    pass
+
+
+@score_graph
+class DunbrackScore(CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice):
     pass
 
 
@@ -133,9 +139,6 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     return run
 
 
-_non_cuda_components = (LKBallScoreGraph,)
-
-
 @pytest.mark.parametrize(
     "graph_class",
     [
@@ -144,6 +147,7 @@ _non_cuda_components = (LKBallScoreGraph,)
         HBondScore,
         ElecScore,
         RamaScore,
+        DunbrackScore,
         CartBondedScore,
         LJScore,
         LKScore,
@@ -155,6 +159,7 @@ _non_cuda_components = (LKBallScoreGraph,)
         "total_torsion",
         "hbond",
         "rama",
+        "dun",
         "elec",
         "cartbonded",
         "lj",
@@ -169,13 +174,6 @@ def test_end_to_end_score_graph(
     benchmark, benchmark_pass, graph_class, torch_device, ubq_system
 ):
     target_system = ubq_system
-
-    if issubclass(graph_class, _non_cuda_components) and torch_device.type == "cuda":
-        with pytest.raises(NotImplementedError):
-            graph_class.build_for(
-                target_system, requires_grad=True, device=torch_device
-            )
-        return
 
     score_graph = graph_class.build_for(
         target_system, requires_grad=True, device=torch_device

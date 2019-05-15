@@ -29,6 +29,7 @@ class LJLKGlobalParams(TensorGroup):
     lj_switch_dis2sigma: Tensor("f")[...]
     lk_min_dis2sigma: Tensor("f")[...]
 
+    # not clear if this belongs here or in a separate class
     lkb_water_dist: Tensor("f")[...]
     lkb_water_angle_sp2: Tensor("f")[...]
     lkb_water_angle_sp3: Tensor("f")[...]

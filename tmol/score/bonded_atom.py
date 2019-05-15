@@ -5,6 +5,8 @@ from functools import singledispatch
 import torch
 import numpy
 
+import toolz
+
 import sparse
 import scipy.sparse.csgraph as csgraph
 
@@ -66,6 +68,11 @@ class IndexedBonds:
             axis=0,
         )
 
+    def to(self, device: torch.device):
+        return type(self)(
+            **toolz.valmap(lambda t: t.to(device), attr.asdict(self, recurse=False))
+        )
+
 
 @score_graph
 class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
@@ -121,15 +128,18 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
         )  # noqa: E711 - None != is a vectorized check for None.
 
     @reactive_property
-    def indexed_bonds(bonds, system_size):
+    def indexed_bonds(bonds, system_size, device):
         """Sorted, constant time access to bond graph."""
         assert numpy.all(bonds[:, 0] == 0)
         assert bonds.ndim == 2
         assert bonds.shape[1] == 3
 
-        return IndexedBonds.from_bonds(
+        ## fd lkball needs this on the device
+        ibonds = IndexedBonds.from_bonds(
             IndexedBonds.to_directed(bonds[..., 1:]), minlength=system_size
-        )
+        ).to(device)
+
+        return ibonds
 
     @reactive_property
     @validate_args

@@ -12,6 +12,7 @@ from ..score.stacked_system import StackedSystem
 from ..score.bonded_atom import BondedAtomScoreGraph
 from ..score.rama.score_graph import RamaScoreGraph
 from ..score.omega.score_graph import OmegaScoreGraph
+from ..score.dunbrack.score_graph import DunbrackScoreGraph
 from tmol.database.scoring import RamaDatabase
 from ..score.coordinates import (
     CartesianAtomicCoordinateProvider,
@@ -169,3 +170,130 @@ def omega_graph_inputs(system: PackedResidueSystem, **_):
     )
 
     return dict(allomegas=omegas)
+
+
+@DunbrackScoreGraph.factory_for.register(PackedResidueSystem)
+@validate_args
+def dunbrack_graph_inputs(
+    system: PackedResidueSystem,
+    parameter_database: ParameterDatabase,
+    device: torch.device,
+    **_,
+):
+    dun_phi = numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "phi"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    dun_psi = numpy.array(
+        [
+            [
+                x["residue_index"],
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "psi"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    dun_chi1 = numpy.array(
+        [
+            [
+                x["residue_index"],
+                0,
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi1"]
+        ],
+        dtype=numpy.int32,
+    )
+    # print("dun_chi1")
+    # print(dun_chi1)
+
+    dun_chi2 = numpy.array(
+        [
+            [
+                x["residue_index"],
+                1,
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi2"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    dun_chi3 = numpy.array(
+        [
+            [
+                x["residue_index"],
+                2,
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi3"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    dun_chi4 = numpy.array(
+        [
+            [
+                x["residue_index"],
+                3,
+                x["atom_index_a"],
+                x["atom_index_b"],
+                x["atom_index_c"],
+                x["atom_index_d"],
+            ]
+            for x in system.torsion_metadata[system.torsion_metadata["name"] == "chi4"]
+        ],
+        dtype=numpy.int32,
+    )
+
+    # print("dun_chi1.shape",dun_chi.shape)
+    # print("dun_chi1.shape",dun_chi.shape)
+
+    # merge the 4 chi tensors, sorting by residue index and chi index
+    join_chi = numpy.concatenate((dun_chi1, dun_chi2, dun_chi3, dun_chi4), 0)
+    chi_res = join_chi[:, 0]
+    chi_inds = join_chi[:, 1]
+    sort_inds = numpy.lexsort((chi_inds, chi_res))
+    # print("sort_inds")
+    # print(sort_inds.shape)
+    # print(sort_inds)
+    dun_chi = join_chi[sort_inds, :]
+
+    numpy.set_printoptions(threshold=100000)
+    # print("dun_chi")
+    # print(dun_chi.shape)
+    # print(dun_chi)
+    # print("end dun chi")
+
+    # print(dun_chi)
+
+    return dict(
+        dun_phi=torch.tensor(dun_phi, dtype=torch.int32, device=device),
+        dun_psi=torch.tensor(dun_psi, dtype=torch.int32, device=device),
+        dun_chi=torch.tensor(dun_chi, dtype=torch.int32, device=device),
+        dun_database=parameter_database.scoring.dun,
+    )

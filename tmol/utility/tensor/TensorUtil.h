@@ -43,14 +43,14 @@ struct enable_tensor_view {
   _(float, at::ScalarType::Float)          \
   _(double, at::ScalarType::Double)
 
-#define SCALAR_VIEW(ctype, stype)                     \
-  template <>                                         \
-  struct enable_tensor_view<ctype> {                  \
-    static const bool enabled = true;                 \
-    static const at::ScalarType scalar_type = stype;  \
-    static const int nconsumed_dims = 0;              \
-    static const int consumed_dims(int) { return 0; } \
-    typedef ctype PrimitiveType;                      \
+#define SCALAR_VIEW(ctype, stype)                    \
+  template <>                                        \
+  struct enable_tensor_view<ctype> {                 \
+    static const bool enabled = true;                \
+    static const at::ScalarType scalar_type = stype; \
+    static const int nconsumed_dims = 0;             \
+    static int consumed_dims(int) { return 0; }      \
+    typedef ctype PrimitiveType;                     \
   };
 
 FORALL_SCALAR_TYPES_EXCEPT_HALF(SCALAR_VIEW)
@@ -62,7 +62,7 @@ struct enable_tensor_view<bool> {
   static const at::ScalarType scalar_type =
       enable_tensor_view<uint8_t>::scalar_type;
   static const int nconsumed_dims = 0;
-  static const int consumed_dims(int) { return 0; }
+  static int consumed_dims(int) { return 0; }
   typedef typename enable_tensor_view<uint8_t>::PrimitiveType PrimitiveType;
 };
 
@@ -71,7 +71,7 @@ struct enable_tensor_view<Eigen::Matrix<T, M, 1>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
   static const int nconsumed_dims = 1;
-  static const int consumed_dims(int i) { return (i == 0) ? M : 0; }
+  static int consumed_dims(int i) { return (i == 0) ? M : 0; }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
@@ -80,9 +80,7 @@ struct enable_tensor_view<Eigen::Matrix<T, M, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
   static const int nconsumed_dims = 2;
-  static const int consumed_dims(int i) {
-    return (i == 0) ? M : (i == 1) ? N : 0;
-  }
+  static int consumed_dims(int i) { return (i == 0) ? M : (i == 1) ? N : 0; }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 
@@ -91,7 +89,7 @@ struct enable_tensor_view<Eigen::AlignedBox<T, N>> {
   static const bool enabled = enable_tensor_view<T>::enabled;
   static const at::ScalarType scalar_type = enable_tensor_view<T>::scalar_type;
   static const int nconsumed_dims = 1;
-  static const int consumed_dims(int i) { return (i == 0) ? N : 0; }
+  static int consumed_dims(int i) { return (i == 0) ? N : 0; }
   typedef typename enable_tensor_view<T>::PrimitiveType PrimitiveType;
 };
 

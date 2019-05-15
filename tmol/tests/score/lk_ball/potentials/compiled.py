@@ -1,15 +1,38 @@
 from typing import Tuple
 
 import attr
+import cattr
 import torch
 
 from tmol.types.torch import Tensor
+from tmol.types.tensor import TensorGroup
 
 from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.score.chemical_database import AtomTypeParamResolver
 
 from tmol.utility.cpp_extension import load, relpaths, modulename
 
 _compiled = load(modulename(__name__), relpaths(__file__, ["compiled.pybind.cpp"]))
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class LKBallTypeParams(TensorGroup):
+    lj_radius: Tensor("f")[...]
+    lk_dgfree: Tensor("f")[...]
+    lk_lambda: Tensor("f")[...]
+    lk_volume: Tensor("f")[...]
+    is_donor: Tensor("f")[...]
+    is_hydroxyl: Tensor("f")[...]
+    is_polarh: Tensor("f")[...]
+    is_acceptor: Tensor("f")[...]
+
+
+@attr.s(auto_attribs=True, slots=True, frozen=True)
+class LKBallGlobalParams(TensorGroup):
+    lj_hbond_dis: Tensor("f")[...]
+    lj_hbond_OH_donor_dis: Tensor("f")[...]
+    lj_hbond_hdis: Tensor("f")[...]
+    lkb_water_dist: Tensor("f")[...]
 
 
 def detach_maybe_requires_grad(
@@ -118,6 +141,7 @@ class LKBridgeFraction(torch.autograd.Function):
 class LKBallScore:
 
     param_resolver: LJLKParamResolver
+    atom_resolver: AtomTypeParamResolver
 
     def apply(
         self,
@@ -141,17 +165,34 @@ class LKBallScore:
                 },
             )
 
-        params_i = type_params[self.param_resolver.type_idx([atom_type_i])]
-        params_j = type_params[self.param_resolver.type_idx([atom_type_j])]
-        params_global = self.param_resolver.global_params
+        params_i = cattr.unstructure(
+            type_params[self.param_resolver.type_idx([atom_type_i])]
+        )
+        params_i = LKBallTypeParams(
+            **{x.name: params_i[x.name] for x in attr.fields(LKBallTypeParams)}
+        )
+
+        params_j = cattr.unstructure(
+            type_params[self.param_resolver.type_idx([atom_type_j])]
+        )
+        params_j = LKBallTypeParams(
+            **{x.name: params_j[x.name] for x in attr.fields(LKBallTypeParams)}
+        )
+
+        params_global = {
+            **cattr.unstructure(self.param_resolver.global_params),
+            **cattr.unstructure(self.atom_resolver.params),
+        }
+        params_global = LKBallGlobalParams(
+            **{x.name: params_global[x.name] for x in attr.fields(LKBallGlobalParams)}
+        )
 
         return LKBallScoreFun.apply(
             coord_i,
             coord_j,
             waters_i,
             waters_j,
-            bonded_path_length,
-            params_global.lkb_water_dist,
+            bonded_path_length.item(),
             params_i,
             params_j,
             params_global,
@@ -161,7 +202,6 @@ class LKBallScore:
 class LKBallScoreFun(torch.autograd.Function):
     @staticmethod
     def forward(ctx, *args) -> Tensor(float):
-
         args = list(args)
         rgrad, args[:4] = detach_maybe_requires_grad(*args[:4])
 
