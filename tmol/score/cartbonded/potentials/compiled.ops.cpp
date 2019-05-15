@@ -3,6 +3,7 @@
 
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
+#include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/simple_dispatch.hh>
 
@@ -23,6 +24,7 @@ Tensor cbl_score_op(
 ) {
   using tmol::utility::connect_backward_pass;
   using tmol::utility::SavedGradsBackward;
+  nvtx_range_push("cbl_score_op");
 
   at::Tensor score;
   at::Tensor dScore;
@@ -43,9 +45,12 @@ Tensor cbl_score_op(
         dScore = std::get<1>(result).tensor;
       }));
 
-  return connect_backward_pass({coords}, score, [&]() {
+  auto backward_op = connect_backward_pass({coords}, score, [&]() {
     return SavedGradsBackward::create({dScore});
   });
+
+  nvtx_range_pop();
+  return backward_op;
 };
 
 Tensor cba_score_op(
@@ -55,6 +60,7 @@ Tensor cba_score_op(
 ) {
   using tmol::utility::connect_backward_pass;
   using tmol::utility::SavedGradsBackward;
+  nvtx_range_push("cba_score_op");
 
   at::Tensor score;
   at::Tensor dScore;
@@ -75,6 +81,7 @@ Tensor cba_score_op(
         dScore = std::get<1>(result).tensor;
       }));
 
+  nvtx_range_pop();
   return connect_backward_pass({coords}, score, [&]() {
     return SavedGradsBackward::create({dScore});
   });
@@ -87,6 +94,7 @@ Tensor cbt_score_op(
 ) {
   using tmol::utility::connect_backward_pass;
   using tmol::utility::SavedGradsBackward;
+  nvtx_range_push("cbt_score_op");
 
   at::Tensor score;
   at::Tensor dScore;
@@ -107,9 +115,12 @@ Tensor cbt_score_op(
         dScore = std::get<1>(result).tensor;
       }));
 
-  return connect_backward_pass({coords}, score, [&]() {
+  auto backward_op = connect_backward_pass({coords}, score, [&]() {
     return SavedGradsBackward::create({dScore});
   });
+
+  nvtx_range_pop();
+  return backward_op;
 };
 
 Tensor cbht_score_op(
@@ -119,6 +130,7 @@ Tensor cbht_score_op(
 ) {
   using tmol::utility::connect_backward_pass;
   using tmol::utility::SavedGradsBackward;
+  nvtx_range_push("cbht_score_op");
 
   at::Tensor score;
   at::Tensor dScore;
@@ -139,9 +151,12 @@ Tensor cbht_score_op(
         dScore = std::get<1>(result).tensor;
       }));
 
-  return connect_backward_pass({coords}, score, [&]() {
+  auto backward_op = connect_backward_pass({coords}, score, [&]() {
     return SavedGradsBackward::create({dScore});
   });
+
+  nvtx_range_pop();
+  return backward_op;
 };
 
 static auto registry =

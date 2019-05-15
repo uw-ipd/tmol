@@ -4,6 +4,8 @@
 #include <torch/csrc/autograd/saved_variable.h>
 #include <torch/types.h>
 
+#include <pybind11/pybind11.h>
+
 #include <tmol/utility/nvtx.hh>
 
 namespace tmol {
@@ -132,9 +134,12 @@ torch::autograd::Variable connect_backward_pass(
     const torch::autograd::variable_list& inputs,
     torch::Tensor& output,
     function_factory backward_factory) {
+  nvtx_range_push("connect_backward_pass");
   torch::autograd::tensor_list outputs = {output};
-  return connect_backward_pass(inputs, std::move(outputs), backward_factory)
-      .front();
+  auto bw = connect_backward_pass(inputs, std::move(outputs), backward_factory)
+                .front();
+  nvtx_range_pop();
+  return bw;
 }
 
 // Support function for backward-pass through pre-calculated gradients.
@@ -165,12 +170,13 @@ struct SavedGradsBackward : public torch::autograd::Function {
     saved_grads.reserve(grads.size());
 
     for (auto& grad : grads) {
-      saved_grads.push_back(SavedVariable(grad, false));
+      saved_grads.emplace_back(SavedVariable(grad, false));
     }
   }
 
   variable_list apply(variable_list&& in_grads) override {
     NVTXRange("SavedGradsBackward");
+
     AT_CHECK(
         in_grads.size() == 1,
         "SavedGradsBackward only supports single input gradient.");
@@ -179,9 +185,11 @@ struct SavedGradsBackward : public torch::autograd::Function {
     result.reserve(saved_grads.size());
 
     for (auto& saved_grad : saved_grads) {
-      result.push_back(saved_grad.unpack() * in_grads[0]);
+      auto x = saved_grad.unpack();
+      result.emplace_back(saved_grad.unpack() * in_grads[0]);
     }
 
+    nvtx_range_pop();
     return result;
   }
 };
