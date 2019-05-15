@@ -17,6 +17,14 @@ from tmol.types.functional import validate_args
 from tmol.numeric.bspline import BSplineInterpolation
 
 from tmol.database.scoring.rama import RamaDatabase
+from tmol.types.tensor import TensorGroup
+
+# rama parameters
+@attr.s(auto_attribs=True)
+class RamaParams(TensorGroup):
+    phi_indices: Tensor(torch.int32)[..., 4]
+    psi_indices: Tensor(torch.int32)[..., 4]
+    param_indices: Tensor(torch.int32)[...]
 
 
 # the rama database on the device
