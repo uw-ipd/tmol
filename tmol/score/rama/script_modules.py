@@ -1,10 +1,6 @@
 import torch
 
-import attr
-from attr import asdict
-from typing import Mapping, Callable
-
-from .params import RamaDatabase, RamaParamResolver, RamaParams
+from .params import RamaParamResolver, RamaParams
 
 # Import compiled components to load torch_ops
 import tmol.score.rama.potentials.compiled  # noqa
@@ -16,12 +12,6 @@ if "to" in torch.jit.ScriptModule.__dict__:
 
 
 class RamaScoreModule(torch.jit.ScriptModule):
-    @torch.jit.script_method
-    def forward(self, coords, atoms):
-        return torch.ops.tmol.score_cartbonded_length(
-            coords, atoms, self.bondlength_params
-        )
-
     def __init__(self, params: RamaParams, param_resolver: RamaParamResolver):
         super().__init__()
 
