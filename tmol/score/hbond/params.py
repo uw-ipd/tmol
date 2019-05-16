@@ -74,8 +74,15 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
         )
 
 
-@attr.s(frozen=True, slots=True)
+def key_for_memoize(args, kwargs):
+    print("key for memoize", len(args))
+    return (id(args[1]), id(args[2]), args[3].type, args[3].index)
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondParamResolver(ValidateAttrs):
+    _from_db_cache = {}
+
     donor_type_index: pandas.Index = attr.ib()
     acceptor_type_index: pandas.Index = attr.ib()
 
@@ -95,6 +102,16 @@ class HBondParamResolver(ValidateAttrs):
         return torch.from_numpy(i).to(device=self.device)
 
     @classmethod
+    @validate_args
+    @toolz.functoolz.memoize(
+        cache=_from_db_cache,
+        key=lambda args, kwargs: (
+            id(args[1]),
+            id(args[2]),
+            args[3].type,
+            args[3].index,
+        ),
+    )
     def from_database(
         cls,
         chemical_database: ChemicalDatabase,
@@ -232,9 +249,7 @@ class CompactedHBondDatabase(ValidateAttrs):
         # print("global_param_table", global_param_table.size())
 
         resolver = HBondParamResolver.from_database(
-            chemical_database=chemical_database,
-            hbond_database=hbond_database,
-            device=device,
+            chemical_database, hbond_database, device
         )
         pp = resolver.pair_params
 
