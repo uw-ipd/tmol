@@ -20,7 +20,6 @@ from tmol.score.elec import ElecScoreGraph
 from tmol.score.rama import RamaScoreGraph
 from tmol.score.omega import OmegaScoreGraph
 from tmol.score.dunbrack import DunbrackScoreGraph
-from tmol.score.omega import OmegaScoreGraph
 from tmol.score.cartbonded import CartBondedScoreGraph
 from tmol.score.lk_ball import LKBallScoreGraph
 
@@ -73,11 +72,6 @@ class OmegaScore(CartesianAtomicCoordinateProvider, OmegaScoreGraph, TorchDevice
 
 @score_graph
 class DunbrackScore(CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice):
-    pass
-
-
-@score_graph
-class OmegaScore(CartesianAtomicCoordinateProvider, OmegaScoreGraph, TorchDevice):
     pass
 
 

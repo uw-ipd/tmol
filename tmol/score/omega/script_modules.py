@@ -1,5 +1,3 @@
-import attr
-from typing import Callable
 from tmol.types.torch import Tensor
 
 import tmol.score.omega.potentials.compiled  # noqa
