@@ -16,7 +16,7 @@
 
 namespace tmol {
 namespace score {
-namespace rama {
+namespace omega {
 namespace potentials {
 
 using namespace tmol::score::common;
@@ -61,6 +61,6 @@ def omega_V_dV(CoordQuad omega, Real K)->tuple<Real, CoordQuad> {
 
 #undef def
 }  // namespace potentials
-}  // namespace rama
+}  // namespace omega
 }  // namespace score
 }  // namespace tmol

@@ -1,5 +1,3 @@
-#include <Eigen/Core>
-
 #include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
 
 #include "dispatch.impl.hh"
