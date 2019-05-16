@@ -1,16 +1,9 @@
-import pytest
 import torch
 
-from tmol.utility.reactive import reactive_property
 from tmol.tests.torch import requires_cuda
-
-from tmol.score import TotalScoreGraph
 
 from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
-from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.score.score_components import ScoreComponentClasses, IntraScore
-from torch.cuda.nvtx import range_push, range_pop
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 
@@ -25,7 +18,7 @@ class CartBondedScore(
 
 
 @requires_cuda
-def test_full(benchmark, ubq_system):
+def test_cart_cuda(benchmark, ubq_system):
     score_graph = CartBondedScore.build_for(
         ubq_system, requires_grad=True, device=torch.device("cuda")
     )

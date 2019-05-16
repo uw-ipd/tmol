@@ -129,8 +129,6 @@ import torch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
-from torch.cuda.nvtx import range_push, range_pop
-
 
 @attr.s
 class IntraScore:

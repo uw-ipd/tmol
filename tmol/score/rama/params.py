@@ -7,8 +7,6 @@ import torch
 
 import toolz.functoolz
 
-from typing import List
-
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
