@@ -6,7 +6,7 @@
 
 #include <tmol/score/common/simple_dispatch.hh>
 #include "dispatch.hh"
-
+#include <tmol/utility/nvtx.hh>
 
 namespace tmol {
 namespace score {
