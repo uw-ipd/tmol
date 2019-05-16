@@ -112,10 +112,6 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
             pair_polynomials[dt][at],
             global_params[0]);
 
-        // if ( hbond.V != 0) {
-        //  printf("%d %d, E= %5.3f\n", ai, di, hbond.V);
-        //}
-
         accumulate<Dev, Real>::add(V[0], hbond.V);
 
         accumulate<Dev, Vec<Real, 3>>::add(dV_d_don[D[di]], hbond.dV_dD);
