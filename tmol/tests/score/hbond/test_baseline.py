@@ -1,8 +1,6 @@
 import toolz
 
-import numpy
 import pandas
-
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph

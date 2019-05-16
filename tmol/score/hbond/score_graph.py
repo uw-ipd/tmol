@@ -26,7 +26,6 @@ from tmol.types.array import NDArray
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
-from tmol.utility.nvtx import nvtx_range
 
 
 @attr.s(auto_attribs=True)

@@ -1,15 +1,11 @@
 import attr
 
-from typing import Mapping, Union, Callable
-
 import torch
 
-from tmol.utility.dicttoolz import flat_items, merge
+from tmol.utility.dicttoolz import flat_items
 
-from tmol.database.scoring import HBondDatabase
-from .params import HBondParamResolver, CompactedHBondDatabase
+from .params import CompactedHBondDatabase
 
-from tmol.utility.nvtx import nvtx_range
 import tmol.score.hbond.potentials.compiled  # noqa
 
 

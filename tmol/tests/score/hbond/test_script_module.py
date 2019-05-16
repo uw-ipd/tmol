@@ -1,14 +1,7 @@
 import torch
-import attr
 
 from tmol.score.hbond.identification import HBondElementAnalysis
 from tmol.score.hbond.params import HBondParamResolver, CompactedHBondDatabase
-
-from tmol.utility.dicttoolz import merge, valmap
-
-from tmol.utility.args import ignore_unused_kwargs, bind_to_args
-
-from tmol.tests.autograd import gradcheck
 
 
 def _setup_inputs(coords, params, donors, acceptors, torch_device):
