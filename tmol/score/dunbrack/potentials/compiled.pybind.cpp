@@ -2,9 +2,10 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/torch.h>
 
-#include "compiled.hh"
+#include "dispatch.hh"
 
 #include <tmol/utility/function_dispatch/pybind.hh>
+#include <tmol/score/common/forall_dispatch.hh>
 
 namespace tmol {
 namespace score {
@@ -19,7 +20,7 @@ void bind_dispatch(pybind11::module& m) {
   add_dispatch_impl<Dev, Real>(
       m,
       "dunbrack",
-      &DunbrackDispatch<Dev, Real, Int>::f,
+      &DunbrackDispatch<common::ForallDispatch, Dev, Real, Int>::f,
       "coords"_a,
       "rotameric_prob_tables"_a,
       "rotameric_neglnprob_tables"_a,
@@ -66,7 +67,7 @@ void bind_dispatch(pybind11::module& m) {
   add_dispatch_impl<Dev, Real>(
       m,
       "dunbrack_deriv",
-      &DunbrackDispatch<Dev, Real, Int>::df,
+      &DunbrackDispatch<common::ForallDispatch, Dev, Real, Int>::df,
       "coords"_a,
       "dE_drotnlp"_a,
       "drot_nlp_dbb_xyz"_a,
@@ -91,7 +92,6 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 
 #ifdef WITH_CUDA
   bind_dispatch<tmol::Device::CUDA, float, int32_t>(m);
-  //bind_dispatch<tmol::Device::CUDA, double, int32_t>(m);
 #endif
 }
 

@@ -19,7 +19,12 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define CoordQuad Eigen::Matrix<Real, 4, 3>
 
-template <tmol::Device D, typename Real, typename Int>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 struct DunbrackDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
