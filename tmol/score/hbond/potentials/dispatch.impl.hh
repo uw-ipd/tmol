@@ -130,27 +130,6 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   return {V_t, dV_d_don_t, dV_d_acc_t};
 }
 
-// template <
-//     template <tmol::Device>
-//     class Dispatch,
-//     tmol::Device Dev,
-//     typename Real,
-//     typename Int>
-// auto HBondDispatch<Dispatch, Dev, Real, Int>::backward(
-//     TView<Real, 1, Dev> dTdV,
-//     TView<Real, 2, Dev> dV_d_don,
-//     TView<Real, 2, Dev> dV_d_acc)
-//     -> std::tuple<
-//         TPack<Real, 2, Dev>,
-//         TPack<Real, 2, Dev>>
-// {
-//   ndon = dV_d_don.shape(0);
-//   nacc = dV_d_acc.shape(0);
-//   auto dT_d_don_t = TPack<Real, 2, Dev>::empty(ndon, 3);
-//   auto dT_d_acc_t = TPack<Real, 2, Dev>::empty(nacc, 3);
-//   NaiveDis
-// }
-
 }  // namespace potentials
 }  // namespace hbond
 }  // namespace score

@@ -18,15 +18,6 @@ if "to" in torch.jit.ScriptModule.__dict__:
 class _HBondScoreModule(torch.jit.ScriptModule):
     """torch.autograd hbond baseline operator."""
 
-    # params: Mapping[str, Union[float, torch.Tensor]]
-    # hbond_pair_score: Callable = attr.ib()
-
-    # @hbond_pair_score.default
-    # def _load_hbond_pair_score(self):
-    #    from .potentials.compiled import hbond_pair_score
-    #
-    #    return hbond_pair_score
-
     @staticmethod
     def _setup_pair_params(param_resolver, dtype):
         def _t(n, v):

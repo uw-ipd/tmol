@@ -75,17 +75,6 @@ class HBondIntraScore(IntraScore):
             target.hbond_acceptor_indices.acceptor_type,
         )
 
-    # @reactive_property
-    # @validate_args
-    # def hbond_descr(target, hbond) -> HBondDescr:
-    #     """All hbond pairs, in order of "sp2"/"sp3"/"ring"."""
-    #     (di, ai), score = hbond
-    #     return HBondDescr(
-    #         donor=target.hbond_donor_indices[di],
-    #         acceptor=target.hbond_acceptor_indices[ai],
-    #         score=score,
-    #     )
-
 
 @score_graph
 class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):

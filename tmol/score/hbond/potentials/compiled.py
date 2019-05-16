@@ -7,9 +7,3 @@ _compiled = load(
     ),
     is_python_module=False,
 )
-
-
-# def hbond_pair_score(*args, **kwargs):
-#     return _compiled.hbond_pair_score[(args[0].device.type, args[0].dtype)](
-#         *args, **kwargs
-#     )
