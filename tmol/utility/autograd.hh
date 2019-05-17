@@ -132,6 +132,7 @@ torch::autograd::Variable connect_backward_pass(
     const torch::autograd::variable_list& inputs,
     torch::Tensor& output,
     function_factory backward_factory) {
+  NVTXRange("connect_backward_pass");
   torch::autograd::tensor_list outputs = {output};
   return connect_backward_pass(inputs, std::move(outputs), backward_factory)
       .front();
@@ -170,7 +171,8 @@ struct SavedGradsBackward : public torch::autograd::Function {
   }
 
   variable_list apply(variable_list&& in_grads) override {
-    NVTXRange("SavedGradsBackward");
+    // NVTXRange("SavedGradsBackward");
+    // nvtx_range_push("SavedGradsBackward");
     AT_CHECK(
         in_grads.size() == 1,
         "SavedGradsBackward only supports single input gradient.");
@@ -182,6 +184,7 @@ struct SavedGradsBackward : public torch::autograd::Function {
       result.push_back(saved_grad.unpack() * in_grads[0]);
     }
 
+    // nvtx_range_pop();
     return result;
   }
 };

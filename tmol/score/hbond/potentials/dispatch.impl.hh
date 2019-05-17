@@ -74,7 +74,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   AT_ASSERTM(
       global_params.size(0) == 1, "Invalid number of global parameters.");
 
-  nvtx_range_push("hbond alloc");
+  // nvtx_range_push("hbond alloc");
   auto V_t = TPack<Real, 1, Dev>::zeros({1});
   auto dV_d_don_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({donor_coords.size(0)});
   auto dV_d_acc_t =
@@ -86,8 +86,8 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
 
   Real _threshold_distance = 6.0;  // what about the global threshold distance?
 
-  nvtx_range_pop();
-  nvtx_range_push("hbond eval");
+  // nvtx_range_pop();
+  // nvtx_range_push("hbond eval");
   Dispatch<Dev>::forall_idx_pairs(
       _threshold_distance,
 
@@ -125,8 +125,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
         accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[B[ai]], hbond.dV_dB);
         accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[B0[ai]], hbond.dV_dB0);
       });
-
-  nvtx_range_pop();
+  // nvtx_range_pop();
   return {V_t, dV_d_don_t, dV_d_acc_t};
 }
 

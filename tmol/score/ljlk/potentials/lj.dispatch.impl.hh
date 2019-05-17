@@ -56,6 +56,12 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
   auto dV_dJ = dV_dJ_t.view;
   nvtx_range_pop();
 
+  // Four parts.
+  // 1. decide what atom pairs are near each other
+  // 2. scan the array of nearby atom pairs to get offset inds
+  // 3. write down which pairs need their energies evaluated
+  // 4. evaluate energies for nearby atom pairs.
+
   nvtx_range_push("dispatch::score");
   Real threshold_distance = 6.0;
   Dispatch<D>::forall_pairs(
