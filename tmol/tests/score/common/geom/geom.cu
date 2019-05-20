@@ -78,7 +78,7 @@ void bind(pybind11::module& m) {
       "B"_a);
 };
 
-PYBIND11_MODULE(geom, m) {
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
   bind<double, tmol::Device::CUDA>(m);
   bind<float, tmol::Device::CUDA>(m);
 }

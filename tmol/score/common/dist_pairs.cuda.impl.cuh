@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -5,6 +7,9 @@
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/utility/nvtx.hh>
+
+#include <moderngpu/kernel_scan.hxx>
+#include <moderngpu/transform.hxx>
 
 namespace tmol {
 namespace score {
@@ -177,7 +182,9 @@ struct TriuDistanceCutoff {
     });
     mgpu::transform(write_nearby_pair_inds, npairs, context);
 
-    return 0;
+    int total_cpu;
+    cudaMemcpy(&total_cpu, &total[0], sizeof(int), cudaMemcpyDeviceToHost);
+    return total_cpu;
   }
 };
 
