@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(WITH_CUDA) && defined(WITH_NVTX)
+#if false && defined(WITH_CUDA) && defined(WITH_NVTX)
 
 #include <nvToolsExt.h>
 

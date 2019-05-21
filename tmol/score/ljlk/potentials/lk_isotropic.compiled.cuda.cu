@@ -91,11 +91,15 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
   nvtx_range_pop();
 
   nvtx_range_push("lk::thresh");
-  int n_nearby = TriuDistanceCutoff<Real, Int, 8>::f(
+  clock_t start = clock();
+  int n_nearby = TriuDistanceCutoff<Real, Int, 16, 64>::f(
       coords_i, nearby, nearby_scan, nearby_pair_i, nearby_pair_j, 6.0);
   nvtx_range_pop();
+  clock_t stop = clock();
+  printf("distpair total: %f\n", ((double)stop - start) / CLOCKS_PER_SEC);
 
   nvtx_range_push("lk::calc");
+  start = clock();
   mgpu::standard_context_t context;
   mgpu::transform(
       ([=] MGPU_DEVICE(int idx) {
@@ -115,7 +119,10 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
             type_params[ati],
             type_params[atj],
             global_params[0]);
+        // if using V
+        // accumulate<D, Real>::add(V[0], lk);
 
+        // if using V_dV
         accumulate<D, Real>::add(V[0], lk.V);
         accumulate<D, Vec<Real, 3>>::add(dV_dI[i], lk.dV_ddist * ddist_dI);
         accumulate<D, Vec<Real, 3>>::add(dV_dJ[j], lk.dV_ddist * ddist_dJ);
@@ -152,6 +159,14 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
   // nvtx_range_pop();
 
   nvtx_range_pop();
+  float lk0;
+  cudaMemcpy(&lk0, &V[0], sizeof(int), cudaMemcpyDeviceToHost);
+
+  stop = clock();
+  printf(
+      "lk eval took: %f, computed score %f\n",
+      ((double)stop - start) / CLOCKS_PER_SEC,
+      lk0);
 
   return {V_t, dV_dI_t, dV_dJ_t};
 };

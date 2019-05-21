@@ -244,9 +244,9 @@ struct lk_isotropic_score {
   static def V(
       Real dist,
       Real bonded_path_length,
-      LKTypeParams<Real> i,
-      LKTypeParams<Real> j,
-      LJGlobalParams<Real> global)
+      LKTypeParams<Real> const& i,
+      LKTypeParams<Real> const& j,
+      LJGlobalParams<Real> const& global)
       ->Real {
     Real sigma = lj_sigma<Real>(i, j, global);
 
@@ -271,9 +271,9 @@ struct lk_isotropic_score {
   static def V_dV(
       Real dist,
       Real bonded_path_length,
-      LKTypeParams<Real> i,
-      LKTypeParams<Real> j,
-      LJGlobalParams<Real> global)
+      LKTypeParams<Real> const& i,
+      LKTypeParams<Real> const& j,
+      LJGlobalParams<Real> const& global)
       ->V_dV_t {
     Real sigma = lj_sigma<Real>(i, j, global);
 
