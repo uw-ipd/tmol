@@ -74,11 +74,6 @@ class HBondPairParams(TensorGroup, ValidateAttrs):
         )
 
 
-def key_for_memoize(args, kwargs):
-    print("key for memoize", len(args))
-    return (id(args[1]), id(args[2]), args[3].type, args[3].index)
-
-
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class HBondParamResolver(ValidateAttrs):
     _from_db_cache = {}

@@ -9,32 +9,8 @@ from .params import CompactedHBondDatabase
 import tmol.score.hbond.potentials.compiled  # noqa
 
 
-# Workaround for https://github.com/pytorch/pytorch/pull/15340
-# on torch<1.0.1
-if "to" in torch.jit.ScriptModule.__dict__:
-    delattr(torch.jit.ScriptModule, "to")
-
-
 class _HBondScoreModule(torch.jit.ScriptModule):
     """torch.autograd hbond baseline operator."""
-
-    @staticmethod
-    def _setup_pair_params(param_resolver, dtype):
-        def _t(n, v):
-            t = torch.tensor(v)
-            if t.is_floating_point():
-                if any(dkey in n for dkey in ("range", "bound", "coeffs")):
-                    # High degree polynomial parameters stored as double precision
-                    # to allow accurate double evaluation.
-                    t = t.to(torch.float64)
-                else:
-                    t = t.to(dtype)
-            return t
-
-        return {
-            "_".join(k): _t(k, v)
-            for k, v in flat_items(attr.asdict(param_resolver.pair_params))
-        }
 
     def __init__(self, compact_db: CompactedHBondDatabase):
         super().__init__()
