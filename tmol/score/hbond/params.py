@@ -186,6 +186,8 @@ class HBondParamResolver(ValidateAttrs):
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class CompactedHBondDatabase(ValidateAttrs):
+    """Store the hbond evaluation parameters in a compact form"""
+
     _from_db_cache = {}
 
     global_param_table: Tensor(torch.float32)[:, :]
@@ -212,11 +214,8 @@ class CompactedHBondDatabase(ValidateAttrs):
         def _p(t):
             return torch.nn.Parameter(t, requires_grad=False)
 
-        def _tcat(ts, dim):
-            return torch.cat(ts, dim)
-
         def _stack(ts):
-            return _tcat([t.unsqueeze(-1) for t in ts], -1)
+            return torch.cat([t.unsqueeze(-1) for t in ts], -1)
 
         def _f32(ts):
             return [t.to(torch.float32) for t in ts]
@@ -240,20 +239,25 @@ class CompactedHBondDatabase(ValidateAttrs):
                 )
             ).unsqueeze(0)
         )
-        # print()
-        # print("global_param_table", global_param_table.size())
 
         resolver = HBondParamResolver.from_database(
             chemical_database, hbond_database, device
         )
         pp = resolver.pair_params
 
+        # Note: acceptor_hybridization is an integer, but can be exactly represented
+        # as a float (since it is small). Pack it with the donor and acceptor weights
+        # (which themselves could just be pre-multiplied?!) to reduce the number of
+        # arguments to the hbond evaluation function
         pair_param_table = _p(
             _stack(
                 _f32([pp.acceptor_hybridization, pp.acceptor_weight, pp.donor_weight])
             )
         )
-        # print("Pair param table", pair_param_table.shape)
+
+        # Eigen allocates space for 12 Reals for an 11x1 matrix
+        # so we need to pad out with 0s in between the coefficients
+        # and the ranges.
         pad = torch.zeros(
             [pp.AHdist.coeffs.shape[0], pp.AHdist.coeffs.shape[1], 1],
             device=device,
@@ -261,7 +265,7 @@ class CompactedHBondDatabase(ValidateAttrs):
         )
 
         pair_poly_table = _p(
-            _tcat(
+            torch.cat(
                 [
                     pp.AHdist.coeffs,
                     pad,
@@ -279,7 +283,6 @@ class CompactedHBondDatabase(ValidateAttrs):
                 2,
             )
         )
-        # print("Pair poly table", pair_poly_table.shape)
 
         return cls(
             global_param_table=global_param_table,

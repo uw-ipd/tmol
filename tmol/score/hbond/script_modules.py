@@ -1,8 +1,4 @@
-import attr
-
 import torch
-
-from tmol.utility.dicttoolz import flat_items
 
 from .params import CompactedHBondDatabase
 
