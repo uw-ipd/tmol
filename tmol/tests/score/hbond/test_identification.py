@@ -137,7 +137,7 @@ def test_identification_by_chemical_types(
 
     for rt in residue_types:
         res_atom_types = numpy.array([a.atom_type for a in rt.atoms])
-        bonds = rt.bond_indicies
+        bonds = rt.bond_indices
 
         hbe = HBondElementAnalysis.setup_from_database(
             chemical_database=default_database.chemical,

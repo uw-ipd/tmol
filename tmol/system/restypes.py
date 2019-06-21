@@ -25,10 +25,10 @@ class ResidueType(tmol.database.chemical.Residue):
     def _setup_coord_dtype(self):
         return numpy.dtype([(a.name, float, 3) for a in self.atoms])
 
-    bond_indicies: numpy.ndarray = attr.ib()
+    bond_indices: numpy.ndarray = attr.ib()
 
-    @bond_indicies.default
-    def _setup_bond_indicies(self):
+    @bond_indices.default
+    def _setup_bond_indices(self):
         bondi = compose(list, sorted, set, concat)(
             [(ai, bi), (bi, ai)]
             for ai, bi in map(map(self.atom_to_idx.get), self.bonds)
