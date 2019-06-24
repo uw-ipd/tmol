@@ -71,6 +71,12 @@ class Torsion:
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
+class SidechainBuilding:
+    root: str
+    backbone_atoms: Tuple[str, ...]
+
+
+@attr.s(auto_attribs=True, frozen=True, slots=True)
 class Residue:
     name: str
     name3: str
@@ -80,6 +86,7 @@ class Residue:
     torsions: Tuple[Torsion, ...]
     icoors: Tuple[Icoor, ...]
     hierarchies: Tuple[str, ...]
+    sidechain_building: Tuple[SidechainBuilding, ...]
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
