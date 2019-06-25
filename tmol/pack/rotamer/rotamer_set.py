@@ -25,10 +25,11 @@ class OneRestypeRotamerSet(ValidateAttrs):
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class SingleSidechainBuilder:
-    # Describe how to build the coordinates of the rotamers
-    # for a single sidechain on a  single residue; each residue
-    # may have more than one sidechain
+class SingleSidechainBuilder(ValidateAttrs):
+    """Describe how to build the coordinates of the rotamers
+    for a single sidechain on a single residue; each residue
+    may have more than one sidechain
+    """
 
     restype_name: str
     sidechain: int
@@ -175,12 +176,14 @@ class SingleSidechainBuilder:
                 vconn_inds[i] = int(n_real_rotamer_atoms + vcount)
                 vcount += 1
 
-        bonds = numpy.zeros((natoms, natoms), dtype=int)
+        bonds = torch.zeros((natoms, natoms), dtype=torch.long)
         for ai, bi in restype.bond_indices:
             bonds[ai, bi] = 1
         bonds = bonds[rot2res_real, :]
         bonds = bonds[:, rot2res_real]
-        rotamer_bonds = numpy.zeros((n_rotamer_atoms, n_rotamer_atoms), dtype=int)
+        rotamer_bonds = torch.zeros(
+            (n_rotamer_atoms, n_rotamer_atoms), dtype=torch.long
+        )
         rotamer_bonds[:n_real_rotamer_atoms, :n_real_rotamer_atoms] = bonds
 
         # sort the chi of the restypes to be ascending
@@ -190,7 +193,7 @@ class SingleSidechainBuilder:
         )
         nchi = len(chi)
 
-        is_backbone_atom = torch.zeros((n_rotamer_atoms), dtype=torch.int)
+        is_backbone_atom = torch.zeros((n_rotamer_atoms), dtype=torch.long)
         bbats = restype.sidechain_building[sidechain].backbone_atoms
         backbone_atom_inds = torch.tensor(
             [restype.atom_to_idx[at] for at in bbats if at in names], dtype=torch.long
@@ -338,7 +341,7 @@ class SingleSidechainBuilder:
         return cls(
             restype_name=restype.name,
             sidechain=sidechain,
-            natoms=n_rotamer_atoms,
+            natoms=int(n_rotamer_atoms),
             vconn_inds=vconn_inds,
             rotatom_2_resatom=rot2res,
             resatom_2_rotatom=res2rot,
