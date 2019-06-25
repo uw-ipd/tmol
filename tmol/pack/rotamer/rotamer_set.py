@@ -6,6 +6,8 @@ import pandas
 
 import scipy.sparse.csgraph
 
+from typing import Tuple
+
 from tmol.types.attrs import ValidateAttrs
 from tmol.types.torch import Tensor
 from tmol.types.functional import validate_args
@@ -75,6 +77,7 @@ class SingleSidechainBuilder(ValidateAttrs):
     chi_that_spins_atom: Tensor(int)[:]
 
     @classmethod
+    @validate_args
     def determine_atoms_in_sidechain_group(
         cls, chem_db: ChemicalDatabase, restype: ResidueType, sidechain: int
     ):
@@ -143,6 +146,7 @@ class SingleSidechainBuilder(ValidateAttrs):
         return keep, nonsc, vconn_present, bfs_ind
 
     @classmethod
+    @validate_args
     def from_restype(
         cls, chem_db: ChemicalDatabase, restype: ResidueType, sidechain: int
     ):
@@ -358,10 +362,142 @@ class SingleSidechainBuilder(ValidateAttrs):
 
 @attr.s(auto_attribs=True, frozen=True)
 class SidechainBuilders:
-    mapper: pandas.Index  # from restype name to the parameters that build it
-    is_backbone_atom: Tensor(int)[:, :]
-    backbone_atom_inds: Tensor(int)[:, :]
-    sidechain_roots: Tensor(int)[:, :]
-    sidechain_dfs: Tensor(int)[:, :, :]
+    mapper: pandas.Index  # from restype name to the restype index
+    n_sc_for_restype: Tensor(torch.long)[:]  # the number of scs for each restype
+    restype_offsets: Tensor(torch.long)[:]  # the sc param offsets for a restype
+    n_atoms: Tensor(torch.long)[:]  # the number of atoms for an sc
+    vconn_inds: Tensor(torch.long)[:, 2]
+    rotatom_2_resatom: Tensor(torch.long)[:, :]
+    resatom_2_rotatom: Tensor(torch.long)[:, :]
+    bonds: Tensor(torch.long)[:, :, :]
+    is_backbone_atom: Tensor(torch.long)[:, :]  # is a particular atom a backbone atom
+    n_backbone_atoms: Tensor(torch.long)[:]
+    backbone_atom_inds: Tensor(torch.long)[:, :]
+    sidechain_roots: Tensor(torch.long)[:, 3]
+    sidechain_dfs: Tensor(torch.long)[:, :]
     atom_icoors: Tensor(float)[:, :, 3]
-    atom_ancestors: Tensor
+    atom_ancestors: Tensor(torch.long)[:, :]
+    chi_that_spins_atom: Tensor(torch.long)[:, :]
+
+    @classmethod
+    def n_sc_from_restypes(cls, restypes):
+        return torch.tensor(
+            [len(rt.sidechain_building) for rt in restypes], dtype=torch.long
+        )
+
+    @classmethod
+    def natoms_from_builders(cls, builders):
+        return torch.tensor([builder.natoms for builder in builders], dtype=torch.long)
+
+    @classmethod
+    def vconn_inds_from_builders(cls, builders):
+        return torch.stack(
+            tuple(builder.vconn_inds for builder in builders), dtype=torch.long
+        )
+
+    @classmethod
+    def rot2res_from_builders(cls, builders, max_rotamer_natoms):
+        rotatom_2_resatom = torch.full(
+            (len(builders), max_rotamer_natoms), -1, dtype=torch.long
+        )
+        for i, builder in enumerate(builders):
+            nrotatms = builder.rotatom_2_resatom.shape[0]
+            rotatom_2_resatom[i, :nrotatoms] = builder.rotatom_2_resatom
+        return rotatom_2_resatom
+
+    @classmethod
+    def res2rot_from_builders(cls, builders, max_restype_natoms):
+        resatom_2_rotatom = torch.full(
+            (len(builders), max_restype_natoms), -1, dtype=torch.long
+        )
+        for i, builder in enumerate(builders):
+            nresatms = builder.resatom_2_rotatom.shape[0]
+            resatom_2_rotatom[i, :nresatoms] = builder.resatom_2_rotatom
+        return resatom_2_rotatom
+
+    @classmethod
+    def bonds_from_builders(cls, builders, max_rotamer_natoms):
+        bonds = torch.zeros(
+            (len(builders), max_rotamer_natoms, max_rotamer_natoms), dtype=torch.long
+        )
+        for i, builder in enumerate(builders):
+            natoms = builder.natoms
+            bonds[i, :natoms, :natoms] = builder.bonds
+        return bonds
+
+    @classmethod
+    def is_backbone_from_builders(cls, builders, max_rotamer_atoms):
+        is_backbone_atom = torch.zeros(
+            (len(builders), max_rotamer_natoms), dtype=torch.long
+        )
+        for i, builder in enumerate(builders):
+            natoms = builder.natoms
+            is_backbone_atom[i, :natoms] = builder.is_backbone_atom
+        return is_backbone_atom
+
+    @classmethod
+    def n_bbats_from_builders(cls, builders):
+        return torch.tensor(
+            [len(b.backbone_atom_inds) for b in builders], dtype=torch.long
+        )
+
+    @classmethod
+    def bbats_from_builders(cls, builders):
+        max_n_backbone_atoms = max(
+            builder.backbone_atom_inds.shape[0] for builder in builders
+        )
+        backbone_atom_inds = torch.zeros(
+            (nbuilders, max_n_backbone_atoms), dtype=torch.long
+        )
+        for i, builder in enumerate(builders):
+            nbb = builder.backbone_atom_inds.shape[0]
+            backbone_atom_inds[i, :nbb] = builder.backbone_atom_inds
+        return backbone_atom_inds
+
+    @classmethod
+    def sidechain_roots_from_builders(cls, builders):
+        return torch.stack(tuple(builder.sidechain_root for builder in builders))
+
+    @classmethod
+    def sidechain_dfs_from_builders(cls, builders, max_rotamer_natoms):
+        sidechain_dfs = torch.full(
+            (nbuilders, max_rotamer_natoms), -1, dtype=torch.long
+        )
+        for i, builder in enumerate(builders):
+            natoms = builder.natoms
+            sidechain_dfs[i, :natoms] = builder.sidechain_dfs
+        return sidechain_dfs
+
+    @classmethod
+    def from_restypes(
+        cls, chem_db: ChemicalDatabase, restypes: Tuple[ResidueType, ...]
+    ):
+        n_restypes = len(restypes)
+        builders = [
+            SingleSidechainBuilder.from_restype(chem_db, rt, sc)
+            for rt in restypes
+            for sc in range(len(rt.sidechain_building))
+        ]
+        nbuilders = len(builders)
+
+        n_sc_for_restype = cls.n_sc_from_restypes(restypes)
+        n_atoms = cls.natoms_from_builders(builders)
+
+        max_rotamer_natoms = torch.max(n_atoms)
+        max_restype_natoms = max(
+            builder.resatom_2_rotatom.shape[0] for builder in builders
+        )
+
+        vconn_inds = cls.vconn_inds_from_builders(builders)
+
+        rotatom_2_resatom = cls.rot2res_from_builders(builders, max_rotamer_natoms)
+        resatom_2_rotatom = cls.res2rot_from_builders(builders, max_restype_natoms)
+        bonds = cls.bonds_from_builders(builders, max_rotamer_natoms)
+        is_backbone_atom = cls.is_backbone_from_builders(builders, max_rotamer_natoms)
+        n_backbone_atoms = cls.n_bbats_from_builders(builders)
+
+        backbone_atom_inds = cls.bbats_from_builders(builders)
+        sidechain_roots = cls.sidechain_roots_from_builders(builders)
+        sidechain_dfs = cls.sidechain_dfs_from_builders(nbuilders, max_rotamer_natoms)
+        atom_icoors = torch.zeros((nbuilders, max_rotamer_natoms), dtype=torch.float)
+        atom_ancestors = torch.zeros((nbuilders, max_rotamer_natoms), dtype=torch.float)
