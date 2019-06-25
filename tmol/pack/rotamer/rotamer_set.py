@@ -215,7 +215,6 @@ class SingleSidechainBuilder:
         chi_that_spins_atom[last_chi_ats] = torch.arange(
             len(last_chi_ats), dtype=torch.long
         )
-        chi_that_spins_atom = chi_that_spins_atom[res2rot]
         for i, at in enumerate(names):
             for j, (last, sectolast) in enumerate(
                 zip(last_chi_ats, second_to_last_chi_ats)
@@ -235,6 +234,7 @@ class SingleSidechainBuilder:
             last_chi_ats[chi_that_spins_atom[chi_that_spins_atom != -1]], 0
         ]
         atom_icoors = atom_icoors[rot2res]
+        chi_that_spins_atom = chi_that_spins_atom[rot2res]
 
         sidechain_root = torch.full((3,), -1, dtype=torch.long)
         sc_root_name = restype.sidechain_building[sidechain].root
@@ -252,8 +252,8 @@ class SingleSidechainBuilder:
 
         sidechain_dfs = torch.cat(
             (
-                torch.tensor(nonsc_kept, dtype=torch.long),
-                torch.tensor(dfs_ind, dtype=torch.long),
+                res2rot[torch.tensor(nonsc_kept, dtype=torch.long)],
+                res2rot[torch.tensor(dfs_ind, dtype=torch.long)],
             ),
             dim=0,
         )
