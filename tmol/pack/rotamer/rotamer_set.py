@@ -34,12 +34,19 @@ class SingleSidechainBuilder:
     sidechain: int
 
     # how many atoms are built for this sidechain group?
-    # it may be only a subset of the atoms for the residue
+    # it may be only a subset of the atoms for the residue;
+    # it may also include the "down" or "up" atoms as virtuals
     natoms: int
+    # the virtual connection atom indices, if present
+    # position 0: the "down" atom
+    # position 1: the "up" atom
+    vconn_inds: Tensor(int)[2]
 
     # mapping of atoms built for this rotamer to the indices in the ResidueType
+    # -1 for atoms that are not part of the residue
     rotatom_2_resatom: Tensor(int)[:]
     # mapping of the atoms of the original ResidueType to the indices in this rotamer
+    # -1 for virtual connection atoms
     resatom_2_rotatom: Tensor(int)[:]
 
     # the bond matrix for the atoms that are built for this sidechain
@@ -86,11 +93,22 @@ class SingleSidechainBuilder:
         for ai, bi in restype.bond_indices:
             bonds[ai, bi] = 1
 
-        bbats = restype.sidechain_building[sidechain].backbone_atoms
+        # disconnect any cycles with the backbone that the residue type might have
+        sc_building = restype.sidechain_building[sidechain]
+        for aname, bname in sc_building.exclude_bonds:
+            ai = restype.atom_to_idx[aname]
+            bi = restype.atom_to_idx[bname]
+            bonds[ai, bi] = 0
+            bonds[bi, ai] = 0
+
+        bbats = sc_building.backbone_atoms
+        vconn_present = [(1 if "down" in bbats else 0), (1 if "up" in bbats else 0)]
+
         keep = numpy.zeros(natoms, dtype=int)
         nonsc = []
 
-        for bbat in [restype.atom_to_idx[at] for at in bbats]:
+        names = [at.name for at in restype.atoms]
+        for bbat in [restype.atom_to_idx[at] for at in bbats if at in names]:
             keep[bbat] = 1
             nonsc.append(bbat)
             for other in range(natoms):
@@ -104,16 +122,24 @@ class SingleSidechainBuilder:
                     if atype.element == "H":
                         keep[other] = 1
                         nonsc.append(other)
+        nonsc_set = set(nonsc)
         sc_root_at = restype.sidechain_building[sidechain].root
         root = restype.atom_to_idx[sc_root_at]
         for other in range(natoms):
             if bonds[root, other] and keep[other]:
                 bonds[root, other] = 0
                 bonds[other, root] = 0
-        dfs_ind, dfs_parent = scipy.sparse.csgraph.depth_first_order(bonds, root)
-        for ind in dfs_ind:
-            keep[ind] = 1
-        return keep, nonsc, dfs_ind
+        bfs_ind, bfs_parent = scipy.sparse.csgraph.breadth_first_order(bonds, root)
+        for ind in bfs_ind:
+            # if the sidechain wraps around and is chemically bonded to
+            # the backbone, then we have a problem; temporarily, what we'll
+            # do is just not include the backbone atoms into the sidechain
+            # build order; the more general form of this will be to
+            # disconnect the sidechain from the backbone at a particular
+            # bond before the BFS begins
+            if ind not in nonsc_set:
+                keep[ind] = 1
+        return keep, nonsc, vconn_present, bfs_ind
 
     @classmethod
     def from_restype(
@@ -123,13 +149,15 @@ class SingleSidechainBuilder:
         # which atoms should be included?
         # It should be everything reachable by a DFS from the sidechain
         # root
-        keep, nonsc_kept, dfs_ind = cls.determine_atoms_in_sidechain_group(
-            chem_db, restype, sidechain
-        )
+        tmp = cls.determine_atoms_in_sidechain_group(chem_db, restype, sidechain)
+        keep, nonsc_kept, vconn_present, dfs_ind = tmp
 
+        names = [atom.name for atom in restype.atoms]
         natoms = len(restype.atoms)
-        n_rotamer_atoms = sum(keep)
-        rot2res = torch.zeros((n_rotamer_atoms,), dtype=torch.long)
+
+        n_real_rotamer_atoms = sum(keep)
+        n_rotamer_atoms = n_real_rotamer_atoms + sum(vconn_present)
+        rot2res = torch.full((n_rotamer_atoms,), -1, dtype=torch.long)
         res2rot = torch.full((natoms,), -1, dtype=torch.long)
         count = 0
         for i, keep_i in enumerate(keep):
@@ -138,11 +166,22 @@ class SingleSidechainBuilder:
                 rot2res[count] = i
                 count += 1
 
+        rot2res_real = rot2res[rot2res != -1]
+
+        vconn_inds = torch.full((2,), -1, dtype=torch.long)
+        vcount = 0
+        for i, present in enumerate(vconn_present):
+            if present:
+                vconn_inds[i] = int(n_real_rotamer_atoms + vcount)
+                vcount += 1
+
         bonds = numpy.zeros((natoms, natoms), dtype=int)
         for ai, bi in restype.bond_indices:
             bonds[ai, bi] = 1
-        bonds = bonds[rot2res, :]
-        bonds = bonds[:, rot2res]
+        bonds = bonds[rot2res_real, :]
+        bonds = bonds[:, rot2res_real]
+        rotamer_bonds = numpy.zeros((n_rotamer_atoms, n_rotamer_atoms), dtype=int)
+        rotamer_bonds[:n_real_rotamer_atoms, :n_real_rotamer_atoms] = bonds
 
         # sort the chi of the restypes to be ascending
         chi = sorted(
@@ -153,12 +192,14 @@ class SingleSidechainBuilder:
 
         is_backbone_atom = torch.zeros((n_rotamer_atoms), dtype=torch.int)
         bbats = restype.sidechain_building[sidechain].backbone_atoms
-        backbone_atom_inds = numpy.zeros(len(bbats), dtype=int)
         backbone_atom_inds = torch.tensor(
-            [restype.atom_to_idx[at] for at in bbats], dtype=torch.long
+            [restype.atom_to_idx[at] for at in bbats if at in names], dtype=torch.long
         )
         backbone_atom_inds_rot = res2rot[backbone_atom_inds]
         is_backbone_atom[backbone_atom_inds] = 1
+        for i in range(2):
+            if vconn_inds[i] != -1:
+                is_backbone_atom[vconn_inds] = 1
 
         ideal_dofs = torch.zeros((natoms, 3), dtype=torch.float)
         # dofs in order:
@@ -169,7 +210,6 @@ class SingleSidechainBuilder:
         icoor_df = pandas.DataFrame(list(cattr.unstructure(restype.icoors))).set_index(
             "name"
         )
-        names = [atom.name for atom in restype.atoms]
 
         par = torch.tensor(
             [restype.atom_to_idx[p] for p in icoor_df.loc[names]["parent"]],
@@ -191,14 +231,17 @@ class SingleSidechainBuilder:
 
         def slide_neg1(t):
             t_rot = torch.full_like(t, -1)
-            t_rot[t != -1] = res2rot[t != -1]
-            return t_rot[rot2res]
+            t_rot[t != -1] = res2rot[t[t != -1]]
+            t_rot = t_rot[rot2res_real]
+            t_rot_return = torch.full((n_rotamer_atoms,), -1, dtype=torch.long)
+            t_rot_return[:n_real_rotamer_atoms] = t_rot
+            return t_rot_return
 
         par_rot = slide_neg1(par)
         gpar_rot = slide_neg1(gpar)
         ggpar_rot = slide_neg1(ggpar)
 
-        atom_ancestors_rot = torch.stack((par_rot, gpar_rot, ggpar_rot), dim=0)
+        atom_ancestors_rot = torch.stack((par_rot, gpar_rot, ggpar_rot), dim=1)
 
         # chi spins the torsion for an atom if it is the last atom
         # atom for that chi or if its great-grand-parent is the last
@@ -233,8 +276,13 @@ class SingleSidechainBuilder:
         atom_icoors[chi_that_spins_atom != -1, 0] -= atom_icoors[
             last_chi_ats[chi_that_spins_atom[chi_that_spins_atom != -1]], 0
         ]
-        atom_icoors = atom_icoors[rot2res]
-        chi_that_spins_atom = chi_that_spins_atom[rot2res]
+        atom_icoors = atom_icoors[rot2res_real]
+        atom_icoors_rotamer = torch.zeros((n_rotamer_atoms, 3), dtype=torch.float)
+        atom_icoors_rotamer[:n_real_rotamer_atoms, :] = atom_icoors
+        chi_that_spins_atom = chi_that_spins_atom[rot2res_real]
+        tmp = chi_that_spins_atom
+        chi_that_spins_atom = torch.full((n_rotamer_atoms,), -1, dtype=torch.long)
+        chi_that_spins_atom[:n_real_rotamer_atoms] = tmp
 
         sidechain_root = torch.full((3,), -1, dtype=torch.long)
         sc_root_name = restype.sidechain_building[sidechain].root
@@ -291,21 +339,22 @@ class SingleSidechainBuilder:
             restype_name=restype.name,
             sidechain=sidechain,
             natoms=n_rotamer_atoms,
+            vconn_inds=vconn_inds,
             rotatom_2_resatom=rot2res,
             resatom_2_rotatom=res2rot,
-            bonds=bonds,
+            bonds=rotamer_bonds,
             is_backbone_atom=is_backbone_atom,
             backbone_atom_inds=backbone_atom_inds_rot,
             sidechain_root=sidechain_root,
             sidechain_dfs=sidechain_dfs,
-            atom_icoors=atom_icoors,
+            atom_icoors=atom_icoors_rotamer,
             atom_ancestors=atom_ancestors_rot,
             chi_that_spins_atom=chi_that_spins_atom,
         )
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class AASidechainBuilders:
+class SidechainBuilders:
     mapper: pandas.Index  # from restype name to the parameters that build it
     is_backbone_atom: Tensor(int)[:, :]
     backbone_atom_inds: Tensor(int)[:, :]

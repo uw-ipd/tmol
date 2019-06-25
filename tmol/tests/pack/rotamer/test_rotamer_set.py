@@ -8,9 +8,10 @@ import attr
 def test_sidechain_builder_determine_sidechain_group(default_database):
     reader = ResidueReader.get_default()
     arg_restype = reader.residue_types["ARG"][0]
-    keep, nonsc, dfs_inds = SingleSidechainBuilder.determine_atoms_in_sidechain_group(
+    temp = SingleSidechainBuilder.determine_atoms_in_sidechain_group(
         default_database.chemical, arg_restype, 0
     )
+    keep, nonsc, vconn_present, dfs_inds = temp
 
 
 def test_aa_sidechain_builder(default_database):
@@ -20,7 +21,14 @@ def test_aa_sidechain_builder(default_database):
         default_database.chemical, arg_restype, 0
     )
 
-    assert arg_builder.natoms == len(arg_restype.atoms)
+    assert arg_builder.natoms == len(arg_restype.atoms) + 2
+    assert arg_builder.natoms == arg_builder.rotatom_2_resatom.shape[0]
+    assert arg_builder.natoms == arg_builder.bonds.shape[0]
+    assert arg_builder.natoms == arg_builder.bonds.shape[1]
+    assert arg_builder.natoms == arg_builder.is_backbone_atom.shape[0]
+    assert arg_builder.natoms == arg_builder.atom_icoors.shape[0]
+    assert arg_builder.natoms == arg_builder.atom_ancestors.shape[0]
+    assert arg_builder.natoms == arg_builder.chi_that_spins_atom.shape[0]
 
     chi_for_ats = {
         "CG": 0,
@@ -39,11 +47,14 @@ def test_aa_sidechain_builder(default_database):
         moving_chi = chi_for_ats.get(at.name, -1)
         assert moving_chi == arg_builder.chi_that_spins_atom[i]
 
-    bbats = set(["N", "CA", "C", "O"])
+    bbats = arg_restype.sidechain_building[0].backbone_atoms
     for i, at in enumerate(arg_restype.atoms):
         assert arg_builder.is_backbone_atom[i] == (at.name in bbats)
         if at.name in bbats:
             assert i in arg_builder.backbone_atom_inds
+
+    assert arg_builder.is_backbone_atom[arg_builder.vconn_inds[0]]
+    assert arg_builder.is_backbone_atom[arg_builder.vconn_inds[1]]
 
     assert arg_builder.sidechain_root.shape[0] == 3
     assert arg_builder.sidechain_root[0] == arg_restype.atom_to_idx["CB"]
@@ -59,7 +70,9 @@ def test_aa_sidechain_builder_w_missing_ats(default_database):
     arg_restype = reader.residue_types["ARG"][0]
     arg_restype2 = attr.evolve(
         arg_restype,
-        sidechain_building=[SidechainBuilding(root="CB", backbone_atoms=["N", "CA"])],
+        sidechain_building=[
+            SidechainBuilding(root="CB", backbone_atoms=["N", "CA"], exclude_bonds=[])
+        ],
     )
 
     arg_builder = SingleSidechainBuilder.from_restype(
@@ -99,3 +112,8 @@ def test_aa_sidechain_builder_w_missing_ats(default_database):
 
     # for resname, restype in reader.residue_types.items():
     #    pass
+
+
+def test_aa_sidechain_builder_proline(default_database):
+    reader = ResidueReader.get_default()
+    pro_restype = reader.residue_types["PRO"][0]
