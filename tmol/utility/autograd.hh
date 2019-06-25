@@ -4,6 +4,8 @@
 #include <torch/csrc/autograd/saved_variable.h>
 #include <torch/types.h>
 
+#include <tmol/utility/nvtx.hh>
+
 namespace tmol {
 namespace utility {
 
@@ -168,6 +170,7 @@ struct SavedGradsBackward : public torch::autograd::Function {
   }
 
   variable_list apply(variable_list&& in_grads) override {
+    NVTXRange("SavedGradsBackward");
     AT_CHECK(
         in_grads.size() == 1,
         "SavedGradsBackward only supports single input gradient.");

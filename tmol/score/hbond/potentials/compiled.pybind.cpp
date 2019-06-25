@@ -2,7 +2,7 @@
 #include <tmol/utility/tensor/pybind.h>
 #include <torch/extension.h>
 
-#include <tmol/score/common/dispatch.hh>
+#include <tmol/score/common/simple_dispatch.hh>
 #include <tmol/score/hbond/potentials/dispatch.hh>
 #include <tmol/utility/function_dispatch/pybind.hh>
 
@@ -16,19 +16,19 @@ void bind_dispatch(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace tmol::utility::function_dispatch;
 
-#define HBOND_PYARGS()                                                       \
-  "D"_a, "H"_a, "donor_type"_a, "A"_a, "B"_a, "B0"_a, "acceptor_type"_a,     \
-      "acceptor_hybridization"_a, "acceptor_weight"_a, "donor_weight"_a,     \
-      "AHdist_coeffs"_a, "AHdist_range"_a, "AHdist_bound"_a,                 \
-      "cosBAH_coeffs"_a, "cosBAH_range"_a, "cosBAH_bound"_a,                 \
-      "cosAHD_coeffs"_a, "cosAHD_range"_a, "cosAHD_bound"_a,                 \
-      "hb_sp2_range_span"_a, "hb_sp2_BAH180_rise"_a, "hb_sp2_outer_width"_a, \
+#define HBOND_PYARGS()                                                         \
+  "donor_coors"_a, "acceptor_coords"_a, "D"_a, "H"_a, "donor_type"_a, "A"_a,   \
+      "B"_a, "B0"_a, "acceptor_type"_a, "acceptor_hybridization"_a,            \
+      "acceptor_weight"_a, "donor_weight"_a, "AHdist_coeffs"_a,                \
+      "AHdist_range"_a, "AHdist_bound"_a, "cosBAH_coeffs"_a, "cosBAH_range"_a, \
+      "cosBAH_bound"_a, "cosAHD_coeffs"_a, "cosAHD_range"_a, "cosAHD_bound"_a, \
+      "hb_sp2_range_span"_a, "hb_sp2_BAH180_rise"_a, "hb_sp2_outer_width"_a,   \
       "hb_sp3_softmax_fade"_a, "threshold_distance"_a
 
   add_dispatch_impl<Dev, Real>(
       m,
       "hbond_pair_score",
-      &HBondDispatch<common::NaiveDispatch, Dev, Real, int32_t>::f,
+      &HBondDispatch<common::AABBDispatch, Dev, Real, int32_t>::f,
       HBOND_PYARGS());
 };
 

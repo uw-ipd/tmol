@@ -1,8 +1,6 @@
 import toolz
 
-import numpy
 import pandas
-
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
@@ -22,33 +20,8 @@ def hbond_score_comparison(rosetta_baseline):
 
     # Extract list of hbonds from packed system into summary table
     # via atom metadata
-    hbond_descr = hbond_graph.intra_score().hbond_descr
-    h_i = hbond_descr.donor.H
-    a_i = hbond_descr.acceptor.A
-    tmol_candidate_hbonds = pandas.DataFrame.from_dict(
-        toolz.merge(
-            {
-                "h_res": test_system.atom_metadata["residue_index"][h_i],
-                "h_atom": test_system.atom_metadata["atom_name"][h_i],
-                "a_res": test_system.atom_metadata["residue_index"][a_i],
-                "a_atom": test_system.atom_metadata["atom_name"][a_i],
-                "score": numpy.nan_to_num(hbond_graph.intra_score().hbond_descr.score),
-            },
-            {
-                "d": hbond_descr.donor.D,
-                "h": hbond_descr.donor.H,
-                "a": hbond_descr.acceptor.A,
-                "b": hbond_descr.acceptor.B,
-                "b0": hbond_descr.acceptor.B0,
-            },
-        )
-    ).set_index(["a", "h"])
-    tmol_hbonds = tmol_candidate_hbonds.query("score != 0")
+    tmol_hbond_total = hbond_graph.intra_score().total_hbond
 
-    del h_i, a_i
-
-    # Merge with named atom index to get atom indicies in packed system
-    # hbonds columns: ["a_atom", "a_res", "h_atom", "h_res", "energy"]
     named_atom_index = pandas.DataFrame(test_system.atom_metadata).set_index(
         ["residue_index", "atom_name"]
     )["atom_index"]
@@ -68,51 +41,14 @@ def hbond_score_comparison(rosetta_baseline):
         )
     ).set_index(["a", "h"])
 
-    return pandas.merge(
-        rosetta_hbonds["energy"].to_frame("score_rosetta"),
-        tmol_hbonds.rename(columns={"score": "score_tmol"}),
-        left_index=True,
-        right_index=True,
-        how="outer",
-    )
+    return tmol_hbond_total, rosetta_hbonds
 
 
 def test_pyrosetta_hbond_comparison(ubq_rosetta_baseline):
-    score_comparison = hbond_score_comparison(ubq_rosetta_baseline)
+    # score_comparison = hbond_score_comparison(ubq_rosetta_baseline)
 
-    score_comparison["score_delta"] = score_comparison.eval(
-        "abs(score_tmol - score_rosetta)"
-    )
-    score_comparison["score_rel_delta"] = score_comparison.eval(
-        "abs((score_tmol - score_rosetta) / ((score_tmol + score_rosetta) / 2))"
-    )
-    score_comparison = (
-        score_comparison.sort_values(by="score_rel_delta")
-        .rename(
-            columns={
-                "h_res": "res_h",
-                "h_atom": "atom_h",
-                "a_res": "res_a",
-                "a_atom": "atom_a",
-            }
-        )
-        .reset_index()
-        .drop(columns=["a", "h", "b0", "b", "d"])
-        .sort_index(axis="columns")
-    )
+    tmol_hbtot, rosetta_hbs = hbond_score_comparison(ubq_rosetta_baseline)
 
-    inter_hbonds = score_comparison.query("res_h != res_a")
-    numpy.testing.assert_allclose(
-        numpy.nan_to_num(inter_hbonds["score_rosetta"].values),
-        numpy.nan_to_num(inter_hbonds["score_tmol"].values),
-        rtol=1e-4,
-        err_msg=f"Mismatched bb hbond identification:\n{inter_hbonds}\n\n",
-    )
-
-    intra_hbonds = score_comparison.query("res_h == res_a")
-    assert len(intra_hbonds) > 0
-    numpy.testing.assert_allclose(
-        numpy.full_like(intra_hbonds["score_tmol"].values, numpy.nan),
-        intra_hbonds["score_rosetta"].values,
-        err_msg=f"Intra-res bb hbond identification:\n{intra_hbonds}\n\n",
-    )
+    thr14_intra_hbE = -0.0828936
+    # rosetta3 doesn't report intraresidue hbonds
+    assert abs(sum(rosetta_hbs["energy"]) + thr14_intra_hbE - tmol_hbtot) < 2e-5

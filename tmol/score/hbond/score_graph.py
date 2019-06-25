@@ -11,9 +11,10 @@ from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
 from .identification import HBondElementAnalysis
-from .params import HBondParamResolver
+from .params import HBondParamResolver, CompactedHBondDatabase
 
-from .torch_op import HBondOp
+# from .torch_op import HBondOp
+from .script_modules import HBondIntraModule
 
 from tmol.database import ParameterDatabase
 from tmol.database.scoring import HBondDatabase
@@ -43,21 +44,6 @@ class HBondAcceptorIndices(TensorGroup):
 
 
 @attr.s(auto_attribs=True)
-class HBondDonorCoords(TensorGroup):
-    D: Tensor("f")[..., 3]
-    H: Tensor("f")[..., 3]
-    donor_type: Tensor("i4")[...]
-
-
-@attr.s(auto_attribs=True)
-class HBondAcceptorCoords(TensorGroup):
-    A: Tensor("f")[..., 3]
-    B: Tensor("f")[..., 3]
-    B0: Tensor("f")[..., 3]
-    acceptor_type: Tensor("i4")[...]
-
-
-@attr.s(auto_attribs=True)
 class HBondDescr(TensorGroup):
     donor: HBondDonorIndices
     acceptor: HBondAcceptorIndices
@@ -68,33 +54,25 @@ class HBondDescr(TensorGroup):
 class HBondIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def total_hbond(hbond):
+    def total_hbond(target, hbond_score):
         """total hbond score"""
-        score_ind, score_val = hbond
-        return score_val.sum()
+        # print("hbond_score", hbond_score[0])
+        return hbond_score[0]
 
     @reactive_property
     @validate_args
-    def hbond(target):
-        return target.hbond_op.score(
-            target.hbond_donor_coords.D[0],
-            target.hbond_donor_coords.H[0],
-            target.hbond_donor_coords.donor_type,
-            target.hbond_acceptor_coords.A[0],
-            target.hbond_acceptor_coords.B[0],
-            target.hbond_acceptor_coords.B0[0],
-            target.hbond_acceptor_coords.acceptor_type,
-        )
-
-    @reactive_property
-    @validate_args
-    def hbond_descr(target, hbond) -> HBondDescr:
-        """All hbond pairs, in order of "sp2"/"sp3"/"ring"."""
-        (di, ai), score = hbond
-        return HBondDescr(
-            donor=target.hbond_donor_indices[di],
-            acceptor=target.hbond_acceptor_indices[ai],
-            score=score,
+    def hbond_score(target):
+        coords = target.coords[0]
+        return target.hbond_intra_module(
+            coords,
+            coords,
+            target.hbond_donor_indices.D,
+            target.hbond_donor_indices.H,
+            target.hbond_donor_indices.donor_type,
+            target.hbond_acceptor_indices.A,
+            target.hbond_acceptor_indices.B,
+            target.hbond_acceptor_indices.B0,
+            target.hbond_acceptor_indices.acceptor_type,
         )
 
 
@@ -150,10 +128,22 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     @validate_args
-    def hbond_op(
-        hbond_database: HBondDatabase, hbond_param_resolver: HBondParamResolver
-    ) -> HBondOp:
-        return HBondOp.from_database(hbond_database, hbond_param_resolver)
+    def compacted_hbond_database(
+        parameter_database: ParameterDatabase,
+        hbond_database: HBondDatabase,
+        device: torch.device,
+    ) -> CompactedHBondDatabase:
+        "two-tensor representation of hbond parameters on the device"
+        return CompactedHBondDatabase.from_database(
+            parameter_database.chemical, hbond_database, device
+        )
+
+    @reactive_property
+    @validate_args
+    def hbond_intra_module(
+        compacted_hbond_database: CompactedHBondDatabase
+    ) -> HBondIntraModule:
+        return HBondIntraModule(compacted_hbond_database)
 
     @reactive_property
     @validate_args
@@ -210,30 +200,3 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         )
 
         return HBondAcceptorIndices(A=A, B=B, B0=B0, acceptor_type=acceptor_type)
-
-    @reactive_property
-    @validate_args
-    def hbond_donor_coords(
-        coords: torch.Tensor, hbond_donor_indices: HBondDonorIndices
-    ) -> HBondDonorCoords:
-        """hbond donor coordinates and type indicies."""
-
-        i = hbond_donor_indices
-        return HBondDonorCoords(
-            donor_type=i.donor_type, D=coords[:, i.D], H=coords[:, i.H]
-        )
-
-    @reactive_property
-    @validate_args
-    def hbond_acceptor_coords(
-        coords: torch.Tensor, hbond_acceptor_indices: HBondAcceptorIndices
-    ) -> HBondAcceptorCoords:
-        """hbond acceptor coordinates and type indicies."""
-
-        i = hbond_acceptor_indices
-        return HBondAcceptorCoords(
-            acceptor_type=i.acceptor_type,
-            A=coords[:, i.A],
-            B=coords[:, i.B],
-            B0=coords[:, i.B0],
-        )

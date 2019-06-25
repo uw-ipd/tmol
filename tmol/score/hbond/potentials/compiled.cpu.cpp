@@ -1,4 +1,4 @@
-#include <tmol/score/common/dispatch.cpu.impl.hh>
+#include <tmol/score/common/simple_dispatch.cpu.impl.hh>
 
 #include "dispatch.impl.hh"
 
@@ -6,23 +6,9 @@ namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
-#define declare_dispatch(Real, Int)                                           \
-  template struct HBondDispatch<NaiveDispatch, tmol::Device::CPU, Real, Int>; \
-  template struct HBondDispatch<                                              \
-      NaiveTriuDispatch,                                                      \
-      tmol::Device::CPU,                                                      \
-      Real,                                                                   \
-      Int>;                                                                   \
-  template struct HBondDispatch<                                              \
-      ExhaustiveDispatch,                                                     \
-      tmol::Device::CPU,                                                      \
-      Real,                                                                   \
-      Int>;                                                                   \
-  template struct HBondDispatch<                                              \
-      ExhaustiveTriuDispatch,                                                 \
-      tmol::Device::CPU,                                                      \
-      Real,                                                                   \
-      Int>;
+#define declare_dispatch(Real, Int)                                          \
+  template struct HBondDispatch<AABBDispatch, tmol::Device::CPU, Real, Int>; \
+  template struct HBondDispatch<AABBTriuDispatch, tmol::Device::CPU, Real, Int>;
 
 declare_dispatch(float, int32_t);
 declare_dispatch(double, int32_t);

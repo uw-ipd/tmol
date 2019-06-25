@@ -7,7 +7,6 @@
 #include <tmol/utility/tensor/TensorPack.h>
 
 #include <tmol/score/common/geom.hh>
-
 #include "lj.hh"
 #include "params.hh"
 
