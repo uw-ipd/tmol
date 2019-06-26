@@ -1,5 +1,5 @@
 import numpy
-from tmol.pack.rotamer.rotamer_set import SingleSidechainBuilder
+from tmol.pack.rotamer.rotamer_set import SingleSidechainBuilder, SidechainBuilders
 from tmol.system.io import ResidueReader
 from tmol.database.chemical import SidechainBuilding
 import attr
@@ -122,4 +122,28 @@ def test_aa_sidechain_builder_proline(default_database):
         default_database.chemical, pro_restype, 0
     )
 
+    # make sure that the DFS does not trace through the backbone a
+    # second time;
     assert pro_builder.sidechain_dfs.shape[0] == pro_builder.natoms
+    assert len(set(list(pro_builder.sidechain_dfs))) == pro_builder.natoms
+
+
+def test_aa_sidechain_builder_glycine(default_database):
+    reader = ResidueReader.get_default()
+    gly_restype = reader.residue_types["GLY"][0]
+    gly_builder = SingleSidechainBuilder.from_restype(
+        default_database.chemical, gly_restype, 0
+    )
+
+    # make sure that the DFS starting at CA (a backbone atom)
+    # doesn't mean CA ends up getting listed twice.
+    assert gly_builder.sidechain_dfs.shape[0] == gly_builder.natoms
+    assert len(set(list(gly_builder.sidechain_dfs))) == gly_builder.natoms
+
+
+def test_sidechain_builders_ctor_smoke(default_database):
+    reader = ResidueReader.get_default()
+    sc_builders = SidechainBuilders.from_restypes(
+        default_database.chemical,
+        [rt for _, rtlist in reader.residue_types.items() for rt in rtlist],
+    )
