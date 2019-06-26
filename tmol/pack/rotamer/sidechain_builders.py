@@ -18,16 +18,6 @@ from tmol.score.dunbrack.params import exclusive_cumsum
 
 
 @attr.s(auto_attribs=True, frozen=True)
-class OneRestypeRotamerSet(ValidateAttrs):
-    rotamer_coords: Tensor(torch.float)[:, :, 3]
-    restype: ResidueType
-
-    @classmethod
-    def for_seqpos(cls, system: PackedResidueSystem, seqpos: int, target: ResidueType):
-        pass
-
-
-@attr.s(auto_attribs=True, frozen=True)
 class SingleSidechainBuilder(ValidateAttrs):
     """Describe how to build the coordinates of the rotamers
     for a single sidechain on a single residue; each residue

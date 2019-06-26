@@ -1,5 +1,8 @@
 import numpy
-from tmol.pack.rotamer.rotamer_set import SingleSidechainBuilder, SidechainBuilders
+from tmol.pack.rotamer.sidechain_builders import (
+    SingleSidechainBuilder,
+    SidechainBuilders,
+)
 from tmol.system.io import ResidueReader
 from tmol.database.chemical import SidechainBuilding
 import attr
