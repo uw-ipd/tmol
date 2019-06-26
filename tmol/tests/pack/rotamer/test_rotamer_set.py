@@ -26,6 +26,7 @@ def test_aa_sidechain_builder(default_database):
     assert arg_builder.natoms == arg_builder.bonds.shape[0]
     assert arg_builder.natoms == arg_builder.bonds.shape[1]
     assert arg_builder.natoms == arg_builder.is_backbone_atom.shape[0]
+    assert arg_builder.natoms == arg_builder.sidechain_dfs.shape[0]
     assert arg_builder.natoms == arg_builder.atom_icoors.shape[0]
     assert arg_builder.natoms == arg_builder.atom_ancestors.shape[0]
     assert arg_builder.natoms == arg_builder.chi_that_spins_atom.shape[0]
@@ -117,3 +118,8 @@ def test_aa_sidechain_builder_w_missing_ats(default_database):
 def test_aa_sidechain_builder_proline(default_database):
     reader = ResidueReader.get_default()
     pro_restype = reader.residue_types["PRO"][0]
+    pro_builder = SingleSidechainBuilder.from_restype(
+        default_database.chemical, pro_restype, 0
+    )
+
+    assert pro_builder.sidechain_dfs.shape[0] == pro_builder.natoms

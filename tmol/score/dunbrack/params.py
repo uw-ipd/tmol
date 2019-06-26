@@ -21,11 +21,11 @@ from tmol.numeric.bspline import BSplineInterpolation
 from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 
 
-def exclusive_cumsum(inds: Tensor(torch.int32)[:]) -> Tensor(torch.int32)[:]:
+def exclusive_cumsum(inds: Tensor) -> Tensor:
     return torch.cat(
         (
-            torch.tensor([0], dtype=torch.int32, device=inds.device),
-            torch.cumsum(inds, 0, dtype=torch.int32).narrow(0, 0, inds.shape[0] - 1),
+            torch.tensor([0], dtype=inds.dtype, device=inds.device),
+            torch.cumsum(inds, 0, dtype=inds.dtype).narrow(0, 0, inds.shape[0] - 1),
         )
     )
 

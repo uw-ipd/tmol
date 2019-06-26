@@ -14,6 +14,7 @@ from tmol.types.functional import validate_args
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.restypes import ResidueType
 from tmol.database import ChemicalDatabase
+from tmol.score.dunbrack.params import exclusive_cumsum
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -308,6 +309,7 @@ class SingleSidechainBuilder(ValidateAttrs):
         sidechain_dfs = torch.cat(
             (
                 res2rot[torch.tensor(nonsc_kept, dtype=torch.long)],
+                vconn_inds[vconn_inds != -1],
                 res2rot[torch.tensor(dfs_ind, dtype=torch.long)],
             ),
             dim=0,
@@ -469,6 +471,24 @@ class SidechainBuilders:
         return sidechain_dfs
 
     @classmethod
+    def atom_icoors_from_builders(cls, builders, max_rotamer_natoms):
+        atom_icoors = torch.zeros(
+            (len(builders), max_rotamer_natoms), dtype=torch.float
+        )
+        for i, builder in enumerate(builders):
+            natoms = builder.natoms
+            atom_icoors[i, :natoms] = builder.atom_icoors
+        return atom_icoors
+
+    @classmethod
+    def atom_ancestors_from_builders(cls, builder, max_rotamer_natoms):
+        atom_ancestors = torch.zeros((nbuilders, max_rotamer_natoms), dtype=torch.float)
+        for i, builder in enumerate(builders):
+            natoms = builder.natoms
+            atom_ancestors[i, :natoms] = builder.atom_ancestors
+        return atom_ancestors
+
+    @classmethod
     def from_restypes(
         cls, chem_db: ChemicalDatabase, restypes: Tuple[ResidueType, ...]
     ):
@@ -479,8 +499,10 @@ class SidechainBuilders:
             for sc in range(len(rt.sidechain_building))
         ]
         nbuilders = len(builders)
+        mapper = pandas.Index([rt.name for rt in restypes])
 
         n_sc_for_restype = cls.n_sc_from_restypes(restypes)
+        restype_offsets = exclusive_cumsum(n_sc_for_restype)
         n_atoms = cls.natoms_from_builders(builders)
 
         max_rotamer_natoms = torch.max(n_atoms)
@@ -498,6 +520,25 @@ class SidechainBuilders:
 
         backbone_atom_inds = cls.bbats_from_builders(builders)
         sidechain_roots = cls.sidechain_roots_from_builders(builders)
-        sidechain_dfs = cls.sidechain_dfs_from_builders(nbuilders, max_rotamer_natoms)
-        atom_icoors = torch.zeros((nbuilders, max_rotamer_natoms), dtype=torch.float)
-        atom_ancestors = torch.zeros((nbuilders, max_rotamer_natoms), dtype=torch.float)
+        sidechain_dfs = cls.sidechain_dfs_from_builders(builders, max_rotamer_natoms)
+        atom_icoors = cls.atom_icoors_from_builders(builders, max_rotamer_natoms)
+        atom_ancestors = cls.atom_ancestors_from_builders(builders, max_rotamer_natoms)
+
+        return cls(
+            mapper=mapper,
+            n_sc_for_restype=n_sc_for_restype,
+            restype_offsets=restype_offsets,
+            n_atoms=n_atoms,
+            vconn_inds=vconn_inds,
+            rotatom_2_resatom=rotatom_2_resatom,
+            resatom_2_rotatom=resatom_2_rotatom,
+            bonds=bonds,
+            is_backbone_atom=is_backbone_atom,
+            n_backbone_atoms=n_backbone_atoms,
+            backbone_atom_inds=backbone_atom_inds,
+            sidechain_roots=sidechain_roots,
+            sidechain_dfs=sidechain_dfs,
+            atom_icoors=atom_icoors,
+            atom_ancestors=atom_ancestors,
+            chi_that_spins_atom=chi_that_spins_atom,
+        )
