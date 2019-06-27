@@ -14,7 +14,7 @@ from tmol.optimization.modules import TorsionalEnergyNetwork
 
 
 @score_graph
-class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
+class TotalScore(KinematicAtomicCoordinateProvider, FastScoreGraph, TorchDevice):
     pass
 
 

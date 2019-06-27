@@ -68,51 +68,6 @@ def write_rotameric_data_for_aa(aa_lines, nchi, zgroup, rotamer_alias=None):
     rotamer_group.array("rotamer_alias", rotamer_alias)
 
 
-# def write_semi_rotameric_chi_table(
-#    indent, rotchi_ind, lines_for_rotchi, n_rotameric_chi, trailing_comma, out_lines
-# ):
-#    prob_start_col = 5 + 3 * n_rotameric_chi
-#    chi_prob_table = [[None for _a in range(36)] for _b in range(36)]
-#    for line in lines_for_rotchi:
-#        cols = line.split()
-#        phi_ind, psi_ind = (int(dihe) // 10 + 18 for dihe in cols[1:3])
-#        if phi_ind == 36 or psi_ind == 36:
-#            continue
-#        chi_prob_table[phi_ind][psi_ind] = cols[prob_start_col:]
-#    out_lines.append(
-#        "".join(
-#            [
-#                " " * indent,
-#                '{"rotameric_rot_index": %d, "probabilities":\n' % rotchi_ind,
-#            ]
-#        )
-#    )
-#    write_3d_table(indent + 1, chi_prob_table, False, out_lines)
-#    out_lines.append("".join([" " * indent, "}", "," if trailing_comma else ""]))
-
-
-# def write_semi_rotameric_rotamer_definition(
-#    indent, line, nchi, trailing_comma, output_lines
-# ):
-#    cols = line.split()
-#    output_lines.append(
-#        "".join(
-#            [
-#                " " * indent,
-#                '{"rotamer": [',
-#                ", ".join(cols[0:nchi]),
-#                '], "left": ',
-#                cols[6],
-#                ', "right": ',
-#                cols[8],
-#                "}",
-#                "," if trailing_comma else "",
-#                "\n",
-#            ]
-#        )
-#    )
-
-
 def strip_comments(lines):
     return [line for line in lines if (len(line) > 0 and line[0] != "#")]
 

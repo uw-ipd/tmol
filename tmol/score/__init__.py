@@ -36,6 +36,20 @@ class TotalScoreGraph(
 
 
 @score_graph.score_graph
+class FastScoreGraph(
+    ljlk.LJScoreGraph,
+    ljlk.LKScoreGraph,
+    lk_ball.LKBallScoreGraph,
+    hbond.HBondScoreGraph,
+    rama.RamaScoreGraph,
+    omega.OmegaScoreGraph,
+    cartbonded.CartBondedScoreGraph,
+    score_weights.ScoreWeights,  # per-term reweighing
+):
+    pass
+
+
+@score_graph.score_graph
 class KinematicTotalScoreGraph(
     coordinates.KinematicAtomicCoordinateProvider, TotalScoreGraph
 ):

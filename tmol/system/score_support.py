@@ -222,8 +222,6 @@ def dunbrack_graph_inputs(
         ],
         dtype=numpy.int32,
     )
-    # print("dun_chi1")
-    # print(dun_chi1)
 
     dun_chi2 = numpy.array(
         [
@@ -270,26 +268,12 @@ def dunbrack_graph_inputs(
         dtype=numpy.int32,
     )
 
-    # print("dun_chi1.shape",dun_chi.shape)
-    # print("dun_chi1.shape",dun_chi.shape)
-
     # merge the 4 chi tensors, sorting by residue index and chi index
     join_chi = numpy.concatenate((dun_chi1, dun_chi2, dun_chi3, dun_chi4), 0)
     chi_res = join_chi[:, 0]
     chi_inds = join_chi[:, 1]
     sort_inds = numpy.lexsort((chi_inds, chi_res))
-    # print("sort_inds")
-    # print(sort_inds.shape)
-    # print(sort_inds)
     dun_chi = join_chi[sort_inds, :]
-
-    numpy.set_printoptions(threshold=100000)
-    # print("dun_chi")
-    # print(dun_chi.shape)
-    # print(dun_chi)
-    # print("end dun chi")
-
-    # print(dun_chi)
 
     return dict(
         dun_phi=torch.tensor(dun_phi, dtype=torch.int32, device=device),

@@ -41,9 +41,6 @@ class RotamericDataForAA:
         )
         rotamer_alias = torch.tensor(rotgrp["rotamer_alias"][...], dtype=torch.int32)
 
-        # print("rotamer_alias")
-        # print(rotamer_alias)
-
         assert len(rotamers.shape) == 2
         assert bb_dihe_start.shape[0] == bb_dihe_step.shape[0]
         assert len(rot_probs.shape) == bb_dihe_start.shape[0] + 1

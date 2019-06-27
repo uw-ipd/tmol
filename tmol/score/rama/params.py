@@ -37,7 +37,7 @@ class PackedRamaDatabase(ConvertAttrs):
 class RamaParamResolver(ValidateAttrs):
     _from_rama_db_cache = {}
 
-    # respair -> table index mapping
+    # res -> table index mapping
     rama_lookup: pandas.DataFrame
 
     # rama tables (spline coeffs)
