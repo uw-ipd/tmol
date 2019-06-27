@@ -105,6 +105,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     bb_indices_gold = torch.tensor(
         [
             [[2, 3, 4, 5], [3, 3, 4, 5]],
+            [[3, 4, 5, 6], [4, 4, 5, 6]],
             [[4, 5, 6, 7], [5, 5, 6, 7]],
             [[6, 7, 8, 9], [7, 7, 8, 9]],
             [[7, 8, 9, 10], [8, 8, 9, 10]],
@@ -115,6 +116,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
     chi_indices_gold = torch.tensor(
         [
             [[3, 5, 7, 9], [5, 7, 9, 11], [-1, -1, -1, -1], [-1, -1, -1, -1]],
+            [[9, 11, 13, 15], [11, 13, 15, 17], [13, 15, 17, 19], [15, 17, 19, 21]],
             [[17, 19, 21, 23], [19, 21, 23, 25], [-1, -1, -1, -1], [-1, -1, -1, -1]],
             [[31, 33, 35, 37], [33, 35, 37, 39], [35, 36, 37, 39], [-1, -1, -1, -1]],
             [[41, 42, 43, 44], [42, 43, 44, 45], [43, 44, 45, 46], [-1, -1, -1, -1]],
@@ -122,7 +124,7 @@ def test_dun_param_resolver_construction(default_database, torch_device):
         dtype=torch.int32,
     )
 
-    aa_indices_gold = torch.tensor([12, 3, 11, 4], dtype=torch.int32)
+    aa_indices_gold = torch.tensor([12, 6, 3, 11, 4], dtype=torch.int32)
 
     assert (bb_indices_gold == dun_params.bb_indices.cpu()).all()
     assert (chi_indices_gold == dun_params.chi_indices.cpu()).all()

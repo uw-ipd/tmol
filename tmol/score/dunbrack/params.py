@@ -412,9 +412,9 @@ class DunbrackParamResolver(ValidateAttrs):
 
         aaidx = self.dun_lookup.index.get_indexer(res_names)
         taaidx = torch.tensor(
-            self.dun_lookup.iloc[aaidx[aaidx > 0], :]["aaidx"], dtype=torch.int32
+            self.dun_lookup.iloc[aaidx[aaidx >= 0], :]["aaidx"], dtype=torch.int32
         )
-        dun_defined = torch.from_numpy(aaidx) > 0
+        dun_defined = torch.from_numpy(aaidx) >= 0
 
         # 3) select subset where potentials are defined
         tbbidx = bbidx[dun_defined, :, :]

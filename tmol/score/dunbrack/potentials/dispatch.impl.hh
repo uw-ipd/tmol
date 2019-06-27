@@ -152,7 +152,7 @@ struct DunbrackDispatch {
                 rotameric_tables[rotprobtableidx + 1],
                 all_rottable_idxs.topRows(MAXBB));
         accumulate<D, Real>::add(V[0], common::get<0>(rotprobE));
-        printf("rotE: %f\n", common::get<0>(rotprobE));
+        // printf("rotE: %d %f\n", res, common::get<0>(rotprobE));
       } else {
         // compute the -ln(P) energy for semirotameric residues
         //    semiprobtableidx+0 is prob
@@ -161,7 +161,7 @@ struct DunbrackDispatch {
             ndspline<MAXBB + 1, 3, D, Real, Int>::interpolate(
                 semirotameric_tables[semiprobtableidx + 1], all_rottable_idxs);
         accumulate<D, Real>::add(V[2], common::get<0>(semirotprobE));
-        printf("semirotE: %f\n", common::get<0>(semirotprobE));
+        // printf("semirotE: %d %f\n", res, common::get<0>(semirotprobE));
       }
 
       // 4. compute the chi-deviation penalty
@@ -183,10 +183,10 @@ struct DunbrackDispatch {
         Real rotdev_i = common::get<0>(rotdev);
 
         rotdevE += rotdelta_i * rotdelta_i / (2 * rotdev_i * rotdev_i);
-        printf(
-            "devE [%d]: %f\n",
-            i,
-            rotdelta_i * rotdelta_i / (2 * rotdev_i * rotdev_i));
+        // printf(
+        //    "devE: %d %d: %f\n",
+        //    res, i,
+        //    rotdelta_i * rotdelta_i / (2 * rotdev_i * rotdev_i));
       }
       accumulate<D, Real>::add(V[1], (rotdevE));
     });
