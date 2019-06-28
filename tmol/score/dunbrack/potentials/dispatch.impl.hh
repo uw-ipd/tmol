@@ -33,7 +33,7 @@ template <
     typename Real,
     typename Int>
 struct DunbrackDispatch {
-  static auto f(
+  static auto forward(
       TView<Vec<Real, 3>, 1, D> coords,
 
       TView<Real, 3, D> rotameric_prob_tables,
@@ -90,11 +90,9 @@ struct DunbrackDispatch {
 
       )
       -> std::tuple<
-          TPack<Real, 1, D>,       // -ln(prob_rotameric)
+          TPack<Real, 1, D>,       // sum (energies) [rot, dev, semi]
           TPack<CoordQuad, 2, D>,  // d(-ln(prob_rotameric)) / dbb atoms
-          TPack<Real, 1, D>,       // Erotameric_chi_devpen
           TPack<CoordQuad, 2, D>,  // ddevpen_dtor_xyz -- nrotchi x (nbb+1)
-          TPack<Real, 1, D>,       // -ln(prob_nonrotameric)
           TPack<CoordQuad, 2, D>>  // d(-ln(prob_nonrotameric)) / dtor --
                                    // nsemirot-res x 3
   {
@@ -104,24 +102,29 @@ struct DunbrackDispatch {
     Int const n_semirotameric_res(semirotameric_chi_desc.size(0));
     Int const n_dihedrals(dihedral_atom_inds.size(0));
 
-    auto neglnprob_rot_tpack = TPack<Real, 1, D>::zeros(n_rotameric_res);
+    auto V_tpack = TPack<Real, 1, D>::zeros({3});
+    auto V = V_tpack.view;
+
+    // auto neglnprob_rot_tpack = TPack<Real, 1, D>::zeros(n_rotameric_res);
     auto dneglnprob_rot_dbb_xyz_tpack =
         TPack<CoordQuad, 2, D>::zeros({n_rotameric_res, 2});
 
-    auto rotchi_devpen_tpack = TPack<Real, 1, D>::zeros(n_rotameric_chi);
+    // auto rotchi_devpen_tpack = TPack<Real, 1, D>::zeros(n_rotameric_chi);
     auto drotchi_devpen_dtor_xyz_tpack =
         TPack<CoordQuad, 2, D>::zeros({n_rotameric_chi, 3});
 
-    auto neglnprob_nonrot_tpack = TPack<Real, 1, D>::zeros(n_semirotameric_res);
+    // auto neglnprob_nonrot_tpack = TPack<Real, 1,
+    // D>::zeros(n_semirotameric_res);
     auto dneglnprob_nonrot_dtor_xyz_tpack =
         TPack<CoordQuad, 2, D>::zeros({n_semirotameric_res, 3});
-    auto neglnprob_rot = neglnprob_rot_tpack.view;
+
+    // auto neglnprob_rot = neglnprob_rot_tpack.view;
     auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_tpack.view;
 
-    auto rotchi_devpen = rotchi_devpen_tpack.view;
+    // auto rotchi_devpen = rotchi_devpen_tpack.view;
     auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_tpack.view;
 
-    auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
+    // auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
     auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_tpack.view;
 
     // auto rotameric_neglnprob_tables_view = rotameric_neglnprob_tables.view;
@@ -161,7 +164,7 @@ struct DunbrackDispatch {
 
     // 3.
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i) {
-      rotameric_chi_probability_for_res(
+      auto Erot = rotameric_chi_probability_for_res(
           rotameric_neglnprob_tables,
           rotprob_table_sizes,
           rotprob_table_strides,
@@ -174,16 +177,16 @@ struct DunbrackDispatch {
           rottable_set_for_res,
           rotameric_rottable_assignment,
           rotres2resid,
-          neglnprob_rot,
           dneglnprob_rot_dbb_xyz,
           ddihe_dxyz,
           i);
+      common::accumulate<D, Real>::add(V[0], Erot);
     });
     Dispatch<D>::forall(n_rotameric_res, func_rotameric_prob);
 
     // 4.
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
-      deviation_penalty_for_chi(
+      auto Erotdev = deviation_penalty_for_chi(
           rotameric_mean_tables,
           rotameric_sdev_tables,
           rotmean_table_sizes,
@@ -198,16 +201,16 @@ struct DunbrackDispatch {
           rotameric_rottable_assignment,
           rotameric_chi_desc,
           nchi_for_res,
-          rotchi_devpen,
           drotchi_devpen_dtor_xyz,
           ddihe_dxyz,
           i);
+      common::accumulate<D, Real>::add(V[1], Erotdev);
     });
     Dispatch<D>::forall(n_rotameric_chi, func_chidevpen);
 
     // 5.
     auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int i) {
-      semirotameric_energy(
+      auto Esemi = semirotameric_energy(
           semirotameric_tables,
           semirot_table_sizes,
           semirot_table_strides,
@@ -219,29 +222,23 @@ struct DunbrackDispatch {
           semirotameric_rottable_assignment,
           semirotameric_chi_desc,
           i,
-          neglnprob_nonrot,
           dneglnprob_nonrot_dtor_xyz,
           ddihe_dxyz);
+      common::accumulate<D, Real>::add(V[2], Esemi);
     });
     Dispatch<D>::forall(n_semirotameric_res, func_semirot);
 
-    return {neglnprob_rot_tpack,
+    return {V_tpack,
             dneglnprob_rot_dbb_xyz_tpack,
-
-            rotchi_devpen_tpack,
             drotchi_devpen_dtor_xyz_tpack,
-
-            neglnprob_nonrot_tpack,
             dneglnprob_nonrot_dtor_xyz_tpack};
   }
 
-  auto df(
+  static auto backward(
+      TView<Real, 1, D> dTdV,
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<Real, 1, D> dE_drotnlp,
       TView<CoordQuad, 2, D> drot_nlp_dbb_xyz,  // n-rotameric-res x 2
-      TView<Real, 1, D> dE_ddevpen,
       TView<CoordQuad, 2, D> ddevpen_dtor_xyz,  // n-rotameric-chi x 3
-      TView<Real, 1, D> dE_dnonrotnlp,
       TView<CoordQuad, 2, D> dnonrot_nlp_dtor_xyz,
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
       TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
@@ -265,8 +262,7 @@ struct DunbrackDispatch {
           int const jj_at = dihedral_atom_inds[ires_dihe_offset + ii](jj);
           if (jj_at >= 0) {
             accumulate<D, Vec<Real, 3>>::add(
-                dE_dxyz[jj_at],
-                dE_drotnlp[i] * drot_nlp_dbb_xyz[i][ii].row(jj));
+                dE_dxyz[jj_at], dTdV[0] * drot_nlp_dbb_xyz[i][ii].row(jj));
           }
         }
       }
@@ -284,7 +280,7 @@ struct DunbrackDispatch {
           if (dihedral_atom_inds[tor_ind](0) >= 0) {
             accumulate<D, Vec<Real, 3>>::add(
                 dE_dxyz[dihedral_atom_inds[tor_ind](jj)],
-                dE_ddevpen[i] * ddevpen_dtor_xyz[i][ii].row(jj));
+                dTdV[1] * ddevpen_dtor_xyz[i][ii].row(jj));
           }
         }
       }
@@ -301,7 +297,7 @@ struct DunbrackDispatch {
           if (dihedral_atom_inds[tor_ind](0) >= 0) {
             accumulate<D, Vec<Real, 3>>::add(
                 dE_dxyz[dihedral_atom_inds[tor_ind](jj)],
-                dE_dnonrotnlp[i] * dnonrot_nlp_dtor_xyz[i][ii].row(jj));
+                dTdV[2] * dnonrot_nlp_dtor_xyz[i][ii].row(jj));
           }
         }
       }

@@ -312,11 +312,10 @@ def deviation_penalty_for_chi(
     TView<Int, 1, D> rotameric_rottable_assignment,
     TView<Int, 2, D> rotameric_chi_desc,
     TView<Int, 1, D> nchi_for_res,
-    TView<Real, 1, D> rotchi_devpen,
     TView<CoordQuad, 2, D> drotchi_devpen_dtor_xyz,
     TView<CoordQuad, 1, D> ddihe_dxyz,
     int i)
-    ->void {
+    ->Real {
   int ires = rotameric_chi_desc[i][0];
   int ichi_ind = rotameric_chi_desc[i][1];
   int inchi = nchi_for_res[ires];
@@ -339,7 +338,6 @@ def deviation_penalty_for_chi(
       rottable_set_for_res,
       rotmean_table_offset_for_residue,
       rotameric_rottable_assignment);
-  rotchi_devpen[i] = devpen;
 
   int ires_dihe_offset = dihedral_offset_for_res[ires];
   for (int ii = 0; ii < NbbP1 - 1 + 1; ++ii) {
@@ -353,6 +351,8 @@ def deviation_penalty_for_chi(
       }
     }
   }
+
+  return devpen;
 }
 
 template <size_t NbbP1, typename Real, typename Int, tmol::Device D>
@@ -425,11 +425,10 @@ def rotameric_chi_probability_for_res(
     TView<Int, 1, D> rottable_set_for_res,
     TView<Int, 1, D> rotameric_rottable_assignment,
     TView<Int, 1, D> rotres2resid,
-    TView<Real, 1, D> neglnprob_rot,
     TView<CoordQuad, 2, D> dneglnprob_rot_dbb_xyz,
     TView<CoordQuad, 1, D> ddihe_dxyz,
     int i)
-    ->void {
+    ->Real {
   Real neglnprobE;
   Eigen::Matrix<Real, NbbP1 - 1, 1> dneglnprob_ddihe;
   Int ires = rotres2resid[i];
@@ -448,7 +447,6 @@ def rotameric_chi_probability_for_res(
       rottable_set_for_res,
       rotameric_rottable_assignment);
 
-  neglnprob_rot[i] = neglnprobE;
   int ires_dihe_offset = dihedral_offset_for_res[ires];
   for (int ii = 0; ii < 2; ++ii) {
     for (int jj = 0; jj < 4; ++jj) {
@@ -458,6 +456,8 @@ def rotameric_chi_probability_for_res(
       }
     }
   }
+
+  return neglnprobE;
 }
 
 template <size_t NbbP2, typename Real, typename Int, tmol::Device D>
@@ -473,10 +473,9 @@ def semirotameric_energy(
     TView<Int, 1, D> semirotameric_rottable_assignment,
     TView<Int, 2, D> semirotameric_chi_desc,
     int i,
-    TView<Real, 1, D> neglnprob_nonrot,
     TView<CoordQuad, 2, D> dneglnprob_nonrot_dtor_xyz,
     TView<CoordQuad, 1, D> ddihe_dxyz)
-    ->void {
+    ->Real {
   Eigen::Matrix<Real, NbbP2 - 1, 1> dihe;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_dihe_deg;
   Eigen::Matrix<Real, NbbP2 - 1, 1> temp_orig_dihe_deg;
@@ -530,8 +529,6 @@ def semirotameric_energy(
     dnlp_ddihe[ii] /= dihe_step[ii];
   }
 
-  neglnprob_nonrot[i] = neglnprob;
-
   for (int ii = 0; ii < 3; ++ii) {
     int tor_ind = ii == 2 ? semirot_dihedral_index : (res_dihe_offset + ii);
     for (int jj = 0; jj < 4; ++jj) {
@@ -539,6 +536,8 @@ def semirotameric_energy(
           dnlp_ddihe(ii) * ddihe_dxyz[tor_ind].row(jj);
     }
   }
+
+  return neglnprob;
 }
 
 #undef def
