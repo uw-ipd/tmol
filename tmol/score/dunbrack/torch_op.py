@@ -2,7 +2,7 @@ import attr
 from attr import asdict
 from typing import Mapping, Callable
 
-from .params import PackedDunbrackDatabase, DunbrackParams, DunbrackScratch
+from .params import ScoringDunbrackDatabaseView, DunbrackParams, DunbrackScratch
 
 import torch
 
@@ -11,7 +11,7 @@ import torch
 class DunbrackOp:
     device: torch.device
     params: Mapping[str, torch.Tensor]
-    packed_db: PackedDunbrackDatabase
+    scoring_db: ScoringDunbrackDatabaseView
     dun_params: DunbrackParams
     scratch: DunbrackScratch
 
@@ -33,14 +33,14 @@ class DunbrackOp:
     @classmethod
     def from_params(
         cls,
-        packed_db: PackedDunbrackDatabase,
+        scoring_db: ScoringDunbrackDatabaseView,
         dun_params: DunbrackParams,
         dun_scratch: DunbrackScratch,
     ):
         res = cls(
-            device=packed_db.rotameric_bb_start.device,
-            params={**asdict(packed_db), **asdict(dun_params), **asdict(dun_scratch)},
-            packed_db=packed_db,
+            device=scoring_db.rotameric_bb_start.device,
+            params={**asdict(scoring_db), **asdict(dun_params), **asdict(dun_scratch)},
+            scoring_db=scoring_db,
             dun_params=dun_params,
             scratch=dun_scratch,
         )

@@ -73,7 +73,7 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         dun_scratch: DunbrackScratch,
     ) -> DunbrackOp:
         return DunbrackOp.from_params(
-            dun_param_resolver.packed_db, dun_resolve_indices, dun_scratch
+            dun_param_resolver.scoring_db, dun_resolve_indices, dun_scratch
         )
 
     @reactive_property

@@ -21,7 +21,6 @@ void bind_dispatch(pybind11::module& m) {
       "dunbrack",
       &DunbrackDispatch<Dev, Real, Int>::f,
       "coords"_a,
-      "rotameric_prob_tables"_a,
       "rotameric_neglnprob_tables"_a,
       "rotprob_table_sizes"_a,
       "rotprob_table_strides"_a,

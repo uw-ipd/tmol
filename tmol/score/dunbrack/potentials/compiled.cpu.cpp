@@ -32,7 +32,6 @@ struct DunbrackDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
 
-      TView<Real, 3, D> rotameric_prob_tables,
       TView<Real, 3, D> rotameric_neglnprob_tables,
       TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
       TView<Vec<int64_t, 2>, 1, D> rotprob_table_strides,
