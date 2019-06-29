@@ -226,16 +226,7 @@ Tensor dun_op(
       }));
 
 
-  auto backward_op = connect_backward_pass({
-        dneglnprob_rot_dbb_xyz_tpack,
-        drotchi_devpen_dtor_xyz_tpack,
-        dneglnprob_nonrot_dtor_xyz_tpack,
-        dihedral_offset_for_res,
-        dihedral_atom_inds,
-        rotres2resid,
-        rotameric_chi_desc,
-        semirotameric_chi_desc
-    }, score, [&]() {
+  auto backward_op = connect_backward_pass({coords}, score, [&]() {
       return std::shared_ptr<ScoreOpBackward<DunbrackDispatch, common::ForallDispatch>>(
         new ScoreOpBackward<DunbrackDispatch, common::ForallDispatch>( 
             coords,

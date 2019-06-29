@@ -23,16 +23,35 @@ from .script_modules import DunbrackScoreModule
 @reactive_attrs
 class DunbrackIntraScore(IntraScore):
     @reactive_property
-    def total_dun(target):
-        return target.dunbrack_module(target.coords[0, ...])
+    @validate_args
+    def dun_score(target):
+        return target.dun_module(target.coords[0, ...])
+
+    @reactive_property
+    def total_dun_rot(dun_score):
+        return dun_score[0]
+
+    @reactive_property
+    def total_dun_dev(dun_score):
+        return dun_score[1]
+
+    @reactive_property
+    def total_dun_semi(dun_score):
+        return dun_score[2]
 
 
 @score_graph
 class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     total_score_components = [
         ScoreComponentClasses(
-            "dun", intra_container=DunbrackIntraScore, inter_container=None
-        )
+            "dun_rot", intra_container=DunbrackIntraScore, inter_container=None
+        ),
+        ScoreComponentClasses(
+            "dun_dev", intra_container=DunbrackIntraScore, inter_container=None
+        ),
+        ScoreComponentClasses(
+            "dun_semi", intra_container=DunbrackIntraScore, inter_container=None
+        ),
     ]
 
     @staticmethod
@@ -59,7 +78,7 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     @validate_args
-    def dunbrack_module(
+    def dun_module(
         dun_param_resolver: DunbrackParamResolver,
         dun_resolve_indices: DunbrackParams,
         dun_scratch: DunbrackScratch,

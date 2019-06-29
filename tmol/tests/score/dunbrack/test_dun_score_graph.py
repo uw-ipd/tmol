@@ -119,12 +119,12 @@ def test_dunbrack_score(ubq_system, torch_device, default_database):
         ubq_system, device=torch_device, parameter_database=default_database
     )
     intra_graph = dunbrack_graph.intra_score()
-    e_dun_tot = intra_graph.total_dun
+    e_dun_tot = intra_graph.dun_score
     e_dun_gold = torch.Tensor([70.6497, 240.3100, 99.6609])
     torch.testing.assert_allclose(e_dun_gold, e_dun_tot.cpu())
 
 
-def test_cartesian_space_rama_gradcheck(ubq_res, torch_device):
+def test_cartesian_space_dun_gradcheck(ubq_res, torch_device):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
     real_space = CartDunbrackGraph.build_for(test_system, device=torch_device)
 
@@ -165,7 +165,7 @@ def test_cartesian_space_rama_gradcheck(ubq_res, torch_device):
 # Only run the CPU version of this test, since on the GPU
 #     f1s = torch.cross(Xs, Xs - dsc_dx)
 # creates non-zero f1s even when dsc_dx is zero everywhere
-def test_kinematic_space_rama_gradcheck(ubq_res):
+def test_kinematic_space_dun_gradcheck(ubq_res):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
     torsion_space = KinematicDunbrackGraph.build_for(test_system)
 
