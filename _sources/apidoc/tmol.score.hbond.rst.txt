@@ -14,7 +14,7 @@ tmol.score.hbond
        tmol.score.hbond.identification
        tmol.score.hbond.params
        tmol.score.hbond.score_graph
-       tmol.score.hbond.torch_op
+       tmol.score.hbond.script_modules
   
        tmol.score.hbond.potentials
 

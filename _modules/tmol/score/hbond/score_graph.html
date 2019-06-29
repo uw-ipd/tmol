@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-171-g01444331 documentation</title>
+  <title>tmol.score.hbond.score_graph &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-171-g01444331',
+              VERSION:'0.0.0-172-g61ce24ac',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-171-g01444331
+                0.0.0-172-g61ce24ac
               </div>
             
           
@@ -190,9 +190,10 @@
 <span class="kn">from</span> <span class="nn">..score_graph</span> <span class="k">import</span> <span class="n">score_graph</span>
 
 <span class="kn">from</span> <span class="nn">.identification</span> <span class="k">import</span> <span class="n">HBondElementAnalysis</span>
-<span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">HBondParamResolver</span>
+<span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">HBondParamResolver</span><span class="p">,</span> <span class="n">CompactedHBondDatabase</span>
 
-<span class="kn">from</span> <span class="nn">.torch_op</span> <span class="k">import</span> <span class="n">HBondOp</span>
+<span class="c1"># from .torch_op import HBondOp</span>
+<span class="kn">from</span> <span class="nn">.script_modules</span> <span class="k">import</span> <span class="n">HBondIntraModule</span>
 
 <span class="kn">from</span> <span class="nn">tmol.database</span> <span class="k">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">HBondDatabase</span>
@@ -221,21 +222,6 @@
     <span class="n">acceptor_type</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="HBondDonorCoords"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondDonorCoords">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">HBondDonorCoords</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
-    <span class="n">D</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">H</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">donor_type</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
-
-
-<div class="viewcode-block" id="HBondAcceptorCoords"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondAcceptorCoords">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">HBondAcceptorCoords</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
-    <span class="n">A</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">B</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">B0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">acceptor_type</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;i4&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
-
-
 <div class="viewcode-block" id="HBondDescr"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondDescr">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">HBondDescr</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
     <span class="n">donor</span><span class="p">:</span> <span class="n">HBondDonorIndices</span>
@@ -247,33 +233,25 @@
 <span class="k">class</span> <span class="nc">HBondIntraScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">total_hbond</span><span class="p">(</span><span class="n">hbond</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">total_hbond</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">hbond_score</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;total hbond score&quot;&quot;&quot;</span>
-        <span class="n">score_ind</span><span class="p">,</span> <span class="n">score_val</span> <span class="o">=</span> <span class="n">hbond</span>
-        <span class="k">return</span> <span class="n">score_val</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="c1"># print(&quot;hbond_score&quot;, hbond_score[0])</span>
+        <span class="k">return</span> <span class="n">hbond_score</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">hbond</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">hbond_op</span><span class="o">.</span><span class="n">score</span><span class="p">(</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">hbond_donor_coords</span><span class="o">.</span><span class="n">D</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">hbond_donor_coords</span><span class="o">.</span><span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">hbond_donor_coords</span><span class="o">.</span><span class="n">donor_type</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_coords</span><span class="o">.</span><span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_coords</span><span class="o">.</span><span class="n">B</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_coords</span><span class="o">.</span><span class="n">B0</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_coords</span><span class="o">.</span><span class="n">acceptor_type</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="nd">@reactive_property</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">hbond_descr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">hbond</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondDescr</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;All hbond pairs, in order of &quot;sp2&quot;/&quot;sp3&quot;/&quot;ring&quot;.&quot;&quot;&quot;</span>
-        <span class="p">(</span><span class="n">di</span><span class="p">,</span> <span class="n">ai</span><span class="p">),</span> <span class="n">score</span> <span class="o">=</span> <span class="n">hbond</span>
-        <span class="k">return</span> <span class="n">HBondDescr</span><span class="p">(</span>
-            <span class="n">donor</span><span class="o">=</span><span class="n">target</span><span class="o">.</span><span class="n">hbond_donor_indices</span><span class="p">[</span><span class="n">di</span><span class="p">],</span>
-            <span class="n">acceptor</span><span class="o">=</span><span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_indices</span><span class="p">[</span><span class="n">ai</span><span class="p">],</span>
-            <span class="n">score</span><span class="o">=</span><span class="n">score</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">hbond_score</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">hbond_intra_module</span><span class="p">(</span>
+            <span class="n">coords</span><span class="p">,</span>
+            <span class="n">coords</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">hbond_donor_indices</span><span class="o">.</span><span class="n">D</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">hbond_donor_indices</span><span class="o">.</span><span class="n">H</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">hbond_donor_indices</span><span class="o">.</span><span class="n">donor_type</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_indices</span><span class="o">.</span><span class="n">A</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_indices</span><span class="o">.</span><span class="n">B</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_indices</span><span class="o">.</span><span class="n">B0</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">hbond_acceptor_indices</span><span class="o">.</span><span class="n">acceptor_type</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 
@@ -329,10 +307,22 @@
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">hbond_op</span><span class="p">(</span>
-        <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span> <span class="n">hbond_param_resolver</span><span class="p">:</span> <span class="n">HBondParamResolver</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondOp</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">HBondOp</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">hbond_database</span><span class="p">,</span> <span class="n">hbond_param_resolver</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">compacted_hbond_database</span><span class="p">(</span>
+        <span class="n">parameter_database</span><span class="p">:</span> <span class="n">ParameterDatabase</span><span class="p">,</span>
+        <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CompactedHBondDatabase</span><span class="p">:</span>
+        <span class="s2">&quot;two-tensor representation of hbond parameters on the device&quot;</span>
+        <span class="k">return</span> <span class="n">CompactedHBondDatabase</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span>
+            <span class="n">parameter_database</span><span class="o">.</span><span class="n">chemical</span><span class="p">,</span> <span class="n">hbond_database</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">hbond_intra_module</span><span class="p">(</span>
+        <span class="n">compacted_hbond_database</span><span class="p">:</span> <span class="n">CompactedHBondDatabase</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondIntraModule</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">HBondIntraModule</span><span class="p">(</span><span class="n">compacted_hbond_database</span><span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
@@ -388,34 +378,7 @@
             <span class="n">device</span><span class="o">=</span><span class="n">acceptor_type</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">HBondAcceptorIndices</span><span class="p">(</span><span class="n">A</span><span class="o">=</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="o">=</span><span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="o">=</span><span class="n">acceptor_type</span><span class="p">)</span>
-
-    <span class="nd">@reactive_property</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">hbond_donor_coords</span><span class="p">(</span>
-        <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">hbond_donor_indices</span><span class="p">:</span> <span class="n">HBondDonorIndices</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondDonorCoords</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;hbond donor coordinates and type indicies.&quot;&quot;&quot;</span>
-
-        <span class="n">i</span> <span class="o">=</span> <span class="n">hbond_donor_indices</span>
-        <span class="k">return</span> <span class="n">HBondDonorCoords</span><span class="p">(</span>
-            <span class="n">donor_type</span><span class="o">=</span><span class="n">i</span><span class="o">.</span><span class="n">donor_type</span><span class="p">,</span> <span class="n">D</span><span class="o">=</span><span class="n">coords</span><span class="p">[:,</span> <span class="n">i</span><span class="o">.</span><span class="n">D</span><span class="p">],</span> <span class="n">H</span><span class="o">=</span><span class="n">coords</span><span class="p">[:,</span> <span class="n">i</span><span class="o">.</span><span class="n">H</span><span class="p">]</span>
-        <span class="p">)</span>
-
-    <span class="nd">@reactive_property</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">hbond_acceptor_coords</span><span class="p">(</span>
-        <span class="n">coords</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">hbond_acceptor_indices</span><span class="p">:</span> <span class="n">HBondAcceptorIndices</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HBondAcceptorCoords</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;hbond acceptor coordinates and type indicies.&quot;&quot;&quot;</span>
-
-        <span class="n">i</span> <span class="o">=</span> <span class="n">hbond_acceptor_indices</span>
-        <span class="k">return</span> <span class="n">HBondAcceptorCoords</span><span class="p">(</span>
-            <span class="n">acceptor_type</span><span class="o">=</span><span class="n">i</span><span class="o">.</span><span class="n">acceptor_type</span><span class="p">,</span>
-            <span class="n">A</span><span class="o">=</span><span class="n">coords</span><span class="p">[:,</span> <span class="n">i</span><span class="o">.</span><span class="n">A</span><span class="p">],</span>
-            <span class="n">B</span><span class="o">=</span><span class="n">coords</span><span class="p">[:,</span> <span class="n">i</span><span class="o">.</span><span class="n">B</span><span class="p">],</span>
-            <span class="n">B0</span><span class="o">=</span><span class="n">coords</span><span class="p">[:,</span> <span class="n">i</span><span class="o">.</span><span class="n">B0</span><span class="p">],</span>
-        <span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">HBondAcceptorIndices</span><span class="p">(</span><span class="n">A</span><span class="o">=</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="n">B</span><span class="p">,</span> <span class="n">B0</span><span class="o">=</span><span class="n">B0</span><span class="p">,</span> <span class="n">acceptor_type</span><span class="o">=</span><span class="n">acceptor_type</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

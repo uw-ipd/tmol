@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.hbond.params &mdash; TMol 0.0.0-171-g01444331 documentation</title>
+  <title>tmol.score.hbond.params &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-171-g01444331',
+              VERSION:'0.0.0-172-g61ce24ac',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-171-g01444331
+                0.0.0-172-g61ce24ac
               </div>
             
           
@@ -190,6 +190,7 @@
 <span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">TensorGroup</span>
 <span class="kn">from</span> <span class="nn">tmol.types.attrs</span> <span class="k">import</span> <span class="n">ValidateAttrs</span><span class="p">,</span> <span class="n">ConvertAttrs</span>
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 
 <span class="kn">from</span> <span class="nn">tmol.database.scoring.hbond</span> <span class="k">import</span> <span class="n">HBondDatabase</span>
 <span class="kn">from</span> <span class="nn">tmol.database.chemical</span> <span class="k">import</span> <span class="n">ChemicalDatabase</span>
@@ -252,8 +253,10 @@
         <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="HBondParamResolver"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondParamResolver">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="HBondParamResolver"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondParamResolver">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">HBondParamResolver</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+    <span class="n">_from_db_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
     <span class="n">donor_type_index</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
     <span class="n">acceptor_type_index</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">ib</span><span class="p">()</span>
 
@@ -272,7 +275,17 @@
         <span class="k">assert</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="s2">&quot;acceptor type not present in index&quot;</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="HBondParamResolver.from_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondParamResolver.from_database">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span><span class="p">(</span>
+        <span class="n">cache</span><span class="o">=</span><span class="n">_from_db_cache</span><span class="p">,</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="p">(</span>
+            <span class="nb">id</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="nb">id</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+            <span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+            <span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">from_database</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span>
         <span class="n">chemical_database</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">,</span>
@@ -347,7 +360,114 @@
             <span class="n">acceptor_type_index</span><span class="o">=</span><span class="n">acceptor_type_index</span><span class="p">,</span>
             <span class="n">pair_params</span><span class="o">=</span><span class="n">pair_params</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">),</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="p">)</span></div></div>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CompactedHBondDatabase"><a class="viewcode-back" href="../../../../apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.CompactedHBondDatabase">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">CompactedHBondDatabase</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Store the hbond evaluation parameters in a compact form&quot;&quot;&quot;</span>
+
+    <span class="n">_from_db_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">global_param_table</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">pair_param_table</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">pair_poly_table</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@validate_args</span>
+    <span class="nd">@toolz</span><span class="o">.</span><span class="n">functoolz</span><span class="o">.</span><span class="n">memoize</span><span class="p">(</span>
+        <span class="n">cache</span><span class="o">=</span><span class="n">_from_db_cache</span><span class="p">,</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="p">(</span>
+            <span class="nb">id</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="nb">id</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+            <span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+            <span class="n">args</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">from_database</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">chemical_database</span><span class="p">:</span> <span class="n">ChemicalDatabase</span><span class="p">,</span>
+        <span class="n">hbond_database</span><span class="p">:</span> <span class="n">HBondDatabase</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">def</span> <span class="nf">_p</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_stack</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_f32</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span><span class="p">]</span>
+
+        <span class="n">global_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">n</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attr</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="n">hbond_database</span><span class="o">.</span><span class="n">global_parameters</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="n">global_param_table</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">global_params</span><span class="p">[</span><span class="s2">&quot;hb_sp2_range_span&quot;</span><span class="p">],</span>
+                        <span class="n">global_params</span><span class="p">[</span><span class="s2">&quot;hb_sp2_BAH180_rise&quot;</span><span class="p">],</span>
+                        <span class="n">global_params</span><span class="p">[</span><span class="s2">&quot;hb_sp2_outer_width&quot;</span><span class="p">],</span>
+                        <span class="n">global_params</span><span class="p">[</span><span class="s2">&quot;hb_sp3_softmax_fade&quot;</span><span class="p">],</span>
+                        <span class="n">global_params</span><span class="p">[</span><span class="s2">&quot;threshold_distance&quot;</span><span class="p">],</span>
+                    <span class="p">],</span>
+                    <span class="mi">0</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">resolver</span> <span class="o">=</span> <span class="n">HBondParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span>
+            <span class="n">chemical_database</span><span class="p">,</span> <span class="n">hbond_database</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">pp</span> <span class="o">=</span> <span class="n">resolver</span><span class="o">.</span><span class="n">pair_params</span>
+
+        <span class="c1"># Note: acceptor_hybridization is an integer, but can be exactly represented</span>
+        <span class="c1"># as a float (since it is small). Pack it with the donor and acceptor weights</span>
+        <span class="c1"># (which themselves could just be pre-multiplied?!) to reduce the number of</span>
+        <span class="c1"># arguments to the hbond evaluation function</span>
+        <span class="n">pair_param_table</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
+            <span class="n">_stack</span><span class="p">(</span>
+                <span class="n">_f32</span><span class="p">([</span><span class="n">pp</span><span class="o">.</span><span class="n">acceptor_hybridization</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">acceptor_weight</span><span class="p">,</span> <span class="n">pp</span><span class="o">.</span><span class="n">donor_weight</span><span class="p">])</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Eigen allocates space for 12 Reals for an 11x1 matrix</span>
+        <span class="c1"># so we need to pad out with 0s in between the coefficients</span>
+        <span class="c1"># and the ranges.</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">pp</span><span class="o">.</span><span class="n">AHdist</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pp</span><span class="o">.</span><span class="n">AHdist</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">],</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">pair_poly_table</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">AHdist</span><span class="o">.</span><span class="n">coeffs</span><span class="p">,</span>
+                    <span class="n">pad</span><span class="p">,</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">AHdist</span><span class="o">.</span><span class="n">range</span><span class="p">,</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">AHdist</span><span class="o">.</span><span class="n">bound</span><span class="p">,</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">cosBAH</span><span class="o">.</span><span class="n">coeffs</span><span class="p">,</span>
+                    <span class="n">pad</span><span class="p">,</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">cosBAH</span><span class="o">.</span><span class="n">range</span><span class="p">,</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">cosBAH</span><span class="o">.</span><span class="n">bound</span><span class="p">,</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">cosAHD</span><span class="o">.</span><span class="n">coeffs</span><span class="p">,</span>
+                    <span class="n">pad</span><span class="p">,</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">cosAHD</span><span class="o">.</span><span class="n">range</span><span class="p">,</span>
+                    <span class="n">pp</span><span class="o">.</span><span class="n">cosAHD</span><span class="o">.</span><span class="n">bound</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">global_param_table</span><span class="o">=</span><span class="n">global_param_table</span><span class="p">,</span>
+            <span class="n">pair_param_table</span><span class="o">=</span><span class="n">pair_param_table</span><span class="p">,</span>
+            <span class="n">pair_poly_table</span><span class="o">=</span><span class="n">pair_poly_table</span><span class="p">,</span>
+        <span class="p">)</span></div>
 </pre></div>
 
            </div>
