@@ -10,6 +10,7 @@
 #include <tmol/score/common/tuple_operators.hh>
 
 #include <ATen/Tensor.h>
+#include <ATen/cuda/CUDAStream.h>
 
 #include "params.hh"
 #include "potentials.hh"
@@ -35,6 +36,10 @@ struct OmegaDispatch {
       TView<Vec<Real, 3>, 1, D> coords,
       TView<OmegaParameters<Real>, 1, D> omega_indices)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
+    auto stream1 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(stream1);
+
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 
@@ -57,7 +62,11 @@ struct OmegaDispatch {
     });
 
     int num_Vs = omega_indices.size(0);
-    Dispatch<D>::forall(num_Vs, func);
+    Dispatch<D>::forall(num_Vs, func, stream1);
+
+    auto default_stream =
+        at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(default_stream);
 
     return {V_t, dV_dx_t};
   }

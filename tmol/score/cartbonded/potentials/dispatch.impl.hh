@@ -3,6 +3,8 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <ATen/cuda/CUDAStream.h>
+
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
@@ -41,6 +43,10 @@ struct CartBondedLengthDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
 
+    auto stream1 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(stream1);
+
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 
@@ -59,7 +65,10 @@ struct CartBondedLengthDispatch {
       accumulate<D, Vec<Real, 3>>::add(dV_dx[atj], common::get<2>(cblength));
     });
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(num_Vs, f_i, stream1);
+    auto default_stream =
+        at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(default_stream);
 
     return {V_t, dV_dx_t};
   }
@@ -78,6 +87,10 @@ struct CartBondedAngleDispatch {
       TView<CartBondedHarmonicTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
+
+    auto stream1 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(stream1);
 
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
@@ -103,7 +116,11 @@ struct CartBondedAngleDispatch {
       accumulate<D, Vec<Real, 3>>::add(dV_dx[atk], common::get<3>(cbangle));
     });
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(num_Vs, f_i, stream1);
+
+    auto default_stream =
+        at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(default_stream);
 
     return {V_t, dV_dx_t};
   }
@@ -122,6 +139,10 @@ struct CartBondedTorsionDispatch {
       TView<CartBondedPeriodicTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
+
+    auto stream1 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(stream1);
 
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
@@ -151,7 +172,11 @@ struct CartBondedTorsionDispatch {
       accumulate<D, Vec<Real, 3>>::add(dV_dx[atl], common::get<4>(cbtorsion));
     });
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(num_Vs, f_i, stream1);
+
+    auto default_stream =
+        at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(default_stream);
 
     return {V_t, dV_dx_t};
   }
@@ -170,6 +195,10 @@ struct CartBondedHxlTorsionDispatch {
       TView<CartBondedSinusoidalTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
+
+    auto stream1 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(stream1);
 
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
@@ -206,7 +235,11 @@ struct CartBondedHxlTorsionDispatch {
           dV_dx[atl], common::get<4>(cbhxltorsion));
     });
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(num_Vs, f_i, stream1);
+
+    auto default_stream =
+        at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(default_stream);
 
     return {V_t, dV_dx_t};
   }
