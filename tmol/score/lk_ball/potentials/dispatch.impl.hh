@@ -3,6 +3,8 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <ATen/cuda/CUDAStream.h>
+
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
@@ -49,6 +51,10 @@ struct LKBallDispatch {
       -> TPack<Real, 1, D> {
     NVTXRange _function(__FUNCTION__);
 
+    auto stream1 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(stream1);
+
     nvtx_range_push("dispatch::score");
     auto Vs_t = TPack<Real, 1, D>::zeros({4});
     auto Vs = Vs_t.view;
@@ -87,8 +93,12 @@ struct LKBallDispatch {
           common::accumulate<D, Real>::add(Vs[1], score.lkball);
           common::accumulate<D, Real>::add(Vs[2], score.lkbridge);
           common::accumulate<D, Real>::add(Vs[3], score.lkbridge_uncpl);
-        });
+        },
+        &stream1);
     nvtx_range_pop();
+    auto default_stream =
+        at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(default_stream);
 
     return Vs_t;
   }

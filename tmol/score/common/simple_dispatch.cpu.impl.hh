@@ -35,7 +35,8 @@ struct AABBDispatch<tmol::Device::CPU> {
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_i,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
-      Func f) {
+      Func f,
+      at::cuda::CUDAStream* stream = nullptr) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -60,7 +61,8 @@ struct AABBDispatch<tmol::Device::CPU> {
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
       TView<Int, 1, D> coord_idx_i,
       TView<Int, 1, D> coord_idx_j,
-      Func f) {
+      Func f,
+      at::cuda::CUDAStream* stream = nullptr) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -89,7 +91,8 @@ struct AABBTriuDispatch<tmol::Device::CPU> {
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_i,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
-      Func f) {
+      Func f,
+      at::cuda::CUDAStream* stream = nullptr) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -114,7 +117,8 @@ struct AABBTriuDispatch<tmol::Device::CPU> {
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
       TView<Int, 1, D> coord_idx_i,
       TView<Int, 1, D> coord_idx_j,
-      Func f) {
+      Func f,
+      at::cuda::CUDAStream* stream = nullptr) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),

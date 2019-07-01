@@ -3,6 +3,9 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <ATen/cuda/CUDAEvent.h>
+#include <ATen/cuda/CUDAStream.h>
+
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
@@ -47,6 +50,10 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
   NVTXRange _function(__FUNCTION__);
 
   nvtx_range_push("dispatch::score");
+  auto stream1 =
+      at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+  at::cuda::setCurrentCUDAStream(stream1);
+
   auto V_t = TPack<Real, 1, D>::zeros({1});
   auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
   auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
@@ -81,10 +88,15 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
         accumulate<D, Real>::add(V[0], lj.V);
         accumulate<D, Vec<Real, 3>>::add(dV_dI[i], lj.dV_ddist * ddist_dI);
         accumulate<D, Vec<Real, 3>>::add(dV_dJ[j], lj.dV_ddist * ddist_dJ);
-      });
+      },
+      &stream1);
   nvtx_range_pop();
 
   nvtx_range_pop();
+
+  auto default_stream =
+      at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+  at::cuda::setCurrentCUDAStream(default_stream);
 
   return {V_t, dV_dI_t, dV_dJ_t};
 };
