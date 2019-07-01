@@ -7,6 +7,8 @@
 #include <tmol/score/common/geom.hh>
 
 #include <ATen/Tensor.h>
+#include <ATen/cuda/CUDAEvent.h>
+#include <ATen/cuda/CUDAStream.h>
 
 #include <tuple>
 
@@ -88,6 +90,7 @@ struct DunbrackDispatch {
       TView<Int, 1, D> rotameric_rottable_assignment,     // nres x 1
       TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
 
+      // not yet TView<int64_t, 1, tmol::Device::CPU> streams
       )
       -> std::tuple<
           TPack<Real, 1, D>,       // sum (energies) [rot, dev, semi]
@@ -96,6 +99,9 @@ struct DunbrackDispatch {
           TPack<CoordQuad, 2, D>>  // d(-ln(prob_nonrotameric)) / dtor --
                                    // nsemirot-res x 3
   {
+    // not yet There should be four streams
+    // not yet assert( streams.size(0) == 4);
+
     Int const nres(nrotameric_chi_for_res.size(0));
     Int const n_rotameric_res(prob_table_offset_for_rotresidue.size(0));
     Int const n_rotameric_chi(rotameric_chi_desc.size(0));
@@ -104,6 +110,10 @@ struct DunbrackDispatch {
 
     auto V_tpack = TPack<Real, 1, D>::zeros({3});
     auto V = V_tpack.view;
+
+    auto stream1 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(stream1);
 
     // auto neglnprob_rot_tpack = TPack<Real, 1, D>::zeros(n_rotameric_res);
     auto dneglnprob_rot_dbb_xyz_tpack =
@@ -144,7 +154,7 @@ struct DunbrackDispatch {
       measure_dihedrals_V_dV(
           coords, i, dihedral_atom_inds, dihedrals, ddihe_dxyz);
     });
-    Dispatch<D>::forall(n_dihedrals, func_dihe);
+    Dispatch<D>::forall(n_dihedrals, func_dihe, stream1);
 
     // 2.
     auto func_rot = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -160,7 +170,14 @@ struct DunbrackDispatch {
           semirotameric_rottable_assignment,
           i);
     });
-    Dispatch<D>::forall(nres, func_rot);
+    Dispatch<D>::forall(nres, func_rot, stream1);
+    at::cuda::CUDAEvent rots_assigned;
+    rots_assigned.record();
+
+    auto stream2 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    rots_assigned.block(stream2);
+    at::cuda::setCurrentCUDAStream(stream2);
 
     // 3.
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(Int i) {
@@ -182,7 +199,12 @@ struct DunbrackDispatch {
           i);
       common::accumulate<D, Real>::add(V[0], Erot);
     });
-    Dispatch<D>::forall(n_rotameric_res, func_rotameric_prob);
+    Dispatch<D>::forall(n_rotameric_res, func_rotameric_prob, stream2);
+
+    auto stream3 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    rots_assigned.block(stream3);
+    at::cuda::setCurrentCUDAStream(stream3);
 
     // 4.
     auto func_chidevpen = ([=] EIGEN_DEVICE_FUNC(int i) {
@@ -206,9 +228,13 @@ struct DunbrackDispatch {
           i);
       common::accumulate<D, Real>::add(V[1], Erotdev);
     });
-    Dispatch<D>::forall(n_rotameric_chi, func_chidevpen);
+    Dispatch<D>::forall(n_rotameric_chi, func_chidevpen, stream3);
 
     // 5.
+    auto stream4 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    rots_assigned.block(stream4);
+    at::cuda::setCurrentCUDAStream(stream4);
     auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int i) {
       auto Esemi = semirotameric_energy(
           semirotameric_tables,
@@ -226,7 +252,11 @@ struct DunbrackDispatch {
           ddihe_dxyz);
       common::accumulate<D, Real>::add(V[2], Esemi);
     });
-    Dispatch<D>::forall(n_semirotameric_res, func_semirot);
+    Dispatch<D>::forall(n_semirotameric_res, func_semirot, stream4);
+
+    auto default_stream =
+        at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(default_stream);
 
     return {V_tpack,
             dneglnprob_rot_dbb_xyz_tpack,

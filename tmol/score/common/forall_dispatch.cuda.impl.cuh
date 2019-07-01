@@ -15,6 +15,12 @@ struct ForallDispatch<tmol::Device::CUDA> {
     mgpu::standard_context_t context;
     mgpu::transform(f, N, context);
   }
+
+  template <typename Int, typename Func>
+  static void forall(Int N, Func f, at::cuda::CUDAStream stream) {
+    mgpu::standard_context_t context(stream.stream());
+    mgpu::transform(f, N, context);
+  }
 };
 
 }  // namespace common
