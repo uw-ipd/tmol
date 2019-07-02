@@ -7,7 +7,7 @@ tmol.score.rama.score_graph
 .. currentmodule:: tmol.score.rama.score_graph
 
 .. automodule:: tmol.score.rama.score_graph
-    :members: RamaIntraScore, RamaParams, RamaScoreGraph
+    :members: RamaIntraScore, RamaScoreGraph
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -22,7 +22,6 @@ tmol.score.rama.score_graph
         :nosignatures:
 
         RamaIntraScore
-        RamaParams
         RamaScoreGraph
 
 

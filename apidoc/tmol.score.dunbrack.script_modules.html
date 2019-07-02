@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.dunbrack.torch_op &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
+  <title>tmol.score.dunbrack.script_modules &mdash; TMol 0.0.0-174-g232fcdb5 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.dunbrack.torch_op.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.dunbrack.script_modules.html"/>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-172-g61ce24ac',
+              VERSION:'0.0.0-174-g232fcdb5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-172-g61ce24ac
+                0.0.0-174-g232fcdb5
               </div>
             
           
@@ -122,7 +122,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.dunbrack.html">tmol.score.dunbrack</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.dunbrack.params.html">tmol.score.dunbrack.params</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.dunbrack.score_graph.html">tmol.score.dunbrack.score_graph</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.dunbrack.torch_op</a><ul>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.dunbrack.script_modules</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
@@ -197,13 +197,13 @@
         
           <li><a href="tmol.score.dunbrack.html">tmol.score.dunbrack</a> &raquo;</li>
         
-      <li>tmol.score.dunbrack.torch_op</li>
+      <li>tmol.score.dunbrack.script_modules</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.score.dunbrack.torch_op.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.score.dunbrack.script_modules.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -216,8 +216,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.score.dunbrack.torch_op">
-<span id="tmol-score-dunbrack-torch-op"></span><h1>tmol.score.dunbrack.torch_op<a class="headerlink" href="#module-tmol.score.dunbrack.torch_op" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-tmol.score.dunbrack.script_modules">
+<span id="tmol-score-dunbrack-script-modules"></span><h1>tmol.score.dunbrack.script_modules<a class="headerlink" href="#module-tmol.score.dunbrack.script_modules" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="classes">
@@ -228,10 +228,7 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.dunbrack.torch_op.DunbrackOp" title="tmol.score.dunbrack.torch_op.DunbrackOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DunbrackOp</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun" title="tmol.score.dunbrack.torch_op.DunbrackScoreFun"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DunbrackScoreFun</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.dunbrack.script_modules.DunbrackScoreModule" title="tmol.score.dunbrack.script_modules.DunbrackScoreModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DunbrackScoreModule</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -241,67 +238,17 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackOp">
-<em class="property">class </em><code class="descclassname">tmol.score.dunbrack.torch_op.</code><code class="descname">DunbrackOp</code><span class="sig-paren">(</span><em>device: torch.device, params: Mapping[str, torch.Tensor], packed_db: tmol.score.dunbrack.params.PackedDunbrackDatabase, dun_params: tmol.score.dunbrack.params.DunbrackParams, scratch: tmol.score.dunbrack.params.DunbrackScratch, f: Callable = NOTHING, df: Callable = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/torch_op.html#DunbrackOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackOp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackOp._load_f">
-<code class="descname">_load_f</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/torch_op.html#DunbrackOp._load_f"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackOp._load_f" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.script_modules.DunbrackScoreModule">
+<em class="property">class </em><code class="descclassname">tmol.score.dunbrack.script_modules.</code><code class="descname">DunbrackScoreModule</code><span class="sig-paren">(</span><em>dundb: tmol.score.dunbrack.params.PackedDunbrackDatabase</em>, <em>params: tmol.score.dunbrack.params.DunbrackParams</em>, <em>scratch: tmol.score.dunbrack.params.DunbrackScratch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/script_modules.html#DunbrackScoreModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.script_modules.DunbrackScoreModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.jit.ScriptModule</span></code></p>
+<dl class="attribute">
+<dt id="tmol.score.dunbrack.script_modules.DunbrackScoreModule._constants_set">
+<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.dunbrack.script_modules.DunbrackScoreModule._constants_set" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackOp._load_df">
-<code class="descname">_load_df</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/torch_op.html#DunbrackOp._load_df"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackOp._load_df" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackOp.from_params">
-<em class="property">classmethod </em><code class="descname">from_params</code><span class="sig-paren">(</span><em>packed_db: tmol.score.dunbrack.params.PackedDunbrackDatabase</em>, <em>dun_params: tmol.score.dunbrack.params.DunbrackParams</em>, <em>dun_scratch: tmol.score.dunbrack.params.DunbrackScratch</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/torch_op.html#DunbrackOp.from_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackOp.from_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackOp.intra">
-<code class="descname">intra</code><span class="sig-paren">(</span><em>coords</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/torch_op.html#DunbrackOp.intra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackOp.intra" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackScoreFun">
-<em class="property">class </em><code class="descclassname">tmol.score.dunbrack.torch_op.</code><code class="descname">DunbrackScoreFun</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/torch_op.html#DunbrackScoreFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
-<dl class="method">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackScoreFun.forward">
-<code class="descname">forward</code><span class="sig-paren">(</span><em>coords</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/torch_op.html#DunbrackScoreFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context ctx as the first argument, followed by any
-number of arguments (tensors or other types).</p>
-<p>The context can be used to store tensors that can be then retrieved
-during the backward pass.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackScoreFun.backward">
-<code class="descname">backward</code><span class="sig-paren">(</span><em>dE_drotnlp</em>, <em>dE_ddevpen</em>, <em>dE_dnonrotnlp</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/torch_op.html#DunbrackScoreFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun.backward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines a formula for differentiating the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
-as many outputs did <a class="reference internal" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun.forward" title="tmol.score.dunbrack.torch_op.DunbrackScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
-tensors, as there were inputs to <a class="reference internal" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun.forward" title="tmol.score.dunbrack.torch_op.DunbrackScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
-gradient w.r.t the given output, and each returned value should be the
-gradient w.r.t. the corresponding input.</p>
-<p>The context can be used to retrieve tensors saved during the forward
-pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
-of booleans representing whether each input needs gradient. E.g.,
-<a class="reference internal" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun.backward" title="tmol.score.dunbrack.torch_op.DunbrackScoreFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
-first input to <a class="reference internal" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun.forward" title="tmol.score.dunbrack.torch_op.DunbrackScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
-output.</p>
-</dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.dunbrack.torch_op.DunbrackScoreFun._is_legacy">
-<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.dunbrack.torch_op.DunbrackScoreFun._is_legacy" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.script_modules.DunbrackScoreModule._original_methods">
+<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function DunbrackScoreModule.forward at 0x7fff981ac598&gt;}</em><a class="headerlink" href="#tmol.score.dunbrack.script_modules.DunbrackScoreModule._original_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

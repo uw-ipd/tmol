@@ -7,7 +7,7 @@ tmol.score.cartbonded.score_graph
 .. currentmodule:: tmol.score.cartbonded.score_graph
 
 .. automodule:: tmol.score.cartbonded.score_graph
-    :members: CartBondedAngleParams, CartBondedIntraScore, CartBondedLengthParams, CartBondedScoreGraph, CartBondedTorsionParams
+    :members: CartBondedIntraScore, CartBondedScoreGraph
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,11 +21,8 @@ tmol.score.cartbonded.score_graph
     .. autosummary::
         :nosignatures:
 
-        CartBondedAngleParams
         CartBondedIntraScore
-        CartBondedLengthParams
         CartBondedScoreGraph
-        CartBondedTorsionParams
 
 
 

@@ -7,21 +7,7 @@ tmol.score.omega.potentials.compiled
 .. currentmodule:: tmol.score.omega.potentials.compiled
 
 .. automodule:: tmol.score.omega.potentials.compiled
-    :members: omega
-    :undoc-members:
-    :show-inheritance:
-    :member-order: bysource
-
-    Summary
-    -------
-
-    Functions
-    ~~~~~~~~~
     
-    .. autosummary::
-        :nosignatures:
-
-        omega
 
 
 
@@ -29,6 +15,3 @@ tmol.score.omega.potentials.compiled
 
 
 
-
-    Reference
-    ---------

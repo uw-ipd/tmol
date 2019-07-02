@@ -7,7 +7,7 @@ tmol.score.rama.params
 .. currentmodule:: tmol.score.rama.params
 
 .. automodule:: tmol.score.rama.params
-    :members: PackedRamaDatabase, RamaParamResolver
+    :members: PackedRamaDatabase, RamaParamResolver, RamaParams
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -23,6 +23,7 @@ tmol.score.rama.params
 
         PackedRamaDatabase
         RamaParamResolver
+        RamaParams
 
 
 

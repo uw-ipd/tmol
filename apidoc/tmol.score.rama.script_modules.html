@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.rama.torch_op &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
+  <title>tmol.score.rama.script_modules &mdash; TMol 0.0.0-174-g232fcdb5 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.rama.torch_op.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.rama.script_modules.html"/>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-172-g61ce24ac',
+              VERSION:'0.0.0-174-g232fcdb5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-172-g61ce24ac
+                0.0.0-174-g232fcdb5
               </div>
             
           
@@ -128,7 +128,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.rama.html">tmol.score.rama</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.rama.params.html">tmol.score.rama.params</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.rama.score_graph.html">tmol.score.rama.score_graph</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.rama.torch_op</a><ul>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.rama.script_modules</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
@@ -198,13 +198,13 @@
         
           <li><a href="tmol.score.rama.html">tmol.score.rama</a> &raquo;</li>
         
-      <li>tmol.score.rama.torch_op</li>
+      <li>tmol.score.rama.script_modules</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.score.rama.torch_op.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.score.rama.script_modules.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -217,8 +217,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.score.rama.torch_op">
-<span id="tmol-score-rama-torch-op"></span><h1>tmol.score.rama.torch_op<a class="headerlink" href="#module-tmol.score.rama.torch_op" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-tmol.score.rama.script_modules">
+<span id="tmol-score-rama-script-modules"></span><h1>tmol.score.rama.script_modules<a class="headerlink" href="#module-tmol.score.rama.script_modules" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="classes">
@@ -229,10 +229,7 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.rama.torch_op.RamaOp" title="tmol.score.rama.torch_op.RamaOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamaOp</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.rama.torch_op.RamaScoreFun" title="tmol.score.rama.torch_op.RamaScoreFun"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamaScoreFun</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.rama.script_modules.RamaScoreModule" title="tmol.score.rama.script_modules.RamaScoreModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RamaScoreModule</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -242,67 +239,17 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="tmol.score.rama.torch_op.RamaOp">
-<em class="property">class </em><code class="descclassname">tmol.score.rama.torch_op.</code><code class="descname">RamaOp</code><span class="sig-paren">(</span><em>device: torch.device, params: Mapping[str, torch.Tensor], param_resolver: tmol.score.rama.params.RamaParamResolver, f: Callable = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/torch_op.html#RamaOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.torch_op.RamaOp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="tmol.score.rama.torch_op.RamaOp._load_f">
-<code class="descname">_load_f</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/torch_op.html#RamaOp._load_f"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.torch_op.RamaOp._load_f" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.rama.script_modules.RamaScoreModule">
+<em class="property">class </em><code class="descclassname">tmol.score.rama.script_modules.</code><code class="descname">RamaScoreModule</code><span class="sig-paren">(</span><em>params: tmol.score.rama.params.RamaParams</em>, <em>param_resolver: tmol.score.rama.params.RamaParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/script_modules.html#RamaScoreModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.script_modules.RamaScoreModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.jit.ScriptModule</span></code></p>
+<dl class="attribute">
+<dt id="tmol.score.rama.script_modules.RamaScoreModule._constants_set">
+<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.rama.script_modules.RamaScoreModule._constants_set" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.score.rama.torch_op.RamaOp.from_param_resolver">
-<em class="property">classmethod </em><code class="descname">from_param_resolver</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.rama.params.RamaParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/torch_op.html#RamaOp.from_param_resolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.torch_op.RamaOp.from_param_resolver" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.score.rama.torch_op.RamaOp.from_database">
-<em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>rama_database: tmol.database.scoring.rama.RamaDatabase</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/torch_op.html#RamaOp.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.torch_op.RamaOp.from_database" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.rama.torch_op.RamaOp.intra">
-<code class="descname">intra</code><span class="sig-paren">(</span><em>coords</em>, <em>phi_indices</em>, <em>psi_indices</em>, <em>parameter_indices</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/torch_op.html#RamaOp.intra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.torch_op.RamaOp.intra" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.rama.torch_op.RamaScoreFun">
-<em class="property">class </em><code class="descclassname">tmol.score.rama.torch_op.</code><code class="descname">RamaScoreFun</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/torch_op.html#RamaScoreFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.torch_op.RamaScoreFun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
-<dl class="method">
-<dt id="tmol.score.rama.torch_op.RamaScoreFun.forward">
-<code class="descname">forward</code><span class="sig-paren">(</span><em>coords</em>, <em>phi_indices</em>, <em>psi_indices</em>, <em>parameter_indices</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/torch_op.html#RamaScoreFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.torch_op.RamaScoreFun.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context ctx as the first argument, followed by any
-number of arguments (tensors or other types).</p>
-<p>The context can be used to store tensors that can be then retrieved
-during the backward pass.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.rama.torch_op.RamaScoreFun.backward">
-<code class="descname">backward</code><span class="sig-paren">(</span><em>dV_dE</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/rama/torch_op.html#RamaScoreFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.rama.torch_op.RamaScoreFun.backward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines a formula for differentiating the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
-as many outputs did <a class="reference internal" href="#tmol.score.rama.torch_op.RamaScoreFun.forward" title="tmol.score.rama.torch_op.RamaScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
-tensors, as there were inputs to <a class="reference internal" href="#tmol.score.rama.torch_op.RamaScoreFun.forward" title="tmol.score.rama.torch_op.RamaScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
-gradient w.r.t the given output, and each returned value should be the
-gradient w.r.t. the corresponding input.</p>
-<p>The context can be used to retrieve tensors saved during the forward
-pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
-of booleans representing whether each input needs gradient. E.g.,
-<a class="reference internal" href="#tmol.score.rama.torch_op.RamaScoreFun.backward" title="tmol.score.rama.torch_op.RamaScoreFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
-first input to <a class="reference internal" href="#tmol.score.rama.torch_op.RamaScoreFun.forward" title="tmol.score.rama.torch_op.RamaScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
-output.</p>
-</dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.rama.torch_op.RamaScoreFun._is_legacy">
-<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.rama.torch_op.RamaScoreFun._is_legacy" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.rama.script_modules.RamaScoreModule._original_methods">
+<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function RamaScoreModule.forward at 0x7fff9132ad08&gt;}</em><a class="headerlink" href="#tmol.score.rama.script_modules.RamaScoreModule._original_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

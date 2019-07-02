@@ -13,7 +13,7 @@ tmol.score.dunbrack
   
        tmol.score.dunbrack.params
        tmol.score.dunbrack.score_graph
-       tmol.score.dunbrack.torch_op
+       tmol.score.dunbrack.script_modules
   
 
 

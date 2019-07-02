@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
+  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-174-g232fcdb5 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-172-g61ce24ac',
+              VERSION:'0.0.0-174-g232fcdb5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -47,7 +47,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.score.cartbonded.torch_op" href="tmol.score.cartbonded.torch_op.html" />
+    <link rel="next" title="tmol.score.cartbonded.script_modules" href="tmol.score.cartbonded.script_modules.html" />
     <link rel="prev" title="tmol.score.cartbonded.params" href="tmol.score.cartbonded.params.html" /> 
 </head>
 
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-172-g61ce24ac
+                0.0.0-174-g232fcdb5
               </div>
             
           
@@ -125,7 +125,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.cartbonded.torch_op.html">tmol.score.cartbonded.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.cartbonded.script_modules.html">tmol.score.cartbonded.script_modules</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.cartbonded.potentials.html">tmol.score.cartbonded.potentials</a></li>
 </ul>
 </li>
@@ -230,20 +230,11 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.score_graph.CartBondedAngleParams" title="tmol.score.cartbonded.score_graph.CartBondedAngleParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedAngleParams</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore" title="tmol.score.cartbonded.score_graph.CartBondedIntraScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedIntraScore</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.score_graph.CartBondedLengthParams" title="tmol.score.cartbonded.score_graph.CartBondedLengthParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedLengthParams</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore" title="tmol.score.cartbonded.score_graph.CartBondedIntraScore"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedIntraScore</span></code></a></td>
 <td></td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph" title="tmol.score.cartbonded.score_graph.CartBondedScoreGraph"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedScoreGraph</span></code></a></td>
 <td>Compute graph for the CartBonded term.</td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.score_graph.CartBondedTorsionParams" title="tmol.score.cartbonded.score_graph.CartBondedTorsionParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedTorsionParams</span></code></a></td>
-<td></td>
 </tr>
 </tbody>
 </table>
@@ -251,24 +242,6 @@
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedLengthParams">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.score_graph.</code><code class="descname">CartBondedLengthParams</code><span class="sig-paren">(</span><em>atom_indices: Tensor(torch.int32)[...,2], param_indices: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/score_graph.html#CartBondedLengthParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedLengthParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedAngleParams">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.score_graph.</code><code class="descname">CartBondedAngleParams</code><span class="sig-paren">(</span><em>atom_indices: Tensor(torch.int32)[...,3], param_indices: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/score_graph.html#CartBondedAngleParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedAngleParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedTorsionParams">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.score_graph.</code><code class="descname">CartBondedTorsionParams</code><span class="sig-paren">(</span><em>atom_indices: Tensor(torch.int32)[...,4], param_indices: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/score_graph.html#CartBondedTorsionParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedTorsionParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
-</dd></dl>
-
 <dl class="class">
 <dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore">
 <em class="property">class </em><code class="descclassname">tmol.score.cartbonded.score_graph.</code><code class="descname">CartBondedIntraScore</code><span class="sig-paren">(</span><em>target: _ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/score_graph.html#CartBondedIntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore" title="Permalink to this definition">¶</a></dt>
@@ -280,20 +253,10 @@
 </dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_length">
-<code class="descname">cartbonded_length</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_length" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
 <dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.total_cartbonded_angle">
 <code class="descname">total_cartbonded_angle</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.total_cartbonded_angle" title="Permalink to this definition">¶</a></dt>
 <dd><p>total cartbonded angle score</p>
 </dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_angle">
-<code class="descname">cartbonded_angle</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_angle" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.total_cartbonded_torsion">
@@ -302,31 +265,16 @@
 </dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_torsion">
-<code class="descname">cartbonded_torsion</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_torsion" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
 <dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.total_cartbonded_improper">
 <code class="descname">total_cartbonded_improper</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.total_cartbonded_improper" title="Permalink to this definition">¶</a></dt>
 <dd><p>total cartbonded improper score</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_improper">
-<code class="descname">cartbonded_improper</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_improper" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
 <dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.total_cartbonded_hxltorsion">
 <code class="descname">total_cartbonded_hxltorsion</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.total_cartbonded_hxltorsion" title="Permalink to this definition">¶</a></dt>
 <dd><p>total cartbonded hxltorsion score</p>
 </dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_hxltorsion">
-<code class="descname">cartbonded_hxltorsion</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.cartbonded_hxltorsion" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
@@ -358,28 +306,28 @@
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_length_op">
-<code class="descname">cartbonded_length_op</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_length_op" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_length_module">
+<code class="descname">cartbonded_length_module</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_length_module" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_angle_op">
-<code class="descname">cartbonded_angle_op</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_angle_op" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_angle_module">
+<code class="descname">cartbonded_angle_module</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_angle_module" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_torsion_op">
-<code class="descname">cartbonded_torsion_op</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_torsion_op" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_torsion_module">
+<code class="descname">cartbonded_torsion_module</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_torsion_module" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_improper_op">
-<code class="descname">cartbonded_improper_op</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_improper_op" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_improper_module">
+<code class="descname">cartbonded_improper_module</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_improper_module" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_hxltorsion_op">
-<code class="descname">cartbonded_hxltorsion_op</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_hxltorsion_op" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_hxltorsion_module">
+<code class="descname">cartbonded_hxltorsion_module</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedScoreGraph.cartbonded_hxltorsion_module" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -462,7 +410,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.score.cartbonded.torch_op.html" class="btn btn-neutral float-right" title="tmol.score.cartbonded.torch_op" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.cartbonded.script_modules.html" class="btn btn-neutral float-right" title="tmol.score.cartbonded.script_modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tmol.score.cartbonded.params.html" class="btn btn-neutral float-left" title="tmol.score.cartbonded.params" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

@@ -14,7 +14,7 @@ tmol.score.cartbonded
        tmol.score.cartbonded.identification
        tmol.score.cartbonded.params
        tmol.score.cartbonded.score_graph
-       tmol.score.cartbonded.torch_op
+       tmol.score.cartbonded.script_modules
   
        tmol.score.cartbonded.potentials
 

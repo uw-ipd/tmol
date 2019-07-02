@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.rama.score_graph &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
+  <title>tmol.score.rama.score_graph &mdash; TMol 0.0.0-174-g232fcdb5 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-172-g61ce24ac',
+              VERSION:'0.0.0-174-g232fcdb5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-172-g61ce24ac
+                0.0.0-174-g232fcdb5
               </div>
             
           
@@ -179,7 +179,6 @@
   <h1>Source code for tmol.score.rama.score_graph</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">pandas</span>
 <span class="kn">import</span> <span class="nn">numpy</span>
-<span class="kn">import</span> <span class="nn">attr</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">singledispatch</span>
@@ -194,42 +193,20 @@
 
 <span class="kn">from</span> <span class="nn">tmol.database</span> <span class="k">import</span> <span class="n">ParameterDatabase</span>
 <span class="kn">from</span> <span class="nn">tmol.database.scoring</span> <span class="k">import</span> <span class="n">RamaDatabase</span>
-<span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">RamaParamResolver</span>
-<span class="kn">from</span> <span class="nn">.torch_op</span> <span class="k">import</span> <span class="n">RamaOp</span>
+<span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">RamaParamResolver</span><span class="p">,</span> <span class="n">RamaParams</span>
+<span class="kn">from</span> <span class="nn">.script_modules</span> <span class="k">import</span> <span class="n">RamaScoreModule</span>
 
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span> <span class="nn">tmol.types.array</span> <span class="k">import</span> <span class="n">NDArray</span>
 
-<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
-<span class="kn">from</span> <span class="nn">tmol.types.tensor</span> <span class="k">import</span> <span class="n">TensorGroup</span>
-
-
-<div class="viewcode-block" id="RamaParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.rama.score_graph.html#tmol.score.rama.score_graph.RamaParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">RamaParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
-    <span class="n">phi_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
-    <span class="n">psi_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
-    <span class="n">param_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">]</span></div>
-
 
 <div class="viewcode-block" id="RamaIntraScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.rama.score_graph.html#tmol.score.rama.score_graph.RamaIntraScore">[docs]</a><span class="nd">@reactive_attrs</span>
 <span class="k">class</span> <span class="nc">RamaIntraScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">total_rama</span><span class="p">(</span><span class="n">rama_score</span><span class="p">):</span>
-        <span class="n">score_val</span> <span class="o">=</span> <span class="n">rama_score</span>
-        <span class="k">return</span> <span class="n">score_val</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-
-    <span class="nd">@reactive_property</span>
-    <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">rama_score</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">rama_op</span><span class="o">.</span><span class="n">intra</span><span class="p">(</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">rama_resolve_indices</span><span class="o">.</span><span class="n">phi_indices</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">rama_resolve_indices</span><span class="o">.</span><span class="n">psi_indices</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">rama_resolve_indices</span><span class="o">.</span><span class="n">param_indices</span><span class="p">,</span>
-        <span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">total_rama</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">rama_module</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="RamaScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.rama.score_graph.html#tmol.score.rama.score_graph.RamaScoreGraph">[docs]</a><span class="nd">@score_graph</span>
@@ -261,8 +238,10 @@
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">rama_op</span><span class="p">(</span><span class="n">rama_param_resolver</span><span class="p">:</span> <span class="n">RamaParamResolver</span><span class="p">,)</span> <span class="o">-&gt;</span> <span class="n">RamaOp</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">RamaOp</span><span class="o">.</span><span class="n">from_param_resolver</span><span class="p">(</span><span class="n">rama_param_resolver</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">rama_module</span><span class="p">(</span>
+        <span class="n">rama_param_resolver</span><span class="p">:</span> <span class="n">RamaParamResolver</span><span class="p">,</span> <span class="n">rama_resolve_indices</span><span class="p">:</span> <span class="n">RamaParams</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RamaScoreModule</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">RamaScoreModule</span><span class="p">(</span><span class="n">rama_resolve_indices</span><span class="p">,</span> <span class="n">rama_param_resolver</span><span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>

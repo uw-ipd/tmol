@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.omega.torch_op &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
+  <title>tmol.score.omega.script_modules &mdash; TMol 0.0.0-174-g232fcdb5 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.omega.torch_op.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.omega.script_modules.html"/>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-172-g61ce24ac',
+              VERSION:'0.0.0-174-g232fcdb5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-172-g61ce24ac
+                0.0.0-174-g232fcdb5
               </div>
             
           
@@ -126,7 +126,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.lk_ball.html">tmol.score.lk_ball</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.omega.html">tmol.score.omega</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.omega.score_graph.html">tmol.score.omega.score_graph</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.omega.torch_op</a><ul>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.omega.script_modules</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
@@ -197,13 +197,13 @@
         
           <li><a href="tmol.score.omega.html">tmol.score.omega</a> &raquo;</li>
         
-      <li>tmol.score.omega.torch_op</li>
+      <li>tmol.score.omega.script_modules</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.score.omega.torch_op.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.score.omega.script_modules.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -216,8 +216,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.score.omega.torch_op">
-<span id="tmol-score-omega-torch-op"></span><h1>tmol.score.omega.torch_op<a class="headerlink" href="#module-tmol.score.omega.torch_op" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-tmol.score.omega.script_modules">
+<span id="tmol-score-omega-script-modules"></span><h1>tmol.score.omega.script_modules<a class="headerlink" href="#module-tmol.score.omega.script_modules" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="classes">
@@ -228,10 +228,7 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.omega.torch_op.OmegaOp" title="tmol.score.omega.torch_op.OmegaOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OmegaOp</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.omega.torch_op.OmegaScoreFun" title="tmol.score.omega.torch_op.OmegaScoreFun"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OmegaScoreFun</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.omega.script_modules.OmegaScoreModule" title="tmol.score.omega.script_modules.OmegaScoreModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OmegaScoreModule</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -241,62 +238,17 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="tmol.score.omega.torch_op.OmegaOp">
-<em class="property">class </em><code class="descclassname">tmol.score.omega.torch_op.</code><code class="descname">OmegaOp</code><span class="sig-paren">(</span><em>device: torch.device</em>, <em>f: Callable = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/torch_op.html#OmegaOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.torch_op.OmegaOp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="tmol.score.omega.torch_op.OmegaOp._load_f">
-<code class="descname">_load_f</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/torch_op.html#OmegaOp._load_f"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.torch_op.OmegaOp._load_f" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.omega.script_modules.OmegaScoreModule">
+<em class="property">class </em><code class="descclassname">tmol.score.omega.script_modules.</code><code class="descname">OmegaScoreModule</code><span class="sig-paren">(</span><em>indices: tmol.types.torch.Tensor</em>, <em>K: tmol.types.torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/script_modules.html#OmegaScoreModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.script_modules.OmegaScoreModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.jit.ScriptModule</span></code></p>
+<dl class="attribute">
+<dt id="tmol.score.omega.script_modules.OmegaScoreModule._constants_set">
+<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.omega.script_modules.OmegaScoreModule._constants_set" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.score.omega.torch_op.OmegaOp.from_device">
-<em class="property">classmethod </em><code class="descname">from_device</code><span class="sig-paren">(</span><em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/torch_op.html#OmegaOp.from_device"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.torch_op.OmegaOp.from_device" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.omega.torch_op.OmegaOp.intra">
-<code class="descname">intra</code><span class="sig-paren">(</span><em>coords</em>, <em>omega_indices</em>, <em>K</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/torch_op.html#OmegaOp.intra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.torch_op.OmegaOp.intra" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.omega.torch_op.OmegaScoreFun">
-<em class="property">class </em><code class="descclassname">tmol.score.omega.torch_op.</code><code class="descname">OmegaScoreFun</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/torch_op.html#OmegaScoreFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.torch_op.OmegaScoreFun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
-<dl class="method">
-<dt id="tmol.score.omega.torch_op.OmegaScoreFun.forward">
-<code class="descname">forward</code><span class="sig-paren">(</span><em>coords</em>, <em>omega_indices</em>, <em>K</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/torch_op.html#OmegaScoreFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.torch_op.OmegaScoreFun.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context ctx as the first argument, followed by any
-number of arguments (tensors or other types).</p>
-<p>The context can be used to store tensors that can be then retrieved
-during the backward pass.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.omega.torch_op.OmegaScoreFun.backward">
-<code class="descname">backward</code><span class="sig-paren">(</span><em>dV_dE</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/omega/torch_op.html#OmegaScoreFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.omega.torch_op.OmegaScoreFun.backward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines a formula for differentiating the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
-as many outputs did <a class="reference internal" href="#tmol.score.omega.torch_op.OmegaScoreFun.forward" title="tmol.score.omega.torch_op.OmegaScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
-tensors, as there were inputs to <a class="reference internal" href="#tmol.score.omega.torch_op.OmegaScoreFun.forward" title="tmol.score.omega.torch_op.OmegaScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
-gradient w.r.t the given output, and each returned value should be the
-gradient w.r.t. the corresponding input.</p>
-<p>The context can be used to retrieve tensors saved during the forward
-pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
-of booleans representing whether each input needs gradient. E.g.,
-<a class="reference internal" href="#tmol.score.omega.torch_op.OmegaScoreFun.backward" title="tmol.score.omega.torch_op.OmegaScoreFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
-first input to <a class="reference internal" href="#tmol.score.omega.torch_op.OmegaScoreFun.forward" title="tmol.score.omega.torch_op.OmegaScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
-output.</p>
-</dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.omega.torch_op.OmegaScoreFun._is_legacy">
-<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.omega.torch_op.OmegaScoreFun._is_legacy" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.omega.script_modules.OmegaScoreModule._original_methods">
+<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function OmegaScoreModule.forward at 0x7fff90868488&gt;}</em><a class="headerlink" href="#tmol.score.omega.script_modules.OmegaScoreModule._original_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

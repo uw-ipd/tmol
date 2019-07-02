@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.dunbrack.score_graph &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
+  <title>tmol.score.dunbrack.score_graph &mdash; TMol 0.0.0-174-g232fcdb5 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-172-g61ce24ac',
+              VERSION:'0.0.0-174-g232fcdb5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-172-g61ce24ac
+                0.0.0-174-g232fcdb5
               </div>
             
           
@@ -196,30 +196,41 @@
 <span class="kn">from</span> <span class="nn">..score_graph</span> <span class="k">import</span> <span class="n">score_graph</span>
 
 <span class="kn">from</span> <span class="nn">.params</span> <span class="k">import</span> <span class="n">DunbrackParamResolver</span><span class="p">,</span> <span class="n">DunbrackParams</span><span class="p">,</span> <span class="n">DunbrackScratch</span>
-<span class="kn">from</span> <span class="nn">.torch_op</span> <span class="k">import</span> <span class="n">DunbrackOp</span>
+<span class="kn">from</span> <span class="nn">.script_modules</span> <span class="k">import</span> <span class="n">DunbrackScoreModule</span>
 
 
 <div class="viewcode-block" id="DunbrackIntraScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.score_graph.html#tmol.score.dunbrack.score_graph.DunbrackIntraScore">[docs]</a><span class="nd">@reactive_attrs</span>
 <span class="k">class</span> <span class="nc">DunbrackIntraScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">dun</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">dunbrack_op</span><span class="o">.</span><span class="n">intra</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+    <span class="k">def</span> <span class="nf">dun_score</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">dun_module</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
 
     <span class="nd">@reactive_property</span>
-    <span class="k">def</span> <span class="nf">total_dun</span><span class="p">(</span><span class="n">dun</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;total inter-atomic lj&quot;&quot;&quot;</span>
-        <span class="n">rot_nlpE</span><span class="p">,</span> <span class="n">devpen</span><span class="p">,</span> <span class="n">nonrot_nlpE</span> <span class="o">=</span> <span class="n">dun</span>
-        <span class="n">sumE</span> <span class="o">=</span> <span class="n">rot_nlpE</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">devpen</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">nonrot_nlpE</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">sumE</span></div>
+    <span class="k">def</span> <span class="nf">total_dun_rot</span><span class="p">(</span><span class="n">dun_score</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">dun_score</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">total_dun_dev</span><span class="p">(</span><span class="n">dun_score</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">dun_score</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">total_dun_semi</span><span class="p">(</span><span class="n">dun_score</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">dun_score</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="DunbrackScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.score_graph.html#tmol.score.dunbrack.score_graph.DunbrackScoreGraph">[docs]</a><span class="nd">@score_graph</span>
 <span class="k">class</span> <span class="nc">DunbrackScoreGraph</span><span class="p">(</span><span class="n">BondedAtomScoreGraph</span><span class="p">,</span> <span class="n">ParamDB</span><span class="p">,</span> <span class="n">TorchDevice</span><span class="p">):</span>
     <span class="n">total_score_components</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">ScoreComponentClasses</span><span class="p">(</span>
-            <span class="s2">&quot;dun&quot;</span><span class="p">,</span> <span class="n">intra_container</span><span class="o">=</span><span class="n">DunbrackIntraScore</span><span class="p">,</span> <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span>
-        <span class="p">)</span>
+            <span class="s2">&quot;dun_rot&quot;</span><span class="p">,</span> <span class="n">intra_container</span><span class="o">=</span><span class="n">DunbrackIntraScore</span><span class="p">,</span> <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span>
+        <span class="p">),</span>
+        <span class="n">ScoreComponentClasses</span><span class="p">(</span>
+            <span class="s2">&quot;dun_dev&quot;</span><span class="p">,</span> <span class="n">intra_container</span><span class="o">=</span><span class="n">DunbrackIntraScore</span><span class="p">,</span> <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span>
+        <span class="p">),</span>
+        <span class="n">ScoreComponentClasses</span><span class="p">(</span>
+            <span class="s2">&quot;dun_semi&quot;</span><span class="p">,</span> <span class="n">intra_container</span><span class="o">=</span><span class="n">DunbrackIntraScore</span><span class="p">,</span> <span class="n">inter_container</span><span class="o">=</span><span class="kc">None</span>
+        <span class="p">),</span>
     <span class="p">]</span>
 
 <div class="viewcode-block" id="DunbrackScoreGraph.factory_for"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.score_graph.html#tmol.score.dunbrack.score_graph.DunbrackScoreGraph.factory_for">[docs]</a>    <span class="nd">@staticmethod</span>
@@ -246,12 +257,12 @@
 
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
-    <span class="k">def</span> <span class="nf">dunbrack_op</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">dun_module</span><span class="p">(</span>
         <span class="n">dun_param_resolver</span><span class="p">:</span> <span class="n">DunbrackParamResolver</span><span class="p">,</span>
         <span class="n">dun_resolve_indices</span><span class="p">:</span> <span class="n">DunbrackParams</span><span class="p">,</span>
         <span class="n">dun_scratch</span><span class="p">:</span> <span class="n">DunbrackScratch</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DunbrackOp</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">DunbrackOp</span><span class="o">.</span><span class="n">from_params</span><span class="p">(</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DunbrackScoreModule</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DunbrackScoreModule</span><span class="p">(</span>
             <span class="n">dun_param_resolver</span><span class="o">.</span><span class="n">packed_db</span><span class="p">,</span> <span class="n">dun_resolve_indices</span><span class="p">,</span> <span class="n">dun_scratch</span>
         <span class="p">)</span>
 

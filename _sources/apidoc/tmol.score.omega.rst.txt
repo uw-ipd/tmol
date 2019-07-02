@@ -12,7 +12,7 @@ tmol.score.omega
        :maxdepth: 1
   
        tmol.score.omega.score_graph
-       tmol.score.omega.torch_op
+       tmol.score.omega.script_modules
   
        tmol.score.omega.potentials
 

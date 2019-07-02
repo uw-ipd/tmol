@@ -7,21 +7,7 @@ tmol.score.rama.potentials.compiled
 .. currentmodule:: tmol.score.rama.potentials.compiled
 
 .. automodule:: tmol.score.rama.potentials.compiled
-    :members: rama
-    :undoc-members:
-    :show-inheritance:
-    :member-order: bysource
-
-    Summary
-    -------
-
-    Functions
-    ~~~~~~~~~
     
-    .. autosummary::
-        :nosignatures:
-
-        rama
 
 
 
@@ -29,6 +15,3 @@ tmol.score.rama.potentials.compiled
 
 
 
-
-    Reference
-    ---------

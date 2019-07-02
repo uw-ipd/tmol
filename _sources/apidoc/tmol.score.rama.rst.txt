@@ -13,7 +13,7 @@ tmol.score.rama
   
        tmol.score.rama.params
        tmol.score.rama.score_graph
-       tmol.score.rama.torch_op
+       tmol.score.rama.script_modules
   
        tmol.score.rama.potentials
 

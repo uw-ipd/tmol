@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.dunbrack.score_graph &mdash; TMol 0.0.0-172-g61ce24ac documentation</title>
+  <title>tmol.score.dunbrack.score_graph &mdash; TMol 0.0.0-174-g232fcdb5 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-172-g61ce24ac',
+              VERSION:'0.0.0-174-g232fcdb5',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -47,7 +47,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.score.dunbrack.torch_op" href="tmol.score.dunbrack.torch_op.html" />
+    <link rel="next" title="tmol.score.dunbrack.script_modules" href="tmol.score.dunbrack.script_modules.html" />
     <link rel="prev" title="tmol.score.dunbrack.params" href="tmol.score.dunbrack.params.html" /> 
 </head>
 
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-172-g61ce24ac
+                0.0.0-174-g232fcdb5
               </div>
             
           
@@ -126,7 +126,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="tmol.score.dunbrack.torch_op.html">tmol.score.dunbrack.torch_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tmol.score.dunbrack.script_modules.html">tmol.score.dunbrack.script_modules</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.score.elec.html">tmol.score.elec</a></li>
@@ -245,15 +245,24 @@
 <em class="property">class </em><code class="descclassname">tmol.score.dunbrack.score_graph.</code><code class="descname">DunbrackIntraScore</code><span class="sig-paren">(</span><em>target: _ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/score_graph.html#DunbrackIntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackIntraScore" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.score.score_components.html#tmol.score.score_components.IntraScore" title="tmol.score.score_components.IntraScore"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.score_components.IntraScore</span></code></a></p>
 <dl class="attribute">
-<dt id="tmol.score.dunbrack.score_graph.DunbrackIntraScore.dun">
-<code class="descname">dun</code><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackIntraScore.dun" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.score_graph.DunbrackIntraScore.dun_score">
+<code class="descname">dun_score</code><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackIntraScore.dun_score" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.dunbrack.score_graph.DunbrackIntraScore.total_dun">
-<code class="descname">total_dun</code><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackIntraScore.total_dun" title="Permalink to this definition">¶</a></dt>
-<dd><p>total inter-atomic lj</p>
-</dd></dl>
+<dt id="tmol.score.dunbrack.score_graph.DunbrackIntraScore.total_dun_rot">
+<code class="descname">total_dun_rot</code><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackIntraScore.total_dun_rot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.dunbrack.score_graph.DunbrackIntraScore.total_dun_dev">
+<code class="descname">total_dun_dev</code><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackIntraScore.total_dun_dev" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.dunbrack.score_graph.DunbrackIntraScore.total_dun_semi">
+<code class="descname">total_dun_semi</code><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackIntraScore.total_dun_semi" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -263,7 +272,7 @@
 <dd><p>Bases: <a class="reference internal" href="tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph" title="tmol.score.bonded_atom.BondedAtomScoreGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.bonded_atom.BondedAtomScoreGraph</span></code></a>, <a class="reference internal" href="tmol.score.database.html#tmol.score.database.ParamDB" title="tmol.score.database.ParamDB"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.database.ParamDB</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.score.dunbrack.score_graph.DunbrackScoreGraph.total_score_components">
-<code class="descname">total_score_components</code><em class="property"> = [ScoreComponentClasses(name='dun', intra_container=&lt;class 'tmol.score.dunbrack.score_graph.DunbrackIntraScore'&gt;, inter_container=None)]</em><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackScoreGraph.total_score_components" title="Permalink to this definition">¶</a></dt>
+<code class="descname">total_score_components</code><em class="property"> = [ScoreComponentClasses(name='dun_rot', intra_container=&lt;class 'tmol.score.dunbrack.score_graph.DunbrackIntraScore'&gt;, inter_container=None), ScoreComponentClasses(name='dun_dev', intra_container=&lt;class 'tmol.score.dunbrack.score_graph.DunbrackIntraScore'&gt;, inter_container=None), ScoreComponentClasses(name='dun_semi', intra_container=&lt;class 'tmol.score.dunbrack.score_graph.DunbrackIntraScore'&gt;, inter_container=None)]</em><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackScoreGraph.total_score_components" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="staticmethod">
@@ -273,8 +282,8 @@
 </dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.dunbrack.score_graph.DunbrackScoreGraph.dunbrack_op">
-<code class="descname">dunbrack_op</code><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackScoreGraph.dunbrack_op" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.score_graph.DunbrackScoreGraph.dun_module">
+<code class="descname">dun_module</code><a class="headerlink" href="#tmol.score.dunbrack.score_graph.DunbrackScoreGraph.dun_module" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -348,7 +357,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.score.dunbrack.torch_op.html" class="btn btn-neutral float-right" title="tmol.score.dunbrack.torch_op" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.score.dunbrack.script_modules.html" class="btn btn-neutral float-right" title="tmol.score.dunbrack.script_modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tmol.score.dunbrack.params.html" class="btn btn-neutral float-left" title="tmol.score.dunbrack.params" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
