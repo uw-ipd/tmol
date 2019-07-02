@@ -11,12 +11,16 @@ template struct DunbrackDispatch<
     common::ForallDispatch,
     tmol::Device::CUDA,
     float,
-    int32_t>;
+    int32_t,
+    2,
+    4>;
 template struct DunbrackDispatch<
     common::ForallDispatch,
     tmol::Device::CUDA,
     double,
-    int32_t>;
+    int32_t,
+    2,
+    4>;
 
 }  // namespace potentials
 }  // namespace dunbrack
