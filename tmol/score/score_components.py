@@ -150,9 +150,13 @@ class IntraScore:
 
     @staticmethod
     def total(target, **component_totals):
+        total_score = 0
+        torch.cuda.nvtx.range_push("IntraScoreSum")
         if not hasattr(target, "component_weights") or target.component_weights is None:
             # no weights provided, simple sum components
-            return toolz.reduce(operator.add, component_totals.values())
+            torch.cuda.nvtx.range_push("IntraScoreSum::reduce")
+            total_score = toolz.reduce(operator.add, component_totals.values())
+            torch.cuda.nvtx.range_pop()
         else:
             # weights provided, use to rescale
             # Note:
@@ -163,7 +167,9 @@ class IntraScore:
             for comp, score in component_totals.items():
                 if comp in target.component_weights:
                     total_score += target.component_weights[comp] * score
-            return total_score
+        torch.cuda.nvtx.range_pop()
+
+        return total_score
 
 
 @attr.s

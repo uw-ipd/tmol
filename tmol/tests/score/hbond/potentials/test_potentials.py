@@ -353,7 +353,6 @@ def test_hbond_point_scores(compiled, sp2_params, sp3_params, ring_params):
 
 def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_params):
     def _t(t):
-        print("_t(t)", t)
         return torch.tensor(t).to(dtype=torch.double)
 
     def targs(params):
@@ -370,8 +369,6 @@ def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_par
         # args["acceptor_hybridization"] = args["acceptor_hybridization"].to(
         #    dtype=torch.int32
         # )
-
-        print("args!", args)
 
         return tuple(args.values())
 

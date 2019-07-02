@@ -18,8 +18,8 @@ from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 from tmol.score.hbond import HBondScoreGraph
 from tmol.score.elec import ElecScoreGraph
 from tmol.score.rama import RamaScoreGraph
-from tmol.score.dunbrack import DunbrackScoreGraph
 from tmol.score.omega import OmegaScoreGraph
+from tmol.score.dunbrack import DunbrackScoreGraph
 from tmol.score.cartbonded import CartBondedScoreGraph
 from tmol.score.lk_ball import LKBallScoreGraph
 
@@ -66,12 +66,12 @@ class RamaScore(CartesianAtomicCoordinateProvider, RamaScoreGraph, TorchDevice):
 
 
 @score_graph
-class DunbrackScore(CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice):
+class OmegaScore(CartesianAtomicCoordinateProvider, OmegaScoreGraph, TorchDevice):
     pass
 
 
 @score_graph
-class OmegaScore(CartesianAtomicCoordinateProvider, OmegaScoreGraph, TorchDevice):
+class DunbrackScore(CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice):
     pass
 
 
@@ -147,6 +147,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
         HBondScore,
         ElecScore,
         RamaScore,
+        OmegaScore,
         DunbrackScore,
         CartBondedScore,
         LJScore,
@@ -158,9 +159,10 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
         "total_cart",
         "total_torsion",
         "hbond",
-        "rama",
-        "dun",
         "elec",
+        "rama",
+        "omega",
+        "dun",
         "cartbonded",
         "lj",
         "lk",

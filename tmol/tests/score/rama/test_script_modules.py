@@ -4,17 +4,15 @@ import pandas
 import numpy
 import torch
 
-from tmol.score.rama.torch_op import RamaOp
-from tmol.score.rama.params import RamaParamResolver
+from tmol.score.rama.script_modules import RamaScoreModule
+from tmol.score.rama.params import RamaParamResolver, RamaParams
 
 
 @attr.s(auto_attribs=True)
 class ScoreSetup:
     param_resolver: RamaParamResolver
+    params: RamaParams
     tcoords: torch.Tensor
-    tphi_atom_indices: torch.Tensor
-    tpsi_atom_indices: torch.Tensor
-    tramatable_indices: torch.Tensor
 
     @classmethod
     def from_fixture(cls, database, system, torch_device) -> "ScoreSetup":
@@ -80,110 +78,29 @@ class ScoreSetup:
             device=param_resolver.device, dtype=torch.int32
         )
 
-        return cls(
-            param_resolver=param_resolver,
-            tcoords=tcoords,
-            tphi_atom_indices=tphi_atom_indices,
-            tpsi_atom_indices=tpsi_atom_indices,
-            tramatable_indices=tramatable_indices,
+        params = RamaParams(
+            phi_indices=tphi_atom_indices,
+            psi_indices=tpsi_atom_indices,
+            param_indices=tramatable_indices,
         )
+
+        return cls(param_resolver=param_resolver, params=params, tcoords=tcoords)
 
 
 # torch forward op
 def test_rama_intra(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
-    func = RamaOp.from_param_resolver(s.param_resolver)
+    op = RamaScoreModule(s.params, s.param_resolver)
 
-    batch_scores = func.intra(
-        s.tcoords, s.tphi_atom_indices, s.tpsi_atom_indices, s.tramatable_indices
-    ).detach()
-    target_scores = torch.tensor(
-        [
-            -0.3400,
-            -0.1960,
-            -0.5714,
-            -0.7717,
-            0.0106,
-            -0.7053,
-            0.1066,
-            -0.1264,
-            -2.2468,
-            -0.0938,
-            -0.2140,
-            -0.5902,
-            0.0402,
-            0.0593,
-            0.5039,
-            0.4051,
-            0.0028,
-            -0.2385,
-            -0.7350,
-            -0.2852,
-            -0.5702,
-            0.0485,
-            -0.4191,
-            1.2609,
-            0.3812,
-            -0.3369,
-            -0.4135,
-            -0.4174,
-            -0.2849,
-            0.9794,
-            0.8338,
-            -0.4215,
-            1.3010,
-            -2.3470,
-            -1.1876,
-            -1.0530,
-            0.4878,
-            -0.1165,
-            -0.6052,
-            -0.2483,
-            0.2899,
-            -0.5349,
-            -1.1289,
-            0.3683,
-            1.0286,
-            -0.6671,
-            -0.0719,
-            -0.2612,
-            -0.7437,
-            -0.0319,
-            1.2596,
-            0.5173,
-            0.2713,
-            -0.6701,
-            -0.2783,
-            -0.2306,
-            0.5705,
-            -0.1212,
-            -1.4027,
-            -0.8667,
-            0.3735,
-            0.4209,
-            1.4554,
-            -0.9150,
-            -0.1044,
-            -0.6698,
-            -0.1469,
-            -0.2920,
-            -0.7826,
-            -0.6802,
-            0.4629,
-            -0.7489,
-            0.8685,
-            -0.1668,
-        ]
-    )
+    V = op(s.tcoords)
 
-    numpy.testing.assert_allclose(batch_scores.cpu(), target_scores, atol=1e-4)
-    numpy.testing.assert_allclose(batch_scores.sum().cpu(), -12.743369, atol=1e-4)
+    numpy.testing.assert_allclose(V.detach().cpu(), -12.743369, atol=1e-4)
 
 
 # torch gradcheck
 def test_rama_intra_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
-    func = RamaOp.from_param_resolver(s.param_resolver)
+    op = RamaScoreModule(s.params, s.param_resolver)
 
     atom_names = ubq_system.atom_metadata["atom_name"].copy()
     atm_mask = (atom_names == "N") | (atom_names == "CA") | (atom_names == "C")
@@ -195,10 +112,7 @@ def test_rama_intra_gradcheck(default_database, ubq_system, torch_device):
     def eval_rama(coords_subset):
         coords = s.tcoords.clone()
         coords[t_atm_indices] = coords_subset
-        v = func.intra(
-            coords, s.tphi_atom_indices, s.tpsi_atom_indices, s.tramatable_indices
-        )
-        return v
+        return op(coords)
 
     masked_coords = s.tcoords[t_atm_indices]
     torch.autograd.gradcheck(

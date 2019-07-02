@@ -17,30 +17,41 @@ from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
 from .params import DunbrackParamResolver, DunbrackParams, DunbrackScratch
-from .torch_op import DunbrackOp
+from .script_modules import DunbrackScoreModule
 
 
 @reactive_attrs
 class DunbrackIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def dun(target):
-        return target.dunbrack_op.intra(target.coords[0, ...])
+    def dun_score(target):
+        return target.dun_module(target.coords[0, ...])
 
     @reactive_property
-    def total_dun(dun):
-        """total inter-atomic lj"""
-        rot_nlpE, devpen, nonrot_nlpE = dun
-        sumE = rot_nlpE.sum() + devpen.sum() + nonrot_nlpE.sum()
-        return sumE
+    def total_dun_rot(dun_score):
+        return dun_score[0]
+
+    @reactive_property
+    def total_dun_dev(dun_score):
+        return dun_score[1]
+
+    @reactive_property
+    def total_dun_semi(dun_score):
+        return dun_score[2]
 
 
 @score_graph
 class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     total_score_components = [
         ScoreComponentClasses(
-            "dun", intra_container=DunbrackIntraScore, inter_container=None
-        )
+            "dun_rot", intra_container=DunbrackIntraScore, inter_container=None
+        ),
+        ScoreComponentClasses(
+            "dun_dev", intra_container=DunbrackIntraScore, inter_container=None
+        ),
+        ScoreComponentClasses(
+            "dun_semi", intra_container=DunbrackIntraScore, inter_container=None
+        ),
     ]
 
     @staticmethod
@@ -67,12 +78,12 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
     @reactive_property
     @validate_args
-    def dunbrack_op(
+    def dun_module(
         dun_param_resolver: DunbrackParamResolver,
         dun_resolve_indices: DunbrackParams,
         dun_scratch: DunbrackScratch,
-    ) -> DunbrackOp:
-        return DunbrackOp.from_params(
+    ) -> DunbrackScoreModule:
+        return DunbrackScoreModule(
             dun_param_resolver.packed_db, dun_resolve_indices, dun_scratch
         )
 

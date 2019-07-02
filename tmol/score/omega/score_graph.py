@@ -10,7 +10,7 @@ from ..bonded_atom import BondedAtomScoreGraph
 from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
-from .torch_op import OmegaOp
+from .script_modules import OmegaScoreModule
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
@@ -29,19 +29,8 @@ class OmegaParams(TensorGroup):
 @reactive_attrs
 class OmegaIntraScore(IntraScore):
     @reactive_property
-    @validate_args
-    def total_omega(omega_score):
-        score_val = omega_score
-        return score_val.sum()
-
-    @reactive_property
-    @validate_args
-    def omega_score(target):
-        return target.omega_op.intra(
-            target.coords[0, ...],
-            target.omega_resolve_indices.omega_indices,
-            target.spring_constant,
-        )
+    def total_omega(target):
+        return target.omega_module(target.coords[0, ...])
 
 
 @score_graph
@@ -61,14 +50,17 @@ class OmegaScoreGraph(BondedAtomScoreGraph, TorchDevice):
     device: torch.device
 
     @reactive_property
-    def spring_constant(device: torch.device) -> float:
-        """ The spring constant for omega (in radians)"""
-        return torch.tensor(32.8, device=device, dtype=torch.float)
+    @validate_args
+    def omega_module(
+        omega_resolve_indices: OmegaParams, spring_constant: Tensor(torch.float)
+    ) -> OmegaScoreModule:
+        return OmegaScoreModule(omega_resolve_indices.omega_indices, spring_constant)
 
     @reactive_property
     @validate_args
-    def omega_op(device: torch.device) -> OmegaOp:
-        return OmegaOp.from_device(device)
+    def spring_constant(device: torch.device) -> Tensor(torch.float):
+        """ The spring constant for omega (in radians)"""
+        return torch.tensor(32.8, device=device, dtype=torch.float)
 
     @reactive_property
     @validate_args

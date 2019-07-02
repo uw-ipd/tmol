@@ -16,7 +16,6 @@ template <tmol::Device Dev, typename Real, typename Int>
 void bind_dispatch(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace tmol::utility::function_dispatch;
-  using tmol::score::common::NaiveDispatch;
 
 #define ELEC_PYARGS()                                          \
   "x_i"_a, "e_i"_a, "x_j"_a, "e_j"_a, "bonded_path_lengths"_a, \

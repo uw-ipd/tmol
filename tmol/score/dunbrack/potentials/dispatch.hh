@@ -19,9 +19,14 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 #define CoordQuad Eigen::Matrix<Real, 4, 3>
 
-template <tmol::Device D, typename Real, typename Int>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 struct DunbrackDispatch {
-  static auto f(
+  static auto forward(
       TView<Vec<Real, 3>, 1, D> coords,
 
       TView<Real, 3, D> rotameric_prob_tables,
@@ -75,37 +80,26 @@ struct DunbrackDispatch {
       //                                // stored, nscdihe x 2
       TView<Int, 1, D> rotameric_rottable_assignment,     // nres x 1
       TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
+
       )
       -> std::tuple<
-          TPack<Real, 1, D>,        // -ln(prob_rotameric)
-          TPack<CoordQuad, 2, D>,   // d(-ln(prob_rotameric)) / dbb atoms
-          TPack<Real, 1, D>,        // Erotameric_chi_devpen
-          TPack<CoordQuad, 2, D>,   // ddevpen_dtor
-          TPack<Real, 1, D>,        // -ln(prob_nonrotameric)
-          TPack<CoordQuad, 2, D> >  // d(-ln(prob_nonrotameric)) / dtor atoms
-      ;
+          TPack<Real, 1, D>,       // sum (energies) [rot, dev, semi]
+          TPack<CoordQuad, 2, D>,  // d(-ln(prob_rotameric)) / dbb atoms
+          TPack<CoordQuad, 2, D>,  // ddevpen_dtor_xyz -- nrotchi x (nbb+1)
+          TPack<CoordQuad, 2, D>>  // d(-ln(prob_nonrotameric)) / dtor --
+      ;                            // nsemirot-res x 3
 
-  static auto df(
+  static auto backward(
+      TView<Real, 1, D> dTdV,
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<Real, 1, D> dE_drotnlp,
-      TView<CoordQuad, 2, D> drot_nlp_dbb_xyz,
-      TView<Real, 1, D> dE_ddevpen,
-      TView<CoordQuad, 2, D> ddevpen_dtor_xyz,
-      TView<Real, 1, D> dE_dnonrotnlp,
+      TView<CoordQuad, 2, D> drot_nlp_dbb_xyz,  // n-rotameric-res x 2
+      TView<CoordQuad, 2, D> ddevpen_dtor_xyz,  // n-rotameric-chi x 3
       TView<CoordQuad, 2, D> dnonrot_nlp_dtor_xyz,
       TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
       TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
       TView<Int, 1, D> rotres2resid,                // nres x 1
       TView<Int, 2, D> rotameric_chi_desc,          // n-rotameric-chi x 2
-      // rotchi_desc[:,0] == residue index for this chi
-      // rotchi_desc[:,1] == chi_dihedral_index for res
-
       TView<Int, 2, D> semirotameric_chi_desc  // n-semirotameric-residues x 4
-      // semirotchi_desc[:,0] == residue index
-      // semirotchi_desc[:,1] == semirotchi_dihedral_index res
-      // semirotchi_desc[:,2] == semirot_table_offset
-      // semirotchi_desc[:,3] == semirot_table_set (e.g. 0-7)
-
       ) -> TPack<Vec<Real, 3>, 1, D>;
 };
 
