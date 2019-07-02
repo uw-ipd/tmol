@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ATen/cuda/CUDAStream.h>
 #include <Eigen/Core>
 
 #include <tmol/utility/tensor/TensorAccessor.h>
@@ -16,7 +17,8 @@ struct ExhaustiveDispatch {
   int scan(
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_i,
-      TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j);
+      TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
+      at::cuda::CUDAStream* stream = nullptr);
 
   template <typename ScoreFunc>
   void score(ScoreFunc f);
@@ -30,7 +32,8 @@ struct ExhaustiveTriuDispatch {
   int scan(
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_i,
-      TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j);
+      TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
+      at::cuda::CUDAStream* stream = nullptr);
 
   template <typename ScoreFunc>
   void score(ScoreFunc f);
@@ -44,7 +47,8 @@ struct NaiveDispatch {
   int scan(
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_i,
-      TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j);
+      TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
+      at::cuda::CUDAStream* stream = nullptr);
 
   template <typename ScoreFunc>
   void score(ScoreFunc f);
@@ -58,7 +62,8 @@ struct NaiveTriuDispatch {
   int scan(
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_i,
-      TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j);
+      TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
+      at::cuda::CUDAStream* stream = nullptr);
 
   template <typename ScoreFunc>
   void score(ScoreFunc f);

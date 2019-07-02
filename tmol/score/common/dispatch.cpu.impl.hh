@@ -37,7 +37,8 @@ struct ExhaustiveDispatch<tmol::Device::CPU> {
   int scan(
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      at::cuda::CUDAStream* stream = nullptr) {
     return n_i * n_j;
   }
 
@@ -65,7 +66,8 @@ struct ExhaustiveTriuDispatch<tmol::Device::CPU> {
   int scan(
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      at::cuda::CUDAStream* stream = nullptr) {
     int n_hit = 0;
 
     for (int i = 0; i < n_i; i++) {
@@ -107,7 +109,8 @@ struct NaiveDispatch<tmol::Device::CPU> {
   int scan(
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      at::cuda::CUDAStream* stream = nullptr) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -157,7 +160,8 @@ struct NaiveTriuDispatch<tmol::Device::CPU> {
   int scan(
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      at::cuda::CUDAStream* stream = nullptr) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),

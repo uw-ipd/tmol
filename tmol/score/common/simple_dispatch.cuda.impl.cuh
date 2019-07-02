@@ -19,6 +19,14 @@ namespace common {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
+mgpu::standard_context_t context_from_stream(at::cuda::CUDAStream* stream) {
+  if (stream) {
+    return mgpu::standard_context_t(stream->stream());
+  } else {
+    return mgpu::standard_context_t();
+  }
+}
+
 template <>
 struct AABBDispatch<tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
@@ -38,9 +46,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
     int n_i = coords_i.size(0);
     int n_j = coords_j.size(0);
 
-    // mgpu::standard_context_t context;
-    auto context = stream ? mgpu::standard_context_t(stream->stream())
-                          : mgpu::standard_context_t();
+    auto context = context_from_stream(stream);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -72,9 +78,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
     int n_i = coord_idx_i.size(0);
     int n_j = coord_idx_j.size(0);
 
-    // mgpu::standard_context_t context;
-    auto context = stream ? mgpu::standard_context_t(stream->stream())
-                          : mgpu::standard_context_t();
+    auto context = context_from_stream(stream);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -110,9 +114,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
     int n_i = coords_i.size(0);
     int n_j = coords_j.size(0);
 
-    // mgpu::standard_context_t context;
-    auto context = stream ? mgpu::standard_context_t(stream->stream())
-                          : mgpu::standard_context_t();
+    auto context = context_from_stream(stream);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -148,8 +150,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
     int n_i = coord_idx_i.size(0);
     int n_j = coord_idx_j.size(0);
 
-    auto context = stream ? mgpu::standard_context_t(stream->stream())
-                          : mgpu::standard_context_t();
+    auto context = context_from_stream(stream);
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
           int i = index / n_j;
