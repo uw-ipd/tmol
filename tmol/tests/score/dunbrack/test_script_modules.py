@@ -73,9 +73,10 @@ def test_dunbrack_gradcheck(ubq_res, torch_device):
     )
     numerical = get_numerical_jacobian(total_score, start_coords, start_coords, 2e-3)
 
-    a = analytical
-    n = numerical
+    a = analytical.reshape(-1, 3)
+    n = numerical.reshape(-1, 3)
 
-    print(a.t())
-    print(n.t())
+    print(a)
+    print(n)
+    print(torch.abs(a - n))
     assert False

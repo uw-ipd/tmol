@@ -56,8 +56,6 @@ struct DunbrackDispatch {
     auto f_dunbrack = ([=] EIGEN_DEVICE_FUNC(int res) {
       int aa_idx = residue_params[res].aa_index;
 
-      // printf("res aa: %d %d\n", res, aa_idx);
-
       // 1. compute the chi dihedrals
       Eigen::Matrix<Real, MAXCHI * 4, 3> all_dchi_dxs;
       Eigen::Matrix<Real, MAXCHI, 1> all_chis;
@@ -211,10 +209,26 @@ struct DunbrackDispatch {
                                        : all_chis[i] - Xmean);
 
         rotdevE += rotdelta_i * rotdelta_i / (2 * Xdev * Xdev);
-        // printf(
-        //    "devE: %d %d: %f\n",
-        //    res, i,
-        //    rotdelta_i * rotdelta_i / (2 * rotdev_i * rotdev_i));
+
+        // chi derivs
+        for (int j = 0; j < 4; ++j) {
+          Int chi_j = residue_params[res].chi_indices[i][j];
+          Real drotdevEdchi = rotdelta_i / (Xdev * Xdev);
+          accumulate<D, Vec<Real, 3>>::add(
+              dVs_dx[chi_j][1], drotdevEdchi * all_dchi_dxs.row(4 * i + j));
+        }
+
+        // bb derivs
+        for (int k = 0; k < MAXBB; ++k) {
+          Real drotdevEdphi = -rotdelta_i / (Xdev * Xdev * Xdev)
+                              * (Xdev * dXmean[k] + rotdelta_i * dXdev[k]);
+          for (int j = 0; j < 4; ++j) {
+            Int phi_j = residue_params[res].bb_indices[k][j];
+            accumulate<D, Vec<Real, 3>>::add(
+                dVs_dx[phi_j][1],
+                drotdevEdphi * all_drottable_idx_dxs.row(4 * k + j));
+          }
+        }
       }
       accumulate<D, Real>::add(Vs[1], (rotdevE));
     });
