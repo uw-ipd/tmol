@@ -77,7 +77,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   AT_ASSERTM(
       global_params.size(0) == 1, "Invalid number of global parameters.");
 
-  nvtx_range_push("hbond alloc");
+  // nvtx-temp nvtx_range_push("hbond alloc");
   auto stream1 =
       at::cuda::getStreamFromPool(false, Dev == tmol::Device::CUDA ? 0 : -1);
   at::cuda::setCurrentCUDAStream(stream1);
@@ -93,8 +93,8 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
 
   Real _threshold_distance = 6.0;  // what about the global threshold distance?
 
-  nvtx_range_pop();
-  nvtx_range_push("hbond eval");
+  // nvtx-temp nvtx_range_pop();
+  // nvtx-temp nvtx_range_push("hbond eval");
   Dispatch<Dev>::forall_idx_pairs(
       _threshold_distance,
 
@@ -134,7 +134,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
       },
       &stream1);
 
-  nvtx_range_pop();
+  // nvtx-temp nvtx_range_pop();
   auto default_stream =
       at::cuda::getDefaultCUDAStream(Dev == tmol::Device::CUDA ? 0 : -1);
   at::cuda::setCurrentCUDAStream(default_stream);

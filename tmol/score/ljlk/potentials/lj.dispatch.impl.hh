@@ -47,9 +47,15 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
         TPack<Real, 1, D>,
         TPack<Vec<Real, 3>, 1, D>,
         TPack<Vec<Real, 3>, 1, D>> {
-  NVTXRange _function(__FUNCTION__);
+  // NVTX-TEMP NVTXRange _function(__FUNCTION__);
 
-  nvtx_range_push("dispatch::score");
+  clock_t start = clock();
+  if (D == tmol::Device::CUDA) {
+    std::cout << "lj_start " << (double)start / CLOCKS_PER_SEC * 1000000
+              << std::endl;
+  }
+
+  // nvtx-temp nvtx_range_push("dispatch::score");
   auto stream1 =
       at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
   at::cuda::setCurrentCUDAStream(stream1);
@@ -61,9 +67,9 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
   auto dV_dJ = dV_dJ_t.view;
-  nvtx_range_pop();
+  // nvtx-temp nvtx_range_pop();
 
-  nvtx_range_push("dispatch::score");
+  // nvtx-temp nvtx_range_push("dispatch::score");
   Real threshold_distance = 6.0;
   Dispatch<D>::forall_pairs(
       threshold_distance,
@@ -90,9 +96,19 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
         accumulate<D, Vec<Real, 3>>::add(dV_dJ[j], lj.dV_ddist * ddist_dJ);
       },
       &stream1);
-  nvtx_range_pop();
+  // nvtx-temp nvtx_range_pop();
 
-  nvtx_range_pop();
+  // nvtx-temp nvtx_range_pop();
+
+  clock_t stop = clock();
+  if (D == tmol::Device::CUDA) {
+    int orig = std::cout.precision();
+    std::cout.precision(16);
+    std::cout << "lj launched " << std::setw(20)
+              << (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+              << ((double)stop - start) / CLOCKS_PER_SEC << std::endl;
+    std::cout.precision(orig);
+  }
 
   auto default_stream =
       at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);

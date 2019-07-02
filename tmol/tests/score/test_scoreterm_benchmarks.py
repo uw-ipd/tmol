@@ -1,6 +1,7 @@
 import pytest
 
 from tmol.utility.reactive import reactive_property
+from tmol.utility.nvtx import nvtx_range
 
 from tmol.score import TotalScoreGraph
 
@@ -71,7 +72,9 @@ class OmegaScore(CartesianAtomicCoordinateProvider, OmegaScoreGraph, TorchDevice
 
 
 @score_graph
-class DunbrackScore(CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice):
+class DunbrackScore(
+    CartesianAtomicCoordinateProvider, LJScoreGraph, DunbrackScoreGraph, TorchDevice
+):
     pass
 
 
@@ -99,7 +102,8 @@ class LKBallScore(CartesianAtomicCoordinateProvider, LKBallScoreGraph, TorchDevi
 
 def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     # Score once to prep graph
-    total = score_graph.intra_score().total
+    with nvtx_range("warmup") as r:
+        total = score_graph.intra_score().total
 
     if benchmark_pass == "full":
 
@@ -107,8 +111,9 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
         def run():
             score_graph.reset_coords()
 
-            total = score_graph.intra_score().total
-            total.backward()
+            with nvtx_range("bench") as r2:
+                total = score_graph.intra_score().total
+                total.backward()
 
             float(total)
 
@@ -120,7 +125,8 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
         def run():
             score_graph.reset_coords()
 
-            total = score_graph.intra_score().total
+            with nvtx_range("bench") as r2:
+                total = score_graph.intra_score().total
 
             float(total)
 
@@ -130,7 +136,8 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
         @benchmark
         def run():
-            total.backward(retain_graph=True)
+            with nvtx_range("bench") as r2:
+                total.backward(retain_graph=True)
             return total
 
     else:
@@ -142,13 +149,13 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 @pytest.mark.parametrize(
     "graph_class",
     [
-        TotalScore,
+        # TotalScore,
         # DofSpaceTotal,
         # HBondScore,
-        ElecScore,
+        # ElecScore,
         # RamaScore,
         # OmegaScore,
-        # DunbrackScore,
+        DunbrackScore,
         # CartBondedScore,
         # LJScore,
         # LKScore,
@@ -156,13 +163,13 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
         # DofSpaceDummy,
     ],
     ids=[
-        "total_cart",
+        # "total_cart",
         # "total_torsion",
         # "hbond",
-        "elec",
+        # "elec",
         # "rama",
         # "omega",
-        # "dun",
+        "dun",
         # "cartbonded",
         # "lj",
         # "lk",

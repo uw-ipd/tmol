@@ -47,9 +47,9 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
         TPack<Real, 1, D>,
         TPack<Vec<Real, 3>, 1, D>,
         TPack<Vec<Real, 3>, 1, D>> {
-  nvtx_range_push(__FUNCTION__);
+  // nvtx-temp nvtx_range_push(__FUNCTION__);
 
-  nvtx_range_push("output_allocate");
+  // nvtx-temp nvtx_range_push("output_allocate");
 
   auto stream1 =
       at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
@@ -62,9 +62,9 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
   auto dV_dJ = dV_dJ_t.view;
-  nvtx_range_pop();
+  // nvtx-temp nvtx_range_pop();
 
-  nvtx_range_push("dispatch::score");
+  // nvtx-temp nvtx_range_push("dispatch::score");
   Real threshold_distance = 6.0;
   Dispatch<D>::forall_pairs(
       threshold_distance,
@@ -91,9 +91,9 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
         accumulate<D, Vec<Real, 3>>::add(dV_dJ[j], lk.dV_ddist * ddist_dJ);
       },
       &stream1);
-  nvtx_range_pop();
+  // nvtx-temp nvtx_range_pop();
 
-  nvtx_range_pop();
+  // nvtx-temp nvtx_range_pop();
   auto default_stream =
       at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
   at::cuda::setCurrentCUDAStream(default_stream);

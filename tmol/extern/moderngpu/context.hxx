@@ -100,11 +100,13 @@ class standard_context_t : public context_t {
 
   standard_context_t( standard_context_t && src ) :
     _device_ord(src._device_ord),
-    _stream(src.stream),
+    _stream(src._stream),
     _has_event(src._has_event),
-    _timer(src._timer),
     _event(src._event)
-  {}
+  {
+    _timer[0] = src._timer[0];
+    _timer[1] = src._timer[1];
+  }
 
 
   standard_context_t(cudaStream_t stream_ = 0) : context_t(), _stream(stream_) {

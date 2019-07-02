@@ -49,18 +49,18 @@ struct LKBallDispatch {
       TView<LKBallTypeParams<Real>, 1, D> type_params,
       TView<LKBallGlobalParams<Real>, 1, D> global_params)
       -> TPack<Real, 1, D> {
-    NVTXRange _function(__FUNCTION__);
+    // NVTX-TEMP NVTXRange _function(__FUNCTION__);
 
     auto stream1 =
         at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
     at::cuda::setCurrentCUDAStream(stream1);
 
-    nvtx_range_push("dispatch::score");
+    // nvtx-temp nvtx_range_push("dispatch::score1");
     auto Vs_t = TPack<Real, 1, D>::zeros({4});
     auto Vs = Vs_t.view;
-    nvtx_range_pop();
+    // nvtx-temp nvtx_range_pop();
 
-    nvtx_range_push("dispatch::score");
+    // nvtx-temp nvtx_range_push("dispatch::score2");
     Real threshold_distance = 6.0;  // fd this should be a global param
     Dispatch<D>::forall_pairs(
         threshold_distance,
@@ -95,7 +95,7 @@ struct LKBallDispatch {
           common::accumulate<D, Real>::add(Vs[3], score.lkbridge_uncpl);
         },
         &stream1);
-    nvtx_range_pop();
+    // nvtx-temp nvtx_range_pop();
     auto default_stream =
         at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
     at::cuda::setCurrentCUDAStream(default_stream);
@@ -122,9 +122,9 @@ struct LKBallDispatch {
           TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 2, D>,
           TPack<Vec<Real, 3>, 2, D>> {
-    NVTXRange _function(__FUNCTION__);
+    // NVTX-TEMP NVTXRange _function(__FUNCTION__);
 
-    nvtx_range_push("dispatch::dscore");
+    // nvtx-temp nvtx_range_push("dispatch::dscore");
     // deriv w.r.t. heavyatom position
     auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
     auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
@@ -137,9 +137,9 @@ struct LKBallDispatch {
     auto dV_dJ = dV_dJ_t.view;
     auto dW_dI = dW_dI_t.view;
     auto dW_dJ = dW_dJ_t.view;
-    nvtx_range_pop();
+    // nvtx-temp nvtx_range_pop();
 
-    nvtx_range_push("dispatch::dscore");
+    // nvtx-temp nvtx_range_push("dispatch::dscore");
     Real threshold_distance = 6.0;  // fd this should be a global param
     Dispatch<D>::forall_pairs(
         threshold_distance,
@@ -204,7 +204,7 @@ struct LKBallDispatch {
                 dW_dJ[j][wi], dTdV[3] * dV.dWJ.d_lkbridge_uncpl.row(wi));
           }
         });
-    nvtx_range_pop();
+    // nvtx-temp nvtx_range_pop();
 
     return {dV_dI_t, dV_dJ_t, dW_dI_t, dW_dJ_t};
   }

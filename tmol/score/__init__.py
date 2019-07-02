@@ -28,7 +28,7 @@ class TotalScoreGraph(
     dunbrack.DunbrackScoreGraph,
     rama.RamaScoreGraph,
     omega.OmegaScoreGraph,
-    elec.ElecScoreGraph,
+    # elec.ElecScoreGraph,
     cartbonded.CartBondedScoreGraph,
     score_weights.ScoreWeights,  # per-term reweighing
 ):

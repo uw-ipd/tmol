@@ -198,6 +198,7 @@ class InterScore:
             or target_i.component_weights is None
         ):
             # no weights provided, simple sum components
+            torch.cuda.synchronize()
             return toolz.reduce(operator.add, component_totals.values())
         else:
             # weights provided, use to rescale
@@ -205,6 +206,7 @@ class InterScore:
             #  1) weights not provided in input dict are assumed == 0
             #  2) tags in input dict not used in
             #     current graph are silently ignored
+            torch.cuda.synchronize()
             total_score = torch.zeros_like(next(iter(component_totals.values())))
             for comp, score in component_totals.items():
                 if comp in target_i.component_weights:

@@ -19,7 +19,8 @@ namespace common {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-mgpu::standard_context_t context_from_stream(at::cuda::CUDAStream* stream) {
+inline mgpu::standard_context_t context_from_stream(
+    at::cuda::CUDAStream* stream) {
   if (stream) {
     return mgpu::standard_context_t(stream->stream());
   } else {
