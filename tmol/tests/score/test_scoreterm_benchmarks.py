@@ -73,7 +73,7 @@ class OmegaScore(CartesianAtomicCoordinateProvider, OmegaScoreGraph, TorchDevice
 
 @score_graph
 class DunbrackScore(
-    CartesianAtomicCoordinateProvider, LJScoreGraph, DunbrackScoreGraph, TorchDevice
+    CartesianAtomicCoordinateProvider, DunbrackScoreGraph, TorchDevice
 ):
     pass
 
@@ -149,7 +149,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 @pytest.mark.parametrize(
     "graph_class",
     [
-        # TotalScore,
+        TotalScore,
         # DofSpaceTotal,
         # HBondScore,
         # ElecScore,
@@ -163,7 +163,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
         # DofSpaceDummy,
     ],
     ids=[
-        # "total_cart",
+        "total_cart",
         # "total_torsion",
         # "hbond",
         # "elec",
