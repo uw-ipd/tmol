@@ -1,7 +1,3 @@
-import attr
-from attr import asdict
-from typing import Mapping, Callable
-
 from .params import DunbrackParamResolver, DunbrackParams
 
 # Import compiled components to load torch_ops

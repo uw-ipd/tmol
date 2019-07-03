@@ -1,4 +1,3 @@
-import numpy
 import torch
 
 from tmol.system.packed import PackedResidueSystem

@@ -1,7 +1,5 @@
-import numpy
 import torch
 
-from tmol.system.packed import PackedResidueSystem
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.device import TorchDevice
 from tmol.score.dunbrack.score_graph import DunbrackScoreGraph

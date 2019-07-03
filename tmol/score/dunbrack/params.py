@@ -6,9 +6,6 @@ import pandas
 import torch
 
 import toolz.functoolz
-import itertools
-
-from typing import List, Tuple
 
 from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
@@ -70,9 +67,6 @@ class DunbrackParamResolver(ValidateAttrs):
         dun_lookup = pandas.DataFrame.from_records(
             cattr.unstructure(dun_database.dun_lookup)
         ).set_index(["residue_name"])
-        semirotindices = pandas.Index(
-            [f.table_name for f in dun_database.semi_rotameric_libraries]
-        )
         aaindices = pandas.Index(
             [
                 *[f.table_name for f in dun_database.rotameric_libraries],
@@ -208,7 +202,8 @@ class DunbrackParamResolver(ValidateAttrs):
                 semirotameric_prob_tables[i]
             ).coeffs
 
-    # fill in tables/indices describing rotameric AAs (and rotameric chis of semirot AAs)
+    # fill in tables/indices describing rotameric AAs
+    #  (and rotameric chis of semirot AAs)
     @classmethod
     def fill_rotameric_tables(
         cls,

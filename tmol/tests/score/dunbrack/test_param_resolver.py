@@ -2,8 +2,6 @@ import numpy
 import torch
 import attr
 
-import itertools
-
 from tmol.score.dunbrack.params import DunbrackParamResolver
 
 
@@ -33,10 +31,6 @@ def test_dun_param_resolver_tables(default_database, torch_device):
 
     assert dun_params.rotameric_prob_tables.shape[0] == nrottables
     assert dun_params.semirotameric_prob_tables.shape[0] == nsemirottables
-
-    ndunaas = len(default_database.scoring.dun.rotameric_libraries) + len(
-        default_database.scoring.dun.semi_rotameric_libraries
-    )
 
     # check device is correct
     for _, t in attr.asdict(dun_params).items():
