@@ -16,5 +16,5 @@ def test_elec_baseline_comparison(ubq_system, torch_device):
         ubq_system, drop_missing_atoms=False, requires_grad=False, device=torch_device
     )
 
-    intra_container = test_graph.intra_score()
-    assert float(intra_container.total_elec) == approx(-131.9225, rel=1e-3)
+    score = test_graph.intra_score().total_elec
+    assert float(score) == approx(-131.9225, rel=1e-3)
