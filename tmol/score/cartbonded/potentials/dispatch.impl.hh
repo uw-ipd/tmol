@@ -43,14 +43,14 @@ struct CartBondedLengthDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
 
-    clock_t start = clock();
-    if (D == tmol::Device::CUDA) {
-      int orig = std::cout.precision();
-      std::cout.precision(16);
-      std::cout << "cb length start " << (double)start / CLOCKS_PER_SEC * 1000000
-      << std::endl;
-      std::cout.precision(orig);
-    }
+    //clock_t start = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "cb length start " << (double)start / CLOCKS_PER_SEC * 1000000
+    //  << std::endl;
+    //  std::cout.precision(orig);
+    //}
 
     auto stream1 =
         at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
@@ -79,15 +79,15 @@ struct CartBondedLengthDispatch {
         at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
     at::cuda::setCurrentCUDAStream(default_stream);
 
-    clock_t stop = clock();
-    if (D == tmol::Device::CUDA) {
-      int orig = std::cout.precision();
-      std::cout.precision(16);
-      std::cout << "cb length launched " << std::setw(20)
-      << (double)stop / CLOCKS_PER_SEC * 1000000 << " "
-      << ((double)stop - start) / CLOCKS_PER_SEC << std::endl;
-      std::cout.precision(orig);
-    }
+    //clock_t stop = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "cb length launched " << std::setw(20)
+    //  << (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+    //  << ((double)stop - start) / CLOCKS_PER_SEC << std::endl;
+    //  std::cout.precision(orig);
+    //}
 
     return {V_t, dV_dx_t};
   }
@@ -260,6 +260,16 @@ struct CartBondedHxlTorsionDispatch {
         at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
     at::cuda::setCurrentCUDAStream(default_stream);
 
+    clock_t stop = clock();
+    if (D == tmol::Device::CUDA) {
+      int orig = std::cout.precision();
+      std::cout.precision(16);
+      std::cout << "cbhxltor done " << std::setw(20)
+      << (double)stop / CLOCKS_PER_SEC * 1000000 << "\n";
+      std::cout.precision(orig);
+    }
+    
+    
     return {V_t, dV_dx_t};
   }
 };

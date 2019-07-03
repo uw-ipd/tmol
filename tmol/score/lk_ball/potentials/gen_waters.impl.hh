@@ -46,14 +46,14 @@ struct GenerateWaters {
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
-    clock_t start = clock();
-    if (D == tmol::Device::CUDA) {
-      int orig = std::cout.precision();
-      std::cout.precision(16);
-      std::cout << "gen waters start " << (double)start / CLOCKS_PER_SEC * 1000000
-      << std::endl;
-      std::cout.precision(orig);
-    }
+    //clock_t start = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "gen waters start " << (double)start / CLOCKS_PER_SEC * 1000000
+    //  << std::endl;
+    //  std::cout.precision(orig);
+    //}
 
     // OK! try and set the stream in this C++ call, and then return it
     // to the default stream in the LKBallDispatch c++ call
@@ -140,15 +140,15 @@ struct GenerateWaters {
 
     Dispatch<D>::forall(num_Vs, f_watergen);
 
-    clock_t stop = clock();
-    if (D == tmol::Device::CUDA) {
-      int orig = std::cout.precision();
-      std::cout.precision(16);
-      std::cout << "gen_waters launched " << std::setw(20)
-      << (double)stop / CLOCKS_PER_SEC * 1000000 << " "
-      << ((double)stop - start) / CLOCKS_PER_SEC << std::endl;
-      std::cout.precision(orig);
-    }
+    //clock_t stop = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "gen_waters launched " << std::setw(20)
+    //  << (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+    //  << ((double)stop - start) / CLOCKS_PER_SEC << std::endl;
+    //  std::cout.precision(orig);
+    //}
     return waters_t;
   };
 
