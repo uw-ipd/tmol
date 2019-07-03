@@ -106,33 +106,33 @@ struct DunbrackDispatch {
     // not yet There should be four streams
     // not yet assert( streams.size(0) == 4);
 
+    clock_t start0 = clock();
+
     Int const nres(nrotameric_chi_for_res.size(0));
     Int const n_rotameric_res(prob_table_offset_for_rotresidue.size(0));
     Int const n_rotameric_chi(rotameric_chi_desc.size(0));
     Int const n_semirotameric_res(semirotameric_chi_desc.size(0));
     Int const n_dihedrals(dihedral_atom_inds.size(0));
 
-    auto V_tpack = TPack<Real, 1, D>::zeros({3});
-    auto V = V_tpack.view;
-
     auto stream1 =
         at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
     at::cuda::setCurrentCUDAStream(stream1);
 
-    clock_t start = clock();
+    auto V_tpack = TPack<Real, 1, D>::empty({3});
+    auto V = V_tpack.view;
 
-    // auto neglnprob_rot_tpack = TPack<Real, 1, D>::zeros(n_rotameric_res);
+    // auto neglnprob_rot_tpack = TPack<Real, 1, D>::empty(n_rotameric_res);
     auto dneglnprob_rot_dbb_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_rotameric_res, 2});
+        TPack<CoordQuad, 2, D>::empty({n_rotameric_res, 2});
 
-    // auto rotchi_devpen_tpack = TPack<Real, 1, D>::zeros(n_rotameric_chi);
+    // auto rotchi_devpen_tpack = TPack<Real, 1, D>::empty(n_rotameric_chi);
     auto drotchi_devpen_dtor_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_rotameric_chi, 3});
+        TPack<CoordQuad, 2, D>::empty({n_rotameric_chi, 3});
 
     // auto neglnprob_nonrot_tpack = TPack<Real, 1,
     // D>::zeros(n_semirotameric_res);
     auto dneglnprob_nonrot_dtor_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_semirotameric_res, 3});
+        TPack<CoordQuad, 2, D>::empty({n_semirotameric_res, 3});
 
     // auto neglnprob_rot = neglnprob_rot_tpack.view;
     auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_tpack.view;
@@ -143,12 +143,44 @@ struct DunbrackDispatch {
     // auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
     auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_tpack.view;
 
+    // Step 0:
+    // Zero the arrays
+    auto zero = [=] EIGEN_DEVICE_FUNC( int i ) {
+      if ( i < 3 ) {
+	V[i] = 0;
+      }
+      if ( i < n_rotameric_res ) {
+	for ( int j = 0; j < 2; ++j ) {
+	  for ( int k = 0; k < 4; ++k ) {
+	    dneglnprob_rot_dbb_xyz[i][j](k) = 0;
+	  }
+	}
+      }
+      if ( i < n_rotameric_chi ) {
+	for ( int j = 0; j < 3; ++j ) {
+	  for ( int k = 0; k < 4; ++k ) {
+	    drotchi_devpen_dtor_xyz[i][j](k) = 0;
+	  }
+	}
+      }
+      if ( i < n_semirotameric_res) {
+	for (int j = 0; j < 3; ++j ) {
+	  for (int k = 0; k < 4; ++k) {
+	    dneglnprob_nonrot_dtor_xyz[i][j](k) = 0;
+	  }
+	}
+      }
+    };
+
+    clock_t start1 = clock();
+    Dispatch<D>::forall(std::max(std::max(n_rotameric_res, 3), std::max(n_rotameric_chi, n_semirotameric_res)), zero, stream1);
+    
     // auto rotameric_neglnprob_tables_view = rotameric_neglnprob_tables.view;
     // auto rotameric_mean_tables_view = rotameric_mean_tables.view;
     // auto rotameric_sdev_tables_view = rotameric_sdev_tables.view;
     // auto semirotameric_tables_view = semirotameric_tables.view;
 
-    //clock_t stop = clock();
+    clock_t start2 = clock();
     //if (D == tmol::Device::CUDA) {
     //  int orig = std::cout.precision();
     //  std::cout.precision(16);
@@ -171,8 +203,8 @@ struct DunbrackDispatch {
           coords, i, dihedral_atom_inds, dihedrals, ddihe_dxyz);
     });
     Dispatch<D>::forall(n_dihedrals, func_dihe, stream1);
+    clock_t start3 = clock();
 
-    // stop = clock();
     // if (D == tmol::Device::CUDA) {
     //   std::cout << "launch 1 " << ((double)stop - start) / CLOCKS_PER_SEC
     //             << "\n";
@@ -193,6 +225,7 @@ struct DunbrackDispatch {
           i);
     });
     Dispatch<D>::forall(nres, func_rot, stream1);
+    clock_t start4 = clock();
     at::cuda::CUDAEvent rots_assigned;
     rots_assigned.record();
 
@@ -228,7 +261,8 @@ struct DunbrackDispatch {
       common::accumulate<D, Real>::add(V[0], Erot);
     });
     Dispatch<D>::forall(n_rotameric_res, func_rotameric_prob, stream2);
-    //stop = clock();
+    clock_t start5 = clock();
+
     //if (D == tmol::Device::CUDA) {
     //  std::cout << "launch 3 " << ((double)stop - start) / CLOCKS_PER_SEC
     //            << "\n";
@@ -262,7 +296,7 @@ struct DunbrackDispatch {
       common::accumulate<D, Real>::add(V[1], Erotdev);
     });
     Dispatch<D>::forall(n_rotameric_chi, func_chidevpen, stream3);
-    //stop = clock();
+    clock_t start6 = clock();
     //if (D == tmol::Device::CUDA) {
     //  std::cout << "launch 4 " << ((double)stop - start) / CLOCKS_PER_SEC
     //            << "\n";
@@ -291,8 +325,23 @@ struct DunbrackDispatch {
       common::accumulate<D, Real>::add(V[2], Esemi);
     });
     Dispatch<D>::forall(n_semirotameric_res, func_semirot, stream4);
+    clock_t start7 = clock();
+    
+    //if ( D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "dun 0 " << ((double)start1 - start0)/CLOCKS_PER_SEC * 1000000 <<
+    //	" vs 1 " << ((double)start2 - start1)/CLOCKS_PER_SEC * 1000000 <<
+    //    " vs 2 " << ((double)start3 - start2)/CLOCKS_PER_SEC * 1000000 <<
+    //    " vs 3 " << ((double)start4 - start3)/CLOCKS_PER_SEC * 1000000 <<
+    //    " vs 4 " << ((double)start5 - start4)/CLOCKS_PER_SEC * 1000000 <<
+    //    " vs 5 " << ((double)start6 - start5)/CLOCKS_PER_SEC * 1000000 <<
+    //    " vs 6 " << ((double)start7 - start6)/CLOCKS_PER_SEC * 1000000 <<
+    //	" total " << ((double)start7 - start0)/CLOCKS_PER_SEC * 1000000 <<
+    //    std::endl;
+    //  std::cout.precision(orig);
+    //}
 
-    //stop = clock();
     //if (D == tmol::Device::CUDA) {
     //  std::cout << "launch 5 " << ((double)stop - start) / CLOCKS_PER_SEC
     //            << "\n";
