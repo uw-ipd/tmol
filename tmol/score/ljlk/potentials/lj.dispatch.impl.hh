@@ -49,14 +49,14 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
         TPack<Vec<Real, 3>, 1, D>> {
   // NVTX-TEMP NVTXRange _function(__FUNCTION__);
 
-  clock_t start = clock();
-  if (D == tmol::Device::CUDA) {
-    int orig = std::cout.precision();
-    std::cout.precision(16);
-    std::cout << "lj_start " << (double)start / CLOCKS_PER_SEC * 1000000
-              << "\n";
-    std::cout.precision(orig);
-  }
+  // clock_t start = clock();
+  // if (D == tmol::Device::CUDA) {
+  //   int orig = std::cout.precision();
+  //   std::cout.precision(16);
+  //   std::cout << "lj_start " << (double)start / CLOCKS_PER_SEC * 1000000
+  //             << "\n";
+  //   std::cout.precision(orig);
+  // }
 
   // nvtx-temp nvtx_range_push("dispatch::score");
   auto stream1 =

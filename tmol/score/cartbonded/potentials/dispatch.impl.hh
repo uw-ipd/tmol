@@ -260,14 +260,14 @@ struct CartBondedHxlTorsionDispatch {
         at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
     at::cuda::setCurrentCUDAStream(default_stream);
 
-    clock_t stop = clock();
-    if (D == tmol::Device::CUDA) {
-      int orig = std::cout.precision();
-      std::cout.precision(16);
-      std::cout << "cbhxltor done " << std::setw(20)
-      << (double)stop / CLOCKS_PER_SEC * 1000000 << "\n";
-      std::cout.precision(orig);
-    }
+    //clock_t stop = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "cbhxltor done " << std::setw(20)
+    //  << (double)stop / CLOCKS_PER_SEC * 1000000 << "\n";
+    //  std::cout.precision(orig);
+    //}
     
     
     return {V_t, dV_dx_t};
