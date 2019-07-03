@@ -6,7 +6,8 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+//#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto
 
 template <
     template <tmol::Device>

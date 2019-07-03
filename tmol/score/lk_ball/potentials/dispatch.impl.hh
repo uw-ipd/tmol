@@ -50,6 +50,14 @@ struct LKBallDispatch {
       TView<LKBallGlobalParams<Real>, 1, D> global_params)
       -> TPack<Real, 1, D> {
     // NVTX-TEMP NVTXRange _function(__FUNCTION__);
+    clock_t start = clock();
+    if (D == tmol::Device::CUDA) {
+      int orig = std::cout.precision();
+      std::cout.precision(16);
+      std::cout << "lkball_start " << (double)start / CLOCKS_PER_SEC * 1000000
+      << std::endl;
+      std::cout.precision(orig);
+    }
 
     auto stream1 =
         at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
@@ -99,6 +107,16 @@ struct LKBallDispatch {
     auto default_stream =
         at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
     at::cuda::setCurrentCUDAStream(default_stream);
+
+    clock_t stop = clock();
+    if (D == tmol::Device::CUDA) {
+      int orig = std::cout.precision();
+      std::cout.precision(16);
+      std::cout << "lkball launched " << std::setw(20)
+        << (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+        << ((double)stop - start) / CLOCKS_PER_SEC << std::endl;
+      std::cout.precision(orig);
+    }
 
     return Vs_t;
   }

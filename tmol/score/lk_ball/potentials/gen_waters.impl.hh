@@ -21,7 +21,8 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+//#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto
 
 template <
     template <tmol::Device>
@@ -44,6 +45,21 @@ struct GenerateWaters {
       ->TPack<Vec<Real, 3>, 2, D> {
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
+
+    clock_t start = clock();
+    if (D == tmol::Device::CUDA) {
+      int orig = std::cout.precision();
+      std::cout.precision(16);
+      std::cout << "gen waters start " << (double)start / CLOCKS_PER_SEC * 1000000
+      << std::endl;
+      std::cout.precision(orig);
+    }
+
+    // OK! try and set the stream in this C++ call, and then return it
+    // to the default stream in the LKBallDispatch c++ call
+    auto stream1 =
+        at::cuda::getStreamFromPool(false, D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(stream1);
 
     int num_Vs = coords.size(0);
 
@@ -124,6 +140,15 @@ struct GenerateWaters {
 
     Dispatch<D>::forall(num_Vs, f_watergen);
 
+    clock_t stop = clock();
+    if (D == tmol::Device::CUDA) {
+      int orig = std::cout.precision();
+      std::cout.precision(16);
+      std::cout << "gen_waters launched " << std::setw(20)
+      << (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+      << ((double)stop - start) / CLOCKS_PER_SEC << std::endl;
+      std::cout.precision(orig);
+    }
     return waters_t;
   };
 

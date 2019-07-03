@@ -148,15 +148,15 @@ struct DunbrackDispatch {
     // auto rotameric_sdev_tables_view = rotameric_sdev_tables.view;
     // auto semirotameric_tables_view = semirotameric_tables.view;
 
-    // clock_t stop = clock();
-    // if (D == tmol::Device::CUDA) {
-    //   int orig = std::cout.precision();
-    //   std::cout.precision(16);
-    //   std::cout << "allocate " << ((double)stop - start) / CLOCKS_PER_SEC << " "
-    //             << std::setw(20) << ((double)stop / CLOCKS_PER_SEC) * 1000000
-    //             << "\n";
-    //   std::cout.precision(orig);
-    // }
+    clock_t stop = clock();
+    if (D == tmol::Device::CUDA) {
+      int orig = std::cout.precision();
+      std::cout.precision(16);
+      std::cout << "allocate " << ((double)stop - start) / CLOCKS_PER_SEC << " "
+                << std::setw(20) << ((double)stop / CLOCKS_PER_SEC) * 1000000
+                << "\n";
+      std::cout.precision(orig);
+    }
 
     // Five steps to this calculation
     // 1. compute the dihedrals and put them into the dihedrals array
@@ -292,15 +292,15 @@ struct DunbrackDispatch {
     });
     Dispatch<D>::forall(n_semirotameric_res, func_semirot, stream4);
 
-    //stop = clock();
-    //if (D == tmol::Device::CUDA) {
-    //  std::cout << "launch 5 " << ((double)stop - start) / CLOCKS_PER_SEC
-    //            << "\n";
-    //}
+    stop = clock();
+    if (D == tmol::Device::CUDA) {
+      std::cout << "launch 5 " << ((double)stop - start) / CLOCKS_PER_SEC
+                << "\n";
+    }
 
-    // auto default_stream =
-    //    at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
-    // at::cuda::setCurrentCUDAStream(default_stream);
+    auto default_stream =
+       at::cuda::getDefaultCUDAStream(D == tmol::Device::CUDA ? 0 : -1);
+    at::cuda::setCurrentCUDAStream(default_stream);
 
     return {V_tpack,
             dneglnprob_rot_dbb_xyz_tpack,
