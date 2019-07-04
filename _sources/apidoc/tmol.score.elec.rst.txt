@@ -13,7 +13,7 @@ tmol.score.elec
   
        tmol.score.elec.params
        tmol.score.elec.score_graph
-       tmol.score.elec.torch_op
+       tmol.score.elec.script_modules
   
 
 

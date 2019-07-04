@@ -8,14 +8,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.elec.torch_op &mdash; TMol 0.0.0-174-g232fcdb5 documentation</title>
+  <title>tmol.score.elec.script_modules &mdash; TMol 0.0.0-175-gbf926684 documentation</title>
   
 
   
   
   
   
-    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.elec.torch_op.html"/>
+    <link rel="canonical" href="http://tmol.uw.ipd.edu/apidoc/tmol.score.elec.script_modules.html"/>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-174-g232fcdb5',
+              VERSION:'0.0.0-175-gbf926684',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-174-g232fcdb5
+                0.0.0-175-gbf926684
               </div>
             
           
@@ -123,7 +123,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.score.elec.html">tmol.score.elec</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.elec.params.html">tmol.score.elec.params</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tmol.score.elec.score_graph.html">tmol.score.elec.score_graph</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.elec.torch_op</a><ul>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.score.elec.script_modules</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
@@ -197,13 +197,13 @@
         
           <li><a href="tmol.score.elec.html">tmol.score.elec</a> &raquo;</li>
         
-      <li>tmol.score.elec.torch_op</li>
+      <li>tmol.score.elec.script_modules</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/apidoc/tmol.score.elec.torch_op.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/apidoc/tmol.score.elec.script_modules.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -216,8 +216,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-tmol.score.elec.torch_op">
-<span id="tmol-score-elec-torch-op"></span><h1>tmol.score.elec.torch_op<a class="headerlink" href="#module-tmol.score.elec.torch_op" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="module-tmol.score.elec.script_modules">
+<span id="tmol-score-elec-script-modules"></span><h1>tmol.score.elec.script_modules<a class="headerlink" href="#module-tmol.score.elec.script_modules" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="classes">
@@ -228,7 +228,10 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.elec.torch_op.ElecOp" title="tmol.score.elec.torch_op.ElecOp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ElecOp</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.elec.script_modules.ElecInterModule" title="tmol.score.elec.script_modules.ElecInterModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ElecInterModule</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.elec.script_modules.ElecIntraModule" title="tmol.score.elec.script_modules.ElecIntraModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ElecIntraModule</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -238,77 +241,49 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="tmol.score.elec.torch_op.ElecOp">
-<em class="property">class </em><code class="descclassname">tmol.score.elec.torch_op.</code><code class="descname">ElecOp</code><span class="sig-paren">(</span><em>device: torch.device, params: Mapping[str, torch.Tensor], param_resolver: tmol.score.elec.params.ElecParamResolver, f: Callable = NOTHING, f_triu: Callable = NOTHING</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#ElecOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op.ElecOp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="tmol.score.elec.torch_op.ElecOp._load_f">
-<code class="descname">_load_f</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#ElecOp._load_f"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op.ElecOp._load_f" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.elec.script_modules._ElecScoreModule">
+<em class="property">class </em><code class="descclassname">tmol.score.elec.script_modules.</code><code class="descname">_ElecScoreModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.elec.params.ElecParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/script_modules.html#_ElecScoreModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.script_modules._ElecScoreModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.jit.ScriptModule</span></code></p>
+<dl class="attribute">
+<dt id="tmol.score.elec.script_modules._ElecScoreModule._constants_set">
+<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.elec.script_modules._ElecScoreModule._constants_set" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
-<dt id="tmol.score.elec.torch_op.ElecOp._load_f_triu">
-<code class="descname">_load_f_triu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#ElecOp._load_f_triu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op.ElecOp._load_f_triu" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.score.elec.torch_op.ElecOp.from_param_resolver">
-<em class="property">classmethod </em><code class="descname">from_param_resolver</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.elec.params.ElecParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#ElecOp.from_param_resolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op.ElecOp.from_param_resolver" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.score.elec.torch_op.ElecOp.from_database">
-<em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>elec_database: tmol.database.scoring.elec.ElecDatabase</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#ElecOp.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op.ElecOp.from_database" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.elec.torch_op.ElecOp.inter">
-<code class="descname">inter</code><span class="sig-paren">(</span><em>coords_a</em>, <em>pcs_a</em>, <em>coords_b</em>, <em>pcs_b</em>, <em>rep_bpls</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#ElecOp.inter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op.ElecOp.inter" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.elec.torch_op.ElecOp.intra">
-<code class="descname">intra</code><span class="sig-paren">(</span><em>coords</em>, <em>pcs</em>, <em>rep_bpls</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#ElecOp.intra"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op.ElecOp.intra" title="Permalink to this definition">¶</a></dt>
+<dl class="attribute">
+<dt id="tmol.score.elec.script_modules._ElecScoreModule._original_methods">
+<code class="descname">_original_methods</code><em class="property"> = {}</em><a class="headerlink" href="#tmol.score.elec.script_modules._ElecScoreModule._original_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="tmol.score.elec.torch_op._ElecScoreFun">
-<em class="property">class </em><code class="descclassname">tmol.score.elec.torch_op.</code><code class="descname">_ElecScoreFun</code><span class="sig-paren">(</span><em>op</em>, <em>f</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#_ElecScoreFun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op._ElecScoreFun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
-<dl class="method">
-<dt id="tmol.score.elec.torch_op._ElecScoreFun.forward">
-<code class="descname">forward</code><span class="sig-paren">(</span><em>I</em>, <em>pc_I</em>, <em>J</em>, <em>pc_J</em>, <em>cp_bonded_path_lengths</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#_ElecScoreFun.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op._ElecScoreFun.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Performs the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context ctx as the first argument, followed by any
-number of arguments (tensors or other types).</p>
-<p>The context can be used to store tensors that can be then retrieved
-during the backward pass.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="tmol.score.elec.torch_op._ElecScoreFun.backward">
-<code class="descname">backward</code><span class="sig-paren">(</span><em>_ind_grads</em>, <em>dV_dE</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/torch_op.html#_ElecScoreFun.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.torch_op._ElecScoreFun.backward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines a formula for differentiating the operation.</p>
-<p>This function is to be overridden by all subclasses.</p>
-<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
-as many outputs did <a class="reference internal" href="#tmol.score.elec.torch_op._ElecScoreFun.forward" title="tmol.score.elec.torch_op._ElecScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
-tensors, as there were inputs to <a class="reference internal" href="#tmol.score.elec.torch_op._ElecScoreFun.forward" title="tmol.score.elec.torch_op._ElecScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
-gradient w.r.t the given output, and each returned value should be the
-gradient w.r.t. the corresponding input.</p>
-<p>The context can be used to retrieve tensors saved during the forward
-pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
-of booleans representing whether each input needs gradient. E.g.,
-<a class="reference internal" href="#tmol.score.elec.torch_op._ElecScoreFun.backward" title="tmol.score.elec.torch_op._ElecScoreFun.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
-first input to <a class="reference internal" href="#tmol.score.elec.torch_op._ElecScoreFun.forward" title="tmol.score.elec.torch_op._ElecScoreFun.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
-output.</p>
-</dd></dl>
+<dt id="tmol.score.elec.script_modules.ElecInterModule">
+<em class="property">class </em><code class="descclassname">tmol.score.elec.script_modules.</code><code class="descname">ElecInterModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.elec.params.ElecParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/script_modules.html#ElecInterModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.script_modules.ElecInterModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.elec.script_modules._ElecScoreModule" title="tmol.score.elec.script_modules._ElecScoreModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.elec.script_modules._ElecScoreModule</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.elec.script_modules.ElecInterModule._constants_set">
+<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.elec.script_modules.ElecInterModule._constants_set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.elec.torch_op._ElecScoreFun._is_legacy">
-<code class="descname">_is_legacy</code><em class="property"> = True</em><a class="headerlink" href="#tmol.score.elec.torch_op._ElecScoreFun._is_legacy" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.elec.script_modules.ElecInterModule._original_methods">
+<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function ElecInterModule.forward at 0x7fff992b1730&gt;}</em><a class="headerlink" href="#tmol.score.elec.script_modules.ElecInterModule._original_methods" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="tmol.score.elec.script_modules.ElecIntraModule">
+<em class="property">class </em><code class="descclassname">tmol.score.elec.script_modules.</code><code class="descname">ElecIntraModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.elec.params.ElecParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/elec/script_modules.html#ElecIntraModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.elec.script_modules.ElecIntraModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#tmol.score.elec.script_modules._ElecScoreModule" title="tmol.score.elec.script_modules._ElecScoreModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.elec.script_modules._ElecScoreModule</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.score.elec.script_modules.ElecIntraModule._constants_set">
+<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.elec.script_modules.ElecIntraModule._constants_set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.elec.script_modules.ElecIntraModule._original_methods">
+<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function ElecIntraModule.forward at 0x7fff992b18c8&gt;}</em><a class="headerlink" href="#tmol.score.elec.script_modules.ElecIntraModule._original_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
