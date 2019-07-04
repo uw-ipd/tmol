@@ -6,11 +6,15 @@
 #include <Eigen/Geometry>
 #include <tuple>
 
+#include <tmol/score/common/accumulate.hh>
+
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/tuple.hh>
 
 #include <tmol/score/elec/potentials/potentials.hh>
+
+#include "params.hh"
 
 namespace tmol {
 namespace score {
@@ -28,62 +32,54 @@ template <
     typename Int>
 struct ElecDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, Dev> x_i,
+      TView<Vec<Real, 3>, 1, Dev> coords_i,
       TView<Real, 1, Dev> e_i,
-      TView<Vec<Real, 3>, 1, Dev> x_j,
+      TView<Vec<Real, 3>, 1, Dev> coords_j,
       TView<Real, 1, Dev> e_j,
       TView<Real, 2, Dev> bonded_path_lengths,
-      Real D,
-      Real D0,
-      Real S,
-      Real min_dis,
-      Real max_dis)
+      TView<ElecGlobalParams<float>, 1, Dev> global_params)
       -> std::tuple<
-          TPack<int64_t, 2, Dev>,
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev> > {
-    Dispatch<Dev> dispatcher(e_i.size(0), e_j.size(0));
-    Real threshold_distance = 6.0;
-    auto num_Vs = dispatcher.scan(threshold_distance, x_i, x_j);
+          TPack<Vec<Real, 3>, 1, Dev>> {
+    auto Vs_t = TPack<Real, 1, Dev>::zeros({1});
+    auto dVs_dI_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({coords_i.size(0)});
+    auto dVs_dJ_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({coords_j.size(0)});
 
-    auto inds_t = TPack<int64_t, 2, Dev>::empty({num_Vs, 2});
-    auto Vs_t = TPack<Real, 1, Dev>::empty({num_Vs});
-    auto dV_dIs_t = TPack<Vec<Real, 3>, 1, Dev>::empty(num_Vs);
-    auto dV_dJs_t = TPack<Vec<Real, 3>, 1, Dev>::empty(num_Vs);
-
-    auto inds = inds_t.view;
     auto Vs = Vs_t.view;
-    auto dV_dIs = dV_dIs_t.view;
-    auto dV_dJs = dV_dJs_t.view;
+    auto dVs_dI = dVs_dI_t.view;
+    auto dVs_dJ = dVs_dJ_t.view;
 
-    dispatcher.score([=] EIGEN_DEVICE_FUNC(int o, int i, int j) {
-      auto dist_r = distance<Real>::V_dV(x_i[i], x_j[j]);
-      auto& dist = dist_r.V;
-      auto& ddist_dI = dist_r.dV_dA;
-      auto& ddist_dJ = dist_r.dV_dB;
+    Real threshold_distance = 6.0;  // fd  make this a parameter...
 
-      Real V, dV_dDist;
-      tie(V, dV_dDist) = elec_delec_ddist(
-          dist,
-          e_i[i],
-          e_j[j],
-          bonded_path_lengths[i][j],
-          D,
-          D0,
-          S,
-          min_dis,
-          max_dis);
+    Dispatch<Dev>::forall_pairs(
+        threshold_distance,
+        coords_i,
+        coords_j,
+        [=] EIGEN_DEVICE_FUNC(int i, int j) {
+          auto dist_r = distance<Real>::V_dV(coords_i[i], coords_j[j]);
+          auto& dist = dist_r.V;
+          auto& ddist_dI = dist_r.dV_dA;
+          auto& ddist_dJ = dist_r.dV_dB;
 
-      inds[o][0] = i;
-      inds[o][1] = j;
+          Real V, dV_dDist;
+          tie(V, dV_dDist) = elec_delec_ddist(
+              dist,
+              e_i[i],
+              e_j[j],
+              bonded_path_lengths[i][j],
+              global_params[0].D,
+              global_params[0].D0,
+              global_params[0].S,
+              global_params[0].min_dis,
+              global_params[0].max_dis);
 
-      Vs[o] = V;
-      dV_dIs[o] = dV_dDist * ddist_dI;
-      dV_dJs[o] = dV_dDist * ddist_dJ;
-    });
+          accumulate<Dev, Real>::add(Vs[0], V);
+          accumulate<Dev, Vec<Real, 3>>::add(dVs_dI[i], dV_dDist * ddist_dI);
+          accumulate<Dev, Vec<Real, 3>>::add(dVs_dJ[j], dV_dDist * ddist_dJ);
+        });
 
-    return {inds_t, Vs_t, dV_dIs_t, dV_dJs_t};
+    return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }
 };
 

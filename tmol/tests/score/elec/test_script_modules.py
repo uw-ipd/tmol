@@ -3,9 +3,11 @@ import attr
 import numpy
 import torch
 
-from tmol.score.elec.torch_op import ElecOp
+from tmol.score.elec.script_modules import ElecIntraModule, ElecInterModule
 from tmol.score.elec.params import ElecParamResolver
 from tmol.score.bonded_atom import bonded_path_length
+
+import tmol.score.elec.potentials.compiled  # noqa
 
 
 @attr.s(auto_attribs=True)
@@ -46,7 +48,7 @@ class ScoreSetup:
         )
 
 
-# sweep fa_elec in 0.1A intervals from 0 to 6A
+# sweep fa_elec in 0.1A intervals from 0 to 6A & compare to reference
 def test_elec_sweep(default_database, torch_device):
     coords = numpy.zeros((2, 3))
     bpl = numpy.array([[0.0, 6.0], [6.0, 0.0]])
@@ -55,8 +57,6 @@ def test_elec_sweep(default_database, torch_device):
     tcoords = torch.from_numpy(coords).to(torch_device).requires_grad_(True)
     tbpl = torch.from_numpy(bpl).to(torch_device, tcoords.dtype)
     tpcs = torch.from_numpy(pcs).to(torch_device, tcoords.dtype)
-
-    import tmol.score.elec.potentials.compiled as compiled
 
     scores_expected = numpy.array(
         [
@@ -125,76 +125,54 @@ def test_elec_sweep(default_database, torch_device):
 
     min_dis, max_dis, D, D0, S = 1.6, 5.5, 79.931, 6.648, 0.441546
     scores = numpy.zeros(60)
+    globals = torch.tensor([[D, D0, S, min_dis, max_dis]]).to(torch_device, torch.float)
     for i in range(60):
         tcoords[1, 2] = i / 10.0
-        pairs, batch_scores, *batch_derivs = compiled.elec_triu(
-            tcoords, tpcs, tcoords, tpcs, tbpl, D, D0, S, min_dis, max_dis
+        batch_scores = torch.ops.tmol.score_elec_triu(
+            tcoords, tpcs, tcoords, tpcs, tbpl, globals
         )
-        scores[i] = batch_scores[1]
+        scores[i] = batch_scores
     numpy.testing.assert_allclose(scores, scores_expected, atol=1e-4)
 
 
-# sweep fa_elec in 0.1A intervals from 0 to 6A
-# check numeric v analytic gradients
-def test_elec_sweep_gradcheck(default_database, torch_device):
-    coords = numpy.zeros((2, 3))
-    bpl = numpy.array([[0.0, 6.0], [6.0, 0.0]])
-    pcs = numpy.array([1.0, 1.0])
-
-    tcoords = torch.from_numpy(coords).to(torch_device).requires_grad_(True)
-    tbpl = torch.from_numpy(bpl).to(torch_device, tcoords.dtype)
-    tpcs = torch.from_numpy(pcs).to(torch_device, tcoords.dtype)
-
-    min_dis, max_dis, D, D0, S = 1.6, 5.5, 79.931, 6.648, 0.441546
-
-    def eval_intra(coords):
-        import tmol.score.elec.potentials.compiled as compiled
-
-        pairs, scores, derivs_i, derivs_j = compiled.elec_triu(
-            tcoords, tpcs, tcoords, tpcs, tbpl, D, D0, S, min_dis, max_dis
-        )
-        return (scores[1], derivs_i[1])
-
-    dscores_A = numpy.zeros((60, 3))
-    dscores_N = numpy.zeros((60, 3))
-    for i in range(60):
-        eps = 1e-5
-        tcoords[1, 2] = i / 10.0
-        _, dsc_A_t = eval_intra(tcoords)
-        dscores_A[i, :] = dsc_A_t.cpu()
-        for j in range(3):
-            tcoords[0, j] = eps
-            score_p, _ = eval_intra(tcoords)
-            tcoords[0, j] = -eps
-            score_m, _ = eval_intra(tcoords)
-            tcoords[0, j] = 0
-            dscores_N[i, j] = (score_p - score_m) / (2 * eps)
-
-    numpy.testing.assert_allclose(dscores_A, dscores_N, atol=1e-5)
-
-
-# torch forward op
+# torch intra op
 def test_elec_intra(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
-    func = ElecOp.from_param_resolver(s.param_resolver)
+    op = ElecIntraModule(s.param_resolver)
 
-    pairs, batch_scores = func.intra(s.tcoords[0], s.tpcs[0], s.trbpl[0])
+    val = op(s.tcoords[0, :], s.tpcs[0, :], s.trbpl[0, :])
 
-    numpy.testing.assert_allclose(
-        batch_scores.detach().sum().cpu(), -131.9225, atol=1e-4
-    )
+    torch.testing.assert_allclose(val.cpu(), -131.9225, atol=1e-4, rtol=1e-2)
 
 
-# torch gradcheck
+# torch intra gradcheck
 def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
-    func = ElecOp.from_param_resolver(s.param_resolver)
+    op = ElecIntraModule(s.param_resolver)
 
     natoms = 32
 
     def eval_intra(coords):
-        i, v = func.intra(coords, s.tpcs[0, :natoms], s.trbpl[0, :natoms, :natoms])
-        return v
+        val = op(coords, s.tpcs[0, :natoms], s.trbpl[0, :natoms, :natoms])
+        return val
 
     coords = s.tcoords[0, :natoms]
     torch.autograd.gradcheck(eval_intra, (coords.requires_grad_(True),), eps=1e-4)
+
+
+# torch inter op
+def test_elec_inter(default_database, ubq_system, torch_device):
+    s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
+    op = ElecInterModule(s.param_resolver)
+
+    part = ubq_system.system_size // 2
+
+    val = op(
+        s.tcoords[0, :part],
+        s.tpcs[0, :part],
+        s.tcoords[0, part:],
+        s.tpcs[0, part:],
+        s.trbpl[0, :part, part:],
+    )
+
+    torch.testing.assert_allclose(val.cpu(), -44.6776, atol=1e-4, rtol=1e-2)

@@ -19,32 +19,19 @@ from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
 
 from .params import ElecParamResolver
-from .torch_op import ElecOp
+from .script_modules import ElecIntraModule
 
 
 @reactive_attrs
 class ElecIntraScore(IntraScore):
     @reactive_property
-    def elec(target):
-        assert target.coords.dim() == 3
-        assert target.coords.shape[0] == 1
-
-        assert target.elec_partial_charges.dim() == 2
-        assert target.elec_partial_charges.shape[0] == 1
-
-        assert target.repatm_bonded_path_length.dim() == 3
-        assert target.repatm_bonded_path_length.shape[0] == 1
-
-        return target.elec_op.intra(
+    @validate_args
+    def total_elec(target):
+        return target.elec_intra_module(
             target.coords[0],
             target.elec_partial_charges[0],
             target.repatm_bonded_path_length[0],
         )
-
-    @reactive_property
-    def total_elec(elec):
-        inds, vals = elec
-        return vals.sum()
 
 
 @score_graph
@@ -78,9 +65,8 @@ class ElecScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     elec_database: ElecDatabase
 
     @reactive_property
-    def elec_op(elec_param_resolver: ElecParamResolver) -> ElecOp:
-        """elec evaluation op."""
-        return ElecOp.from_param_resolver(elec_param_resolver)
+    def elec_intra_module(elec_param_resolver: ElecParamResolver) -> ElecIntraModule:
+        return ElecIntraModule(elec_param_resolver)
 
     @reactive_property
     def elec_param_resolver(

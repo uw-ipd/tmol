@@ -40,14 +40,14 @@ def connectivity_weight(Real bonded_path_length)->Real {
 }
 
 // sigmoidal distance-dependant dielectric
-def eps(Real dist, Real D, Real D0, Real S)->Real {
+def eps(Real dist, float D, float D0, float S)->Real {
   return (
       D
       - 0.5 * (D - D0) * (2 + 2 * dist * S + dist * dist * S * S)
             * std::exp(-dist * S));
 }
 
-def deps_ddist(Real dist, Real D, Real D0, Real S)->Real {
+def deps_ddist(Real dist, float D, float D0, float S)->Real {
   return (0.5 * (D - D0) * dist * dist * S * S * S * std::exp(-dist * S));
 }
 
@@ -56,11 +56,11 @@ def elec_delec_ddist(
     Real e_i,
     Real e_j,
     Real bonded_path_length,
-    Real D,
-    Real D0,
-    Real S,
-    Real min_dis,
-    Real max_dis)
+    float D,
+    float D0,
+    float S,
+    float min_dis,
+    float max_dis)
     ->tuple<Real, Real> {
   Real low_poly_start = min_dis - 0.25;
   Real low_poly_end = min_dis + 0.25;
