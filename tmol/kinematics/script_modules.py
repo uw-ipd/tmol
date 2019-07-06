@@ -3,9 +3,10 @@ import torch
 from .datatypes import KinTree, KinDOF
 from .metadata import DOFMetadata
 
-# Import compiled components to load torch_ops
 import tmol.kinematics.compiled  # noqa
-from tmol.kinematics.compiled import inverse_kin
+from tmol.kinematics.compiled.compiled import inverse_kin
+
+from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -13,7 +14,7 @@ if "to" in torch.jit.ScriptModule.__dict__:
     delattr(torch.jit.ScriptModule, "to")
 
 
-class KinematicScoreModule(torch.jit.ScriptModule):
+class KinematicModule(torch.jit.ScriptModule):
     """torch.autograd compatible forward kinematic operator.
 
     Perform forward (dof to coordinate) kinematics within torch.autograd
@@ -63,7 +64,7 @@ class KinematicScoreModule(torch.jit.ScriptModule):
     @torch.jit.script_method
     def forward(self, dofs):
         return torch.ops.tmol.forward_kin_op(
-            working_dofs,
+            dofs,
             self.nodes_f,
             self.scans_f,
             self.gens_f,

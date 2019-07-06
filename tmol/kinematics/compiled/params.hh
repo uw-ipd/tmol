@@ -22,33 +22,12 @@ struct KinTreeGenData {
   Int scan_start;
 };
 
-template <typename Real>
-struct JumpDofTypes {
-  Real RBtrans[3];
-  Real RBtrans_del[3];
-  Real RBangle[3];
-}
-
-template <typename Real>
-struct BondDofTypes {
-  Real phi_p;
-  Real theta;
-  Real d;
-  Real phi_c;
-}
-
-template <typename Real>
-struct DofTypes {
-  union {
-    struct JumpDofTypes<Real> asjump;
-    struct BondDofTypes<Real> asbond;
-  } data;
 }  // namespace kinematics
-}  // namespace kinematics
+}  // namespace tmol
 
 namespace tmol {
 
-template <typename Real>
+template <typename Int>
 struct enable_tensor_view<kinematics::KinTreeParams<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
   static const at::ScalarType scalar_type =
@@ -62,7 +41,7 @@ struct enable_tensor_view<kinematics::KinTreeParams<Int>> {
   typedef typename enable_tensor_view<Int>::PrimitiveType PrimitiveType;
 };
 
-template <typename Real>
+template <typename Int>
 struct enable_tensor_view<kinematics::KinTreeGenData<Int>> {
   static const bool enabled = enable_tensor_view<Int>::enabled;
   static const at::ScalarType scalar_type =
@@ -74,20 +53,6 @@ struct enable_tensor_view<kinematics::KinTreeGenData<Int>> {
   }
 
   typedef typename enable_tensor_view<Int>::PrimitiveType PrimitiveType;
-};
-
-template <typename Real>
-struct enable_tensor_view<kinematics::DofTypes<Real>> {
-  static const bool enabled = enable_tensor_view<Int>::enabled;
-  static const at::ScalarType scalar_type =
-      enable_tensor_view<Real>::scalar_type;
-
-  static const int nconsumed_dims = 1;
-  static const int consumed_dims(int i) {
-    return (i == 0) ? sizeof(kinematics::DofTypes<Real>) / sizeof(Real) : 0;
-  }
-
-  typedef typename enable_tensor_view<Real>::PrimitiveType PrimitiveType;
 };
 
 }  // namespace tmol

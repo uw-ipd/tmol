@@ -6,8 +6,7 @@
 
 #include <tmol/score/common/simple_dispatch.hh>
 
-#include "lj.dispatch.hh"
-#include "lk_isotropic.dispatch.hh"
+#include "compiled.hh"
 
 namespace tmol {
 namespace kinematics {
@@ -16,6 +15,7 @@ using torch::Tensor;
 
 struct KinOpBackward : public torch::autograd::Function {
   torch::autograd::SavedVariable saved_hts;
+  torch::autograd::SavedVariable saved_dofs;
   torch::autograd::SavedVariable saved_nodes;
   torch::autograd::SavedVariable saved_scans;
   torch::autograd::SavedVariable saved_gens;
@@ -24,6 +24,8 @@ struct KinOpBackward : public torch::autograd::Function {
   void release_variables() override {
     saved_hts.reset_data();
     saved_hts.reset_grad_function();
+    saved_dofs.reset_data();
+    saved_dofs.reset_grad_function();
     saved_nodes.reset_data();
     saved_nodes.reset_grad_function();
     saved_scans.reset_data();
@@ -34,14 +36,16 @@ struct KinOpBackward : public torch::autograd::Function {
     saved_kintree.reset_grad_function();
   }
 
-  ScoreOpBackward(
+  KinOpBackward(
     torch::autograd::Variable hts,
+    torch::autograd::Variable dofs,
     torch::autograd::Variable nodes,
     torch::autograd::Variable scans,
     torch::autograd::Variable gens,
     torch::autograd::Variable kintree
   )   : 
     saved_hts(hts, false),
+    saved_dofs(dofs, false),
     saved_nodes(nodes, false),
     saved_scans(scans, false),
     saved_gens(gens, false),
@@ -51,23 +55,25 @@ struct KinOpBackward : public torch::autograd::Function {
   torch::autograd::variable_list apply(
       torch::autograd::variable_list&& grads) override {
     auto hts = saved_hts.unpack();
+    auto dofs = saved_dofs.unpack();
     auto nodes = saved_nodes.unpack();
     auto scans = saved_scans.unpack();
     auto gens = saved_gens.unpack();
     auto kintree = saved_kintree.unpack();
 
     at::Tensor dV_ddof;
-    using Int = int64_t;
+    using Int = int32_t;
     auto dVdx = grads[0];
 
     TMOL_DISPATCH_FLOATING_DEVICE(
-      I.type(), "kin_deriv_op", ([&] {
+      hts.type(), "kin_deriv_op", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
         auto result = KinDerivDispatch<Dev, Real, Int>::f(
-            TCAST(dTdV),
+            TCAST(dVdx),
             TCAST(hts),
+            TCAST(dofs),
             TCAST(nodes),
             TCAST(scans),
             TCAST(gens),
@@ -79,7 +85,7 @@ struct KinOpBackward : public torch::autograd::Function {
 
     return {dV_ddof};
   }
-}
+};
 
 
 Tensor kinematic_op(
@@ -97,10 +103,10 @@ Tensor kinematic_op(
   at::Tensor coords;
   at::Tensor HTs;
 
-  using Int = int64_t;
+  using Int = int32_t;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
-      I.type(), "forward_kin_op", ([&] {
+      dofs.type(), "forward_kin_op", ([&] {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
@@ -117,7 +123,7 @@ Tensor kinematic_op(
 
   return connect_backward_pass({dofs}, coords, [&]() {
       return std::shared_ptr<KinOpBackward>(
-        new KinOpBackward( HTs, nodes_b, scans_b, gens_b, kintree ), 
+        new KinOpBackward( HTs, dofs, nodes_b, scans_b, gens_b, kintree ), 
         torch::autograd::deleteFunction);
   });
 };
@@ -125,10 +131,8 @@ Tensor kinematic_op(
 
 static auto registry =
     torch::jit::RegisterOperators()
-        .op("tmol::forward_kin_op", &forward_kin_op )
+        .op("tmol::forward_kin_op", &kinematic_op );
 
 
-}  // namespace potentials
-}  // namespace ljlk
-}  // namespace score
+}  // namespace kinematics
 }  // namespace tmol

@@ -8,36 +8,38 @@ from tmol.types.torch import Tensor
 from tmol.types.attrs import ValidateAttrs
 
 from tmol.kinematics.compiled import compiled
-from tmol.kinematics.script_modules import KinematicScoreModule
+from tmol.kinematics.script_modules import KinematicModule
 
 
 from .datatypes import NodeType, KinTree, KinDOF
 
-from .scan_ordering import KinTreeScanOrdering
-
-HTArray = Tensor(torch.double)[:, 4, 4]
 CoordArray = Tensor(torch.double)[:, 3]
 
 
 @validate_args
-def inverseKin(kintree: KinTree, coords: CoordArray) -> BackKinResult:
+def inverseKin(kintree: KinTree, coords: CoordArray) -> KinDOF:
     """xyzs -> HTs, dofs
       - "backward" kinematics
     """
     natoms = coords.shape[0]
-    dofs = KinDOF.full(natoms, numpy.nan, device=coords.device)
-    dofs.raw = compiled.inverse_kin(coords, kintree)
-
-    return dofs
+    raw_dofs = compiled.inverse_kin(
+        coords,
+        kintree.parent,
+        kintree.frame_x,
+        kintree.frame_y,
+        kintree.frame_z,
+        kintree.doftype,
+    )
+    return KinDOF(raw=raw_dofs)
 
 
 @validate_args
-def forwardKin(kintree: KinTree, dofs: KinDOF) -> ForwardKinResult:
+def forwardKin(kintree: KinTree, dofs: KinDOF) -> CoordArray:
     """dofs -> HTs, xyzs
       - "forward" kinematics
     """
 
-    ksm = KinematicScoreModule(kintree)
-    coords = ksm(dofs)
+    ksm = KinematicModule(kintree)
+    coords = ksm(dofs.raw)
 
     return coords

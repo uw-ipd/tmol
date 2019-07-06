@@ -5,7 +5,7 @@ from typing import Optional
 
 from ..types.functional import validate_args
 
-from ..kinematics.torch_op import KinematicOp
+from ..kinematics.operations import inverseKin
 from ..kinematics.metadata import DOFTypes
 
 from ..score.stacked_system import StackedSystem
@@ -92,19 +92,13 @@ def system_torsion_graph_inputs(
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(system.bonds, system.torsion_metadata)
 
-    # Select torsion dofs
-    torsion_dofs = sys_kin.dof_metadata[
-        (sys_kin.dof_metadata.dof_type == DOFTypes.bond_torsion)
-    ]
-
-    # Extract kinematic-derived coordinates
+    # compute dofs from xyzs
     kincoords = sys_kin.extract_kincoords(system.coords).to(device)
-
-    # Initialize op for torsion-space kinematics
-    kinop = KinematicOp.from_coords(sys_kin.kintree, torsion_dofs, kincoords)
+    bkin = inverseKin(sys_kin.kintree, kincoords)
 
     return dict(
-        dofs=kinop.src_mobile_dofs.clone().requires_grad_(requires_grad), kinop=kinop
+        dofs=bkin.dofs.raw.clone().requires_grad_(requires_grad),
+        kintree=sys_kin.kintree,
     )
 
 
@@ -270,26 +264,14 @@ def dunbrack_graph_inputs(
         dtype=numpy.int32,
     )
 
-    # print("dun_chi1.shape",dun_chi.shape)
-    # print("dun_chi1.shape",dun_chi.shape)
-
     # merge the 4 chi tensors, sorting by residue index and chi index
     join_chi = numpy.concatenate((dun_chi1, dun_chi2, dun_chi3, dun_chi4), 0)
     chi_res = join_chi[:, 0]
     chi_inds = join_chi[:, 1]
     sort_inds = numpy.lexsort((chi_inds, chi_res))
-    # print("sort_inds")
-    # print(sort_inds.shape)
-    # print(sort_inds)
     dun_chi = join_chi[sort_inds, :]
 
     numpy.set_printoptions(threshold=100000)
-    # print("dun_chi")
-    # print(dun_chi.shape)
-    # print(dun_chi)
-    # print("end dun chi")
-
-    # print(dun_chi)
 
     return dict(
         dun_phi=torch.tensor(dun_phi, dtype=torch.int32, device=device),

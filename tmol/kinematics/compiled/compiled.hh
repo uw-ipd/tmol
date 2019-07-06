@@ -15,34 +15,39 @@
 #include "common.hh"
 #include "params.hh"
 
+#define HomogeneousTransform Eigen::Matrix<Real, 4, 4>
+#define KintreeDof Eigen::Matrix<Real, 9, 1>
+#define Coord Eigen::Matrix<Real, 3, 1>
+
 namespace tmol {
 namespace kinematics {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-#define HT Eigen::Matrix<Real, 4, 4>
-#define Coord Eigen::Matrix<Real, 3, 1>
-
 // dofs -> xyz + HTs
 //   involves a segmented scan over HTs
 template <tmol::Device D, typename Real, typename Int>
 struct ForwardKinDispatch {
   static auto f(
-      TView<DofTypes<Real>, 1, D> dofs,
+      TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
       TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
       TView<KinTreeParams<Int>, 1, D> kintree)
-      -> std::tuple<TPack<Coord, 1, D>, TPack<HT, 1, D> >;
+      -> std::tuple<TPack<Coord, 1, D>, TPack<HomogeneousTransform, 1, D> >;
 };
 
 // xyz -> dofs
 template <tmol::Device D, typename Real, typename Int>
 struct InverseKinDispatch {
   static auto f(
-      TView<Coord, 1, D> coord, TView<KinTreeParams<Int>, 1, D> kintree)
-      -> TPack<DofTypes<Real>, 1, D>;
+      TView<Coord, 1, D> coord,
+      TView<Int, 1, D> parent,
+      TView<Int, 1, D> frame_x,
+      TView<Int, 1, D> frame_y,
+      TView<Int, 1, D> frame_z,
+      TView<Int, 1, D> doftype) -> TPack<KintreeDof, 1, D>;
 };
 
 // dEdx -> dEddof
@@ -51,15 +56,17 @@ template <tmol::Device D, typename Real, typename Int>
 struct KinDerivDispatch {
   static auto f(
       TView<Coord, 1, D> dVdx,
-      TView<HT, 1, tmol::Device::CPU> hts,
+      TView<HomogeneousTransform, 1, D> hts,
+      TView<KintreeDof, 1, D> dofs,
       TView<Int, 1, D> nodes,
       TView<Int, 1, D> scans,
       TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens,
-      TView<KinTreeParams<Int>, 1, D> kintree) -> TPack<DofTypes<Real>, 1, D>;
+      TView<KinTreeParams<Int>, 1, D> kintree) -> TPack<KintreeDof, 1, D>;
 };
 
 // pybind-ings for inverse kinematics
 // - not part of the evaluation graph but is used in setup
+template <tmol::Device Dev, typename Real, typename Int>
 void bind_dispatch(pybind11::module& m) {
   using namespace pybind11::literals;
   using namespace tmol::utility::function_dispatch;
@@ -69,12 +76,11 @@ void bind_dispatch(pybind11::module& m) {
       "inverse_kin",
       &InverseKinDispatch<Dev, Real, Int>::f,
       "coords"_a,
-      "parents"_a,
-      "doftypes"_a,
+      "parent"_a,
       "frame_x"_a,
       "frame_y"_a,
       "frame_z"_a,
-      "dofs"_a);
+      "doftype"_a);
 };
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
@@ -90,7 +96,7 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
 }
 
 #undef HomogeneousTransform
-#undef Dofs
+#undef KintreeDof
 #undef Coord
 
 }  // namespace kinematics

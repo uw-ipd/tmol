@@ -17,8 +17,8 @@ def test_builder_refold(ubq_system, torch_device):
     )
 
     kincoords = torch.DoubleTensor(tsys.coords[kintree.id])
-    dofs = inverseKin(kintree, kincoords).dofs
-    refold_kincoords = forwardKin(kintree, dofs).coords
+    dofs = inverseKin(kintree, kincoords)
+    refold_kincoords = forwardKin(kintree, dofs)
 
     assert numpy.all(refold_kincoords[0] == 0)
 
