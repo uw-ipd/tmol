@@ -1,6 +1,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
@@ -21,7 +22,8 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+//#define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+#define def auto
 
 template <
     template <tmol::Device>
@@ -44,6 +46,20 @@ struct GenerateWaters {
       ->TPack<Vec<Real, 3>, 2, D> {
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
+
+    //clock_t start = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "gen waters start " << (double)start / CLOCKS_PER_SEC * 1000000
+    //  << std::endl;
+    //  std::cout.precision(orig);
+    //}
+
+    // OK! try and set the stream in this C++ call, and then return it
+    // to the default stream in the LKBallDispatch c++ call
+    auto stream = utility::cuda::get_cuda_stream_from_pool();
+    utility::cuda::set_current_cuda_stream(stream);
 
     int num_Vs = coords.size(0);
 
@@ -122,7 +138,18 @@ struct GenerateWaters {
       }
     });
 
-    Dispatch<D>::forall(num_Vs, f_watergen);
+    Dispatch<D>::forall(num_Vs, f_watergen, stream);
+
+    utility::cuda::set_default_cuda_stream();
+    
+    // clock_t stop = clock();
+    // if (D == tmol::Device::CUDA) {
+    //   int orig = std::cout.precision();
+    //   std::cout.precision(16);
+    //   std::cout << "gen_waters " << std::setw(20)
+    //   << ((double)stop - start) / CLOCKS_PER_SEC * 1000000 << "\n";      
+    //   std::cout.precision(orig);
+    // }
 
     return waters_t;
   };
@@ -245,7 +272,8 @@ struct GenerateWaters {
       }
     });
 
-    Dispatch<D>::forall(num_Vs, df_watergen);
+    auto defstream = utility::cuda::get_default_stream();
+    Dispatch<D>::forall(num_Vs, df_watergen, defstream);
 
     return dE_d_coord_t;
   };

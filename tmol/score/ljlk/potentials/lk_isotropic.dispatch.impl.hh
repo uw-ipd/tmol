@@ -63,7 +63,7 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
 
   NVTXRange _allocate("allocate");
 
-  auto stream = utility::cuda::get_cuda_stream();
+  auto stream = utility::cuda::get_cuda_stream_from_pool();
   utility::cuda::set_current_cuda_stream(stream);
 
   auto V_t = TPack<Real, 1, D>::empty({1});

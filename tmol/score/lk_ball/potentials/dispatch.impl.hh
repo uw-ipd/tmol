@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
@@ -49,12 +50,25 @@ struct LKBallDispatch {
       -> TPack<Real, 1, D> {
     NVTXRange _function(__FUNCTION__);
 
-    nvtx_range_push("dispatch::score");
+    // clock_t start = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "lkball_start " << (double)start / CLOCKS_PER_SEC * 1000000
+    //  << std::endl;
+    //  std::cout.precision(orig);
+    //}
+
+    auto stream = utility::cuda::get_cuda_stream_from_pool();
+    utility::cuda::set_current_cuda_stream(stream);
+
+    NVTXRange _allocate("allocate");
     auto Vs_t = TPack<Real, 1, D>::zeros({4});
     auto Vs = Vs_t.view;
-    nvtx_range_pop();
+    _allocate.exit();
 
-    nvtx_range_push("dispatch::score");
+
+    NVTXRange _score("score");
     Real threshold_distance = 6.0;  // fd this should be a global param
     Dispatch<D>::forall_pairs(
         threshold_distance,
@@ -87,8 +101,20 @@ struct LKBallDispatch {
           common::accumulate<D, Real>::add(Vs[1], score.lkball);
           common::accumulate<D, Real>::add(Vs[2], score.lkbridge);
           common::accumulate<D, Real>::add(Vs[3], score.lkbridge_uncpl);
-        });
-    nvtx_range_pop();
+        },
+        stream);
+    _score.exit();
+    utility::cuda::set_default_cuda_stream();
+
+    // clock_t stop = clock();
+    // if (D == tmol::Device::CUDA) {
+    //   int orig = std::cout.precision();
+    //   std::cout.precision(16);
+    //   std::cout << "lkball " << std::setw(20)
+    //     //<< (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+    //     << ((double)stop - start) / CLOCKS_PER_SEC * 1000000 << std::endl;
+    //   std::cout.precision(orig);
+    // }
 
     return Vs_t;
   }
@@ -112,9 +138,9 @@ struct LKBallDispatch {
           TPack<Vec<Real, 3>, 1, D>,
           TPack<Vec<Real, 3>, 2, D>,
           TPack<Vec<Real, 3>, 2, D>> {
-    NVTXRange _function(__FUNCTION__);
+    // NVTX-TEMP NVTXRange _function(__FUNCTION__);
 
-    nvtx_range_push("dispatch::dscore");
+    // nvtx-temp nvtx_range_push("dispatch::dscore");
     // deriv w.r.t. heavyatom position
     auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
     auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
@@ -127,9 +153,10 @@ struct LKBallDispatch {
     auto dV_dJ = dV_dJ_t.view;
     auto dW_dI = dW_dI_t.view;
     auto dW_dJ = dW_dJ_t.view;
-    nvtx_range_pop();
+    // nvtx-temp nvtx_range_pop();
 
-    nvtx_range_push("dispatch::dscore");
+    // nvtx-temp nvtx_range_push("dispatch::dscore");
+    auto defstream = utility::cuda::get_default_stream();
     Real threshold_distance = 6.0;  // fd this should be a global param
     Dispatch<D>::forall_pairs(
         threshold_distance,
@@ -193,8 +220,9 @@ struct LKBallDispatch {
             common::accumulate<D, Vec<Real, 3>>::add(
                 dW_dJ[j][wi], dTdV[3] * dV.dWJ.d_lkbridge_uncpl.row(wi));
           }
-        });
-    nvtx_range_pop();
+        },
+	defstream);
+    // nvtx-temp nvtx_range_pop();
 
     return {dV_dI_t, dV_dJ_t, dW_dI_t, dW_dJ_t};
   }

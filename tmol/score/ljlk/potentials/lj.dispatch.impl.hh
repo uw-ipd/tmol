@@ -61,7 +61,7 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
   //   std::cout.precision(orig);
   // }
 
-  auto stream = utility::cuda::get_cuda_stream();
+  auto stream = utility::cuda::get_cuda_stream_from_pool();
   utility::cuda::set_current_cuda_stream(stream);
 
   NVTXRange _allocate("lj_alloc");

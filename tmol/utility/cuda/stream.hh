@@ -48,7 +48,7 @@ struct CUDAStream {
 // tmol::utility::cuda::CUDAStream object
 inline
 CUDAStream
-get_cuda_stream() {
+get_cuda_stream_from_pool() {
 #ifdef __NVCC__
   auto stream_ptr = std::make_shared<at::cuda::CUDAStream>(
     at::cuda::CUDAStream::UNCHECKED,
@@ -60,6 +60,22 @@ get_cuda_stream() {
   return tmol::utility::cuda::CUDAStream(nullptr);
 #endif
 }
+
+inline
+CUDAStream
+get_current_cuda_stream() {
+#ifdef __NVCC__
+  auto stream_ptr = std::make_shared<at::cuda::CUDAStream>(
+    at::cuda::CUDAStream::UNCHECKED,
+    at::cuda::getCurrentCUDAStream().unwrap()
+  );
+  return tmol::utility::cuda::CUDAStream(stream_ptr);
+#else
+  // Return a class wrapping a null pointer
+  return tmol::utility::cuda::CUDAStream(nullptr);
+#endif
+}
+
 
 inline
 CUDAStream
