@@ -6,6 +6,7 @@
 
 #include <moderngpu/transform.hxx>
 
+#include <tmol/utility/cuda/context.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/score/common/tuple.hh>
@@ -28,7 +29,8 @@ struct AABBDispatch<tmol::Device::CUDA> {
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_i,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
-      Func f) {
+      Func f,
+      utility::cuda::CUDAStream stream) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -37,7 +39,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
     int n_i = coords_i.size(0);
     int n_j = coords_j.size(0);
 
-    mgpu::standard_context_t context;
+    auto context = utility::cuda::context_from_stream(stream);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -59,7 +61,8 @@ struct AABBDispatch<tmol::Device::CUDA> {
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
       TView<Int, 1, D> coord_idx_i,
       TView<Int, 1, D> coord_idx_j,
-      Func f) {
+      Func f,
+      utility::cuda::CUDAStream stream) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -68,7 +71,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
     int n_i = coord_idx_i.size(0);
     int n_j = coord_idx_j.size(0);
 
-    mgpu::standard_context_t context;
+    auto context = utility::cuda::context_from_stream(stream);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -94,7 +97,8 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_i,
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
-      Fun f) {
+      Fun f,
+      utility::cuda::CUDAStream stream) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -103,7 +107,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
     int n_i = coords_i.size(0);
     int n_j = coords_j.size(0);
 
-    mgpu::standard_context_t context;
+    auto context = utility::cuda::context_from_stream(stream);
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
@@ -129,7 +133,8 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
       TView<Eigen::Matrix<Real, 3, 1>, 1, D> coords_j,
       TView<Int, 1, D> coord_idx_i,
       TView<Int, 1, D> coord_idx_j,
-      Func f) {
+      Func f,
+      utility::cuda::CUDAStream stream) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),
@@ -138,8 +143,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
     int n_i = coord_idx_i.size(0);
     int n_j = coord_idx_j.size(0);
 
-    mgpu::standard_context_t context;
-
+    auto context = utility::cuda::context_from_stream(stream);
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
           int i = index / n_j;

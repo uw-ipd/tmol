@@ -7,6 +7,7 @@
 #include <moderngpu/kernel_compact.hxx>
 #include <moderngpu/transform.hxx>
 
+#include <tmol/utility/cuda/context.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/score/common/tuple.hh>
@@ -19,6 +20,8 @@ namespace common {
 
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
+
+using tmol::utility::cuda::context_from_stream;
 
 /*template <int N, typename Int = int64_t>*/
 /*struct Shape {*/
@@ -71,6 +74,7 @@ struct ExhaustiveDispatch<tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
 
   int _n_i, _n_j;
+  std::unique_ptr<mgpu::standard_context_t> _context;
 
   ExhaustiveDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
 
@@ -78,13 +82,14 @@ struct ExhaustiveDispatch<tmol::Device::CUDA> {
   int scan(
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      utility::cuda::CUDAStream stream) {
+    _context.reset(new mgpu::standard_context_t(context_from_stream(stream)));
     return _n_i * _n_j;
   }
 
   template <typename funct_t>
   void score(funct_t f) {
-    mgpu::standard_context_t context;
     int n_i = _n_i;
     int n_j = _n_j;
 
@@ -96,7 +101,7 @@ struct ExhaustiveDispatch<tmol::Device::CUDA> {
           f(index, i, j);
         },
         n_i * n_j,
-        context);
+        *_context);
   }
 };
 
@@ -105,6 +110,7 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
   static const tmol::Device D = tmol::Device::CUDA;
 
   int _n_i, _n_j;
+  std::unique_ptr<mgpu::standard_context_t> _context;
 
   ExhaustiveTriuDispatch(int n_i, int n_j) : _n_i(n_i), _n_j(n_j){};
 
@@ -112,14 +118,15 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
   int scan(
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      utility::cuda::CUDAStream stream) {
+    _context.reset(new mgpu::standard_context_t(context_from_stream(stream)));
     int i = _n_i - 1;
     return (_n_i * _n_j) - (i * i + i) / 2;
   }
 
   template <typename funct_t>
   void score(funct_t f) {
-    mgpu::standard_context_t context;
     int n_i = this->_n_i;
     int n_j = this->_n_j;
 
@@ -139,7 +146,7 @@ struct ExhaustiveTriuDispatch<tmol::Device::CUDA> {
           f(index, i, j);
         },
         n_i * n_j,
-        context);
+        *_context);
   }
 };
 
@@ -158,8 +165,9 @@ struct NaiveDispatch<tmol::Device::CUDA> {
   int scan(
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
-    _context.reset(new mgpu::standard_context_t());
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      utility::cuda::CUDAStream stream) {
+    _context.reset(new mgpu::standard_context_t(context_from_stream(stream)));
     _compact.reset(new TransformCompact(_n_i * _n_j, *_context));
 
     int n_j = _n_j;
@@ -206,8 +214,9 @@ struct NaiveTriuDispatch<tmol::Device::CUDA> {
   int scan(
       Real threshold_distance,
       TView<Vec<Real, 3>, 1, D> coords_i,
-      TView<Vec<Real, 3>, 1, D> coords_j) {
-    _context.reset(new mgpu::standard_context_t());
+      TView<Vec<Real, 3>, 1, D> coords_j,
+      utility::cuda::CUDAStream stream) {
+    _context.reset(new mgpu::standard_context_t(context_from_stream(stream)));
     _compact.reset(new TransformCompact(_n_i * _n_j, *_context));
 
     return _compact->upsweep([=, n_j = _n_j] MGPU_DEVICE(int index) {

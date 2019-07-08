@@ -37,7 +37,7 @@ struct CUDAStream {
   CUDAStream(std::unique_ptr<at::cuda::CUDAStream> stream) :
     stream_(stream)
   {}
-  std::unique_ptr<at::cuda::CUDAStream> stream_;
+  std::shared_ptr<at::cuda::CUDAStream> stream_;
 }
 
 
@@ -46,7 +46,7 @@ get_cuda_stream(int device) {
 #ifdef __NVCC__
   // Request one of the pre-allocated streams from
   // the ATen library
-  auto stream_ptr = std::make_unique<at::cuda::CUDAStream>();
+  auto stream_ptr = std::make_shared<at::cuda::CUDAStream>();
   *stream_ptr = at::cuda::getStreamFromPool();
   return tmol::utility::cuda::CUDAStream(stream_ptr);
 #else
@@ -59,7 +59,7 @@ CUDAStream
 get_default_stream() {
 #ifdef __NVCC__
   // Request the default stream from the ATen library
-  auto stream_ptr = std::make_unique<at::cuda::CUDAStream>();
+  auto stream_ptr = std::make_shared<at::cuda::CUDAStream>();
   *stream_ptr = at::cuda::getDefaultCUDAStream(-1);
   return tmol::utility::cuda::CUDAStream(stream_ptr);
 #else
