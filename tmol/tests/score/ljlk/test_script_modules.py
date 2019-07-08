@@ -106,7 +106,9 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
 
     @subfixture(benchmark)
     def op_val():
-        return op(s.tcoords, s.ttype, s.tbpl)
+        retval = op(s.tcoords, s.ttype, s.tbpl)
+        torch.cuda.synchronize()
+        return retval
 
     torch.testing.assert_allclose(
         op_val, torch.tensor(expected_dense).to(torch_device).sum()
@@ -115,6 +117,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     @subfixture(benchmark)
     def op_full():
         res = op(s.tcoords, s.ttype, s.tbpl)
+        torch.cuda.synchronize()
         res.backward()
 
         return res
@@ -129,7 +132,9 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
         fcoords = s.tcoords.clone()
         fcoords[subind] = c
 
-        return op(fcoords, s.ttype, s.tbpl)
+        retval = op(fcoords, s.ttype, s.tbpl)
+        torch.cuda.synchronize()
+        return retval
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)
 
@@ -166,13 +171,15 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
         fcoords = s.tcoords.clone()
         fcoords[subind] = c
 
-        return op(
+        retval = op(
             fcoords[:part],
             s.ttype[:part],
             fcoords[part:],
             s.ttype[part:],
             s.tbpl[:part, part:],
         )
+        torch.cuda.synchronize()
+        return retval
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)
 
@@ -194,7 +201,9 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
 
     @subfixture(benchmark)
     def op_val():
-        return op(s.tcoords, s.ttype, s.tbpl)
+        retval = op(s.tcoords, s.ttype, s.tbpl)
+        torch.cuda.synchronize()
+        return retval
 
     torch.testing.assert_allclose(
         op_val, torch.tensor(expected_dense).to(torch_device).sum()
@@ -203,6 +212,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
     @subfixture(benchmark)
     def op_full():
         res = op(s.tcoords, s.ttype, s.tbpl)
+        torch.cuda.synchronize()
         res.backward()
 
         return res
@@ -217,7 +227,9 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
         fcoords = s.tcoords.clone()
         fcoords[subind] = c
 
-        return op(fcoords, s.ttype, s.tbpl)
+        retval = op(fcoords, s.ttype, s.tbpl)
+        torch.cuda.synchronize()
+        return retval
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)
 
@@ -254,12 +266,14 @@ def test_lk_inter_op(default_database, torch_device, ubq_system):
         fcoords = s.tcoords.clone()
         fcoords[subind] = c
 
-        return op(
+        retval = op(
             fcoords[:part],
             s.ttype[:part],
             fcoords[part:],
             s.ttype[part:],
             s.tbpl[:part, part:],
         )
+        torch.cuda.synchronize()
+        return retval
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)

@@ -1,5 +1,6 @@
 import pytest
 from pytest import approx
+import torch
 
 from tmol.score.score_graph import score_graph
 
@@ -34,6 +35,10 @@ def test_baseline_comparison(ubq_system, torch_device, graph_class, expected_sco
     )
 
     intra_container = test_graph.intra_score()
+    for term in expected_scores:
+        getattr(intra_container, term)
+    torch.cuda.synchronize()
+    
     scores = {
         term: float(getattr(intra_container, term).detach()) for term in expected_scores
     }

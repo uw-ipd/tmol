@@ -62,6 +62,7 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
   // }
 
   auto stream = utility::cuda::get_cuda_stream_from_pool();
+  //auto stream = utility::cuda::get_default_stream();
   utility::cuda::set_current_cuda_stream(stream);
 
   NVTXRange _allocate("lj_alloc");
@@ -75,7 +76,7 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
   _allocate.exit();
 
   auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
-    if (i < 3) {
+    if (i < 1) {
       V[i] = 0;
     }
     if (i < dV_dI.size(0)) {

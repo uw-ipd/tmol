@@ -14,7 +14,6 @@ struct ForallDispatch<tmol::Device::CUDA> {
 
   template <typename Int, typename Func>
   static void forall(Int N, Func f, utility::cuda::CUDAStream stream) {
-    assert(stream.stream_);
     mgpu::standard_context_t context = context_from_stream(stream);
     mgpu::transform(f, N, context);
   }

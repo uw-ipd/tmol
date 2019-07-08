@@ -63,12 +63,13 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
 
   NVTXRange _allocate("allocate");
 
+  //auto stream = utility::cuda::get_default_stream();
   auto stream = utility::cuda::get_cuda_stream_from_pool();
   utility::cuda::set_current_cuda_stream(stream);
 
-  auto V_t = TPack<Real, 1, D>::empty({1});
-  auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_i.size(0)});
-  auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_j.size(0)});
+  auto V_t = TPack<Real, 1, D>::zeros({1});
+  auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
+  auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
 
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
@@ -77,7 +78,7 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
   _allocate.exit();
   NVTXRange _zero("zero");
   auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
-    if (i < 3) {
+    if (i < 1) {
       V[i] = 0;
     }
     if (i < dV_dI.size(0)) {

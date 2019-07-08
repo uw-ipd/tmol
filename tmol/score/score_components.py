@@ -151,6 +151,7 @@ class IntraScore:
     @staticmethod
     def total(target, **component_totals):
         total_score = 0
+        torch.cuda.synchronize();
         torch.cuda.nvtx.range_push("IntraScoreSum")
         if not hasattr(target, "component_weights") or target.component_weights is None:
             # no weights provided, simple sum components
