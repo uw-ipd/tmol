@@ -1,3 +1,4 @@
+#include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
 #include <tmol/score/common/simple_dispatch.cuda.impl.cuh>
 
 #include "lk_isotropic.dispatch.impl.hh"
@@ -10,11 +11,13 @@ namespace potentials {
 #define declare_dispatch(Real, Int)    \
                                        \
   template struct LKIsotropicDispatch< \
+      ForallDispatch,                  \
       AABBDispatch,                    \
       tmol::Device::CUDA,              \
       Real,                            \
       Int>;                            \
   template struct LKIsotropicDispatch< \
+      ForallDispatch,                  \
       AABBTriuDispatch,                \
       tmol::Device::CUDA,              \
       Real,                            \

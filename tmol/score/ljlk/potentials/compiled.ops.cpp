@@ -4,6 +4,7 @@
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
 
+#include <tmol/score/common/forall_dispatch.hh>
 #include <tmol/score/common/simple_dispatch.hh>
 
 #include "lj.dispatch.hh"
@@ -19,13 +20,17 @@ using torch::Tensor;
 template <
     template <
         template <tmol::Device>
-        class Dispatch,
+        class SingleDispatch,
+        template <tmol::Device>
+        class PairDispatch,
         tmol::Device D,
         typename Real,
         typename Int>
     class ScoreDispatch,
     template <tmol::Device>
-    class DispatchMethod>
+    class SingleDispatchMethod,
+    template <tmol::Device>
+    class PairDispatchMethod>
 Tensor score_op(
     Tensor I,
     Tensor atom_type_I,
@@ -48,7 +53,7 @@ Tensor score_op(
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = ScoreDispatch<DispatchMethod, Dev, Real, Int>::f(
+        auto result = ScoreDispatch<SingleDispatchMethod, PairDispatchMethod, Dev, Real, Int>::f(
             TCAST(I),
             TCAST(atom_type_I),
             TCAST(J),
@@ -69,12 +74,12 @@ Tensor score_op(
 
 static auto registry =
     torch::jit::RegisterOperators()
-        .op("tmol::score_ljlk_lj", &score_op<LJDispatch, AABBDispatch>)
-        .op("tmol::score_ljlk_lj_triu", &score_op<LJDispatch, AABBTriuDispatch>)
+  .op("tmol::score_ljlk_lj", &score_op<LJDispatch, common::ForallDispatch, common::AABBDispatch>)
+  .op("tmol::score_ljlk_lj_triu", &score_op<LJDispatch, common::ForallDispatch, common::AABBTriuDispatch>)
         .op("tmol::score_ljlk_lk_isotropic",
-            &score_op<LKIsotropicDispatch, AABBDispatch>)
+	  &score_op<LKIsotropicDispatch, common::ForallDispatch, common::AABBDispatch>)
         .op("tmol::score_ljlk_lk_isotropic_triu",
-            &score_op<LKIsotropicDispatch, AABBTriuDispatch>);
+	  &score_op<LKIsotropicDispatch, common::ForallDispatch, common::AABBTriuDispatch>);
 
 }  // namespace potentials
 }  // namespace ljlk

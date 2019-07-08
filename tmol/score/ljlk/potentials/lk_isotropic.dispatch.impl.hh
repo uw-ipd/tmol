@@ -3,6 +3,9 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <ATen/cuda/CUDAStream.h>
+
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
@@ -26,11 +29,13 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
-auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
+auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 1, D> coords_i,
     TView<Int, 1, D> atom_type_i,
 
@@ -45,21 +50,56 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
         TPack<Real, 1, D>,
         TPack<Vec<Real, 3>, 1, D>,
         TPack<Vec<Real, 3>, 1, D>> {
-  nvtx_range_push(__FUNCTION__);
 
-  nvtx_range_push("output_allocate");
-  auto V_t = TPack<Real, 1, D>::zeros({1});
-  auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
-  auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
+  // clock_t start1 = clock();
+  // if (D == tmol::Device::CUDA) {
+  //   int orig = std::cout.precision();
+  //   std::cout.precision(16);
+  //   std::cout << "lk_start " << (double)start / CLOCKS_PER_SEC * 1000000
+  //             << std::endl;
+  //   std::cout.precision(orig);
+  // }
+  NVTXRange _function(__FUNCTION__);
+
+  NVTXRange _allocate("allocate");
+
+  auto stream = utility::cuda::get_cuda_stream();
+  utility::cuda::set_current_cuda_stream(stream);
+
+  auto V_t = TPack<Real, 1, D>::empty({1});
+  auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_i.size(0)});
+  auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_j.size(0)});
 
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
   auto dV_dJ = dV_dJ_t.view;
-  nvtx_range_pop();
+  
+  _allocate.exit();
+  NVTXRange _zero("zero");
+  auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+    if (i < 3) {
+      V[i] = 0;
+    }
+    if (i < dV_dI.size(0)) {
+      for (int j = 0; j < 3; ++j) {
+	dV_dI[i](j) = 0;
+      }
+    }
+    if (i < dV_dJ.size(0)) {
+      for (int j = 0; j < 3; ++j) {
+	dV_dJ[i](j) = 0;
+      }
+    }
+  };
+  int largest = std::max(3, (int)std::max(coords_i.size(0), coords_j.size(0)));
+  SingleDispatch<D>::forall(largest, zero, stream);
+  _zero.exit();
+  
+  clock_t start2 = clock();
 
-  nvtx_range_push("dispatch::score");
+  NVTXRange _score("score");
   Real threshold_distance = 6.0;
-  Dispatch<D>::forall_pairs(
+  PairDispatch<D>::forall_pairs(
       threshold_distance,
       coords_i,
       coords_j,
@@ -82,10 +122,26 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
         accumulate<D, Real>::add(V[0], lk.V);
         accumulate<D, Vec<Real, 3>>::add(dV_dI[i], lk.dV_ddist * ddist_dI);
         accumulate<D, Vec<Real, 3>>::add(dV_dJ[j], lk.dV_ddist * ddist_dJ);
-      });
-  nvtx_range_pop();
+      },
+      stream);
+  _score.exit();
+  
+  // clock_t start3 = clock();
+  // if (D == tmol::Device::CUDA) {
+  //   int orig = std::cout.precision();
+  //   std::cout.precision(16);
+  //   std::cout << "lk "
+  //   //<< " a " << ((double)start2 - start1) / CLOCKS_PER_SEC * 1000000
+  //   //<< " b " << ((double)start3 - start2) / CLOCKS_PER_SEC * 1000000
+  //   //<< " c "
+  //   << ((double)start3 - start1) / CLOCKS_PER_SEC * 1000000
+  //   << "\n";
+  //   std::cout.precision(orig);
+  // }
 
-  nvtx_range_pop();
+  // restore the global stream to default before leaving
+  utility::cuda::set_default_cuda_stream();
+
   return {V_t, dV_dI_t, dV_dJ_t};
 };
 
