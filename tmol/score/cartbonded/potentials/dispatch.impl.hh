@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
@@ -41,6 +42,18 @@ struct CartBondedLengthDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
 
+    // clock_t start = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "cb length start " << (double)start / CLOCKS_PER_SEC * 1000000
+    //  << std::endl;
+    //  std::cout.precision(orig);
+    //}
+
+    auto stream = utility::cuda::get_cuda_stream_from_pool();
+    utility::cuda::set_current_cuda_stream(stream);
+
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 
@@ -59,7 +72,19 @@ struct CartBondedLengthDispatch {
       accumulate<D, Vec<Real, 3>>::add(dV_dx[atj], common::get<2>(cblength));
     });
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(num_Vs, f_i, stream);
+    // restore the global stream to default before leaving
+    utility::cuda::set_default_cuda_stream();
+
+    // clock_t stop = clock();
+    // if (D == tmol::Device::CUDA) {
+    //   int orig = std::cout.precision();
+    //   std::cout.precision(16);
+    //   std::cout << "cblen " << std::setw(20) <<
+    // 	//<< (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+    // 	((double)stop - start) / CLOCKS_PER_SEC * 1000000 << std::endl;
+    //   std::cout.precision(orig);
+    // }
 
     return {V_t, dV_dx_t};
   }
@@ -77,7 +102,11 @@ struct CartBondedAngleDispatch {
       TView<CartBondedAngleParams<Int>, 1, D> atom_indices,
       TView<CartBondedHarmonicTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
+    //clock_t start = clock();
     auto num_Vs = atom_indices.size(0);
+
+    auto stream = utility::cuda::get_cuda_stream_from_pool();
+    utility::cuda::set_current_cuda_stream(stream);
 
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
@@ -103,8 +132,21 @@ struct CartBondedAngleDispatch {
       accumulate<D, Vec<Real, 3>>::add(dV_dx[atk], common::get<3>(cbangle));
     });
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(num_Vs, f_i, stream);
 
+    // restore the global stream to default before leaving
+    utility::cuda::set_default_cuda_stream();
+
+    // clock_t stop = clock();
+    // if (D == tmol::Device::CUDA) {
+    //   int orig = std::cout.precision();
+    //   std::cout.precision(16);
+    //   std::cout << "cbang " << std::setw(20) <<
+    // 	//<< (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+    // 	((double)stop - start) / CLOCKS_PER_SEC * 1000000 << std::endl;
+    //   std::cout.precision(orig);
+    // }
+    
     return {V_t, dV_dx_t};
   }
 };
@@ -121,7 +163,11 @@ struct CartBondedTorsionDispatch {
       TView<CartBondedTorsionParams<Int>, 1, D> atom_indices,
       TView<CartBondedPeriodicTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
+    // clock_t start = clock();
     auto num_Vs = atom_indices.size(0);
+
+    auto stream = utility::cuda::get_cuda_stream_from_pool();
+    utility::cuda::set_current_cuda_stream(stream);
 
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
@@ -151,8 +197,20 @@ struct CartBondedTorsionDispatch {
       accumulate<D, Vec<Real, 3>>::add(dV_dx[atl], common::get<4>(cbtorsion));
     });
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(num_Vs, f_i, stream);
 
+    // restore the global stream to default before leaving
+    utility::cuda::set_default_cuda_stream();
+
+    // clock_t stop = clock();
+    // if (D == tmol::Device::CUDA) {
+    //   int orig = std::cout.precision();
+    //   std::cout.precision(16);
+    //   std::cout << "cbtor " << std::setw(20) <<
+    // 	//<< (double)stop / CLOCKS_PER_SEC * 1000000 << " "
+    // 	((double)stop - start) / CLOCKS_PER_SEC * 1000000 << std::endl;
+    //   std::cout.precision(orig);
+    // }
     return {V_t, dV_dx_t};
   }
 };
@@ -169,7 +227,11 @@ struct CartBondedHxlTorsionDispatch {
       TView<CartBondedTorsionParams<Int>, 1, D> atom_indices,
       TView<CartBondedSinusoidalTypeParams<Real>, 1, D> param_table)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
+    //clock_t start = clock();
     auto num_Vs = atom_indices.size(0);
+
+    auto stream = utility::cuda::get_cuda_stream_from_pool();
+    utility::cuda::set_current_cuda_stream(stream);
 
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
@@ -206,8 +268,31 @@ struct CartBondedHxlTorsionDispatch {
           dV_dx[atl], common::get<4>(cbhxltorsion));
     });
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(num_Vs, f_i, stream);
 
+    // restore the global stream to default before leaving
+    utility::cuda::set_default_cuda_stream();
+
+    //clock_t stop = clock();
+    //if (D == tmol::Device::CUDA) {
+    //  int orig = std::cout.precision();
+    //  std::cout.precision(16);
+    //  std::cout << "cbhxltor done " << std::setw(20)
+    //  << (double)stop / CLOCKS_PER_SEC * 1000000 << "\n";
+    //  std::cout.precision(orig);
+    //}
+
+    // clock_t stop = clock();
+    // if (D == tmol::Device::CUDA) {
+    //   int orig = std::cout.precision();
+    //   std::cout.precision(16);
+    //   std::cout << "cbhxltor " << std::setw(20) <<
+    // 	(double)stop / CLOCKS_PER_SEC * 1000000 << "\n";
+    // 	//((double)stop - start) / CLOCKS_PER_SEC * 1000000 << std::endl;
+    //   std::cout.precision(orig);
+    // }
+
+    
     return {V_t, dV_dx_t};
   }
 };

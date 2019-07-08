@@ -6,6 +6,7 @@
 #include <Eigen/Geometry>
 #include <tuple>
 
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/accumulate.hh>
@@ -75,6 +76,9 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
       global_params.size(0) == 1, "Invalid number of global parameters.");
 
   nvtx_range_push("hbond alloc");
+  auto stream = utility::cuda::get_cuda_stream_from_pool();
+  utility::cuda::set_current_cuda_stream(stream);
+  
   auto V_t = TPack<Real, 1, Dev>::zeros({1});
   auto dV_d_don_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({donor_coords.size(0)});
   auto dV_d_acc_t =
@@ -124,9 +128,12 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
         accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[A[ai]], hbond.dV_dA);
         accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[B[ai]], hbond.dV_dB);
         accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[B0[ai]], hbond.dV_dB0);
-      });
+      },
+      stream);
 
   nvtx_range_pop();
+  utility::cuda::set_default_cuda_stream();
+  
   return {V_t, dV_d_don_t, dV_d_acc_t};
 }
 

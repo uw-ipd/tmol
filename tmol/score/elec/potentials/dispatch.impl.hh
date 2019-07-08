@@ -8,6 +8,7 @@
 
 #include <tmol/score/common/accumulate.hh>
 
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/tuple.hh>
@@ -42,6 +43,10 @@ struct ElecDispatch {
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>> {
+
+    auto stream = utility::cuda::get_cuda_stream_from_pool();
+    utility::cuda::set_current_cuda_stream(stream);
+
     auto Vs_t = TPack<Real, 1, Dev>::zeros({1});
     auto dVs_dI_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({coords_i.size(0)});
     auto dVs_dJ_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({coords_j.size(0)});
@@ -77,7 +82,10 @@ struct ElecDispatch {
           accumulate<Dev, Real>::add(Vs[0], V);
           accumulate<Dev, Vec<Real, 3>>::add(dVs_dI[i], dV_dDist * ddist_dI);
           accumulate<Dev, Vec<Real, 3>>::add(dVs_dJ[j], dV_dDist * ddist_dJ);
-        });
+        }, stream);
+
+    // restore the global stream to default before leaving
+    utility::cuda::set_default_cuda_stream();
 
     return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }
