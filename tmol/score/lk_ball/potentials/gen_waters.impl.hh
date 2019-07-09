@@ -58,8 +58,10 @@ struct GenerateWaters {
 
     // OK! try and set the stream in this C++ call, and then return it
     // to the default stream in the LKBallDispatch c++ call
+
     auto stream = utility::cuda::get_cuda_stream_from_pool();
     utility::cuda::set_current_cuda_stream(stream);
+    // auto stream = utility::cuda::get_default_stream();
 
     int num_Vs = coords.size(0);
 
@@ -140,6 +142,10 @@ struct GenerateWaters {
 
     Dispatch<D>::forall(num_Vs, f_watergen, stream);
 
+    #ifdef __NVCC__
+    //std::cout << "SYNC!" << "\n";
+    //cudaDeviceSynchronize();
+    #endif
     utility::cuda::set_default_cuda_stream();
     
     // clock_t stop = clock();

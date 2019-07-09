@@ -1,5 +1,5 @@
 from pytest import approx
-
+import torch
 
 from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
@@ -17,4 +17,5 @@ def test_elec_baseline_comparison(ubq_system, torch_device):
     )
 
     score = test_graph.intra_score().total_elec
+    torch.cuda.synchronize()
     assert float(score) == approx(-131.9225, rel=1e-3)

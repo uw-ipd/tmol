@@ -131,6 +131,7 @@ def test_elec_sweep(default_database, torch_device):
         batch_scores = torch.ops.tmol.score_elec_triu(
             tcoords, tpcs, tcoords, tpcs, tbpl, globals
         )
+        torch.cuda.synchronize()
         scores[i] = batch_scores
     numpy.testing.assert_allclose(scores, scores_expected, atol=1e-4)
 
@@ -141,6 +142,7 @@ def test_elec_intra(default_database, ubq_system, torch_device):
     op = ElecIntraModule(s.param_resolver)
 
     val = op(s.tcoords[0, :], s.tpcs[0, :], s.trbpl[0, :])
+    torch.cuda.synchronize()
 
     torch.testing.assert_allclose(val.cpu(), -131.9225, atol=1e-4, rtol=1e-2)
 
@@ -154,6 +156,7 @@ def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
 
     def eval_intra(coords):
         val = op(coords, s.tpcs[0, :natoms], s.trbpl[0, :natoms, :natoms])
+        torch.cuda.synchronize()
         return val
 
     coords = s.tcoords[0, :natoms]
@@ -174,5 +177,6 @@ def test_elec_inter(default_database, ubq_system, torch_device):
         s.tpcs[0, part:],
         s.trbpl[0, :part, part:],
     )
+    torch.cuda.synchronize()
 
     torch.testing.assert_allclose(val.cpu(), -44.6776, atol=1e-4, rtol=1e-2)

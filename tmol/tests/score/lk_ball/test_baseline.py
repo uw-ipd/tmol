@@ -1,6 +1,8 @@
 import pytest
 from pytest import approx
 
+import torch
+
 from tmol.score.score_graph import score_graph
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
@@ -53,5 +55,5 @@ def test_baseline_comparison(
     scores = {
         term: float(getattr(intra_container, term).detach()) for term in expected_scores
     }
-
+    torch.cuda.synchronize()
     assert scores == approx(expected_scores, rel=1e-3)

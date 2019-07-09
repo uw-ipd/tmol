@@ -59,6 +59,12 @@ struct LKBallDispatch {
     //  std::cout.precision(orig);
     //}
 
+    #ifdef __NVCC__
+    //cudaDeviceSynchronize();
+    #endif
+    
+    //auto stream = utility::cuda::get_current_cuda_stream();
+    
     auto stream = utility::cuda::get_cuda_stream_from_pool();
     utility::cuda::set_current_cuda_stream(stream);
 
