@@ -61,6 +61,13 @@ struct CUDAEvent{
 #endif
   }
 
+  void synchronize() {
+#ifdef __NVCC__
+    if (event_) {
+      cudaEventSynchronize(event_);
+    }
+  }
+
   std::shared_ptr<at::cuda::CUDAEvent> event_;
 
 };
