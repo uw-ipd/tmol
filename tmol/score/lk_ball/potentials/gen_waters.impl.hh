@@ -44,24 +44,15 @@ struct GenerateWaters {
       TView<Real, 1, D> sp3_water_tors,
       TView<Real, 1, D> ring_water_tors)
       ->TPack<Vec<Real, 3>, 2, D> {
+    NVTXRange _function(__FUNCTION__);
+    
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
-    //clock_t start = clock();
-    //if (D == tmol::Device::CUDA) {
-    //  int orig = std::cout.precision();
-    //  std::cout.precision(16);
-    //  std::cout << "gen waters start " << (double)start / CLOCKS_PER_SEC * 1000000
-    //  << std::endl;
-    //  std::cout.precision(orig);
-    //}
-
     // OK! try and set the stream in this C++ call, and then return it
-    // to the default stream in the LKBallDispatch c++ call
-
+    // to the default stream after the LKBallDispatch c++ call
     auto stream = utility::cuda::get_cuda_stream_from_pool();
     utility::cuda::set_current_cuda_stream(stream);
-    // auto stream = utility::cuda::get_default_stream();
 
     int num_Vs = coords.size(0);
 
@@ -142,20 +133,9 @@ struct GenerateWaters {
 
     Dispatch<D>::forall(num_Vs, f_watergen, stream);
 
-    #ifdef __NVCC__
-    //std::cout << "SYNC!" << "\n";
-    //cudaDeviceSynchronize();
-    #endif
-    utility::cuda::set_default_cuda_stream();
-    
-    // clock_t stop = clock();
-    // if (D == tmol::Device::CUDA) {
-    //   int orig = std::cout.precision();
-    //   std::cout.precision(16);
-    //   std::cout << "gen_waters " << std::setw(20)
-    //   << ((double)stop - start) / CLOCKS_PER_SEC * 1000000 << "\n";      
-    //   std::cout.precision(orig);
-    // }
+    // Note: do not restore the default stream here
+    // wait until after the LKBallDispatch::forward
+    // completes
 
     return waters_t;
   };
