@@ -90,14 +90,19 @@ def system_torsion_graph_inputs(
 
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(system.bonds, system.torsion_metadata)
+    tkintree = sys_kin.kintree.to(device)
+    tdofmetadata = sys_kin.dof_metadata.to(device)
 
     # compute dofs from xyzs
     kincoords = sys_kin.extract_kincoords(system.coords).to(device)
-    bkin = inverseKin(sys_kin.kintree, kincoords)
+    bkin = inverseKin(tkintree, kincoords)
+
+    # dof mask
 
     return dict(
-        dofs=bkin.dofs.raw.clone().requires_grad_(requires_grad),
-        kintree=sys_kin.kintree,
+        dofs=bkin.raw.clone().requires_grad_(requires_grad),
+        kintree=tkintree,
+        dofmetadata=tdofmetadata,
     )
 
 

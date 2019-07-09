@@ -4,6 +4,7 @@ from functools import singledispatch
 import torch
 import math
 
+from tmol.kinematics.metadata import DOFMetadata
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.script_modules import KinematicModule
 
@@ -53,24 +54,29 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
         if requires_grad is None:
             requires_grad = other.dofs.requires_grad
 
-        kintree = other.kintree
+        kintree = other.kintree.to(device)
 
         if other.dofs.device != device:
             raise ValueError("Unable to change device for kinematic ops.")
 
         dofs = torch.tensor(other.dofs, device=device).requires_grad_(requires_grad)
 
-        return dict(kintree=kintree, dofs=dofs)
+        dofmetadata = other.dofmetadata
 
-    # Source mobile dofs
+        return dict(kintree=kintree, dofs=dofs, dofmetadata=dofmetadata)
+
+    # Source dofs
     dofs: Tensor(torch.float)[:, 9]
+
+    # dof info for masking
+    dofmetadata: DOFMetadata
 
     # kinematic tree (= rosetta atomtree)
     kintree: KinTree
 
     @reactive_property
     def kin_module(kintree: KinTree) -> KinematicModule:
-        return KinematicModule(kintree)
+        return KinematicModule(kintree, kintree.id.device)
 
     @reactive_property
     def coords(

@@ -27,14 +27,14 @@ def test_torsion_space_gradcheck(ubq_res):
 
     torsion_space = DofSpaceScore.build_for(test_system)
 
-    start_dofs = torsion_space.dofs.clone()
+    start_dofs = torsion_space.dofs.requires_grad_()
 
-    def total_score(dofs):
-        torsion_space.dofs = dofs
+    def total_score(minimizable_dofs):
+        torsion_space.dofs[:, :6] = minimizable_dofs
         return torsion_space.intra_score().total
 
     # fd this test needs work...
-    assert gradcheck(total_score, (start_dofs,), eps=1e-2, atol=5e-2, nfail=0)
+    assert gradcheck(total_score, (start_dofs[:, :6],), eps=1e-2, atol=5e-2, nfail=0)
 
 
 def test_real_space_gradcheck(ubq_res):

@@ -67,8 +67,8 @@ def test_torsion_space_to_cart_space_gradcheck(ubq_res):
 
     cmask = torch.isnan(start_coords).sum(dim=-1) == 0
 
-    def coords(dofs):
-        torsion_space.dofs = dofs
+    def coords(minimizable_dofs):
+        torsion_space.dofs[:, :6] = minimizable_dofs
         return torsion_space.coords[cmask]
 
-    assert gradcheck(coords, (start_dofs,), eps=1e-1, atol=1e-6, rtol=2e-3)
+    assert gradcheck(coords, (start_dofs[:, :6],), eps=1e-1, atol=1e-6, rtol=2e-3)
