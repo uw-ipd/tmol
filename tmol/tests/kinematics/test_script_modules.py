@@ -7,7 +7,7 @@ from tmol.types.torch import Tensor
 
 from tmol.kinematics.datatypes import KinTree
 from tmol.kinematics.script_modules import KinematicModule
-from tmol.kinematics.operations import inverseKin, forwardKin
+from tmol.kinematics.operations import inverseKin
 
 from tmol.system.packed import PackedResidueSystem
 from tmol.system.restypes import Residue

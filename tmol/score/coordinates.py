@@ -60,7 +60,7 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
 
         dofs = torch.tensor(other.dofs, device=device).requires_grad_(requires_grad)
 
-        return dict(kinop=kinop, dofs=dofs)
+        return dict(kintree=kintree, dofs=dofs)
 
     # Source mobile dofs
     dofs: Tensor(torch.float)[:, 9]
@@ -74,7 +74,10 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
 
     @reactive_property
     def coords(
-        dofs: Tensor(torch.float)[:, 9], kintree: KinTree, system_size: int
+        dofs: Tensor(torch.float)[:, 9],
+        kintree: KinTree,
+        kin_module: KinematicModule,
+        system_size: int,
     ) -> Tensor(torch.float)[:, :, 3]:
         """System cartesian atomic coordinates."""
         kincoords = kin_module(dofs)
@@ -88,7 +91,7 @@ class KinematicAtomicCoordinateProvider(StackedSystem, TorchDevice):
             requires_grad=False,
         )
 
-        idIdx = kinop.kintree.id[1:].to(dtype=torch.long)
+        idIdx = kintree.id[1:].to(dtype=torch.long)
         coords[idIdx] = kincoords[1:]
 
         return coords.to(torch.float)[None, ...]
