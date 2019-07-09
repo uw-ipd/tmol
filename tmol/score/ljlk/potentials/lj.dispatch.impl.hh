@@ -3,14 +3,11 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <ATen/cuda/CUDAEvent.h>
-#include <ATen/cuda/CUDAStream.h>
-
-#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -28,14 +25,7 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <
-    template <tmol::Device>
-    class SingleDispatch,
-    template <tmol::Device>
-    class PairDispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
+template <template <tmol::Device> class SingleDispatch, template <tmol::Device> class PairDispatch, tmol::Device D, typename Real, typename Int>
 auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 1, D> coords_i,
     TView<Int, 1, D> atom_type_i,
@@ -45,11 +35,8 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
 
     TView<Real, 2, D> bonded_path_lengths,
     TView<LJTypeParams<Real>, 1, D> type_params,
-    TView<LJGlobalParams<Real>, 1, D> global_params)
-    -> std::tuple<
-        TPack<Real, 1, D>,
-        TPack<Vec<Real, 3>, 1, D>,
-        TPack<Vec<Real, 3>, 1, D>> {
+    TView<LJGlobalParams<Real>, 1, D> global_params) -> std::
+    tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
   NVTXRange _function(__FUNCTION__);
 
   auto stream = utility::cuda::get_cuda_stream_from_pool();
@@ -65,18 +52,18 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
   auto dV_dJ = dV_dJ_t.view;
   _allocate.exit();
 
-  auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+  auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
     if (i < 1) {
       V[i] = 0;
     }
     if (i < dV_dI.size(0)) {
       for (int j = 0; j < 3; ++j) {
-	dV_dI[i](j) = 0;
+        dV_dI[i](j) = 0;
       }
     }
     if (i < dV_dJ.size(0)) {
       for (int j = 0; j < 3; ++j) {
-	dV_dJ[i](j) = 0;
+        dV_dJ[i](j) = 0;
       }
     }
   };
