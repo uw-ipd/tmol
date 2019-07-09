@@ -40,8 +40,9 @@ struct vdw {
     Real sd6 = sd2 * sd2 * sd2;
     Real sd12 = sd6 * sd6;
 
-    return {epsilon * (sd12 - 2.0 * sd6),
-            epsilon * ((-12.0 * sd12 / dist) - (2.0 * -6.0 * sd6 / dist))};
+    return {
+        epsilon * (sd12 - Real(2.0) * sd6),
+        epsilon * ((Real(-12.0) * sd12 / dist) - (Real(-12.0) * sd6 / dist))};
   }
 };
 
@@ -79,13 +80,12 @@ struct lj_score {
       return weight * vdw<Real>::V(dist, sigma, epsilon);
     } else if (dist < cpoly_dmax) {
       auto vdw_at_cpoly_dmin = vdw<Real>::V_dV(cpoly_dmin, sigma, epsilon);
-      return weight
-             * interpolate_to_zero(
-                   dist,
-                   cpoly_dmin,
-                   vdw_at_cpoly_dmin.V,
-                   vdw_at_cpoly_dmin.dV_ddist,
-                   cpoly_dmax);
+      return weight * interpolate_to_zero(
+                          dist,
+                          cpoly_dmin,
+                          vdw_at_cpoly_dmin.V,
+                          vdw_at_cpoly_dmin.dV_ddist,
+                          cpoly_dmax);
 
     } else {
       return 0.0;

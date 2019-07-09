@@ -128,6 +128,7 @@ import toolz
 import torch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.nvtx import nvtx_range
 
 
 @attr.s
@@ -151,24 +152,24 @@ class IntraScore:
     @staticmethod
     def total(target, **component_totals):
         total_score = 0
-        torch.cuda.synchronize();
-        torch.cuda.nvtx.range_push("IntraScoreSum")
-        if not hasattr(target, "component_weights") or target.component_weights is None:
-            # no weights provided, simple sum components
-            torch.cuda.nvtx.range_push("IntraScoreSum::reduce")
-            total_score = toolz.reduce(operator.add, component_totals.values())
-            torch.cuda.nvtx.range_pop()
-        else:
-            # weights provided, use to rescale
-            # Note:
-            #  1) weights not provided in input dict are assumed == 0
-            #  2) tags in input dict not used in
-            #     current graph are silently ignored
-            total_score = torch.zeros_like(next(iter(component_totals.values())))
-            for comp, score in component_totals.items():
-                if comp in target.component_weights:
-                    total_score += target.component_weights[comp] * score
-        torch.cuda.nvtx.range_pop()
+        with nvtx_range("IntraScoreSum") as r:
+            if (
+                not hasattr(target, "component_weights")
+                or target.component_weights is None
+            ):
+                # no weights provided, simple sum components
+                with nvtx_range("IntraScoreSum::reduce") as r2:
+                    total_score = toolz.reduce(operator.add, component_totals.values())
+            else:
+                # weights provided, use to rescale
+                # Note:
+                #  1) weights not provided in input dict are assumed == 0
+                #  2) tags in input dict not used in
+                #     current graph are silently ignored
+                total_score = torch.zeros_like(next(iter(component_totals.values())))
+                for comp, score in component_totals.items():
+                    if comp in target.component_weights:
+                        total_score += target.component_weights[comp] * score
 
         return total_score
 

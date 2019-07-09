@@ -7,4 +7,19 @@ BENCHMARK_DIR=benchmark/${BUILDKITE_PIPELINE_SLUG}/${BUILDKITE_AGENT_NAME}/${BUI
 BENCHMARK_RESULT=${BENCHMARK_DIR}/${BUILDKITE_BUILD_NUMBER}-`git describe --tags --dirty`.json 
 
 mkdir -p $BENCHMARK_DIR
+
+echo '--- Benchmark Run'
 pytest --benchmark-enable --benchmark-only --benchmark-name=short --benchmark-sort=fullname --benchmark-columns=ops,mean,iqr --benchmark-json=${BENCHMARK_RESULT} "$@"
+
+echo '+++ Benchmark Summary'
+pytest-benchmark compare --name=short --sort=fullname --columns=ops,mean,iqr ${BENCHMARK_RESULT}
+
+echo '+++ Benchmark Plots'
+export ITERMPLOT=rv
+export MPLBACKEND="module://itermplot"
+
+echo '+++ tmol.tests.score.plot_total_score_onepass'
+python -m tmol.tests.score.plot_total_score_onepass ${BENCHMARK_RESULT}
+
+echo '+++ tmol.tests.score.plot_score_component_pass'
+python -m tmol.tests.score.plot_score_component_pass ${BENCHMARK_RESULT}
