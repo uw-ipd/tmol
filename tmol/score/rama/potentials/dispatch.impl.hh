@@ -1,9 +1,9 @@
 #include <Eigen/Core>
 
-#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/numeric/bspline_compiled/bspline.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/utility/cuda/stream.hh>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/tuple.hh>
@@ -39,7 +39,7 @@ struct RamaDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto stream = utility::cuda::get_cuda_stream_from_pool();
     utility::cuda::set_current_cuda_stream(stream);
-    
+
     auto V_t = TPack<Real, 1, D>::zeros({1});
     auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
 

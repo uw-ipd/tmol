@@ -9,7 +9,6 @@ namespace common {
 
 template <>
 struct ForallDispatch<tmol::Device::CPU> {
-
   template <typename Int, typename Func>
   static void forall(Int N, Func f, utility::cuda::CUDAStream) {
     for (Int i = 0; i < N; ++i) {

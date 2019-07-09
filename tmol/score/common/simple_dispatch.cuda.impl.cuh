@@ -6,10 +6,10 @@
 
 #include <moderngpu/transform.hxx>
 
-#include <tmol/utility/cuda/context.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorUtil.h>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/utility/cuda/context.hh>
 
 #include "simple_dispatch.hh"
 

@@ -8,15 +8,19 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
-#define declare_dispatch(Real, Int)                                        \
-  template struct LJDispatch<                                              \
-    common::ForallDispatch,                                                \
-    common::AABBDispatch,                                                  \
-    tmol::Device::CUDA, Real, Int>;                                        \
-  template struct LJDispatch<                                              \
-    common::ForallDispatch,                                                \
-    common::AABBTriuDispatch,                                              \
-    tmol::Device::CUDA, Real, Int>;
+#define declare_dispatch(Real, Int) \
+  template struct LJDispatch<       \
+      common::ForallDispatch,       \
+      common::AABBDispatch,         \
+      tmol::Device::CUDA,           \
+      Real,                         \
+      Int>;                         \
+  template struct LJDispatch<       \
+      common::ForallDispatch,       \
+      common::AABBTriuDispatch,     \
+      tmol::Device::CUDA,           \
+      Real,                         \
+      Int>;
 
 declare_dispatch(float, int64_t);
 declare_dispatch(double, int64_t);

@@ -21,8 +21,8 @@ namespace cuda {
 // can hold a null pointer to it.
 class CUDAEvent {};
 
-}
-}
+}  // namespace cuda
+}  // namespace at
 
 #endif
 
@@ -30,18 +30,18 @@ namespace tmol {
 namespace utility {
 namespace cuda {
 
-struct CUDAEvent{
-  CUDAEvent():
-#ifdef __NVCC__    
-    event_(std::make_shared<at::cuda::CUDAEvent>())
+struct CUDAEvent {
+  CUDAEvent()
+      :
+#ifdef __NVCC__
+        event_(std::make_shared<at::cuda::CUDAEvent>())
 #else
-    event_(nullptr)
+        event_(nullptr)
 #endif
-  {}
+  {
+  }
 
-  CUDAEvent(std::shared_ptr<at::cuda::CUDAEvent> event) :
-    event_(event)
-  {}
+  CUDAEvent(std::shared_ptr<at::cuda::CUDAEvent> event) : event_(event) {}
 
   void record() {
 #ifdef __NVCC__
@@ -49,11 +49,9 @@ struct CUDAEvent{
       event_->record();
     }
 #endif
-
   }
 
-  void block(CUDAStream stream)
-  {
+  void block(CUDAStream stream) {
 #ifdef __NVCC__
     if (event_ && stream.stream_) {
       event_->block(*stream.stream_);
@@ -70,9 +68,8 @@ struct CUDAEvent{
   }
 
   std::shared_ptr<at::cuda::CUDAEvent> event_;
-
 };
 
-}
-}
-}
+}  // namespace cuda
+}  // namespace utility
+}  // namespace tmol

@@ -25,7 +25,14 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <template <tmol::Device> class SingleDispatch, template <tmol::Device> class PairDispatch, tmol::Device D, typename Real, typename Int>
+template <
+    template <tmol::Device>
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 1, D> coords_i,
     TView<Int, 1, D> atom_type_i,
@@ -35,8 +42,11 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
 
     TView<Real, 2, D> bonded_path_lengths,
     TView<LJTypeParams<Real>, 1, D> type_params,
-    TView<LJGlobalParams<Real>, 1, D> global_params) -> std::
-    tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
+    TView<LJGlobalParams<Real>, 1, D> global_params)
+    -> std::tuple<
+        TPack<Real, 1, D>,
+        TPack<Vec<Real, 3>, 1, D>,
+        TPack<Vec<Real, 3>, 1, D>> {
   NVTXRange _function(__FUNCTION__);
 
   auto stream = utility::cuda::get_cuda_stream_from_pool();

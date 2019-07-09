@@ -3,11 +3,11 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -116,7 +116,7 @@ struct CartBondedAngleDispatch {
 
     // restore the global stream to default before leaving
     utility::cuda::set_default_cuda_stream();
-    
+
     return {V_t, dV_dx_t};
   }
 };
@@ -231,7 +231,7 @@ struct CartBondedHxlTorsionDispatch {
 
     // restore the global stream to default before leaving
     utility::cuda::set_default_cuda_stream();
-    
+
     return {V_t, dV_dx_t};
   }
 };

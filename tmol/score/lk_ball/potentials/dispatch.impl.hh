@@ -3,11 +3,11 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/utility/tensor/TensorStruct.h>
 #include <tmol/utility/tensor/TensorUtil.h>
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/common/accumulate.hh>
@@ -58,7 +58,6 @@ struct LKBallDispatch {
     auto Vs_t = TPack<Real, 1, D>::zeros({4});
     auto Vs = Vs_t.view;
     _allocate.exit();
-
 
     NVTXRange _score("score");
     Real threshold_distance = 6.0;  // fd this should be a global param
@@ -205,7 +204,7 @@ struct LKBallDispatch {
                 dW_dJ[j][wi], dTdV[3] * dV.dWJ.d_lkbridge_uncpl.row(wi));
           }
         },
-	defstream);
+        defstream);
     _work.exit();
 
     return {dV_dI_t, dV_dJ_t, dW_dI_t, dW_dJ_t};

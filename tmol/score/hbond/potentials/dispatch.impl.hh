@@ -6,11 +6,11 @@
 #include <Eigen/Geometry>
 #include <tuple>
 
-#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/hbond/potentials/potentials.hh>
@@ -79,7 +79,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   NVTXRange _alloc("alloc");
   auto stream = utility::cuda::get_cuda_stream_from_pool();
   utility::cuda::set_current_cuda_stream(stream);
-  
+
   auto V_t = TPack<Real, 1, Dev>::zeros({1});
   auto dV_d_don_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({donor_coords.size(0)});
   auto dV_d_acc_t =
@@ -134,7 +134,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   _eval.exit();
 
   utility::cuda::set_default_cuda_stream();
-  
+
   return {V_t, dV_d_don_t, dV_d_acc_t};
 }
 

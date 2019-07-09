@@ -10,13 +10,10 @@ namespace tmol {
 namespace utility {
 namespace cuda {
 
-
 #ifdef __NVCC__
 // Create an MGPU context from a given stream
-inline
-mgpu::standard_context_t
-context_from_stream(
-  tmol::utility::cuda::CUDAStream stream) {
+inline mgpu::standard_context_t context_from_stream(
+    tmol::utility::cuda::CUDAStream stream) {
   if (stream.stream_) {
     return mgpu::standard_context_t(stream.stream_->stream());
   } else {
@@ -25,8 +22,6 @@ context_from_stream(
 }
 #endif
 
-
-
-}
-}
-}
+}  // namespace cuda
+}  // namespace utility
+}  // namespace tmol

@@ -2,8 +2,8 @@
 
 #include <Eigen/Core>
 
-#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorAccessor.h>
+#include <tmol/utility/cuda/stream.hh>
 
 namespace tmol {
 namespace score {

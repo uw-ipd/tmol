@@ -1,10 +1,10 @@
 #include <Eigen/Core>
 
-#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/numeric/bspline_compiled/bspline.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/utility/cuda/stream.hh>
 
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/tuple.hh>

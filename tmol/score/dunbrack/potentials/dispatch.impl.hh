@@ -1,7 +1,7 @@
 #include <Eigen/Core>
 
-#include <tmol/utility/cuda/stream.hh>
 #include <tmol/utility/cuda/event.hh>
+#include <tmol/utility/cuda/stream.hh>
 
 #include <tmol/utility/tensor/TensorCollection.h>
 #include <tmol/utility/tensor/TensorPack.h>
@@ -129,35 +129,40 @@ struct DunbrackDispatch {
 
     // Step 0:
     // Zero the arrays
-    auto zero = [=] EIGEN_DEVICE_FUNC( int i ) {
-      if ( i < 3 ) {
-	V[i] = 0;
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+      if (i < 3) {
+        V[i] = 0;
       }
-      if ( i < n_rotameric_res ) {
-	for ( int j = 0; j < 2; ++j ) {
-	  for ( int k = 0; k < 4; ++k ) {
-	    dneglnprob_rot_dbb_xyz[i][j](k) = 0;
-	  }
-	}
+      if (i < n_rotameric_res) {
+        for (int j = 0; j < 2; ++j) {
+          for (int k = 0; k < 4; ++k) {
+            dneglnprob_rot_dbb_xyz[i][j](k) = 0;
+          }
+        }
       }
-      if ( i < n_rotameric_chi ) {
-	for ( int j = 0; j < 3; ++j ) {
-	  for ( int k = 0; k < 4; ++k ) {
-	    drotchi_devpen_dtor_xyz[i][j](k) = 0;
-	  }
-	}
+      if (i < n_rotameric_chi) {
+        for (int j = 0; j < 3; ++j) {
+          for (int k = 0; k < 4; ++k) {
+            drotchi_devpen_dtor_xyz[i][j](k) = 0;
+          }
+        }
       }
-      if ( i < n_semirotameric_res) {
-	for (int j = 0; j < 3; ++j ) {
-	  for (int k = 0; k < 4; ++k) {
-	    dneglnprob_nonrot_dtor_xyz[i][j](k) = 0;
-	  }
-	}
+      if (i < n_semirotameric_res) {
+        for (int j = 0; j < 3; ++j) {
+          for (int k = 0; k < 4; ++k) {
+            dneglnprob_nonrot_dtor_xyz[i][j](k) = 0;
+          }
+        }
       }
     };
 
-    Dispatch<D>::forall(std::max(std::max(n_rotameric_res, 3), std::max(n_rotameric_chi, n_semirotameric_res)), zero, stream1);
-    
+    Dispatch<D>::forall(
+        std::max(
+            std::max(n_rotameric_res, 3),
+            std::max(n_rotameric_chi, n_semirotameric_res)),
+        zero,
+        stream1);
+
     // Five steps to this calculation
     // 1. compute the dihedrals and put them into the dihedrals array
     // 2. compute the rotameric bin for each residue

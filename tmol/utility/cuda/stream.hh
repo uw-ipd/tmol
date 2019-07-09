@@ -6,7 +6,6 @@
 // CUDAStream class, which produces errors in the
 // absence of the NVidia libraries.
 
-
 #ifdef WITH_CUDA
 
 #include <ATen/cuda/CUDAContext.h>
@@ -22,11 +21,10 @@ namespace cuda {
 // can hold a null pointer to it.
 class CUDAStream {};
 
-}
-}
+}  // namespace cuda
+}  // namespace at
 
 #endif
-
 
 namespace tmol {
 namespace utility {
@@ -36,9 +34,7 @@ namespace cuda {
 // or hold a null pointer in the absence
 // of CUDA.
 struct CUDAStream {
-  CUDAStream(std::shared_ptr<at::cuda::CUDAStream> stream) :
-    stream_(stream)
-  {}
+  CUDAStream(std::shared_ptr<at::cuda::CUDAStream> stream) : stream_(stream) {}
   std::shared_ptr<at::cuda::CUDAStream> stream_;
 };
 
@@ -46,14 +42,15 @@ struct CUDAStream {
 // the ATen library for the current device (-1),
 // and wrap that stream in a
 // tmol::utility::cuda::CUDAStream object
-inline
-CUDAStream
-get_cuda_stream_from_pool() {
+inline CUDAStream get_cuda_stream_from_pool() {
 #ifdef __NVCC__
+  // temp ! auto stream_ptr = std::make_shared<at::cuda::CUDAStream>(
+  // temp !   at::cuda::CUDAStream::UNCHECKED,
+  // temp !   at::cuda::getStreamFromPool().unwrap()
+  // temp ! );
   auto stream_ptr = std::make_shared<at::cuda::CUDAStream>(
-    at::cuda::CUDAStream::UNCHECKED,
-    at::cuda::getStreamFromPool().unwrap()
-  );
+      at::cuda::CUDAStream::UNCHECKED,
+      at::cuda::getDefaultCUDAStream().unwrap());
   return tmol::utility::cuda::CUDAStream(stream_ptr);
 #else
   // Return a class wrapping a null pointer
@@ -61,14 +58,11 @@ get_cuda_stream_from_pool() {
 #endif
 }
 
-inline
-CUDAStream
-get_current_cuda_stream() {
+inline CUDAStream get_current_cuda_stream() {
 #ifdef __NVCC__
   auto stream_ptr = std::make_shared<at::cuda::CUDAStream>(
-    at::cuda::CUDAStream::UNCHECKED,
-    at::cuda::getCurrentCUDAStream().unwrap()
-  );
+      at::cuda::CUDAStream::UNCHECKED,
+      at::cuda::getCurrentCUDAStream().unwrap());
   return tmol::utility::cuda::CUDAStream(stream_ptr);
 #else
   // Return a class wrapping a null pointer
@@ -76,32 +70,25 @@ get_current_cuda_stream() {
 #endif
 }
 
-
-inline
-CUDAStream
-get_default_stream() {
+inline CUDAStream get_default_stream() {
 #ifdef __NVCC__
   // Request the default stream from the ATen library
   auto stream_ptr = std::make_shared<at::cuda::CUDAStream>(
-    at::cuda::CUDAStream::UNCHECKED,
-    at::cuda::getDefaultCUDAStream().unwrap()
-  );
+      at::cuda::CUDAStream::UNCHECKED,
+      at::cuda::getDefaultCUDAStream().unwrap());
   return tmol::utility::cuda::CUDAStream(stream_ptr);
 #else
   return tmol::utility::cuda::CUDAStream(nullptr);
 #endif
 }
 
-inline
-void
-set_current_cuda_stream(
+inline void set_current_cuda_stream(
 #ifdef __NVCC__
-  CUDAStream const & stream
+    CUDAStream const& stream
 #else
-  CUDAStream const &
+    CUDAStream const&
 #endif
-)
-{
+) {
 #ifdef __NVCC__
   if (stream.stream_) {
     at::cuda::setCurrentCUDAStream(*stream.stream_);
@@ -109,10 +96,7 @@ set_current_cuda_stream(
 #endif
 }
 
-inline
-void
-set_default_cuda_stream()
-{
+inline void set_default_cuda_stream() {
 #ifdef __NVCC__
   // Request the default stream from the ATen library
   auto stream = at::cuda::getDefaultCUDAStream(-1);
@@ -120,6 +104,6 @@ set_default_cuda_stream()
 #endif
 }
 
-}
-}
-}
+}  // namespace cuda
+}  // namespace utility
+}  // namespace tmol
