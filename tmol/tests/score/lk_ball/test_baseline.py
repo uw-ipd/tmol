@@ -53,10 +53,12 @@ def test_baseline_comparison(
 
     intra_container = test_graph.intra_score()
 
-    # force the computation, then synchronize, then cast to float.
-    for term in expected_scores:
-        getattr(intra_container, term)
-    torch.cuda.synchronize()
+    # force the computation, then synchronize, before the cast to float.
+    if torch.cuda.is_available():
+        for term in expected_scores:
+            getattr(intra_container, term)
+        torch.cuda.synchronize()
+
     scores = {
         term: float(getattr(intra_container, term).detach()) for term in expected_scores
     }
