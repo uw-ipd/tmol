@@ -17,7 +17,7 @@ CoordArray = Tensor(torch.double)[:, 3]
 
 
 @validate_args
-def inverseKin(kintree: KinTree, coords: CoordArray) -> KinDOF:
+def inverseKin(kintree: KinTree, coords: CoordArray, requires_grad=False) -> KinDOF:
     """xyzs -> HTs, dofs
       - "backward" kinematics
     """
@@ -29,7 +29,7 @@ def inverseKin(kintree: KinTree, coords: CoordArray) -> KinDOF:
         kintree.frame_y,
         kintree.frame_z,
         kintree.doftype,
-    )
+    ).requires_grad_(requires_grad)
     return KinDOF(raw=raw_dofs)
 
 
@@ -39,7 +39,7 @@ def forwardKin(kintree: KinTree, dofs: KinDOF) -> CoordArray:
       - "forward" kinematics
     """
 
-    ksm = KinematicModule(kintree)
+    ksm = KinematicModule(kintree, dofs.raw.device)
     coords = ksm(dofs.raw)
 
     return coords

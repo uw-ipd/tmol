@@ -67,7 +67,7 @@ struct ForwardKinDispatch {
 
     // copy atom positions
     auto k_getcoords = ([=] EIGEN_DEVICE_FUNC(int i) {
-        xs[i] = HTs[i].block(3,0,1,3);
+        xs[i] = HTs[i].block(3,0,1,3).transpose();
     });
 
     for (int i = 0; i < num_atoms; i++) {
@@ -114,13 +114,15 @@ struct InverseKinDispatch {
 
     auto k_hts2dofs = ([=] EIGEN_DEVICE_FUNC(int i) {
 	  HomogeneousTransform lclHT;
-	  if (doftype[i] != ROOT) {
+	  if (doftype[i] == ROOT) {
+        dofs[i] = KintreeDof::Constant(0); // for num deriv check
+      } else {
 		lclHT = HTs[i] * common<D,Real,Int>::ht_inv( HTs[parent[i]] );
 
         if (doftype[i] == JUMP) {
-          dofs[i]= common<D,Real,Int>::invJumpTransform(lclHT);
+          dofs[i] = common<D,Real,Int>::invJumpTransform(lclHT);
         } else if (doftype[i] == BOND) {
-          dofs[i]= common<D,Real,Int>::invBondTransform(lclHT);
+          dofs[i] = common<D,Real,Int>::invBondTransform(lclHT);
         }
 	  }
 	});
@@ -153,8 +155,9 @@ struct KinDerivDispatch {
 
     // calculate f1s and f2s from dVdx and HT
     auto k_f1f2s = ([=] EIGEN_DEVICE_FUNC(int i) {
-        Coord trans = hts[i].block(3,0,1,3);
-        f1f2s[i].topRows(3) = trans.cross( trans - dVdx[i]);
+        Coord trans = hts[i].block(3,0,1,3).transpose();
+        Coord f1 = trans.cross( trans - dVdx[i]).transpose();
+        f1f2s[i].topRows(3) = f1;
         f1f2s[i].bottomRows(3) = dVdx[i];
     });
 

@@ -28,7 +28,7 @@ class KinematicModule(torch.jit.ScriptModule):
     function.
     """
 
-    def __init__(self, kintree: KinTree):
+    def __init__(self, kintree: KinTree, device: torch.device):
         super().__init__()
 
         def _p(t):
@@ -50,16 +50,16 @@ class KinematicModule(torch.jit.ScriptModule):
                     ]
                 ),
                 dim=1,
-            )
+            ).to(device)
         )
 
         ordering = KinTreeScanOrdering.for_kintree(kintree)
-        self.nodes_f = _p(ordering.forward_scan_paths.nodes)
-        self.scans_f = _p(ordering.forward_scan_paths.scans)
-        self.gens_f = _p(ordering.forward_scan_paths.gens)
-        self.nodes_b = _p(ordering.backward_scan_paths.nodes)
-        self.scans_b = _p(ordering.backward_scan_paths.scans)
-        self.gens_b = _p(ordering.backward_scan_paths.gens)
+        self.nodes_f = _p(ordering.forward_scan_paths.nodes.to(device))
+        self.scans_f = _p(ordering.forward_scan_paths.scans.to(device))
+        self.gens_f = _p(ordering.forward_scan_paths.gens)  # on cpu
+        self.nodes_b = _p(ordering.backward_scan_paths.nodes.to(device))
+        self.scans_b = _p(ordering.backward_scan_paths.scans.to(device))
+        self.gens_b = _p(ordering.backward_scan_paths.gens)  # on cpu
 
     @torch.jit.script_method
     def forward(self, dofs):

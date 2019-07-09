@@ -115,7 +115,8 @@ struct common {
       HomogeneousTransform Mparent,
       Coord f1,
       Coord f2) -> Dofs {
-    Dofs dsc_ddof = Dofs::Constant(NAN);
+    Dofs dsc_ddof =
+        Dofs::Constant(0);  //(NAN); <- chnage to 0 so deriv checks work wo mask
 
     Coord end_ppos = Mparent.block(3, 0, 1, 3).transpose();
     Coord end_cpos = M.block(3, 0, 1, 3).transpose();
@@ -191,7 +192,8 @@ struct common {
   // Specifically, when theta==0, the rx rotation can be put into
   //   phi_c or phi_p (we use phi_c)
   static auto EIGEN_DEVICE_FUNC invBondTransform(HomogeneousTransform M) {
-    Dofs dof = Dofs::Constant(NAN);
+    Dofs dof =
+        Dofs::Constant(0);  //(NAN); <- chnage to 0 so deriv checks work wo mask
 
     if (std::fabs(M(0, 0) - 1) < 1e-6) {
       dof[DOF_phip] = 0.0;

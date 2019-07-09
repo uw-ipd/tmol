@@ -6,7 +6,8 @@ from math import nan
 
 import pytest
 
-from tmol.kinematics.operations import backwardKin, forwardKin, resolveDerivs
+from tmol.kinematics.operations import inverseKin, forwardKin
+from tmol.kinematics.script_modules import KinematicModule
 
 from tmol.kinematics.datatypes import KinDOF, NodeType, KinTree
 
@@ -47,246 +48,6 @@ def dscore(coords):
     dEdx = dEdxs.sum(dim=1) - dEdxs.sum(dim=0)
 
     return dEdx
-
-
-@pytest.fixture
-def expected_analytic_derivs():
-    return torch.tensor(
-        [
-            [
-                +0.00000000e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-                +0.00000000e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-                +0.00000000e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-            ],
-            [
-                +2.66453526e-15,
-                1.77635684e-15,
-                -8.88178420e-16,
-                +5.32907052e-15,
-                3.55271368e-15,
-                4.44089210e-15,
-                +0.00000000e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-            ],
-            [
-                +1.13718660e+01,
-                -1.06522516e+01,
-                8.61394482e-01,
-                +1.13718660e+01,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +1.70214350e+00,
-                3.40681357e-01,
-                -7.30414633e+00,
-                -1.77635684e-15,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +9.66972247e+00,
-                -1.04967293e+01,
-                -5.80415867e+00,
-                +7.68770907e-01,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +7.68770907e-01,
-                -6.06030702e-02,
-                -9.52873353e+00,
-                +1.77635684e-15,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                -1.25079554e+01,
-                1.57258359e+00,
-                -8.89832569e+00,
-                5.52111345e+00,
-                7.40141077e+00,
-                -9.92561863e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-            ],
-            [
-                -8.72247305e+00,
-                8.50512385e+00,
-                -1.47396223e+01,
-                -8.72247305e+00,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +1.70112178e+00,
-                4.52266852e+00,
-                -6.81301657e+00,
-                -7.10542736e-15,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                -1.04235948e+01,
-                7.57222441e+00,
-                -1.08827823e+01,
-                -1.93873880e+00,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                -1.93873880e+00,
-                5.88968488e+00,
-                -4.52952181e+00,
-                +0.00000000e+00,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                -9.66405135e+00,
-                7.51131337e+00,
-                9.49787678e+00,
-                2.14775674e-01,
-                1.47298659e+01,
-                -1.71810938e+01,
-                0.00000000e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-            ],
-            [
-                +1.15033592e+01,
-                -1.05854011e+01,
-                1.16243389e+00,
-                +1.15033592e+01,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +1.69990508e+00,
-                3.43791230e-01,
-                -7.30134090e+00,
-                -5.32907052e-15,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +9.80345414e+00,
-                -1.05263343e+01,
-                -5.85401170e+00,
-                +7.74393479e-01,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +7.74393479e-01,
-                -4.76323730e-02,
-                -9.57540886e+00,
-                -2.66453526e-15,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +1.45955969e+01,
-                3.92793100e+00,
-                3.79171849e+00,
-                +2.46056151e+00,
-                1.02226395e+01,
-                -9.80368607e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-                0.00000000e+00,
-            ],
-            [
-                -9.32753028e+00,
-                6.84468376e+00,
-                -1.51385559e+01,
-                -9.32753028e+00,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                +1.62693321e+00,
-                3.87588970e+00,
-                -6.91878652e+00,
-                -3.55271368e-15,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                -1.09544635e+01,
-                9.24780005e+00,
-                -1.05711446e+01,
-                -1.79443222e+00,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-            [
-                -1.79443222e+00,
-                6.15307006e+00,
-                -3.75430706e+00,
-                +1.77635684e-15,
-                nan,
-                nan,
-                nan,
-                nan,
-                nan,
-            ],
-        ],
-        dtype=torch.double,
-    )
 
 
 @pytest.fixture
@@ -367,16 +128,16 @@ def test_score_smoketest(coords):
 
 def test_forward_refold(kintree, coords, torch_device):
     # fd: with single precision 1e-9 is too strict for the assert_allclose calls
-    bkin = backwardKin(kintree, coords)
+    dofs = inverseKin(kintree, coords)
+    refold_kincoords = forwardKin(kintree, dofs)
 
-    fkin = forwardKin(kintree, bkin.dofs)
-    numpy.testing.assert_allclose(coords.cpu(), fkin.coords.cpu(), atol=1e-6)
+    numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)
 
 
 def test_perturb(kintree, coords, torch_device):
-    dofs = backwardKin(kintree, coords).dofs
+    dofs = inverseKin(kintree, coords)
+    pcoords = forwardKin(kintree, dofs)
 
-    pcoords = forwardKin(kintree, dofs).coords
     assert numpy.allclose(coords.cpu(), pcoords.cpu())
 
     def coord_changed(a, b, atol=1e-3):
@@ -388,7 +149,7 @@ def test_perturb(kintree, coords, torch_device):
     t_dofs.jump.RBx[6] += 0.2
     t_dofs.jump.RBy[6] += 0.2
     t_dofs.jump.RBz[6] += 0.2
-    pcoords = forwardKin(kintree, t_dofs).coords
+    pcoords = forwardKin(kintree, t_dofs)
 
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
     assert numpy.all(coord_changed(pcoords[6:11].cpu(), coords[6:11].cpu()))
@@ -406,7 +167,7 @@ def test_perturb(kintree, coords, torch_device):
     rd_dofs.jump.RBdel_beta[6] += 0.2
     rd_dofs.jump.RBdel_gamma[6] += 0.3
 
-    pcoords = forwardKin(kintree, rd_dofs).coords
+    pcoords = forwardKin(kintree, rd_dofs)
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6].cpu(), coords[6].cpu(), atol=1e-6)
     assert numpy.all(
@@ -421,7 +182,7 @@ def test_perturb(kintree, coords, torch_device):
     r_dofs.jump.RBalpha[6] += 0.1
     r_dofs.jump.RBbeta[6] += 0.2
     r_dofs.jump.RBgamma[6] += 0.3
-    pcoords = forwardKin(kintree, r_dofs).coords
+    pcoords = forwardKin(kintree, r_dofs)
     numpy.testing.assert_allclose(pcoords[1:6].cpu(), coords[1:6].cpu(), atol=1e-6)
     numpy.testing.assert_allclose(pcoords[6].cpu(), coords[6].cpu(), atol=1e-6)
     assert numpy.all(
@@ -463,98 +224,35 @@ def test_root_sibling_derivs(torch_device):
     compute_verify_derivs(kintree, coords)
 
 
-def test_derivs(kintree, coords, torch_device, expected_analytic_derivs):
-    compute_verify_derivs(kintree, coords, expected_analytic_derivs)
+def test_derivs(kintree, coords, torch_device):
+    compute_verify_derivs(kintree, coords)
 
 
-def compute_verify_derivs(kintree, coords, expected_analytic_derivs=None):
-    NATOMS, _ = coords.shape
-    bkin = backwardKin(kintree, coords)
-    HTs, dofs = bkin.hts, bkin.dofs
+# use torch autograd machinery
+# note that the "zeroing output" machinery fails on CUDA
+#   instead, use an explicit check to make sure derivatives match
+def compute_verify_derivs(kintree, coords):
+    dofs = inverseKin(kintree, coords)
+    op = KinematicModule(kintree, coords.device)
 
-    # Compute numeric derivs and store node indicies
-    bonds = []
-    jumps = []
+    # we only minimize the "rbdel" dofs
+    minimizable_dofs = dofs.raw[:, :6].requires_grad_(True)
 
-    dsc_dtors_numeric = KinDOF.full(len(dofs), 0)
-    for i in numpy.arange(0, NATOMS):
-        if kintree.doftype[i] == NodeType.bond:
-            ndof = 4
-            bonds.append(i)
-        elif kintree.doftype[i] == NodeType.jump:
-            ndof = 6
-            jumps.append(i)
-        elif kintree.doftype[i] == NodeType.root:
-            assert i == 0
-            continue
-        else:
-            raise NotImplementedError
+    def eval_kin(dofs_x):
+        dofsfull = dofs.raw.clone()
+        dofsfull[:, :6] = dofs_x
+        return op(dofsfull)
 
-        for j in range(ndof):
-            dofs.raw[i, j] += 0.0001
-            coordsAlt = forwardKin(kintree, dofs).coords
-            sc_p = score(coordsAlt[1:, :])
-            dofs.raw[i, j] -= 0.0002
-            coordsAlt = forwardKin(kintree, dofs).coords
-            sc_m = score(coordsAlt[1:, :])
-            dofs.raw[i, j] += 0.0001
+    result = eval_kin(minimizable_dofs)
 
-            dsc_dtors_numeric.raw[i, j] = (sc_p - sc_m) / 0.0002
+    # Extract results from torch/autograd/gradcheck.py
+    from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
 
-    # Compute analytic derivs for all available strategies
-    dsc_dx = coords.new_zeros([NATOMS, 3], dtype=torch.double)
-    dsc_dx[1:] = dscore(coords[1:, :])
-
-    dsc_dtors_analytic = resolveDerivs(kintree, dofs, HTs, dsc_dx)
-
-    # Verify numeric/analytic derivatives
-    assert_jump_dof_allclose(
-        dsc_dtors_analytic.jump[jumps], dsc_dtors_numeric.jump[jumps], atol=1e-7
+    (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
+        (minimizable_dofs,), result
+    )
+    numerical = get_numerical_jacobian(
+        eval_kin, minimizable_dofs, minimizable_dofs, 2e-3
     )
 
-    assert_bond_dof_allclose(
-        dsc_dtors_analytic.bond[bonds], dsc_dtors_numeric.bond[bonds], atol=1e-7
-    )
-
-    if expected_analytic_derivs is not None:
-        # Verify against stored derivatives for regression
-        # fd: reducing tolerance here to 1e-4
-        # * numpy double->torch double leads to differences as high as 5e-6
-        # * numeric v analytic comparison is still at 1e-7 so these changes
-        #     are likely due to changes in the "dummy score"
-        numpy.testing.assert_allclose(
-            dsc_dtors_analytic.raw[1:].cpu(),
-            expected_analytic_derivs[1:].cpu(),
-            atol=1e-4,
-        )
-
-
-def assert_bond_dof_allclose(actual, expected, **kwargs):
-    numpy.testing.assert_allclose(actual.phi_p.cpu(), expected.phi_p.cpu(), **kwargs)
-    numpy.testing.assert_allclose(actual.theta.cpu(), expected.theta.cpu(), **kwargs)
-    numpy.testing.assert_allclose(actual.d.cpu(), expected.d.cpu(), **kwargs)
-    numpy.testing.assert_allclose(actual.phi_c.cpu(), expected.phi_c.cpu(), **kwargs)
-
-
-def assert_jump_dof_allclose(actual, expected, **kwargs):
-    numpy.testing.assert_allclose(actual.RBx.cpu(), expected.RBx.cpu(), **kwargs)
-    numpy.testing.assert_allclose(actual.RBy.cpu(), expected.RBy.cpu(), **kwargs)
-    numpy.testing.assert_allclose(actual.RBz.cpu(), expected.RBz.cpu(), **kwargs)
-
-    numpy.testing.assert_allclose(
-        actual.RBdel_alpha.cpu(), expected.RBdel_alpha.cpu(), **kwargs
-    )
-    numpy.testing.assert_allclose(
-        actual.RBdel_beta.cpu(), expected.RBdel_beta.cpu(), **kwargs
-    )
-    numpy.testing.assert_allclose(
-        actual.RBdel_gamma.cpu(), expected.RBdel_gamma.cpu(), **kwargs
-    )
-
-    numpy.testing.assert_allclose(
-        actual.RBalpha.cpu(), expected.RBalpha.cpu(), **kwargs
-    )
-    numpy.testing.assert_allclose(actual.RBbeta.cpu(), expected.RBbeta.cpu(), **kwargs)
-    numpy.testing.assert_allclose(
-        actual.RBgamma.cpu(), expected.RBgamma.cpu(), **kwargs
-    )
+    torch.testing.assert_allclose(analytical, numerical)
