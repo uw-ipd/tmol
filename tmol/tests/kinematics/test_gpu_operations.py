@@ -1,16 +1,12 @@
 import pytest
 
-import attr
 import torch
 import numpy
 
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
-from tmol.kinematics.datatypes import KinDOF
 from tmol.tests.torch import requires_cuda
-
-from tmol.kinematics.compiled import compiled
 
 
 def system_kintree(target_system):
@@ -124,7 +120,7 @@ def test_derivsum_values_cpp(benchmark, big_system):
         return torch.autograd.grad(
             recoords_cuda,
             bkin_cuda.raw,
-            torch.ones_like(recoords_cuda),
+            dscdx_cuda,
             retain_graph=True,
             allow_unused=True,
         )
@@ -133,11 +129,7 @@ def test_derivsum_values_cpp(benchmark, big_system):
 
     # same calc on CPU
     dscddof_cpu, = torch.autograd.grad(
-        recoords_cpu,
-        bkin_cpu.raw,
-        torch.ones_like(recoords_cpu),
-        retain_graph=True,
-        allow_unused=True,
+        recoords_cpu, bkin_cpu.raw, dscdx_cpu, retain_graph=True, allow_unused=True
     )
 
     assert dscddof_cuda.device.type == "cuda"
@@ -147,4 +139,4 @@ def test_derivsum_values_cpp(benchmark, big_system):
     norm_a = torch.sqrt(torch.sum(dscddof_cuda.cpu() * dscddof_cuda.cpu()))
     norm_b = torch.sqrt(torch.sum(dscddof_cpu * dscddof_cpu))
     angle = torch.acos(torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b))
-    assert torch.abs(angle) < 1e-3
+    assert torch.abs(angle) < 1e-2

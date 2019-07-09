@@ -2,14 +2,12 @@ import torch
 import numpy
 import numpy.testing
 
-from math import nan
-
 import pytest
 
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.script_modules import KinematicModule
 
-from tmol.kinematics.datatypes import KinDOF, NodeType, KinTree
+from tmol.kinematics.datatypes import NodeType, KinTree
 
 
 def score(coords):

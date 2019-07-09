@@ -6,7 +6,6 @@ from typing import Optional
 from ..types.functional import validate_args
 
 from ..kinematics.operations import inverseKin
-from ..kinematics.metadata import DOFTypes
 
 from ..score.stacked_system import StackedSystem
 from ..score.bonded_atom import BondedAtomScoreGraph

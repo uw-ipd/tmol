@@ -1,16 +1,11 @@
 import pytest
 import typing
 
-import pandas
 import torch
-import numpy
-
-from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
 
 from tmol.types.torch import Tensor
 
 from tmol.kinematics.datatypes import KinTree
-from tmol.kinematics.metadata import DOFMetadata, DOFTypes
 from tmol.kinematics.script_modules import KinematicModule
 from tmol.kinematics.operations import inverseKin, forwardKin
 

@@ -1,10 +1,8 @@
 import torch
 
-from .datatypes import KinTree, KinDOF
-from .metadata import DOFMetadata
+from .datatypes import KinTree
 
 import tmol.kinematics.compiled  # noqa
-from tmol.kinematics.compiled.compiled import inverse_kin
 
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 

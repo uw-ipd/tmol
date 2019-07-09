@@ -1,17 +1,13 @@
-import attr
-import numpy
-
 import torch
 
 from tmol.types.functional import validate_args
 from tmol.types.torch import Tensor
-from tmol.types.attrs import ValidateAttrs
 
 from tmol.kinematics.compiled import compiled
 from tmol.kinematics.script_modules import KinematicModule
 
 
-from .datatypes import NodeType, KinTree, KinDOF
+from .datatypes import KinTree, KinDOF
 
 CoordArray = Tensor(torch.double)[:, 3]
 
@@ -21,7 +17,6 @@ def inverseKin(kintree: KinTree, coords: CoordArray, requires_grad=False) -> Kin
     """xyzs -> HTs, dofs
       - "backward" kinematics
     """
-    natoms = coords.shape[0]
     raw_dofs = compiled.inverse_kin(
         coords,
         kintree.parent,
