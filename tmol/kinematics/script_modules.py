@@ -19,11 +19,11 @@ class KinematicModule(torch.jit.ScriptModule):
     compute graph. Provides support for forward kinematics over of a subset of
     source dofs, as specified by the provided DOFMetadata entries.
 
-    A kinematic system is defined by a combination of mobile and fixed dofs, a
-    KinematicOp manages forward kinematics for mobile dofs within a fixed dof
-    context. The full mobile & fixed dof set is initialized by backward
-    kinematics from a given coordinate state via the `from_coords` factory
-    function.
+    The kinematic system maps between the natm x 9 internal coordinate frame
+    and the natm x 3 coordinate frame.  Some of this natm x 9 array is unused
+    or is redundant but this is not known by the kinematic module.
+
+    See KinDOF for a description of the internal coordinate representation.
     """
 
     def __init__(self, kintree: KinTree, device: torch.device):
