@@ -152,13 +152,13 @@ class IntraScore:
     @staticmethod
     def total(target, **component_totals):
         total_score = 0
-        with nvtx_range("IntraScoreSum") as r:
+        with nvtx_range("IntraScoreSum") as _:
             if (
                 not hasattr(target, "component_weights")
                 or target.component_weights is None
             ):
                 # no weights provided, simple sum components
-                with nvtx_range("IntraScoreSum::reduce") as r2:
+                with nvtx_range("IntraScoreSum::reduce") as _:
                     total_score = toolz.reduce(operator.add, component_totals.values())
             else:
                 # weights provided, use to rescale
