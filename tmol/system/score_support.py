@@ -222,6 +222,8 @@ def dunbrack_graph_inputs(
         ],
         dtype=numpy.int32,
     )
+    if dun_chi1.shape[0] == 0:
+        dun_chi1 = numpy.zeros((0, 6), dtype=numpy.int32)
     # print("dun_chi1")
     # print(dun_chi1)
 
@@ -239,6 +241,8 @@ def dunbrack_graph_inputs(
         ],
         dtype=numpy.int32,
     )
+    if dun_chi2.shape[0] == 0:
+        dun_chi2 = numpy.zeros((0, 6), dtype=numpy.int32)
 
     dun_chi3 = numpy.array(
         [
@@ -254,6 +258,8 @@ def dunbrack_graph_inputs(
         ],
         dtype=numpy.int32,
     )
+    if dun_chi3.shape[0] == 0:
+        dun_chi3 = numpy.zeros((0, 6), dtype=numpy.int32)
 
     dun_chi4 = numpy.array(
         [
@@ -269,6 +275,8 @@ def dunbrack_graph_inputs(
         ],
         dtype=numpy.int32,
     )
+    if dun_chi4.shape[0] == 0:
+        dun_chi4 = numpy.zeros((0, 6), dtype=numpy.int32)
 
     # print("dun_chi1.shape",dun_chi.shape)
     # print("dun_chi1.shape",dun_chi.shape)
