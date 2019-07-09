@@ -51,14 +51,6 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
         TPack<Vec<Real, 3>, 1, D>,
         TPack<Vec<Real, 3>, 1, D>> {
 
-  // clock_t start1 = clock();
-  // if (D == tmol::Device::CUDA) {
-  //   int orig = std::cout.precision();
-  //   std::cout.precision(16);
-  //   std::cout << "lk_start " << (double)start / CLOCKS_PER_SEC * 1000000
-  //             << std::endl;
-  //   std::cout.precision(orig);
-  // }
   NVTXRange _function(__FUNCTION__);
 
   NVTXRange _allocate("allocate");
@@ -74,7 +66,7 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
   auto dV_dJ = dV_dJ_t.view;
-  
+
   _allocate.exit();
   NVTXRange _zero("zero");
   auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
@@ -95,7 +87,7 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
   int largest = std::max(3, (int)std::max(coords_i.size(0), coords_j.size(0)));
   SingleDispatch<D>::forall(largest, zero, stream);
   _zero.exit();
-  
+
   clock_t start2 = clock();
 
   NVTXRange _score("score");
@@ -126,19 +118,6 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
       },
       stream);
   _score.exit();
-  
-  // clock_t start3 = clock();
-  // if (D == tmol::Device::CUDA) {
-  //   int orig = std::cout.precision();
-  //   std::cout.precision(16);
-  //   std::cout << "lk "
-  //   //<< " a " << ((double)start2 - start1) / CLOCKS_PER_SEC * 1000000
-  //   //<< " b " << ((double)start3 - start2) / CLOCKS_PER_SEC * 1000000
-  //   //<< " c "
-  //   << ((double)start3 - start1) / CLOCKS_PER_SEC * 1000000
-  //   << "\n";
-  //   std::cout.precision(orig);
-  // }
 
   // restore the global stream to default before leaving
   utility::cuda::set_default_cuda_stream();

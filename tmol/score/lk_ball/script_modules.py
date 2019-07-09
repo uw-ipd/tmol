@@ -147,10 +147,8 @@ class LKBallIntraModule(_LKBallScoreModule):
             self.watergen_water_tors_ring,
         )
 
-        #torch.cuda.synchronize()
         I_heavyatom_mask = self.heavyatom_mask[atom_type_I]
         I_idx = torch.nonzero(I_heavyatom_mask)[:, 0]
-        #torch.cuda.synchronize()
 
         return torch.ops.tmol.score_lkball(
             I[I_idx],

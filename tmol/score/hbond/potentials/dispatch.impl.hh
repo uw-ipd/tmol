@@ -50,6 +50,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
         TPack<Real, 1, Dev>,
         TPack<Vec<Real, 3>, 1, Dev>,
         TPack<Vec<Real, 3>, 1, Dev>> {
+  NVTXRange _function(__FUNCTION__);
   AT_ASSERTM(
       donor_type.size(0) == D.size(0), "Invalid donor coordinate shapes.");
   AT_ASSERTM(
@@ -75,7 +76,7 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   AT_ASSERTM(
       global_params.size(0) == 1, "Invalid number of global parameters.");
 
-  nvtx_range_push("hbond alloc");
+  NVTXRange _alloc("alloc");
   auto stream = utility::cuda::get_cuda_stream_from_pool();
   utility::cuda::set_current_cuda_stream(stream);
   
@@ -87,11 +88,11 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   auto V = V_t.view;
   auto dV_d_don = dV_d_don_t.view;
   auto dV_d_acc = dV_d_acc_t.view;
+  _alloc.exit();
 
   Real _threshold_distance = 6.0;  // what about the global threshold distance?
 
-  nvtx_range_pop();
-  nvtx_range_push("hbond eval");
+  NVTXRange _eval("eval");
   Dispatch<Dev>::forall_idx_pairs(
       _threshold_distance,
 
@@ -130,8 +131,8 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
         accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[B0[ai]], hbond.dV_dB0);
       },
       stream);
+  _eval.exit();
 
-  nvtx_range_pop();
   utility::cuda::set_default_cuda_stream();
   
   return {V_t, dV_d_don_t, dV_d_acc_t};

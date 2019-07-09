@@ -52,17 +52,7 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
         TPack<Vec<Real, 3>, 1, D>> {
   NVTXRange _function(__FUNCTION__);
 
-  // clock_t start = clock();
-  // if (D == tmol::Device::CUDA) {
-  //   int orig = std::cout.precision();
-  //   std::cout.precision(16);
-  //   std::cout << "lj_start " << (double)start / CLOCKS_PER_SEC * 1000000
-  //             << "\n";
-  //   std::cout.precision(orig);
-  // }
-
   auto stream = utility::cuda::get_cuda_stream_from_pool();
-  //auto stream = utility::cuda::get_default_stream();
   utility::cuda::set_current_cuda_stream(stream);
 
   NVTXRange _allocate("lj_alloc");
@@ -122,15 +112,6 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
       },
       stream);
   _score.exit();
-
-  // clock_t stop = clock();
-  // if (D == tmol::Device::CUDA) {
-  //   int orig = std::cout.precision();
-  //   std::cout.precision(16);
-  //   std::cout << "lj " << std::setw(20)
-  //             << ((double)stop - start) / CLOCKS_PER_SEC * 1000000 << "\n";
-  //   std::cout.precision(orig);
-  // }
 
   // restore the global stream to default before leaving
   utility::cuda::set_default_cuda_stream();
