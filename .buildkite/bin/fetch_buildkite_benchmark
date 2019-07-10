@@ -1,0 +1,48 @@
+#!/bin/bash
+set -euo pipefail
+IFS=$'\n\t'
+
+artifact_api_key=b4e7482f55db9e99cab5590f8111f4b330f9f339
+
+branch=$1
+
+echo "branch: $branch" >&2
+
+build_number=$(
+curl -s -H \
+  "Authorization: Bearer $artifact_api_key" \
+  "https://api.buildkite.com/v2/organizations/uw-ipd/pipelines/tmol/builds?branch=$branch&state=finished" | \
+  jq 'first | .number'
+)
+
+echo "build: https://buildkite.com/uw-ipd/tmol/builds/$build_number" >&2
+
+artifact_url=$(
+curl -s -H \
+  "Authorization: Bearer $artifact_api_key" \
+  "https://api.buildkite.com/v2/organizations/uw-ipd/pipelines/tmol/builds/$build_number" | \
+  jq '.jobs[] | select(.name == ":racehorse: Benchmark") | .artifacts_url' -r
+)
+
+download_url=$(
+curl -s -H \
+  "Authorization: Bearer $artifact_api_key" \
+  $artifact_url | jq 'first | .download_url' -r
+)
+
+path=$(
+curl -s -H \
+  "Authorization: Bearer $artifact_api_key" \
+  $artifact_url | jq 'first | .path' -r
+)
+
+echo "benchmark log: $path" >&2
+
+mkdir -p $(dirname $path)
+
+curl -s -LH \
+  "Authorization: Bearer $artifact_api_key" \
+  $download_url -o $path
+
+
+echo $path
