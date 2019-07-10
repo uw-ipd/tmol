@@ -3,7 +3,7 @@ ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 ### Install basic packages
 RUN apt-get update --fix-missing && \
-    apt-get install -y wget bzip2 ca-certificates curl git software-properties-common && \
+    apt-get install -y wget bzip2 ca-certificates curl git jq software-properties-common && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
