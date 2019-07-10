@@ -6,7 +6,5 @@ uw-ipd::clangdev=7.*
 virtualenv
 
 psutil
-curl
-jq
 
 seaborn
