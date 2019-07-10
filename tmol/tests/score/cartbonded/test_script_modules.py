@@ -14,6 +14,8 @@ from tmol.score.cartbonded.params import CartBondedParamResolver
 from tmol.score.cartbonded.identification import CartBondedIdentification
 from tmol.score.bonded_atom import IndexedBonds
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 import tmol.database
 
 
@@ -200,7 +202,9 @@ def test_cartbonded_angle_gradcheck(default_database, ubq_system, torch_device):
     def eval_cba(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op.final(coords, s.tbondangle_indices)
+        v = op(coords, s.tbondangle_indices)
+        #huh -- calling op.final above causes a deriv mismatch??
+        synchronize_if_cuda_available()
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
