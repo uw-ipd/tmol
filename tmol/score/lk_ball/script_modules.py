@@ -196,32 +196,26 @@ class LKBallInterModule(_LKBallScoreModule):
             self.watergen_water_tors_ring,
         )
 
-        I_heavyatom_mask = self.heavyatom_mask[atom_type_I]
-        I_idx = torch.nonzero(I_heavyatom_mask)[:, 0]
-
-        J_heavyatom_mask = self.heavyatom_mask[atom_type_J]
-        J_idx = torch.nonzero(J_heavyatom_mask)[:, 0]
-
         V_ij = torch.ops.tmol.score_lkball(
-            I[I_idx],
-            atom_type_I[I_idx],
-            waters_I[I_idx],
-            J[J_idx],
-            atom_type_J[J_idx],
-            waters_J[J_idx],
-            bonded_path_lengths[I_idx, :][:, J_idx],
+            I,
+            atom_type_I,
+            waters_I,
+            J,
+            atom_type_J,
+            waters_J,
+            bonded_path_lengths,
             self.lkball_type_params,
             self.lkball_global_params,
         )
 
         V_ji = torch.ops.tmol.score_lkball(
-            J[J_idx],
-            atom_type_J[J_idx],
-            waters_J[J_idx],
-            I[I_idx],
-            atom_type_I[I_idx],
-            waters_I[I_idx],
-            bonded_path_lengths[I_idx, :][:, J_idx].t(),
+            J,
+            atom_type_J,
+            waters_J,
+            I,
+            atom_type_I,
+            waters_I,
+            bonded_path_lengths.t(),
             self.lkball_type_params,
             self.lkball_global_params,
         )
