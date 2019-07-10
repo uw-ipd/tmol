@@ -4,6 +4,8 @@ from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.database.chemical import ChemicalDatabase
 from tmol.database.scoring.ljlk import LJLKDatabase
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 # Import compiled components to load torch_ops
 import tmol.score.ljlk.potentials.compiled  # noqa
 
@@ -72,6 +74,7 @@ class _LJScoreModule(torch.jit.ScriptModule):
 class LJIntraModule(_LJScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, bonded_path_lengths):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_ljlk_lj_triu(
             I,
             atom_type_I,
@@ -82,10 +85,17 @@ class LJIntraModule(_LJScoreModule):
             self.global_params,
         )
 
+    def final(self, I, atom_type_I, bonded_path_lengths):
+        """Blocking score evaluation"""
+        retval = self(I, atom_type_I, bonded_path_lengths)
+        synchronize_if_cuda_available()
+        return retval
+
 
 class LJInterModule(_LJScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_ljlk_lj(
             I,
             atom_type_I,
@@ -95,6 +105,12 @@ class LJInterModule(_LJScoreModule):
             self.type_params,
             self.global_params,
         )
+
+    def final(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+        """Blocking score evaluation"""
+        retval = self(I, atom_type_I, J, atom_type_J, bonded_path_lengths)
+        synchronize_if_cuda_available()
+        return retval
 
 
 class _LKIsotropicScoreModule(torch.jit.ScriptModule):
@@ -158,6 +174,7 @@ class _LKIsotropicScoreModule(torch.jit.ScriptModule):
 class LKIsotropicIntraModule(_LKIsotropicScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, bonded_path_lengths):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_ljlk_lk_isotropic_triu(
             I,
             atom_type_I,
@@ -168,10 +185,17 @@ class LKIsotropicIntraModule(_LKIsotropicScoreModule):
             self.global_params,
         )
 
+    def final(self, I, atom_type_I, bonded_path_lengths):
+        """Blocking score evaluation"""
+        retval = self(I, atom_type_I, bonded_path_lengths)
+        synchronize_if_cuda_available()
+        return retval
+
 
 class LKIsotropicInterModule(_LKIsotropicScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_ljlk_lk_isotropic(
             I,
             atom_type_I,
@@ -181,3 +205,9 @@ class LKIsotropicInterModule(_LKIsotropicScoreModule):
             self.type_params,
             self.global_params,
         )
+
+    def final(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+        """Blocking score evaluation"""
+        retval = self(I, atom_type_I, J, atom_type_J, bonded_path_lengths)
+        synchronize_if_cuda_available()
+        return retval

@@ -3,6 +3,8 @@ import torch
 from tmol.score.cartbonded.params import CartBondedParamResolver
 from tmol.database.scoring import CartBondedDatabase
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 # Import compiled components to load torch_ops
 import tmol.score.cartbonded.potentials.compiled  # noqa
 
@@ -32,9 +34,16 @@ class _CartBondedScoreModule(torch.jit.ScriptModule):
 class CartBondedLengthModule(_CartBondedScoreModule):
     @torch.jit.script_method
     def forward(self, coords, atoms):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_cartbonded_length(
             coords, atoms, self.bondlength_params
         )
+
+    def final(self, coords, atoms):
+        """Blocking score evaluation"""
+        res = self(coords, atoms)
+        synchronize_if_cuda_available()
+        return res
 
     def __init__(self, param_resolver: CartBondedParamResolver):
         super().__init__()
@@ -55,9 +64,16 @@ class CartBondedLengthModule(_CartBondedScoreModule):
 class CartBondedAngleModule(_CartBondedScoreModule):
     @torch.jit.script_method
     def forward(self, coords, atoms):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_cartbonded_angle(
             coords, atoms, self.bondangle_params
         )
+
+    def final(self, coords, atoms):
+        """Blocking score evaluation"""
+        res = self(coords, atoms)
+        synchronize_if_cuda_available()
+        return res
 
     def __init__(self, param_resolver: CartBondedParamResolver):
         super().__init__()
@@ -78,9 +94,16 @@ class CartBondedAngleModule(_CartBondedScoreModule):
 class CartBondedTorsionModule(_CartBondedScoreModule):
     @torch.jit.script_method
     def forward(self, coords, atoms):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_cartbonded_torsion(
             coords, atoms, self.torsion_params
         )
+
+    def final(self, coords, atoms):
+        """Blocking score evaluation"""
+        res = self(coords, atoms)
+        synchronize_if_cuda_available()
+        return res
 
     def __init__(self, param_resolver: CartBondedParamResolver):
         super().__init__()
@@ -102,9 +125,16 @@ class CartBondedTorsionModule(_CartBondedScoreModule):
 class CartBondedImproperModule(_CartBondedScoreModule):
     @torch.jit.script_method
     def forward(self, coords, atoms):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_cartbonded_torsion(
             coords, atoms, self.improper_params
         )
+
+    def final(self, coords, atoms):
+        """Blocking score evaluation"""
+        res = self(coords, atoms)
+        synchronize_if_cuda_available()
+        return res
 
     def __init__(self, param_resolver: CartBondedParamResolver):
         super().__init__()
@@ -126,9 +156,16 @@ class CartBondedImproperModule(_CartBondedScoreModule):
 class CartBondedHxlTorsionModule(_CartBondedScoreModule):
     @torch.jit.script_method
     def forward(self, coords, atoms):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_cartbonded_hxltorsion(
             coords, atoms, self.hxltorsion_params
         )
+
+    def final(self, coords, atoms):
+        """Blocking score evaluation"""
+        res = self(coords, atoms)
+        synchronize_if_cuda_available()
+        return res
 
     def __init__(self, param_resolver: CartBondedParamResolver):
         super().__init__()

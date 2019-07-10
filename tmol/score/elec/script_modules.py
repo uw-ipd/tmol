@@ -38,14 +38,28 @@ class _ElecScoreModule(torch.jit.ScriptModule):
 class ElecInterModule(_ElecScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_elec(
             I, atom_type_I, J, atom_type_J, bonded_path_lengths, self.global_params
         )
+
+    def final(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+        """Blocking score evaluation"""
+        res = self(I, atom_type_I, J, atom_type_J, bonded_path_lengths)
+        synchronize_if_cuda_available()
+        return res
 
 
 class ElecIntraModule(_ElecScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, bonded_path_lengths):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_elec_triu(
             I, atom_type_I, I, atom_type_I, bonded_path_lengths, self.global_params
         )
+
+    def final(self, I, atom_type_I, bonded_path_lengths):
+        """Blocking score evaluation"""
+        res = self(I, atom_type_I, bonded_path_lengths)
+        synchronize_if_cuda_available()
+        return res

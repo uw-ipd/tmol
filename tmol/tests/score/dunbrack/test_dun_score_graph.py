@@ -9,6 +9,7 @@ from tmol.score.coordinates import (
 from tmol.score.device import TorchDevice
 from tmol.score.dunbrack.score_graph import DunbrackScoreGraph
 from tmol.score.score_graph import score_graph
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
 
 
 @score_graph
@@ -120,6 +121,7 @@ def test_dunbrack_score(ubq_system, torch_device, default_database):
     )
     intra_graph = dunbrack_graph.intra_score()
     e_dun_tot = intra_graph.dun_score
+    synchronize_if_cuda_available()
     e_dun_gold = torch.Tensor([70.6497, 240.3100, 99.6609])
     torch.testing.assert_allclose(e_dun_gold, e_dun_tot.cpu())
 

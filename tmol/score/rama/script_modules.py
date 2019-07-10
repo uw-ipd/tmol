@@ -4,6 +4,7 @@ from .params import RamaParamResolver, RamaParams
 
 # Import compiled components to load torch_ops
 import tmol.score.rama.potentials.compiled  # noqa
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
@@ -53,6 +54,13 @@ class RamaScoreModule(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def forward(self, coords):
+        """Non-blocking score evaluation"""
         return torch.ops.tmol.score_rama(
             coords, self.params, self.tables, self.table_params
         )
+
+    def final(self, coords):
+        """Blocking score evaluation"""
+        res = self(coords)
+        synchronize_if_cuda_available()
+        return res

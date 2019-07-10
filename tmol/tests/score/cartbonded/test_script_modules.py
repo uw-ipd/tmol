@@ -159,7 +159,7 @@ def test_cartbonded_length_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedLengthModule(s.param_resolver)
 
-    V = op(s.tcoords[0, :], s.tbondlength_indices)
+    V = op.final(s.tcoords[0, :], s.tbondlength_indices)
 
     numpy.testing.assert_allclose(V.detach().sum().cpu(), 37.78476, atol=1e-3, rtol=0)
 
@@ -173,7 +173,7 @@ def test_cartbonded_length_gradcheck(default_database, ubq_system, torch_device)
     def eval_cbl(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op(coords, s.tbondlength_indices)
+        v = op.final(coords, s.tbondlength_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
@@ -186,7 +186,7 @@ def test_cartbonded_angle_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedAngleModule(s.param_resolver)
 
-    V = op(s.tcoords[0, :], s.tbondangle_indices)
+    V = op.final(s.tcoords[0, :], s.tbondangle_indices)
 
     numpy.testing.assert_allclose(V.detach().sum().cpu(), 183.578, atol=1e-3, rtol=0)
 
@@ -200,7 +200,7 @@ def test_cartbonded_angle_gradcheck(default_database, ubq_system, torch_device):
     def eval_cba(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op(coords, s.tbondangle_indices)
+        v = op.final(coords, s.tbondangle_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
@@ -216,7 +216,7 @@ def test_cartbonded_torsion_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedTorsionModule(s.param_resolver)
 
-    V = op(s.tcoords[0, :], s.ttorsion_indices)
+    V = op.final(s.tcoords[0, :], s.ttorsion_indices)
 
     numpy.testing.assert_allclose(V.detach().sum().cpu(), 50.5842, atol=1e-3, rtol=0)
 
@@ -230,7 +230,7 @@ def test_cartbonded_torsion_gradcheck(default_database, ubq_system, torch_device
     def eval_cbt(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op(coords, s.ttorsion_indices)
+        v = op.final(coords, s.ttorsion_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
@@ -243,7 +243,7 @@ def test_cartbonded_improper_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedImproperModule(s.param_resolver)
 
-    V = op(s.tcoords[0, :], s.timproper_indices)
+    V = op.final(s.tcoords[0, :], s.timproper_indices)
 
     numpy.testing.assert_allclose(V.detach().sum().cpu(), 9.43055, atol=1e-3, rtol=0)
 
@@ -257,7 +257,7 @@ def test_cartbonded_improper_gradcheck(default_database, ubq_system, torch_devic
     def eval_cbi(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op(coords, s.timproper_indices)
+        v = op.final(coords, s.timproper_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]
@@ -270,7 +270,7 @@ def test_cartbonded_hxltorsion_op(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = CartBondedHxlTorsionModule(s.param_resolver)
 
-    V = op(s.tcoords[0, :], s.thxltorsion_indices)
+    V = op.final(s.tcoords[0, :], s.thxltorsion_indices)
 
     numpy.testing.assert_allclose(V.detach().sum().cpu(), 47.4197, atol=1e-3, rtol=0)
 
@@ -289,7 +289,7 @@ def test_cartbonded_hxltorsion_gradcheck(default_database, ubq_system, torch_dev
     def eval_cbh(coords_subset):
         coords = s.tcoords[0, ...].clone()
         coords[t_atm_indices] = coords_subset
-        v = op(coords, s.thxltorsion_indices)
+        v = op.final(coords, s.thxltorsion_indices)
         return v
 
     masked_coords = s.tcoords[0, t_atm_indices]

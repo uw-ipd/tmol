@@ -8,6 +8,8 @@ from tmol.database.scoring.ljlk import LJLKDatabase
 # Import compiled components to load torch_ops
 import tmol.score.lk_ball.potentials.compiled  # noqa
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
 if "to" in torch.jit.ScriptModule.__dict__:
@@ -162,6 +164,21 @@ class LKBallIntraModule(_LKBallScoreModule):
             self.lkball_global_params,
         )
 
+    def final(
+        self,
+        I,
+        atom_type_I,
+        bonded_path_lengths,
+        indexed_bond_bonds,
+        indexed_bond_spans,
+    ):
+        """Blocking score evaluation"""
+        res = self(
+            I, atom_type_I, bonded_path_lengths, indexed_bond_bonds, indexed_bond_spans
+        )
+        synchronize_if_cuda_available()
+        return res
+
 
 class LKBallInterModule(_LKBallScoreModule):
     # @torch.jit.script_method
@@ -230,3 +247,26 @@ class LKBallInterModule(_LKBallScoreModule):
         )
 
         return V_ij + V_ji
+
+    def final(
+        self,
+        I,
+        atom_type_I,
+        J,
+        atom_type_J,
+        bonded_path_lengths,
+        indexed_bond_bonds,
+        indexed_bond_spans,
+    ):
+        """Blocking score evaluation"""
+        res = self(
+            I,
+            atom_type_I,
+            J,
+            atom_type_J,
+            bonded_path_lengths,
+            indexed_bond_bonds,
+            indexed_bond_spans,
+        )
+        synchronize_if_cuda_available()
+        return res

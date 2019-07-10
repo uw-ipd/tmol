@@ -142,8 +142,7 @@ def test_elec_intra(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = ElecIntraModule(s.param_resolver)
 
-    val = op(s.tcoords[0, :], s.tpcs[0, :], s.trbpl[0, :])
-    synchronize_if_cuda_available()
+    val = op.final(s.tcoords[0, :], s.tpcs[0, :], s.trbpl[0, :])
 
     torch.testing.assert_allclose(val.cpu(), -131.9225, atol=1e-4, rtol=1e-2)
 
@@ -156,8 +155,7 @@ def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
     natoms = 32
 
     def eval_intra(coords):
-        val = op(coords, s.tpcs[0, :natoms], s.trbpl[0, :natoms, :natoms])
-        synchronize_if_cuda_available()
+        val = op.final(coords, s.tpcs[0, :natoms], s.trbpl[0, :natoms, :natoms])
         return val
 
     coords = s.tcoords[0, :natoms]
@@ -171,13 +169,12 @@ def test_elec_inter(default_database, ubq_system, torch_device):
 
     part = ubq_system.system_size // 2
 
-    val = op(
+    val = op.final(
         s.tcoords[0, :part],
         s.tpcs[0, :part],
         s.tcoords[0, part:],
         s.tpcs[0, part:],
         s.trbpl[0, :part, part:],
     )
-    synchronize_if_cuda_available()
 
     torch.testing.assert_allclose(val.cpu(), -44.6776, atol=1e-4, rtol=1e-2)

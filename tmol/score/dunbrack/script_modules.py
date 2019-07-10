@@ -5,6 +5,8 @@ from .params import PackedDunbrackDatabase, DunbrackParams, DunbrackScratch
 # Import compiled components to load torch_ops
 import tmol.score.dunbrack.potentials.compiled  # noqa
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
 if "to" in torch.jit.ScriptModule.__dict__:
@@ -116,3 +118,9 @@ class DunbrackScoreModule(torch.jit.ScriptModule):
             self.rotameric_rottable_assignment,
             self.semirotameric_rottable_assignment,
         )
+
+    def final(self, coords):
+        """Blocking score evaluation"""
+        res = self(coords)
+        synchronize_if_cuda_available()
+        return res

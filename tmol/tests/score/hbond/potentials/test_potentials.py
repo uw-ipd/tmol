@@ -9,6 +9,8 @@ from tmol.utility.args import _signature
 
 from tmol.score.chemical_database import AcceptorHybridization
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 
 _hbond_global_param_dict = dict(
     hb_sp2_range_span=1.6,
@@ -374,14 +376,19 @@ def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_par
 
     op = VectorizedOp(compiled.hbond_score_V_dV)
 
-    assert float(op(*targs(sp2_params))) == approx(-2.40, abs=0.01)
-    gradcheck(op, targs(sp2_params))
+    def op_sync(*args, **kwargs):
+        res = op(args, kwargs)
+        synchronize_if_cuda_available()
+        return res
 
-    assert float(op(*targs(sp3_params))) == approx(-2.00, abs=0.01)
-    gradcheck(op, targs(sp3_params))
+    assert float(op_sync(*targs(sp2_params))) == approx(-2.40, abs=0.01)
+    gradcheck(op_sync, targs(sp2_params))
 
-    assert float(op(*targs(ring_params))) == approx(-2.17, abs=0.01)
-    gradcheck(op, targs(ring_params))
+    assert float(op_sync(*targs(sp3_params))) == approx(-2.00, abs=0.01)
+    gradcheck(op_sync, targs(sp3_params))
+
+    assert float(op_sync(*targs(ring_params))) == approx(-2.17, abs=0.01)
+    gradcheck(op_sync, targs(ring_params))
 
 
 def test_AH_dist_gradcheck(compiled, sp2_params, sp3_params, ring_params):

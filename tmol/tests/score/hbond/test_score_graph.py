@@ -12,6 +12,8 @@ from tmol.score.device import TorchDevice
 
 from tmol.score.score_graph import score_graph
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 
 @score_graph
 class HBGraph(CartesianAtomicCoordinateProvider, HBondScoreGraph, TorchDevice):
@@ -35,6 +37,8 @@ def test_hbond_smoke(ubq_system, test_hbond_database, torch_device):
     intra_graph = hbond_graph.intra_score()
 
     score = intra_graph.total_hbond
+    synchronize_if_cuda_available()
+
     nan_scores = torch.nonzero(torch.isnan(score))
     assert len(nan_scores) == 0
     assert (intra_graph.total_hbond != 0).all()

@@ -71,7 +71,7 @@ def test_script_module_scores(default_database, ubq_system, torch_device):
 
     ### score via op
     intra_module = HBondIntraModule(compact_db)
-    module_score = intra_module.forward(**inputs)
+    module_score = intra_module.final(**inputs)
 
     # Verify scores via back comparison to explicit evaluation
     dind, aind = map(

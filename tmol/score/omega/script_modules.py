@@ -1,6 +1,7 @@
 from tmol.types.torch import Tensor
 
 import tmol.score.omega.potentials.compiled  # noqa
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
 
 import torch
 
@@ -20,3 +21,8 @@ class OmegaScoreModule(torch.jit.ScriptModule):
     @torch.jit.script_method
     def forward(self, coords):
         return torch.ops.tmol.score_omega(coords, self.params)
+
+    def final(self, coords):
+        res = self(coords)
+        synchronize_if_cuda_available()
+        return res

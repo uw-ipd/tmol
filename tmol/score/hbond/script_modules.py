@@ -3,6 +3,7 @@ import torch
 from .params import CompactedHBondDatabase
 
 import tmol.score.hbond.potentials.compiled  # noqa
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
 
 
 class _HBondScoreModule(torch.jit.ScriptModule):
@@ -37,3 +38,12 @@ class HBondIntraModule(_HBondScoreModule):
             self.pair_poly_table,
             self.global_param_table,
         )
+
+    def final(
+        self, donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
+    ):
+        res = self(
+            donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
+        )
+        synchronize_if_available()
+        return res

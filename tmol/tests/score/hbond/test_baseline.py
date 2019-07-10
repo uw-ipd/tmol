@@ -8,6 +8,8 @@ from tmol.score.score_graph import score_graph
 
 from tmol.system.packed import PackedResidueSystem
 
+from tmol.utility.cuda.synchronize import synchronize_if_available
+
 
 def hbond_score_comparison(rosetta_baseline):
     test_system = PackedResidueSystem.from_residues(rosetta_baseline.tmol_residues)
@@ -21,6 +23,7 @@ def hbond_score_comparison(rosetta_baseline):
     # Extract list of hbonds from packed system into summary table
     # via atom metadata
     tmol_hbond_total = hbond_graph.intra_score().total_hbond
+    synchronize_if_cuda_available()
 
     named_atom_index = pandas.DataFrame(test_system.atom_metadata).set_index(
         ["residue_index", "atom_name"]

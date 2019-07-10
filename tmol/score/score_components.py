@@ -151,6 +151,23 @@ class IntraScore:
 
     @staticmethod
     def total(target, **component_totals):
+        """Sum the individual components.
+
+        This must happen in the default cuda stream, as that will
+        synchronize all of the other streams. The synchronization
+        must occur first, as the terms have launched the kernels
+        in separate streams, and these kernels may not have finished
+        by the time that we arrive at this function.
+
+        If this function were rewritten somehow with torchscript,
+        then it would need to synchronize with the streams.
+
+        Note that use of the default stream will synchronize with
+        all threads, and that if we had two threads trying to 
+        score simultaneously, then the work by kernels launched from
+        thread 1 would cause this function to block for thread 2,
+        even well after thread 2 has completed its kernels.
+        """
         total_score = 0
         with nvtx_range("IntraScoreSum") as _:
             if (
