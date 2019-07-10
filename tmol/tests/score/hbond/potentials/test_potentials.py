@@ -377,7 +377,7 @@ def test_hbond_point_scores_gradcheck(compiled, sp2_params, sp3_params, ring_par
     op = VectorizedOp(compiled.hbond_score_V_dV)
 
     def op_sync(*args, **kwargs):
-        res = op(args, kwargs)
+        res = op(*args, **kwargs)
         synchronize_if_cuda_available()
         return res
 

@@ -45,5 +45,5 @@ class HBondIntraModule(_HBondScoreModule):
         res = self(
             donor_coords, acceptor_coords, D, H, donor_type, A, B, B0, acceptor_type
         )
-        synchronize_if_available()
+        synchronize_if_cuda_available()
         return res

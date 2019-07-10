@@ -92,7 +92,7 @@ def test_rama_intra(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = RamaScoreModule(s.params, s.param_resolver)
 
-    V = op(s.tcoords)
+    V = op.final(s.tcoords)
 
     numpy.testing.assert_allclose(V.detach().cpu(), -12.743369, atol=1e-4)
 
@@ -112,7 +112,7 @@ def test_rama_intra_gradcheck(default_database, ubq_system, torch_device):
     def eval_rama(coords_subset):
         coords = s.tcoords.clone()
         coords[t_atm_indices] = coords_subset
-        return op(coords)
+        return op.final(coords)
 
     masked_coords = s.tcoords[t_atm_indices]
     torch.autograd.gradcheck(

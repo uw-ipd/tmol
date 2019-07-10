@@ -9,6 +9,8 @@ from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJScoreGraph
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 
 @score_graph
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
@@ -28,7 +30,10 @@ def test_lj_nan_prop(ubq_system, torch_device):
 
     intra_graph = lj_graph.intra_score()
 
-    save_intermediate_grad(intra_graph.total_lj)
+    totlj = intra_graph.total_lj
+    synchronize_if_cuda_available()
+
+    save_intermediate_grad(totlj)
 
     intra_graph.total.backward(retain_graph=True)
 

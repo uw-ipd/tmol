@@ -37,9 +37,12 @@ def test_baseline_comparison(ubq_system, torch_device, graph_class, expected_sco
     )
 
     intra_container = test_graph.intra_score()
+
+    # compute and synchronize
     for term in expected_scores:
         getattr(intra_container, term)
     synchronize_if_cuda_available()
+
     scores = {
         term: float(getattr(intra_container, term).detach()) for term in expected_scores
     }

@@ -114,7 +114,9 @@ def test_lkball_intra(test_case, torch_device, default_database):
 
     op.to(coords)
 
-    val = op(coords, atom_types, bpl, indexed_bonds.bonds, indexed_bonds.bond_spans)
+    val = op.final(
+        coords, atom_types, bpl, indexed_bonds.bonds, indexed_bonds.bond_spans
+    )
 
     torch.testing.assert_allclose(
         val.cpu(), test_case.expected_score, atol=1e-4, rtol=1e-3
@@ -150,7 +152,7 @@ def test_lkball_inter(test_case, torch_device, default_database):
 
     op.to(coords)
 
-    val = op(
+    val = op.final(
         coords[: test_case.split],
         atom_types[: test_case.split],
         coords[test_case.split :],
@@ -165,7 +167,7 @@ def test_lkball_inter(test_case, torch_device, default_database):
     )
 
     def val(c):
-        return op(
+        return op.final(
             c,
             atom_types[: test_case.split],
             coords[test_case.split :],

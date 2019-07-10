@@ -48,7 +48,7 @@ def test_omega_intra(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = OmegaScoreModule(s.tomega_atom_indices, s.tK)
 
-    V = op(s.tcoords)
+    V = op.final(s.tcoords)
 
     numpy.testing.assert_allclose(V.detach().cpu(), 6.741275, atol=1e-4)
 
@@ -68,7 +68,7 @@ def test_omega_intra_gradcheck(default_database, ubq_system, torch_device):
     def eval_omega(coords_subset):
         coords = s.tcoords.clone()
         coords[t_atm_indices] = coords_subset
-        v = op(coords)
+        v = op.final(coords)
         return v
 
     masked_coords = s.tcoords[t_atm_indices]

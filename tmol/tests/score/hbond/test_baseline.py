@@ -8,7 +8,7 @@ from tmol.score.score_graph import score_graph
 
 from tmol.system.packed import PackedResidueSystem
 
-from tmol.utility.cuda.synchronize import synchronize_if_available
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
 
 
 def hbond_score_comparison(rosetta_baseline):

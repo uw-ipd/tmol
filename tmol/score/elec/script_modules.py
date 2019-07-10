@@ -3,6 +3,7 @@ import torch
 from .params import ElecParamResolver
 
 import tmol.score.elec.potentials.compiled  # noqa
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
 
 # Workaround for https://github.com/pytorch/pytorch/pull/15340
 # on torch<1.0.1
