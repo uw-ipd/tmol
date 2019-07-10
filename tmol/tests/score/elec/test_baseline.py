@@ -5,6 +5,8 @@ from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.elec import ElecScoreGraph
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 
 @score_graph
 class ElecGraph(CartesianAtomicCoordinateProvider, ElecScoreGraph):

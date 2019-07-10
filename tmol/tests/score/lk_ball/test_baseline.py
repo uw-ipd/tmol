@@ -10,6 +10,8 @@ from tmol.score.lk_ball.score_graph import LKBallScoreGraph
 
 from tmol.system.packed import PackedResidueSystem
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 
 @score_graph
 class LKBallGraph(CartesianAtomicCoordinateProvider, LKBallScoreGraph):
@@ -54,10 +56,9 @@ def test_baseline_comparison(
     intra_container = test_graph.intra_score()
 
     # force the computation, then synchronize, before the cast to float.
-    if torch.cuda.is_available():
-        for term in expected_scores:
-            getattr(intra_container, term)
-        torch.cuda.synchronize()
+    for term in expected_scores:
+        getattr(intra_container, term)
+    synchronize_if_cuda_available()
 
     scores = {
         term: float(getattr(intra_container, term).detach()) for term in expected_scores

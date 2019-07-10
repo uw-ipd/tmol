@@ -10,6 +10,7 @@ from tmol.score.bonded_atom import bonded_path_length
 import tmol.database
 
 from tmol.utility.args import ignore_unused_kwargs
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
 from tmol.tests.autograd import gradcheck
 
 from tmol.tests.benchmark import subfixture
@@ -107,8 +108,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     @subfixture(benchmark)
     def op_val():
         retval = op(s.tcoords, s.ttype, s.tbpl)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        synchronize_if_cuda_available()
         return retval
 
     torch.testing.assert_allclose(
@@ -118,8 +118,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     @subfixture(benchmark)
     def op_full():
         res = op(s.tcoords, s.ttype, s.tbpl)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        synchronize_if_cuda_available()
         res.backward()
 
         return res
@@ -135,8 +134,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
         fcoords[subind] = c
 
         retval = op(fcoords, s.ttype, s.tbpl)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        synchronize_if_cuda_available()
         return retval
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)
@@ -181,8 +179,7 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
             s.ttype[part:],
             s.tbpl[:part, part:],
         )
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        synchronize_if_cuda_available()
         return retval
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)
@@ -206,8 +203,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
     @subfixture(benchmark)
     def op_val():
         retval = op(s.tcoords, s.ttype, s.tbpl)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        synchronize_if_cuda_available()
         return retval
 
     torch.testing.assert_allclose(
@@ -217,8 +213,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
     @subfixture(benchmark)
     def op_full():
         res = op(s.tcoords, s.ttype, s.tbpl)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        synchronize_if_cuda_available()
         res.backward()
 
         return res
@@ -234,8 +229,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
         fcoords[subind] = c
 
         retval = op(fcoords, s.ttype, s.tbpl)
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        synchronize_if_cuda_available()
         return retval
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)
@@ -280,8 +274,7 @@ def test_lk_inter_op(default_database, torch_device, ubq_system):
             s.ttype[part:],
             s.tbpl[:part, part:],
         )
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        synchronize_if_cuda_available()
         return retval
 
     gradcheck(op_subset, (s.tcoords[subind].requires_grad_(True),), eps=1e-3)

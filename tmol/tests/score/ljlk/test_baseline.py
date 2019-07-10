@@ -7,6 +7,8 @@ from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 
+from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
+
 
 @score_graph
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
@@ -37,9 +39,7 @@ def test_baseline_comparison(ubq_system, torch_device, graph_class, expected_sco
     intra_container = test_graph.intra_score()
     for term in expected_scores:
         getattr(intra_container, term)
-    if torch.cuda.is_available():
-        torch.cuda.synchronize()
-
+    synchronize_if_cuda_available()
     scores = {
         term: float(getattr(intra_container, term).detach()) for term in expected_scores
     }
