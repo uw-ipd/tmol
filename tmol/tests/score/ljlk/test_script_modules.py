@@ -10,7 +10,6 @@ from tmol.score.bonded_atom import bonded_path_length
 import tmol.database
 
 from tmol.utility.args import ignore_unused_kwargs
-from tmol.utility.cuda.synchronize import synchronize_if_cuda_available
 from tmol.tests.autograd import gradcheck
 
 from tmol.tests.benchmark import subfixture

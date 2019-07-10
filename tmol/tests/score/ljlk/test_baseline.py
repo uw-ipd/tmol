@@ -1,6 +1,5 @@
 import pytest
 from pytest import approx
-import torch
 
 from tmol.score.score_graph import score_graph
 

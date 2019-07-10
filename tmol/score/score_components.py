@@ -163,7 +163,7 @@ class IntraScore:
         then it would need to synchronize with the streams.
 
         Note that use of the default stream will synchronize with
-        all threads, and that if we had two threads trying to 
+        all threads, and that if we had two threads trying to
         score simultaneously, then the work by kernels launched from
         thread 1 would cause this function to block for thread 2,
         even well after thread 2 has completed its kernels.
