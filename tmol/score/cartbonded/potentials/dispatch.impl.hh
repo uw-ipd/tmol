@@ -41,11 +41,23 @@ struct CartBondedLengthDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
 
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
+    auto V_t = TPack<Real, 1, D>::empty({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
 
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
+
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+      if (i == 0) {
+	V[i] = 0;
+      }
+      if (i < dV_dx.size(0)) {
+	for (int j = 0; j < 3; ++j) {
+	  dV_dx[i](j) = 0;
+	}
+      }
+    };
+    Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atom_indices[i].atom_index_i;
@@ -79,11 +91,23 @@ struct CartBondedAngleDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
 
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
+    auto V_t = TPack<Real, 1, D>::empty({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
 
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
+
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+      if (i == 0) {
+	V[i] = 0;
+      }
+      if (i < dV_dx.size(0)) {
+	for (int j = 0; j < 3; ++j) {
+	  dV_dx[i](j) = 0;
+	}
+      }
+    };
+    Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atom_indices[i].atom_index_i;
@@ -123,11 +147,23 @@ struct CartBondedTorsionDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
 
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
+    auto V_t = TPack<Real, 1, D>::empty({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
 
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
+
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+      if (i == 0) {
+	V[i] = 0;
+      }
+      if (i < dV_dx.size(0)) {
+	for (int j = 0; j < 3; ++j) {
+	  dV_dx[i](j) = 0;
+	}
+      }
+    };
+    Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atom_indices[i].atom_index_i;
@@ -171,11 +207,24 @@ struct CartBondedHxlTorsionDispatch {
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
     auto num_Vs = atom_indices.size(0);
 
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
+    auto V_t = TPack<Real, 1, D>::empty({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
 
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
+
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+      if (i == 0) {
+	V[i] = 0;
+      }
+      if (i < dV_dx.size(0)) {
+	for (int j = 0; j < 3; ++j) {
+	  dV_dx[i](j) = 0;
+	}
+      }
+    };
+    Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
+    
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atom_indices[i].atom_index_i;
