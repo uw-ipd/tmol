@@ -15,11 +15,13 @@ namespace lk_ball {
 namespace potentials {
 
 template struct LKBallDispatch<
+    common::ForallDispatch,
     common::AABBDispatch,
     tmol::Device::CUDA,
     float,
     int64_t>;
 template struct LKBallDispatch<
+    common::ForallDispatch,
     common::AABBDispatch,
     tmol::Device::CUDA,
     double,

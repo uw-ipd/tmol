@@ -28,7 +28,9 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
@@ -52,13 +54,18 @@ struct LKBallDispatch {
     NVTXRange _function(__FUNCTION__);
 
     nvtx_range_push("dispatch::alloc");
-    auto Vs_t = TPack<Real, 1, D>::zeros({4});
+    auto Vs_t = TPack<Real, 1, D>::empty({4});
     auto Vs = Vs_t.view;
+
+    auto zero = [=] EIGEN_DEVICE_FUNC(int idx) {
+      Vs[idx] = 0;
+    };
+    SingleDispatch<D>::forall(4, zero);
     nvtx_range_pop();
 
     nvtx_range_push("dispatch::score");
     Real threshold_distance = 6.0;  // fd this should be a global param
-    Dispatch<D>::forall_idx_pairs(
+    PairDispatch<D>::forall_idx_pairs(
         threshold_distance,
         coords_i,
         coords_j,
@@ -124,22 +131,48 @@ struct LKBallDispatch {
 
     nvtx_range_push("dispatch::dalloc");
     // deriv w.r.t. heavyatom position
-    auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
-    auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
+    auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_i.size(0)});
+    auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_j.size(0)});
 
     // deriv w.r.t. water position
-    auto dW_dI_t = TPack<Vec<Real, 3>, 2, D>::zeros({coords_i.size(0), 4});
-    auto dW_dJ_t = TPack<Vec<Real, 3>, 2, D>::zeros({coords_j.size(0), 4});
+    auto dW_dI_t = TPack<Vec<Real, 3>, 2, D>::empty({coords_i.size(0), 4});
+    auto dW_dJ_t = TPack<Vec<Real, 3>, 2, D>::empty({coords_j.size(0), 4});
 
     auto dV_dI = dV_dI_t.view;
     auto dV_dJ = dV_dJ_t.view;
     auto dW_dI = dW_dI_t.view;
     auto dW_dJ = dW_dJ_t.view;
+
+    auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+      if (i < dV_dI.size(0)) {
+        for (int j = 0; j < 3; ++j) {
+          dV_dI[i](j) = 0;
+          for (int j = 0; j < 4; ++j) {
+	    for (int k = 0; k <3; ++k) {
+              dW_dI[i][j](k) = 0;
+	    }
+          }
+	}
+      }
+      if (i < dV_dJ.size(0)) {
+        for (int j = 0; j < 3; ++j) {
+          dV_dJ[i](j) = 0;
+          for (int j = 0; j < 4; ++j) {
+	    for (int k = 0; k < 3; ++k) {
+              dW_dJ[i][j](k) = 0;
+	    }
+          }
+	}
+      }
+    };
+    int const max_ats = std::max(dV_dI.size(0), dV_dJ.size(0));
+    SingleDispatch<D>::forall(max_ats, zero);
+
     nvtx_range_pop();
 
     nvtx_range_push("dispatch::dscore");
     Real threshold_distance = 6.0;  // fd this should be a global param
-    Dispatch<D>::forall_idx_pairs(
+    PairDispatch<D>::forall_idx_pairs(
         threshold_distance,
         coords_i,
         coords_j,

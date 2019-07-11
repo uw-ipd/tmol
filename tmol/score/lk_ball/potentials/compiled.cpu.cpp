@@ -12,10 +12,10 @@ namespace score {
 namespace lk_ball {
 namespace potentials {
 
-template struct LKBallDispatch<common::AABBDispatch, tmol::Device::CPU, float, int32_t>;
-template struct LKBallDispatch<common::AABBDispatch, tmol::Device::CPU, double, int32_t>;
-template struct LKBallDispatch<common::AABBDispatch, tmol::Device::CPU, float, int64_t>;
-template struct LKBallDispatch<common::AABBDispatch, tmol::Device::CPU, double, int64_t>;
+template struct LKBallDispatch<common::ForallDispatch, common::AABBDispatch, tmol::Device::CPU, float, int32_t>;
+template struct LKBallDispatch<common::ForallDispatch, common::AABBDispatch, tmol::Device::CPU, double, int32_t>;
+template struct LKBallDispatch<common::ForallDispatch, common::AABBDispatch, tmol::Device::CPU, float, int64_t>;
+template struct LKBallDispatch<common::ForallDispatch, common::AABBDispatch, tmol::Device::CPU, double, int64_t>;
 
 template struct GenerateWaters<common::ForallDispatch,tmol::Device::CPU, float, int32_t, 4>;
 template struct GenerateWaters<common::ForallDispatch,tmol::Device::CPU, double, int32_t, 4>;

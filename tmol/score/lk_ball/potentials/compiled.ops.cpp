@@ -19,13 +19,17 @@ using torch::Tensor;
 template <
     template <
         template <tmol::Device>
-        class Dispatch,
+        class SingleDispatch,
+        template <tmol::Device>
+        class PairDispatch,
         tmol::Device D,
         typename Real,
         typename Int>
     class ScoreDispatch,
     template <tmol::Device>
-    class DispatchMethod>
+    class SingleDispatchMethod,
+    template <tmol::Device>
+    class PairDispatchMethod>
 struct ScoreOpBackward : public torch::autograd::Function {
   torch::autograd::SavedVariable saved_I;
   torch::autograd::SavedVariable saved_polars_I;
@@ -114,7 +118,12 @@ struct ScoreOpBackward : public torch::autograd::Function {
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = ScoreDispatch<DispatchMethod, Dev, Real, Int>::backward(
+        auto result = ScoreDispatch<
+	  SingleDispatchMethod,
+	  PairDispatchMethod,
+	  Dev,
+	  Real,
+	  Int>::backward(
             TCAST(dTdV),
             TCAST(I),
             TCAST(polars_I),
@@ -142,13 +151,17 @@ struct ScoreOpBackward : public torch::autograd::Function {
 template <
     template <
         template <tmol::Device>
-        class Dispatch,
+        class SingleDispatch,
+        template <tmol::Device>
+        class PairDispatch,
         tmol::Device D,
         typename Real,
         typename Int>
     class ScoreDispatch,
     template <tmol::Device>
-    class DispatchMethod>
+    class SingleDispatchMethod,
+    template <tmol::Device>
+    class PairDispatchMethod>
 Tensor score_op(
     Tensor I,
     Tensor polars_I,
@@ -173,7 +186,10 @@ Tensor score_op(
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = ScoreDispatch<DispatchMethod, Dev, Real, Int>::forward(
+        auto result = ScoreDispatch<
+	  SingleDispatchMethod,
+	  PairDispatchMethod,
+	  Dev, Real, Int>::forward(
             TCAST(I),
             TCAST(polars_I),
             TCAST(atom_type_I),
@@ -190,8 +206,8 @@ Tensor score_op(
       }));
 
   return connect_backward_pass({I, J, waters_I, waters_J}, score, [&]() {
-    return std::shared_ptr<ScoreOpBackward<LKBallDispatch, common::AABBDispatch>>(
-        new ScoreOpBackward<LKBallDispatch, common::AABBDispatch>( 
+      return std::shared_ptr<ScoreOpBackward<LKBallDispatch, common::ForallDispatch, common::AABBDispatch>>(
+        new ScoreOpBackward<LKBallDispatch, common::ForallDispatch, common::AABBDispatch>( 
             I, polars_I, atom_type_I, waters_I, 
             J, occluders_J, atom_type_J, waters_J, 
             bonded_path_lengths,
@@ -376,7 +392,7 @@ Tensor watergen_op(
 
 static auto registry =
     torch::jit::RegisterOperators()
-        .op("tmol::score_lkball", &score_op<LKBallDispatch, common::AABBDispatch>)
+  .op("tmol::score_lkball", &score_op<LKBallDispatch, common::ForallDispatch, common::AABBDispatch>)
         .op("tmol::watergen_lkball", &watergen_op<GenerateWaters, common::ForallDispatch>);
 
 }  // namespace potentials

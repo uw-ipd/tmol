@@ -155,8 +155,14 @@ struct GenerateWaters {
     int num_Vs = coords.size(0);
 
     auto dE_d_coord_t =
-        TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0), MAX_WATER});
+        TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
     auto dE_d_coord = dE_d_coord_t.view;
+    auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+      for (int j = 0; j < 3; ++j) {
+	dE_d_coord[i](j) = 0;
+      }      
+    };
+    Dispatch<D>::forall(coords.size(0), zero);
 
     tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
     indexed_bonds.bonds = indexed_bond_bonds;
