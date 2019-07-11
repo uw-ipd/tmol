@@ -49,7 +49,7 @@ struct OmegaDispatch {
         dV_dx[i](j) = 0;
       }
     };
-    Dispatch<D>::forall(std::max(1L, V.size(0)), zero);
+    Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
 
     auto func = ([=] EIGEN_DEVICE_FUNC(int i) {
       CoordQuad omegacoords;
