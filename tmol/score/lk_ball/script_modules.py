@@ -130,6 +130,8 @@ class LKBallIntraModule(_LKBallScoreModule):
     def forward(
         self,
         I,
+        polars_I,
+        occulders_I,
         atom_type_I,
         bonded_path_lengths,
         indexed_bond_bonds,
@@ -149,9 +151,11 @@ class LKBallIntraModule(_LKBallScoreModule):
 
         return torch.ops.tmol.score_lkball(
             I,
+            polars_I,
             atom_type_I,
             waters_I,
             I,
+            occulders_I,
             atom_type_I,
             waters_I,
             bonded_path_lengths,
@@ -165,8 +169,12 @@ class LKBallInterModule(_LKBallScoreModule):
     def forward(
         self,
         I,
+        polars_I,
+        occulders_I,
         atom_type_I,
         J,
+        polars_J,
+        occulders_J,
         atom_type_J,
         bonded_path_lengths,
         indexed_bond_bonds,
@@ -198,9 +206,11 @@ class LKBallInterModule(_LKBallScoreModule):
 
         V_ij = torch.ops.tmol.score_lkball(
             I,
+            polars_I,
             atom_type_I,
             waters_I,
             J,
+            occulders_J,
             atom_type_J,
             waters_J,
             bonded_path_lengths,
@@ -210,9 +220,11 @@ class LKBallInterModule(_LKBallScoreModule):
 
         V_ji = torch.ops.tmol.score_lkball(
             J,
+            polars_J,
             atom_type_J,
             waters_J,
             I,
+            occulders_I,
             atom_type_I,
             waters_I,
             bonded_path_lengths.t(),

@@ -42,11 +42,14 @@ struct GenerateWaters {
       TView<Real, 1, D> sp3_water_tors,
       TView<Real, 1, D> ring_water_tors)
       ->TPack<Vec<Real, 3>, 2, D> {
+    NVTXRange _function(__FUNCTION__);
+
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
     int num_Vs = coords.size(0);
 
+    nvtx_range_push("watergen::setup");
     auto waters_t =
         TPack<Vec<Real, 3>, 2, D>::empty({coords.size(0), MAX_WATER});
     auto waters = waters_t.view;
@@ -58,7 +61,9 @@ struct GenerateWaters {
     int nsp2wats = sp2_water_tors.size(0);
     int nsp3wats = sp3_water_tors.size(0);
     int nringwats = ring_water_tors.size(0);
+    nvtx_range_pop();
 
+    nvtx_range_push("watergen::gen");
     auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
       return (bool)type_params[atom_types[j]].is_hydrogen;
     });
@@ -123,6 +128,7 @@ struct GenerateWaters {
     });
 
     Dispatch<D>::forall(num_Vs, f_watergen);
+    nvtx_range_pop();
 
     return waters_t;
   };
@@ -139,6 +145,10 @@ struct GenerateWaters {
       TView<Real, 1, D> sp3_water_tors,
       TView<Real, 1, D> ring_water_tors)
       ->TPack<Vec<Real, 3>, 1, D> {
+    NVTXRange _function(__FUNCTION__);
+
+    nvtx_range_push("watergen::dsetup");
+
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
@@ -155,7 +165,9 @@ struct GenerateWaters {
     int nsp2wats = sp2_water_tors.size(0);
     int nsp3wats = sp3_water_tors.size(0);
     int nringwats = ring_water_tors.size(0);
+    nvtx_range_pop();
 
+    nvtx_range_push("watergen::dgen");
     auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
       return (bool)type_params[atom_types[j]].is_hydrogen;
     });
@@ -246,6 +258,7 @@ struct GenerateWaters {
     });
 
     Dispatch<D>::forall(num_Vs, df_watergen);
+    nvtx_range_pop();
 
     return dE_d_coord_t;
   };
