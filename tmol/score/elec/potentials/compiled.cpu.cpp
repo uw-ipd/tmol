@@ -1,3 +1,4 @@
+#include <tmol/score/common/forall_dispatch.cpu.impl.hh>
 #include <tmol/score/common/simple_dispatch.cpu.impl.hh>
 
 #include "dispatch.impl.hh"
@@ -8,8 +9,11 @@ namespace elec {
 namespace potentials {
 
 #define declare_dispatch(Real, Int)                                         \
-  template struct ElecDispatch<AABBDispatch, tmol::Device::CPU, Real, Int>; \
+  template struct ElecDispatch< \
+      ForallDispatch, \
+      AABBDispatch, tmol::Device::CPU, Real, Int>;				\
   template struct ElecDispatch<                                             \
+      ForallDispatch,                                                     \
       AABBTriuDispatch,                                                     \
       tmol::Device::CPU,                                                    \
       Real,                                                                 \

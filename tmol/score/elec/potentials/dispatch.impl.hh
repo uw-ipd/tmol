@@ -26,7 +26,9 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -42,17 +44,35 @@ struct ElecDispatch {
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>,
           TPack<Vec<Real, 3>, 1, Dev>> {
-    auto Vs_t = TPack<Real, 1, Dev>::zeros({1});
-    auto dVs_dI_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({coords_i.size(0)});
-    auto dVs_dJ_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({coords_j.size(0)});
-
+    auto Vs_t = TPack<Real, 1, Dev>::empty({1});
+    auto dVs_dI_t = TPack<Vec<Real, 3>, 1, Dev>::empty({coords_i.size(0)});
+    auto dVs_dJ_t = TPack<Vec<Real, 3>, 1, Dev>::empty({coords_j.size(0)});
+    
     auto Vs = Vs_t.view;
     auto dVs_dI = dVs_dI_t.view;
     auto dVs_dJ = dVs_dJ_t.view;
 
+    auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+      if (i == 0) {
+	Vs[i] = 0;
+      }
+      if (i < dVs_dI.size(0)) {
+	for (int j = 0; j < 3; ++j) {
+	  dVs_dI[i](j) = 0;
+	}
+      }
+      if (i < dVs_dJ.size(0)) {
+	for (int j = 0; j < 3; ++j) {
+	  dVs_dI[i](j) = 0;
+	}
+      }      
+    };
+    int max_size = std::max(1L, std::max(coords_i.size(0), coords_j.size(0)));
+    SingleDispatch<Dev>::forall(max_size, zero);
+
     Real threshold_distance = 6.0;  // fd  make this a parameter...
 
-    Dispatch<Dev>::forall_pairs(
+    PairDispatch<Dev>::forall_pairs(
         threshold_distance,
         coords_i,
         coords_j,
