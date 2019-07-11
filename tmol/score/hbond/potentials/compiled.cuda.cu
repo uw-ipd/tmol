@@ -1,3 +1,4 @@
+#include <tmol/score/common/forall_dispatch.cuda.impl.cuh>
 #include <tmol/score/common/simple_dispatch.cuda.impl.cuh>
 
 #include "dispatch.impl.hh"
@@ -7,8 +8,9 @@ namespace score {
 namespace hbond {
 namespace potentials {
 #define declare_dispatch(Real, Int)                                           \
-  template struct HBondDispatch<AABBDispatch, tmol::Device::CUDA, Real, Int>; \
-  template struct HBondDispatch<                                              \
+  template struct HBondDispatch<ForallDispatch, AABBDispatch, tmol::Device::CUDA, Real, Int>; \
+  template struct HBondDispatch< \
+				 ForallDispatch,			\
       AABBTriuDispatch,                                                       \
       tmol::Device::CUDA,                                                     \
       Real,                                                                   \

@@ -25,11 +25,13 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
-auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
+auto HBondDispatch<SingleDispatch, PairDispatch, Dev, Real, Int>::f(
     TView<Vec<Real, 3>, 1, Dev> donor_coords,
     TView<Vec<Real, 3>, 1, Dev> acceptor_coords,
 
@@ -75,20 +77,38 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
       global_params.size(0) == 1, "Invalid number of global parameters.");
 
   nvtx_range_push("hbond alloc");
-  auto V_t = TPack<Real, 1, Dev>::zeros({1});
-  auto dV_d_don_t = TPack<Vec<Real, 3>, 1, Dev>::zeros({donor_coords.size(0)});
+  auto V_t = TPack<Real, 1, Dev>::empty({1});
+  auto dV_d_don_t = TPack<Vec<Real, 3>, 1, Dev>::empty({donor_coords.size(0)});
   auto dV_d_acc_t =
-      TPack<Vec<Real, 3>, 1, Dev>::zeros({acceptor_coords.size(0)});
+      TPack<Vec<Real, 3>, 1, Dev>::empty({acceptor_coords.size(0)});
 
   auto V = V_t.view;
   auto dV_d_don = dV_d_don_t.view;
   auto dV_d_acc = dV_d_acc_t.view;
 
+  auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+    if (i == 0) {
+      V[i] = 0;
+    }
+    if (i < dV_d_acc.size(0)) {
+      for (int j = 0; j < 3; ++j) {
+	dV_d_don[i](j) = 0;
+      }
+    }
+    if (i < dV_d_acc.size(0)) {
+      for (int j = 0; j < 3; ++j) {
+	dV_d_acc[i](j) = 0;
+      }
+    }
+  };
+  int max_size = std::max(1L, std::max(dV_d_don.size(0), dV_d_acc.size(0)));
+  SingleDispatch<Dev>::forall(max_size, zero);
+
   Real _threshold_distance = 6.0;  // what about the global threshold distance?
 
   nvtx_range_pop();
   nvtx_range_push("hbond eval");
-  Dispatch<Dev>::forall_idx_pairs(
+  PairDispatch<Dev>::forall_idx_pairs(
       _threshold_distance,
 
       donor_coords,

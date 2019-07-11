@@ -4,6 +4,7 @@
 #include <tmol/utility/tensor/TensorCast.h>
 #include <tmol/utility/function_dispatch/aten.hh>
 
+#include <tmol/score/common/forall_dispatch.hh>
 #include <tmol/score/common/simple_dispatch.hh>
 #include "dispatch.hh"
 #include <tmol/utility/nvtx.hh>
@@ -18,13 +19,17 @@ using torch::Tensor;
 template <
     template <
         template <tmol::Device>
-        class Dispatch,
+        class SingleDispatch,
+        template <tmol::Device>
+        class PairDispatch,
         tmol::Device D,
         typename Real,
         typename Int>
     class ScoreDispatch,
     template <tmol::Device>
-    class DispatchMethod>
+    class SingleDispatchMethod,
+    template <tmol::Device>
+    class PairDispatchMethod>
 Tensor score_op(
     Tensor donor_coords,
     Tensor acceptor_coords,
@@ -53,7 +58,7 @@ Tensor score_op(
         using Real = scalar_t;
         constexpr tmol::Device Dev = device_t;
 
-        auto result = HBondDispatch<DispatchMethod, Dev, Real, Int>::f(
+        auto result = HBondDispatch<SingleDispatchMethod, PairDispatchMethod, Dev, Real, Int>::f(
             TCAST(donor_coords),
             TCAST(acceptor_coords),
             TCAST(Dinds),
@@ -81,7 +86,7 @@ Tensor score_op(
 
 static auto registry =
     torch::jit::RegisterOperators()
-        .op("tmol::score_hbond", &score_op<HBondDispatch, common::AABBDispatch>);
+    .op("tmol::score_hbond", &score_op<HBondDispatch, common::ForallDispatch, common::AABBDispatch>);
 
 
 }  // namespace potentials
