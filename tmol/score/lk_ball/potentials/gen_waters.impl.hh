@@ -154,13 +154,12 @@ struct GenerateWaters {
 
     int num_Vs = coords.size(0);
 
-    auto dE_d_coord_t =
-        TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
+    auto dE_d_coord_t = TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
     auto dE_d_coord = dE_d_coord_t.view;
-    auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       for (int j = 0; j < 3; ++j) {
-	dE_d_coord[i](j) = 0;
-      }      
+        dE_d_coord[i](j) = 0;
+      }
     };
     Dispatch<D>::forall(coords.size(0), zero);
 

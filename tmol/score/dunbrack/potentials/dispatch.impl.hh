@@ -276,9 +276,9 @@ struct DunbrackDispatch {
 
     auto dE_dxyz_tpack = TPack<Real3, 1, D>::empty(natoms);
     auto dE_dxyz = dE_dxyz_tpack.view;
-    auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       for (int j = 0; j < 3; ++j) {
-	dE_dxyz[i](j) = 0;
+        dE_dxyz[i](j) = 0;
       }
     };
     Dispatch<D>::forall(natoms, zero);

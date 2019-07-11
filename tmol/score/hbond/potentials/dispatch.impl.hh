@@ -86,18 +86,18 @@ auto HBondDispatch<SingleDispatch, PairDispatch, Dev, Real, Int>::f(
   auto dV_d_don = dV_d_don_t.view;
   auto dV_d_acc = dV_d_acc_t.view;
 
-  auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+  auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
     if (i == 0) {
       V[i] = 0;
     }
     if (i < dV_d_acc.size(0)) {
       for (int j = 0; j < 3; ++j) {
-	dV_d_don[i](j) = 0;
+        dV_d_don[i](j) = 0;
       }
     }
     if (i < dV_d_acc.size(0)) {
       for (int j = 0; j < 3; ++j) {
-	dV_d_acc[i](j) = 0;
+        dV_d_acc[i](j) = 0;
       }
     }
   };

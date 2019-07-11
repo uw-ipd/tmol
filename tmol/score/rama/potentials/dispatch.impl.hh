@@ -44,10 +44,10 @@ struct RamaDispatch {
 
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       if (i == 0) {
-	V[i] = 0;
+        V[i] = 0;
       }
       for (int j = 0; j < 3; ++j) {
-	dV_dx[i](j) = 0;
+        dV_dx[i](j) = 0;
       }
     };
     Dispatch<D>::forall(std::max(1L, coords.size(0)), zero);

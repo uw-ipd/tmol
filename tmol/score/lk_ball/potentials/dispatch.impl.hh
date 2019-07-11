@@ -57,9 +57,7 @@ struct LKBallDispatch {
     auto Vs_t = TPack<Real, 1, D>::empty({4});
     auto Vs = Vs_t.view;
 
-    auto zero = [=] EIGEN_DEVICE_FUNC(int idx) {
-      Vs[idx] = 0;
-    };
+    auto zero = [=] EIGEN_DEVICE_FUNC(int idx) { Vs[idx] = 0; };
     SingleDispatch<D>::forall(4, zero);
     nvtx_range_pop();
 
@@ -143,26 +141,26 @@ struct LKBallDispatch {
     auto dW_dI = dW_dI_t.view;
     auto dW_dJ = dW_dJ_t.view;
 
-    auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       if (i < dV_dI.size(0)) {
         for (int j = 0; j < 3; ++j) {
           dV_dI[i](j) = 0;
           for (int j = 0; j < 4; ++j) {
-	    for (int k = 0; k <3; ++k) {
+            for (int k = 0; k < 3; ++k) {
               dW_dI[i][j](k) = 0;
-	    }
+            }
           }
-	}
+        }
       }
       if (i < dV_dJ.size(0)) {
         for (int j = 0; j < 3; ++j) {
           dV_dJ[i](j) = 0;
           for (int j = 0; j < 4; ++j) {
-	    for (int k = 0; k < 3; ++k) {
+            for (int k = 0; k < 3; ++k) {
               dW_dJ[i][j](k) = 0;
-	    }
+            }
           }
-	}
+        }
       }
     };
     int const max_ats = std::max(dV_dI.size(0), dV_dJ.size(0));

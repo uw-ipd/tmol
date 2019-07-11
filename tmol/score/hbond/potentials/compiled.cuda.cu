@@ -7,13 +7,18 @@ namespace tmol {
 namespace score {
 namespace hbond {
 namespace potentials {
-#define declare_dispatch(Real, Int)                                           \
-  template struct HBondDispatch<ForallDispatch, AABBDispatch, tmol::Device::CUDA, Real, Int>; \
-  template struct HBondDispatch< \
-				 ForallDispatch,			\
-      AABBTriuDispatch,                                                       \
-      tmol::Device::CUDA,                                                     \
-      Real,                                                                   \
+#define declare_dispatch(Real, Int) \
+  template struct HBondDispatch<    \
+      ForallDispatch,               \
+      AABBDispatch,                 \
+      tmol::Device::CUDA,           \
+      Real,                         \
+      Int>;                         \
+  template struct HBondDispatch<    \
+      ForallDispatch,               \
+      AABBTriuDispatch,             \
+      tmol::Device::CUDA,           \
+      Real,                         \
       Int>;
 
 declare_dispatch(float, int32_t);

@@ -49,12 +49,12 @@ struct CartBondedLengthDispatch {
 
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       if (i == 0) {
-	V[i] = 0;
+        V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-	for (int j = 0; j < 3; ++j) {
-	  dV_dx[i](j) = 0;
-	}
+        for (int j = 0; j < 3; ++j) {
+          dV_dx[i](j) = 0;
+        }
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
@@ -99,12 +99,12 @@ struct CartBondedAngleDispatch {
 
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       if (i == 0) {
-	V[i] = 0;
+        V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-	for (int j = 0; j < 3; ++j) {
-	  dV_dx[i](j) = 0;
-	}
+        for (int j = 0; j < 3; ++j) {
+          dV_dx[i](j) = 0;
+        }
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
@@ -155,12 +155,12 @@ struct CartBondedTorsionDispatch {
 
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       if (i == 0) {
-	V[i] = 0;
+        V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-	for (int j = 0; j < 3; ++j) {
-	  dV_dx[i](j) = 0;
-	}
+        for (int j = 0; j < 3; ++j) {
+          dV_dx[i](j) = 0;
+        }
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
@@ -215,16 +215,15 @@ struct CartBondedHxlTorsionDispatch {
 
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       if (i == 0) {
-	V[i] = 0;
+        V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-	for (int j = 0; j < 3; ++j) {
-	  dV_dx[i](j) = 0;
-	}
+        for (int j = 0; j < 3; ++j) {
+          dV_dx[i](j) = 0;
+        }
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
-    
 
     auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
       Int ati = atom_indices[i].atom_index_i;
