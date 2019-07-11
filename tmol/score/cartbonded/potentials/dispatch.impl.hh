@@ -13,6 +13,7 @@
 #include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/zero.hh>
 
 #include <tmol/score/ljlk/potentials/params.hh>
 
@@ -52,9 +53,7 @@ struct CartBondedLengthDispatch {
         V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-        for (int j = 0; j < 3; ++j) {
-          dV_dx[i](j) = 0;
-        }
+	common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
@@ -102,9 +101,10 @@ struct CartBondedAngleDispatch {
         V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-        for (int j = 0; j < 3; ++j) {
-          dV_dx[i](j) = 0;
-        }
+	common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
+        // for (int j = 0; j < 3; ++j) {
+        //   dV_dx[i](j) = 0;
+        // }
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
@@ -158,9 +158,10 @@ struct CartBondedTorsionDispatch {
         V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-        for (int j = 0; j < 3; ++j) {
-          dV_dx[i](j) = 0;
-        }
+	common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
+        // for (int j = 0; j < 3; ++j) {
+        //   dV_dx[i](j) = 0;
+        // }
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
@@ -218,9 +219,10 @@ struct CartBondedHxlTorsionDispatch {
         V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-        for (int j = 0; j < 3; ++j) {
-          dV_dx[i](j) = 0;
-        }
+	common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
+        // for (int j = 0; j < 3; ++j) {
+        //   dV_dx[i](j) = 0;
+        // }
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);

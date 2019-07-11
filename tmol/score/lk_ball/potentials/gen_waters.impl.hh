@@ -10,6 +10,7 @@
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/zero.hh>
 
 #include <tmol/score/hbond/identification.hh>
 #include <tmol/score/ljlk/potentials/params.hh>
@@ -157,9 +158,7 @@ struct GenerateWaters {
     auto dE_d_coord_t = TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
     auto dE_d_coord = dE_d_coord_t.view;
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
-      for (int j = 0; j < 3; ++j) {
-        dE_d_coord[i](j) = 0;
-      }
+      common::zero_array<D>::go((Real *) dE_d_coord.data(), i, dE_d_coord.size(0), 3);
     };
     Dispatch<D>::forall(coords.size(0), zero);
 

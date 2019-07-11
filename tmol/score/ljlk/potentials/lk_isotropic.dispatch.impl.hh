@@ -12,6 +12,7 @@
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/zero.hh>
 
 #include "lk_isotropic.dispatch.hh"
 #include "lk_isotropic.hh"
@@ -51,9 +52,9 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
 
   NVTXRange _allocate("allocate");
 
-  auto V_t = TPack<Real, 1, D>::zeros({1});
-  auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
-  auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
+  auto V_t = TPack<Real, 1, D>::empty({1});
+  auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_i.size(0)});
+  auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_j.size(0)});
 
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
@@ -66,14 +67,16 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
       V[i] = 0;
     }
     if (i < dV_dI.size(0)) {
-      for (int j = 0; j < 3; ++j) {
-        dV_dI[i](j) = 0;
-      }
+      common::zero_array<D>::go((Real *) dV_dI.data(), i, dV_dI.size(0), 3);
+      // for (int j = 0; j < 3; ++j) {
+      //   dV_dI[i](j) = 0;
+      // }
     }
     if (i < dV_dJ.size(0)) {
-      for (int j = 0; j < 3; ++j) {
-        dV_dJ[i](j) = 0;
-      }
+      common::zero_array<D>::go((Real *) dV_dJ.data(), i, dV_dJ.size(0), 3);
+      // for (int j = 0; j < 3; ++j) {
+      //   dV_dJ[i](j) = 0;
+      // }
     }
   };
   int largest = std::max(3, (int)std::max(coords_i.size(0), coords_j.size(0)));

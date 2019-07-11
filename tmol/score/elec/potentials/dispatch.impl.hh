@@ -11,6 +11,7 @@
 #include <tmol/utility/tensor/TensorAccessor.h>
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/zero.hh>
 
 #include <tmol/score/elec/potentials/potentials.hh>
 
@@ -57,14 +58,16 @@ struct ElecDispatch {
         Vs[i] = 0;
       }
       if (i < dVs_dI.size(0)) {
-        for (int j = 0; j < 3; ++j) {
-          dVs_dI[i](j) = 0;
-        }
+	common::zero_array<Dev>::go((Real *) dVs_dI.data(), i, dVs_dI.size(0), 3);
+        // for (int j = 0; j < 3; ++j) {
+        //   dVs_dI[i](j) = 0;
+        // }
       }
       if (i < dVs_dJ.size(0)) {
-        for (int j = 0; j < 3; ++j) {
-          dVs_dI[i](j) = 0;
-        }
+	common::zero_array<Dev>::go((Real *) dVs_dJ.data(), i, dVs_dJ.size(0), 3);
+        // for (int j = 0; j < 3; ++j) {
+        //   dVs_dI[i](j) = 0;
+        // }
       }
     };
     int max_size = std::max(1L, std::max(coords_i.size(0), coords_j.size(0)));

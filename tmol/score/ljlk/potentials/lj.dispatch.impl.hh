@@ -12,6 +12,7 @@
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/geom.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/zero.hh>
 
 #include "lj.dispatch.hh"
 #include "lj.hh"
@@ -63,14 +64,16 @@ auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
       V[i] = 0;
     }
     if (i < dV_dI.size(0)) {
-      for (int j = 0; j < 3; ++j) {
-        dV_dI[i](j) = 0;
-      }
+      common::zero_array<D>::go((Real *) dV_dI.data(), i, dV_dI.size(0), 3);
+      // for (int j = 0; j < 3; ++j) {
+      //   dV_dI[i](j) = 0;
+      // }
     }
     if (i < dV_dJ.size(0)) {
-      for (int j = 0; j < 3; ++j) {
-        dV_dJ[i](j) = 0;
-      }
+      common::zero_array<D>::go((Real *) dV_dJ.data(), i, dV_dJ.size(0), 3);
+      // for (int j = 0; j < 3; ++j) {
+      //   dV_dJ[i](j) = 0;
+      // }
     }
   };
   int largest = std::max(3, (int)std::max(coords_i.size(0), coords_j.size(0)));

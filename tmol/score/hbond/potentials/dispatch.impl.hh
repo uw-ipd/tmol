@@ -10,6 +10,7 @@
 #include <tmol/utility/tensor/TensorPack.h>
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/tuple.hh>
+#include <tmol/score/common/zero.hh>
 #include <tmol/utility/nvtx.hh>
 
 #include <tmol/score/hbond/potentials/potentials.hh>
@@ -90,15 +91,17 @@ auto HBondDispatch<SingleDispatch, PairDispatch, Dev, Real, Int>::f(
     if (i == 0) {
       V[i] = 0;
     }
-    if (i < dV_d_acc.size(0)) {
-      for (int j = 0; j < 3; ++j) {
-        dV_d_don[i](j) = 0;
-      }
+    if (i < dV_d_don.size(0)) {
+      common::zero_array<Dev>::go((Real *) dV_d_don.data(), i, dV_d_don.size(0), 3);
+      // for (int j = 0; j < 3; ++j) {
+      //   dV_d_don[i](j) = 0;
+      // }
     }
     if (i < dV_d_acc.size(0)) {
-      for (int j = 0; j < 3; ++j) {
-        dV_d_acc[i](j) = 0;
-      }
+      common::zero_array<Dev>::go((Real *) dV_d_acc.data(), i, dV_d_acc.size(0), 3);
+      // for (int j = 0; j < 3; ++j) {
+      //   dV_d_acc[i](j) = 0;
+      // }
     }
   };
   int max_size = std::max(1L, std::max(dV_d_don.size(0), dV_d_acc.size(0)));

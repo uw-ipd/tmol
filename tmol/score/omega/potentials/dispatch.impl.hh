@@ -8,6 +8,7 @@
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/tuple.hh>
 #include <tmol/score/common/tuple_operators.hh>
+#include <tmol/score/common/zero.hh>
 
 #include <ATen/Tensor.h>
 
@@ -45,9 +46,7 @@ struct OmegaDispatch {
       if (i == 0) {
         V[i] = 0;
       }
-      for (int j = 0; j < 3; ++j) {
-        dV_dx[i](j) = 0;
-      }
+      common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
 
