@@ -102,35 +102,58 @@ struct DunbrackDispatch {
     Int const n_semirotameric_res(semirotameric_chi_desc.size(0));
     Int const n_dihedrals(dihedral_atom_inds.size(0));
 
-    auto V_tpack = TPack<Real, 1, D>::zeros({3});
+    auto V_tpack = TPack<Real, 1, D>::empty({3});
     auto V = V_tpack.view;
 
-    // auto neglnprob_rot_tpack = TPack<Real, 1, D>::zeros(n_rotameric_res);
     auto dneglnprob_rot_dbb_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_rotameric_res, 2});
+        TPack<CoordQuad, 2, D>::empty({n_rotameric_res, 2});
 
-    // auto rotchi_devpen_tpack = TPack<Real, 1, D>::zeros(n_rotameric_chi);
     auto drotchi_devpen_dtor_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_rotameric_chi, 3});
+        TPack<CoordQuad, 2, D>::empty({n_rotameric_chi, 3});
 
-    // auto neglnprob_nonrot_tpack = TPack<Real, 1,
-    // D>::zeros(n_semirotameric_res);
     auto dneglnprob_nonrot_dtor_xyz_tpack =
-        TPack<CoordQuad, 2, D>::zeros({n_semirotameric_res, 3});
+        TPack<CoordQuad, 2, D>::empty({n_semirotameric_res, 3});
 
-    // auto neglnprob_rot = neglnprob_rot_tpack.view;
     auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_tpack.view;
 
-    // auto rotchi_devpen = rotchi_devpen_tpack.view;
     auto drotchi_devpen_dtor_xyz = drotchi_devpen_dtor_xyz_tpack.view;
 
-    // auto neglnprob_nonrot = neglnprob_nonrot_tpack.view;
     auto dneglnprob_nonrot_dtor_xyz = dneglnprob_nonrot_dtor_xyz_tpack.view;
 
-    // auto rotameric_neglnprob_tables_view = rotameric_neglnprob_tables.view;
-    // auto rotameric_mean_tables_view = rotameric_mean_tables.view;
-    // auto rotameric_sdev_tables_view = rotameric_sdev_tables.view;
-    // auto semirotameric_tables_view = semirotameric_tables.view;
+    // Step 0:
+    // Zero the arrays
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+      if (i < 3) {
+        V[i] = 0;
+      }
+      if (i < n_rotameric_res) {
+        for (int j = 0; j < 2; ++j) {
+          for (int k = 0; k < 4; ++k) {
+            dneglnprob_rot_dbb_xyz[i][j](k) = 0;
+          }
+        }
+      }
+      if (i < n_rotameric_chi) {
+        for (int j = 0; j < 3; ++j) {
+          for (int k = 0; k < 4; ++k) {
+            drotchi_devpen_dtor_xyz[i][j](k) = 0;
+          }
+        }
+      }
+      if (i < n_semirotameric_res) {
+        for (int j = 0; j < 3; ++j) {
+          for (int k = 0; k < 4; ++k) {
+            dneglnprob_nonrot_dtor_xyz[i][j](k) = 0;
+          }
+        }
+      }
+    };
+
+    Dispatch<D>::forall(
+        std::max(
+            std::max(n_rotameric_res, 3),
+            std::max(n_rotameric_chi, n_semirotameric_res)),
+        zero);
 
     // Five steps to this calculation
     // 1. compute the dihedrals and put them into the dihedrals array
@@ -251,8 +274,14 @@ struct DunbrackDispatch {
     int n_rotameric_chi = rotameric_chi_desc.size(0);
     int n_semirotameric_res = semirotameric_chi_desc.size(0);
 
-    auto dE_dxyz_tpack = TPack<Real3, 1, D>::zeros(natoms);
+    auto dE_dxyz_tpack = TPack<Real3, 1, D>::empty(natoms);
     auto dE_dxyz = dE_dxyz_tpack.view;
+    auto zero = [=] EIGEN_DEVICE_FUNC (int i) {
+      for (int j = 0; j < 3; ++j) {
+	dE_dxyz[i](j) = 0;
+      }
+    };
+    Dispatch<D>::forall(natoms, zero);
 
     auto func_accum_rotnlp = ([=] EIGEN_DEVICE_FUNC(int i) {
       int ires = rotres2resid[i];
