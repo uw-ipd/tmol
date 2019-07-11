@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.lk_ball.score_graph &mdash; TMol 0.0.0-177-gab6d903c documentation</title>
+  <title>tmol.score.lk_ball.score_graph &mdash; TMol 0.0.0-178-g9e0a4bb9 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-177-gab6d903c',
+              VERSION:'0.0.0-178-g9e0a4bb9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-177-gab6d903c
+                0.0.0-178-g9e0a4bb9
               </div>
             
           
@@ -178,6 +178,7 @@
             
   <h1>Source code for tmol.score.lk_ball.score_graph</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">attr</span>
 
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
@@ -188,8 +189,17 @@
 <span class="kn">from</span> <span class="nn">..ljlk.score_graph</span> <span class="k">import</span> <span class="n">_LJLKCommonScoreGraph</span>
 
 <span class="kn">from</span> <span class="nn">.script_modules</span> <span class="k">import</span> <span class="n">LKBallIntraModule</span>
+
 <span class="kn">from</span> <span class="nn">tmol.score.ljlk.params</span> <span class="k">import</span> <span class="n">LJLKParamResolver</span>
 <span class="kn">from</span> <span class="nn">tmol.score.chemical_database</span> <span class="k">import</span> <span class="n">AtomTypeParamResolver</span>
+
+<span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
+
+
+<div class="viewcode-block" id="LKBallPairs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.lk_ball.score_graph.html#tmol.score.lk_ball.score_graph.LKBallPairs">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">LKBallPairs</span><span class="p">:</span>
+    <span class="n">polars</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">occluders</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="LKBallIntraScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.lk_ball.score_graph.html#tmol.score.lk_ball.score_graph.LKBallIntraScore">[docs]</a><span class="nd">@reactive_attrs</span>
@@ -199,6 +209,8 @@
     <span class="k">def</span> <span class="nf">lkball_score</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">lkball_intra_module</span><span class="p">(</span>
             <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">lkball_pairs</span><span class="o">.</span><span class="n">polars</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">lkball_pairs</span><span class="o">.</span><span class="n">occluders</span><span class="p">,</span>
             <span class="n">target</span><span class="o">.</span><span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="n">target</span><span class="o">.</span><span class="n">bonded_path_length</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="n">target</span><span class="o">.</span><span class="n">indexed_bonds</span><span class="o">.</span><span class="n">bonds</span><span class="p">,</span>
@@ -251,7 +263,29 @@
     <span class="k">def</span> <span class="nf">lkball_intra_module</span><span class="p">(</span>
         <span class="n">ljlk_param_resolver</span><span class="p">:</span> <span class="n">LJLKParamResolver</span><span class="p">,</span> <span class="n">atom_type_params</span><span class="p">:</span> <span class="n">AtomTypeParamResolver</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LKBallIntraModule</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">LKBallIntraModule</span><span class="p">(</span><span class="n">ljlk_param_resolver</span><span class="p">,</span> <span class="n">atom_type_params</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">LKBallIntraModule</span><span class="p">(</span><span class="n">ljlk_param_resolver</span><span class="p">,</span> <span class="n">atom_type_params</span><span class="p">)</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">lkball_pairs</span><span class="p">(</span>
+        <span class="n">ljlk_atom_types</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atom_type_params</span><span class="p">:</span> <span class="n">AtomTypeParamResolver</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LKBallPairs</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return lists of atoms over which to iterate.</span>
+<span class="sd">        LK-Ball is only dispatched over polar:heavyatom pairs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># nonzero adds an extra dim.  reshape removes it</span>
+        <span class="c1"># this will need to be updated for stacked inputs</span>
+        <span class="n">polars</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
+            <span class="n">atom_type_params</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_acceptor</span><span class="p">[</span><span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="o">+</span> <span class="n">atom_type_params</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_donor</span><span class="p">[</span><span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">occluders</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span>
+            <span class="mi">1</span> <span class="o">-</span> <span class="n">atom_type_params</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_hydrogen</span><span class="p">[</span><span class="n">ljlk_atom_types</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">LKBallPairs</span><span class="p">(</span><span class="n">polars</span><span class="o">=</span><span class="n">polars</span><span class="p">,</span> <span class="n">occluders</span><span class="o">=</span><span class="n">occluders</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

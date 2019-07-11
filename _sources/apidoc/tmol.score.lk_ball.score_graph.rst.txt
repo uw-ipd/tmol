@@ -7,7 +7,7 @@ tmol.score.lk_ball.score_graph
 .. currentmodule:: tmol.score.lk_ball.score_graph
 
 .. automodule:: tmol.score.lk_ball.score_graph
-    :members: LKBallIntraScore, LKBallScoreGraph
+    :members: LKBallIntraScore, LKBallPairs, LKBallScoreGraph
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -22,6 +22,7 @@ tmol.score.lk_ball.score_graph
         :nosignatures:
 
         LKBallIntraScore
+        LKBallPairs
         LKBallScoreGraph
 
 
