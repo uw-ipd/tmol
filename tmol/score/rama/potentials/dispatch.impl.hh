@@ -36,11 +36,21 @@ struct RamaDispatch {
       TView<Real, 3, D> tables,
       TView<RamaTableParams<Real>, 1, D> table_params)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
+    auto V_t = TPack<Real, 1, D>::empty({1});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
 
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
+
+    auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+      if (i == 0) {
+	V[i] = 0;
+      }
+      for (int j = 0; j < 3; ++j) {
+	dV_dx[i](j) = 0;
+      }
+    };
+    Dispatch<D>::forall(std::max(1L, coords.size(0)), zero);
 
     auto func = ([=] EIGEN_DEVICE_FUNC(int i) {
       CoordQuad phicoords;
