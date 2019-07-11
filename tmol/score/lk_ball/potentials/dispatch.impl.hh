@@ -35,10 +35,12 @@ template <
 struct LKBallDispatch {
   static auto forward(
       TView<Vec<Real, 3>, 1, D> coords_i,
+      TView<int64_t, 1, D> polars_i,
       TView<Int, 1, D> atom_type_i,
       TView<Vec<Real, 3>, 2, D> waters_i,
 
       TView<Vec<Real, 3>, 1, D> coords_j,
+      TView<int64_t, 1, D> occluders_j,
       TView<Int, 1, D> atom_type_j,
       TView<Vec<Real, 3>, 2, D> waters_j,
 
@@ -49,18 +51,22 @@ struct LKBallDispatch {
       -> TPack<Real, 1, D> {
     NVTXRange _function(__FUNCTION__);
 
-    nvtx_range_push("dispatch::score");
+    nvtx_range_push("dispatch::alloc");
     auto Vs_t = TPack<Real, 1, D>::zeros({4});
     auto Vs = Vs_t.view;
     nvtx_range_pop();
 
     nvtx_range_push("dispatch::score");
     Real threshold_distance = 6.0;  // fd this should be a global param
-    Dispatch<D>::forall_pairs(
+    Dispatch<D>::forall_idx_pairs(
         threshold_distance,
         coords_i,
         coords_j,
-        [=] EIGEN_DEVICE_FUNC(int i, int j) {
+        polars_i,
+        occluders_j,
+        [=] EIGEN_DEVICE_FUNC(int i_idx, int j_idx) {
+          Int i = polars_i[i_idx];
+          Int j = occluders_j[j_idx];
           Int ati = atom_type_i[i];
           Int atj = atom_type_j[j];
 
@@ -96,10 +102,12 @@ struct LKBallDispatch {
   static auto backward(
       TView<Real, 1, D> dTdV,
       TView<Vec<Real, 3>, 1, D> coords_i,
+      TView<int64_t, 1, D> polars_i,
       TView<Int, 1, D> atom_type_i,
       TView<Vec<Real, 3>, 2, D> waters_i,
 
       TView<Vec<Real, 3>, 1, D> coords_j,
+      TView<int64_t, 1, D> occluders_j,
       TView<Int, 1, D> atom_type_j,
       TView<Vec<Real, 3>, 2, D> waters_j,
 
@@ -114,7 +122,7 @@ struct LKBallDispatch {
           TPack<Vec<Real, 3>, 2, D>> {
     NVTXRange _function(__FUNCTION__);
 
-    nvtx_range_push("dispatch::dscore");
+    nvtx_range_push("dispatch::dalloc");
     // deriv w.r.t. heavyatom position
     auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
     auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
@@ -131,11 +139,15 @@ struct LKBallDispatch {
 
     nvtx_range_push("dispatch::dscore");
     Real threshold_distance = 6.0;  // fd this should be a global param
-    Dispatch<D>::forall_pairs(
+    Dispatch<D>::forall_idx_pairs(
         threshold_distance,
         coords_i,
         coords_j,
-        [=] EIGEN_DEVICE_FUNC(int i, int j) {
+        polars_i,
+        occluders_j,
+        [=] EIGEN_DEVICE_FUNC(int i_idx, int j_idx) {
+          Int i = polars_i[i_idx];
+          Int j = occluders_j[j_idx];
           Int ati = atom_type_i[i];
           Int atj = atom_type_j[j];
 

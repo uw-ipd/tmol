@@ -28,10 +28,12 @@ template <
 struct LKBallDispatch {
   static auto forward(
       TView<Vec<Real, 3>, 1, D> coords_i,
+      TView<int64_t, 1, D> polars_i,
       TView<Int, 1, D> atom_type_i,
       TView<Vec<Real, 3>, 2, D> waters_i,
 
       TView<Vec<Real, 3>, 1, D> coords_j,
+      TView<int64_t, 1, D> occluders_j,
       TView<Int, 1, D> atom_type_j,
       TView<Vec<Real, 3>, 2, D> waters_j,
 
@@ -43,10 +45,12 @@ struct LKBallDispatch {
   static auto backward(
       TView<Real, 1, D> dTdV,
       TView<Vec<Real, 3>, 1, D> coords_i,
+      TView<int64_t, 1, D> polars_i,
       TView<Int, 1, D> atom_type_i,
       TView<Vec<Real, 3>, 2, D> waters_i,
 
       TView<Vec<Real, 3>, 1, D> coords_j,
+      TView<int64_t, 1, D> occluders_j,
       TView<Int, 1, D> atom_type_j,
       TView<Vec<Real, 3>, 2, D> waters_j,
 
