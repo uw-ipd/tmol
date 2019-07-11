@@ -26,11 +26,13 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
-auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
+auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 1, D> coords_i,
     TView<Int, 1, D> atom_type_i,
 
@@ -45,9 +47,10 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
         TPack<Real, 1, D>,
         TPack<Vec<Real, 3>, 1, D>,
         TPack<Vec<Real, 3>, 1, D>> {
-  nvtx_range_push(__FUNCTION__);
+  NVTXRange _function(__FUNCTION__);
 
-  nvtx_range_push("output_allocate");
+  NVTXRange _allocate("allocate");
+
   auto V_t = TPack<Real, 1, D>::zeros({1});
   auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
   auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
@@ -55,11 +58,33 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
   auto dV_dJ = dV_dJ_t.view;
-  nvtx_range_pop();
 
-  nvtx_range_push("dispatch::score");
+  _allocate.exit();
+  NVTXRange _zero("zero");
+  auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+    if (i < 1) {
+      V[i] = 0;
+    }
+    if (i < dV_dI.size(0)) {
+      for (int j = 0; j < 3; ++j) {
+        dV_dI[i](j) = 0;
+      }
+    }
+    if (i < dV_dJ.size(0)) {
+      for (int j = 0; j < 3; ++j) {
+        dV_dJ[i](j) = 0;
+      }
+    }
+  };
+  int largest = std::max(3, (int)std::max(coords_i.size(0), coords_j.size(0)));
+  SingleDispatch<D>::forall(largest, zero);
+  _zero.exit();
+
+  clock_t start2 = clock();
+
+  NVTXRange _score("score");
   Real threshold_distance = 6.0;
-  Dispatch<D>::forall_pairs(
+  PairDispatch<D>::forall_pairs(
       threshold_distance,
       coords_i,
       coords_j,
@@ -83,9 +108,8 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
         accumulate<D, Vec<Real, 3>>::add(dV_dI[i], lk.dV_ddist * ddist_dI);
         accumulate<D, Vec<Real, 3>>::add(dV_dJ[j], lk.dV_ddist * ddist_dJ);
       });
-  nvtx_range_pop();
+  _score.exit();
 
-  nvtx_range_pop();
   return {V_t, dV_dI_t, dV_dJ_t};
 };
 

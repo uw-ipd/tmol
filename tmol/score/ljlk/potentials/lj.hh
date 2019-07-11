@@ -40,8 +40,9 @@ struct vdw {
     Real sd6 = sd2 * sd2 * sd2;
     Real sd12 = sd6 * sd6;
 
-    return {epsilon * (sd12 - 2.0 * sd6),
-            epsilon * ((-12.0 * sd12 / dist) - (2.0 * -6.0 * sd6 / dist))};
+    return {
+        epsilon * (sd12 - Real(2.0) * sd6),
+        epsilon * ((Real(-12.0) * sd12 / dist) - (Real(-12.0) * sd6 / dist))};
   }
 };
 

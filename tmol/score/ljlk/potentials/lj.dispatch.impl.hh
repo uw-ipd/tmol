@@ -26,11 +26,13 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device D,
     typename Real,
     typename Int>
-auto LJDispatch<Dispatch, D, Real, Int>::f(
+auto LJDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 1, D> coords_i,
     TView<Int, 1, D> atom_type_i,
 
@@ -46,19 +48,38 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
         TPack<Vec<Real, 3>, 1, D>> {
   NVTXRange _function(__FUNCTION__);
 
-  nvtx_range_push("dispatch::score");
-  auto V_t = TPack<Real, 1, D>::zeros({1});
-  auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_i.size(0)});
-  auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords_j.size(0)});
+  NVTXRange _allocate("lj_alloc");
+  auto V_t = TPack<Real, 1, D>::empty({1});
+  auto dV_dI_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_i.size(0)});
+  auto dV_dJ_t = TPack<Vec<Real, 3>, 1, D>::empty({coords_j.size(0)});
 
   auto V = V_t.view;
   auto dV_dI = dV_dI_t.view;
   auto dV_dJ = dV_dJ_t.view;
-  nvtx_range_pop();
+  _allocate.exit();
 
-  nvtx_range_push("dispatch::score");
+  auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
+    if (i < 1) {
+      V[i] = 0;
+    }
+    if (i < dV_dI.size(0)) {
+      for (int j = 0; j < 3; ++j) {
+        dV_dI[i](j) = 0;
+      }
+    }
+    if (i < dV_dJ.size(0)) {
+      for (int j = 0; j < 3; ++j) {
+        dV_dJ[i](j) = 0;
+      }
+    }
+  };
+  int largest = std::max(3, (int)std::max(coords_i.size(0), coords_j.size(0)));
+  SingleDispatch<D>::forall(largest, zero);
+
+  NVTXRange _score("score");
+  // nvtx-temp nvtx_range_push("dispatch::score");
   Real threshold_distance = 6.0;
-  Dispatch<D>::forall_pairs(
+  PairDispatch<D>::forall_pairs(
       threshold_distance,
       coords_i,
       coords_j,
@@ -82,9 +103,7 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
         accumulate<D, Vec<Real, 3>>::add(dV_dI[i], lj.dV_ddist * ddist_dI);
         accumulate<D, Vec<Real, 3>>::add(dV_dJ[j], lj.dV_ddist * ddist_dJ);
       });
-  nvtx_range_pop();
-
-  nvtx_range_pop();
+  _score.exit();
 
   return {V_t, dV_dI_t, dV_dJ_t};
 };
