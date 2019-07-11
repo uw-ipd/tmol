@@ -12,6 +12,7 @@
 #include <tmol/score/common/accumulate.hh>
 #include <tmol/score/common/dispatch.hh>
 #include <tmol/score/common/geom.hh>
+#include <tmol/score/common/zero.hh>
 
 #include <tmol/score/ljlk/potentials/params.hh>
 
@@ -143,26 +144,15 @@ struct LKBallDispatch {
 
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       if (i < dV_dI.size(0)) {
-        for (int j = 0; j < 3; ++j) {
-          dV_dI[i](j) = 0;
-          for (int j = 0; j < 4; ++j) {
-            for (int k = 0; k < 3; ++k) {
-              dW_dI[i][j](k) = 0;
-            }
-          }
-        }
+	common::zero_array<D>::go((Real *) dV_dI.data(), i, dV_dI.size(0), 3);
+	common::zero_array<D>::go((Real *) dW_dI.data(), i, dW_dI.size(0), 12);
       }
       if (i < dV_dJ.size(0)) {
-        for (int j = 0; j < 3; ++j) {
-          dV_dJ[i](j) = 0;
-          for (int j = 0; j < 4; ++j) {
-            for (int k = 0; k < 3; ++k) {
-              dW_dJ[i][j](k) = 0;
-            }
-          }
-        }
+	common::zero_array<D>::go((Real *) dV_dJ.data(), i, dV_dJ.size(0), 3);
+	common::zero_array<D>::go((Real *) dW_dJ.data(), i, dV_dJ.size(0), 12);
       }
     };
+
     int const max_ats = std::max(dV_dI.size(0), dV_dJ.size(0));
     SingleDispatch<D>::forall(max_ats, zero);
 
