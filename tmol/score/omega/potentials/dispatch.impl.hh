@@ -46,7 +46,7 @@ struct OmegaDispatch {
       if (i == 0) {
         V[i] = 0;
       }
-      common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
+      common::zero_array<D>::go((Real *)dV_dx.data(), i, dV_dx.size(0), 3);
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
 

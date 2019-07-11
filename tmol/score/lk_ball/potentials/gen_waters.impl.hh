@@ -158,7 +158,8 @@ struct GenerateWaters {
     auto dE_d_coord_t = TPack<Vec<Real, 3>, 1, D>::empty({coords.size(0)});
     auto dE_d_coord = dE_d_coord_t.view;
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
-      common::zero_array<D>::go((Real *) dE_d_coord.data(), i, dE_d_coord.size(0), 3);
+      common::zero_array<D>::go(
+          (Real *)dE_d_coord.data(), i, dE_d_coord.size(0), 3);
     };
     Dispatch<D>::forall(coords.size(0), zero);
 

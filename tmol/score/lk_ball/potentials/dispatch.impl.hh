@@ -144,12 +144,12 @@ struct LKBallDispatch {
 
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
       if (i < dV_dI.size(0)) {
-	common::zero_array<D>::go((Real *) dV_dI.data(), i, dV_dI.size(0), 3);
-	common::zero_array<D>::go((Real *) dW_dI.data(), i, dW_dI.size(0), 12);
+        common::zero_array<D>::go((Real *)dV_dI.data(), i, dV_dI.size(0), 3);
+        common::zero_array<D>::go((Real *)dW_dI.data(), i, dW_dI.size(0), 12);
       }
       if (i < dV_dJ.size(0)) {
-	common::zero_array<D>::go((Real *) dV_dJ.data(), i, dV_dJ.size(0), 3);
-	common::zero_array<D>::go((Real *) dW_dJ.data(), i, dV_dJ.size(0), 12);
+        common::zero_array<D>::go((Real *)dV_dJ.data(), i, dV_dJ.size(0), 3);
+        common::zero_array<D>::go((Real *)dW_dJ.data(), i, dV_dJ.size(0), 12);
       }
     };
 

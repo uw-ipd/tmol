@@ -53,7 +53,7 @@ struct CartBondedLengthDispatch {
         V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-	common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
+        common::zero_array<D>::go((Real *)dV_dx.data(), i, dV_dx.size(0), 3);
       }
     };
     Dispatch<D>::forall(std::max(1L, dV_dx.size(0)), zero);
@@ -101,7 +101,7 @@ struct CartBondedAngleDispatch {
         V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-	common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
+        common::zero_array<D>::go((Real *)dV_dx.data(), i, dV_dx.size(0), 3);
         // for (int j = 0; j < 3; ++j) {
         //   dV_dx[i](j) = 0;
         // }
@@ -158,7 +158,7 @@ struct CartBondedTorsionDispatch {
         V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-	common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
+        common::zero_array<D>::go((Real *)dV_dx.data(), i, dV_dx.size(0), 3);
         // for (int j = 0; j < 3; ++j) {
         //   dV_dx[i](j) = 0;
         // }
@@ -219,7 +219,7 @@ struct CartBondedHxlTorsionDispatch {
         V[i] = 0;
       }
       if (i < dV_dx.size(0)) {
-	common::zero_array<D>::go((Real *) dV_dx.data(), i, dV_dx.size(0), 3);
+        common::zero_array<D>::go((Real *)dV_dx.data(), i, dV_dx.size(0), 3);
         // for (int j = 0; j < 3; ++j) {
         //   dV_dx[i](j) = 0;
         // }

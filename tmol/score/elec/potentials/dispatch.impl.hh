@@ -58,13 +58,13 @@ struct ElecDispatch {
         Vs[i] = 0;
       }
       if (i < dVs_dI.size(0)) {
-	common::zero_array<Dev>::go((Real *) dVs_dI.data(), i, dVs_dI.size(0), 3);
+        common::zero_array<Dev>::go((Real*)dVs_dI.data(), i, dVs_dI.size(0), 3);
         // for (int j = 0; j < 3; ++j) {
         //   dVs_dI[i](j) = 0;
         // }
       }
       if (i < dVs_dJ.size(0)) {
-	common::zero_array<Dev>::go((Real *) dVs_dJ.data(), i, dVs_dJ.size(0), 3);
+        common::zero_array<Dev>::go((Real*)dVs_dJ.data(), i, dVs_dJ.size(0), 3);
         // for (int j = 0; j < 3; ++j) {
         //   dVs_dI[i](j) = 0;
         // }

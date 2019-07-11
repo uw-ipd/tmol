@@ -128,7 +128,11 @@ struct DunbrackDispatch {
         V[i] = 0;
       }
       if (i < n_rotameric_res) {
-	common::zero_array<D>::go((Real *) dneglnprob_rot_dbb_xyz.data(), i, dneglnprob_rot_dbb_xyz.size(0), 8);
+        common::zero_array<D>::go(
+            (Real *)dneglnprob_rot_dbb_xyz.data(),
+            i,
+            dneglnprob_rot_dbb_xyz.size(0),
+            8);
         // for (int j = 0; j < 2; ++j) {
         //   for (int k = 0; k < 4; ++k) {
         //     dneglnprob_rot_dbb_xyz[i][j](k) = 0;
@@ -136,7 +140,11 @@ struct DunbrackDispatch {
         // }
       }
       if (i < n_rotameric_chi) {
-	common::zero_array<D>::go((Real *) drotchi_devpen_dtor_xyz.data(), i, drotchi_devpen_dtor_xyz.size(0), 12);
+        common::zero_array<D>::go(
+            (Real *)drotchi_devpen_dtor_xyz.data(),
+            i,
+            drotchi_devpen_dtor_xyz.size(0),
+            12);
         // for (int j = 0; j < 3; ++j) {
         //   for (int k = 0; k < 4; ++k) {
         //     drotchi_devpen_dtor_xyz[i][j](k) = 0;
@@ -144,7 +152,11 @@ struct DunbrackDispatch {
         // }
       }
       if (i < n_semirotameric_res) {
-	common::zero_array<D>::go((Real *) dneglnprob_nonrot_dtor_xyz.data(), i, dneglnprob_nonrot_dtor_xyz.size(0), 12);
+        common::zero_array<D>::go(
+            (Real *)dneglnprob_nonrot_dtor_xyz.data(),
+            i,
+            dneglnprob_nonrot_dtor_xyz.size(0),
+            12);
         // for (int j = 0; j < 3; ++j) {
         //   for (int k = 0; k < 4; ++k) {
         //     dneglnprob_nonrot_dtor_xyz[i][j](k) = 0;
@@ -281,7 +293,7 @@ struct DunbrackDispatch {
     auto dE_dxyz_tpack = TPack<Real3, 1, D>::empty(natoms);
     auto dE_dxyz = dE_dxyz_tpack.view;
     auto zero = [=] EIGEN_DEVICE_FUNC(int i) {
-      common::zero_array<D>::go((Real *) dE_dxyz.data(), i, dE_dxyz.size(0), 3);
+      common::zero_array<D>::go((Real *)dE_dxyz.data(), i, dE_dxyz.size(0), 3);
       // for (int j = 0; j < 3; ++j) {
       //   dE_dxyz[i](j) = 0;
       // }

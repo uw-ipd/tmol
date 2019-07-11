@@ -67,13 +67,13 @@ auto LKIsotropicDispatch<SingleDispatch, PairDispatch, D, Real, Int>::f(
       V[i] = 0;
     }
     if (i < dV_dI.size(0)) {
-      common::zero_array<D>::go((Real *) dV_dI.data(), i, dV_dI.size(0), 3);
+      common::zero_array<D>::go((Real*)dV_dI.data(), i, dV_dI.size(0), 3);
       // for (int j = 0; j < 3; ++j) {
       //   dV_dI[i](j) = 0;
       // }
     }
     if (i < dV_dJ.size(0)) {
-      common::zero_array<D>::go((Real *) dV_dJ.data(), i, dV_dJ.size(0), 3);
+      common::zero_array<D>::go((Real*)dV_dJ.data(), i, dV_dJ.size(0), 3);
       // for (int j = 0; j < 3; ++j) {
       //   dV_dJ[i](j) = 0;
       // }

@@ -92,13 +92,15 @@ auto HBondDispatch<SingleDispatch, PairDispatch, Dev, Real, Int>::f(
       V[i] = 0;
     }
     if (i < dV_d_don.size(0)) {
-      common::zero_array<Dev>::go((Real *) dV_d_don.data(), i, dV_d_don.size(0), 3);
+      common::zero_array<Dev>::go(
+          (Real *)dV_d_don.data(), i, dV_d_don.size(0), 3);
       // for (int j = 0; j < 3; ++j) {
       //   dV_d_don[i](j) = 0;
       // }
     }
     if (i < dV_d_acc.size(0)) {
-      common::zero_array<Dev>::go((Real *) dV_d_acc.data(), i, dV_d_acc.size(0), 3);
+      common::zero_array<Dev>::go(
+          (Real *)dV_d_acc.data(), i, dV_d_acc.size(0), 3);
       // for (int j = 0; j < 3; ++j) {
       //   dV_d_acc[i](j) = 0;
       // }
