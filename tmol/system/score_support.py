@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from typing import Optional
+from typing import Optional, Tuple
 
 from ..types.functional import validate_args
 
