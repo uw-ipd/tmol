@@ -8,7 +8,7 @@ class StackedSystem:
     """Score graph component describing stacked system's "depth" and "size".
 
     A score graph is defined over a set of independent system layers. The
-    number layers defines the stacked "depth", and the maximum number of atoms
+    number of layers defines the stacked "depth", and the maximum number of atoms
     per layer defines the system "size". Each layer is defined over the same
     maximum number of atoms, but systems may have varying number of null atoms.
 

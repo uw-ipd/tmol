@@ -88,7 +88,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
 
         res_indices: [layer, atom_index] Integer residue index descriptors.
 
-        bonds:[layer, atom_index, atom_index] Inter-atomic bond indices.
+        bonds: [ind, (layer=0, atom_index=1, atom_index=2)] Inter-atomic bond indices.
             Note that bonds are strictly intra-layer, and are defined by a
             single layer index for both atoms of the bond.
 

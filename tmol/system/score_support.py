@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from typing import Optional
+from typing import Optional, Tuple
 
 from ..types.functional import validate_args
 
@@ -18,7 +18,7 @@ from ..score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 
-from .packed import PackedResidueSystem
+from .packed import PackedResidueSystem, PackedResidueSystemStack
 from .kinematics import KinematicDescription
 
 from tmol.database import ParameterDatabase
@@ -28,6 +28,15 @@ from tmol.database import ParameterDatabase
 @validate_args
 def stack_params_for_system(system: PackedResidueSystem, **_):
     return dict(stack_depth=1, system_size=int(system.system_size))
+
+
+@StackedSystem.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stack_params_for_system(stack: PackedResidueSystemStack, **_):
+    return dict(
+        stack_depth=len(stack.systems),
+        system_size=max(int(system.system_size) for system in stack.systems),
+    )
 
 
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
@@ -53,6 +62,46 @@ def bonded_atoms_for_system(
         atom_names=atom_names,
         res_indices=res_indices,
         res_names=res_names,
+    )
+
+
+@BondedAtomScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stacked_bonded_atoms_for_system(
+    stack: PackedResidueSystemStack,
+    stack_depth: int,
+    system_size: int,
+    drop_missing_atoms: bool = False,
+    **_,
+):
+    bonds_for_systems = [
+        bonded_atoms_for_system(sys, drop_missing_atoms) for sys in stack.systems
+    ]
+    # max_bonds = max(len(d["bonds"]) for d in bonds_for_systems)
+    # max_atoms = max(len(d["atom_types"] for d in bonds_for_systems))
+
+    for i, d in enumerate(bonds_for_systems):
+        d["bonds"][0, :] = i
+    bonds = numpy.concatenate(tuple(d["bonds"] for d in bonds_for_systems))
+
+    # for i, d in enumerate(bonds_for_systems):
+    #    print(i, d["atom_types"].shape)
+    #    print(i, d["atom_types"][0,:])
+
+    def expand_atoms(atdat):
+        atdat2 = numpy.full((1, system_size), None, dtype=object)
+        atdat2[0, : atdat.shape[1]] = atdat
+        return atdat2
+
+    def stackem(key):
+        return numpy.concatenate([expand_atoms(d[key]) for d in bonds_for_systems])
+
+    return dict(
+        bonds=bonds,
+        atom_types=stackem("atom_types"),
+        atom_names=stackem("atom_names"),
+        res_indices=stackem("res_indices"),
+        res_names=stackem("res_names"),
     )
 
 
