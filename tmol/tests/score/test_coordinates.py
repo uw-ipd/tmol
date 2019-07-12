@@ -8,6 +8,8 @@ from tmol.score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+
 
 @requires_cuda
 def test_device_clone_factory(ubq_system):
@@ -114,3 +116,21 @@ def test_coord_clone_factory(ubq_system):
     clone = KinematicAtomicCoordinateProvider.build_for(src, requires_grad=True)
     assert clone.dofs.requires_grad is not src.dofs.requires_grad
     assert clone.dofs.requires_grad is True
+
+
+def test_coord_clone_factory_from_stacked_systems(ubq_system: PackedResidueSystem):
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+    cacp = CartesianAtomicCoordinateProvider.build_for(twoubq)
+
+    assert cacp.coords.shape == (2, cacp.system_size, 3)
+
+
+def test_coord_clone_factory_from_stacked_systems(ubq_res):
+    sys1 = PackedResidueSystem.from_residues(ubq_res[:6])
+    sys2 = PackedResidueSystem.from_residues(ubq_res[:8])
+    sys3 = PackedResidueSystem.from_residues(ubq_res[:4])
+
+    twoubq = PackedResidueSystemStack((sys1, sys2, sys3))
+    cacp = CartesianAtomicCoordinateProvider.build_for(twoubq)
+
+    assert cacp.coords.shape == (3, sys2.coords.shape[0], 3)
