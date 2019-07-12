@@ -137,7 +137,6 @@ def stacked_coords_for_system(
     coords = torch.full(
         (stack_depth, system_size, 3), numpy.nan, dtype=torch.float, device=device
     )
-
     for i, d in enumerate(coords_for_systems):
         coords[i, : d["coords"].shape[1]] = d["coords"]
 
