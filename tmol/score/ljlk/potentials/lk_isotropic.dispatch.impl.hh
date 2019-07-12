@@ -34,8 +34,8 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
 
     TView<Real, 3, D> bonded_path_lengths,
 
-    TView<LKTypeParams<Real>, 2, D> type_params,
-    TView<LJGlobalParams<Real>, 2, D> global_params) -> std::
+    TView<LKTypeParams<Real>, 1, D> type_params,
+    TView<LJGlobalParams<Real>, 1, D> global_params) -> std::
     tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Vec<Real, 3>, 2, D>> {
   nvtx_range_push(__FUNCTION__);
 
@@ -44,7 +44,7 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
   int const nstacks = coords_i.size(0);
   assert(coords_i.size(0) == coords_j.size(0));
 
-  auto V_t = TPack<Real, 2, D>::zeros({nstacks});
+  auto V_t = TPack<Real, 1, D>::zeros({nstacks});
   auto dV_dI_t = TPack<Vec<Real, 3>, 2, D>::zeros({nstacks, coords_i.size(1)});
   auto dV_dJ_t = TPack<Vec<Real, 3>, 2, D>::zeros({nstacks, coords_j.size(1)});
 
