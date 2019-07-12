@@ -24,12 +24,7 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <
-    template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
+template <template <tmol::Device> class Dispatch, tmol::Device D, typename Real, typename Int>
 auto LJDispatch<Dispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 2, D> coords_i,
     TView<Int, 2, D> atom_type_i,
