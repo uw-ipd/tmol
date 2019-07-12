@@ -29,8 +29,7 @@ class LJIntraScore(IntraScore):
     def total_lj(target):
         return target.lj_intra_module(
             target.coords, target.ljlk_atom_types, target.bonded_path_length
-        )  # [0] ??
-
+        )
 
 @reactive_attrs
 class LKIntraScore(IntraScore):
@@ -39,7 +38,7 @@ class LKIntraScore(IntraScore):
     def total_lk(target):
         return target.lk_intra_module(
             target.coords, target.ljlk_atom_types, target.bonded_path_length
-        )  # [0] ??
+        )
 
 
 @score_graph
