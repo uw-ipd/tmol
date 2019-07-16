@@ -11,6 +11,8 @@ from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+
 
 @score_graph
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
@@ -115,3 +117,4 @@ def test_lk_for_stacked_system(ubq_system: PackedResidueSystem):
 
     sumtot = torch.sum(tot)
     sumtot.backward()
+

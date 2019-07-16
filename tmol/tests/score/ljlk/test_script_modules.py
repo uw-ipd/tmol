@@ -112,6 +112,8 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     op = LJIntraModule(s.param_resolver)
     op.to(s.tcoords)
 
+    print("s.tcoords", s.tcoords.shape)
+
     @subfixture(benchmark)
     def op_val():
         return op(s.tcoords, s.ttype, s.tbpl)
@@ -140,6 +142,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
         return op(fcoords, s.ttype, s.tbpl)
 
     gradcheck(op_subset, (s.tcoords[:, subind].requires_grad_(True),), eps=1e-3)
+<<<<<<< HEAD
 
 
 def test_lj_intra_op_stacked(benchmark, default_database, torch_device, ubq_system):
@@ -166,6 +169,8 @@ def test_lj_intra_op_stacked(benchmark, default_database, torch_device, ubq_syst
         op_val,
         torch.tensor(expected_dense).to(torch_device).sum().unsqueeze(0).repeat(2),
     )
+=======
+>>>>>>> forward progress
 
 
 def test_lj_inter_op(default_database, torch_device, ubq_system):
@@ -178,6 +183,10 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
     expected_dense = numpy.nan_to_num(
         _dense_lj(s.coords, s.atom_type_idx, s.atom_pair_bpl, s.param_resolver)
     )[:, :part, part:]
+<<<<<<< HEAD
+=======
+    print("expected dense:", expected_dense.shape)
+>>>>>>> forward progress
 
     op = LJInterModule(s.param_resolver)
     op.to(s.tcoords)
@@ -208,7 +217,11 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
             s.tbpl[:, :part, part:],
         )
 
+<<<<<<< HEAD
     gradcheck(op_subset, (s.tcoords[:, subind].requires_grad_(True),), eps=1e-3)
+=======
+    # gradcheck(op_subset, (s.tcoords[:, subind].requires_grad_(True),), eps=1e-3)
+>>>>>>> forward progress
 
 
 def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
