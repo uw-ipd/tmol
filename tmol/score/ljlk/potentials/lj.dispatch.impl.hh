@@ -87,6 +87,13 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
 
   nvtx_range_pop();
 
+  std::cout << "V";
+  for (int i = 0; i < nstacks; ++i) {
+    std::cout << " " << V[i];
+  }
+  std::cout << "\n";
+  std::cout << std::endl;
+
   return {V_t, dV_dI_t, dV_dJ_t};
 };
 

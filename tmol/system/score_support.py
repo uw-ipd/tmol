@@ -79,7 +79,7 @@ def stacked_bonded_atoms_for_system(
     ]
 
     for i, d in enumerate(bonds_for_systems):
-        d["bonds"][0, :] = i
+        d["bonds"][:, 0] = i
     bonds = numpy.concatenate(tuple(d["bonds"] for d in bonds_for_systems))
 
     def expand_atoms(atdat):

@@ -87,5 +87,9 @@ def test_ljlk_database_clone_factory(ubq_system):
 
 
 def test_ljlk_for_stacked_system(ubq_system: PackedResidueSystem):
-    twoubq = PackedResidueSystemStack((ubq_system, ubqsystem))
-    assert True
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+    lj_graph = LJGraph.build_for(twoubq)
+    intra = lj_graph.intra_score()
+    tot = intra.total_lj
+
+    print("tot", tot)
