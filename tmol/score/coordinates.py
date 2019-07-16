@@ -16,8 +16,6 @@ from .device import TorchDevice
 from .score_graph import score_graph
 from .stacked_system import StackedSystem
 
-import tmol.utility.nvtx
-
 
 @score_graph
 class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice):
