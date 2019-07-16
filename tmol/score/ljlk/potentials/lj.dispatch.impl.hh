@@ -74,6 +74,9 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
             type_params[atj],
             global_params[0]);
 
+        // std::cout << "sij: " << stack << " " << i << " " << j << " lj: " <<
+        // lj.V << "\n";
+
         accumulate<D, Real>::add(V[stack], lj.V);
         accumulate<D, Vec<Real, 3>>::add(
             dV_dI[stack][i], lj.dV_ddist * ddist_dI);

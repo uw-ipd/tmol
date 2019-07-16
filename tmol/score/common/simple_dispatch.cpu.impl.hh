@@ -59,7 +59,26 @@ struct AABBDispatch<tmol::Device::CPU> {
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 2, D> coords_i,
       TView<Eigen::Matrix<Real, 3, 1>, 2, D> coords_j,
-      Func f) {}
+      Func f) {
+    const Eigen::AlignedBox<Real, 3> tbox(
+        Vec<Real, 3>(
+            -threshold_distance, -threshold_distance, -threshold_distance),
+        Vec<Real, 3>(
+            threshold_distance, threshold_distance, threshold_distance));
+    int nstacks = coords_i.size(0);
+    int n_i = coords_i.size(1);
+    int n_j = coords_j.size(1);
+
+    for (int stack = 0; stack < nstacks; ++stack) {
+      for (int i = 0; i < n_i; ++i) {
+        for (int j = 0; j < n_j; ++j) {
+          if (tbox.contains(coords_i[stack][i] - coords_j[stack][j])) {
+            f(stack, i, j);
+          }
+        }
+      }
+    }
+  }
 
   template <typename Real, typename Int, typename Func>
   static void forall_idx_pairs(

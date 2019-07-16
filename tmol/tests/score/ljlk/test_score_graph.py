@@ -9,6 +9,8 @@ from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.ljlk import LJScoreGraph
 
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+
 
 @score_graph
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
@@ -82,3 +84,8 @@ def test_ljlk_database_clone_factory(ubq_system):
     )
     assert clone.ljlk_database is not src.ljlk_database
     assert clone.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
+
+
+def test_ljlk_for_stacked_system(ubq_system: PackedResidueSystem):
+    twoubq = PackedResidueSystemStack((ubq_system, ubqsystem))
+    assert True
