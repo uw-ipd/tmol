@@ -28,6 +28,8 @@ def inverseKin(kintree: KinTree, coords: CoordArray, requires_grad=False) -> Kin
     return KinDOF(raw=raw_dofs)
 
 
+# wrapper for the module that is used for testing
+# creates a new module each call so not particularly efficient
 @validate_args
 def forwardKin(kintree: KinTree, dofs: KinDOF) -> CoordArray:
     """dofs -> HTs, xyzs
