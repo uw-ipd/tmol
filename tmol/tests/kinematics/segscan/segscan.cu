@@ -14,6 +14,18 @@ namespace cpp_extension {
 using tmol::TPack;
 using tmol::TView;
 
+auto getScanBufferSize(int scansize, int nt, int vt) -> mgpu::tuple<int, int> {
+  float scanleft = std::ceil(((float)scansize) / (nt * vt));
+  int lbsSize = (int)scanleft + 1;
+  int carryoutSize = (int)scanleft;
+  while (scanleft > 1) {
+    scanleft = std::ceil(scanleft / nt);
+    carryoutSize += (int)scanleft;
+  }
+
+  return {carryoutSize, lbsSize};
+}
+
 template <typename Real, tmol::Device D, mgpu::scan_type_t scan_type>
 struct segscan {};
 
@@ -58,6 +70,15 @@ struct segscan<Real, tmol::Device::CUDA, scan_type> {
     auto res_t = tmol::TPack<Real, 1, D>::zeros({nelts});
     auto res = res_t.view;
 
+    int carryoutBuff, lbsBuff;
+    mgpu::tie(carryoutBuff, lbsBuff) = getScanBufferSize(nelts + nsegs, 256, 3);
+    auto scanCarryout_t = TPack<Real, 1, D>::empty({carryoutBuff});
+    auto scanCarryout = scanCarryout_t.view;
+    auto scanCodes_t = TPack<int, 1, D>::empty({carryoutBuff});
+    auto scanCodes = scanCodes_t.view;
+    auto LBS_t = TPack<int, 1, D>::empty({lbsBuff});
+    auto LBS = LBS_t.view;
+
     Real init = 0;
 
     auto data_loader = [=] MGPU_DEVICE(int index, int seg, int rank) {
@@ -71,6 +92,9 @@ struct segscan<Real, tmol::Device::CUDA, scan_type> {
         segs.data(),
         nsegs,
         res.data(),
+        scanCarryout.data(),
+        scanCodes.data(),
+        LBS.data(),
         mgpu::plus_t<Real>(),
         init,
         context);
