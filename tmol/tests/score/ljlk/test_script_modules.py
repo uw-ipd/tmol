@@ -142,6 +142,32 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     gradcheck(op_subset, (s.tcoords[:, subind].requires_grad_(True),), eps=1e-3)
 
 
+def test_lj_intra_op_stacked(benchmark, default_database, torch_device, ubq_system):
+    s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
+
+    expected_dense = numpy.triu(
+        numpy.nan_to_num(
+            _dense_lj(s.coords, s.atom_type_idx, s.atom_pair_bpl, s.param_resolver)
+        )
+    )
+
+    op = LJIntraModule(s.param_resolver)
+    op.to(s.tcoords)
+
+    coords2 = torch.cat((s.tcoords, s.tcoords), dim=0)
+    atype2 = torch.cat((s.ttype, s.ttype), dim=0)
+    atbpl = torch.cat((s.tbpl, s.tbpl), dim=0)
+
+    @subfixture(benchmark)
+    def op_val():
+        return op(coords2, atype2, atbpl)
+
+    torch.testing.assert_allclose(
+        op_val,
+        torch.tensor(expected_dense).to(torch_device).sum().unsqueeze(0).repeat(2),
+    )
+
+
 def test_lj_inter_op(default_database, torch_device, ubq_system):
     """LJInterModule returns sum of the dense lj score matrix."""
 
