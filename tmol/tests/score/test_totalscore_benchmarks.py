@@ -9,9 +9,6 @@ from tmol.score.device import TorchDevice
 
 from tmol.score.coordinates import KinematicAtomicCoordinateProvider
 
-from tmol.optimization.lbfgs_armijo import LBFGS_Armijo
-from tmol.optimization.modules import TorsionalEnergyNetwork
-
 
 @score_graph
 class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
