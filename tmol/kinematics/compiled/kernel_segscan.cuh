@@ -187,6 +187,7 @@ void spine_segreduce(
   cta_launch<nt>(k_spine_up, num_ctas, context);
 
   // recursive call if there are > 1 ctas
+  // shift our buffer pointers to use additional free space at the end
   if (num_ctas > 1) {
     spine_segreduce<nt>(
         carry_out_values,
@@ -212,7 +213,40 @@ void spine_segreduce(
   }
 }
 
-// segscan kernel
+// Segmented scan kernel
+//   Based (loosely) on mgpu's segmented reduce code
+//
+//   Inputs:
+//      f - input element iterator
+//      count - number of input elements
+//      segments - segment index iterator
+//      num_segments - number of segments
+//      output - output buffer
+//      carry_out_data, codes_data - temporary buffers
+//      mp_data - temporary buffer
+//      op - the scan operator
+//      init - the identity element
+//      context - the mgpu context for kernal launches
+//
+//   The template argument 'launch_arg_t' provides two parameters:
+//      vt: # of threads per CTA
+//      nt: # of elements processed per thread
+//
+//   Temp buffers carry_out_data and codes_data must be of size:
+//      ceil( (count+num_segments) / (vt*nt) )
+//      + ceil( (count+num_segments) / (vt*nt*nt) )
+//      + ceil( (count+num_segments) / (vt*nt*nt*nt) )
+//      + ...
+//   stopping the summation when the arg to ceil becomes < 1.
+//
+//   This is because this buffer is used for both the initial call and
+//     for the recursive "spine_scan" where we perform additional scans.
+//   On each recursive call we simply slide the beffer pointer to the end
+//     of the current level's array.
+//
+//   The temp buffer for mp_data is of size:
+//      ceil ((dest_count + num_segments) / (vt*nt)) + 1
+//
 template <
     typename launch_arg_t = empty_t,
     scan_type_t scan_type = scan_type_inc,
@@ -244,9 +278,6 @@ void kernel_segscan(
   nvtx_range_push("kernel_segscan::setup");
   cta_dim_t cta_dim = launch_t::cta_dim(context);
   int num_ctas = cta_dim.num_ctas(count + num_segments);
-  // mem_t<int> mp = load_balance_partitions(
-  //    count, segments, num_segments, cta_dim.nv(), context);
-  // const int* mp_data = mp.data();
   load_balance_partitions(
       count, segments, num_segments, cta_dim.nv(), mp_data, context);
   nvtx_range_pop();
@@ -316,6 +347,7 @@ void kernel_segscan(
   }
 
   // perform segscans across "carry_out"
+  // shift our buffer pointers to use additional free space at the end
   nvtx_range_push("kernel_segscan::spine_scan");
   spine_segreduce<launch_t::nt>(
       carry_out_data,

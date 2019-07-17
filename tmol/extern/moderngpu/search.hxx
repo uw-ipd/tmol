@@ -36,7 +36,11 @@ auto load_balance_partitions(int64_t dest_count, segments_it segments,
     dest_count, segments, num_segments, spacing, less_t<int_t>(), context);
 }
 
-//fd load balance partitions using preallocated memory
+//fd  load balance partitions using preallocated memory
+//fd 
+//fd  the allocated buffer (mem) must have room for # of elts equal to:
+//fd     ceil ((dest_count + num_segments) / spacing) + 1
+//fd 
 template<typename segments_it>
 void load_balance_partitions(int64_t dest_count, segments_it segments, 
   int num_segments, int spacing, int* mem, context_t& context) {

@@ -32,7 +32,28 @@ struct f1f2VecsRawBuffer {
   Real data[6];
 };
 
-// function to get the memory needed for a scan
+// This function gets the memory needed for the output and temporary buffers
+//   in the segmented scan.
+//
+// It first loops over all generations and finds the generation with longest
+//   scan_length = #elements + #segments
+//
+// Then using the kernel launch parameters 'nt' and 'vt':
+//      vt: # of threads per CTA
+//      nt: # of elements processed per thread
+// it computes three quantities:
+//   scanSize - "scan_length" above, used for the output buffer
+//   lbsSize - a temporary buffer used for the load-balancing scan parameters
+//     = ceil (scanSize / (vt*nt)) + 1
+//   carryoutSize - a temporary buffer used for managing "carryout" from
+//                  each of the subscans.
+//      = ceil( (count+num_segments) / (vt*nt) )
+//        + ceil( (count+num_segments) / (vt*nt*nt) )
+//        + ceil( (count+num_segments) / (vt*nt*nt*nt) )
+//        + ...
+//      [stopping the summation when the arg to ceil becomes < 1].
+//
+// These are used to preallocate the memory used in each generation of the scan.
 template <typename Int>
 auto getScanBufferSize(
     TView<KinTreeGenData<Int>, 1, tmol::Device::CPU> gens, Int nt, Int vt)
@@ -87,6 +108,50 @@ struct f1f2compose_t : public std::binary_function<
   }
 };
 
+// Dispatch class for cuda-based generational segmented scan operations.
+//
+// # Scan Overview
+//
+// The scan operation processes linear scan paths with an associative binary
+// operator, where the scan paths many have any number of additional off-path
+// node inputs added *before* the scan path. For example, consider the
+// operation composed of path values (P), off path values (OP) joined by an
+// operator (+)::
+//
+//     OP_0            OP_1
+//       +               +
+//       |               |
+//       v               v
+//     P_0+--->P_1+--->P_2+--->P_3+--->P_4
+//                       ^
+//                       |
+//                       +
+//                     OP_2
+//
+// Represents the complete operation::
+//   (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4
+//
+// As this is a scan, rather than reduction, this results in::
+//
+//     R_0-----R_1-----R_2-----R_3-----R_4
+//     R_0 = OP_0 + P_0
+//     R_1 = (OP_0 + P_0) + P_1
+//     R_2 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2)
+//     R_3 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3
+//     R_4 = (OP_0 + P_0) + P_1 + (OP_1 + OP_2 + P_2) + P_3 + P_4
+//
+// The off-path inputs of a scan are taken from the result values of previous
+// scan operations. Scans are processed by "generation", arranged such that
+// the off-path inputs of any segment are draw *exclusively* from earlier
+// generations. Scans within a generation are processed via a parallel
+// segmented scan.
+//
+// The input arguments 'nodes', 'scans' give the individual scans, with
+// 'nodes' providing the scan ordering and 'scans' giving scan boundaries.
+//
+// The input argument 'gens' breaks these down into individual generations,
+// providing both 'node' and 'scan' boundaries for each generation.
+//
 template <tmol::Device D, typename Real, typename Int>
 struct ForwardKinDispatch {
   static auto f(
