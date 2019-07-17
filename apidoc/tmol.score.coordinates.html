@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.coordinates &mdash; TMol 0.0.0-178-g9e0a4bb9 documentation</title>
+  <title>tmol.score.coordinates &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-178-g9e0a4bb9',
+              VERSION:'0.0.0-179-g10d880a9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-178-g9e0a4bb9
+                0.0.0-179-g10d880a9
               </div>
             
           
@@ -298,13 +298,18 @@
 
 <dl class="class">
 <dt id="tmol.score.coordinates.KinematicAtomicCoordinateProvider">
-<em class="property">class </em><code class="descclassname">tmol.score.coordinates.</code><code class="descname">KinematicAtomicCoordinateProvider</code><span class="sig-paren">(</span><em>stack_depth: int, system_size: int, device: torch.device, dofs: Tensor(torch.float32)[:], kinop: tmol.kinematics.torch_op.KinematicOp</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/coordinates.html#KinematicAtomicCoordinateProvider"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.coordinates.KinematicAtomicCoordinateProvider" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.coordinates.</code><code class="descname">KinematicAtomicCoordinateProvider</code><span class="sig-paren">(</span><em>stack_depth: int, system_size: int, device: torch.device, dofs: Tensor(torch.float32)[:,9], dofmetadata: tmol.kinematics.metadata.DOFMetadata, kintree: tmol.kinematics.datatypes.KinTree</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/coordinates.html#KinematicAtomicCoordinateProvider"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.coordinates.KinematicAtomicCoordinateProvider" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.score.stacked_system.html#tmol.score.stacked_system.StackedSystem" title="tmol.score.stacked_system.StackedSystem"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.stacked_system.StackedSystem</span></code></a>, <a class="reference internal" href="tmol.score.device.html#tmol.score.device.TorchDevice" title="tmol.score.device.TorchDevice"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.device.TorchDevice</span></code></a></p>
 <dl class="staticmethod">
 <dt id="tmol.score.coordinates.KinematicAtomicCoordinateProvider.factory_for">
 <em class="property">static </em><code class="descname">factory_for</code><span class="sig-paren">(</span><em>other</em>, <em>device: torch.device</em>, <em>requires_grad: Union[bool</em>, <em>NoneType] = None</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/coordinates.html#KinematicAtomicCoordinateProvider.factory_for"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.coordinates.KinematicAtomicCoordinateProvider.factory_for" title="Permalink to this definition">¶</a></dt>
 <dd><p><a class="reference internal" href="tmol.kinematics.datatypes.html#tmol.kinematics.datatypes.KinDOF.clone" title="tmol.kinematics.datatypes.KinDOF.clone"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">clone</span></code></a>-factory, extract kinop and dofs from other.</p>
 </dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.coordinates.KinematicAtomicCoordinateProvider.kin_module">
+<code class="descname">kin_module</code><a class="headerlink" href="#tmol.score.coordinates.KinematicAtomicCoordinateProvider.kin_module" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="attribute">
 <dt id="tmol.score.coordinates.KinematicAtomicCoordinateProvider.coords">

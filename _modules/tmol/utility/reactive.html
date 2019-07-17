@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.reactive &mdash; TMol 0.0.0-178-g9e0a4bb9 documentation</title>
+  <title>tmol.utility.reactive &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-178-g9e0a4bb9',
+              VERSION:'0.0.0-179-g10d880a9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-178-g9e0a4bb9
+                0.0.0-179-g10d880a9
               </div>
             
           
@@ -585,7 +585,7 @@
 <span class="kn">import</span> <span class="nn">tmol.utility.nvtx</span>
 
 
-<div class="viewcode-block" id="_code"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations._code">[docs]</a><span class="k">def</span> <span class="nf">_code</span><span class="p">(</span>
+<div class="viewcode-block" id="_code"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._code">[docs]</a><span class="k">def</span> <span class="nf">_code</span><span class="p">(</span>
     <span class="n">argcount</span><span class="p">,</span>
     <span class="n">kwonlyargcount</span><span class="p">,</span>
     <span class="n">nlocals</span><span class="p">,</span>
@@ -623,7 +623,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_code_attrs"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations._code_attrs">[docs]</a><span class="k">def</span> <span class="nf">_code_attrs</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+<div class="viewcode-block" id="_code_attrs"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._code_attrs">[docs]</a><span class="k">def</span> <span class="nf">_code_attrs</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Unpack types.CodeType attrs (&#39;co_&lt;name&gt;&#39;) into __init__ params (&#39;&lt;name&gt;&#39;).&quot;&quot;&quot;</span>
     <span class="n">cattrs</span> <span class="o">=</span> <span class="p">{</span><span class="n">n</span><span class="p">[</span><span class="mi">3</span><span class="p">:]:</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;co_&quot;</span><span class="p">)}</span>
     <span class="n">cattrs</span><span class="p">[</span><span class="s2">&quot;constants&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cattrs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;consts&quot;</span><span class="p">)</span>
@@ -631,7 +631,7 @@
     <span class="k">return</span> <span class="n">cattrs</span></div>
 
 
-<div class="viewcode-block" id="_rename_code_object"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations._rename_code_object">[docs]</a><span class="k">def</span> <span class="nf">_rename_code_object</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">new_name</span><span class="p">):</span>
+<div class="viewcode-block" id="_rename_code_object"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._rename_code_object">[docs]</a><span class="k">def</span> <span class="nf">_rename_code_object</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">new_name</span><span class="p">):</span>
     <span class="n">cattrs</span> <span class="o">=</span> <span class="n">_code_attrs</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__code__</span><span class="p">)</span>
     <span class="n">cattrs</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_name</span>
 
@@ -640,7 +640,7 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="reactive_attrs"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations.reactive_attrs">[docs]</a><span class="k">def</span> <span class="nf">reactive_attrs</span><span class="p">(</span><span class="n">maybe_cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs_kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="reactive_attrs"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom.reactive_attrs">[docs]</a><span class="k">def</span> <span class="nf">reactive_attrs</span><span class="p">(</span><span class="n">maybe_cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs_kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A class decorator that initializes reactive properties over the target</span>
 <span class="sd">    type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -654,7 +654,7 @@
         <span class="k">return</span> <span class="n">wrap</span><span class="p">(</span><span class="n">maybe_cls</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="reactive_property"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations.reactive_property">[docs]</a><span class="k">def</span> <span class="nf">reactive_property</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">should_invalidate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="reactive_property"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom.reactive_property">[docs]</a><span class="k">def</span> <span class="nf">reactive_property</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">should_invalidate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decorate a function as a reactive property of a class.</span>
 
 <span class="sd">    ..  warning::</span>
@@ -684,7 +684,7 @@
         <span class="k">return</span> <span class="n">bind</span></div>
 
 
-<div class="viewcode-block" id="ReactiveProperty"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations.ReactiveProperty">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="ReactiveProperty"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom.ReactiveProperty">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">ReactiveProperty</span><span class="p">(</span><span class="nb">property</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Post-init property managing a reactive property.</span>
 
@@ -716,7 +716,7 @@
             <span class="c1"># Resolve function input parameters from object, potentially</span>
             <span class="c1"># traversing through reactive property dependencies.</span>
             <span class="n">toresolve</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prop</span><span class="o">.</span><span class="n">parameters</span><span class="p">}</span>
-            <span class="k">with</span> <span class="n">tmol</span><span class="o">.</span><span class="n">utility</span><span class="o">.</span><span class="n">nvtx</span><span class="o">.</span><span class="n">nvtx_range</span><span class="p">(</span><span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">tmol</span><span class="o">.</span><span class="n">utility</span><span class="o">.</span><span class="n">nvtx</span><span class="o">.</span><span class="n">nvtx_range</span><span class="p">(</span><span class="s2">&quot;reactive:&quot;</span> <span class="o">+</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">f</span><span class="p">(</span><span class="o">**</span><span class="n">toresolve</span><span class="p">)</span>
             <span class="c1"># val = prop.f(**toresolve)</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reactive_values</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
@@ -736,23 +736,23 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="vm">__doc__</span>
 
-<div class="viewcode-block" id="ReactiveProperty.getter"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations.ReactiveProperty.getter">[docs]</a>    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+<div class="viewcode-block" id="ReactiveProperty.getter"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom.ReactiveProperty.getter">[docs]</a>    <span class="k">def</span> <span class="nf">getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;ReactiveProperty does not support getter modifications&quot;</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="ReactiveProperty.setter"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations.ReactiveProperty.setter">[docs]</a>    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+<div class="viewcode-block" id="ReactiveProperty.setter"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom.ReactiveProperty.setter">[docs]</a>    <span class="k">def</span> <span class="nf">setter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;ReactiveProperty does not support setter modifications&quot;</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="ReactiveProperty.deleter"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations.ReactiveProperty.deleter">[docs]</a>    <span class="k">def</span> <span class="nf">deleter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+<div class="viewcode-block" id="ReactiveProperty.deleter"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom.ReactiveProperty.deleter">[docs]</a>    <span class="k">def</span> <span class="nf">deleter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
             <span class="s2">&quot;ReactiveProperty does not support deleter modifications&quot;</span>
         <span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="_ReactiveProperty"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations._ReactiveProperty">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="viewcode-block" id="_ReactiveProperty"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._ReactiveProperty">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">_ReactiveProperty</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Pre-init representation of a reactive property.</span>
 
@@ -769,11 +769,11 @@
     <span class="n">parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">_should_invalidate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="_ReactiveProperty.should_invalidate"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations._ReactiveProperty.should_invalidate">[docs]</a>    <span class="k">def</span> <span class="nf">should_invalidate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_ReactiveProperty.should_invalidate"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._ReactiveProperty.should_invalidate">[docs]</a>    <span class="k">def</span> <span class="nf">should_invalidate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_should_invalidate</span> <span class="o">=</span> <span class="n">f</span>
         <span class="k">return</span> <span class="n">f</span></div>
 
-<div class="viewcode-block" id="_ReactiveProperty.from_function"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations._ReactiveProperty.from_function">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_ReactiveProperty.from_function"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._ReactiveProperty.from_function">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_function</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">fun</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">):</span>
@@ -835,7 +835,7 @@
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">parameter_names</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">fun</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="_setup_reactive"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations._setup_reactive">[docs]</a><span class="k">def</span> <span class="nf">_setup_reactive</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="_setup_reactive"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._setup_reactive">[docs]</a><span class="k">def</span> <span class="nf">_setup_reactive</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
 
     <span class="c1"># Gather all _ReactiveProperty in this class and transform into ReactiveProperty</span>
     <span class="n">cls_reactive_props</span> <span class="o">=</span> <span class="p">{</span>
@@ -895,7 +895,7 @@
     <span class="k">return</span> <span class="bp">cls</span></div>
 
 
-<div class="viewcode-block" id="_invalidate_reactive_deps"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.kinematics.gpu_operations._invalidate_reactive_deps">[docs]</a><span class="k">def</span> <span class="nf">_invalidate_reactive_deps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attribute_name</span><span class="p">,</span> <span class="n">new_val</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">NOTHING</span><span class="p">):</span>
+<div class="viewcode-block" id="_invalidate_reactive_deps"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._invalidate_reactive_deps">[docs]</a><span class="k">def</span> <span class="nf">_invalidate_reactive_deps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">attribute_name</span><span class="p">,</span> <span class="n">new_val</span><span class="o">=</span><span class="n">attr</span><span class="o">.</span><span class="n">NOTHING</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;_reactive_values&quot;</span><span class="p">):</span>
         <span class="c1"># No reactive value container yet, haven&#39;t finished __init__</span>
         <span class="k">return</span>

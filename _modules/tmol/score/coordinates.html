@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.coordinates &mdash; TMol 0.0.0-178-g9e0a4bb9 documentation</title>
+  <title>tmol.score.coordinates &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-178-g9e0a4bb9',
+              VERSION:'0.0.0-179-g10d880a9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-178-g9e0a4bb9
+                0.0.0-179-g10d880a9
               </div>
             
           
@@ -183,7 +183,9 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">math</span>
 
-<span class="kn">from</span> <span class="nn">tmol.kinematics.torch_op</span> <span class="k">import</span> <span class="n">KinematicOp</span>
+<span class="kn">from</span> <span class="nn">tmol.kinematics.metadata</span> <span class="k">import</span> <span class="n">DOFMetadata</span>
+<span class="kn">from</span> <span class="nn">tmol.kinematics.datatypes</span> <span class="k">import</span> <span class="n">KinTree</span>
+<span class="kn">from</span> <span class="nn">tmol.kinematics.script_modules</span> <span class="k">import</span> <span class="n">KinematicModule</span>
 
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_property</span>
 
@@ -231,27 +233,39 @@
         <span class="k">if</span> <span class="n">requires_grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">requires_grad</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">dofs</span><span class="o">.</span><span class="n">requires_grad</span>
 
-        <span class="n">kinop</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">kinop</span>
+        <span class="n">kintree</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">kintree</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">dofs</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">device</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unable to change device for kinematic ops.&quot;</span><span class="p">)</span>
 
         <span class="n">dofs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">dofs</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="n">requires_grad</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kinop</span><span class="o">=</span><span class="n">kinop</span><span class="p">,</span> <span class="n">dofs</span><span class="o">=</span><span class="n">dofs</span><span class="p">)</span></div>
+        <span class="n">dofmetadata</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">dofmetadata</span>
 
-    <span class="c1"># Source mobile dofs</span>
-    <span class="n">dofs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:]</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">kintree</span><span class="o">=</span><span class="n">kintree</span><span class="p">,</span> <span class="n">dofs</span><span class="o">=</span><span class="n">dofs</span><span class="p">,</span> <span class="n">dofmetadata</span><span class="o">=</span><span class="n">dofmetadata</span><span class="p">)</span></div>
 
-    <span class="c1"># Kinematic operation of the mobile dofs</span>
-    <span class="n">kinop</span><span class="p">:</span> <span class="n">KinematicOp</span>
+    <span class="c1"># Source dofs</span>
+    <span class="n">dofs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">9</span><span class="p">]</span>
+
+    <span class="c1"># dof info for masking</span>
+    <span class="n">dofmetadata</span><span class="p">:</span> <span class="n">DOFMetadata</span>
+
+    <span class="c1"># kinematic tree (= rosetta atomtree)</span>
+    <span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span>
+
+    <span class="nd">@reactive_property</span>
+    <span class="k">def</span> <span class="nf">kin_module</span><span class="p">(</span><span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KinematicModule</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">KinematicModule</span><span class="p">(</span><span class="n">kintree</span><span class="p">,</span> <span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">coords</span><span class="p">(</span>
-        <span class="n">dofs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:],</span> <span class="n">kinop</span><span class="p">:</span> <span class="n">KinematicOp</span><span class="p">,</span> <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]:</span>
+        <span class="n">dofs</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">9</span><span class="p">],</span>
+        <span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span>
+        <span class="n">kin_module</span><span class="p">:</span> <span class="n">KinematicModule</span><span class="p">,</span>
+        <span class="n">system_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;System cartesian atomic coordinates.&quot;&quot;&quot;</span>
-        <span class="n">kincoords</span> <span class="o">=</span> <span class="n">kinop</span><span class="p">(</span><span class="n">dofs</span><span class="p">)</span>
+        <span class="n">kincoords</span> <span class="o">=</span> <span class="n">kin_module</span><span class="p">(</span><span class="n">dofs</span><span class="p">)</span>
 
         <span class="n">coords</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
             <span class="p">(</span><span class="n">system_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
@@ -262,7 +276,7 @@
             <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">idIdx</span> <span class="o">=</span> <span class="n">kinop</span><span class="o">.</span><span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+        <span class="n">idIdx</span> <span class="o">=</span> <span class="n">kintree</span><span class="o">.</span><span class="n">id</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
         <span class="n">coords</span><span class="p">[</span><span class="n">idIdx</span><span class="p">]</span> <span class="o">=</span> <span class="n">kincoords</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
 
         <span class="k">return</span> <span class="n">coords</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>

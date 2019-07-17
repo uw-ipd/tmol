@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics &mdash; TMol 0.0.0-178-g9e0a4bb9 documentation</title>
+  <title>tmol.kinematics &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-178-g9e0a4bb9',
+              VERSION:'0.0.0-179-g10d880a9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-178-g9e0a4bb9
+                0.0.0-179-g10d880a9
               </div>
             
           
@@ -112,11 +112,8 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.scan_ordering.html">tmol.kinematics.scan_ordering</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.script_modules.html">tmol.kinematics.script_modules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.compiled.html">tmol.kinematics.compiled</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#summary">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
@@ -192,7 +189,6 @@
             
   <div class="section" id="module-tmol.kinematics">
 <span id="tmol-kinematics"></span><h1>tmol.kinematics<a class="headerlink" href="#module-tmol.kinematics" title="Permalink to this headline">¶</a></h1>
-<p>Kinematic operations over bonded atomic systems.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.builder.html">tmol.kinematics.builder</a></li>
@@ -200,105 +196,9 @@
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.scan_ordering.html">tmol.kinematics.scan_ordering</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.script_modules.html">tmol.kinematics.script_modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.compiled.html">tmol.kinematics.compiled</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
 </ul>
-</div>
-<div class="section" id="summary">
-<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">__all__</span></code>: <a class="reference internal" href="tmol.kinematics.datatypes.html#tmol.kinematics.datatypes.KinDOF" title="tmol.kinematics.datatypes.KinDOF"><code class="xref py py-class docutils literal notranslate"><span class="pre">KinDOF</span></code></a>, <a class="reference internal" href="tmol.kinematics.datatypes.html#tmol.kinematics.datatypes.KinTree" title="tmol.kinematics.datatypes.KinTree"><code class="xref py py-class docutils literal notranslate"><span class="pre">KinTree</span></code></a>, <a class="reference internal" href="tmol.kinematics.datatypes.html#tmol.kinematics.datatypes.NodeType" title="tmol.kinematics.datatypes.NodeType"><code class="xref py py-class docutils literal notranslate"><span class="pre">NodeType</span></code></a>, <a class="reference internal" href="tmol.kinematics.operations.html#tmol.kinematics.operations.backwardKin" title="tmol.kinematics.operations.backwardKin"><code class="xref py py-func docutils literal notranslate"><span class="pre">backwardKin</span></code></a>, <a class="reference internal" href="tmol.kinematics.operations.html#tmol.kinematics.operations.forwardKin" title="tmol.kinematics.operations.forwardKin"><code class="xref py py-func docutils literal notranslate"><span class="pre">forwardKin</span></code></a>, <a class="reference internal" href="tmol.kinematics.operations.html#tmol.kinematics.operations.resolveDerivs" title="tmol.kinematics.operations.resolveDerivs"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolveDerivs</span></code></a></p>
-<dl class="class">
-<dt id="tmol.kinematics.NodeType">
-<em class="property">class </em><code class="descclassname">tmol.kinematics.</code><code class="descname">NodeType</code><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#NodeType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.NodeType" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.IntEnum</span></code></a></p>
-<p>KinTree node types.</p>
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.kinematics.KinTree">
-<em class="property">class </em><code class="descclassname">tmol.kinematics.</code><code class="descname">KinTree</code><span class="sig-paren">(</span><em>id: Tensor(torch.int32)[...], doftype: Tensor(torch.int32)[...], parent: Tensor(torch.int32)[...], frame_x: Tensor(torch.int32)[...], frame_y: Tensor(torch.int32)[...], frame_z: Tensor(torch.int32)[...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinTree"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.KinTree" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ConvertAttrs" title="tmol.types.attrs.ConvertAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ConvertAttrs</span></code></a></p>
-<p>Atom-level kinematic description.</p>
-<p>A kinematic description of collection of atom locations, each atom location
-corresponding to a node within a tree. The tree is <em>rooted</em> at a single
-“root” node, representing the global reference frame. Every other node
-corresponds to a derived orientation, which an atomic coordinate at the
-center of the frame.</p>
-<p>Each node is the tree is connected by one of two “node types”:</p>
-<p>1) Jump nodes, representing an arbitrary rigid body transform between two
-reference frames via six degrees of freedom, 3 translational and
-3 rotational.</p>
-<p>2) Bond nodes, representing the relationships between two atom reference
-frames via three bond degrees of freedom, bond axis translation, bond axis
-rotation about the parent-grandparent bond and change of bond axis with
-respect to the bond. Bond nodes include an additional, redundent,
-degree of free representing concerted rotation of all downstream bonds
-about the parent-self bond.</p>
-<p>The <a class="reference internal" href="#tmol.kinematics.KinTree" title="tmol.kinematics.KinTree"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinTree</span></code></a> data structure itself is frozen and can not be modified post
-construction. The <a class="reference internal" href="tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder" title="tmol.kinematics.builder.KinematicBuilder"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinematicBuilder</span></code></a> factory class is responsible for
-construction of a <a class="reference internal" href="#tmol.kinematics.KinTree" title="tmol.kinematics.KinTree"><code class="xref any py py-class docutils literal notranslate"><span class="pre">KinTree</span></code></a> with valid internal structure for atomic
-system.</p>
-<dl class="docutils">
-<dt>Indices::</dt>
-<dd>id = index for kin-atom in the target coordinate system
-parent = kin-atom index of parent for each kin-atom
-frame_x = kin-atom index of self
-frame_y = kin-atom index of parent
-frame_z = kin-atom index of grandparent</dd>
-</dl>
-<dl class="classmethod">
-<dt id="tmol.kinematics.KinTree.node">
-<em class="property">classmethod </em><code class="descname">node</code><span class="sig-paren">(</span><em>id: int</em>, <em>doftype: tmol.kinematics.datatypes.NodeType</em>, <em>parent: int</em>, <em>frame_x: int</em>, <em>frame_y: int</em>, <em>frame_z: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinTree.node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.KinTree.node" title="Permalink to this definition">¶</a></dt>
-<dd><p>Construct a single node from element values.</p>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="tmol.kinematics.KinTree.root_node">
-<em class="property">classmethod </em><code class="descname">root_node</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinTree.root_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.KinTree.root_node" title="Permalink to this definition">¶</a></dt>
-<dd><p>The global/root kinematic node at KinTree[0].</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.kinematics.KinDOF">
-<em class="property">class </em><code class="descclassname">tmol.kinematics.</code><code class="descname">KinDOF</code><span class="sig-paren">(</span><em>raw: Tensor(torch.float64)[...,9]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/datatypes.html#KinDOF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.KinDOF" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a>, <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ConvertAttrs" title="tmol.types.attrs.ConvertAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ConvertAttrs</span></code></a></p>
-<p>Internal coordinate data.</p>
-<p>The KinDOF data structure holds two logical views: the “raw” view a
-sparsely populated [n,9] tensor of DOF values and a set of named property
-accessors providing access to specific entries within this array. This is
-logically equivalent a C union datatype, the interpretation of an entry in
-the DOF buffer depends on the type of the corresponding KinTree entry.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="tmol.kinematics.backwardKin">
-<code class="descclassname">tmol.kinematics.</code><code class="descname">backwardKin</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree, coords: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.operations.BackKinResult<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#backwardKin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.backwardKin" title="Permalink to this definition">¶</a></dt>
-<dd><p>xyzs -&gt; HTs, dofs
-- “backward” kinematics</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="tmol.kinematics.forwardKin">
-<code class="descclassname">tmol.kinematics.</code><code class="descname">forwardKin</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree</em>, <em>dofs: tmol.kinematics.datatypes.KinDOF</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.operations.ForwardKinResult<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#forwardKin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.forwardKin" title="Permalink to this definition">¶</a></dt>
-<dd><p>dofs -&gt; HTs, xyzs</p>
-<ul class="simple">
-<li>“forward” kinematics</li>
-</ul>
-</dd></dl>
-
-<dl class="function">
-<dt id="tmol.kinematics.resolveDerivs">
-<code class="descclassname">tmol.kinematics.</code><code class="descname">resolveDerivs</code><span class="sig-paren">(</span><em>kintree: tmol.kinematics.datatypes.KinTree, dofs: tmol.kinematics.datatypes.KinDOF, HTs: Tensor(torch.float64)[:,4,4], dsc_dx: Tensor(torch.float64)[:,3]</em><span class="sig-paren">)</span> &#x2192; tmol.kinematics.datatypes.KinDOF<a class="reference internal" href="../_modules/tmol/kinematics/operations.html#resolveDerivs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.resolveDerivs" title="Permalink to this definition">¶</a></dt>
-<dd><p>xyz derivs -&gt; dof derivs</p>
-<ul class="simple">
-<li>derivative mapping using Abe and Go approach</li>
-</ul>
-</dd></dl>
-
 </div>
 </div>
 

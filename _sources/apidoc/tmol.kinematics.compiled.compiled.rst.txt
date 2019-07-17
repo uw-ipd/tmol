@@ -7,7 +7,7 @@ tmol.kinematics.compiled.compiled
 .. currentmodule:: tmol.kinematics.compiled.compiled
 
 .. automodule:: tmol.kinematics.compiled.compiled
-    :members: backward_kin, dof_transforms, f1f2_to_deriv, forward_kin, segscan_f1f2s
+    :members: inverse_kin
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,11 +21,7 @@ tmol.kinematics.compiled.compiled
     .. autosummary::
         :nosignatures:
 
-        backward_kin
-        dof_transforms
-        f1f2_to_deriv
-        forward_kin
-        segscan_f1f2s
+        inverse_kin
 
 
 

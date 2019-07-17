@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.compiled.compiled &mdash; TMol 0.0.0-178-g9e0a4bb9 documentation</title>
+  <title>tmol.kinematics.compiled.compiled &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-178-g9e0a4bb9',
+              VERSION:'0.0.0-179-g10d880a9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -47,7 +47,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.kinematics.cpu_operations" href="tmol.kinematics.cpu_operations.html" />
+    <link rel="next" title="tmol.numeric" href="tmol.numeric.html" />
     <link rel="prev" title="tmol.kinematics.compiled" href="tmol.kinematics.compiled.html" /> 
 </head>
 
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-178-g9e0a4bb9
+                0.0.0-179-g10d880a9
               </div>
             
           
@@ -112,7 +112,7 @@
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.metadata.html">tmol.kinematics.metadata</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.operations.html">tmol.kinematics.operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.scan_ordering.html">tmol.kinematics.scan_ordering</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.script_modules.html">tmol.kinematics.script_modules</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="tmol.kinematics.compiled.html">tmol.kinematics.compiled</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">tmol.kinematics.compiled.compiled</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#summary">Summary</a></li>
@@ -121,9 +121,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
@@ -213,19 +210,7 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.compiled.compiled.backward_kin" title="tmol.kinematics.compiled.compiled.backward_kin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">backward_kin</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.compiled.compiled.dof_transforms" title="tmol.kinematics.compiled.compiled.dof_transforms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dof_transforms</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.compiled.compiled.f1f2_to_deriv" title="tmol.kinematics.compiled.compiled.f1f2_to_deriv"><code class="xref py py-obj docutils literal notranslate"><span class="pre">f1f2_to_deriv</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.compiled.compiled.forward_kin" title="tmol.kinematics.compiled.compiled.forward_kin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">forward_kin</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.compiled.compiled.segscan_f1f2s" title="tmol.kinematics.compiled.compiled.segscan_f1f2s"><code class="xref py py-obj docutils literal notranslate"><span class="pre">segscan_f1f2s</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.kinematics.compiled.compiled.inverse_kin" title="tmol.kinematics.compiled.compiled.inverse_kin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">inverse_kin</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -235,28 +220,8 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="tmol.kinematics.compiled.compiled.forward_kin">
-<code class="descclassname">tmol.kinematics.compiled.compiled.</code><code class="descname">forward_kin</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/compiled/compiled.html#forward_kin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.compiled.compiled.forward_kin" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="tmol.kinematics.compiled.compiled.dof_transforms">
-<code class="descclassname">tmol.kinematics.compiled.compiled.</code><code class="descname">dof_transforms</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/compiled/compiled.html#dof_transforms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.compiled.compiled.dof_transforms" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="tmol.kinematics.compiled.compiled.backward_kin">
-<code class="descclassname">tmol.kinematics.compiled.compiled.</code><code class="descname">backward_kin</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/compiled/compiled.html#backward_kin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.compiled.compiled.backward_kin" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="tmol.kinematics.compiled.compiled.f1f2_to_deriv">
-<code class="descclassname">tmol.kinematics.compiled.compiled.</code><code class="descname">f1f2_to_deriv</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/compiled/compiled.html#f1f2_to_deriv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.compiled.compiled.f1f2_to_deriv" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="tmol.kinematics.compiled.compiled.segscan_f1f2s">
-<code class="descclassname">tmol.kinematics.compiled.compiled.</code><code class="descname">segscan_f1f2s</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/compiled/compiled.html#segscan_f1f2s"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.compiled.compiled.segscan_f1f2s" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.kinematics.compiled.compiled.inverse_kin">
+<code class="descclassname">tmol.kinematics.compiled.compiled.</code><code class="descname">inverse_kin</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/compiled/compiled.html#inverse_kin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.compiled.compiled.inverse_kin" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>
@@ -270,7 +235,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.kinematics.cpu_operations.html" class="btn btn-neutral float-right" title="tmol.kinematics.cpu_operations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.numeric.html" class="btn btn-neutral float-right" title="tmol.numeric" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tmol.kinematics.compiled.html" class="btn btn-neutral float-left" title="tmol.kinematics.compiled" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

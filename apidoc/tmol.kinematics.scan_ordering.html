@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.scan_ordering &mdash; TMol 0.0.0-178-g9e0a4bb9 documentation</title>
+  <title>tmol.kinematics.scan_ordering &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-178-g9e0a4bb9',
+              VERSION:'0.0.0-179-g10d880a9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -47,7 +47,7 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="tmol.kinematics.torch_op" href="tmol.kinematics.torch_op.html" />
+    <link rel="next" title="tmol.kinematics.script_modules" href="tmol.kinematics.script_modules.html" />
     <link rel="prev" title="tmol.kinematics.operations" href="tmol.kinematics.operations.html" /> 
 </head>
 
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-178-g9e0a4bb9
+                0.0.0-179-g10d880a9
               </div>
             
           
@@ -119,11 +119,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.torch_op.html">tmol.kinematics.torch_op</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.script_modules.html">tmol.kinematics.script_modules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.compiled.html">tmol.kinematics.compiled</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.cpu_operations.html">tmol.kinematics.cpu_operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.gpu_operations.html">tmol.kinematics.gpu_operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="tmol.kinematics.html#summary">Summary</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tmol.numeric.html">tmol.numeric</a></li>
@@ -215,7 +212,7 @@
 <td></td>
 </tr>
 <tr class="row-even"><td><a class="reference internal" href="#tmol.kinematics.scan_ordering.KinTreeScanOrdering" title="tmol.kinematics.scan_ordering.KinTreeScanOrdering"><code class="xref py py-obj docutils literal notranslate"><span class="pre">KinTreeScanOrdering</span></code></a></td>
-<td>Scan ordering for parallel kinematic operations.</td>
+<td>Scan plans for parallel kinematic operations.</td>
 </tr>
 </tbody>
 </table>
@@ -226,7 +223,26 @@
 <dl class="attribute">
 <dt id="tmol.kinematics.scan_ordering.get_scans">
 <code class="descclassname">tmol.kinematics.scan_ordering.</code><code class="descname">get_scans</code><a class="reference internal" href="../_modules/tmol/kinematics/scan_ordering.html#get_scans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.scan_ordering.get_scans" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Partitioning of a tree into linear subpaths.</p>
+<p>The tree is stored as a list of pointers to parent indices, with an
+arbitrary set of roots.  Each root implies a connected subtree.
+Each index i has a parent index (p_i) “higher” in the tree (p_i &lt; i).
+The tree structure is fully defined by parent pointers, an index array
+(parent) of len(tree_size) where parent[i] == i for all root nodes.</p>
+<p>The source tree implies a per-node child list of length &gt;= 0, defined by
+all nodes for which the given node is a parent. Nodes with no children are
+leaves.</p>
+<p>Scan paths cuts the tree into linear paths, where each non-leaf node (i)
+has a <em>single</em> child (c_i) “lower” in the tree (i &lt; c_i). The path
+structure is fully defined by child pointers, an index array (subpath_child)
+of subpath_child[i] == c_i (non-leaves) or subpath_child[i] = -1 (leaves).</p>
+<p>The path partitioning implies “subpath roots”, the set of nodes which are
+<em>not</em> the subpath child of their parent (subpath_child[parent[i]] != i).</p>
+<p>Each path in the tree is labeled with a depth: a path with depth
+i may depend on the values computed for atoms with depths 0..i-1.
+All of the paths of the same depth can be processed in a single
+kernel execution with segmented scan.</p>
+</dd></dl>
 
 <dl class="class">
 <dt id="tmol.kinematics.scan_ordering.KinTreeScanData">
@@ -238,9 +254,45 @@
 <dt id="tmol.kinematics.scan_ordering.KinTreeScanOrdering">
 <em class="property">class </em><code class="descclassname">tmol.kinematics.scan_ordering.</code><code class="descname">KinTreeScanOrdering</code><span class="sig-paren">(</span><em>forward_scan_paths: tmol.kinematics.scan_ordering.KinTreeScanData</em>, <em>backward_scan_paths: tmol.kinematics.scan_ordering.KinTreeScanData</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/kinematics/scan_ordering.html#KinTreeScanOrdering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.kinematics.scan_ordering.KinTreeScanOrdering" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.attrs.html#tmol.types.attrs.ValidateAttrs" title="tmol.types.attrs.ValidateAttrs"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.attrs.ValidateAttrs</span></code></a></p>
-<p>Scan ordering for parallel kinematic operations.</p>
-<p>Following the previous version, this is attached to the kintree object.
-Unlike previous version this is sent to device on creation.</p>
+<p>Scan plans for parallel kinematic operations.</p>
+<p>The KinTreeScanOrdering class divides the tree into a set of paths. Along
+each path is a continuous chain of atoms that either (1) require their
+coordinate frames computed as a cumulative product of homogeneous
+transforms for the coordinate update algorithm, or (2) require the
+cumulative sum of their f1f2 vectors for the derivative calculation
+algorithm. In both cases, these paths can be processed efficiently
+on the GPU using an algorithm called “scan” and batches of these paths
+can be processed at once in a variant called “segmented scan.”</p>
+<p>The same set of paths is used for both the refold algorithm and
+the derivative summation; the refold algorithm starts at path
+roots and multiplies homogeneous transforms towards the leaves.
+The derivative summation algorithm starts at the leaves and sums
+upwards towards the roots.</p>
+<p>To accomplish this, the GPUKinTreeReordering class reorders the atoms from
+the original KinTree order (“ko”) where atoms are known by their
+kintree-index (“ki”) into 1) their refold order (“ro”) where atoms are
+known by their refold index (“ri”) and 2) their deriv-sum order (“dso”)
+where atoms are known by their deriv-sum index.</p>
+<p>Each scan operation is performed as a series of depth-based “generations”,
+in which the scans at generation n are <em>only</em> dependent on the results of
+scans in generations [0…n-1] inclusive. In the forward-scan generations
+are ordered from the kinematic root, and scan segments begin with a value
+derived from the result of a generation [0…n-1] scan. In the
+backward-scan generations are ordered from kinematic leaves, and scan
+segments pull summation results from multiple generation [0…n-1] scans.</p>
+<p>For further details on parallel segmented scan operations see:</p>
+<ul class="simple">
+<li>Mark Harris, “Parallel Prefix Sum with CUDA.”
+GPU Gems 3, Nvidia Corporation
+<a class="reference external" href="https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html">https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch39.html</a>
+<a class="reference external" href="http://developer.download.nvidia.com/">http://developer.download.nvidia.com/</a>
+compute/cuda/2_2/sdk/website/projects/scan/doc/scan.pdf</li>
+<li>Sengupta, Shubhabrata, et al. “Scan primitives for GPU computing.”
+Graphics hardware. Vol. 2007. 2007.
+<a class="reference external" href="http://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Sengupta07.pdf">http://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Sengupta07.pdf</a></li>
+<li>Sean Baxter, “moderngpu”
+<a class="reference external" href="http://moderngpu.github.io/moderngpu">http://moderngpu.github.io/moderngpu</a></li>
+</ul>
 <dl class="attribute">
 <dt id="tmol.kinematics.scan_ordering.KinTreeScanOrdering.kintree_cache_key">
 <code class="descname">kintree_cache_key</code><em class="property"> = '__KinTreeScanOrdering_cache__'</em><a class="headerlink" href="#tmol.kinematics.scan_ordering.KinTreeScanOrdering.kintree_cache_key" title="Permalink to this definition">¶</a></dt>
@@ -277,7 +329,7 @@ object.
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tmol.kinematics.torch_op.html" class="btn btn-neutral float-right" title="tmol.kinematics.torch_op" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tmol.kinematics.script_modules.html" class="btn btn-neutral float-right" title="tmol.kinematics.script_modules" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="tmol.kinematics.operations.html" class="btn btn-neutral float-left" title="tmol.kinematics.operations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

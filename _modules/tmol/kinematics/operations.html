@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.kinematics.operations &mdash; TMol 0.0.0-178-g9e0a4bb9 documentation</title>
+  <title>tmol.kinematics.operations &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-178-g9e0a4bb9',
+              VERSION:'0.0.0-179-g10d880a9',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-178-g9e0a4bb9
+                0.0.0-179-g10d880a9
               </div>
             
           
@@ -175,127 +175,48 @@
            <div itemprop="articleBody">
             
   <h1>Source code for tmol.kinematics.operations</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">attr</span>
-<span class="kn">import</span> <span class="nn">numpy</span>
-
-<span class="kn">import</span> <span class="nn">torch</span>
+<span></span><span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 <span class="kn">from</span> <span class="nn">tmol.types.torch</span> <span class="k">import</span> <span class="n">Tensor</span>
-<span class="kn">from</span> <span class="nn">tmol.types.attrs</span> <span class="k">import</span> <span class="n">ValidateAttrs</span>
 
 <span class="kn">from</span> <span class="nn">tmol.kinematics.compiled</span> <span class="k">import</span> <span class="n">compiled</span>
+<span class="kn">from</span> <span class="nn">tmol.kinematics.script_modules</span> <span class="k">import</span> <span class="n">KinematicModule</span>
 
-<span class="kn">from</span> <span class="nn">.datatypes</span> <span class="k">import</span> <span class="n">NodeType</span><span class="p">,</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">KinDOF</span>
 
-<span class="c1"># from .gpu_operations import GPUKinTreeReordering</span>
-<span class="c1"># from .cpu_operations import iterative_f1f2_summation</span>
+<span class="kn">from</span> <span class="nn">.datatypes</span> <span class="k">import</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">KinDOF</span>
 
-<span class="kn">from</span> <span class="nn">.scan_ordering</span> <span class="k">import</span> <span class="n">KinTreeScanOrdering</span>
-
-<span class="n">HTArray</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
 <span class="n">CoordArray</span> <span class="o">=</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">double</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="BackKinResult"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.BackKinResult">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">BackKinResult</span><span class="p">(</span><span class="n">ValidateAttrs</span><span class="p">):</span>
-    <span class="n">hts</span><span class="p">:</span> <span class="n">HTArray</span>
-    <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span></div>
-
-
-<div class="viewcode-block" id="backwardKin"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.backwardKin">[docs]</a><span class="nd">@validate_args</span>
-<span class="k">def</span> <span class="nf">backwardKin</span><span class="p">(</span><span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BackKinResult</span><span class="p">:</span>
+<div class="viewcode-block" id="inverseKin"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.operations.inverseKin">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">inverseKin</span><span class="p">(</span><span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">coords</span><span class="p">:</span> <span class="n">CoordArray</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KinDOF</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;xyzs -&gt; HTs, dofs</span>
 <span class="sd">      - &quot;backward&quot; kinematics</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">natoms</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="c1"># 1) global HTs</span>
-    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">root</span>
-    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-
-    <span class="n">dofs</span> <span class="o">=</span> <span class="n">KinDOF</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">coords</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">HTs</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">backward_kin</span><span class="p">(</span>
+    <span class="n">raw_dofs</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">inverse_kin</span><span class="p">(</span>
         <span class="n">coords</span><span class="p">,</span>
-        <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span>
         <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
         <span class="n">kintree</span><span class="o">.</span><span class="n">frame_x</span><span class="p">,</span>
         <span class="n">kintree</span><span class="o">.</span><span class="n">frame_y</span><span class="p">,</span>
         <span class="n">kintree</span><span class="o">.</span><span class="n">frame_z</span><span class="p">,</span>
-        <span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">BackKinResult</span><span class="p">(</span><span class="n">HTs</span><span class="p">,</span> <span class="n">dofs</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="DOFTransforms"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.DOFTransforms">[docs]</a><span class="k">def</span> <span class="nf">DOFTransforms</span><span class="p">(</span><span class="n">dof_types</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)[:],</span> <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HTArray</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Calculate HT representation of given dofs.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">compiled</span><span class="o">.</span><span class="n">dof_transforms</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">dof_types</span><span class="p">)</span></div>
+        <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="n">requires_grad</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">KinDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="n">raw_dofs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ForwardKinResult"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.ForwardKinResult">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">ForwardKinResult</span><span class="p">:</span>
-    <span class="n">hts</span><span class="p">:</span> <span class="n">HTArray</span>
-    <span class="n">coords</span><span class="p">:</span> <span class="n">CoordArray</span></div>
-
-
-<div class="viewcode-block" id="forwardKin"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.forwardKin">[docs]</a><span class="nd">@validate_args</span>
-<span class="k">def</span> <span class="nf">forwardKin</span><span class="p">(</span><span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ForwardKinResult</span><span class="p">:</span>
+<span class="c1"># wrapper for the module that is used for testing</span>
+<span class="c1"># creates a new module each call so not particularly efficient</span>
+<div class="viewcode-block" id="forwardKin"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.operations.forwardKin">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">forwardKin</span><span class="p">(</span><span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CoordArray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;dofs -&gt; HTs, xyzs</span>
-
 <span class="sd">      - &quot;forward&quot; kinematics</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dofs</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">root</span>
-    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
 
-    <span class="c1"># 1) Calculate local inter-node HTs from dofs</span>
-    <span class="n">ordering</span> <span class="o">=</span> <span class="n">KinTreeScanOrdering</span><span class="o">.</span><span class="n">for_kintree</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span>
+    <span class="n">ksm</span> <span class="o">=</span> <span class="n">KinematicModule</span><span class="p">(</span><span class="n">kintree</span><span class="p">,</span> <span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">ksm</span><span class="p">(</span><span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="p">)</span>
 
-    <span class="n">HTs</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">forward_kin</span><span class="p">(</span>
-        <span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="n">ordering</span><span class="o">.</span><span class="n">forward_scan_paths</span><span class="p">)</span>
-    <span class="p">)</span>
-
-    <span class="n">coords</span> <span class="o">=</span> <span class="n">HTs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">ForwardKinResult</span><span class="p">(</span><span class="n">HTs</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="resolveDerivs"><a class="viewcode-back" href="../../../apidoc/tmol.kinematics.operations.html#tmol.kinematics.resolveDerivs">[docs]</a><span class="nd">@validate_args</span>
-<span class="k">def</span> <span class="nf">resolveDerivs</span><span class="p">(</span>
-    <span class="n">kintree</span><span class="p">:</span> <span class="n">KinTree</span><span class="p">,</span> <span class="n">dofs</span><span class="p">:</span> <span class="n">KinDOF</span><span class="p">,</span> <span class="n">HTs</span><span class="p">:</span> <span class="n">HTArray</span><span class="p">,</span> <span class="n">dsc_dx</span><span class="p">:</span> <span class="n">CoordArray</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KinDOF</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;xyz derivs -&gt; dof derivs</span>
-
-<span class="sd">    - derivative mapping using Abe and Go approach</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">NodeType</span><span class="o">.</span><span class="n">root</span>
-    <span class="k">assert</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
-
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dofs</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">HTs</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dsc_dx</span><span class="p">)</span>
-
-    <span class="c1"># Can not render higher-order derivatives for kinematic operations,</span>
-    <span class="c1"># as is generated with backward(create_graph=True) is called.</span>
-    <span class="k">assert</span> <span class="n">dsc_dx</span><span class="o">.</span><span class="n">requires_grad</span> <span class="ow">is</span> <span class="kc">False</span>
-
-    <span class="c1"># 1) local f1/f2s</span>
-    <span class="n">Xs</span> <span class="o">=</span> <span class="n">HTs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">f1s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span> <span class="n">Xs</span> <span class="o">-</span> <span class="n">dsc_dx</span><span class="p">)</span>
-    <span class="n">f2s</span> <span class="o">=</span> <span class="n">dsc_dx</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>  <span class="c1"># clone input buffer before aggregation</span>
-    <span class="n">f1f2s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">f1s</span><span class="p">,</span> <span class="n">f2s</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
-
-    <span class="c1"># 2) pass f1/f2s up tree</span>
-    <span class="n">ordering</span> <span class="o">=</span> <span class="n">KinTreeScanOrdering</span><span class="o">.</span><span class="n">for_kintree</span><span class="p">(</span><span class="n">kintree</span><span class="p">)</span>
-    <span class="n">compiled</span><span class="o">.</span><span class="n">segscan_f1f2s</span><span class="p">(</span><span class="n">f1f2s</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="n">ordering</span><span class="o">.</span><span class="n">backward_scan_paths</span><span class="p">))</span>
-
-    <span class="c1"># 3) convert to dscore/dtors</span>
-    <span class="n">dsc_ddofs</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">f1f2_to_deriv</span><span class="p">(</span>
-        <span class="n">HTs</span><span class="p">,</span> <span class="n">dofs</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">kintree</span><span class="o">.</span><span class="n">doftype</span><span class="p">,</span> <span class="n">kintree</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">f1f2s</span>
-    <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">KinDOF</span><span class="p">(</span><span class="n">raw</span><span class="o">=</span><span class="n">dsc_ddofs</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">coords</span></div>
 </pre></div>
 
            </div>

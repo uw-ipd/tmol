@@ -7,7 +7,7 @@ tmol.kinematics.operations
 .. currentmodule:: tmol.kinematics.operations
 
 .. automodule:: tmol.kinematics.operations
-    :members: BackKinResult, DOFTransforms, ForwardKinResult, backwardKin, forwardKin, resolveDerivs
+    :members: forwardKin, inverseKin
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -15,25 +15,14 @@ tmol.kinematics.operations
     Summary
     -------
 
-    Classes
-    ~~~~~~~
-
-    .. autosummary::
-        :nosignatures:
-
-        BackKinResult
-        ForwardKinResult
-
     Functions
     ~~~~~~~~~
     
     .. autosummary::
         :nosignatures:
 
-        DOFTransforms
-        backwardKin
         forwardKin
-        resolveDerivs
+        inverseKin
 
 
 

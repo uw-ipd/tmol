@@ -16,22 +16,12 @@ tmol.kinematics
        tmol.kinematics.metadata
        tmol.kinematics.operations
        tmol.kinematics.scan_ordering
-       tmol.kinematics.torch_op
+       tmol.kinematics.script_modules
   
        tmol.kinematics.compiled
-       tmol.kinematics.cpu_operations
-       tmol.kinematics.gpu_operations
 
 
 
 
-    Summary
-    -------
-
-  
-
-  
-  
-    ``__all__``: :class:`KinDOF <tmol.kinematics.datatypes.KinDOF>`, :class:`KinTree <tmol.kinematics.datatypes.KinTree>`, :class:`NodeType <tmol.kinematics.datatypes.NodeType>`, :func:`backwardKin <tmol.kinematics.operations.backwardKin>`, :func:`forwardKin <tmol.kinematics.operations.forwardKin>`, :func:`resolveDerivs <tmol.kinematics.operations.resolveDerivs>`
 
 
