@@ -97,7 +97,8 @@ def test_lj_for_stacked_system(ubq_system: PackedResidueSystem):
     intra = lj_graph.intra_score()
     tot = intra.total_lj.cpu()
 
-    assert torch.testing.assert_allclose(tot[0], tot[1])
+    assert tot.shape == (2,)
+    torch.testing.assert_allclose(tot[0], tot[1])
 
 
 def test_lk_for_stacked_system(ubq_system: PackedResidueSystem):
