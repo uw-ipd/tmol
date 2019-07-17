@@ -55,7 +55,7 @@ def test_torsion_network_min(ubq_system, torch_device):
     # score
     score_graph.intra_score().total
     model = TorsionalEnergyNetwork(score_graph)
-    optimizer = LBFGS_Armijo(model.parameters(), lr=0.8, max_iter=20)
+    optimizer = LBFGS_Armijo(model.parameters(), lr=0.1, max_iter=20)
 
     # score once to initialize
     E0 = score_graph.intra_score().total

@@ -7,6 +7,8 @@
 #include <moderngpu/search.hxx>
 #include <moderngpu/transform.hxx>
 
+#include <tmol/utility/nvtx.hh>
+
 namespace tmol {
 namespace kinematics {
 
@@ -126,18 +128,20 @@ struct cta_lbs_segscan_t {
 //     with both upward- & downward-pass ctas
 template <int nt, typename type_t, typename op_t>
 void spine_segreduce(
-    type_t* values,
-    const int* codes,
+    type_t* values,    // input
+    const int* codes,  // input
     int count,
+    type_t* carry_out_values,  // output buffer
+    int* carry_out_codes,      // output buffer
     op_t op,
     type_t init,
     context_t& context) {
   int num_ctas = div_up(count, nt);
 
-  mem_t<type_t> carry_out(num_ctas, context);
-  mem_t<int> codes_out(num_ctas, context);
-  type_t* carry_out_values = carry_out.data();
-  int* carry_out_codes = codes_out.data();
+  // mem_t<type_t> carry_out(num_ctas, context);
+  // mem_t<int> codes_out(num_ctas, context);
+  // type_t* carry_out_values = carry_out.data();
+  // int* carry_out_codes = codes_out.data();
 
   // upward pass
   auto k_spine_up = [=] MGPU_DEVICE(int tid, int cta) {
@@ -183,9 +187,17 @@ void spine_segreduce(
   cta_launch<nt>(k_spine_up, num_ctas, context);
 
   // recursive call if there are > 1 ctas
+  // shift our buffer pointers to use additional free space at the end
   if (num_ctas > 1) {
     spine_segreduce<nt>(
-        carry_out_values, carry_out_codes, num_ctas, op, init, context);
+        carry_out_values,
+        carry_out_codes,
+        num_ctas,
+        &carry_out_values[num_ctas],
+        &carry_out_codes[num_ctas],
+        op,
+        init,
+        context);
 
     // downward pass (not cta 0)
     auto k_spine_down = [=] MGPU_DEVICE(int tid, int cta) {
@@ -201,7 +213,40 @@ void spine_segreduce(
   }
 }
 
-// segscan kernel
+// Segmented scan kernel
+//   Based (loosely) on mgpu's segmented reduce code
+//
+//   Inputs:
+//      f - input element iterator
+//      count - number of input elements
+//      segments - segment index iterator
+//      num_segments - number of segments
+//      output - output buffer
+//      carry_out_data, codes_data - temporary buffers
+//      mp_data - temporary buffer
+//      op - the scan operator
+//      init - the identity element
+//      context - the mgpu context for kernal launches
+//
+//   The template argument 'launch_arg_t' provides two parameters:
+//      vt: # of threads per CTA
+//      nt: # of elements processed per thread
+//
+//   Temp buffers carry_out_data and codes_data must be of size:
+//      ceil( (count+num_segments) / (vt*nt) )
+//      + ceil( (count+num_segments) / (vt*nt*nt) )
+//      + ceil( (count+num_segments) / (vt*nt*nt*nt) )
+//      + ...
+//   stopping the summation when the arg to ceil becomes < 1.
+//
+//   This is because this buffer is used for both the initial call and
+//     for the recursive "spine_scan" where we perform additional scans.
+//   On each recursive call we simply slide the beffer pointer to the end
+//     of the current level's array.
+//
+//   The temp buffer for mp_data is of size:
+//      ceil ((dest_count + num_segments) / (vt*nt)) + 1
+//
 template <
     typename launch_arg_t = empty_t,
     scan_type_t scan_type = scan_type_inc,
@@ -216,6 +261,9 @@ void kernel_segscan(
     segments_it segments,
     int num_segments,
     output_it output,
+    type_t* carry_out_data,
+    int* codes_data,
+    int* mp_data,
     op_t op,
     type_t init,
     context_t& context) {
@@ -225,24 +273,20 @@ void kernel_segscan(
           arch_20_cta<128, 11, 8>,
           arch_35_cta<128, 7, 5>,
           arch_52_cta<128, 11, 8> > >::type_t launch_t;
+  NVTXRange _function(__FUNCTION__);
 
+  nvtx_range_push("kernel_segscan::setup");
   cta_dim_t cta_dim = launch_t::cta_dim(context);
   int num_ctas = cta_dim.num_ctas(count + num_segments);
-
-  // storage between temp arrays
-  mem_t<type_t> carry_out(num_ctas, context);
-  mem_t<int> codes(num_ctas, context);
-  type_t* carry_out_data = carry_out.data();
-  int* codes_data = codes.data();
-
-  mem_t<int> mp = load_balance_partitions(
-      count, segments, num_segments, cta_dim.nv(), context);
-  const int* mp_data = mp.data();
+  load_balance_partitions(
+      count, segments, num_segments, cta_dim.nv(), mp_data, context);
+  nvtx_range_pop();
 
   // "upward" scan:
   //   - within each CTA, run the forward segscan
   //   - compute the value to be passed to the next CTA (carry_out_data)
   //   - compute whether or not this segment allows passthrough (codes_data)
+  nvtx_range_push("kernel_segscan::upscan");
   auto k_scan = [=] MGPU_DEVICE(int tid, int cta) {
     typedef typename launch_t::sm_ptx params_t;
     enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };
@@ -295,6 +339,7 @@ void kernel_segscan(
         scan_type);
   };
   cta_launch<launch_t>(k_scan, num_ctas, context);
+  nvtx_range_pop();
 
   // if there was only 1 CTA, we're done
   if (num_ctas == 1) {
@@ -302,11 +347,21 @@ void kernel_segscan(
   }
 
   // perform segscans across "carry_out"
-  mem_t<type_t> carry_out_scan(num_ctas, context);
+  // shift our buffer pointers to use additional free space at the end
+  nvtx_range_push("kernel_segscan::spine_scan");
   spine_segreduce<launch_t::nt>(
-      carry_out_data, codes_data, num_ctas, op, init, context);
+      carry_out_data,
+      codes_data,
+      num_ctas,
+      &carry_out_data[num_ctas],
+      &codes_data[num_ctas],
+      op,
+      init,
+      context);
+  nvtx_range_pop();
 
   // final downward sweep
+  nvtx_range_push("kernel_segscan::downscan");
   auto k_finalsweep = [=] MGPU_DEVICE(int tid, int cta) {
     typedef typename launch_t::sm_ptx params_t;
     enum { nt = params_t::nt, vt = params_t::vt, vt0 = params_t::vt0 };
@@ -332,6 +387,7 @@ void kernel_segscan(
     });
   };
   cta_launch<launch_t>(k_finalsweep, num_ctas - 1, context);
+  nvtx_range_pop();
 }
 
 }  // namespace kinematics

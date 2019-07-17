@@ -15,7 +15,7 @@ warnings.filterwarnings(
     "ignore",
     message=r"(\n|.)*"
     r"x86_64-conda_cos6-linux-gnu-c\+\+.*"
-    r"may be ABI-incompatible with PyTorch(\n|.)*",
+    r"is not compatible with the compiler Pytorch(\n|.)*",
 )
 
 _default_include_paths = list(tmol_include_paths() + extern_include_paths())

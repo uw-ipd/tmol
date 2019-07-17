@@ -1,15 +1,12 @@
 import pytest
 
-import attr
 import torch
 import numpy
 
-from tmol.kinematics.operations import backwardKin, forwardKin
+from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import KinematicBuilder
 from tmol.kinematics.scan_ordering import KinTreeScanOrdering
 from tmol.tests.torch import requires_cuda
-
-from tmol.kinematics.compiled import compiled
 
 
 def system_kintree(target_system):
@@ -72,68 +69,74 @@ def test_refold_data_construction(benchmark, ubq_system):
 
 
 @requires_cuda
-@pytest.mark.benchmark(group="kinematic_op_micro_refold")
+@pytest.mark.benchmark(group="kinematic_op_micro_forward")
 def test_refold_values_cpp(benchmark, big_system):
     target_device = torch.device("cuda")
     kintree = system_kintree(big_system)
 
     tcoords = torch.tensor(big_system.coords[kintree.id]).to(device=target_device)
     tkintree = kintree.to(device=target_device)
-    bkin = backwardKin(tkintree, tcoords)
+    bkin = inverseKin(tkintree, tcoords)
 
     KinTreeScanOrdering.calculate_from_kintree(tkintree)
 
     @benchmark
     def parallel_refold_hts_cpp():
-        return forwardKin(tkintree, bkin.dofs)
+        return forwardKin(tkintree, bkin)
 
     # fold via cpu and gpu, ensuring results match
-    hts_cuda = parallel_refold_hts_cpp
+    dofs_cuda = parallel_refold_hts_cpp
 
-    bkin = backwardKin(kintree, tcoords.cpu())
+    bkin = inverseKin(kintree, tcoords.cpu())
+    dofs_cpu = forwardKin(kintree, bkin)
 
-    hts_cpu = forwardKin(kintree, bkin.dofs)
-
-    assert hts_cuda.hts.device.type == "cuda"
-    assert hts_cpu.hts.device.type == "cpu"
-    torch.testing.assert_allclose(hts_cuda.hts.cpu(), hts_cpu.hts)
+    assert dofs_cuda.device.type == "cuda"
+    assert dofs_cpu.device.type == "cpu"
+    torch.testing.assert_allclose(dofs_cuda.cpu(), dofs_cpu)
 
 
 @requires_cuda
-@pytest.mark.benchmark(group="kinematic_op_micro_derivsum")
+@pytest.mark.benchmark(group="kinematic_op_micro_backward")
 def test_derivsum_values_cpp(benchmark, big_system):
     target_device = torch.device("cuda")
     torch.manual_seed(1663)
 
     kintree_cpu = system_kintree(big_system)
+    coords_cpu = torch.tensor(big_system.coords[kintree_cpu.id])
+    dscdx_cpu = (torch.rand_like(coords_cpu) * 0.2) - 0.1
 
-    coords_cuda = torch.tensor(big_system.coords[kintree_cpu.id]).to(
-        device=target_device
-    )
+    coords_cuda = coords_cpu.to(device=target_device)
     kintree_cuda = kintree_cpu.to(device=target_device)
+    dscdx_cuda = dscdx_cpu.to(device=target_device)
 
-    dsc_dx = (torch.rand_like(coords_cuda) * 2) - 1
-    f1s = torch.cross(coords_cuda, coords_cuda - dsc_dx)
-    f2s = dsc_dx.clone()
-    f1f2s_cuda = torch.cat((f1s, f2s), 1)
-    f1f2s_cpu = f1f2s_cuda.cpu()
+    bkin_cpu = inverseKin(kintree_cpu, coords_cpu, requires_grad=True)
+    recoords_cpu = forwardKin(kintree_cpu, bkin_cpu)
 
-    ordering_cuda = KinTreeScanOrdering.for_kintree(kintree_cuda)
+    bkin_cuda = inverseKin(kintree_cuda, coords_cuda, requires_grad=True)
+    recoords_cuda = forwardKin(kintree_cuda, bkin_cuda)
 
     @benchmark
-    def parallel_f1f2_sums_cpp():
-        f1f2s_cuda_copy = f1f2s_cuda.clone()
-        compiled.segscan_f1f2s(
-            f1f2s_cuda_copy, **attr.asdict(ordering_cuda.backward_scan_paths)
+    def parallel_derivsum_cuda():
+        return torch.autograd.grad(
+            recoords_cuda,
+            bkin_cuda.raw,
+            dscdx_cuda,
+            retain_graph=True,
+            allow_unused=True,
         )
-        return f1f2s_cuda_copy
 
-    f1f2s_cuda = parallel_f1f2_sums_cpp
+    dscddof_cuda, = parallel_derivsum_cuda
 
     # same calc on CPU
-    ordering_cpu = KinTreeScanOrdering.for_kintree(kintree_cpu)
-    compiled.segscan_f1f2s(f1f2s_cpu, **attr.asdict(ordering_cpu.backward_scan_paths))
+    dscddof_cpu, = torch.autograd.grad(
+        recoords_cpu, bkin_cpu.raw, dscdx_cpu, retain_graph=True, allow_unused=True
+    )
 
-    assert f1f2s_cuda.device.type == "cuda"
-    assert f1f2s_cpu.device.type == "cpu"
-    torch.testing.assert_allclose(f1f2s_cuda.cpu(), f1f2s_cpu)
+    assert dscddof_cuda.device.type == "cuda"
+    assert dscddof_cpu.device.type == "cpu"
+
+    # angle between vectors should be close to 0
+    norm_a = torch.sqrt(torch.sum(dscddof_cuda.cpu() * dscddof_cuda.cpu()))
+    norm_b = torch.sqrt(torch.sum(dscddof_cpu * dscddof_cpu))
+    angle = torch.acos(torch.sum(dscddof_cuda.cpu() * dscddof_cpu) / (norm_a * norm_b))
+    assert torch.abs(angle) < 1e-2
