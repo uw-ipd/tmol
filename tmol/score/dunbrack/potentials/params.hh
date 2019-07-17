@@ -54,8 +54,8 @@ struct DunTableLookupParams {
   // map semirotamer ids -> rotameric prob table
   Int semirotidx2probtableidx[MAXROTBINS<3>(MAXCHI)];
 
-  Int nrotchi;  // # rotameric chis
-  Int nchi;     // # chis
+  Int nrotchi;     // # rotameric chis
+  Int semirotchi;  // # chis
 };
 
 }  // namespace potentials
