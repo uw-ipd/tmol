@@ -11,8 +11,6 @@ from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
-from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
-
 
 @score_graph
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
