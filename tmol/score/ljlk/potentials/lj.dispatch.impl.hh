@@ -77,9 +77,6 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
             type_params[atj],
             global_params[0]);
 
-        // std::cout << "sij: " << stack << " " << i << " " << j << " lj: " <<
-        // lj.V << "\n";
-
         accumulate<D, Real>::add(V[stack], lj.V);
         accumulate<D, Vec<Real, 3>>::add(
             dV_dI[stack][i], lj.dV_ddist * ddist_dI);
@@ -89,13 +86,6 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
   nvtx_range_pop();
 
   nvtx_range_pop();
-
-  std::cout << "V";
-  for (int i = 0; i < nstacks; ++i) {
-    std::cout << " " << V[i];
-  }
-  std::cout << "\n";
-  std::cout << std::endl;
 
   return {V_t, dV_dI_t, dV_dJ_t};
 };
