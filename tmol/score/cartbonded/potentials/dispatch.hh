@@ -23,54 +23,20 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-struct CartBondedLengthDispatch {
+struct CartBondedDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedLengthParams<Int>, 1, D> atom_indices,
-      TView<CartBondedHarmonicTypeParams<Real>, 1, D> param_table)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
-};
-
-template <
-    template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
-struct CartBondedAngleDispatch {
-  static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedAngleParams<Int>, 1, D> atom_indices,
-      TView<CartBondedHarmonicTypeParams<Real>, 1, D> param_table)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
-};
-
-template <
-    template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
-struct CartBondedTorsionDispatch {
-  static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedTorsionParams<Int>, 1, D> atom_indices,
-      TView<CartBondedPeriodicTypeParams<Real>, 1, D> param_table)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
-};
-
-template <
-    template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
-struct CartBondedHxlTorsionDispatch {
-  static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedTorsionParams<Int>, 1, D> atom_indices,
-      TView<CartBondedSinusoidalTypeParams<Real>, 1, D> param_table)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
+      TView<CartBondedLengthParams<Int>, 1, D> cbl_atoms,
+      TView<CartBondedAngleParams<Int>, 1, D> cba_atoms,
+      TView<CartBondedTorsionParams<Int>, 1, D> cbt_atoms,
+      TView<CartBondedTorsionParams<Int>, 1, D> cbi_atoms,
+      TView<CartBondedTorsionParams<Int>, 1, D> cbhxl_atoms,
+      TView<CartBondedHarmonicTypeParams<Real>, 1, D> cbl_params,
+      TView<CartBondedHarmonicTypeParams<Real>, 1, D> cba_params,
+      TView<CartBondedPeriodicTypeParams<Real>, 1, D> cbt_params,
+      TView<CartBondedPeriodicTypeParams<Real>, 1, D> cbi_params,
+      TView<CartBondedSinusoidalTypeParams<Real>, 1, D> cbhxl_params)
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D> >;
 };
 
 }  // namespace potentials

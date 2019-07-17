@@ -13,31 +13,15 @@ if "to" in torch.jit.ScriptModule.__dict__:
     delattr(torch.jit.ScriptModule, "to")
 
 
-def _p(t):
-    return torch.nn.Parameter(t, requires_grad=False)
-
-
-def _t(ts):
-    return tuple(map(lambda t: t.to(torch.float), ts))
-
-
-class _CartBondedScoreModule(torch.jit.ScriptModule):
-    @classmethod
-    def from_database(cls, cb_database: CartBondedDatabase, device: torch.device):
-        return cls(
-            param_resolver=CartBondedParamResolver.from_database(cb_database, device)
-        )
-
-
-class CartBondedLengthModule(_CartBondedScoreModule):
-    @torch.jit.script_method
-    def forward(self, coords, atoms):
-        return torch.ops.tmol.score_cartbonded_length(
-            coords, atoms, self.bondlength_params
-        )
-
+class CartBondedModule(torch.jit.ScriptModule):
     def __init__(self, param_resolver: CartBondedParamResolver):
         super().__init__()
+
+        def _p(t):
+            return torch.nn.Parameter(t, requires_grad=False)
+
+        def _t(ts):
+            return tuple(map(lambda t: t.to(torch.float), ts))
 
         self.bondlength_params = _p(
             torch.stack(
@@ -51,17 +35,6 @@ class CartBondedLengthModule(_CartBondedScoreModule):
             )
         )
 
-
-class CartBondedAngleModule(_CartBondedScoreModule):
-    @torch.jit.script_method
-    def forward(self, coords, atoms):
-        return torch.ops.tmol.score_cartbonded_angle(
-            coords, atoms, self.bondangle_params
-        )
-
-    def __init__(self, param_resolver: CartBondedParamResolver):
-        super().__init__()
-
         self.bondangle_params = _p(
             torch.stack(
                 _t(
@@ -73,17 +46,6 @@ class CartBondedAngleModule(_CartBondedScoreModule):
                 dim=1,
             )
         )
-
-
-class CartBondedTorsionModule(_CartBondedScoreModule):
-    @torch.jit.script_method
-    def forward(self, coords, atoms):
-        return torch.ops.tmol.score_cartbonded_torsion(
-            coords, atoms, self.torsion_params
-        )
-
-    def __init__(self, param_resolver: CartBondedParamResolver):
-        super().__init__()
 
         self.torsion_params = _p(
             torch.stack(
@@ -98,17 +60,6 @@ class CartBondedTorsionModule(_CartBondedScoreModule):
             )
         )
 
-
-class CartBondedImproperModule(_CartBondedScoreModule):
-    @torch.jit.script_method
-    def forward(self, coords, atoms):
-        return torch.ops.tmol.score_cartbonded_torsion(
-            coords, atoms, self.improper_params
-        )
-
-    def __init__(self, param_resolver: CartBondedParamResolver):
-        super().__init__()
-
         self.improper_params = _p(
             torch.stack(
                 _t(
@@ -121,17 +72,6 @@ class CartBondedImproperModule(_CartBondedScoreModule):
                 dim=1,
             )
         )
-
-
-class CartBondedHxlTorsionModule(_CartBondedScoreModule):
-    @torch.jit.script_method
-    def forward(self, coords, atoms):
-        return torch.ops.tmol.score_cartbonded_hxltorsion(
-            coords, atoms, self.hxltorsion_params
-        )
-
-    def __init__(self, param_resolver: CartBondedParamResolver):
-        super().__init__()
 
         self.hxltorsion_params = _p(
             torch.stack(
@@ -147,4 +87,26 @@ class CartBondedHxlTorsionModule(_CartBondedScoreModule):
                 ),
                 dim=1,
             )
+        )
+
+    @classmethod
+    def from_database(cls, cb_database: CartBondedDatabase, device: torch.device):
+        return cls(
+            param_resolver=CartBondedParamResolver.from_database(cb_database, device)
+        )
+
+    @torch.jit.script_method
+    def forward(self, coords, cbl_atoms, cba_atoms, cbt_atoms, cbi_atoms, cbhxl_atoms):
+        return torch.ops.tmol.score_cartbonded(
+            coords,
+            cbl_atoms,
+            cba_atoms,
+            cbt_atoms,
+            cbi_atoms,
+            cbhxl_atoms,
+            self.bondlength_params,
+            self.bondangle_params,
+            self.torsion_params,
+            self.improper_params,
+            self.hxltorsion_params,
         )

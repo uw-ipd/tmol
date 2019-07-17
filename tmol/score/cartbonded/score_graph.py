@@ -12,13 +12,7 @@ from tmol.database import ParameterDatabase
 from tmol.database.scoring import CartBondedDatabase
 from .identification import CartBondedIdentification
 from .params import CartBondedParamResolver
-from .script_modules import (
-    CartBondedLengthModule,
-    CartBondedAngleModule,
-    CartBondedTorsionModule,
-    CartBondedImproperModule,
-    CartBondedHxlTorsionModule,
-)
+from .script_modules import CartBondedModule
 
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
@@ -33,43 +27,35 @@ from tmol.types.torch import Tensor
 class CartBondedIntraScore(IntraScore):
     @reactive_property
     @validate_args
-    def total_cartbonded_length(target):
-        """total cartbonded length score"""
-        return target.cartbonded_length_module(
-            target.coords[0], target.cartbonded_lengths
+    def cartbonded_score(target):
+        return target.cartbonded_module(
+            target.coords[0, ...],
+            target.cartbonded_lengths,
+            target.cartbonded_angles,
+            target.cartbonded_torsions,
+            target.cartbonded_impropers,
+            target.cartbonded_hxltorsions,
         )
 
     @reactive_property
-    @validate_args
-    def total_cartbonded_angle(target):
-        """total cartbonded angle score"""
-        return target.cartbonded_angle_module(
-            target.coords[0], target.cartbonded_angles
-        )
+    def total_cartbonded_length(cartbonded_score):
+        return cartbonded_score[0]
 
     @reactive_property
-    @validate_args
-    def total_cartbonded_torsion(target):
-        """total cartbonded torsion score"""
-        return target.cartbonded_torsion_module(
-            target.coords[0], target.cartbonded_torsions
-        )
+    def total_cartbonded_angle(cartbonded_score):
+        return cartbonded_score[1]
 
     @reactive_property
-    @validate_args
-    def total_cartbonded_improper(target):
-        """total cartbonded improper score"""
-        return target.cartbonded_improper_module(
-            target.coords[0], target.cartbonded_impropers
-        )
+    def total_cartbonded_torsion(cartbonded_score):
+        return cartbonded_score[2]
 
     @reactive_property
-    @validate_args
-    def total_cartbonded_hxltorsion(target):
-        """total cartbonded hxltorsion score"""
-        return target.cartbonded_hxltorsion_module(
-            target.coords[0], target.cartbonded_hxltorsions
-        )
+    def total_cartbonded_improper(cartbonded_score):
+        return cartbonded_score[3]
+
+    @reactive_property
+    def total_cartbonded_hxltorsion(cartbonded_score):
+        return cartbonded_score[4]
 
 
 @score_graph
@@ -141,34 +127,10 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         )
 
     @reactive_property
-    def cartbonded_length_module(
+    def cartbonded_module(
         cartbonded_param_resolver: CartBondedParamResolver,
-    ) -> CartBondedLengthModule:
-        return CartBondedLengthModule(cartbonded_param_resolver)
-
-    @reactive_property
-    def cartbonded_angle_module(
-        cartbonded_param_resolver: CartBondedParamResolver,
-    ) -> CartBondedAngleModule:
-        return CartBondedAngleModule(cartbonded_param_resolver)
-
-    @reactive_property
-    def cartbonded_torsion_module(
-        cartbonded_param_resolver: CartBondedParamResolver,
-    ) -> CartBondedTorsionModule:
-        return CartBondedTorsionModule(cartbonded_param_resolver)
-
-    @reactive_property
-    def cartbonded_improper_module(
-        cartbonded_param_resolver: CartBondedParamResolver,
-    ) -> CartBondedImproperModule:
-        return CartBondedImproperModule(cartbonded_param_resolver)
-
-    @reactive_property
-    def cartbonded_hxltorsion_module(
-        cartbonded_param_resolver: CartBondedParamResolver,
-    ) -> CartBondedHxlTorsionModule:
-        return CartBondedHxlTorsionModule(cartbonded_param_resolver)
+    ) -> CartBondedModule:
+        return CartBondedModule(cartbonded_param_resolver)
 
     @reactive_property
     def cartbonded_lengths(
