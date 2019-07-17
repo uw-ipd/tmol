@@ -126,6 +126,7 @@ import attr
 import torch
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
+from tmol.utility.nvtx import nvtx_range
 
 
 class ScoreTermSummation(torch.autograd.Function):
