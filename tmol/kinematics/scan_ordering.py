@@ -28,10 +28,10 @@ from tmol.types.functional import validate_args
 def get_scans(parents, roots):
     """Partitioning of a tree into linear subpaths.
 
-    The tree is stored as a list of pointers to parent indices, with an 
+    The tree is stored as a list of pointers to parent indices, with an
     arbitrary set of roots.  Each root implies a connected subtree.
-    Each index i has a parent index (p_i) "higher" in the tree (p_i < i). 
-    The tree structure is fully defined by parent pointers, an index array 
+    Each index i has a parent index (p_i) "higher" in the tree (p_i < i).
+    The tree structure is fully defined by parent pointers, an index array
     (parent) of len(tree_size) where parent[i] == i for all root nodes.
 
     The source tree implies a per-node child list of length >= 0, defined by
