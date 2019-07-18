@@ -2,7 +2,6 @@ import contextlib
 
 import torch
 from torch.cuda.nvtx import range_push, range_pop
-import torch
 
 
 @contextlib.contextmanager
