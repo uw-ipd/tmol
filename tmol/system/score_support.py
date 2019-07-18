@@ -1,7 +1,7 @@
 import numpy
 import torch
 
-from typing import Optional, Tuple
+from typing import Optional
 
 from ..types.functional import validate_args
 
@@ -32,7 +32,7 @@ def stack_params_for_system(system: PackedResidueSystem, **_):
 
 @StackedSystem.factory_for.register(PackedResidueSystemStack)
 @validate_args
-def stack_params_for_system(stack: PackedResidueSystemStack, **_):
+def stack_params_for_stacked_system(stack: PackedResidueSystemStack, **_):
     return dict(
         stack_depth=len(stack.systems),
         system_size=max(int(system.system_size) for system in stack.systems),

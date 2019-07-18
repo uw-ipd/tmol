@@ -125,7 +125,7 @@ def test_coord_clone_factory_from_stacked_systems(ubq_system: PackedResidueSyste
     assert cacp.coords.shape == (2, cacp.system_size, 3)
 
 
-def test_coord_clone_factory_from_stacked_systems(ubq_res):
+def test_non_uniform_sized_stacked_system_coord_factory(ubq_res):
     sys1 = PackedResidueSystem.from_residues(ubq_res[:6])
     sys2 = PackedResidueSystem.from_residues(ubq_res[:8])
     sys3 = PackedResidueSystem.from_residues(ubq_res[:4])
