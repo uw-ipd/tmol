@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.score_components &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
+  <title>tmol.score.score_components &mdash; TMol 0.0.0-180-g724765c1 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-179-g10d880a9',
+              VERSION:'0.0.0-180-g724765c1',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-179-g10d880a9
+                0.0.0-180-g724765c1
               </div>
             
           
@@ -307,6 +307,7 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
+<span class="kn">from</span> <span class="nn">tmol.utility.nvtx</span> <span class="k">import</span> <span class="n">nvtx_range</span>
 
 
 <div class="viewcode-block" id="IntraScore"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.IntraScore">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
@@ -330,23 +331,24 @@
 <div class="viewcode-block" id="IntraScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.IntraScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">total</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">**</span><span class="n">component_totals</span><span class="p">):</span>
         <span class="n">total_score</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">nvtx</span><span class="o">.</span><span class="n">range_push</span><span class="p">(</span><span class="s2">&quot;IntraScoreSum&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;component_weights&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># no weights provided, simple sum components</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">nvtx</span><span class="o">.</span><span class="n">range_push</span><span class="p">(</span><span class="s2">&quot;IntraScoreSum::reduce&quot;</span><span class="p">)</span>
-            <span class="n">total_score</span> <span class="o">=</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">nvtx</span><span class="o">.</span><span class="n">range_pop</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># weights provided, use to rescale</span>
-            <span class="c1"># Note:</span>
-            <span class="c1">#  1) weights not provided in input dict are assumed == 0</span>
-            <span class="c1">#  2) tags in input dict not used in</span>
-            <span class="c1">#     current graph are silently ignored</span>
-            <span class="n">total_score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
-            <span class="k">for</span> <span class="n">comp</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span><span class="p">:</span>
-                    <span class="n">total_score</span> <span class="o">+=</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span><span class="p">[</span><span class="n">comp</span><span class="p">]</span> <span class="o">*</span> <span class="n">score</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">nvtx</span><span class="o">.</span><span class="n">range_pop</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">nvtx_range</span><span class="p">(</span><span class="s2">&quot;IntraScoreSum&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">_</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;component_weights&quot;</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="p">):</span>
+                <span class="c1"># no weights provided, simple sum components</span>
+                <span class="k">with</span> <span class="n">nvtx_range</span><span class="p">(</span><span class="s2">&quot;IntraScoreSum::reduce&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">_</span><span class="p">:</span>
+                    <span class="n">total_score</span> <span class="o">=</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># weights provided, use to rescale</span>
+                <span class="c1"># Note:</span>
+                <span class="c1">#  1) weights not provided in input dict are assumed == 0</span>
+                <span class="c1">#  2) tags in input dict not used in</span>
+                <span class="c1">#     current graph are silently ignored</span>
+                <span class="n">total_score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+                <span class="k">for</span> <span class="n">comp</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span><span class="p">:</span>
+                        <span class="n">total_score</span> <span class="o">+=</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span><span class="p">[</span><span class="n">comp</span><span class="p">]</span> <span class="o">*</span> <span class="n">score</span>
 
         <span class="k">return</span> <span class="n">total_score</span></div></div>
 

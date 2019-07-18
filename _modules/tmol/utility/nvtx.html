@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.nvtx &mdash; TMol 0.0.0-179-g10d880a9 documentation</title>
+  <title>tmol.utility.nvtx &mdash; TMol 0.0.0-180-g724765c1 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-179-g10d880a9',
+              VERSION:'0.0.0-180-g724765c1',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-179-g10d880a9
+                0.0.0-180-g724765c1
               </div>
             
           
@@ -180,15 +180,19 @@
 <span></span><span class="kn">import</span> <span class="nn">contextlib</span>
 
 <span class="kn">from</span> <span class="nn">torch.cuda.nvtx</span> <span class="k">import</span> <span class="n">range_push</span><span class="p">,</span> <span class="n">range_pop</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 
 
 <div class="viewcode-block" id="nvtx_range"><a class="viewcode-back" href="../../../apidoc/tmol.utility.nvtx.html#tmol.utility.nvtx.nvtx_range">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">nvtx_range</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">range_push</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        <span class="k">yield</span>
-    <span class="k">finally</span><span class="p">:</span>
-        <span class="n">range_pop</span><span class="p">()</span></div>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">range_push</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">yield</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">range_pop</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">yield</span></div>
 </pre></div>
 
            </div>
