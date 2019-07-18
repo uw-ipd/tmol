@@ -93,19 +93,25 @@ def test_ljlk_database_clone_factory(ubq_system):
 
 def test_lj_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    lj_graph = LJGraph.build_for(twoubq)
+    lj_graph = LJGraph.build_for(twoubq, requires_grad=True)
     intra = lj_graph.intra_score()
     tot = intra.total_lj.cpu()
 
     assert tot.shape == (2,)
     torch.testing.assert_allclose(tot[0], tot[1])
 
+    sumtot = torch.sum(tot)
+    sumtot.backward()
+    
 
 def test_lk_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    lk_graph = LKGraph.build_for(twoubq)
+    lk_graph = LKGraph.build_for(twoubq, requires_grad=True)
     intra = lk_graph.intra_score()
     tot = intra.total_lk.cpu()
 
     assert tot.shape == (2,)
     torch.testing.assert_allclose(tot[0], tot[1])
+
+    sumtot = torch.sum(tot)
+    sumtot.backward()

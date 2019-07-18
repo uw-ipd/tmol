@@ -84,7 +84,20 @@ auto LJDispatch<Dispatch, D, Real, Int>::f(
 
   nvtx_range_pop();
 
-  return {V_t, dV_dI_t, dV_dJ_t};
+  // std::cout << "dV_dI_t.shape" << dV_dI_t.dim() << ":";
+  // for ( int i = 0; i < dV_dI_t.dim(); ++i) {
+  //   std::cout << " " << dV_dI_t.size(i);
+  // }
+  // std::cout << std::endl;
+  // 
+  // 
+  // std::cout << "dV_dJ_t.shape" << dV_dJ_t.dim() << ":";
+  // for ( int i = 0; i < dV_dJ_t.dim(); ++i) {
+  //   std::cout << " " << dV_dJ_t.size(i);
+  // }
+  // std::cout << std::endl;
+  
+return {V_t, dV_dI_t, dV_dJ_t};
 };
 
 }  // namespace potentials
