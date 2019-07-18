@@ -57,7 +57,33 @@ struct AABBDispatch<tmol::Device::CUDA> {
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 2, D> coords_i,
       TView<Eigen::Matrix<Real, 3, 1>, 2, D> coords_j,
-      Func f) {}
+      Func f)
+  {
+    const Eigen::AlignedBox<Real, 3> tbox(
+        Vec<Real, 3>(
+            -threshold_distance, -threshold_distance, -threshold_distance),
+        Vec<Real, 3>(
+            threshold_distance, threshold_distance, threshold_distance));
+    int nstacks = coords_i.size(0);
+    int n_i = coords_i.size(1);
+    int n_j = coords_j.size(1);
+
+    mgpu::standard_context_t context;
+
+    mgpu::transform(
+        [=] MGPU_DEVICE(int index) {
+          int stack = index / (n_i * n_j);
+          index = index - stack * (n_i * n_j);
+          int i = index / n_j;
+          int j = index % n_j;
+
+          if (tbox.contains(coords_i[stack][i] - coords_j[stack][j])) {
+            f(stack, i, j);
+          }
+        },
+        nstacks * n_i * n_j,
+        context);
+  }
 
   template <typename Real, typename Int, typename Func>
   static void forall_idx_pairs(
@@ -140,7 +166,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
             -threshold_distance, -threshold_distance, -threshold_distance),
         Vec<Real, 3>(
             threshold_distance, threshold_distance, threshold_distance));
-    int nstack = coords_i.size(0);
+    int nstacks = coords_i.size(0);
     int n_i = coords_i.size(1);
     int n_j = coords_j.size(1);
 
@@ -150,18 +176,18 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
         [=] MGPU_DEVICE(int index) {
           int stack = index / (n_i * n_j);
           index = index - stack * (n_i * n_j);
-          int i = index / (n_j);
-          int j = index % (n_j;
+          int i = index / n_j;
+          int j = index % n_j;
 
           if (j < i) {
-        return;
+            return;
           }
 
-          if (tbox.contains(coords_i[i] - coords_j[j])) {
-        f(stack, i, j);
+          if (tbox.contains(coords_i[stack][i] - coords_j[stack][j])) {
+            f(stack, i, j);
           }
         },
-        n_i * n_j,
+        nstacks * n_i * n_j,
         context);
   }
 
