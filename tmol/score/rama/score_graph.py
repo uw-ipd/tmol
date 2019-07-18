@@ -27,7 +27,7 @@ from tmol.types.array import NDArray
 class RamaIntraScore(IntraScore):
     @reactive_property
     def total_rama(target):
-        return target.rama_module(target.coords[0, ...])
+        return target.rama_module(target.coords[0, ...])[0]
 
 
 @score_graph

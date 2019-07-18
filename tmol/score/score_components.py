@@ -130,6 +130,18 @@ import torch
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
 
+class ScoreTermSummation(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, wts, comps):
+        ctx.save_for_backward(wts)
+        return torch.sum(wts * comps, dim=0)
+
+    @staticmethod
+    def backward(ctx, dX):
+        dE, = ctx.saved_tensors
+        return (None, dE * dX)
+
+
 @attr.s
 class IntraScore:
     """Base mixin for intra-system scoring.
@@ -150,24 +162,15 @@ class IntraScore:
 
     @staticmethod
     def total(target, **component_totals):
-        total_score = 0
-        torch.cuda.nvtx.range_push("IntraScoreSum")
-        if not hasattr(target, "component_weights") or target.component_weights is None:
-            # no weights provided, simple sum components
-            torch.cuda.nvtx.range_push("IntraScoreSum::reduce")
-            total_score = toolz.reduce(operator.add, component_totals.values())
-            torch.cuda.nvtx.range_pop()
-        else:
-            # weights provided, use to rescale
-            # Note:
-            #  1) weights not provided in input dict are assumed == 0
-            #  2) tags in input dict not used in
-            #     current graph are silently ignored
-            total_score = torch.zeros_like(next(iter(component_totals.values())))
-            for comp, score in component_totals.items():
-                if comp in target.component_weights:
-                    total_score += target.component_weights[comp] * score
-        torch.cuda.nvtx.range_pop()
+        components = torch.stack(tuple(component_totals.values()))
+        weights = torch.ones_like(components)
+        if hasattr(target, "component_weights"):
+            if target.component_weights is not None:
+                for i, t in enumerate(component_totals.keys()):
+                    weights[i] = target.component_weights[t]
+
+        sumfunc = ScoreTermSummation()
+        total_score = sumfunc.apply(weights, components)
 
         return total_score
 
@@ -193,23 +196,17 @@ class InterScore:
 
     @staticmethod
     def total(target_i, target_j, **component_totals):
-        if (
-            not hasattr(target_i, "component_weights")
-            or target_i.component_weights is None
-        ):
-            # no weights provided, simple sum components
-            return toolz.reduce(operator.add, component_totals.values())
-        else:
-            # weights provided, use to rescale
-            # Note:
-            #  1) weights not provided in input dict are assumed == 0
-            #  2) tags in input dict not used in
-            #     current graph are silently ignored
-            total_score = torch.zeros_like(next(iter(component_totals.values())))
-            for comp, score in component_totals.items():
-                if comp in target_i.component_weights:
-                    total_score += target_i.component_weights[comp] * score
-            return total_score
+        components = torch.stack(tuple(component_totals.values()))
+        weights = torch.ones_like(components)
+        if hasattr(target_i, "component_weights"):
+            if target_i.component_weights is None:
+                for i, t in enumerate(component_totals.keys()):
+                    weights[i] = target_i.component_weights[t]
+
+        sumfunc = ScoreTermSummation()
+        total_score = sumfunc.apply(weights, components)
+
+        return total_score
 
 
 @attr.s(slots=True, frozen=True, auto_attribs=True)
@@ -328,7 +325,6 @@ class _ScoreComponent:
                 generated_accessor_props,
             )
         )
-
         return cls.__resolved_intra_score_type__
 
     @classmethod
@@ -392,6 +388,7 @@ class _ScoreComponent:
     @classmethod
     def _score_components(cls):
         """Gather all ``total_score_components`` defined in class bases."""
+
         if "__resolved_score_components__" in cls.__dict__:
             return cls.__resolved_score_components__
 
