@@ -57,8 +57,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
       Real threshold_distance,
       TView<Eigen::Matrix<Real, 3, 1>, 2, D> coords_i,
       TView<Eigen::Matrix<Real, 3, 1>, 2, D> coords_j,
-      Func f)
-  {
+      Func f) {
     const Eigen::AlignedBox<Real, 3> tbox(
         Vec<Real, 3>(
             -threshold_distance, -threshold_distance, -threshold_distance),

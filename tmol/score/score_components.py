@@ -180,7 +180,7 @@ class IntraScore:
                 for comp, score in component_totals.items():
                     if comp in target.component_weights:
                         total_score += target.component_weights[comp] * score
-        #print("total_score", total_score) 
+        # print("total_score", total_score)
         return total_score
 
 

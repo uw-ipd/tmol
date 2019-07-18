@@ -7,18 +7,25 @@ from tmol.score import TotalScoreGraph
 from tmol.score.score_graph import score_graph
 from tmol.score.device import TorchDevice
 
-from tmol.score.coordinates import KinematicAtomicCoordinateProvider, CartesianAtomicCoordinateProvider
+from tmol.score.coordinates import (
+    KinematicAtomicCoordinateProvider,
+    CartesianAtomicCoordinateProvider,
+)
 
 from tmol.score.ljlk.score_graph import LJScoreGraph, LKScoreGraph
 from tmol.system.packed import PackedResidueSystemStack
+
 
 @score_graph
 class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
     pass
 
+
 # the
 @score_graph
-class StackScoreGraph(CartesianAtomicCoordinateProvider, LJScoreGraph, LKScoreGraph, TorchDevice):
+class StackScoreGraph(
+    CartesianAtomicCoordinateProvider, LJScoreGraph, LKScoreGraph, TorchDevice
+):
     pass
 
 
@@ -93,16 +100,17 @@ def test_full(
 
 
 @pytest.mark.benchmark(group="stacked_totalscore_onepass")
-@pytest.mark.parametrize("nstacks", [1,3,10,30,100])
+@pytest.mark.parametrize("nstacks", [1, 3, 10, 30, 100])
 def test_stacked_full(
     benchmark, ubq_system, nstacks, torch_device, default_component_weights
 ):
-    stack = PackedResidueSystemStack((ubq_system,)*nstacks)
+    stack = PackedResidueSystemStack((ubq_system,) * nstacks)
     score_graph = StackScoreGraph.build_for(
         stack,
         requires_grad=True,
         device=torch_device,
-        component_weights=default_component_weights)
+        component_weights=default_component_weights,
+    )
     score_graph.intra_score().total
 
     @benchmark

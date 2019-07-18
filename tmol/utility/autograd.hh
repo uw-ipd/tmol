@@ -177,12 +177,14 @@ struct SavedGradsBackward : public torch::autograd::Function {
   variable_list apply(variable_list&& in_grads) override {
     NVTXRange("SavedGradsBackward");
 
-
-    AT_CHECK(in_grads.size() == 1, "SavedGradsBackward only supports a vector of gradients");
+    AT_CHECK(
+        in_grads.size() == 1,
+        "SavedGradsBackward only supports a vector of gradients");
     for (auto& saved_grad : saved_grads) {
       AT_CHECK(
-        in_grads[0].size(0) == saved_grad.unpack().size(0) || in_grads[0].size(0) == 1,
-        "Tensors sizes must match along first dimension");
+          in_grads[0].size(0) == saved_grad.unpack().size(0)
+              || in_grads[0].size(0) == 1,
+          "Tensors sizes must match along first dimension");
     }
 
     variable_list result;

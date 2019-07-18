@@ -102,7 +102,7 @@ def test_lj_for_stacked_system(ubq_system: PackedResidueSystem):
 
     sumtot = torch.sum(tot)
     sumtot.backward()
-    
+
 
 def test_lk_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))

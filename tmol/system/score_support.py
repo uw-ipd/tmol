@@ -142,7 +142,7 @@ def stacked_coords_for_system(
         coords[i, : d["coords"].shape[1]] = d["coords"]
 
     coords = coords.requires_grad_(requires_grad)
-        
+
     return dict(coords=coords)
 
 

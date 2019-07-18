@@ -18,7 +18,12 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <template <tmol::Device> class Dispatch, tmol::Device D, typename Real, typename Int>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 struct LJDispatch {
   static auto f(
       TView<Vec<Real, 3>, 2, D> coords_i,
@@ -30,8 +35,11 @@ struct LJDispatch {
       TView<Real, 3, D> bonded_path_lengths,
 
       TView<LJTypeParams<Real>, 1, D> type_params,
-      TView<LJGlobalParams<Real>, 1, D> global_params) -> std::
-      tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Vec<Real, 3>, 2, D> >;
+      TView<LJGlobalParams<Real>, 1, D> global_params)
+      -> std::tuple<
+          TPack<Real, 1, D>,
+          TPack<Vec<Real, 3>, 2, D>,
+          TPack<Vec<Real, 3>, 2, D> >;
 };
 
 }  // namespace potentials
