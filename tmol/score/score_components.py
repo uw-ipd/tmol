@@ -119,11 +119,9 @@ to a target ``_ScoreComponent`` object.
 |
 """
 from typing import Optional, Tuple
-import operator
 import collections.abc
 
 import attr
-import toolz
 
 import torch
 
