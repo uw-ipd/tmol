@@ -26,11 +26,11 @@ template <
     typename Int>
 struct RamaDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<RamaParameters<Int>, 1, D> params,
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<RamaParameters<Int>, 2, D> params,
       TView<Real, 3, D> tables,
       TView<RamaTableParams<Real>, 1, D> table_params)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D> >;
 };
 
 }  // namespace potentials
