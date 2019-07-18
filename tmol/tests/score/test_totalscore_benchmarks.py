@@ -110,7 +110,7 @@ def test_stacked_full(
         score_graph.reset_coords()
         total = score_graph.intra_score().total
         tsum = torch.sum(total)
-        tsum.backward()
+        tsum.backward(retain_graph=True)
         return total
 
     forward_backward

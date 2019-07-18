@@ -177,38 +177,24 @@ struct SavedGradsBackward : public torch::autograd::Function {
   variable_list apply(variable_list&& in_grads) override {
     NVTXRange("SavedGradsBackward");
 
-    // heh -- this check didn't get triggered
+
     AT_CHECK(in_grads.size() == 1, "SavedGradsBackward only supports a vector of gradients");
     for (auto& saved_grad : saved_grads) {
       AT_CHECK(
-        in_grads[0].size(0) == saved_grad.unpack().size(0),
+        in_grads[0].size(0) == saved_grad.unpack().size(0) || in_grads[0].size(0) == 1,
         "Tensors sizes must match along first dimension");
     }
 
     variable_list result;
     result.reserve(saved_grads.size());
 
-    std::cout << "in_grads[0] " << in_grads[0].requires_grad() << " " <<
-      in_grads[0].is_leaf() << std::endl;
-    
     for (auto& saved_grad : saved_grads) {
       auto x = saved_grad.unpack();
       std::vector<int64_t> newdims(x.dim(), 1);
       newdims[0] = in_grads[0].size(0);
       c10::IntList newdims_il(&newdims[0], x.dim());
       auto ingrad = in_grads[0].view(newdims_il);
-      std::cout << "ingrad size:";
-      for (int i = 0; i < ingrad.dim(); ++i) {
-	std::cout << " " << ingrad.size(i);
-      }
-      std::cout << "\n";
-
       result.emplace_back(saved_grad.unpack() * ingrad);
-      std::cout << "save backward: result: grad?" << result.back().requires_grad() << " leaf? " << result.back().is_leaf();
-      for (int i = 0; i < result.back().dim(); ++i) {
-	std::cout << " " << result.back().size(i);
-      }
-      std::cout << std::endl;
     }
 
     nvtx_range_pop();

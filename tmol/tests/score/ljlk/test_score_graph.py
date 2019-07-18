@@ -93,7 +93,7 @@ def test_ljlk_database_clone_factory(ubq_system):
 
 def test_lj_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    lj_graph = LJGraph.build_for(twoubq, requires_grad=True)
+    lj_graph = LJGraph.build_for(twoubq)
     intra = lj_graph.intra_score()
     tot = intra.total_lj.cpu()
 
@@ -106,7 +106,7 @@ def test_lj_for_stacked_system(ubq_system: PackedResidueSystem):
 
 def test_lk_for_stacked_system(ubq_system: PackedResidueSystem):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    lk_graph = LKGraph.build_for(twoubq, requires_grad=True)
+    lk_graph = LKGraph.build_for(twoubq)
     intra = lk_graph.intra_score()
     tot = intra.total_lk.cpu()
 
