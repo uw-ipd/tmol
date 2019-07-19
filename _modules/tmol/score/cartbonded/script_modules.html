@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.script_modules &mdash; TMol 0.0.0-180-g724765c1 documentation</title>
+  <title>tmol.score.cartbonded.script_modules &mdash; TMol 0.0.0-181-ga426c2fe documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-180-g724765c1',
+              VERSION:'0.0.0-181-ga426c2fe',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-180-g724765c1
+                0.0.0-181-ga426c2fe
               </div>
             
           
@@ -192,31 +192,15 @@
     <span class="nb">delattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ScriptModule</span><span class="p">,</span> <span class="s2">&quot;to&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="_p"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules._p">[docs]</a><span class="k">def</span> <span class="nf">_p</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="_t"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules._t">[docs]</a><span class="k">def</span> <span class="nf">_t</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
-    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span> <span class="n">ts</span><span class="p">))</span></div>
-
-
-<div class="viewcode-block" id="_CartBondedScoreModule"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules._CartBondedScoreModule">[docs]</a><span class="k">class</span> <span class="nc">_CartBondedScoreModule</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ScriptModule</span><span class="p">):</span>
-<div class="viewcode-block" id="_CartBondedScoreModule.from_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules._CartBondedScoreModule.from_database">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cb_database</span><span class="p">:</span> <span class="n">CartBondedDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">param_resolver</span><span class="o">=</span><span class="n">CartBondedParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">cb_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-        <span class="p">)</span></div></div>
-
-
-<div class="viewcode-block" id="CartBondedLengthModule"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules.CartBondedLengthModule">[docs]</a><span class="k">class</span> <span class="nc">CartBondedLengthModule</span><span class="p">(</span><span class="n">_CartBondedScoreModule</span><span class="p">):</span>
-    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script_method</span>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">tmol</span><span class="o">.</span><span class="n">score_cartbonded_length</span><span class="p">(</span>
-            <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_params</span>
-        <span class="p">)</span>
-
+<div class="viewcode-block" id="CartBondedModule"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules.CartBondedModule">[docs]</a><span class="k">class</span> <span class="nc">CartBondedModule</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">ScriptModule</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">_p</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_t</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">),</span> <span class="n">ts</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_params</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
@@ -228,18 +212,7 @@
                 <span class="p">),</span>
                 <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="CartBondedAngleModule"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules.CartBondedAngleModule">[docs]</a><span class="k">class</span> <span class="nc">CartBondedAngleModule</span><span class="p">(</span><span class="n">_CartBondedScoreModule</span><span class="p">):</span>
-    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script_method</span>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">tmol</span><span class="o">.</span><span class="n">score_cartbonded_angle</span><span class="p">(</span>
-            <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_params</span>
         <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_params</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
@@ -251,18 +224,7 @@
                 <span class="p">),</span>
                 <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="CartBondedTorsionModule"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules.CartBondedTorsionModule">[docs]</a><span class="k">class</span> <span class="nc">CartBondedTorsionModule</span><span class="p">(</span><span class="n">_CartBondedScoreModule</span><span class="p">):</span>
-    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script_method</span>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">tmol</span><span class="o">.</span><span class="n">score_cartbonded_torsion</span><span class="p">(</span>
-            <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_params</span>
         <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">torsion_params</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
@@ -275,18 +237,7 @@
                 <span class="p">),</span>
                 <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="CartBondedImproperModule"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules.CartBondedImproperModule">[docs]</a><span class="k">class</span> <span class="nc">CartBondedImproperModule</span><span class="p">(</span><span class="n">_CartBondedScoreModule</span><span class="p">):</span>
-    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script_method</span>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">tmol</span><span class="o">.</span><span class="n">score_cartbonded_torsion</span><span class="p">(</span>
-            <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_params</span>
         <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">improper_params</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
@@ -299,18 +250,7 @@
                 <span class="p">),</span>
                 <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="CartBondedHxlTorsionModule"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule">[docs]</a><span class="k">class</span> <span class="nc">CartBondedHxlTorsionModule</span><span class="p">(</span><span class="n">_CartBondedScoreModule</span><span class="p">):</span>
-    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script_method</span>
-    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">tmol</span><span class="o">.</span><span class="n">score_cartbonded_hxltorsion</span><span class="p">(</span>
-            <span class="n">coords</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_params</span>
         <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_params</span> <span class="o">=</span> <span class="n">_p</span><span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
@@ -326,6 +266,28 @@
                 <span class="p">),</span>
                 <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="CartBondedModule.from_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.script_modules.html#tmol.score.cartbonded.script_modules.CartBondedModule.from_database">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_database</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cb_database</span><span class="p">:</span> <span class="n">CartBondedDatabase</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">param_resolver</span><span class="o">=</span><span class="n">CartBondedParamResolver</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">cb_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">jit</span><span class="o">.</span><span class="n">script_method</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">cbl_atoms</span><span class="p">,</span> <span class="n">cba_atoms</span><span class="p">,</span> <span class="n">cbt_atoms</span><span class="p">,</span> <span class="n">cbi_atoms</span><span class="p">,</span> <span class="n">cbhxl_atoms</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">tmol</span><span class="o">.</span><span class="n">score_cartbonded</span><span class="p">(</span>
+            <span class="n">coords</span><span class="p">,</span>
+            <span class="n">cbl_atoms</span><span class="p">,</span>
+            <span class="n">cba_atoms</span><span class="p">,</span>
+            <span class="n">cbt_atoms</span><span class="p">,</span>
+            <span class="n">cbi_atoms</span><span class="p">,</span>
+            <span class="n">cbhxl_atoms</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_params</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_params</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">torsion_params</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">improper_params</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_params</span><span class="p">,</span>
         <span class="p">)</span></div>
 </pre></div>
 

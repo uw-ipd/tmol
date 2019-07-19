@@ -7,7 +7,7 @@ tmol.score.cartbonded.script_modules
 .. currentmodule:: tmol.score.cartbonded.script_modules
 
 .. automodule:: tmol.score.cartbonded.script_modules
-    :members: CartBondedAngleModule, CartBondedHxlTorsionModule, CartBondedImproperModule, CartBondedLengthModule, CartBondedTorsionModule
+    :members: CartBondedModule
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -21,11 +21,7 @@ tmol.score.cartbonded.script_modules
     .. autosummary::
         :nosignatures:
 
-        CartBondedAngleModule
-        CartBondedHxlTorsionModule
-        CartBondedImproperModule
-        CartBondedLengthModule
-        CartBondedTorsionModule
+        CartBondedModule
 
 
 

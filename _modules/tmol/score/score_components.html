@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.score_components &mdash; TMol 0.0.0-180-g724765c1 documentation</title>
+  <title>tmol.score.score_components &mdash; TMol 0.0.0-181-ga426c2fe documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-180-g724765c1',
+              VERSION:'0.0.0-181-ga426c2fe',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-180-g724765c1
+                0.0.0-181-ga426c2fe
               </div>
             
           
@@ -298,16 +298,25 @@
 <span class="sd">|</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
-<span class="kn">import</span> <span class="nn">operator</span>
 <span class="kn">import</span> <span class="nn">collections.abc</span>
 
 <span class="kn">import</span> <span class="nn">attr</span>
-<span class="kn">import</span> <span class="nn">toolz</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
-<span class="kn">from</span> <span class="nn">tmol.utility.nvtx</span> <span class="k">import</span> <span class="n">nvtx_range</span>
+
+
+<div class="viewcode-block" id="ScoreTermSummation"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.ScoreTermSummation">[docs]</a><span class="k">class</span> <span class="nc">ScoreTermSummation</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+<div class="viewcode-block" id="ScoreTermSummation.forward"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.ScoreTermSummation.forward">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">wts</span><span class="p">,</span> <span class="n">comps</span><span class="p">):</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">wts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">wts</span> <span class="o">*</span> <span class="n">comps</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ScoreTermSummation.backward"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.ScoreTermSummation.backward">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">dX</span><span class="p">):</span>
+        <span class="n">dE</span><span class="p">,</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+        <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">dE</span> <span class="o">*</span> <span class="n">dX</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="IntraScore"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.IntraScore">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span>
@@ -330,25 +339,15 @@
 
 <div class="viewcode-block" id="IntraScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.IntraScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">total</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="o">**</span><span class="n">component_totals</span><span class="p">):</span>
-        <span class="n">total_score</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">with</span> <span class="n">nvtx_range</span><span class="p">(</span><span class="s2">&quot;IntraScoreSum&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">_</span><span class="p">:</span>
-            <span class="k">if</span> <span class="p">(</span>
-                <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;component_weights&quot;</span><span class="p">)</span>
-                <span class="ow">or</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="p">):</span>
-                <span class="c1"># no weights provided, simple sum components</span>
-                <span class="k">with</span> <span class="n">nvtx_range</span><span class="p">(</span><span class="s2">&quot;IntraScoreSum::reduce&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">_</span><span class="p">:</span>
-                    <span class="n">total_score</span> <span class="o">=</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># weights provided, use to rescale</span>
-                <span class="c1"># Note:</span>
-                <span class="c1">#  1) weights not provided in input dict are assumed == 0</span>
-                <span class="c1">#  2) tags in input dict not used in</span>
-                <span class="c1">#     current graph are silently ignored</span>
-                <span class="n">total_score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
-                <span class="k">for</span> <span class="n">comp</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span><span class="p">:</span>
-                        <span class="n">total_score</span> <span class="o">+=</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span><span class="p">[</span><span class="n">comp</span><span class="p">]</span> <span class="o">*</span> <span class="n">score</span>
+        <span class="n">components</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">components</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s2">&quot;component_weights&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">component_totals</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">component_weights</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+
+        <span class="n">sumfunc</span> <span class="o">=</span> <span class="n">ScoreTermSummation</span><span class="p">()</span>
+        <span class="n">total_score</span> <span class="o">=</span> <span class="n">sumfunc</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">components</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">total_score</span></div></div>
 
@@ -374,23 +373,17 @@
 
 <div class="viewcode-block" id="InterScore.total"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.InterScore.total">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">total</span><span class="p">(</span><span class="n">target_i</span><span class="p">,</span> <span class="n">target_j</span><span class="p">,</span> <span class="o">**</span><span class="n">component_totals</span><span class="p">):</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">target_i</span><span class="p">,</span> <span class="s2">&quot;component_weights&quot;</span><span class="p">)</span>
-            <span class="ow">or</span> <span class="n">target_i</span><span class="o">.</span><span class="n">component_weights</span> <span class="ow">is</span> <span class="kc">None</span>
-        <span class="p">):</span>
-            <span class="c1"># no weights provided, simple sum components</span>
-            <span class="k">return</span> <span class="n">toolz</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># weights provided, use to rescale</span>
-            <span class="c1"># Note:</span>
-            <span class="c1">#  1) weights not provided in input dict are assumed == 0</span>
-            <span class="c1">#  2) tags in input dict not used in</span>
-            <span class="c1">#     current graph are silently ignored</span>
-            <span class="n">total_score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
-            <span class="k">for</span> <span class="n">comp</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">component_totals</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">target_i</span><span class="o">.</span><span class="n">component_weights</span><span class="p">:</span>
-                    <span class="n">total_score</span> <span class="o">+=</span> <span class="n">target_i</span><span class="o">.</span><span class="n">component_weights</span><span class="p">[</span><span class="n">comp</span><span class="p">]</span> <span class="o">*</span> <span class="n">score</span>
-            <span class="k">return</span> <span class="n">total_score</span></div></div>
+        <span class="n">components</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">component_totals</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">components</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">target_i</span><span class="p">,</span> <span class="s2">&quot;component_weights&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">target_i</span><span class="o">.</span><span class="n">component_weights</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">component_totals</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="n">weights</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">target_i</span><span class="o">.</span><span class="n">component_weights</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+
+        <span class="n">sumfunc</span> <span class="o">=</span> <span class="n">ScoreTermSummation</span><span class="p">()</span>
+        <span class="n">total_score</span> <span class="o">=</span> <span class="n">sumfunc</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">components</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">total_score</span></div></div>
 
 
 <div class="viewcode-block" id="ScoreComponentClasses"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score.ScoreComponentClasses">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -509,7 +502,6 @@
                 <span class="n">generated_accessor_props</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
-
         <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_intra_score_type__</span></div>
 
 <div class="viewcode-block" id="_ScoreComponent._inter_score_type"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent._inter_score_type">[docs]</a>    <span class="nd">@classmethod</span>
@@ -573,6 +565,7 @@
 <div class="viewcode-block" id="_ScoreComponent._score_components"><a class="viewcode-back" href="../../../apidoc/tmol.score.score_components.html#tmol.score._ScoreComponent._score_components">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">_score_components</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Gather all ``total_score_components`` defined in class bases.&quot;&quot;&quot;</span>
+
         <span class="k">if</span> <span class="s2">&quot;__resolved_score_components__&quot;</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">__resolved_score_components__</span>
 

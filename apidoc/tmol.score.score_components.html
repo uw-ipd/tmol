@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.score_components &mdash; TMol 0.0.0-180-g724765c1 documentation</title>
+  <title>tmol.score.score_components &mdash; TMol 0.0.0-181-ga426c2fe documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-180-g724765c1',
+              VERSION:'0.0.0-181-ga426c2fe',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-180-g724765c1
+                0.0.0-181-ga426c2fe
               </div>
             
           
@@ -277,12 +277,61 @@ to a target <code class="docutils literal notranslate"><span class="pre">_ScoreC
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.score.score_components.ScoreComponentClasses" title="tmol.score.score_components.ScoreComponentClasses"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScoreComponentClasses</span></code></a></td>
 <td>The intra/inter graph class components for a ScoreComponent.</td>
 </tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.score_components.ScoreTermSummation" title="tmol.score.score_components.ScoreTermSummation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ScoreTermSummation</span></code></a></td>
+<td></td>
+</tr>
 </tbody>
 </table>
 </div>
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="tmol.score.score_components.ScoreTermSummation">
+<em class="property">class </em><code class="descclassname">tmol.score.score_components.</code><code class="descname">ScoreTermSummation</code><a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreTermSummation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreTermSummation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
+<dl class="staticmethod">
+<dt id="tmol.score.score_components.ScoreTermSummation.forward">
+<em class="property">static </em><code class="descname">forward</code><span class="sig-paren">(</span><em>ctx</em>, <em>wts</em>, <em>comps</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreTermSummation.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreTermSummation.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the operation.</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context ctx as the first argument, followed by any
+number of arguments (tensors or other types).</p>
+<p>The context can be used to store tensors that can be then retrieved
+during the backward pass.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="tmol.score.score_components.ScoreTermSummation.backward">
+<em class="property">static </em><code class="descname">backward</code><span class="sig-paren">(</span><em>ctx</em>, <em>dX</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#ScoreTermSummation.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.ScoreTermSummation.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a formula for differentiating the operation.</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
+as many outputs did <a class="reference internal" href="#tmol.score.score_components.ScoreTermSummation.forward" title="tmol.score.score_components.ScoreTermSummation.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> return, and it should return as many
+tensors, as there were inputs to <a class="reference internal" href="#tmol.score.score_components.ScoreTermSummation.forward" title="tmol.score.score_components.ScoreTermSummation.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the
+gradient w.r.t the given output, and each returned value should be the
+gradient w.r.t. the corresponding input.</p>
+<p>The context can be used to retrieve tensors saved during the forward
+pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
+of booleans representing whether each input needs gradient. E.g.,
+<a class="reference internal" href="#tmol.score.score_components.ScoreTermSummation.backward" title="tmol.score.score_components.ScoreTermSummation.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
+first input to <a class="reference internal" href="#tmol.score.score_components.ScoreTermSummation.forward" title="tmol.score.score_components.ScoreTermSummation.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
+output.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.score_components.ScoreTermSummation._backward_cls">
+<code class="descname">_backward_cls</code><a class="headerlink" href="#tmol.score.score_components.ScoreTermSummation._backward_cls" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.ScoreTermSummationBackward</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.score.score_components.ScoreTermSummation._is_legacy">
+<code class="descname">_is_legacy</code><em class="property"> = False</em><a class="headerlink" href="#tmol.score.score_components.ScoreTermSummation._is_legacy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="class">
 <dt id="tmol.score.score_components.IntraScore">
 <em class="property">class </em><code class="descclassname">tmol.score.score_components.</code><code class="descname">IntraScore</code><span class="sig-paren">(</span><em>target: _ScoreComponent</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/score_components.html#IntraScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.score_components.IntraScore" title="Permalink to this definition">¶</a></dt>

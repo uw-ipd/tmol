@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.reactive &mdash; TMol 0.0.0-180-g724765c1 documentation</title>
+  <title>tmol.utility.reactive &mdash; TMol 0.0.0-181-ga426c2fe documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-180-g724765c1',
+              VERSION:'0.0.0-181-ga426c2fe',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-180-g724765c1
+                0.0.0-181-ga426c2fe
               </div>
             
           
@@ -582,7 +582,7 @@
 <span class="kn">import</span> <span class="nn">attr</span>
 <span class="kn">import</span> <span class="nn">toolz</span>
 
-<span class="kn">import</span> <span class="nn">tmol.utility.nvtx</span>
+<span class="c1"># import tmol.utility.nvtx</span>
 
 
 <div class="viewcode-block" id="_code"><a class="viewcode-back" href="../../../apidoc/tmol.utility.reactive.html#tmol.score.bonded_atom._code">[docs]</a><span class="k">def</span> <span class="nf">_code</span><span class="p">(</span>
@@ -716,9 +716,9 @@
             <span class="c1"># Resolve function input parameters from object, potentially</span>
             <span class="c1"># traversing through reactive property dependencies.</span>
             <span class="n">toresolve</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">prop</span><span class="o">.</span><span class="n">parameters</span><span class="p">}</span>
-            <span class="k">with</span> <span class="n">tmol</span><span class="o">.</span><span class="n">utility</span><span class="o">.</span><span class="n">nvtx</span><span class="o">.</span><span class="n">nvtx_range</span><span class="p">(</span><span class="s2">&quot;reactive:&quot;</span> <span class="o">+</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-                <span class="n">val</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">f</span><span class="p">(</span><span class="o">**</span><span class="n">toresolve</span><span class="p">)</span>
-            <span class="c1"># val = prop.f(**toresolve)</span>
+            <span class="c1"># with tmol.utility.nvtx.nvtx_range(&quot;reactive:&quot; + prop.name):</span>
+            <span class="c1">#    val = prop.f(**toresolve)</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">prop</span><span class="o">.</span><span class="n">f</span><span class="p">(</span><span class="o">**</span><span class="n">toresolve</span><span class="p">)</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reactive_values</span><span class="p">,</span> <span class="n">prop</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
             <span class="k">return</span> <span class="n">val</span>

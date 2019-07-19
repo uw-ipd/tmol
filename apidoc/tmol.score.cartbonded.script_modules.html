@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.script_modules &mdash; TMol 0.0.0-180-g724765c1 documentation</title>
+  <title>tmol.score.cartbonded.script_modules &mdash; TMol 0.0.0-181-ga426c2fe documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-180-g724765c1',
+              VERSION:'0.0.0-181-ga426c2fe',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-180-g724765c1
+                0.0.0-181-ga426c2fe
               </div>
             
           
@@ -230,19 +230,7 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.script_modules.CartBondedAngleModule" title="tmol.score.cartbonded.script_modules.CartBondedAngleModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedAngleModule</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule" title="tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedHxlTorsionModule</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.script_modules.CartBondedImproperModule" title="tmol.score.cartbonded.script_modules.CartBondedImproperModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedImproperModule</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.cartbonded.script_modules.CartBondedLengthModule" title="tmol.score.cartbonded.script_modules.CartBondedLengthModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedLengthModule</span></code></a></td>
-<td></td>
-</tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.script_modules.CartBondedTorsionModule" title="tmol.score.cartbonded.script_modules.CartBondedTorsionModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedTorsionModule</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.script_modules.CartBondedModule" title="tmol.score.cartbonded.script_modules.CartBondedModule"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CartBondedModule</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -251,113 +239,23 @@
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="tmol.score.cartbonded.script_modules._p">
-<code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">_p</code><span class="sig-paren">(</span><em>t</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#_p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules._p" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="tmol.score.cartbonded.script_modules._t">
-<code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">_t</code><span class="sig-paren">(</span><em>ts</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#_t"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules._t" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="class">
-<dt id="tmol.score.cartbonded.script_modules._CartBondedScoreModule">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">_CartBondedScoreModule</code><span class="sig-paren">(</span><em>optimize=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#_CartBondedScoreModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.script_modules.CartBondedModule">
+<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">CartBondedModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.cartbonded.params.CartBondedParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#CartBondedModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedModule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.jit.ScriptModule</span></code></p>
 <dl class="classmethod">
-<dt id="tmol.score.cartbonded.script_modules._CartBondedScoreModule.from_database">
-<em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>cb_database: tmol.database.scoring.cartbonded.CartBondedDatabase</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#_CartBondedScoreModule.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule.from_database" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.script_modules.CartBondedModule.from_database">
+<em class="property">classmethod </em><code class="descname">from_database</code><span class="sig-paren">(</span><em>cb_database: tmol.database.scoring.cartbonded.CartBondedDatabase</em>, <em>device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#CartBondedModule.from_database"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedModule.from_database" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules._CartBondedScoreModule._constants_set">
-<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule._constants_set" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.script_modules.CartBondedModule._constants_set">
+<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedModule._constants_set" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules._CartBondedScoreModule._original_methods">
-<code class="descname">_original_methods</code><em class="property"> = {}</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule._original_methods" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedLengthModule">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">CartBondedLengthModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.cartbonded.params.CartBondedParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#CartBondedLengthModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedLengthModule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule" title="tmol.score.cartbonded.script_modules._CartBondedScoreModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.cartbonded.script_modules._CartBondedScoreModule</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedLengthModule._constants_set">
-<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedLengthModule._constants_set" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedLengthModule._original_methods">
-<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function CartBondedLengthModule.forward at 0x7fff988551e0&gt;}</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedLengthModule._original_methods" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedAngleModule">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">CartBondedAngleModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.cartbonded.params.CartBondedParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#CartBondedAngleModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedAngleModule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule" title="tmol.score.cartbonded.script_modules._CartBondedScoreModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.cartbonded.script_modules._CartBondedScoreModule</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedAngleModule._constants_set">
-<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedAngleModule._constants_set" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedAngleModule._original_methods">
-<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function CartBondedAngleModule.forward at 0x7fff98855510&gt;}</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedAngleModule._original_methods" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedTorsionModule">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">CartBondedTorsionModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.cartbonded.params.CartBondedParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#CartBondedTorsionModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedTorsionModule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule" title="tmol.score.cartbonded.script_modules._CartBondedScoreModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.cartbonded.script_modules._CartBondedScoreModule</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedTorsionModule._constants_set">
-<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedTorsionModule._constants_set" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedTorsionModule._original_methods">
-<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function CartBondedTorsionModule.forward at 0x7fff98855730&gt;}</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedTorsionModule._original_methods" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedImproperModule">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">CartBondedImproperModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.cartbonded.params.CartBondedParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#CartBondedImproperModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedImproperModule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule" title="tmol.score.cartbonded.script_modules._CartBondedScoreModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.cartbonded.script_modules._CartBondedScoreModule</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedImproperModule._constants_set">
-<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedImproperModule._constants_set" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedImproperModule._original_methods">
-<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function CartBondedImproperModule.forward at 0x7fff98855950&gt;}</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedImproperModule._original_methods" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule">
-<em class="property">class </em><code class="descclassname">tmol.score.cartbonded.script_modules.</code><code class="descname">CartBondedHxlTorsionModule</code><span class="sig-paren">(</span><em>param_resolver: tmol.score.cartbonded.params.CartBondedParamResolver</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/cartbonded/script_modules.html#CartBondedHxlTorsionModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#tmol.score.cartbonded.script_modules._CartBondedScoreModule" title="tmol.score.cartbonded.script_modules._CartBondedScoreModule"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.score.cartbonded.script_modules._CartBondedScoreModule</span></code></a></p>
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule._constants_set">
-<code class="descname">_constants_set</code><em class="property"> = set()</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule._constants_set" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule._original_methods">
-<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function CartBondedHxlTorsionModule.forward at 0x7fff98855b70&gt;}</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedHxlTorsionModule._original_methods" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.cartbonded.script_modules.CartBondedModule._original_methods">
+<code class="descname">_original_methods</code><em class="property"> = {'forward': &lt;function CartBondedModule.forward at 0x7fff98849a60&gt;}</em><a class="headerlink" href="#tmol.score.cartbonded.script_modules.CartBondedModule._original_methods" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

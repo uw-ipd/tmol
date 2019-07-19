@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.lk_ball.score_graph &mdash; TMol 0.0.0-180-g724765c1 documentation</title>
+  <title>tmol.score.lk_ball.score_graph &mdash; TMol 0.0.0-181-ga426c2fe documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-180-g724765c1',
+              VERSION:'0.0.0-181-ga426c2fe',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-180-g724765c1
+                0.0.0-181-ga426c2fe
               </div>
             
           
@@ -181,7 +181,6 @@
 <span class="kn">import</span> <span class="nn">attr</span>
 
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
-<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 
 <span class="kn">from</span> <span class="nn">..score_components</span> <span class="k">import</span> <span class="n">ScoreComponentClasses</span><span class="p">,</span> <span class="n">IntraScore</span>
 <span class="kn">from</span> <span class="nn">..score_graph</span> <span class="k">import</span> <span class="n">score_graph</span>
@@ -205,7 +204,7 @@
 <div class="viewcode-block" id="LKBallIntraScore"><a class="viewcode-back" href="../../../../apidoc/tmol.score.lk_ball.score_graph.html#tmol.score.lk_ball.score_graph.LKBallIntraScore">[docs]</a><span class="nd">@reactive_attrs</span>
 <span class="k">class</span> <span class="nc">LKBallIntraScore</span><span class="p">(</span><span class="n">IntraScore</span><span class="p">):</span>
     <span class="nd">@reactive_property</span>
-    <span class="nd">@validate_args</span>
+    <span class="c1"># @validate_args</span>
     <span class="k">def</span> <span class="nf">lkball_score</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">lkball_intra_module</span><span class="p">(</span>
             <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
