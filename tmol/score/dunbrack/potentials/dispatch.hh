@@ -9,6 +9,8 @@
 
 #include <ATen/Tensor.h>
 
+#include "params.hh"
+
 namespace tmol {
 namespace score {
 namespace dunbrack {
@@ -17,93 +19,30 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-#define CoordQuad Eigen::Matrix<Real, 4, 3>
+#define Coord Vec<Real, 3>
 
 template <
     template <tmol::Device>
     class Dispatch,
     tmol::Device D,
     typename Real,
-    typename Int>
+    typename Int,
+    int MAXBB,
+    int MAXCHI>
 struct DunbrackDispatch {
-  static auto forward(
+  static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-
-      TView<Real, 3, D> rotameric_prob_tables,
-      TView<Real, 3, D> rotameric_neglnprob_tables,
-      TView<Vec<int64_t, 2>, 1, D> rotprob_table_sizes,
-      TView<Vec<int64_t, 2>, 1, D> rotprob_table_strides,
-      TView<Real, 3, D> rotameric_mean_tables,
-      TView<Real, 3, D> rotameric_sdev_tables,
-      TView<Vec<int64_t, 2>, 1, D> rotmean_table_sizes,
-      TView<Vec<int64_t, 2>, 1, D> rotmean_table_strides,
-      TView<Vec<Real, 2>, 1, D> rotameric_bb_start,        // ntable-set entries
-      TView<Vec<Real, 2>, 1, D> rotameric_bb_step,         // ntable-set entries
-      TView<Vec<Real, 2>, 1, D> rotameric_bb_periodicity,  // ntable-set entries
-      TView<Real, 4, D> semirotameric_tables,              // n-semirot-tabset
-      TView<Vec<int64_t, 3>, 1, D> semirot_table_sizes,    // n-semirot-tabset
-      TView<Vec<int64_t, 3>, 1, D> semirot_table_strides,  // n-semirot-tabset
-      TView<Vec<Real, 3>, 1, D> semirot_start,             // n-semirot-tabset
-      TView<Vec<Real, 3>, 1, D> semirot_step,              // n-semirot-tabset
-      TView<Vec<Real, 3>, 1, D> semirot_periodicity,       // n-semirot-tabset
-      TView<Int, 1, D> rotameric_rotind2tableind,
-      TView<Int, 1, D> semirotameric_rotind2tableind,
-
-      TView<Int, 1, D> ndihe_for_res,               // nres x 1
-      TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
-      TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
-
-      TView<Int, 1, D> rottable_set_for_res,              // nres x 1
-      TView<Int, 1, D> nchi_for_res,                      // nres x 1
-      TView<Int, 1, D> nrotameric_chi_for_res,            // nres x 1
-      TView<Int, 1, D> rotres2resid,                      // nres x 1
-      TView<Int, 1, D> prob_table_offset_for_rotresidue,  // n-rotameric-res x 1
-      TView<Int, 1, D> rotind2tableind_offset_for_res,    // n-res x 1
-
-      TView<Int, 1, D> rotmean_table_offset_for_residue,  // n-res x 1
-
-      TView<Int, 2, D> rotameric_chi_desc,  // n-rotameric-chi x 2
-      // rotchi_desc[:,0] == residue index for this chi
-      // rotchi_desc[:,1] == chi_dihedral_index for res
-
-      TView<Int, 2, D> semirotameric_chi_desc,  // n-semirotameric-residues x 4
-      // semirotchi_desc[:,0] == residue index
-      // semirotchi_desc[:,1] == semirotchi_dihedral_index res
-      // semirotchi_desc[:,2] == semirot_table_offset
-      // semirotchi_desc[:,3] == semirot_table_set (e.g. 0-7)
-
-      // scratch space, perhaps does not belong as an input parameter?
-      TView<Real, 1, D> dihedrals,                        // ndihe x 1
-      TView<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz,  // ndihe x 3
-      // TView<Real, 1, D> rotchi_devpen,                    // n-rotameric-chi
-      // x 1 TView<Real, 2, D> ddevpen_dbb,  // Where d chimean/d dbbdihe is
-      //                                // stored, nscdihe x 2
-      TView<Int, 1, D> rotameric_rottable_assignment,     // nres x 1
-      TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
-
-      )
-      -> std::tuple<
-          TPack<Real, 1, D>,       // sum (energies) [rot, dev, semi]
-          TPack<CoordQuad, 2, D>,  // d(-ln(prob_rotameric)) / dbb atoms
-          TPack<CoordQuad, 2, D>,  // ddevpen_dtor_xyz -- nrotchi x (nbb+1)
-          TPack<CoordQuad, 2, D>>  // d(-ln(prob_nonrotameric)) / dtor --
-      ;                            // nsemirot-res x 3
-
-  static auto backward(
-      TView<Real, 1, D> dTdV,
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CoordQuad, 2, D> drot_nlp_dbb_xyz,  // n-rotameric-res x 2
-      TView<CoordQuad, 2, D> ddevpen_dtor_xyz,  // n-rotameric-chi x 3
-      TView<CoordQuad, 2, D> dnonrot_nlp_dtor_xyz,
-      TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
-      TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
-      TView<Int, 1, D> rotres2resid,                // nres x 1
-      TView<Int, 2, D> rotameric_chi_desc,          // n-rotameric-chi x 2
-      TView<Int, 2, D> semirotameric_chi_desc  // n-semirotameric-residues x 4
-      ) -> TPack<Vec<Real, 3>, 1, D>;
+      TView<Real, MAXBB + 1, D> rotameric_tables,
+      TView<RotamericTableParams<Real, MAXBB>, 1, D> rotameric_table_params,
+      TView<Real, MAXBB + 2, D> semirotameric_tables,
+      TView<SemirotamericTableParams<Real, MAXBB>, 1, D>
+          semirotameric_table_params,
+      TView<DunResParameters<Int, MAXBB, MAXCHI>, 1, D> residue_params,
+      TView<DunTableLookupParams<Int, MAXCHI>, 1, D> residue_lookup_params)
+      -> std::tuple<TPack<Real, 1, D>, TPack<Coord, 2, D> >;
 };
 
-#undef CoordQuad
+#undef Coord
 
 }  // namespace potentials
 }  // namespace dunbrack
