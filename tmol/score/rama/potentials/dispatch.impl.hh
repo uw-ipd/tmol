@@ -36,17 +36,17 @@ struct RamaDispatch {
       TView<Real, 3, D> tables,
       TView<RamaTableParams<Real>, 1, D> table_params)
       -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>> {
-    int const nstacks = coords.shape(0);
+    int const nstacks = coords.size(0);
     auto V_t = TPack<Real, 1, D>::zeros({nstacks});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({nstacks, coords.size(0)});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({nstacks, coords.size(1)});
 
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
 
     auto func = ([=] EIGEN_DEVICE_FUNC(int ind) {
 
-      int stack = ind / params.shape(1);
-      int i = ind - stack * params.shape(1);
+      int stack = ind / params.size(1);
+      int i = ind - stack * params.size(1);
 	
       // if stacks are of different size, then mark the entries that
       // should not be evaluated with -1

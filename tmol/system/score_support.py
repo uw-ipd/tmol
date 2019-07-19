@@ -220,6 +220,30 @@ def rama_graph_inputs(
 
     return dict(rama_database=rama_database, allphis=phis, allpsis=psis)
 
+@RamaScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def rama_graph_for_stack(
+    system: PackedResidueSystemStack,
+    parameter_database: ParameterDatabase,
+    rama_database: Optional[RamaDatabase] = None,
+    **_,
+):
+   params = [rama_graph_inpus(sys, parameter_database, rama_database) for sys in system.systems]
+
+   max_nres = max(d["allphis"].shape[0] for d in params)
+   def expand(t):
+       ext = numpy.full((1, max_nres, 5), -1, dtype=int)
+       ext[0,:t.shape[0],:] = t
+       return ext
+   def stackem(key):
+       return numpy.concatenate([expand(d[key]) for d in params])
+
+   return dict(
+       rama_database=params[0]["rama_database"],
+       allphis=stackem("allphis"),
+       allpsis=stackem("allpsis"),
+   )
+
 
 @OmegaScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args
