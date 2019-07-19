@@ -25,7 +25,11 @@ class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice
 # the
 @score_graph
 class StackScoreGraph(
-    CartesianAtomicCoordinateProvider, LJScoreGraph, LKScoreGraph, RamaScoreGraph, TorchDevice
+    CartesianAtomicCoordinateProvider,
+    LJScoreGraph,
+    LKScoreGraph,
+    RamaScoreGraph,
+    TorchDevice,
 ):
     pass
 

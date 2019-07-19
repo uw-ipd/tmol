@@ -218,7 +218,10 @@ def rama_graph_inputs(
         ]
     )
 
-    return dict(rama_database=rama_database, allphis=phis[None,:], allpsis=psis[None,:])
+    return dict(
+        rama_database=rama_database, allphis=phis[None, :], allpsis=psis[None, :]
+    )
+
 
 @RamaScoreGraph.factory_for.register(PackedResidueSystemStack)
 @validate_args
@@ -228,21 +231,26 @@ def rama_graph_for_stack(
     rama_database: Optional[RamaDatabase] = None,
     **_,
 ):
-   params = [rama_graph_inputs(sys, parameter_database, rama_database) for sys in system.systems]
+    params = [
+        rama_graph_inputs(sys, parameter_database, rama_database)
+        for sys in system.systems
+    ]
 
-   max_nres = max(d["allphis"].shape[1] for d in params)
-   def expand(t):
-       ext = numpy.full((1, max_nres, 5), -1, dtype=int)
-       ext[0,:t.shape[1],:] = t[0]
-       return ext
-   def stackem(key):
-       return numpy.concatenate([expand(d[key]) for d in params])
+    max_nres = max(d["allphis"].shape[1] for d in params)
 
-   return dict(
-       rama_database=params[0]["rama_database"],
-       allphis=stackem("allphis"),
-       allpsis=stackem("allpsis"),
-   )
+    def expand(t):
+        ext = numpy.full((1, max_nres, 5), -1, dtype=int)
+        ext[0, : t.shape[1], :] = t[0]
+        return ext
+
+    def stackem(key):
+        return numpy.concatenate([expand(d[key]) for d in params])
+
+    return dict(
+        rama_database=params[0]["rama_database"],
+        allphis=stackem("allphis"),
+        allpsis=stackem("allpsis"),
+    )
 
 
 @OmegaScoreGraph.factory_for.register(PackedResidueSystem)

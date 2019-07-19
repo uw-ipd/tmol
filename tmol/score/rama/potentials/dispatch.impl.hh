@@ -44,10 +44,9 @@ struct RamaDispatch {
     auto dV_dx = dV_dx_t.view;
 
     auto func = ([=] EIGEN_DEVICE_FUNC(int ind) {
-
       int stack = ind / params.size(1);
       int i = ind - stack * params.size(1);
-	
+
       // if stacks are of different size, then mark the entries that
       // should not be evaluated with -1
       Int idx = params[stack][i].table_index;
@@ -70,9 +69,11 @@ struct RamaDispatch {
       accumulate<D, Real>::add(V[stack], common::get<0>(rama));
       for (int j = 0; j < 4; ++j) {
         accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[stack][params[stack][i].phis[j]], common::get<1>(rama).row(j));
+            dV_dx[stack][params[stack][i].phis[j]],
+            common::get<1>(rama).row(j));
         accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[stack][params[stack][i].psis[j]], common::get<2>(rama).row(j));
+            dV_dx[stack][params[stack][i].psis[j]],
+            common::get<2>(rama).row(j));
       }
     });
 

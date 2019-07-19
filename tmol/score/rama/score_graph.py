@@ -86,7 +86,7 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         param_inds_list = []
 
         for i in range(allphis.shape[0]):
-            
+
             dfphis = pandas.DataFrame(allphis[i])
             dfpsis = pandas.DataFrame(allpsis[i])
             phipsis = dfphis.merge(
@@ -101,36 +101,42 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
             # remove undefined indices and send to device
             rama_defined = numpy.all(phipsis != -1, axis=1)
-            
+
             phi_list.append(phipsis[rama_defined, :4])
             psi_list.append(phipsis[rama_defined, 4:])
             param_inds_list.append(ramatable_indices[rama_defined])
 
         max_size = max(x.shape[0] for x in phi_list)
         phi_inds = torch.full(
-            (allphis.shape[0], max_size, 4), -1,
-            device=rama_param_resolver.device, dtype=torch.int32)
+            (allphis.shape[0], max_size, 4),
+            -1,
+            device=rama_param_resolver.device,
+            dtype=torch.int32,
+        )
         psi_inds = torch.full(
-            (allphis.shape[0], max_size, 4), -1,
-            device=rama_param_resolver.device, dtype=torch.int32)
+            (allphis.shape[0], max_size, 4),
+            -1,
+            device=rama_param_resolver.device,
+            dtype=torch.int32,
+        )
         param_inds = torch.full(
-            (allphis.shape[0], max_size), -1,
-            device=rama_param_resolver.device, dtype=torch.int32)
+            (allphis.shape[0], max_size),
+            -1,
+            device=rama_param_resolver.device,
+            dtype=torch.int32,
+        )
 
         def copyem(dest, arr, i):
             iarr = arr[i]
-            dest[i, :iarr.shape[0]] = torch.tensor(
-                iarr, dtype=torch.int32,
-                device=rama_param_resolver.device)
-        
+            dest[i, : iarr.shape[0]] = torch.tensor(
+                iarr, dtype=torch.int32, device=rama_param_resolver.device
+            )
+
         for i in range(allphis.shape[0]):
             copyem(phi_inds, phi_list, i)
             copyem(psi_inds, psi_list, i)
             copyem(param_inds, param_inds_list, i)
 
-
         return RamaParams(
-            phi_indices=phi_inds,
-            psi_indices=psi_inds,
-            param_indices=param_inds,
+            phi_indices=phi_inds, psi_indices=psi_inds, param_indices=param_inds
         )

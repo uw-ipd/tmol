@@ -16,7 +16,7 @@ class ScoreSetup:
 
     @classmethod
     def from_fixture(cls, database, system, torch_device) -> "ScoreSetup":
-        coords = system.coords[None,:]
+        coords = system.coords[None, :]
         tcoords = (
             torch.from_numpy(coords)
             .to(device=torch_device, dtype=torch.float)
@@ -65,16 +65,16 @@ class ScoreSetup:
         ramatable_indices = param_resolver.resolve_ramatables(
             res_names[phipsis[:, 5]],  # psi atom 'b'
             res_names[phipsis[:, 7]],  # psi atom 'd'
-        )[None,:]
+        )[None, :]
 
         rama_defined = numpy.all(phipsis != -1, axis=1)
-        tphi_atom_indices = torch.from_numpy(phipsis[rama_defined, :4][None,:]).to(
+        tphi_atom_indices = torch.from_numpy(phipsis[rama_defined, :4][None, :]).to(
             device=param_resolver.device, dtype=torch.int32
         )
-        tpsi_atom_indices = torch.from_numpy(phipsis[rama_defined, 4:][None,:]).to(
+        tpsi_atom_indices = torch.from_numpy(phipsis[rama_defined, 4:][None, :]).to(
             device=param_resolver.device, dtype=torch.int32
         )
-        tramatable_indices = torch.from_numpy(ramatable_indices[:,rama_defined]).to(
+        tramatable_indices = torch.from_numpy(ramatable_indices[:, rama_defined]).to(
             device=param_resolver.device, dtype=torch.int32
         )
 
@@ -111,11 +111,10 @@ def test_rama_intra_gradcheck(default_database, ubq_system, torch_device):
 
     def eval_rama(coords_subset):
         coords = s.tcoords.clone()
-        coords[0,t_atm_indices] = coords_subset
+        coords[0, t_atm_indices] = coords_subset
         return op(coords)
 
-    masked_coords = s.tcoords[0,t_atm_indices]
+    masked_coords = s.tcoords[0, t_atm_indices]
     torch.autograd.gradcheck(
         eval_rama, (masked_coords.requires_grad_(True),), eps=1e-3, atol=5e-3
     )
-
