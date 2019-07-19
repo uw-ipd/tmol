@@ -17,7 +17,6 @@ from .script_modules import CartBondedModule
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
 
-from tmol.types.functional import validate_args
 from tmol.types.array import NDArray
 
 from tmol.types.torch import Tensor

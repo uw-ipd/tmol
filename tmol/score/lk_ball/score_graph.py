@@ -2,7 +2,6 @@ import torch
 import attr
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
-from tmol.types.functional import validate_args
 
 from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
