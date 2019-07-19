@@ -9,42 +9,12 @@ namespace score {
 namespace cartbonded {
 namespace potentials {
 
-template struct CartBondedLengthDispatch<
+template struct CartBondedDispatch<
     common::ForallDispatch,
     tmol::Device::CUDA,
     float,
     int64_t>;
-template struct CartBondedLengthDispatch<
-    common::ForallDispatch,
-    tmol::Device::CUDA,
-    double,
-    int64_t>;
-template struct CartBondedAngleDispatch<
-    common::ForallDispatch,
-    tmol::Device::CUDA,
-    float,
-    int64_t>;
-template struct CartBondedAngleDispatch<
-    common::ForallDispatch,
-    tmol::Device::CUDA,
-    double,
-    int64_t>;
-template struct CartBondedTorsionDispatch<
-    common::ForallDispatch,
-    tmol::Device::CUDA,
-    float,
-    int64_t>;
-template struct CartBondedTorsionDispatch<
-    common::ForallDispatch,
-    tmol::Device::CUDA,
-    double,
-    int64_t>;
-template struct CartBondedHxlTorsionDispatch<
-    common::ForallDispatch,
-    tmol::Device::CUDA,
-    float,
-    int64_t>;
-template struct CartBondedHxlTorsionDispatch<
+template struct CartBondedDispatch<
     common::ForallDispatch,
     tmol::Device::CUDA,
     double,

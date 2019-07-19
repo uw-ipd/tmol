@@ -73,5 +73,5 @@ def test_omega_intra_gradcheck(default_database, ubq_system, torch_device):
 
     masked_coords = s.tcoords[t_atm_indices]
     torch.autograd.gradcheck(
-        eval_omega, (masked_coords.requires_grad_(True),), eps=1e-3, atol=5e-3
+        eval_omega, (masked_coords.requires_grad_(True),), eps=1e-3, atol=1e-2
     )

@@ -34,7 +34,6 @@ def test_interatomic_distance_stacked(
     )
 
     intra_total = score_state.intra_score().total
-
     assert intra_total.shape == (4,)
     assert (intra_total.new_tensor(intra_layer_counts) == intra_total).all()
 

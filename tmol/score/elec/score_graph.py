@@ -25,13 +25,13 @@ from .script_modules import ElecIntraModule
 @reactive_attrs
 class ElecIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def total_elec(target):
         return target.elec_intra_module(
             target.coords[0],
             target.elec_partial_charges[0],
             target.repatm_bonded_path_length[0],
-        )
+        )[0]
 
 
 @score_graph

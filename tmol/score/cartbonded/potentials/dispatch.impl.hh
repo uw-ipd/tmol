@@ -33,180 +33,145 @@ template <
     tmol::Device D,
     typename Real,
     typename Int>
-struct CartBondedLengthDispatch {
+struct CartBondedDispatch {
   static auto f(
       TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedLengthParams<Int>, 1, D> atom_indices,
-      TView<CartBondedHarmonicTypeParams<Real>, 1, D> param_table)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
-    auto num_Vs = atom_indices.size(0);
-
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
-
+      TView<CartBondedLengthParams<Int>, 1, D> cbl_atoms,
+      TView<CartBondedAngleParams<Int>, 1, D> cba_atoms,
+      TView<CartBondedTorsionParams<Int>, 1, D> cbt_atoms,
+      TView<CartBondedTorsionParams<Int>, 1, D> cbi_atoms,
+      TView<CartBondedTorsionParams<Int>, 1, D> cbhxl_atoms,
+      TView<CartBondedHarmonicTypeParams<Real>, 1, D> cbl_params,
+      TView<CartBondedHarmonicTypeParams<Real>, 1, D> cba_params,
+      TView<CartBondedPeriodicTypeParams<Real>, 1, D> cbt_params,
+      TView<CartBondedPeriodicTypeParams<Real>, 1, D> cbi_params,
+      TView<CartBondedSinusoidalTypeParams<Real>, 1, D> cbhxl_params)
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>> {
+    auto V_t = TPack<Real, 1, D>::zeros({5});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({coords.size(0), 5});
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
 
-    auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atom_indices[i].atom_index_i;
-      Int atj = atom_indices[i].atom_index_j;
-      Int pari = atom_indices[i].param_index;
+    // length
+    auto cbl_score_i = ([=] EIGEN_DEVICE_FUNC(int i) {
+      Int ati = cbl_atoms[i].atom_index_i;
+      Int atj = cbl_atoms[i].atom_index_j;
+      Int pari = cbl_atoms[i].param_index;
       auto cblength = cblength_V_dV(
-          coords[ati], coords[atj], param_table[pari].K, param_table[pari].x0);
+          coords[ati], coords[atj], cbl_params[pari].K, cbl_params[pari].x0);
 
       accumulate<D, Real>::add(V[0], common::get<0>(cblength));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[ati], common::get<1>(cblength));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[atj], common::get<2>(cblength));
+      accumulate<D, Vec<Real, 3>>::add(dV_dx[ati][0], common::get<1>(cblength));
+      accumulate<D, Vec<Real, 3>>::add(dV_dx[atj][0], common::get<2>(cblength));
     });
+    Dispatch<D>::forall(cbl_atoms.size(0), cbl_score_i);
 
-    Dispatch<D>::forall(num_Vs, f_i);
-
-    return {V_t, dV_dx_t};
-  }
-};
-
-template <
-    template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
-struct CartBondedAngleDispatch {
-  static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedAngleParams<Int>, 1, D> atom_indices,
-      TView<CartBondedHarmonicTypeParams<Real>, 1, D> param_table)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
-    auto num_Vs = atom_indices.size(0);
-
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
-
-    auto V = V_t.view;
-    auto dV_dx = dV_dx_t.view;
-
-    auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atom_indices[i].atom_index_i;
-      Int atj = atom_indices[i].atom_index_j;
-      Int atk = atom_indices[i].atom_index_k;
-      Int pari = atom_indices[i].param_index;
+    // angle
+    auto cba_score_i = ([=] EIGEN_DEVICE_FUNC(int i) {
+      Int ati = cba_atoms[i].atom_index_i;
+      Int atj = cba_atoms[i].atom_index_j;
+      Int atk = cba_atoms[i].atom_index_k;
+      Int pari = cba_atoms[i].param_index;
       auto cbangle = cbangle_V_dV(
           coords[ati],
           coords[atj],
           coords[atk],
-          param_table[pari].K,
-          param_table[pari].x0);
+          cba_params[pari].K,
+          cba_params[pari].x0);
 
-      accumulate<D, Real>::add(V[0], common::get<0>(cbangle));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[ati], common::get<1>(cbangle));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[atj], common::get<2>(cbangle));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[atk], common::get<3>(cbangle));
+      accumulate<D, Real>::add(V[1], common::get<0>(cbangle));
+      accumulate<D, Vec<Real, 3>>::add(dV_dx[ati][1], common::get<1>(cbangle));
+      accumulate<D, Vec<Real, 3>>::add(dV_dx[atj][1], common::get<2>(cbangle));
+      accumulate<D, Vec<Real, 3>>::add(dV_dx[atk][1], common::get<3>(cbangle));
     });
+    Dispatch<D>::forall(cba_atoms.size(0), cba_score_i);
 
-    Dispatch<D>::forall(num_Vs, f_i);
-
-    return {V_t, dV_dx_t};
-  }
-};
-
-template <
-    template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
-struct CartBondedTorsionDispatch {
-  static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedTorsionParams<Int>, 1, D> atom_indices,
-      TView<CartBondedPeriodicTypeParams<Real>, 1, D> param_table)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
-    auto num_Vs = atom_indices.size(0);
-
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
-
-    auto V = V_t.view;
-    auto dV_dx = dV_dx_t.view;
-
-    auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atom_indices[i].atom_index_i;
-      Int atj = atom_indices[i].atom_index_j;
-      Int atk = atom_indices[i].atom_index_k;
-      Int atl = atom_indices[i].atom_index_l;
-      Int pari = atom_indices[i].param_index;
+    // torsion
+    auto cbt_score_i = ([=] EIGEN_DEVICE_FUNC(int i) {
+      Int ati = cbt_atoms[i].atom_index_i;
+      Int atj = cbt_atoms[i].atom_index_j;
+      Int atk = cbt_atoms[i].atom_index_k;
+      Int atl = cbt_atoms[i].atom_index_l;
+      Int pari = cbt_atoms[i].param_index;
       auto cbtorsion = cbtorsion_V_dV(
           coords[ati],
           coords[atj],
           coords[atk],
           coords[atl],
-          param_table[pari].K,
-          param_table[pari].x0,
-          param_table[pari].period);
+          cbt_params[pari].K,
+          cbt_params[pari].x0,
+          cbt_params[pari].period);
 
-      accumulate<D, Real>::add(V[0], common::get<0>(cbtorsion));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[ati], common::get<1>(cbtorsion));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[atj], common::get<2>(cbtorsion));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[atk], common::get<3>(cbtorsion));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[atl], common::get<4>(cbtorsion));
+      accumulate<D, Real>::add(V[2], common::get<0>(cbtorsion));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[ati][2], common::get<1>(cbtorsion));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[atj][2], common::get<2>(cbtorsion));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[atk][2], common::get<3>(cbtorsion));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[atl][2], common::get<4>(cbtorsion));
     });
+    Dispatch<D>::forall(cbt_atoms.size(0), cbt_score_i);
 
-    Dispatch<D>::forall(num_Vs, f_i);
+    // improper torsion
+    auto cbi_score_i = ([=] EIGEN_DEVICE_FUNC(int i) {
+      Int ati = cbi_atoms[i].atom_index_i;
+      Int atj = cbi_atoms[i].atom_index_j;
+      Int atk = cbi_atoms[i].atom_index_k;
+      Int atl = cbi_atoms[i].atom_index_l;
+      Int pari = cbi_atoms[i].param_index;
+      auto cbimproper = cbtorsion_V_dV(
+          coords[ati],
+          coords[atj],
+          coords[atk],
+          coords[atl],
+          cbi_params[pari].K,
+          cbi_params[pari].x0,
+          cbi_params[pari].period);
 
-    return {V_t, dV_dx_t};
-  }
-};
+      accumulate<D, Real>::add(V[3], common::get<0>(cbimproper));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[ati][3], common::get<1>(cbimproper));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[atj][3], common::get<2>(cbimproper));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[atk][3], common::get<3>(cbimproper));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[atl][3], common::get<4>(cbimproper));
+    });
+    Dispatch<D>::forall(cbi_atoms.size(0), cbi_score_i);
 
-template <
-    template <tmol::Device>
-    class Dispatch,
-    tmol::Device D,
-    typename Real,
-    typename Int>
-struct CartBondedHxlTorsionDispatch {
-  static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedTorsionParams<Int>, 1, D> atom_indices,
-      TView<CartBondedSinusoidalTypeParams<Real>, 1, D> param_table)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
-    auto num_Vs = atom_indices.size(0);
-
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
-
-    auto V = V_t.view;
-    auto dV_dx = dV_dx_t.view;
-
-    auto f_i = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atom_indices[i].atom_index_i;
-      Int atj = atom_indices[i].atom_index_j;
-      Int atk = atom_indices[i].atom_index_k;
-      Int atl = atom_indices[i].atom_index_l;
-      Int pari = atom_indices[i].param_index;
+    // hydroxyl torsion
+    auto cbhxl_score_i = ([=] EIGEN_DEVICE_FUNC(int i) {
+      Int ati = cbhxl_atoms[i].atom_index_i;
+      Int atj = cbhxl_atoms[i].atom_index_j;
+      Int atk = cbhxl_atoms[i].atom_index_k;
+      Int atl = cbhxl_atoms[i].atom_index_l;
+      Int pari = cbhxl_atoms[i].param_index;
       auto cbhxltorsion = cbhxltorsion_V_dV(
           coords[ati],
           coords[atj],
           coords[atk],
           coords[atl],
-          param_table[pari].k1,
-          param_table[pari].k2,
-          param_table[pari].k3,
-          param_table[pari].phi1,
-          param_table[pari].phi2,
-          param_table[pari].phi3);
+          cbhxl_params[pari].k1,
+          cbhxl_params[pari].k2,
+          cbhxl_params[pari].k3,
+          cbhxl_params[pari].phi1,
+          cbhxl_params[pari].phi2,
+          cbhxl_params[pari].phi3);
 
-      accumulate<D, Real>::add(V[0], common::get<0>(cbhxltorsion));
+      accumulate<D, Real>::add(V[4], common::get<0>(cbhxltorsion));
       accumulate<D, Vec<Real, 3>>::add(
-          dV_dx[ati], common::get<1>(cbhxltorsion));
+          dV_dx[ati][4], common::get<1>(cbhxltorsion));
       accumulate<D, Vec<Real, 3>>::add(
-          dV_dx[atj], common::get<2>(cbhxltorsion));
+          dV_dx[atj][4], common::get<2>(cbhxltorsion));
       accumulate<D, Vec<Real, 3>>::add(
-          dV_dx[atk], common::get<3>(cbhxltorsion));
+          dV_dx[atk][4], common::get<3>(cbhxltorsion));
       accumulate<D, Vec<Real, 3>>::add(
-          dV_dx[atl], common::get<4>(cbhxltorsion));
+          dV_dx[atl][4], common::get<4>(cbhxltorsion));
     });
-
-    Dispatch<D>::forall(num_Vs, f_i);
+    Dispatch<D>::forall(cbhxl_atoms.size(0), cbhxl_score_i);
 
     return {V_t, dV_dx_t};
   }

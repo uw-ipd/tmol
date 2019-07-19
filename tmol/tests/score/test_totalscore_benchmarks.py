@@ -38,8 +38,8 @@ def default_component_weights(torch_device):
         "total_dun_dev": torch.tensor(0.69, device=torch_device),
         "total_dun_semi": torch.tensor(0.78, device=torch_device),
         ## ... still unimplemented
-        "total_ref": torch.tensor(1.0, device=torch_device),
-        "total_dslf": torch.tensor(1.25, device=torch_device),
+        # "total_ref": torch.tensor(1.0, device=torch_device),
+        # "total_dslf": torch.tensor(1.25, device=torch_device),
     }
 
 

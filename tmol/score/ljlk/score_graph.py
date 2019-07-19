@@ -25,21 +25,21 @@ from .script_modules import LJIntraModule, LKIsotropicIntraModule
 @reactive_attrs
 class LJIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def total_lj(target):
         return target.lj_intra_module(
             target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
-        )
+        )[0]
 
 
 @reactive_attrs
 class LKIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def total_lk(target):
         return target.lk_intra_module(
             target.coords[0], target.ljlk_atom_types[0], target.bonded_path_length[0]
-        )
+        )[0]
 
 
 @score_graph

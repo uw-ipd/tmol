@@ -2,7 +2,6 @@ import torch
 import attr
 
 from tmol.utility.reactive import reactive_attrs, reactive_property
-from tmol.types.functional import validate_args
 
 from ..score_components import ScoreComponentClasses, IntraScore
 from ..score_graph import score_graph
@@ -26,7 +25,7 @@ class LKBallPairs:
 @reactive_attrs
 class LKBallIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def lkball_score(target):
         return target.lkball_intra_module(
             target.coords[0],
