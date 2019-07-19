@@ -50,7 +50,7 @@ struct GenerateWaters {
     int const num_Vs = coords.size(1);
     int const nstacks = coords.size(0)
 
-    nvtx_range_push("watergen::setup");
+                            nvtx_range_push("watergen::setup");
     auto waters_t =
         TPack<Vec<Real, 3>, 3, D>::empty({nstacks, num_Vs, MAX_WATER});
     auto waters = waters_t.view;
@@ -64,21 +64,20 @@ struct GenerateWaters {
 
     auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int idx) {
       Int stack = idx / coords.shape(1);
-      Int i = idx - stack*coords.shape(1);
-      Int ati = atom_types[i]; // atom type of -1 means not an atom.
+      Int i = idx - stack * coords.shape(1);
+      Int ati = atom_types[i];  // atom type of -1 means not an atom.
       int wi = 0;
 
       if (ati >= 0) {
-
         auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
           return (bool)type_params[atom_types[stack][j]].is_hydrogen;
         });
-	
-	tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
-	indexed_bonds.bonds = indexed_bond_bonds[stack];
-	indexed_bonds.bond_spans = indexed_bond_spans[stack];
 
-	if (type_params[ati].is_acceptor) {
+        tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
+        indexed_bonds.bonds = indexed_bond_bonds[stack];
+        indexed_bonds.bond_spans = indexed_bond_spans[stack];
+
+        if (type_params[ati].is_acceptor) {
           Int hyb = type_params[ati].acceptor_hybridization;
 
           auto bases = AcceptorBases<Int>::for_acceptor(
@@ -122,7 +121,9 @@ struct GenerateWaters {
           for (int other_atom : indexed_bonds.bound_to(i)) {
             if (is_hydrogen(other_atom)) {
               waters[stack][i][wi] = build_don_water<Real>::V(
-                  coords[stack][i], coords[stack][other_atom], global_params[0].lkb_water_dist);
+                  coords[stack][i],
+                  coords[stack][other_atom],
+                  global_params[0].lkb_water_dist);
               wi++;
             };
           }
@@ -174,14 +175,12 @@ struct GenerateWaters {
     nvtx_range_push("watergen::dgen");
 
     auto df_watergen = ([=] EIGEN_DEVICE_FUNC(int idx) {
-
       Int stack = idx / coords.shape(1);
-      Int i = idx - stack*coords.shape(1);
-      Int ati = atom_types[i]; // atom type of -1 means not an atom.
+      Int i = idx - stack * coords.shape(1);
+      Int ati = atom_types[i];  // atom type of -1 means not an atom.
       int wi = 0;
 
       if (ati >= 0) {
-
         auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
           return (bool)type_params[atom_types[stack][j]].is_hydrogen;
         });
@@ -240,7 +239,7 @@ struct GenerateWaters {
           }
 
           common::accumulate<D, Vec<Real, 3>>::add(
-	    dE_d_coord[stack][bases.A], dE_dXA);
+              dE_d_coord[stack][bases.A], dE_dXA);
 
           if (hyb == AcceptorHybridization::ring) {
             common::accumulate<D, Vec<Real, 3>>::add(
@@ -249,11 +248,11 @@ struct GenerateWaters {
                 dE_d_coord[stack][bases.B0], dE_dXB / 2.0);
           } else {
             common::accumulate<D, Vec<Real, 3>>::add(
-	      dE_d_coord[stack][bases.B], dE_dXB);
+                dE_d_coord[stack][bases.B], dE_dXB);
           }
 
           common::accumulate<D, Vec<Real, 3>>::add(
-	    dE_d_coord[stack][bases.B0], dE_dXB0);
+              dE_d_coord[stack][bases.B0], dE_dXB0);
         }
 
         if (type_params[ati].is_donor) {
@@ -262,8 +261,8 @@ struct GenerateWaters {
               auto dE_dWi = dE_dW[stack][i][wi];
               auto dW = build_don_water<Real>::dV(
                   coords[stack][i],
-		  coords[stack][other_atom],
-		  global_params[0].lkb_water_dist);
+                  coords[stack][other_atom],
+                  global_params[0].lkb_water_dist);
 
               common::accumulate<D, Vec<Real, 3>>::add(
                   dE_d_coord[stack][i], dW.dD * dE_dWi);
