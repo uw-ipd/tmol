@@ -10,8 +10,6 @@ from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 
-import tmol.utility.nvtx
-
 from ..database import ParamDB
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
