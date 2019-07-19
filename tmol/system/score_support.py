@@ -228,7 +228,7 @@ def rama_graph_for_stack(
     rama_database: Optional[RamaDatabase] = None,
     **_,
 ):
-   params = [rama_graph_inpus(sys, parameter_database, rama_database) for sys in system.systems]
+   params = [rama_graph_inputs(sys, parameter_database, rama_database) for sys in system.systems]
 
    max_nres = max(d["allphis"].shape[1] for d in params)
    def expand(t):

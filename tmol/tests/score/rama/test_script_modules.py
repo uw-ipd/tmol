@@ -118,3 +118,4 @@ def test_rama_intra_gradcheck(default_database, ubq_system, torch_device):
     torch.autograd.gradcheck(
         eval_rama, (masked_coords.requires_grad_(True),), eps=1e-3, atol=5e-3
     )
+
