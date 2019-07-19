@@ -26,7 +26,7 @@ from tmol.types.torch import Tensor
 @reactive_attrs
 class CartBondedIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def cartbonded_score(target):
         return target.cartbonded_module(
             target.coords[0, ...],

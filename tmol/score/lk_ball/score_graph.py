@@ -26,7 +26,7 @@ class LKBallPairs:
 @reactive_attrs
 class LKBallIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def lkball_score(target):
         return target.lkball_intra_module(
             target.coords[0],

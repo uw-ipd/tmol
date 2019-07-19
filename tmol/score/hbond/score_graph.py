@@ -53,14 +53,14 @@ class HBondDescr(TensorGroup):
 @reactive_attrs
 class HBondIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def total_hbond(target, hbond_score):
         """total hbond score"""
         # print("hbond_score", hbond_score[0])
         return hbond_score[0]
 
     @reactive_property
-    @validate_args
+    # @validate_args
     def hbond_score(target):
         coords = target.coords[0]
         return target.hbond_intra_module(

@@ -10,6 +10,8 @@ from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 
+import tmol.utility.nvtx
+
 from ..database import ParamDB
 from ..device import TorchDevice
 from ..bonded_atom import BondedAtomScoreGraph
@@ -23,7 +25,7 @@ from .script_modules import DunbrackScoreModule
 @reactive_attrs
 class DunbrackIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def dun_score(target):
         return target.dun_module(target.coords[0, ...])
 

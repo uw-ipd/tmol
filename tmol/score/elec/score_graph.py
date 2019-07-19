@@ -25,7 +25,7 @@ from .script_modules import ElecIntraModule
 @reactive_attrs
 class ElecIntraScore(IntraScore):
     @reactive_property
-    @validate_args
+    # @validate_args
     def total_elec(target):
         return target.elec_intra_module(
             target.coords[0],
