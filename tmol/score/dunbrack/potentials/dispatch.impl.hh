@@ -63,8 +63,8 @@ struct DunbrackDispatch {
       Vec<Real, MAXBB> drotEdphipsi = Vec<Real, MAXBB>::Zero();
       Vec<Real, MAXBB> dsemirotEdphipsi = Vec<Real, MAXBB>::Zero();
       Vec<Real, MAXBB> drotdevEdphipsi = Vec<Real, MAXBB>::Zero();
-      Vec<Real, MAXCHI> dsemirotEdchi = Vec<Real, MAXCHI>::Zero();
       Vec<Real, MAXCHI> drotdevEdchi = Vec<Real, MAXCHI>::Zero();
+      Real dsemirotEdchi = 0;
 
       Vec<Real, MAXCHI> all_chis;
       Vec<Real, MAXBB> all_phis;
@@ -74,6 +74,7 @@ struct DunbrackDispatch {
 
       // 1A. compute chi dihedrals
       int nchi = residue_lookup_params[aa_idx].nrotchi;
+      int nrotchi = nchi;
       if (residue_lookup_params[aa_idx].semirotchi >= 0) nchi++;
       for (int i = 0; i < nchi; ++i) {
         auto dihe = dihedral_angle<Real>::V_dV(
@@ -170,7 +171,7 @@ struct DunbrackDispatch {
           dsemirotEdphipsi[i] = dVdphipsichi[i] / bbstep;
         }
         bbstep = semirotameric_table_params[semiprobtableidx].bbsteps[MAXBB];
-        dsemirotEdchi[semirotchi] = dVdphipsichi[MAXBB] / bbstep;
+        dsemirotEdchi = dVdphipsichi[MAXBB] / bbstep;
 
         // save for dev
         bb_idx = bbchi_idx.topRows(MAXBB);
@@ -220,21 +221,27 @@ struct DunbrackDispatch {
                 drotEdphipsi[k] * all_dphi_dxs.row(4 * k + j));
             accumulate<D, Vec<Real, 3>>::add(
                 dVs_dx[phi_j][1],
-                dsemirotEdphipsi[k] * all_dphi_dxs.row(4 * k + j));
+                drotdevEdphipsi[k] * all_dphi_dxs.row(4 * k + j));
             accumulate<D, Vec<Real, 3>>::add(
                 dVs_dx[phi_j][2],
-                drotdevEdphipsi[k] * all_dphi_dxs.row(4 * k + j));
+                dsemirotEdphipsi[k] * all_dphi_dxs.row(4 * k + j));
           }
         }
       }
 
-      for (int k = 0; k < nchi; ++k) {
+      for (int k = 0; k < nrotchi; ++k) {
         for (int j = 0; j < 4; ++j) {
           Int chi_j = residue_params[res].chi_indices[k][j];
           accumulate<D, Vec<Real, 3>>::add(
-              dVs_dx[chi_j][1], dsemirotEdchi[k] * all_dchi_dxs.row(4 * k + j));
+              dVs_dx[chi_j][1], drotdevEdchi[k] * all_dchi_dxs.row(4 * k + j));
+        }
+      }
+      if (dsemirotEdchi != 0) {
+        for (int j = 0; j < 4; ++j) {
+          Int chi_j = residue_params[res].chi_indices[semirotchi][j];
           accumulate<D, Vec<Real, 3>>::add(
-              dVs_dx[chi_j][2], drotdevEdchi[k] * all_dchi_dxs.row(4 * k + j));
+              dVs_dx[chi_j][2],
+              dsemirotEdchi * all_dchi_dxs.row(4 * semirotchi + j));
         }
       }
     });
