@@ -218,7 +218,7 @@ def rama_graph_inputs(
         ]
     )
 
-    return dict(rama_database=rama_database, allphis=phis, allpsis=psis)
+    return dict(rama_database=rama_database, allphis=phis[None,:], allpsis=psis[None,:])
 
 @RamaScoreGraph.factory_for.register(PackedResidueSystemStack)
 @validate_args
@@ -230,10 +230,10 @@ def rama_graph_for_stack(
 ):
    params = [rama_graph_inpus(sys, parameter_database, rama_database) for sys in system.systems]
 
-   max_nres = max(d["allphis"].shape[0] for d in params)
+   max_nres = max(d["allphis"].shape[1] for d in params)
    def expand(t):
        ext = numpy.full((1, max_nres, 5), -1, dtype=int)
-       ext[0,:t.shape[0],:] = t
+       ext[0,:t.shape[1],:] = t[0]
        return ext
    def stackem(key):
        return numpy.concatenate([expand(d[key]) for d in params])

@@ -30,10 +30,10 @@ class RamaScoreModule(torch.jit.ScriptModule):
                     [
                         params.phi_indices,
                         params.psi_indices,
-                        params.param_indices[:, None],
+                        params.param_indices[:, :, None],
                     ]
                 ),
-                dim=1,
+                dim=2,
             )
         )
 

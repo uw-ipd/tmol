@@ -27,7 +27,7 @@ from tmol.types.array import NDArray
 class RamaIntraScore(IntraScore):
     @reactive_property
     def total_rama(target):
-        return target.rama_module(target.coords[0, ...])
+        return target.rama_module(target.coords)
 
 
 @score_graph
@@ -84,13 +84,14 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         phi_list = []
         psi_list = []
         param_inds_list = []
-        for i in range(allphis.shape(0)):
+
+        for i in range(allphis.shape[0]):
+            
             dfphis = pandas.DataFrame(allphis[i])
             dfpsis = pandas.DataFrame(allpsis[i])
-            iphipsis = dfphis.merge(
+            phipsis = dfphis.merge(
                 dfpsis, left_on=0, right_on=0, suffixes=("_phi", "_psi")
             ).values[:, 1:]
-            phipsis_list.append(iphipsis)
 
             # resolve parameter indices
             ramatable_indices = rama_param_resolver.resolve_ramatables(
@@ -107,22 +108,26 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
 
         max_size = max(x.shape[0] for x in phi_list)
         phi_inds = torch.full(
-            (allphis.shape(0), max_size, 4), -1,
+            (allphis.shape[0], max_size, 4), -1,
             device=rama_param_resolver.device, dtype=torch.int32)
         psi_inds = torch.full(
-            (allphis.shape(0), max_size, 4), -1,
+            (allphis.shape[0], max_size, 4), -1,
             device=rama_param_resolver.device, dtype=torch.int32)
         param_inds = torch.full(
-            (allphis.shape(0), max_size), -1,
+            (allphis.shape[0], max_size), -1,
             device=rama_param_resolver.device, dtype=torch.int32)
 
-        for i in range(allphis.shape(0)):
-            iphi = phi_list[i]
-            phi_inds[i,iphi.shape[0],:] = iphi
-            ipsi = psi_list[i]
-            psi_inds[i,ipsi.shape[0],:] = ipsi
-            iparams = parm_inds_list[i]
-            param_inds[i,iparams.shape[0]] = iparams
+        def copyem(dest, arr, i):
+            iarr = arr[i]
+            dest[i, :iarr.shape[0]] = torch.tensor(
+                iarr, dtype=torch.int32,
+                device=rama_param_resolver.device)
+        
+        for i in range(allphis.shape[0]):
+            copyem(phi_inds, phi_list, i)
+            copyem(psi_inds, psi_list, i)
+            copyem(param_inds, param_inds_list, i)
+
 
         return RamaParams(
             phi_indices=phi_inds,
