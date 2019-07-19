@@ -14,8 +14,8 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <typename Int, tmol::Device D>
 struct IndexedBonds {
-  TView<Vec<Int, 2>, 1, D> bonds;
-  TView<Vec<Int, 2>, 1, D> bond_spans;
+  TensorAccessor<Vec<Int, 2>, 1, D> bonds;
+  TensorAccessor<Vec<Int, 2>, 1, D> bond_spans;
 
   struct BondJIter {
     Int bidx;
