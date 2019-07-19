@@ -32,6 +32,7 @@ struct AcceptorBases {
 
   template <typename func_t, tmol::Device D>
   static def sp2_acceptor_base(
+      Int stack,
       Int A,
       Int hybridization,
       IndexedBonds<Int, D> bonds,
@@ -40,7 +41,7 @@ struct AcceptorBases {
     Int B = -1, B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (!atom_is_hydrogen(other_atom)) {
+      if (!atom_is_hydrogen(stack, other_atom)) {
         B = other_atom;
         break;
       }
@@ -66,6 +67,7 @@ struct AcceptorBases {
 
   template <typename func_t, tmol::Device D>
   static def sp3_acceptor_base(
+      Int stack,
       Int A,
       Int hybridization,
       IndexedBonds<Int, D> bonds,
@@ -75,7 +77,7 @@ struct AcceptorBases {
     Int B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (atom_is_hydrogen(other_atom)) {
+      if (atom_is_hydrogen(stack, other_atom)) {
         B0 = other_atom;
         break;
       }
@@ -101,6 +103,7 @@ struct AcceptorBases {
 
   template <typename func_t, tmol::Device D>
   static def ring_acceptor_base(
+      Int stack,
       Int A,
       Int hybridization,
       IndexedBonds<Int, D> bonds,
@@ -110,7 +113,7 @@ struct AcceptorBases {
     Int B0 = -1;
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (!atom_is_hydrogen(other_atom)) {
+      if (!atom_is_hydrogen(stack, other_atom)) {
         B = other_atom;
         break;
       }
@@ -121,7 +124,7 @@ struct AcceptorBases {
     }
 
     for (Int other_atom : bonds.bound_to(A)) {
-      if (other_atom != B && !atom_is_hydrogen(other_atom)) {
+      if (other_atom != B && !atom_is_hydrogen(stack, other_atom)) {
         B0 = other_atom;
         break;
       }
@@ -147,6 +150,25 @@ struct AcceptorBases {
       return sp3_acceptor_base(A, hybridization, bonds, atom_is_hydrogen);
     } else if (hybridization == AcceptorHybridization::ring) {
       return ring_acceptor_base(A, hybridization, bonds, atom_is_hydrogen);
+    } else {
+      return {A, -1, -1};
+    }
+  }
+
+  template <typename func_t, tmol::Device D>
+  static def for_acceptor(
+      Int stack,
+      Int A,
+      Int hybridization,
+      IndexedBonds<Int, D> bonds,
+      func_t atom_is_hydrogen)
+      ->AcceptorBases {
+    if (hybridization == AcceptorHybridization::sp2) {
+      return sp2_acceptor_base(stack, A, hybridization, bonds, atom_is_hydrogen);
+    } else if (hybridization == AcceptorHybridization::sp3) {
+      return sp3_acceptor_base(stack, A, hybridization, bonds, atom_is_hydrogen);
+    } else if (hybridization == AcceptorHybridization::ring) {
+      return ring_acceptor_base(stack, A, hybridization, bonds, atom_is_hydrogen);
     } else {
       return {A, -1, -1};
     }

@@ -24,7 +24,7 @@ void id_acceptor_bases(
     // fd  handle both cases w/o duplicating logic
     // fd this layer will be unneeded following torchscripting of hbond
     auto is_hydrogen =
-        ([&] EIGEN_DEVICE_FUNC(int j) { return atom_is_hydrogen[j]; });
+        ([&] EIGEN_DEVICE_FUNC(int, int j) { return atom_is_hydrogen[j]; });
 
     auto bases = AcceptorBases<Int>::for_acceptor(
         A_idx[ai], atom_hybridization[A_idx[ai]], bonds, is_hydrogen);

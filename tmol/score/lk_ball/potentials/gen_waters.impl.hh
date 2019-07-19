@@ -48,9 +48,9 @@ struct GenerateWaters {
     using tmol::score::hbond::AcceptorHybridization;
 
     int const num_Vs = coords.size(1);
-    int const nstacks = coords.size(0)
+    int const nstacks = coords.size(0);
 
-                            nvtx_range_push("watergen::setup");
+    nvtx_range_push("watergen::setup");
     auto waters_t =
         TPack<Vec<Real, 3>, 3, D>::empty({nstacks, num_Vs, MAX_WATER});
     auto waters = waters_t.view;
@@ -61,17 +61,17 @@ struct GenerateWaters {
     nvtx_range_pop();
 
     nvtx_range_push("watergen::gen");
+    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int stack, int j) {
+      return (bool)type_params[atom_types[stack][j]].is_hydrogen;
+    });
 
     auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int idx) {
-      Int stack = idx / coords.shape(1);
-      Int i = idx - stack * coords.shape(1);
-      Int ati = atom_types[i];  // atom type of -1 means not an atom.
+      Int stack = idx / coords.size(1);
+      Int i = idx - stack * coords.size(1);
+      Int ati = atom_types[stack][i];  // atom type of -1 means not an atom.
       int wi = 0;
 
       if (ati >= 0) {
-        auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
-          return (bool)type_params[atom_types[stack][j]].is_hydrogen;
-        });
 
         tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
         indexed_bonds.bonds = indexed_bond_bonds[stack];
@@ -81,7 +81,7 @@ struct GenerateWaters {
           Int hyb = type_params[ati].acceptor_hybridization;
 
           auto bases = AcceptorBases<Int>::for_acceptor(
-              i, hyb, indexed_bonds, is_hydrogen);
+	    stack, i, hyb, indexed_bonds, is_hydrogen);
 
           Vec<Real, 3> XA = coords[stack][bases.A];
           Vec<Real, 3> XB = coords[stack][bases.B];
@@ -119,7 +119,7 @@ struct GenerateWaters {
 
         if (type_params[ati].is_donor) {
           for (int other_atom : indexed_bonds.bound_to(i)) {
-            if (is_hydrogen(other_atom)) {
+            if (is_hydrogen(stack, other_atom)) {
               waters[stack][i][wi] = build_don_water<Real>::V(
                   coords[stack][i],
                   coords[stack][other_atom],
@@ -173,17 +173,17 @@ struct GenerateWaters {
     nvtx_range_pop();
 
     nvtx_range_push("watergen::dgen");
+    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int stack, int j) {
+      return (bool)type_params[atom_types[stack][j]].is_hydrogen;
+    });
 
     auto df_watergen = ([=] EIGEN_DEVICE_FUNC(int idx) {
-      Int stack = idx / coords.shape(1);
-      Int i = idx - stack * coords.shape(1);
-      Int ati = atom_types[i];  // atom type of -1 means not an atom.
+      Int stack = idx / coords.size(1);
+      Int i = idx - stack * coords.size(1);
+      Int ati = atom_types[stack][i];  // atom type of -1 means not an atom.
       int wi = 0;
 
       if (ati >= 0) {
-        auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
-          return (bool)type_params[atom_types[stack][j]].is_hydrogen;
-        });
 
         tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
         indexed_bonds.bonds = indexed_bond_bonds[stack];
@@ -193,7 +193,7 @@ struct GenerateWaters {
           Int hyb = type_params[ati].acceptor_hybridization;
 
           auto bases = AcceptorBases<Int>::for_acceptor(
-              i, hyb, indexed_bonds, is_hydrogen);
+              stack, i, hyb, indexed_bonds, is_hydrogen);
 
           Vec<Real, 3> XA = coords[stack][bases.A];
           Vec<Real, 3> XB = coords[stack][bases.B];
@@ -257,7 +257,7 @@ struct GenerateWaters {
 
         if (type_params[ati].is_donor) {
           for (int other_atom : indexed_bonds.bound_to(i)) {
-            if (is_hydrogen(other_atom)) {
+            if (is_hydrogen(stack, other_atom)) {
               auto dE_dWi = dE_dW[stack][i][wi];
               auto dW = build_don_water<Real>::dV(
                   coords[stack][i],
@@ -276,7 +276,7 @@ struct GenerateWaters {
       }
     });
 
-    Dispatch<D>::forall(num_Vs, df_watergen);
+    Dispatch<D>::forall(nstacks * num_Vs, df_watergen);
     nvtx_range_pop();
 
     return dE_d_coord_t;
