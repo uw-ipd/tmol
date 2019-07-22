@@ -40,7 +40,7 @@ Tensor score_op(
     Tensor global_params
 ) {
   using tmol::utility::connect_backward_pass;
-  using tmol::utility::SavedGradsBackward;
+  using tmol::utility::StackedSavedGradsBackward;
 
   at::Tensor score;
   at::Tensor dV_d_don;
@@ -74,7 +74,7 @@ Tensor score_op(
       }));
 
   return connect_backward_pass({donor_coords, acceptor_coords}, score, [&]() {
-      return SavedGradsBackward::create({dV_d_don, dV_d_acc});});
+      return StackedSavedGradsBackward::create({dV_d_don, dV_d_acc});});
 };
 
 

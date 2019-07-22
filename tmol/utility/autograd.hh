@@ -144,16 +144,21 @@ torch::autograd::Variable connect_backward_pass(
 
 // Support function for backward-pass through pre-calculated gradients.
 //
-// Returns dT_dR * dR_dI_n for n precalculated gradients.
-struct SavedGradsBackward : public torch::autograd::Function {
+// Returns dT_dR * dR_dI_n for n precalculated gradients where
+// "T" is the total score, R is the returned tensors, and
+// "I" are the input tensors, and where where dT_dR is a
+// one-dimensional tensor of per-stack gradients. The apply
+// function performs a broadcasting multiplication of the
+// trailing dimensions of the tensors.
+struct StackedSavedGradsBackward : public torch::autograd::Function {
   typedef torch::autograd::Variable Variable;
   typedef torch::autograd::SavedVariable SavedVariable;
   typedef torch::autograd::variable_list variable_list;
 
   // Factory method, for use with connect_backward_pass.
-  static std::shared_ptr<SavedGradsBackward> create(variable_list&& grads) {
-    return std::shared_ptr<SavedGradsBackward>(
-        new SavedGradsBackward(std::move(grads)),
+  static std::shared_ptr<StackedSavedGradsBackward> create(variable_list&& grads) {
+    return std::shared_ptr<StackedSavedGradsBackward>(
+        new StackedSavedGradsBackward(std::move(grads)),
         torch::autograd::deleteFunction);
   }
 
@@ -166,7 +171,7 @@ struct SavedGradsBackward : public torch::autograd::Function {
     }
   }
 
-  SavedGradsBackward(variable_list&& grads) : torch::autograd::Function() {
+  StackedSavedGradsBackward(variable_list&& grads) : torch::autograd::Function() {
     saved_grads.reserve(grads.size());
 
     for (auto& grad : grads) {
@@ -175,16 +180,16 @@ struct SavedGradsBackward : public torch::autograd::Function {
   }
 
   variable_list apply(variable_list&& in_grads) override {
-    NVTXRange("SavedGradsBackward");
+    NVTXRange("StackedSavedGradsBackward");
 
     AT_CHECK(
         in_grads.size() == 1,
-        "SavedGradsBackward only supports a vector of gradients");
+        "StackedSavedGradsBackward only supports a single gradient input");
     for (auto& saved_grad : saved_grads) {
       AT_CHECK(
           in_grads[0].size(0) == saved_grad.unpack().size(0)
               || in_grads[0].size(0) == 1,
-          "Tensors sizes must match along first dimension");
+          "Tensors sizes must match along the first dimension, the stack dimension");
     }
 
     variable_list result;

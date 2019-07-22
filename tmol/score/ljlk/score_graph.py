@@ -80,8 +80,6 @@ class _LJLKCommonScoreGraph(BondedAtomScoreGraph, ChemicalDB, ParamDB, TorchDevi
         atom_types: NDArray(object)[:, :], ljlk_param_resolver: LJLKParamResolver
     ) -> Tensor(torch.int64)[:, :]:
         """Pair parameter tensors for all atoms within system."""
-        # assert atom_types.shape[0] == 1
-        # atom_types = atom_types[0]
         return ljlk_param_resolver.type_idx(atom_types)
 
 

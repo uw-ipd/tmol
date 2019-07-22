@@ -84,7 +84,6 @@ Tensor cb_score_op(
       Tensor cbhxl_params
 ) {
   using tmol::utility::connect_backward_pass;
-  using tmol::utility::SavedGradsBackward;
   nvtx_range_push("cb_score_op");
 
   at::Tensor score;
