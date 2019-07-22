@@ -123,7 +123,7 @@ struct AABBDispatch<tmol::Device::CPU> {
     int n_i = coord_idx_i.size(1);
     int n_j = coord_idx_j.size(1);
 
-    for (int stack; i < n_stacks, ++stack) {
+    for (int stack = 0; stack < n_stacks; ++stack) {
       for (int i = 0; i < n_i; ++i) {
         int i_idx = coord_idx_i[stack][i];
         // an index of -1 for "this is not an atom"
@@ -242,7 +242,7 @@ struct AABBTriuDispatch<tmol::Device::CPU> {
     int n_i = coord_idx_i.size(1);
     int n_j = coord_idx_j.size(1);
 
-    for (int stack; i < n_stacks; ++stack) {
+    for (int stack = 0; stack < n_stacks; ++stack) {
       for (int i = 0; i < n_i; ++i) {
         int i_idx = coord_idx_i[stack][i];
 

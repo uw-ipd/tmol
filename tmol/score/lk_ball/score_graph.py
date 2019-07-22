@@ -28,11 +28,11 @@ class LKBallIntraScore(IntraScore):
     # @validate_args
     def lkball_score(target):
         return target.lkball_intra_module(
-            target.coords[0],
+            target.coords,
             target.lkball_pairs.polars,
             target.lkball_pairs.occluders,
-            target.ljlk_atom_types[0],
-            target.bonded_path_length[0],
+            target.ljlk_atom_types,
+            target.bonded_path_length,
             target.indexed_bonds.bonds,
             target.indexed_bonds.bond_spans,
         )
