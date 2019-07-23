@@ -164,11 +164,14 @@ struct AcceptorBases {
       func_t atom_is_hydrogen)
       ->AcceptorBases {
     if (hybridization == AcceptorHybridization::sp2) {
-      return sp2_acceptor_base(stack, A, hybridization, bonds, atom_is_hydrogen);
+      return sp2_acceptor_base(
+          stack, A, hybridization, bonds, atom_is_hydrogen);
     } else if (hybridization == AcceptorHybridization::sp3) {
-      return sp3_acceptor_base(stack, A, hybridization, bonds, atom_is_hydrogen);
+      return sp3_acceptor_base(
+          stack, A, hybridization, bonds, atom_is_hydrogen);
     } else if (hybridization == AcceptorHybridization::ring) {
-      return ring_acceptor_base(stack, A, hybridization, bonds, atom_is_hydrogen);
+      return ring_acceptor_base(
+          stack, A, hybridization, bonds, atom_is_hydrogen);
     } else {
       return {A, -1, -1};
     }

@@ -51,7 +51,7 @@ struct LKBallDispatch {
       -> TPack<Real, 2, D> {
     NVTXRange _function(__FUNCTION__);
     Int const nstacks = coords_i.size(0);
-    
+
     nvtx_range_push("dispatch::alloc");
     auto Vs_t = TPack<Real, 2, D>::zeros({nstacks, 4});
     auto Vs = Vs_t.view;
@@ -126,13 +126,17 @@ struct LKBallDispatch {
     nvtx_range_push("dispatch::dalloc");
     // deriv w.r.t. heavyatom position
     int const n_stacks = coords_i.size(0);
-    
-    auto dV_dI_t = TPack<Vec<Real, 3>, 2, D>::zeros({n_stacks, coords_i.size(1)});
-    auto dV_dJ_t = TPack<Vec<Real, 3>, 2, D>::zeros({n_stacks, coords_j.size(1)});
+
+    auto dV_dI_t =
+        TPack<Vec<Real, 3>, 2, D>::zeros({n_stacks, coords_i.size(1)});
+    auto dV_dJ_t =
+        TPack<Vec<Real, 3>, 2, D>::zeros({n_stacks, coords_j.size(1)});
 
     // deriv w.r.t. water position
-    auto dW_dI_t = TPack<Vec<Real, 3>, 3, D>::zeros({n_stacks, coords_i.size(1), 4});
-    auto dW_dJ_t = TPack<Vec<Real, 3>, 3, D>::zeros({n_stacks, coords_j.size(1), 4});
+    auto dW_dI_t =
+        TPack<Vec<Real, 3>, 3, D>::zeros({n_stacks, coords_i.size(1), 4});
+    auto dW_dJ_t =
+        TPack<Vec<Real, 3>, 3, D>::zeros({n_stacks, coords_j.size(1), 4});
 
     auto dV_dI = dV_dI_t.view;
     auto dV_dJ = dV_dJ_t.view;
@@ -192,21 +196,27 @@ struct LKBallDispatch {
 
           for (int wi = 0; wi < 4; wi++) {
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dI[stack][i][wi], dTdV[stack][0] * dV.dWI.d_lkball_iso.row(wi));
+                dW_dI[stack][i][wi],
+                dTdV[stack][0] * dV.dWI.d_lkball_iso.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dJ[stack][j][wi], dTdV[stack][0] * dV.dWJ.d_lkball_iso.row(wi));
+                dW_dJ[stack][j][wi],
+                dTdV[stack][0] * dV.dWJ.d_lkball_iso.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
                 dW_dI[stack][i][wi], dTdV[stack][1] * dV.dWI.d_lkball.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
                 dW_dJ[stack][j][wi], dTdV[stack][1] * dV.dWJ.d_lkball.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dI[stack][i][wi], dTdV[stack][2] * dV.dWI.d_lkbridge.row(wi));
+                dW_dI[stack][i][wi],
+                dTdV[stack][2] * dV.dWI.d_lkbridge.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dJ[stack][j][wi], dTdV[stack][2] * dV.dWJ.d_lkbridge.row(wi));
+                dW_dJ[stack][j][wi],
+                dTdV[stack][2] * dV.dWJ.d_lkbridge.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dI[stack][i][wi], dTdV[stack][3] * dV.dWI.d_lkbridge_uncpl.row(wi));
+                dW_dI[stack][i][wi],
+                dTdV[stack][3] * dV.dWI.d_lkbridge_uncpl.row(wi));
             common::accumulate<D, Vec<Real, 3>>::add(
-                dW_dJ[stack][j][wi], dTdV[stack][3] * dV.dWJ.d_lkbridge_uncpl.row(wi));
+                dW_dJ[stack][j][wi],
+                dTdV[stack][3] * dV.dWJ.d_lkbridge_uncpl.row(wi));
           }
         });
     nvtx_range_pop();

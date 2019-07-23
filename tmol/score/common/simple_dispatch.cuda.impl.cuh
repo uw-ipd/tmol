@@ -137,23 +137,22 @@ struct AABBDispatch<tmol::Device::CUDA> {
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
-          int stack = index / (n_i*n_j);
+          int stack = index / (n_i * n_j);
           index = index - stack * n_i * n_j;
           int i = index / n_j;
           int j = index % n_j;
 
-	  int i_idx = coord_idx_i[stack][i];
-	  int j_idx = coord_idx_j[stack][j];
-	  if ( i_idx >= 0 && j_idx >= 0 && tbox.contains(
-                  coords_i[stack][i_idx] -
-                  coords_j[stack][j_idx])) {
+          int i_idx = coord_idx_i[stack][i];
+          int j_idx = coord_idx_j[stack][j];
+          if (i_idx >= 0 && j_idx >= 0
+              && tbox.contains(
+                     coords_i[stack][i_idx] - coords_j[stack][j_idx])) {
             f(stack, i, j);
           }
         },
         n_i * n_j,
         context);
   }
-
 };
 
 template <>
@@ -221,7 +220,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
             return;
           }
 
-	  // an index of -1 for "this is not an atom"
+          // an index of -1 for "this is not an atom"
           if (tbox.contains(coords_i[stack][i] - coords_j[stack][j])) {
             f(stack, i, j);
           }
@@ -287,7 +286,7 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
 
     mgpu::transform(
         [=] MGPU_DEVICE(int index) {
-          int stack = index / (n_i*n_j);
+          int stack = index / (n_i * n_j);
           index = index - stack * n_i * n_j;
           int i = index / n_j;
           int j = index % n_j;
@@ -296,17 +295,15 @@ struct AABBTriuDispatch<tmol::Device::CUDA> {
             return;
           }
 
-	  int i_idx = coord_idx_i[stack][i];
-	  int j_idx = coord_idx_j[stack][j];
+          int i_idx = coord_idx_i[stack][i];
+          int j_idx = coord_idx_j[stack][j];
 
-	  // an index of -1 for "this is not an atom"
-	  if (i_idx < 0 || j_idx < 0) {
-	    return;
-	  }
+          // an index of -1 for "this is not an atom"
+          if (i_idx < 0 || j_idx < 0) {
+            return;
+          }
 
-          if (tbox.contains(
-                  coords_i[stack][i_idx] -
-                  coords_j[stack][j_idx])) {
+          if (tbox.contains(coords_i[stack][i_idx] - coords_j[stack][j_idx])) {
             f(stack, i, j);
           }
         },

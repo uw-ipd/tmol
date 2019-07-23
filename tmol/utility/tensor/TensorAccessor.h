@@ -60,9 +60,8 @@ class TensorAccessorBase {
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
-  AT_HOST_DEVICE TensorAccessorBase() :
-    data_(nullptr), sizes_(nullptr), strides_(nullptr)
-  {}
+  AT_HOST_DEVICE TensorAccessorBase()
+      : data_(nullptr), sizes_(nullptr), strides_(nullptr) {}
 
   AT_HOST_DEVICE TensorAccessorBase(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
@@ -89,10 +88,8 @@ class TensorAccessor : public TensorAccessorBase<T, N, D, P> {
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
-  AT_HOST_DEVICE TensorAccessor() :
-    TensorAccessorBase<T, N, D, P>()
-  {}
- 
+  AT_HOST_DEVICE TensorAccessor() : TensorAccessorBase<T, N, D, P>() {}
+
   AT_HOST_DEVICE TensorAccessor(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : TensorAccessorBase<T, N, D, P>(data_, sizes_, strides_) {}
@@ -118,10 +115,8 @@ class TensorAccessor<T, 1, D, P> : public TensorAccessorBase<T, 1, D, P> {
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
-  AT_HOST_DEVICE TensorAccessor() :
-    TensorAccessorBase<T, 1, D, P>()
-  {}
-  
+  AT_HOST_DEVICE TensorAccessor() : TensorAccessorBase<T, 1, D, P>() {}
+
   AT_HOST_DEVICE TensorAccessor(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : TensorAccessorBase<T, 1, D, P>(data_, sizes_, strides_) {}

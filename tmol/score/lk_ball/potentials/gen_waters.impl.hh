@@ -72,7 +72,6 @@ struct GenerateWaters {
       int wi = 0;
 
       if (ati >= 0) {
-
         tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
         indexed_bonds.bonds = indexed_bond_bonds[stack];
         indexed_bonds.bond_spans = indexed_bond_spans[stack];
@@ -81,7 +80,7 @@ struct GenerateWaters {
           Int hyb = type_params[ati].acceptor_hybridization;
 
           auto bases = AcceptorBases<Int>::for_acceptor(
-	    stack, i, hyb, indexed_bonds, is_hydrogen);
+              stack, i, hyb, indexed_bonds, is_hydrogen);
 
           Vec<Real, 3> XA = coords[stack][bases.A];
           Vec<Real, 3> XB = coords[stack][bases.B];
@@ -184,7 +183,6 @@ struct GenerateWaters {
       int wi = 0;
 
       if (ati >= 0) {
-
         tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
         indexed_bonds.bonds = indexed_bond_bonds[stack];
         indexed_bonds.bond_spans = indexed_bond_spans[stack];
