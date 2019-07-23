@@ -24,9 +24,9 @@ from .device import TorchDevice
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
 class IndexedBonds:
-    bonds: Tensor(int)[:, 2]
-    bond_spans: Tensor(int)[:, 2]
-    src_index: Tensor(int)[:]
+    bonds: Tensor(int)[:, :, 2]
+    bond_spans: Tensor(int)[:, :, 2]
+    src_index: Tensor(int)[:, :]
 
     @classmethod
     def from_bonds(cls, src_bonds, minlength=None):
@@ -57,7 +57,7 @@ class IndexedBonds:
     def to_directed(cls, src_bonds):
         """Convert a potentially-undirected bond-table into dense, directed bonds.
 
-        Eg. Converts [[0, 1], [0, 2]] into [[0, 1], [1, 0], [0, 1], [2, 0]]
+        Eg. Converts [[0, 1], [0, 2]] into [[0, 1], [1, 0], [0, 2], [2, 0]]
         """
 
         return numpy.concatenate(
