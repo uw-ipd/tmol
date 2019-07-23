@@ -161,7 +161,7 @@ Tensor dun_op(
     Tensor semirotameric_rottable_assignment
 ) {
   using tmol::utility::connect_backward_pass;
-  using tmol::utility::SavedGradsBackward;
+  using tmol::utility::StackedSavedGradsBackward;
   nvtx_range_push("dun_op");
 
   at::Tensor score;

@@ -29,15 +29,15 @@ class DunbrackIntraScore(IntraScore):
 
     @reactive_property
     def total_dun_rot(dun_score):
-        return dun_score[0]
+        return dun_score[None, 0]
 
     @reactive_property
     def total_dun_dev(dun_score):
-        return dun_score[1]
+        return dun_score[None, 1]
 
     @reactive_property
     def total_dun_semi(dun_score):
-        return dun_score[2]
+        return dun_score[None, 2]
 
 
 @score_graph

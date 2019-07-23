@@ -35,7 +35,7 @@ Tensor score_op(
     Tensor type_params,
     Tensor global_params) {
   using tmol::utility::connect_backward_pass;
-  using tmol::utility::SavedGradsBackward;
+  using tmol::utility::StackedSavedGradsBackward;
 
   at::Tensor score;
   at::Tensor dScore_dI;
@@ -63,7 +63,7 @@ Tensor score_op(
       }));
 
   return connect_backward_pass({I, J}, score, [&]() {
-    return SavedGradsBackward::create({dScore_dI, dScore_dJ});
+    return StackedSavedGradsBackward::create({dScore_dI, dScore_dJ});
   });
 };
 

@@ -30,7 +30,7 @@ class OmegaParams(TensorGroup):
 class OmegaIntraScore(IntraScore):
     @reactive_property
     def total_omega(target):
-        return target.omega_module(target.coords[0, ...])[0]
+        return target.omega_module(target.coords[0, ...])
 
 
 @score_graph

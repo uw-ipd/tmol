@@ -23,7 +23,7 @@ Tensor omega_op(
       Tensor params
 ) {
   using tmol::utility::connect_backward_pass;
-  using tmol::utility::SavedGradsBackward;
+  using tmol::utility::StackedSavedGradsBackward;
   nvtx_range_push("omega_op");
 
   at::Tensor score;
@@ -45,7 +45,7 @@ Tensor omega_op(
       }));
 
   auto backward_op = connect_backward_pass({coords}, score, [&]() {
-    return SavedGradsBackward::create({dScore});
+    return StackedSavedGradsBackward::create({dScore});
   });
 
   nvtx_range_pop();

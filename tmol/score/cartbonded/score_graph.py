@@ -38,23 +38,23 @@ class CartBondedIntraScore(IntraScore):
 
     @reactive_property
     def total_cartbonded_length(cartbonded_score):
-        return cartbonded_score[0]
+        return cartbonded_score[None, 0]
 
     @reactive_property
     def total_cartbonded_angle(cartbonded_score):
-        return cartbonded_score[1]
+        return cartbonded_score[None, 1]
 
     @reactive_property
     def total_cartbonded_torsion(cartbonded_score):
-        return cartbonded_score[2]
+        return cartbonded_score[None, 2]
 
     @reactive_property
     def total_cartbonded_improper(cartbonded_score):
-        return cartbonded_score[3]
+        return cartbonded_score[None, 3]
 
     @reactive_property
     def total_cartbonded_hxltorsion(cartbonded_score):
-        return cartbonded_score[4]
+        return cartbonded_score[None, 4]
 
 
 @score_graph

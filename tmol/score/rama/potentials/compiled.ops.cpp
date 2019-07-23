@@ -25,7 +25,7 @@ Tensor rama_op(
       Tensor table_params
 ) {
   using tmol::utility::connect_backward_pass;
-  using tmol::utility::SavedGradsBackward;
+  using tmol::utility::StackedSavedGradsBackward;
   nvtx_range_push("rama_op");
 
   at::Tensor score;
@@ -49,7 +49,7 @@ Tensor rama_op(
       }));
 
   auto backward_op = connect_backward_pass({coords}, score, [&]() {
-    return SavedGradsBackward::create({dScore});
+    return StackedSavedGradsBackward::create({dScore});
   });
 
   nvtx_range_pop();

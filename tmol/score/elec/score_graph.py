@@ -31,7 +31,7 @@ class ElecIntraScore(IntraScore):
             target.coords[0],
             target.elec_partial_charges[0],
             target.repatm_bonded_path_length[0],
-        )[0]
+        )
 
 
 @score_graph

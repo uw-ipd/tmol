@@ -18,7 +18,7 @@ from ..score.coordinates import (
     KinematicAtomicCoordinateProvider,
 )
 
-from .packed import PackedResidueSystem
+from .packed import PackedResidueSystem, PackedResidueSystemStack
 from .kinematics import KinematicDescription
 
 from tmol.database import ParameterDatabase
@@ -28,6 +28,15 @@ from tmol.database import ParameterDatabase
 @validate_args
 def stack_params_for_system(system: PackedResidueSystem, **_):
     return dict(stack_depth=1, system_size=int(system.system_size))
+
+
+@StackedSystem.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stack_params_for_stacked_system(stack: PackedResidueSystemStack, **_):
+    return dict(
+        stack_depth=len(stack.systems),
+        system_size=max(int(system.system_size) for system in stack.systems),
+    )
 
 
 @BondedAtomScoreGraph.factory_for.register(PackedResidueSystem)
@@ -56,6 +65,40 @@ def bonded_atoms_for_system(
     )
 
 
+@BondedAtomScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stacked_bonded_atoms_for_system(
+    stack: PackedResidueSystemStack,
+    stack_depth: int,
+    system_size: int,
+    drop_missing_atoms: bool = False,
+    **_,
+):
+    bonds_for_systems = [
+        bonded_atoms_for_system(sys, drop_missing_atoms) for sys in stack.systems
+    ]
+
+    for i, d in enumerate(bonds_for_systems):
+        d["bonds"][:, 0] = i
+    bonds = numpy.concatenate(tuple(d["bonds"] for d in bonds_for_systems))
+
+    def expand_atoms(atdat):
+        atdat2 = numpy.full((1, system_size), None, dtype=object)
+        atdat2[0, : atdat.shape[1]] = atdat
+        return atdat2
+
+    def stackem(key):
+        return numpy.concatenate([expand_atoms(d[key]) for d in bonds_for_systems])
+
+    return dict(
+        bonds=bonds,
+        atom_types=stackem("atom_types"),
+        atom_names=stackem("atom_names"),
+        res_indices=stackem("res_indices"),
+        res_names=stackem("res_names"),
+    )
+
+
 @CartesianAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)
 @validate_args
 def coords_for_system(
@@ -72,7 +115,35 @@ def coords_for_system(
         device=device,
     ).requires_grad_(requires_grad)
 
-    return dict(coords=coords, stack_depth=stack_depth, system_size=system_size)
+    return dict(coords=coords)
+
+
+@CartesianAtomicCoordinateProvider.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def stacked_coords_for_system(
+    stack: PackedResidueSystemStack,
+    device: torch.device,
+    stack_depth: int,
+    system_size: int,
+    requires_grad: bool = True,
+    **_,
+):
+    """Extract constructor kwargs to initialize a `CartesianAtomicCoordinateProvider`"""
+
+    coords_for_systems = [
+        coords_for_system(sys, device, requires_grad) for sys in stack.systems
+    ]
+
+    coords = torch.full(
+        (stack_depth, system_size, 3), numpy.nan, dtype=torch.float, device=device
+    )
+
+    for i, d in enumerate(coords_for_systems):
+        coords[i, : d["coords"].shape[1]] = d["coords"]
+
+    coords = coords.requires_grad_(requires_grad)
+
+    return dict(coords=coords)
 
 
 @KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystem)

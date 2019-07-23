@@ -57,7 +57,7 @@ class HBondIntraScore(IntraScore):
     def total_hbond(target, hbond_score):
         """total hbond score"""
         # print("hbond_score", hbond_score[0])
-        return hbond_score[0]
+        return hbond_score
 
     @reactive_property
     # @validate_args

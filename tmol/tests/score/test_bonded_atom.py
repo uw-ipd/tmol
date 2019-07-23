@@ -7,7 +7,7 @@ import numpy
 import torch
 
 from tmol.score.bonded_atom import BondedAtomScoreGraph
-from tmol.system.packed import PackedResidueSystem
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 
 def test_bonded_atom_clone_factory(ubq_system: PackedResidueSystem):
@@ -28,6 +28,18 @@ def test_bonded_atom_clone_factory(ubq_system: PackedResidueSystem):
 
     # Atom types are referenced
     assert clone.atom_types is src.atom_types
+
+
+def test_bonded_atom_clone_factory_from_stacked_systems(
+    ubq_system: PackedResidueSystem
+):
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+    basg = BondedAtomScoreGraph.build_for(twoubq)
+
+    assert basg.atom_types.shape == (2, basg.system_size)
+    assert basg.atom_names.shape == (2, basg.system_size)
+    assert basg.res_names.shape == (2, basg.system_size)
+    assert basg.res_indices.shape == (2, basg.system_size)
 
 
 def test_real_atoms(ubq_system: PackedResidueSystem):

@@ -7,11 +7,18 @@ from tmol.database import ParameterDatabase
 
 from tmol.score.score_graph import score_graph
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
-from tmol.score.ljlk import LJScoreGraph
+from tmol.score.ljlk import LJScoreGraph, LKScoreGraph
+
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 
 @score_graph
 class LJGraph(CartesianAtomicCoordinateProvider, LJScoreGraph):
+    pass
+
+
+@score_graph
+class LKGraph(CartesianAtomicCoordinateProvider, LKScoreGraph):
     pass
 
 
@@ -82,3 +89,29 @@ def test_ljlk_database_clone_factory(ubq_system):
     )
     assert clone.ljlk_database is not src.ljlk_database
     assert clone.ljlk_database is ParameterDatabase.get_default().scoring.ljlk
+
+
+def test_lj_for_stacked_system(ubq_system: PackedResidueSystem):
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+    lj_graph = LJGraph.build_for(twoubq)
+    intra = lj_graph.intra_score()
+    tot = intra.total_lj.cpu()
+
+    assert tot.shape == (2,)
+    torch.testing.assert_allclose(tot[0], tot[1])
+
+    sumtot = torch.sum(tot)
+    sumtot.backward()
+
+
+def test_lk_for_stacked_system(ubq_system: PackedResidueSystem):
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+    lk_graph = LKGraph.build_for(twoubq)
+    intra = lk_graph.intra_score()
+    tot = intra.total_lk.cpu()
+
+    assert tot.shape == (2,)
+    torch.testing.assert_allclose(tot[0], tot[1])
+
+    sumtot = torch.sum(tot)
+    sumtot.backward()

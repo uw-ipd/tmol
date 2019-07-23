@@ -162,7 +162,7 @@ Tensor score_op(
     Tensor type_params,
     Tensor global_params) {
   using tmol::utility::connect_backward_pass;
-  using tmol::utility::SavedGradsBackward;
+  using tmol::utility::StackedSavedGradsBackward;
 
   at::Tensor score;
 
@@ -332,7 +332,7 @@ Tensor watergen_op(
     Tensor sp3_water_tors,
     Tensor ring_water_tors ) {
   using tmol::utility::connect_backward_pass;
-  using tmol::utility::SavedGradsBackward;
+  using tmol::utility::StackedSavedGradsBackward;
 
   at::Tensor score;
 
