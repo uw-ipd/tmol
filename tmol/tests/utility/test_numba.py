@@ -31,13 +31,6 @@ def test_array_adaptor():
     ]
 
     for dt in torch_dtypes:
-        if dt == torch.int8:
-            # "CharTensor" numpy conversion not supported
-            with pytest.raises(TypeError):
-                torch.arange(10).to(dt).numpy()
-
-            continue
-
         # CPU tensors of all types do not register as cuda arrays,
         # attempts to convert raise a type error.
         cput = torch.arange(10).to(dt)

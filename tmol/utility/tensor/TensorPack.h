@@ -38,7 +38,7 @@ struct TPack {
   static auto empty(at::IntList size) -> TPack<T, N, D, P> {
     return _allocate(
         [](at::IntList size, const at::TensorOptions& options) {
-          return at::empty(size, options);
+          return torch::empty(size, options);
         },
         size);
   }
@@ -49,7 +49,7 @@ struct TPack {
   static auto empty_like(Target& other) -> TPack<T, N, D, P> {
     return _allocate_like(
         [](at::IntList size, const at::TensorOptions& options) {
-          return at::empty(size, options);
+          return torch::empty(size, options);
         },
         other);
   }
@@ -60,7 +60,7 @@ struct TPack {
   static auto ones(at::IntList size) -> TPack<T, N, D, P> {
     return _allocate(
         [](at::IntList size, const at::TensorOptions& options) {
-          return at::ones(size, options);
+          return torch::ones(size, options);
         },
         size);
   }
@@ -71,7 +71,7 @@ struct TPack {
   static auto ones_like(Target& other) -> TPack<T, N, D, P> {
     return _allocate_like(
         [](at::IntList size, const at::TensorOptions& options) {
-          return at::ones(size, options);
+          return torch::ones(size, options);
         },
         other);
   }
@@ -82,7 +82,7 @@ struct TPack {
   static auto zeros(at::IntList size) -> TPack<T, N, D, P> {
     return _allocate(
         [](at::IntList size, const at::TensorOptions& options) {
-          return at::zeros(size, options);
+          return torch::zeros(size, options);
         },
         size);
   }
@@ -93,7 +93,7 @@ struct TPack {
   static auto zeros_like(Target& other) -> TPack<T, N, D, P> {
     return _allocate_like(
         [](at::IntList size, const at::TensorOptions& options) {
-          return at::zeros(size, options);
+          return torch::zeros(size, options);
         },
         other);
   }
@@ -105,7 +105,7 @@ struct TPack {
   static auto full(at::IntList size, Scalar value) -> TPack<T, N, D, P> {
     return _allocate(
         [value = value](at::IntList size, const at::TensorOptions& options) {
-          return at::full(size, value, options);
+          return torch::full(size, value, options);
         },
         size);
   }
@@ -117,7 +117,7 @@ struct TPack {
   static auto full_like(Target& other, Scalar value) -> TPack<T, N, D, P> {
     return _allocate_like(
         [value = value](at::IntList size, const at::TensorOptions& options) {
-          return at::full(size, value, options);
+          return torch::full(size, value, options);
         },
         other);
   }
@@ -128,9 +128,8 @@ struct TPack {
       typename std::enable_if<enable_tensor_view<T>::enabled>::type* = nullptr>
   static auto _allocate(AllocFun aten_alloc, at::IntList size)
       -> TPack<T, N, D, P> {
-    typedef typename enable_tensor_view<T>::PrimitiveType BaseT;
-
-    at::Type& target_type =
+    // typedef typename enable_tensor_view<T>::PrimitiveType BaseT;
+    torch::DeprecatedTypeProperties& target_type =
         (D == Device::CPU) ? torch::CPU(enable_tensor_view<T>::scalar_type)
                            : torch::CUDA(enable_tensor_view<T>::scalar_type);
 

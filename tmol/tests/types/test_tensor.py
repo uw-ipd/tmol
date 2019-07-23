@@ -267,7 +267,7 @@ def test_tensorgroup_cat():
         tensor.cat((m1, m2))
 
     # Invalid dimension, exeeds bounds
-    with pytest.raises(RuntimeError):
+    with pytest.raises(IndexError):
         tensor.cat((m1, m2), dim=3)
 
     with pytest.raises(ValueError):

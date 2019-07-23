@@ -187,12 +187,12 @@ class LBFGS_Armijo(Optimizer):
         for p in self._params:
             numel = p.numel()
             if p.data.is_sparse:
-                p.data.copy_(
-                    update[offset : offset + numel].view_as(p.data).to_sparse()
-                )
+                with torch.no_grad():
+                    p.copy_(update[offset : offset + numel].view_as(p).to_sparse())
             else:
                 # view as to avoid deprecated pointwise semantics
-                p.data.copy_(update[offset : offset + numel].view_as(p.data))
+                with torch.no_grad():
+                    p.copy_(update[offset : offset + numel].view_as(p))
             offset += numel
         assert offset == self._numel()
 
