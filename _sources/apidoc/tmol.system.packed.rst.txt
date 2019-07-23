@@ -7,7 +7,7 @@ tmol.system.packed
 .. currentmodule:: tmol.system.packed
 
 .. automodule:: tmol.system.packed
-    :members: PackedResidueSystem, atom_metadata_dtype, connection_metadata_dtype, torsion_metadata_dtype
+    :members: PackedResidueSystem, PackedResidueSystemStack, atom_metadata_dtype, connection_metadata_dtype, torsion_metadata_dtype
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -22,6 +22,7 @@ tmol.system.packed
         :nosignatures:
 
         PackedResidueSystem
+        PackedResidueSystemStack
 
 
 

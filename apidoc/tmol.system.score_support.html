@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.system.score_support &mdash; TMol 0.0.0-181-ga426c2fe documentation</title>
+  <title>tmol.system.score_support &mdash; TMol 0.0.0-182-gba38a0b1 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-181-ga426c2fe',
+              VERSION:'0.0.0-182-gba38a0b1',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-181-ga426c2fe
+                0.0.0-182-gba38a0b1
               </div>
             
           
@@ -222,10 +222,19 @@
 <tr class="row-odd"><td><a class="reference internal" href="#tmol.system.score_support.rama_graph_inputs" title="tmol.system.score_support.rama_graph_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rama_graph_inputs</span></code></a></td>
 <td>Constructor parameters for rama scoring.</td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.system.score_support.stack_params_for_system" title="tmol.system.score_support.stack_params_for_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_params_for_system</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.system.score_support.stack_params_for_stacked_system" title="tmol.system.score_support.stack_params_for_stacked_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_params_for_stacked_system</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.system.score_support.system_torsion_graph_inputs" title="tmol.system.score_support.system_torsion_graph_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">system_torsion_graph_inputs</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.system.score_support.stack_params_for_system" title="tmol.system.score_support.stack_params_for_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_params_for_system</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.system.score_support.stacked_bonded_atoms_for_system" title="tmol.system.score_support.stacked_bonded_atoms_for_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stacked_bonded_atoms_for_system</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.system.score_support.stacked_coords_for_system" title="tmol.system.score_support.stacked_coords_for_system"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stacked_coords_for_system</span></code></a></td>
+<td>Extract constructor kwargs to initialize a <a class="reference internal" href="tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider" title="tmol.score.coordinates.CartesianAtomicCoordinateProvider"><code class="xref any py py-class docutils literal notranslate"><span class="pre">CartesianAtomicCoordinateProvider</span></code></a></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.system.score_support.system_torsion_graph_inputs" title="tmol.system.score_support.system_torsion_graph_inputs"><code class="xref py py-obj docutils literal notranslate"><span class="pre">system_torsion_graph_inputs</span></code></a></td>
 <td>Constructor parameters for torsion space scoring.</td>
 </tr>
 </tbody>
@@ -240,13 +249,29 @@
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="tmol.system.score_support.stack_params_for_stacked_system">
+<code class="descclassname">tmol.system.score_support.</code><code class="descname">stack_params_for_stacked_system</code><span class="sig-paren">(</span><em>stack: tmol.system.packed.PackedResidueSystemStack</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/score_support.html#stack_params_for_stacked_system"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.score_support.stack_params_for_stacked_system" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="tmol.system.score_support.bonded_atoms_for_system">
 <code class="descclassname">tmol.system.score_support.</code><code class="descname">bonded_atoms_for_system</code><span class="sig-paren">(</span><em>system: tmol.system.packed.PackedResidueSystem</em>, <em>drop_missing_atoms: bool = False</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/score_support.html#bonded_atoms_for_system"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.score_support.bonded_atoms_for_system" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="tmol.system.score_support.stacked_bonded_atoms_for_system">
+<code class="descclassname">tmol.system.score_support.</code><code class="descname">stacked_bonded_atoms_for_system</code><span class="sig-paren">(</span><em>stack: tmol.system.packed.PackedResidueSystemStack</em>, <em>stack_depth: int</em>, <em>system_size: int</em>, <em>drop_missing_atoms: bool = False</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/score_support.html#stacked_bonded_atoms_for_system"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.score_support.stacked_bonded_atoms_for_system" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="tmol.system.score_support.coords_for_system">
 <code class="descclassname">tmol.system.score_support.</code><code class="descname">coords_for_system</code><span class="sig-paren">(</span><em>system: tmol.system.packed.PackedResidueSystem</em>, <em>device: torch.device</em>, <em>requires_grad: bool = True</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/score_support.html#coords_for_system"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.score_support.coords_for_system" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract constructor kwargs to initialize a <a class="reference internal" href="tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider" title="tmol.score.coordinates.CartesianAtomicCoordinateProvider"><code class="xref any py py-class docutils literal notranslate"><span class="pre">CartesianAtomicCoordinateProvider</span></code></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.system.score_support.stacked_coords_for_system">
+<code class="descclassname">tmol.system.score_support.</code><code class="descname">stacked_coords_for_system</code><span class="sig-paren">(</span><em>stack: tmol.system.packed.PackedResidueSystemStack</em>, <em>device: torch.device</em>, <em>stack_depth: int</em>, <em>system_size: int</em>, <em>requires_grad: bool = True</em>, <em>**_</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/system/score_support.html#stacked_coords_for_system"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.system.score_support.stacked_coords_for_system" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extract constructor kwargs to initialize a <a class="reference internal" href="tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider" title="tmol.score.coordinates.CartesianAtomicCoordinateProvider"><code class="xref any py py-class docutils literal notranslate"><span class="pre">CartesianAtomicCoordinateProvider</span></code></a></p>
 </dd></dl>
 
