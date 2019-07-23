@@ -156,7 +156,8 @@ struct StackedSavedGradsBackward : public torch::autograd::Function {
   typedef torch::autograd::variable_list variable_list;
 
   // Factory method, for use with connect_backward_pass.
-  static std::shared_ptr<StackedSavedGradsBackward> create(variable_list&& grads) {
+  static std::shared_ptr<StackedSavedGradsBackward> create(
+      variable_list&& grads) {
     return std::shared_ptr<StackedSavedGradsBackward>(
         new StackedSavedGradsBackward(std::move(grads)),
         torch::autograd::deleteFunction);
@@ -171,7 +172,8 @@ struct StackedSavedGradsBackward : public torch::autograd::Function {
     }
   }
 
-  StackedSavedGradsBackward(variable_list&& grads) : torch::autograd::Function() {
+  StackedSavedGradsBackward(variable_list&& grads)
+      : torch::autograd::Function() {
     saved_grads.reserve(grads.size());
 
     for (auto& grad : grads) {
@@ -189,7 +191,8 @@ struct StackedSavedGradsBackward : public torch::autograd::Function {
       AT_CHECK(
           in_grads[0].size(0) == saved_grad.unpack().size(0)
               || in_grads[0].size(0) == 1,
-          "Tensors sizes must match along the first dimension, the stack dimension");
+          "Tensors sizes must match along the first dimension, the stack "
+          "dimension");
     }
 
     variable_list result;
