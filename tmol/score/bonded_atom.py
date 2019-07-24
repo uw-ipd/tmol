@@ -26,44 +26,61 @@ from .device import TorchDevice
 class IndexedBonds:
     bonds: Tensor(int)[:, :, 2]
     bond_spans: Tensor(int)[:, :, 2]
-    src_index: Tensor(int)[:, :]
+    # src_index: Tensor(int)[:]
 
     @classmethod
     def from_bonds(cls, src_bonds, minlength=None):
 
-        # Convert undirected (i, j) bond index tuples into sorted, indexed list.
+        # Convert undirected (stack, i, j) bond index tuples into sorted, indexed list.
 
-        bonds, src_index = numpy.unique(src_bonds, axis=0, return_index=True)
+        uniq_bonds, src_index = numpy.unique(src_bonds, axis=0, return_index=True)
+        nstacks = numpy.max(uniq_bonds[:,0])+1
 
         if not minlength:
-            minlength = numpy.max(bonds)
+            minlength = numpy.max(uniq_bonds[:,1:])+1
 
-        # Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]
-        # blocks in the sorted bond table indexed by i
-        num_bonds = numpy.cumsum(numpy.bincount(bonds[:, 0], minlength=minlength))
+        bond_spans = numpy.empty((nstacks, minlength, 2), dtype=int)
+        max_nbonds = max(numpy.sum(uniq_bonds[:,0] == stack) for stack in range(nstacks))
+        bonds = numpy.full((nstacks, max_nbonds, 2), -9999, dtype=int)
 
-        bond_spans = numpy.empty((len(num_bonds), 2), dtype=int)
-        bond_spans[0, 0] = 0
-        bond_spans[1:, 0] = num_bonds[:-1]
-        bond_spans[:, 1] = num_bonds
+
+        for stack in range(nstacks):
+            stack_bonds = uniq_bonds[uniq_bonds[:,0] == stack]
+            bonds[stack,:stack_bonds.shape[0]] = stack_bonds[:,1:]
+
+            # Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]
+            # blocks in the sorted bond table indexed by i
+            num_bonds = numpy.cumsum(numpy.bincount(stack_bonds[:, 1], minlength=minlength))
+
+            print("num_bonds.shape", num_bonds.shape)
+            print("bond_spans", bond_spans.shape)
+            bond_spans[stack, 0, 0] = 0
+            bond_spans[stack, 1:num_bonds.shape[0], 0] = num_bonds[:-1]
+            bond_spans[stack, 0:num_bonds.shape[0], 1] = num_bonds
 
         return cls(
             bonds=torch.from_numpy(bonds),
             bond_spans=torch.from_numpy(bond_spans),
-            src_index=torch.from_numpy(src_index),
+            # src_index=torch.from_numpy(src_index),
         )
 
     @classmethod
     def to_directed(cls, src_bonds):
         """Convert a potentially-undirected bond-table into dense, directed bonds.
+        The input "bonds" tensor is a two dimensional array of nbonds x 3,
+        where the 2nd dimension holds [stack index, atom 1 index, atom 2 index].
 
-        Eg. Converts [[0, 1], [0, 2]] into [[0, 1], [1, 0], [0, 2], [2, 0]]
+
+        Eg. Converts [[0, 0, 1], [0, 0, 2]] into [[0, 0, 1], [0, 1, 0], [0, 0, 2], [0, 2, 0]]
         """
 
         return numpy.concatenate(
             (
                 src_bonds,
-                numpy.concatenate((src_bonds[:, -1:], src_bonds[:, -2:-1]), axis=-1),
+                numpy.concatenate((
+                    src_bonds[:, 0:1],
+                    src_bonds[:, -1:],
+                    src_bonds[:, -2:-1]), axis=-1),
             ),
             axis=0,
         )
@@ -136,7 +153,7 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
 
         ## fd lkball needs this on the device
         ibonds = IndexedBonds.from_bonds(
-            IndexedBonds.to_directed(bonds[..., 1:]), minlength=system_size
+            IndexedBonds.to_directed(bonds), minlength=system_size
         ).to(device)
 
         return ibonds
@@ -167,6 +184,9 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
 def bonded_path_length(
     bonds: NDArray(int)[:, 2], system_size: int, limit: int
 ) -> NDArray("f4")[:, :]:
+    print("bonded_path_length: bonds.shape", bonds.shape)
+    print("system_size", system_size)
+    print("limit", limit)
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),
@@ -174,6 +194,7 @@ def bonded_path_length(
         cache=True,
     )
 
+    print("bond_graph", bond_graph)
     return csgraph.dijkstra(bond_graph, directed=False, unweighted=True, limit=limit)
 
 
