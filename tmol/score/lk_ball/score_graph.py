@@ -39,19 +39,19 @@ class LKBallIntraScore(IntraScore):
 
     @reactive_property
     def total_lk_ball_iso(lkball_score):
-        return lkball_score[None, 0]
+        return lkball_score[:, 0]
 
     @reactive_property
     def total_lk_ball(lkball_score):
-        return lkball_score[None, 1]
+        return lkball_score[:, 1]
 
     @reactive_property
     def total_lk_ball_bridge(lkball_score):
-        return lkball_score[None, 2]
+        return lkball_score[:, 2]
 
     @reactive_property
     def total_lk_ball_bridge_uncpl(lkball_score):
-        return lkball_score[None, 3]
+        return lkball_score[:, 3]
 
 
 @score_graph

@@ -227,7 +227,7 @@ class LKBallInterModule(_LKBallScoreModule):
             occulders_I,
             atom_type_I,
             waters_I,
-            bonded_path_lengths.t(),
+            bonded_path_lengths.permute((0,2,1)),
             self.lkball_type_params,
             self.lkball_global_params,
         )

@@ -52,7 +52,7 @@ test_cases = dict(
         ]],
         bonds=numpy.array([[0, 0, 1], [0, 0, 2], [0, 0, 3], [0, 4, 5], [0, 4, 6], [0, 4, 7]]),
         split=4,
-        expected_score=torch.tensor([0.3355, 0.0000, 0.2649, 0.7896]),
+        expected_score=torch.tensor([[0.3355, 0.0000, 0.2649, 0.7896]]),
     ),
     ring_sp3=Case(
         # test 3: ring acceptor--sp3 acceptor
@@ -70,7 +70,7 @@ test_cases = dict(
         atom_type_names=[["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]],
         bonds=numpy.array([[0, 0, 1], [0, 1, 2], [0, 3, 4], [0, 4, 5]]),
         split=3,
-        expected_score=torch.tensor([0.1114, 0.1067, 0.0442, 0.4900]),
+        expected_score=torch.tensor([[0.1114, 0.1067, 0.0442, 0.4900]]),
     ),
     sp2_nonpolar=Case(
         name="sp2_nonpolar",
@@ -85,7 +85,7 @@ test_cases = dict(
         atom_type_names=[["CH2", "COO", "OOC", "CH3"]],
         bonds=numpy.array([[0, 0, 1], [0, 1, 2]]),
         split=3,
-        expected_score=torch.tensor([0.1411, 0.0477, 0.0000, 0.0000]),
+        expected_score=torch.tensor([[0.1411, 0.0477, 0.0000, 0.0000]]),
     ),
 )
 
@@ -108,7 +108,7 @@ def test_lkball_intra(test_case, torch_device, default_database):
 
     print("indexed_bonds.bonds", indexed_bonds.bonds.shape)
     print("indexed_bonds.bond_spans", indexed_bonds.bond_spans.shape)
-    
+
     bpl = torch.from_numpy(
         bonded_path_length(indexed_bonds.bonds[0].cpu().numpy(), coords.shape[1], 5)
     ).to(dtype=torch.float, device=torch_device)[None, :]
@@ -136,6 +136,9 @@ def test_lkball_intra(test_case, torch_device, default_database):
         indexed_bonds.bond_spans,
     )
 
+    print("val", val)
+    print("test_case.expected_score", test_case.expected_score)
+
     torch.testing.assert_allclose(
         val.cpu(), test_case.expected_score, atol=1e-4, rtol=1e-3
     )
@@ -150,6 +153,8 @@ def test_lkball_intra(test_case, torch_device, default_database):
             indexed_bonds.bonds,
             indexed_bonds.bond_spans,
         )
+
+    print("val", val)
 
     gradcheck(val, (coords.requires_grad_(True),), eps=1e-3, atol=5e-4)
 
@@ -172,28 +177,28 @@ def test_lkball_inter(test_case, torch_device, default_database):
 
     print("indexed_bonds.bonds", indexed_bonds.bonds.shape)
     print("indexed_bonds.bond_spans", indexed_bonds.bond_spans.shape)
-    
+
     bpl = torch.from_numpy(
         bonded_path_length(indexed_bonds.bonds[0].cpu().numpy(), coords.shape[1], 5)
-    ).to(dtype=torch.float, device=torch_device)
+    ).to(dtype=torch.float, device=torch_device)[None, :]
 
     atom_types = atom_type_resolver.type_idx(test_case.atom_type_names)
 
     polarsI = torch.nonzero(
-        atom_type_resolver.params.is_acceptor[atom_types[: test_case.split]]
-        + atom_type_resolver.params.is_donor[atom_types[: test_case.split]]
-    ).reshape(-1)
+        atom_type_resolver.params.is_acceptor[atom_types[:, :test_case.split]]
+        + atom_type_resolver.params.is_donor[atom_types[:, :test_case.split]]
+    ).reshape((1,-1))
     occludersI = torch.nonzero(
-        1 - atom_type_resolver.params.is_hydrogen[atom_types[: test_case.split]]
-    ).reshape(-1)
+        1 - atom_type_resolver.params.is_hydrogen[atom_types[:, :test_case.split]]
+    ).reshape((1,-1))
 
     polarsJ = torch.nonzero(
-        atom_type_resolver.params.is_acceptor[atom_types[test_case.split :]]
-        + atom_type_resolver.params.is_donor[atom_types[test_case.split :]]
-    ).reshape(-1)
+        atom_type_resolver.params.is_acceptor[atom_types[:, test_case.split:]]
+        + atom_type_resolver.params.is_donor[atom_types[:, test_case.split:]]
+    ).reshape((1,-1))
     occludersJ = torch.nonzero(
-        1 - atom_type_resolver.params.is_hydrogen[atom_types[test_case.split :]]
-    ).reshape(-1)
+        1 - atom_type_resolver.params.is_hydrogen[atom_types[:, test_case.split:]]
+    ).reshape((1,-1))
 
     op = LKBallInterModule(param_resolver, atom_type_resolver)
     op.to(coords)

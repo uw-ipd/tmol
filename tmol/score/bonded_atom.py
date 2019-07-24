@@ -52,8 +52,6 @@ class IndexedBonds:
             # blocks in the sorted bond table indexed by i
             num_bonds = numpy.cumsum(numpy.bincount(stack_bonds[:, 1], minlength=minlength))
 
-            print("num_bonds.shape", num_bonds.shape)
-            print("bond_spans", bond_spans.shape)
             bond_spans[stack, 0, 0] = 0
             bond_spans[stack, 1:num_bonds.shape[0], 0] = num_bonds[:-1]
             bond_spans[stack, 0:num_bonds.shape[0], 1] = num_bonds
@@ -184,9 +182,6 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
 def bonded_path_length(
     bonds: NDArray(int)[:, 2], system_size: int, limit: int
 ) -> NDArray("f4")[:, :]:
-    print("bonded_path_length: bonds.shape", bonds.shape)
-    print("system_size", system_size)
-    print("limit", limit)
     bond_graph = sparse.COO(
         bonds.T,
         data=numpy.full(len(bonds), True),
@@ -194,7 +189,6 @@ def bonded_path_length(
         cache=True,
     )
 
-    print("bond_graph", bond_graph)
     return csgraph.dijkstra(bond_graph, directed=False, unweighted=True, limit=limit)
 
 
