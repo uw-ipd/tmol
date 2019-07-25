@@ -34,6 +34,15 @@ class IndexedBonds:
         # Convert undirected (stack, i, j) bond index tuples into sorted, indexed list.
 
         uniq_bonds, src_index = numpy.unique(src_bonds, axis=0, return_index=True)
+
+        # import sys
+        # numpy.set_printoptions(threshold=sys.maxsize)
+        # 
+        # print("src_bonds", src_bonds)
+        # print("src_bonds", src_bonds.shape)
+        # print("uniq_bonds", uniq_bonds)
+        # print("uniq_bonds", uniq_bonds.shape)
+        
         nstacks = numpy.max(uniq_bonds[:,0])+1
 
         if not minlength:
@@ -145,7 +154,6 @@ class BondedAtomScoreGraph(StackedSystem, ParamDB, TorchDevice):
     @reactive_property
     def indexed_bonds(bonds, system_size, device):
         """Sorted, constant time access to bond graph."""
-        assert numpy.all(bonds[:, 0] == 0)
         assert bonds.ndim == 2
         assert bonds.shape[1] == 3
 

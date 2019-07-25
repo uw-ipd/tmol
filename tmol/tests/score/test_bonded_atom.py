@@ -85,5 +85,30 @@ def test_bonded_path_length(ubq_system: PackedResidueSystem):
     inds = src.indexed_bonds
     assert len(inds.bonds.shape) == 3
     assert inds.bonds.shape[2] == 2
-    print(inds.bonds.shape)
-    print(inds.bond_spans.shape)
+
+
+def test_variable_bonded_path_length(ubq_res):
+    ubq4 = PackedResidueSystem.from_residues(ubq_res[:4])
+    ubq6 = PackedResidueSystem.from_residues(ubq_res[:6])
+    twoubq = PackedResidueSystemStack((ubq4, ubq6))
+
+    basg_both = BondedAtomScoreGraph.build_for(twoubq)
+    basg4 = BondedAtomScoreGraph.build_for(ubq4)
+    basg6 = BondedAtomScoreGraph.build_for(ubq6)
+
+    inds_both = basg_both.indexed_bonds
+    inds4 = basg4.indexed_bonds
+    inds6 = basg6.indexed_bonds
+
+    numpy.testing.assert_allclose(inds_both.bonds[0, :inds4.bonds.shape[1]],
+                                  inds4.bonds[0])
+    numpy.testing.assert_allclose(inds_both.bonds[1, :inds6.bonds.shape[1]],
+                                  inds6.bonds[0])
+
+    numpy.testing.assert_allclose(inds_both.bond_spans[0, :inds4.bond_spans.shape[1]],
+                                  inds4.bond_spans[0])
+    torch.testing.assert_allclose(inds_both.bond_spans[1, :inds6.bond_spans.shape[1]],
+                                  inds6.bond_spans[0])
+
+    
+
