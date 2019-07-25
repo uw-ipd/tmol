@@ -27,14 +27,6 @@ class LKBallIntraScore(IntraScore):
     @reactive_property
     # @validate_args
     def lkball_score(target):
-        print(target.coords.shape)
-        print(target.lkball_pairs.polars.shape)
-        print(target.lkball_pairs.occluders.shape)
-        print(target.ljlk_atom_types.shape)
-        print(target.bonded_path_length.shape)
-        print(target.indexed_bonds.bonds.shape)
-        print(target.indexed_bonds.bond_spans.shape)
-
         return target.lkball_intra_module(
             target.coords,
             target.lkball_pairs.polars,
