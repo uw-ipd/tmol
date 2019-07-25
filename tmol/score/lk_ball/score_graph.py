@@ -27,6 +27,15 @@ class LKBallIntraScore(IntraScore):
     @reactive_property
     # @validate_args
     def lkball_score(target):
+        print(target.coords.shape)
+        print(target.lkball_pairs.polars.shape)
+        print(target.lkball_pairs.occluders.shape)
+        print(target.ljlk_atom_types.shape)
+        print(target.bonded_path_length.shape)
+        print(target.indexed_bonds.bonds.shape)
+        print(target.indexed_bonds.bond_spans.shape)
+
+        
         return target.lkball_intra_module(
             target.coords,
             target.lkball_pairs.polars,
@@ -101,7 +110,7 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
         polars_list = [
             torch.nonzero(
                 atom_type_params.params.is_acceptor[ljlk_atom_types[i]]
-                + atom_type_params.params.is_acceptor[ljlk_atom_types[i]]).reshape(-1)
+                + atom_type_params.params.is_donor[ljlk_atom_types[i]]).reshape(-1)
             for i in range(nstacks)]
         occluders_list = [
             torch.nonzero(
@@ -111,8 +120,8 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
             
         max_polars = max(len(pols) for pols in polars_list)
         max_occluders = max(len(occs) for occs in occluders_list)
-        print("max_polars", max_polars)
-        print("max_occluders", max_occluders)
+        #print("max_polars", max_polars)
+        #print("max_occluders", max_occluders)
 
         polars = torch.full((nstacks, max_polars), -9999, dtype=torch.int64, device=device)
         occluders = torch.full((nstacks, max_occluders), -9999, dtype=torch.int64, device=device)
@@ -121,7 +130,7 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
             polars[i,:polars_list[i].shape[0]] = polars_list[i]
             occluders[i,:occluders_list[i].shape[0]] = occluders_list[i]
 
-        print("polars", polars)
-        print("occluders", occluders)
+        #print("polars", polars)
+        #print("occluders", occluders)
 
         return LKBallPairs(polars=polars, occluders=occluders)
