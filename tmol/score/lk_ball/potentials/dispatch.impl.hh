@@ -26,20 +26,6 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template<long unsigned int N, tmol::Device D, typename T>
-void
-print_sizes(
-  std::string const & name,
-  TView<T, N, D> tensor
-) {
-  std::cout << "tensor " << name << " size:";
-  for (int ii = 0; ii < N; ++ii) {
-    std::cout << " " << tensor.size(ii);
-  }
-  std::cout << std::endl;
-}
-
-
 template <
     template <tmol::Device>
     class Dispatch,
@@ -64,20 +50,6 @@ struct LKBallDispatch {
       TView<LKBallGlobalParams<Real>, 1, D> global_params)
       -> TPack<Real, 2, D> {
     NVTXRange _function(__FUNCTION__);
-    print_sizes("coords_i", coords_i);
-    print_sizes("polars_i", polars_i);
-    print_sizes("atom_type_i", atom_type_i);
-    print_sizes("waters_i", waters_i);
-
-    print_sizes("coords_j", coords_j);
-    print_sizes("occluders_j", occluders_j);
-    print_sizes("atom_type_j", atom_type_j);
-    print_sizes("waters_j", waters_j);
-
-    print_sizes("bonded_path_lengths", bonded_path_lengths);
-    print_sizes("type_params", type_params);
-    print_sizes("global_params", global_params);
-
     Int const nstacks = coords_i.size(0);
 
     nvtx_range_push("dispatch::alloc");

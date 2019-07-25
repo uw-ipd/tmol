@@ -29,28 +29,25 @@ test_cases = dict(
     donor_donor=Case(
         name="donor_donor",
         coords=torch.tensor(
-            [[
-                [-6.007, 4.706, -0.074],
-                [-6.747, 4.361, 0.549],
-                [-5.791, 5.657, 0.240],
-                [-6.305, 4.706, -1.040],
-                [-10.018, 6.062, -2.221],
-                [-9.160, 5.711, -2.665],
-                [-9.745, 6.899, -1.697],
-                [-10.429, 5.372, -1.610],
-            ]]
+            [
+                [
+                    [-6.007, 4.706, -0.074],
+                    [-6.747, 4.361, 0.549],
+                    [-5.791, 5.657, 0.240],
+                    [-6.305, 4.706, -1.040],
+                    [-10.018, 6.062, -2.221],
+                    [-9.160, 5.711, -2.665],
+                    [-9.745, 6.899, -1.697],
+                    [-10.429, 5.372, -1.610],
+                ]
+            ]
         ),
-        atom_type_names=[[
-            "Nlys",
-            "Hpol",
-            "Hpol",
-            "Hpol",
-            "Nlys",
-            "Hpol",
-            "Hpol",
-            "Hpol",
-        ]],
-        bonds=numpy.array([[0, 0, 1], [0, 0, 2], [0, 0, 3], [0, 4, 5], [0, 4, 6], [0, 4, 7]]),
+        atom_type_names=[
+            ["Nlys", "Hpol", "Hpol", "Hpol", "Nlys", "Hpol", "Hpol", "Hpol"]
+        ],
+        bonds=numpy.array(
+            [[0, 0, 1], [0, 0, 2], [0, 0, 3], [0, 4, 5], [0, 4, 6], [0, 4, 7]]
+        ),
         split=4,
         expected_score=torch.tensor([[0.3355, 0.0000, 0.2649, 0.7896]]),
     ),
@@ -58,14 +55,16 @@ test_cases = dict(
         # test 3: ring acceptor--sp3 acceptor
         name="ring_sp3",
         coords=torch.tensor(
-            [[
-                [-5.250, -1.595, -2.543],  # SER CB
-                [-6.071, -0.619, -3.193],  # SER OG
-                [-5.489, 0.060, -3.542],  # SER HG
-                [-10.628, 2.294, -1.933],  # HIS CG
-                [-9.991, 1.160, -1.435],  # HIS ND1
-                [-10.715, 0.960, -0.319],  # HIS CE1
-            ]]
+            [
+                [
+                    [-5.250, -1.595, -2.543],  # SER CB
+                    [-6.071, -0.619, -3.193],  # SER OG
+                    [-5.489, 0.060, -3.542],  # SER HG
+                    [-10.628, 2.294, -1.933],  # HIS CG
+                    [-9.991, 1.160, -1.435],  # HIS ND1
+                    [-10.715, 0.960, -0.319],  # HIS CE1
+                ]
+            ]
         ),
         atom_type_names=[["CH2", "OH", "Hpol", "CH0", "NhisDDepro", "Caro"]],
         bonds=numpy.array([[0, 0, 1], [0, 1, 2], [0, 3, 4], [0, 4, 5]]),
@@ -75,12 +74,14 @@ test_cases = dict(
     sp2_nonpolar=Case(
         name="sp2_nonpolar",
         coords=torch.tensor(
-            [[
-                [-5.282, -0.190, -0.858],
-                [-6.520, 0.686, -0.931],
-                [-6.652, 1.379, -1.961],
-                [-6.932, 4.109, -5.683],
-            ]]
+            [
+                [
+                    [-5.282, -0.190, -0.858],
+                    [-6.520, 0.686, -0.931],
+                    [-6.652, 1.379, -1.961],
+                    [-6.932, 4.109, -5.683],
+                ]
+            ]
         ),
         atom_type_names=[["CH2", "COO", "OOC", "CH3"]],
         bonds=numpy.array([[0, 0, 1], [0, 1, 2]]),
@@ -119,7 +120,7 @@ def test_lkball_intra(test_case, torch_device, default_database):
     occluders = torch.nonzero(
         1 - atom_type_resolver.params.is_hydrogen[atom_types].view(-1)
     ).reshape((1, -1))
-    
+
     op = LKBallIntraModule(param_resolver, atom_type_resolver)
     op.to(coords)
 
@@ -174,34 +175,40 @@ def test_lkball_inter(test_case, torch_device, default_database):
     atom_types = atom_type_resolver.type_idx(test_case.atom_type_names)
 
     polarsI = torch.nonzero(
-        atom_type_resolver.params.is_acceptor[atom_types[:, :test_case.split]].view(-1)
-        + atom_type_resolver.params.is_donor[atom_types[:, :test_case.split]].view(-1)
-    ).reshape((1,-1))
+        atom_type_resolver.params.is_acceptor[atom_types[:, : test_case.split]].view(-1)
+        + atom_type_resolver.params.is_donor[atom_types[:, : test_case.split]].view(-1)
+    ).reshape((1, -1))
     occludersI = torch.nonzero(
-        1 - atom_type_resolver.params.is_hydrogen[atom_types[:, :test_case.split]].view(-1)
-    ).reshape((1,-1))
+        1
+        - atom_type_resolver.params.is_hydrogen[atom_types[:, : test_case.split]].view(
+            -1
+        )
+    ).reshape((1, -1))
 
     polarsJ = torch.nonzero(
-        atom_type_resolver.params.is_acceptor[atom_types[:, test_case.split:]].view(-1)
-        + atom_type_resolver.params.is_donor[atom_types[:, test_case.split:]].view(-1)
-    ).reshape((1,-1))
+        atom_type_resolver.params.is_acceptor[atom_types[:, test_case.split :]].view(-1)
+        + atom_type_resolver.params.is_donor[atom_types[:, test_case.split :]].view(-1)
+    ).reshape((1, -1))
     occludersJ = torch.nonzero(
-        1 - atom_type_resolver.params.is_hydrogen[atom_types[:, test_case.split:]].view(-1)
-    ).reshape((1,-1))
+        1
+        - atom_type_resolver.params.is_hydrogen[atom_types[:, test_case.split :]].view(
+            -1
+        )
+    ).reshape((1, -1))
 
     op = LKBallInterModule(param_resolver, atom_type_resolver)
     op.to(coords)
 
     val = op(
-        coords[:, :test_case.split],
+        coords[:, : test_case.split],
         polarsI,
         occludersI,
-        atom_types[:, :test_case.split],
-        coords[:, test_case.split:],
+        atom_types[:, : test_case.split],
+        coords[:, test_case.split :],
         polarsJ,
         occludersJ,
-        atom_types[:, test_case.split:],
-        bpl[:, :test_case.split, test_case.split:],
+        atom_types[:, test_case.split :],
+        bpl[:, : test_case.split, test_case.split :],
         indexed_bonds.bonds,
         indexed_bonds.bond_spans,
     )
@@ -215,8 +222,8 @@ def test_lkball_inter(test_case, torch_device, default_database):
             c,
             polarsI,
             occludersI,
-            atom_types[:, :test_case.split],
-            coords[:, test_case.split:],
+            atom_types[:, : test_case.split],
+            coords[:, test_case.split :],
             polarsJ,
             occludersJ,
             atom_types[:, test_case.split :],
@@ -226,5 +233,5 @@ def test_lkball_inter(test_case, torch_device, default_database):
         )
 
     gradcheck(
-        val, (coords[:, :test_case.split].requires_grad_(True),), eps=1e-3, atol=5e-4
+        val, (coords[:, : test_case.split].requires_grad_(True),), eps=1e-3, atol=5e-4
     )

@@ -37,33 +37,36 @@ class IndexedBonds:
 
         # import sys
         # numpy.set_printoptions(threshold=sys.maxsize)
-        # 
+        #
         # print("src_bonds", src_bonds)
         # print("src_bonds", src_bonds.shape)
         # print("uniq_bonds", uniq_bonds)
         # print("uniq_bonds", uniq_bonds.shape)
-        
-        nstacks = numpy.max(uniq_bonds[:,0])+1
+
+        nstacks = numpy.max(uniq_bonds[:, 0]) + 1
 
         if not minlength:
-            minlength = numpy.max(uniq_bonds[:,1:])+1
+            minlength = numpy.max(uniq_bonds[:, 1:]) + 1
 
         bond_spans = numpy.empty((nstacks, minlength, 2), dtype=int)
-        max_nbonds = max(numpy.sum(uniq_bonds[:,0] == stack) for stack in range(nstacks))
+        max_nbonds = max(
+            numpy.sum(uniq_bonds[:, 0] == stack) for stack in range(nstacks)
+        )
         bonds = numpy.full((nstacks, max_nbonds, 2), -9999, dtype=int)
 
-
         for stack in range(nstacks):
-            stack_bonds = uniq_bonds[uniq_bonds[:,0] == stack]
-            bonds[stack,:stack_bonds.shape[0]] = stack_bonds[:,1:]
+            stack_bonds = uniq_bonds[uniq_bonds[:, 0] == stack]
+            bonds[stack, : stack_bonds.shape[0]] = stack_bonds[:, 1:]
 
             # Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]
             # blocks in the sorted bond table indexed by i
-            num_bonds = numpy.cumsum(numpy.bincount(stack_bonds[:, 1], minlength=minlength))
+            num_bonds = numpy.cumsum(
+                numpy.bincount(stack_bonds[:, 1], minlength=minlength)
+            )
 
             bond_spans[stack, 0, 0] = 0
-            bond_spans[stack, 1:num_bonds.shape[0], 0] = num_bonds[:-1]
-            bond_spans[stack, 0:num_bonds.shape[0], 1] = num_bonds
+            bond_spans[stack, 1 : num_bonds.shape[0], 0] = num_bonds[:-1]
+            bond_spans[stack, 0 : num_bonds.shape[0], 1] = num_bonds
 
         return cls(
             bonds=torch.from_numpy(bonds),
@@ -84,10 +87,9 @@ class IndexedBonds:
         return numpy.concatenate(
             (
                 src_bonds,
-                numpy.concatenate((
-                    src_bonds[:, 0:1],
-                    src_bonds[:, -1:],
-                    src_bonds[:, -2:-1]), axis=-1),
+                numpy.concatenate(
+                    (src_bonds[:, 0:1], src_bonds[:, -1:], src_bonds[:, -2:-1]), axis=-1
+                ),
             ),
             axis=0,
         )

@@ -126,7 +126,7 @@ class _LKBallScoreModule(torch.jit.ScriptModule):
 
 
 class LKBallIntraModule(_LKBallScoreModule):
-    # @torch.jit.script_method
+    @torch.jit.script_method
     def forward(
         self,
         I,
@@ -137,12 +137,6 @@ class LKBallIntraModule(_LKBallScoreModule):
         indexed_bond_bonds,
         indexed_bond_spans,
     ):
-        print(" a", I.shape)
-        print(" b", polars_I.shape)
-        print(" c", occulders_I.shape)
-        print(" d", bonded_path_lengths.shape)
-        print(" e", indexed_bond_bonds.shape)
-        print(" f", indexed_bond_spans.shape)
         waters_I = torch.ops.tmol.watergen_lkball(
             I,
             atom_type_I,
@@ -233,7 +227,7 @@ class LKBallInterModule(_LKBallScoreModule):
             occulders_I,
             atom_type_I,
             waters_I,
-            bonded_path_lengths.permute((0,2,1)),
+            bonded_path_lengths.permute((0, 2, 1)),
             self.lkball_type_params,
             self.lkball_global_params,
         )

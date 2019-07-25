@@ -35,7 +35,6 @@ class LKBallIntraScore(IntraScore):
         print(target.indexed_bonds.bonds.shape)
         print(target.indexed_bonds.bond_spans.shape)
 
-        
         return target.lkball_intra_module(
             target.coords,
             target.lkball_pairs.polars,
@@ -98,39 +97,40 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
     def lkball_pairs(
         ljlk_atom_types: Tensor(torch.int64)[:, :],
         atom_type_params: AtomTypeParamResolver,
-        device: torch.device
+        device: torch.device,
     ) -> LKBallPairs:
         """Return lists of atoms over which to iterate.
         LK-Ball is only dispatched over polar:heavyatom pairs
         """
 
-        print("ljlk_atom_types.shape",ljlk_atom_types.shape)
         nstacks = ljlk_atom_types.shape[0]
 
         polars_list = [
             torch.nonzero(
                 atom_type_params.params.is_acceptor[ljlk_atom_types[i]]
-                + atom_type_params.params.is_donor[ljlk_atom_types[i]]).reshape(-1)
-            for i in range(nstacks)]
+                + atom_type_params.params.is_donor[ljlk_atom_types[i]]
+            ).reshape(-1)
+            for i in range(nstacks)
+        ]
         occluders_list = [
             torch.nonzero(
                 1 - atom_type_params.params.is_hydrogen[ljlk_atom_types[i]]
             ).reshape(-1)
-            for i in range(nstacks)]
-            
+            for i in range(nstacks)
+        ]
+
         max_polars = max(len(pols) for pols in polars_list)
         max_occluders = max(len(occs) for occs in occluders_list)
-        #print("max_polars", max_polars)
-        #print("max_occluders", max_occluders)
 
-        polars = torch.full((nstacks, max_polars), -9999, dtype=torch.int64, device=device)
-        occluders = torch.full((nstacks, max_occluders), -9999, dtype=torch.int64, device=device)
-        
+        polars = torch.full(
+            (nstacks, max_polars), -9999, dtype=torch.int64, device=device
+        )
+        occluders = torch.full(
+            (nstacks, max_occluders), -9999, dtype=torch.int64, device=device
+        )
+
         for i in range(nstacks):
-            polars[i,:polars_list[i].shape[0]] = polars_list[i]
-            occluders[i,:occluders_list[i].shape[0]] = occluders_list[i]
-
-        #print("polars", polars)
-        #print("occluders", occluders)
+            polars[i, : polars_list[i].shape[0]] = polars_list[i]
+            occluders[i, : occluders_list[i].shape[0]] = occluders_list[i]
 
         return LKBallPairs(polars=polars, occluders=occluders)

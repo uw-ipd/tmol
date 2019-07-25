@@ -100,15 +100,16 @@ def test_variable_bonded_path_length(ubq_res):
     inds4 = basg4.indexed_bonds
     inds6 = basg6.indexed_bonds
 
-    numpy.testing.assert_allclose(inds_both.bonds[0, :inds4.bonds.shape[1]],
-                                  inds4.bonds[0])
-    numpy.testing.assert_allclose(inds_both.bonds[1, :inds6.bonds.shape[1]],
-                                  inds6.bonds[0])
+    numpy.testing.assert_allclose(
+        inds_both.bonds[0, : inds4.bonds.shape[1]], inds4.bonds[0]
+    )
+    numpy.testing.assert_allclose(
+        inds_both.bonds[1, : inds6.bonds.shape[1]], inds6.bonds[0]
+    )
 
-    numpy.testing.assert_allclose(inds_both.bond_spans[0, :inds4.bond_spans.shape[1]],
-                                  inds4.bond_spans[0])
-    torch.testing.assert_allclose(inds_both.bond_spans[1, :inds6.bond_spans.shape[1]],
-                                  inds6.bond_spans[0])
-
-    
-
+    numpy.testing.assert_allclose(
+        inds_both.bond_spans[0, : inds4.bond_spans.shape[1]], inds4.bond_spans[0]
+    )
+    torch.testing.assert_allclose(
+        inds_both.bond_spans[1, : inds6.bond_spans.shape[1]], inds6.bond_spans[0]
+    )
