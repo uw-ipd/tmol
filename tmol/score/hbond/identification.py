@@ -68,6 +68,10 @@ class HBondElementAnalysis(ValidateAttrs):
                 for stack in range(nstacks)
             ]
         )
+        # print("atom_types")
+        # print(atom_types)
+        # print("atom_donor_type")
+        # print(atom_donor_type)
 
         # Get the acceptor indicies and allocate base idx buffers
         A_idx_list = [
@@ -105,7 +109,7 @@ class HBondElementAnalysis(ValidateAttrs):
         acceptors["b"] = B_idx
         acceptors["b0"] = B0_idx
         for i in range(nstacks):
-            n_real = sum(A_idx[i, :] >= 0)
+            n_real = numpy.sum(A_idx[i, :] >= 0)
             acceptors[i, :n_real]["acceptor_type"] = atom_acceptor_type[
                 i, acceptors[i, :n_real]["a"]
             ]
@@ -119,20 +123,54 @@ class HBondElementAnalysis(ValidateAttrs):
         # atom is the same as the second atom, then it's not a real bond
         real_bonds = numpy.zeros_like(bonds.bonds)
         for i in range(nstacks):
-            n_real = sum(bonds.bonds[i,:,0] >= 0)
+            n_real = torch.sum(bonds.bonds[i,:,0] >= 0)
             real_bonds[i,:n_real,:] = bonds.bonds[i,:n_real,:]
+
+        # torch.set_printoptions(threshold=5000)
+        # numpy.set_printoptions(threshold=5000)
+        # print("bonds.bonds")
+        # print(bonds.bonds)
+        #     
+        # print("real_bonds")
+        # print(real_bonds)
+        #     
+        # print("real_bonds?")
+        # i = 0
+        # print(real_bonds[i,:,0] != real_bonds[i,:,1])
+        # 
+        # print("atom_is_donor")
+        # print(atom_is_donor[i, real_bonds[i, :, 0]])
+        # 
+        # print("atom_donor_type")
+        # print(atom_donor_type[i].astype(bool)[real_bonds[i, :, 0]])
+        # 
+        # print("atom_is_hydrogen")
+        # print(atom_is_hydrogen[i, real_bonds[i, :, 1]])
+        # 
+        # print("put it all together")
+        # print(numpy.not_equal(real_bonds[i,:,0],real_bonds[i,:,1])
+        #       & atom_is_donor[i, real_bonds[i, :, 0]]
+        #       & atom_donor_type[i].astype(bool)[real_bonds[i, :, 0]]  # None -> False
+        #       & atom_is_hydrogen[i, real_bonds[i, :, 1]])
+
         
         donor_pair_idx_list = [
-            bonds.bonds.numpy()[i][
-                real_bonds[i,:,0] != real_bonds[i,:,1]
+            real_bonds[i,
+                numpy.not_equal(real_bonds[i,:,0], real_bonds[i,:,1])
                 & atom_is_donor[i, real_bonds[i, :, 0]]
                 & atom_donor_type[i].astype(bool)[real_bonds[i, :, 0]]  # None -> False
-                & atom_is_hydrogen[i, real_bonds[i, :, 1]]
+                                & atom_is_hydrogen[i, real_bonds[i, :, 1]], :
             ]
             for i in range(nstacks)
         ]
         max_donors = max(len(don_inds) for don_inds in donor_pair_idx_list)
 
+        # print("donor pair idx list")
+        # print(donor_pair_idx_list[0])
+        # 
+        # print("atom is donor?")
+        # print(atom_is_donor[0,donor_pair_idx_list[0][:,0]])
+        
         donor_pair_idx = numpy.full((nstacks, max_donors, 2), -9999, dtype=int)
         for i in range(nstacks):
             i_inds = donor_pair_idx_list[i]
@@ -148,7 +186,18 @@ class HBondElementAnalysis(ValidateAttrs):
         # with numpy? and also, I need to say "this is an invalid index"
         # for that gather.
         for i in range(nstacks):
-            n_real = sum(donor_pair_idx[i, :, 0] >= 0)
+            n_real = numpy.sum(donor_pair_idx[i, :, 0] >= 0)
+            # print("donor_pair_idx")
+            # print(donor_pair_idx[i])
+            # print("donor_pair_idx real")
+            # print(donor_pair_idx[i,:,0]  >= 0)
+            # print("sum")
+            # print(n_real)
+            # print("donor atom types")
+            # print(atom_types[i, donor_pair_idx[i, :n_real, 0]])
+            # print("donor types shape", atom_donor_type[
+            #     i, donor_pair_idx[i, :n_real, 0]
+            # ])
             donors[i, :n_real]["donor_type"] = atom_donor_type[
                 i, donor_pair_idx[i, :n_real, 0]
             ]

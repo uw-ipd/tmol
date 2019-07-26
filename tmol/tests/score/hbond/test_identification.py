@@ -113,6 +113,12 @@ def test_bb_identification(default_database, bb_hbond_database, ubq_system):
     def _t(d):
         return tuple(tuple(r.items()) for r in d)
 
+    # numpy.set_printoptions(threshold=10000)
+    # print("hbe.donors")
+    # print(hbe.donors[0])
+    # print("donors expected")
+    # print(donors)
+    
     hbe_donors = pandas.DataFrame.from_records(hbe.donors[0]).to_dict(orient="records")
     assert len(_t(hbe_donors)) == len(set(_t(hbe_donors)))
     assert {(r["d"], r["h"]): r for r in hbe_donors} == {
