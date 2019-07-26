@@ -113,6 +113,7 @@ class HBondElementAnalysis(ValidateAttrs):
             acceptors[i, :n_real]["acceptor_type"] = atom_acceptor_type[
                 i, acceptors[i, :n_real]["a"]
             ]
+            acceptors[i, n_real:]["acceptor_type"] = None
 
         # Identify donor groups via donor-hydrogen bonds.
         atom_type_donor_type = {
@@ -202,6 +203,7 @@ class HBondElementAnalysis(ValidateAttrs):
             donors[i, :n_real]["donor_type"] = atom_donor_type[
                 i, donor_pair_idx[i, :n_real, 0]
             ]
+            donors[i, n_real:]["donor_type"] = None
 
         return cls(donors=donors, acceptors=acceptors)
 
