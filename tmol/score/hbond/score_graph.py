@@ -56,16 +56,14 @@ class HBondIntraScore(IntraScore):
     # @validate_args
     def total_hbond(target, hbond_score):
         """total hbond score"""
-        # print("hbond_score", hbond_score[0])
         return hbond_score
 
     @reactive_property
     # @validate_args
     def hbond_score(target):
-        coords = target.coords[0]
         return target.hbond_intra_module(
-            coords,
-            coords,
+            target.coords,
+            target.coords,
             target.hbond_donor_indices.D,
             target.hbond_donor_indices.H,
             target.hbond_donor_indices.donor_type,
@@ -156,13 +154,12 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         """hbond score elements in target graph"""
         assert atom_types.shape[0] == 1
         assert numpy.all(bonds[:, 0] == 0)
-        print("bonds", bonds.shape)
 
         return HBondElementAnalysis.setup_from_database(
             chemical_database=parameter_database.chemical,
             hbond_database=hbond_database,
-            atom_types=atom_types[0],
-            bonds=bonds[:, 1:],
+            atom_types=atom_types,
+            bonds=bonds,
         )
 
     @reactive_property
