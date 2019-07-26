@@ -6,8 +6,8 @@ import pandas
 import tmol.score
 
 import tmol.system.restypes as restypes
-from tmol.system.packed import PackedResidueSystem
-from tmol.system.score_support import bonded_atoms_for_system
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+from tmol.system.score_support import bonded_atoms_for_system, stacked_bonded_atoms_for_system
 
 import tmol.database
 from tmol.score.hbond.identification import HBondElementAnalysis
@@ -161,3 +161,39 @@ def test_identification_by_chemical_types(
                 assert (
                     ai in identified_acceptors
                 ), f"Unidentified acceptor. res: {rt.name} atom:{rt.atoms[ai]}"
+
+def test_jagged_identification(ubq_res, default_database):
+    ubq4 = PackedResidueSystem.from_residues(ubq_res[:4])
+    ubq6 = PackedResidueSystem.from_residues(ubq_res[:6])
+    twoubq = PackedResidueSystemStack((ubq4, ubq6))
+
+    params4 = bonded_atoms_for_system(ubq4)
+    params6 = bonded_atoms_for_system(ubq6)
+    params_both = stacked_bonded_atoms_for_system(
+        twoubq,
+        stack_depth=2,
+        system_size=int(ubq6.system_size))
+    
+    hbe4 = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
+        hbond_database=default_database.scoring.hbond,
+        atom_types=params4["atom_types"],
+        bonds=params4["bonds"])
+
+    hbe6 = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
+        hbond_database=default_database.scoring.hbond,
+        atom_types=params6["atom_types"],
+        bonds=params6["bonds"])
+
+    hbe_both = HBondElementAnalysis.setup_from_database(
+        chemical_database=default_database.chemical,
+        hbond_database=default_database.scoring.hbond,
+        atom_types=params_both["atom_types"],
+        bonds=params_both["bonds"])        
+
+    assert hbe_both.donors.shape == (2, hbe6.donors.shape[1])
+    assert hbe_both.acceptors.shape == (2, hbe6.acceptors.shape[1])
+    
+    numpy.testing.assert_equal(hbe4.donors[0], hbe_both.donors[0,:hbe4.donors.shape[1]])
+    numpy.testing.assert_equal(hbe6.donors[0], hbe_both.donors[1,:hbe6.donors.shape[1]])

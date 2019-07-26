@@ -100,13 +100,14 @@ class HBondElementAnalysis(ValidateAttrs):
             numpy.logical_and(A_idx != -9999, B_idx == -1)
         ), "Invalid acceptor atom type."
 
-        acceptors = numpy.empty(A_idx.shape, dtype=acceptor_dtype)
+        acceptors = numpy.full(A_idx.shape, -9999, dtype=acceptor_dtype)
         acceptors["a"] = A_idx
         acceptors["b"] = B_idx
         acceptors["b0"] = B0_idx
         for i in range(nstacks):
-            acceptors[i, :]["acceptor_type"] = atom_acceptor_type[
-                i, acceptors[i, :]["a"]
+            n_real = sum(A_idx[i, :] >= 0)
+            acceptors[i, :n_real]["acceptor_type"] = atom_acceptor_type[
+                i, acceptors[i, :n_real]["a"]
             ]
 
         # Identify donor groups via donor-hydrogen bonds.
@@ -114,11 +115,19 @@ class HBondElementAnalysis(ValidateAttrs):
             p.d: p.donor_type for p in hbond_database.donor_atom_types
         }
 
+        # create an array that can be indexed with, where if the first
+        # atom is the same as the second atom, then it's not a real bond
+        real_bonds = numpy.zeros_like(bonds.bonds)
+        for i in range(nstacks):
+            n_real = sum(bonds.bonds[i,:,0] >= 0)
+            real_bonds[i,:n_real,:] = bonds.bonds[i,:n_real,:]
+        
         donor_pair_idx_list = [
             bonds.bonds.numpy()[i][
-                atom_is_donor[i, bonds.bonds[i, :, 0]]
-                & atom_donor_type[i].astype(bool)[bonds.bonds[i, :, 0]]  # None -> False
-                & atom_is_hydrogen[i, bonds.bonds[i, :, 1]]
+                real_bonds[i,:,0] != real_bonds[i,:,1]
+                & atom_is_donor[i, real_bonds[i, :, 0]]
+                & atom_donor_type[i].astype(bool)[real_bonds[i, :, 0]]  # None -> False
+                & atom_is_hydrogen[i, real_bonds[i, :, 1]]
             ]
             for i in range(nstacks)
         ]
