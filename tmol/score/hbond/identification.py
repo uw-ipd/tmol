@@ -123,43 +123,44 @@ class HBondElementAnalysis(ValidateAttrs):
         # atom is the same as the second atom, then it's not a real bond
         real_bonds = numpy.zeros_like(bonds.bonds)
         for i in range(nstacks):
-            n_real = torch.sum(bonds.bonds[i,:,0] >= 0)
-            real_bonds[i,:n_real,:] = bonds.bonds[i,:n_real,:]
+            n_real = torch.sum(bonds.bonds[i, :, 0] >= 0)
+            real_bonds[i, :n_real, :] = bonds.bonds[i, :n_real, :]
 
         # torch.set_printoptions(threshold=5000)
         # numpy.set_printoptions(threshold=5000)
         # print("bonds.bonds")
         # print(bonds.bonds)
-        #     
+        #
         # print("real_bonds")
         # print(real_bonds)
-        #     
+        #
         # print("real_bonds?")
         # i = 0
         # print(real_bonds[i,:,0] != real_bonds[i,:,1])
-        # 
+        #
         # print("atom_is_donor")
         # print(atom_is_donor[i, real_bonds[i, :, 0]])
-        # 
+        #
         # print("atom_donor_type")
         # print(atom_donor_type[i].astype(bool)[real_bonds[i, :, 0]])
-        # 
+        #
         # print("atom_is_hydrogen")
         # print(atom_is_hydrogen[i, real_bonds[i, :, 1]])
-        # 
+        #
         # print("put it all together")
         # print(numpy.not_equal(real_bonds[i,:,0],real_bonds[i,:,1])
         #       & atom_is_donor[i, real_bonds[i, :, 0]]
         #       & atom_donor_type[i].astype(bool)[real_bonds[i, :, 0]]  # None -> False
         #       & atom_is_hydrogen[i, real_bonds[i, :, 1]])
 
-        
         donor_pair_idx_list = [
-            real_bonds[i,
-                numpy.not_equal(real_bonds[i,:,0], real_bonds[i,:,1])
+            real_bonds[
+                i,
+                numpy.not_equal(real_bonds[i, :, 0], real_bonds[i, :, 1])
                 & atom_is_donor[i, real_bonds[i, :, 0]]
                 & atom_donor_type[i].astype(bool)[real_bonds[i, :, 0]]  # None -> False
-                                & atom_is_hydrogen[i, real_bonds[i, :, 1]], :
+                & atom_is_hydrogen[i, real_bonds[i, :, 1]],
+                :,
             ]
             for i in range(nstacks)
         ]
@@ -167,10 +168,10 @@ class HBondElementAnalysis(ValidateAttrs):
 
         # print("donor pair idx list")
         # print(donor_pair_idx_list[0])
-        # 
+        #
         # print("atom is donor?")
         # print(atom_is_donor[0,donor_pair_idx_list[0][:,0]])
-        
+
         donor_pair_idx = numpy.full((nstacks, max_donors, 2), -9999, dtype=int)
         for i in range(nstacks):
             i_inds = donor_pair_idx_list[i]

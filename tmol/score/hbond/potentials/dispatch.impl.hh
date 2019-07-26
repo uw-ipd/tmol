@@ -50,13 +50,15 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
         TPack<Vec<Real, 3>, 2, Dev>,
         TPack<Vec<Real, 3>, 2, Dev>> {
   AT_ASSERTM(
-      donor_type.size(0) == acceptor_type.size(0), "Mismatch in number of stack dimensions");
+      donor_type.size(0) == acceptor_type.size(0),
+      "Mismatch in number of stack dimensions");
   AT_ASSERTM(
-      donor_type.size(0) == donor_coords.size(0), "Mismatch in number of stack dimensions");
+      donor_type.size(0) == donor_coords.size(0),
+      "Mismatch in number of stack dimensions");
   AT_ASSERTM(
-      acceptor_type.size(0) == acceptor_coords.size(0), "Mismatch in number of stack dimensions");
-  
-  
+      acceptor_type.size(0) == acceptor_coords.size(0),
+      "Mismatch in number of stack dimensions");
+
   AT_ASSERTM(
       donor_type.size(0) == D.size(0), "Invalid donor coordinate shapes.");
   AT_ASSERTM(
@@ -87,7 +89,6 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
       acceptor_type.size(1) == B0.size(1),
       "Invalid acceptor coordinate shapes.");
 
-
   AT_ASSERTM(
       pair_params.size(0) == pair_polynomials.size(0),
       "Disagreement on number of donor types.");
@@ -101,9 +102,10 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
   nvtx_range_push("hbond alloc");
   int nstacks = donor_coords.size(0);
   auto V_t = TPack<Real, 1, Dev>::zeros({nstacks});
-  auto dV_d_don_t = TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, donor_coords.size(0)});
+  auto dV_d_don_t =
+      TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, donor_coords.size(1)});
   auto dV_d_acc_t =
-      TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, acceptor_coords.size(0)});
+      TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, acceptor_coords.size(1)});
 
   auto V = V_t.view;
   auto dV_d_don = dV_d_don_t.view;
@@ -127,12 +129,12 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
         int at = acceptor_type[stack][ai];
 
         auto hbond = hbond_score<Real, Int>::V_dV(
-            donor_coords[D[stack][di]],
-            donor_coords[H[stack][di]],
+            donor_coords[stack][D[stack][di]],
+            donor_coords[stack][H[stack][di]],
 
-            acceptor_coords[A[stack][ai]],
-            acceptor_coords[B[stack][ai]],
-            acceptor_coords[B0[stack][ai]],
+            acceptor_coords[stack][A[stack][ai]],
+            acceptor_coords[stack][B[stack][ai]],
+            acceptor_coords[stack][B0[stack][ai]],
 
             pair_params[dt][at],
             pair_polynomials[dt][at],
@@ -140,12 +142,17 @@ auto HBondDispatch<Dispatch, Dev, Real, Int>::f(
 
         accumulate<Dev, Real>::add(V[stack], hbond.V);
 
-        accumulate<Dev, Vec<Real, 3>>::add(dV_d_don[D[stack][di]], hbond.dV_dD);
-        accumulate<Dev, Vec<Real, 3>>::add(dV_d_don[H[stack][di]], hbond.dV_dH);
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_don[stack][D[stack][di]], hbond.dV_dD);
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_don[stack][H[stack][di]], hbond.dV_dH);
 
-        accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[A[stack][ai]], hbond.dV_dA);
-        accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[B[stack][ai]], hbond.dV_dB);
-        accumulate<Dev, Vec<Real, 3>>::add(dV_d_acc[B0[stack][ai]], hbond.dV_dB0);
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_acc[stack][A[stack][ai]], hbond.dV_dA);
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_acc[stack][B[stack][ai]], hbond.dV_dB);
+        accumulate<Dev, Vec<Real, 3>>::add(
+            dV_d_acc[stack][B0[stack][ai]], hbond.dV_dB0);
       });
 
   nvtx_range_pop();
