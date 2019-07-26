@@ -80,8 +80,10 @@ class IndexedBonds:
         The input "bonds" tensor is a two dimensional array of nbonds x 3,
         where the 2nd dimension holds [stack index, atom 1 index, atom 2 index].
 
-
-        Eg. Converts [[0, 0, 1], [0, 0, 2]] into [[0, 0, 1], [0, 1, 0], [0, 0, 2], [0, 2, 0]]
+        Eg. Converts
+        [[0, 0, 1], [0, 0, 2]]
+        into
+        [[0, 0, 1], [0, 1, 0], [0, 0, 2], [0, 2, 0]]
         """
 
         return numpy.concatenate(

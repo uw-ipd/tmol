@@ -23,28 +23,27 @@ donor_dtype = numpy.dtype([("d", int), ("h", int), ("donor_type", object)])
 
 @attr.s(frozen=True, slots=True, auto_attribs=True)
 class HBondElementAnalysis(ValidateAttrs):
-    donors: NDArray(donor_dtype)[:]
-    acceptors: NDArray(acceptor_dtype)[:]
+    donors: NDArray(donor_dtype)[:, :]
+    acceptors: NDArray(acceptor_dtype)[:, :]
 
     @classmethod
     @convert_args
     def setup(
         cls,
         hbond_database: HBondDatabase,
-        atom_types: NDArray(object)[:],
-        atom_is_acceptor: NDArray(bool)[:],
-        atom_acceptor_hybridization: NDArray(int)[:],
-        atom_is_donor: NDArray(bool)[:],
-        atom_is_hydrogen: NDArray(bool)[:],
-        bonds: NDArray(int)[:, 2],
+        atom_types: NDArray(object)[:, :],
+        atom_is_acceptor: NDArray(bool)[:, :],
+        atom_acceptor_hybridization: NDArray(int)[:, :],
+        atom_is_donor: NDArray(bool)[:, :],
+        atom_is_hydrogen: NDArray(bool)[:, :],
+        bonds: NDArray(int)[:, 3],
     ):
-
         compiled = load(
             modulename(__name__), relpaths(__file__, "identification.pybind.cc")
         )
 
         # Only access bonds through index.
-        bonds = IndexedBonds.from_bonds(bonds, minlength=len(atom_types))
+        bonds = IndexedBonds.from_bonds(bonds, minlength=atom_types.shape[1])
 
         # Filter donors/acceptors to those with type definitions in hbond
         # database, this logic should likely be moved to parameter resolution.
@@ -55,19 +54,36 @@ class HBondElementAnalysis(ValidateAttrs):
             p.d: p.donor_type for p in hbond_database.donor_atom_types
         }
 
+        nstacks = atom_types.shape[0]
+
         atom_acceptor_type = numpy.array(
-            [atom_type_acceptor_type.get(at, None) for at in atom_types]
+            [
+                [atom_type_acceptor_type.get(at, None) for at in atom_types[stack]]
+                for stack in range(nstacks)
+            ]
         )
         atom_donor_type = numpy.array(
-            [atom_type_donor_type.get(at, None) for at in atom_types]
+            [
+                [atom_type_donor_type.get(at, None) for at in atom_types[stack]]
+                for stack in range(nstacks)
+            ]
         )
 
         # Get the acceptor indicies and allocate base idx buffers
-        A_idx = numpy.flatnonzero(
-            atom_is_acceptor & atom_acceptor_type.astype(bool)  # None->False
-        )
-        B_idx = numpy.empty_like(A_idx)
-        B0_idx = numpy.empty_like(A_idx)
+        A_idx_list = [
+            numpy.flatnonzero(atom_is_acceptor[i] & atom_acceptor_type[i].astype(bool))
+            for i in range(nstacks)
+        ]
+        max_acceptors = max(len(acc_inds) for acc_inds in A_idx_list)
+
+        # ?? not sure what dtype to use
+        A_idx = numpy.full((nstacks, max_acceptors), -9999, dtype=numpy.int64)
+        for i in range(nstacks):
+            i_inds = A_idx_list[i]
+            A_idx[i, : len(i_inds)] = i_inds
+
+        B_idx = numpy.full_like(A_idx, -1)
+        B0_idx = numpy.full_like(A_idx, -1)
 
         # Yeeeehaw
         compiled.id_acceptor_bases(
@@ -76,32 +92,57 @@ class HBondElementAnalysis(ValidateAttrs):
             torch.from_numpy(B0_idx),
             torch.from_numpy(atom_acceptor_hybridization),
             torch.from_numpy(atom_is_hydrogen.astype(numpy.ubyte)),
-            bonds,
+            bonds.bonds,
+            bonds.bond_spans,
         )
 
-        assert not numpy.any(B_idx == -1), "Invalid acceptor atom type."
+        assert not numpy.any(
+            numpy.logical_and(A_idx != -9999, B_idx == -1)
+        ), "Invalid acceptor atom type."
 
         acceptors = numpy.empty(A_idx.shape, dtype=acceptor_dtype)
         acceptors["a"] = A_idx
         acceptors["b"] = B_idx
         acceptors["b0"] = B0_idx
-        acceptors["acceptor_type"] = atom_acceptor_type[acceptors["a"]]
+        for i in range(nstacks):
+            acceptors[i, :]["acceptor_type"] = atom_acceptor_type[
+                i, acceptors[i, :]["a"]
+            ]
 
         # Identify donor groups via donor-hydrogen bonds.
         atom_type_donor_type = {
             p.d: p.donor_type for p in hbond_database.donor_atom_types
         }
 
-        donor_pair_idx = bonds.bonds.numpy()[
-            atom_is_donor[bonds.bonds[:, 0]]
-            & atom_donor_type.astype(bool)[bonds.bonds[:, 0]]  # None -> False
-            & atom_is_hydrogen[bonds.bonds[:, 1]]
+        donor_pair_idx_list = [
+            bonds.bonds.numpy()[i][
+                atom_is_donor[i, bonds.bonds[i, :, 0]]
+                & atom_donor_type[i].astype(bool)[bonds.bonds[i, :, 0]]  # None -> False
+                & atom_is_hydrogen[i, bonds.bonds[i, :, 1]]
+            ]
+            for i in range(nstacks)
         ]
+        max_donors = max(len(don_inds) for don_inds in donor_pair_idx_list)
 
-        donors = numpy.empty(donor_pair_idx.shape[0], dtype=donor_dtype)
-        donors["d"] = donor_pair_idx[:, 0]
-        donors["h"] = donor_pair_idx[:, 1]
-        donors["donor_type"] = atom_donor_type[donors["d"]]
+        donor_pair_idx = numpy.full((nstacks, max_donors, 2), -9999, dtype=int)
+        for i in range(nstacks):
+            i_inds = donor_pair_idx_list[i]
+            donor_pair_idx[i, : len(i_inds)] = i_inds
+
+        donors = numpy.empty(
+            (donor_pair_idx.shape[0], donor_pair_idx.shape[1]), dtype=donor_dtype
+        )
+        donors["d"] = donor_pair_idx[:, :, 0]
+        donors["h"] = donor_pair_idx[:, :, 1]
+
+        # gah, this is a gather, right? but there's no good way to gather
+        # with numpy? and also, I need to say "this is an invalid index"
+        # for that gather.
+        for i in range(nstacks):
+            n_real = sum(donor_pair_idx[i, :, 0] >= 0)
+            donors[i, :n_real]["donor_type"] = atom_donor_type[
+                i, donor_pair_idx[i, :n_real, 0]
+            ]
 
         return cls(donors=donors, acceptors=acceptors)
 
@@ -111,7 +152,7 @@ class HBondElementAnalysis(ValidateAttrs):
         chemical_database: ChemicalDatabase,
         hbond_database: HBondDatabase,
         atom_types: NDArray(object)[:],
-        bonds: NDArray(int)[:, 2],
+        bonds: NDArray(int)[:, 3],
     ):
 
         atom_resolver = AtomTypeParamResolver.from_database(

@@ -13,6 +13,7 @@ from tmol.score.coordinates import (
 )
 
 from tmol.score.ljlk.score_graph import LJScoreGraph, LKScoreGraph
+from tmol.score.lk_ball.score_graph import LKBallScoreGraph
 from tmol.score.rama.score_graph import RamaScoreGraph
 from tmol.system.packed import PackedResidueSystemStack
 
@@ -28,6 +29,7 @@ class StackScoreGraph(
     CartesianAtomicCoordinateProvider,
     LJScoreGraph,
     LKScoreGraph,
+    LKBallScoreGraph,
     RamaScoreGraph,
     TorchDevice,
 ):

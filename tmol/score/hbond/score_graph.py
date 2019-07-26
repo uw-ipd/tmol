@@ -156,6 +156,7 @@ class HBondScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         """hbond score elements in target graph"""
         assert atom_types.shape[0] == 1
         assert numpy.all(bonds[:, 0] == 0)
+        print("bonds", bonds.shape)
 
         return HBondElementAnalysis.setup_from_database(
             chemical_database=parameter_database.chemical,

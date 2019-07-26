@@ -91,4 +91,5 @@ def water_box_res():
 def water_box_system():
     from tmol.system.io import read_pdb
 
-    return read_pdb(pdb.data["water_box"])
+    ret = read_pdb(pdb.data["water_box"])
+    return ret

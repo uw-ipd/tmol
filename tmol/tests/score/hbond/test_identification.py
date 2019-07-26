@@ -45,15 +45,18 @@ def test_ambig_identification(
     )
     assert len(expected_acceptors) == len(water_box_system.residues)
 
+    bonds = numpy.full((water_box_system.bonds.shape[0], 3), 0, dtype=numpy.int64)
+    bonds[:, 1:] = water_box_system.bonds
+
     element_analysis = HBondElementAnalysis.setup_from_database(
         chemical_database=default_database.chemical,
         hbond_database=default_database.scoring.hbond,
-        atom_types=water_box_system.atom_metadata["atom_type"],
-        bonds=water_box_system.bonds,
+        atom_types=water_box_system.atom_metadata["atom_type"][None, :],
+        bonds=bonds,
     )
 
     identified_donors = (
-        pandas.DataFrame.from_records(element_analysis.donors)
+        pandas.DataFrame.from_records(element_analysis.donors[0])
         .sort_values(by=["d", "h"])
         .reset_index(drop=True)
     )
@@ -63,7 +66,7 @@ def test_ambig_identification(
     )
 
     identified_acceptors = (
-        pandas.DataFrame.from_records(element_analysis.acceptors)
+        pandas.DataFrame.from_records(element_analysis.acceptors[0])
         .sort_values(by="a")
         .reset_index(drop=True)
     )
@@ -103,20 +106,20 @@ def test_bb_identification(default_database, bb_hbond_database, ubq_system):
     hbe = HBondElementAnalysis.setup_from_database(
         chemical_database=default_database.chemical,
         hbond_database=bb_hbond_database,
-        atom_types=test_params["atom_types"][0],
-        bonds=test_params["bonds"][:, 1:],
+        atom_types=test_params["atom_types"],
+        bonds=test_params["bonds"],
     )
 
     def _t(d):
         return tuple(tuple(r.items()) for r in d)
 
-    hbe_donors = pandas.DataFrame.from_records(hbe.donors).to_dict(orient="records")
+    hbe_donors = pandas.DataFrame.from_records(hbe.donors[0]).to_dict(orient="records")
     assert len(_t(hbe_donors)) == len(set(_t(hbe_donors)))
     assert {(r["d"], r["h"]): r for r in hbe_donors} == {
         (r["d"], r["h"]): r for r in donors
     }
 
-    hbe_acceptors = pandas.DataFrame.from_records(hbe.acceptors).to_dict(
+    hbe_acceptors = pandas.DataFrame.from_records(hbe.acceptors[0]).to_dict(
         orient="records"
     )
     assert len(_t(hbe_acceptors)) == len(set(_t(hbe_acceptors)))
@@ -137,16 +140,17 @@ def test_identification_by_chemical_types(
 
     for rt in residue_types:
         res_atom_types = numpy.array([a.atom_type for a in rt.atoms])
-        bonds = rt.bond_indicies
+        bonds = numpy.zeros([rt.bond_indicies.shape[0], 3], dtype=numpy.int64)
+        bonds[:, 1:] = rt.bond_indicies
 
         hbe = HBondElementAnalysis.setup_from_database(
             chemical_database=default_database.chemical,
             hbond_database=default_database.scoring.hbond,
-            atom_types=res_atom_types.astype(object),
+            atom_types=res_atom_types.astype(object)[None, :],
             bonds=bonds,
         )
-        identified_donors = set(hbe.donors["d"])
-        identified_acceptors = set(hbe.acceptors["a"])
+        identified_donors = set(hbe.donors["d"][0])
+        identified_acceptors = set(hbe.acceptors["a"][0])
 
         for ai, at in enumerate(res_atom_types):
             if atom_types[at].is_donor:
