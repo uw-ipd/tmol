@@ -25,18 +25,18 @@ template <
     typename Int>
 struct CartBondedDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CartBondedLengthParams<Int>, 1, D> cbl_atoms,
-      TView<CartBondedAngleParams<Int>, 1, D> cba_atoms,
-      TView<CartBondedTorsionParams<Int>, 1, D> cbt_atoms,
-      TView<CartBondedTorsionParams<Int>, 1, D> cbi_atoms,
-      TView<CartBondedTorsionParams<Int>, 1, D> cbhxl_atoms,
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<CartBondedLengthParams<Int>, 2, D> cbl_atoms,
+      TView<CartBondedAngleParams<Int>, 2, D> cba_atoms,
+      TView<CartBondedTorsionParams<Int>, 2, D> cbt_atoms,
+      TView<CartBondedTorsionParams<Int>, 2, D> cbi_atoms,
+      TView<CartBondedTorsionParams<Int>, 2, D> cbhxl_atoms,
       TView<CartBondedHarmonicTypeParams<Real>, 1, D> cbl_params,
       TView<CartBondedHarmonicTypeParams<Real>, 1, D> cba_params,
       TView<CartBondedPeriodicTypeParams<Real>, 1, D> cbt_params,
       TView<CartBondedPeriodicTypeParams<Real>, 1, D> cbi_params,
       TView<CartBondedSinusoidalTypeParams<Real>, 1, D> cbhxl_params)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D> >;
+      -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D> >;
 };
 
 }  // namespace potentials

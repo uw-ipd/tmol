@@ -12,6 +12,10 @@ template <tmol::Device D>
 struct ForallDispatch {
   template <typename Int, typename Func>
   void forall(Int N, Func f);
+
+  template<typename Int, typename Func>
+  void forall_stacks(Int Nstacks, Int N, Func f);
+
 };
 
 }  // namespace common
