@@ -57,6 +57,33 @@ class CartBondedIntraScore(IntraScore):
         return cartbonded_score[None, 4]
 
 
+@validate_args
+def remove_undefined_indices(
+    atom_inds: NDArray(numpy.int64)[:, :, :],
+    param_inds: NDArray(numpy.int64)[:, :],
+    device: torch.device,
+) -> torch.Tensor(torch.long)[:, :]:
+    assert atom_inds.shape[0] == param_inds.shape[0]
+    assert atom_inds.shape[1] == param_inds.shape[1]
+
+    nstacks = atom_inds.shape[0]
+    stack_keep = []
+    for i in range(nstacks):
+        keep = param_inds[i] >= 0
+        stack_keep.append(keep)
+    max_keep = max(numpy.sum(keep) for keep in stack_keep)
+    cb_inds = torch.tensor(
+        (nstacks, max_keep, atom_inds.shape[2] + 1), dtype=torch.int64
+    )
+    for i in range(nstacks):
+        keep = stack_keep[i]
+        nkeep = numpy.sum(keep)
+        cb_inds[i, :nkeep, :-1] = atom_inds[i, keep]
+        cb_inds[i, :nkeep, -1] = param_inds[i, keep]
+
+    return cb_inds.to(device=cartbonded_param_resolver.device)
+
+
 @score_graph
 class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     """Compute graph for the CartBonded term.
@@ -140,24 +167,26 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     ) -> Tensor(torch.int64)[:, :]:
         # combine resolved atom indices and bondlength indices
         bondlength_atom_indices = cartbonded_param_identifier.lengths
+        resnames = numpy.full_like(bondlength_atom_indices, None, dtype=object)
+        at1names = numpy.full_like(bondlength_atom_indices, None, dtype=object)
+        at2names = numpy.full_like(bondlength_atom_indices, None, dtype=object)
+
+        nstacks = bondlength_atom_indices.shape[0]
+        for i in range(nstacks):
+            nreal = numpy.sum(bondlength_atom_indices[i] > 0)
+            resnames[i, :nreal] = res_names[i, bondlength_atom_indices[i, :nreal]]
+            at1names[i, :nreal] = atom_names[i, bondlength_atom_indices[i, :nreal, 0]]
+            at2names[i, :nreal] = atom_names[i, bondlength_atom_indices[i, :nreal, 1]]
+
         bondlength_indices = cartbonded_param_resolver.resolve_lengths(
-            res_names[0, bondlength_atom_indices[:, 0]],  # use atm1 for resid
-            atom_names[0, bondlength_atom_indices[:, 0]],
-            atom_names[0, bondlength_atom_indices[:, 1]],
+            resnames, at1names, at2names
         )
 
-        # remove undefined indices
-        bondlength_defined = bondlength_indices != -1
-
-        cbl = torch.cat(
-            [
-                torch.tensor(bondlength_atom_indices[bondlength_defined]),
-                torch.tensor(bondlength_indices[bondlength_defined, None]),
-            ],
-            dim=1,
-        ).to(device=cartbonded_param_resolver.device, dtype=torch.int64)
-
-        return cbl
+        return remove_undefined_indices(
+            bondlength_atom_indices,
+            bondlength_indices,
+            cartbonded_param_resolver.device,
+        )
 
     @reactive_property
     def cartbonded_angles(
@@ -169,25 +198,26 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     ) -> Tensor(torch.int64)[:, :]:
         # combine resolved atom indices and bondangle indices
         bondangle_atom_indices = cartbonded_param_identifier.angles
+        resnames = numpy.full_like(bondangle_atom_indices, None, dtype=object)
+        at1names = numpy.full_like(bondangle_atom_indices, None, dtype=object)
+        at2names = numpy.full_like(bondangle_atom_indices, None, dtype=object)
+        at3names = numpy.full_like(bondangle_atom_indices, None, dtype=object)
+
+        nstacks = bondlength_atom_indices.shape[0]
+        for i in range(nstacks):
+            nreal = numpy.sum(bondlength_atom_indices[i] > 0)
+            resnames[i, :nreal] = res_names[i, bondangle_atom_indices[i, :nreal]]
+            at1names[i, :nreal] = atom_names[i, bondangle_atom_indices[i, :nreal, 0]]
+            at2names[i, :nreal] = atom_names[i, bondangle_atom_indices[i, :nreal, 1]]
+            at3names[i, :nreal] = atom_names[i, bondangle_atom_indices[i, :nreal, 2]]
+
         bondangle_indices = cartbonded_param_resolver.resolve_angles(
-            res_names[0, bondangle_atom_indices[:, 1]],  # use atm2 for resid
-            atom_names[0, bondangle_atom_indices[:, 0]],
-            atom_names[0, bondangle_atom_indices[:, 1]],
-            atom_names[0, bondangle_atom_indices[:, 2]],
+            resnames, at1names, at2names, at3names
         )
 
-        # remove undefined indices
-        bondangle_defined = bondangle_indices != -1
-
-        cba = torch.cat(
-            [
-                torch.tensor(bondangle_atom_indices[bondangle_defined]),
-                torch.tensor(bondangle_indices[bondangle_defined, None]),
-            ],
-            dim=1,
-        ).to(device=cartbonded_param_resolver.device, dtype=torch.int64)
-
-        return cba
+        return remove_undefined_indices(
+            bondangle_atom_indices, bondangle_indices, cartbonded_param_resolver.device
+        )
 
     @reactive_property
     def cartbonded_torsions(

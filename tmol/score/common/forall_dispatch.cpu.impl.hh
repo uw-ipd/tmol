@@ -24,7 +24,6 @@ struct ForallDispatch<tmol::Device::CPU> {
       }
     }
   }
-
 };
 
 }  // namespace common

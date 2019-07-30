@@ -49,7 +49,8 @@ struct CartBondedDispatch {
       -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
     auto nstacks = coords.shape(0);
     auto V_t = TPack<Real, 2, D>::zeros({nstacks, 5});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 3, D>::zeros({nstacks, coords.size(1), 5});
+    auto dV_dx_t =
+        TPack<Vec<Real, 3>, 3, D>::zeros({nstacks, coords.size(1), 5});
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
 
@@ -61,17 +62,23 @@ struct CartBondedDispatch {
 
       // Negative indices are sentinel values for "no bond to score"
       if (ati < 0 || atj < 0) {
-	return;
+        return;
       }
 
       auto cblength = cblength_V_dV(
-          coords[stack][ati], coords[stack][atj], cbl_params[pari].K, cbl_params[pari].x0);
+          coords[stack][ati],
+          coords[stack][atj],
+          cbl_params[pari].K,
+          cbl_params[pari].x0);
 
       accumulate<D, Real>::add(V[stack][0], common::get<0>(cblength));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[stack][ati][0], common::get<1>(cblength));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[stack][atj][0], common::get<2>(cblength));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[stack][ati][0], common::get<1>(cblength));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[stack][atj][0], common::get<2>(cblength));
     });
-    Dispatch<D>::forall_stacks(cbl_atoms.size(0), cbl_atoms.size(1), cbl_score_i);
+    Dispatch<D>::forall_stacks(
+        cbl_atoms.size(0), cbl_atoms.size(1), cbl_score_i);
 
     // angle
     auto cba_score_i = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
@@ -81,7 +88,7 @@ struct CartBondedDispatch {
 
       // Negative atom indices are sentinel values for "no angle to score"
       if (ati < 0 || atj < 0 || atk < 0) {
-	return;
+        return;
       }
 
       Int pari = cba_atoms[stack][i].param_index;
@@ -93,11 +100,15 @@ struct CartBondedDispatch {
           cba_params[pari].x0);
 
       accumulate<D, Real>::add(V[stack][1], common::get<0>(cbangle));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[stack][ati][1], common::get<1>(cbangle));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[stack][atj][1], common::get<2>(cbangle));
-      accumulate<D, Vec<Real, 3>>::add(dV_dx[stack][atk][1], common::get<3>(cbangle));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[stack][ati][1], common::get<1>(cbangle));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[stack][atj][1], common::get<2>(cbangle));
+      accumulate<D, Vec<Real, 3>>::add(
+          dV_dx[stack][atk][1], common::get<3>(cbangle));
     });
-    Dispatch<D>::forall_stacks(cba_atoms.size(0), cb_atoms.size(1), cba_score_i);
+    Dispatch<D>::forall_stacks(
+        cba_atoms.size(0), cb_atoms.size(1), cba_score_i);
 
     // torsion
     auto cbt_score_i = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
@@ -109,7 +120,7 @@ struct CartBondedDispatch {
 
       // Negative atom indices are sentinel values for "no torsion to score"
       if (ati < 0 || atj < 0 || atk < 0 || atl < 0) {
-	return;
+        return;
       }
 
       auto cbtorsion = cbtorsion_V_dV(
@@ -131,7 +142,8 @@ struct CartBondedDispatch {
       accumulate<D, Vec<Real, 3>>::add(
           dV_dx[stack][atl][2], common::get<4>(cbtorsion));
     });
-    Dispatch<D>::forall_stacks(cbt_atoms.size(0), cbt_atoms.size(1), cbt_score_i);
+    Dispatch<D>::forall_stacks(
+        cbt_atoms.size(0), cbt_atoms.size(1), cbt_score_i);
 
     // improper torsion
     auto cbi_score_i = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
@@ -143,7 +155,7 @@ struct CartBondedDispatch {
 
       // Negative atom indices are sentinel values for "no torsion to score"
       if (ati < 0 || atj < 0 || atk < 0 || atl < 0) {
-	return;
+        return;
       }
 
       auto cbimproper = cbtorsion_V_dV(
@@ -165,7 +177,8 @@ struct CartBondedDispatch {
       accumulate<D, Vec<Real, 3>>::add(
           dV_dx[stack][atl][3], common::get<4>(cbimproper));
     });
-    Dispatch<D>::forall_stacks(cbi_atoms.size(0), cbi_atoms.size(1), cbi_score_i);
+    Dispatch<D>::forall_stacks(
+        cbi_atoms.size(0), cbi_atoms.size(1), cbi_score_i);
 
     // hydroxyl torsion
     auto cbhxl_score_i = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
@@ -177,7 +190,7 @@ struct CartBondedDispatch {
 
       // Negative atom indices are sentinel values for "no torsion to score"
       if (ati < 0 || atj < 0 || atk < 0 || atl < 0) {
-	return;
+        return;
       }
 
       auto cbhxltorsion = cbhxltorsion_V_dV(
@@ -202,7 +215,8 @@ struct CartBondedDispatch {
       accumulate<D, Vec<Real, 3>>::add(
           dV_dx[stack][atl][4], common::get<4>(cbhxltorsion));
     });
-    Dispatch<D>::forall_stacks(cbhxl_atoms.size(0), cbhxl.size(1), cbhxl_score_i);
+    Dispatch<D>::forall_stacks(
+        cbhxl_atoms.size(0), cbhxl.size(1), cbhxl_score_i);
 
     return {V_t, dV_dx_t};
   }
