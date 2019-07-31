@@ -34,6 +34,7 @@ def find_angles(bonds, bond_spans):
                     nangles += 1
         nangles_list[stack] = nangles
     max_nangles = numpy.max(nangles_list)
+    print("find angles", max_nangles)
 
     return angles[:, :max_nangles]
 
@@ -121,10 +122,10 @@ class CartBondedIdentification:
     """Expands a bondgraph to export all bondangles and bondlengths
     """
 
-    lengths: NDArray(int)[:, 2]
-    angles: NDArray(int)[:, 3]
-    torsions: NDArray(int)[:, 4]
-    impropers: NDArray(int)[:, 4]
+    lengths: NDArray(int)[:, :, 2]
+    angles: NDArray(int)[:, :, 3]
+    torsions: NDArray(int)[:, :, 4]
+    impropers: NDArray(int)[:, :, 4]
 
     @classmethod
     @convert_args
@@ -136,14 +137,24 @@ class CartBondedIdentification:
         bonds = indexed_bonds.bonds.cpu().numpy()
         print("bonds", bonds.shape)
         spans = indexed_bonds.bond_spans.cpu().numpy()
-        bond_selector = bonds[:, :, 0] < bonds[:, :, 1]
 
-        print("bond selector", bond_selector)
+        selected_bonds = [
+            bonds[i, :, 0] < bonds[i, :, 1] for i in range(bonds.shape[0])
+        ]
+        max_bonds = max(numpy.sum(selected) for selected in selected_bonds)
+        lengths = numpy.full((bonds.shape[0], max_bonds, 2), -9999, dtype=int)
+        for i in range(bonds.shape[0]):
+            ireal = numpy.sum(selected_bonds[i])
+            lengths[i, :ireal, :] = bonds[i, selected_bonds[i], :]
 
-        lengths = bonds[bond_selector].copy()
         angles = find_angles(bonds, spans)
         torsions = find_torsions(bonds, spans)
         impropers = find_impropers(bonds, spans)
+
+        print("lengths", lengths.shape)
+        print("angles", angles.shape)
+        print("torsions", torsions.shape)
+        print("impropers", impropers.shape)
 
         return cls(
             lengths=lengths, angles=angles, torsions=torsions, impropers=impropers

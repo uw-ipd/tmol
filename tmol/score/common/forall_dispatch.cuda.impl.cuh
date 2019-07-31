@@ -25,7 +25,7 @@ struct ForallDispatch<tmol::Device::CUDA> {
           int i = index % N;
           f(stack, i);
         },
-        N * NStacks,
+        N * Nstacks,
         context);
   }
 };

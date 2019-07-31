@@ -17,10 +17,22 @@ def test_cartbonded_baseline_comparison(ubq_system, torch_device):
     )
 
     intra_container = test_graph.intra_score()
-    assert float(intra_container.total_cartbonded_length) == approx(37.7848, rel=1e-3)
-    assert float(intra_container.total_cartbonded_angle) == approx(183.5785, rel=1e-3)
-    assert float(intra_container.total_cartbonded_torsion) == approx(50.5842, rel=1e-3)
-    assert float(intra_container.total_cartbonded_improper) == approx(9.4305, rel=1e-3)
-    assert float(intra_container.total_cartbonded_hxltorsion) == approx(
+    print(
+        "intra_container.total_cartbonded_length",
+        intra_container.total_cartbonded_length,
+    )
+    assert float(intra_container.total_cartbonded_length[0]) == approx(
+        37.7848, rel=1e-3
+    )
+    assert float(intra_container.total_cartbonded_angle[0]) == approx(
+        183.5785, rel=1e-3
+    )
+    assert float(intra_container.total_cartbonded_torsion[0]) == approx(
+        50.5842, rel=1e-3
+    )
+    assert float(intra_container.total_cartbonded_improper[0]) == approx(
+        9.4305, rel=1e-3
+    )
+    assert float(intra_container.total_cartbonded_hxltorsion[0]) == approx(
         47.4197, rel=1e-3
     )

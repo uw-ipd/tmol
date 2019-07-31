@@ -47,7 +47,7 @@ struct CartBondedDispatch {
       TView<CartBondedPeriodicTypeParams<Real>, 1, D> cbi_params,
       TView<CartBondedSinusoidalTypeParams<Real>, 1, D> cbhxl_params)
       -> std::tuple<TPack<Real, 2, D>, TPack<Vec<Real, 3>, 3, D>> {
-    auto nstacks = coords.shape(0);
+    auto nstacks = coords.size(0);
     auto V_t = TPack<Real, 2, D>::zeros({nstacks, 5});
     auto dV_dx_t =
         TPack<Vec<Real, 3>, 3, D>::zeros({nstacks, coords.size(1), 5});
@@ -108,7 +108,7 @@ struct CartBondedDispatch {
           dV_dx[stack][atk][1], common::get<3>(cbangle));
     });
     Dispatch<D>::forall_stacks(
-        cba_atoms.size(0), cb_atoms.size(1), cba_score_i);
+        cba_atoms.size(0), cba_atoms.size(1), cba_score_i);
 
     // torsion
     auto cbt_score_i = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
@@ -216,7 +216,7 @@ struct CartBondedDispatch {
           dV_dx[stack][atl][4], common::get<4>(cbhxltorsion));
     });
     Dispatch<D>::forall_stacks(
-        cbhxl_atoms.size(0), cbhxl.size(1), cbhxl_score_i);
+        cbhxl_atoms.size(0), cbhxl_atoms.size(1), cbhxl_score_i);
 
     return {V_t, dV_dx_t};
   }
