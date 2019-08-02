@@ -53,6 +53,7 @@ class CartBondedParamResolver(ValidateAttrs):
 
     device: torch.device
 
+    @validate_args
     def resolve_lengths(
         self,
         resnames: NDArray(object)[:, :],
@@ -91,6 +92,7 @@ class CartBondedParamResolver(ValidateAttrs):
             )
         return i
 
+    @validate_args
     def resolve_angles(
         self,
         resnames: NDArray(object)[:, :],
@@ -162,6 +164,7 @@ class CartBondedParamResolver(ValidateAttrs):
         print("resolve angles 4", numpy.sum(i >= 0))
         return i
 
+    @validate_args
     def resolve_torsions(
         self,
         resnames: NDArray(object)[:, :],
@@ -218,6 +221,7 @@ class CartBondedParamResolver(ValidateAttrs):
             )
         return i
 
+    @validate_args
     def resolve_impropers(
         self,
         resnames: NDArray(object),
@@ -257,6 +261,7 @@ class CartBondedParamResolver(ValidateAttrs):
             )
         return i
 
+    @validate_args
     def resolve_hxltorsions(
         self,
         resnames: NDArray(object),

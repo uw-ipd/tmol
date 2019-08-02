@@ -30,9 +30,13 @@ class ScoreSetup:
             .requires_grad_(True)
         )[None, :]
 
-        system_size = numpy.max(system.bonds)
+        system_size = numpy.max(system.bonds) + 1
+        print("system.bond", system.bonds.shape)
+        print("system_size", system_size)
+        bonds = numpy.zeros((system.bonds.shape[0], 3), dtype=int)
+        bonds[:, 1:] = system.bonds
         indexed_bonds = IndexedBonds.from_bonds(
-            IndexedBonds.to_directed(system.bonds), minlength=system_size
+            IndexedBonds.to_directed(bonds), minlength=system_size
         )
         param_resolver = CartBondedParamResolver.from_database(
             database.scoring.cartbonded, torch_device
@@ -44,19 +48,26 @@ class ScoreSetup:
         atom_names = system.atom_metadata["atom_name"].copy()
         res_names = system.atom_metadata["residue_name"].copy()
 
+        print("atom_names shape", atom_names.shape)
+        print("res_names shape", res_names.shape)
+
         # bondlengths
         bondlength_atom_indices = param_identifier.lengths
-        bondlength_indices = param_resolver.resolve_lengths(
-            res_names[bondlength_atom_indices[:, 0]],  # use atm1 for resid
-            atom_names[bondlength_atom_indices[:, 0]],
-            atom_names[bondlength_atom_indices[:, 1]],
+        print(
+            "res_names[bondlength_atom_indices[:, :, 0]]",
+            res_names[bondlength_atom_indices[:, :, 0]].shape,
         )
-        bondlength_defined = bondlength_indices != -1
+        bondlength_indices = param_resolver.resolve_lengths(
+            res_names[bondlength_atom_indices[:, :, 0]],  # use atm1 for resid
+            atom_names[bondlength_atom_indices[:, :, 0]],
+            atom_names[bondlength_atom_indices[:, :, 1]],
+        )
+        bondlength_defined = bondlength_indices[0] != -1
 
         tbondlength_indices = torch.cat(
             [
-                torch.tensor(bondlength_atom_indices[bondlength_defined]),
-                torch.tensor(bondlength_indices[bondlength_defined, None]),
+                torch.tensor(bondlength_atom_indices[0, bondlength_defined]),
+                torch.tensor(bondlength_indices[0, bondlength_defined, None]),
             ],
             dim=1,
         ).to(device=torch_device, dtype=torch.int64)
@@ -69,12 +80,13 @@ class ScoreSetup:
             atom_names[bondangle_atom_indices[:, 1]],
             atom_names[bondangle_atom_indices[:, 2]],
         )
-        bondangle_defined = bondangle_indices != -1
+        bondangle_defined = bondangle_indices[0] != -1
+        print("bondangle_defined.shape", bondangle_defined.shape)
 
         tbondangle_indices = torch.cat(
             [
-                torch.tensor(bondangle_atom_indices[bondangle_defined]),
-                torch.tensor(bondangle_indices[bondangle_defined, None]),
+                torch.tensor(bondangle_atom_indices[:, bondangle_defined]),
+                torch.tensor(bondangle_indices[:, bondangle_defined, None]),
             ],
             dim=1,
         ).to(device=torch_device, dtype=torch.int64)

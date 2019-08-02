@@ -64,6 +64,9 @@ class IndexedBonds:
                 numpy.bincount(stack_bonds[:, 1], minlength=minlength)
             )
 
+            print("num_bonds", num_bonds.shape)
+            print("bond_spans", bond_spans.shape)
+
             bond_spans[stack, 0, 0] = 0
             bond_spans[stack, 1 : num_bonds.shape[0], 0] = num_bonds[:-1]
             bond_spans[stack, 0 : num_bonds.shape[0], 1] = num_bonds
