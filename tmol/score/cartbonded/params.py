@@ -104,6 +104,7 @@ class CartBondedParamResolver(ValidateAttrs):
         nstacks = resnames.shape[0]
         i = numpy.full((resnames.shape[0], resnames.shape[1]), -9999, dtype=numpy.int64)
         for stack in range(nstacks):
+            print("resnames:", resnames[stack])
             nreal = sum(resnames[stack].astype(bool))
             print("nreal", nreal)
             real = (stack, slice(nreal))

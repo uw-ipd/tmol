@@ -29,6 +29,7 @@ class ScoreSetup:
             .to(device=torch_device, dtype=torch.float)
             .requires_grad_(True)
         )[None, :]
+        print("tcoords", tcoords.shape)
 
         system_size = numpy.max(system.bonds) + 1
         print("system.bond", system.bonds.shape)
@@ -66,88 +67,100 @@ class ScoreSetup:
 
         tbondlength_indices = torch.cat(
             [
-                torch.tensor(bondlength_atom_indices[0, bondlength_defined]),
-                torch.tensor(bondlength_indices[0, bondlength_defined, None]),
+                torch.tensor(bondlength_atom_indices[:, bondlength_defined]),
+                torch.tensor(bondlength_indices[:, bondlength_defined, None]),
             ],
-            dim=1,
+            dim=2,
         ).to(device=torch_device, dtype=torch.int64)
 
         # bondangles
         bondangle_atom_indices = param_identifier.angles
+        print("bondangle_atom_indices", bondangle_atom_indices.shape)
         bondangle_indices = param_resolver.resolve_angles(
-            res_names[bondangle_atom_indices[:, 1]],  # use atm2 for resid
-            atom_names[bondangle_atom_indices[:, 0]],
-            atom_names[bondangle_atom_indices[:, 1]],
-            atom_names[bondangle_atom_indices[:, 2]],
+            res_names[bondangle_atom_indices[:, :, 1]],  # use atm2 for resid
+            atom_names[bondangle_atom_indices[:, :, 0]],
+            atom_names[bondangle_atom_indices[:, :, 1]],
+            atom_names[bondangle_atom_indices[:, :, 2]],
         )
+        print("bondangle_indices", bondangle_indices.shape)
         bondangle_defined = bondangle_indices[0] != -1
         print("bondangle_defined.shape", bondangle_defined.shape)
+
+        print(
+            "bondangle_atom_indices[:, bondangle_defined]",
+            bondangle_atom_indices[:, bondangle_defined].shape,
+        )
+        print(
+            "bondangle_indices[:, bondangle_defined, None]",
+            bondangle_indices[:, bondangle_defined, None].shape,
+        )
 
         tbondangle_indices = torch.cat(
             [
                 torch.tensor(bondangle_atom_indices[:, bondangle_defined]),
                 torch.tensor(bondangle_indices[:, bondangle_defined, None]),
             ],
-            dim=1,
+            dim=2,
         ).to(device=torch_device, dtype=torch.int64)
+        print("tbondangle_indices", tbondangle_indices.shape)
 
         # torsions
         torsion_atom_indices = param_identifier.torsions
         torsion_indices = param_resolver.resolve_torsions(
-            res_names[torsion_atom_indices[:, 1]],  # use atm2 for resid
-            atom_names[torsion_atom_indices[:, 0]],
-            atom_names[torsion_atom_indices[:, 1]],
-            atom_names[torsion_atom_indices[:, 2]],
-            atom_names[torsion_atom_indices[:, 3]],
+            res_names[torsion_atom_indices[:, :, 1]],  # use atm2 for resid
+            atom_names[torsion_atom_indices[:, :, 0]],
+            atom_names[torsion_atom_indices[:, :, 1]],
+            atom_names[torsion_atom_indices[:, :, 2]],
+            atom_names[torsion_atom_indices[:, :, 3]],
         )
-        torsion_defined = torsion_indices != -1
+        torsion_defined = torsion_indices[0] != -1
 
         ttorsion_indices = torch.cat(
             [
-                torch.tensor(torsion_atom_indices[torsion_defined]),
-                torch.tensor(torsion_indices[torsion_defined, None]),
+                torch.tensor(torsion_atom_indices[:, torsion_defined]),
+                torch.tensor(torsion_indices[:, torsion_defined, None]),
             ],
-            dim=1,
+            dim=2,
         ).to(device=torch_device, dtype=torch.int64)
 
         # impropers
         improper_atom_indices = param_identifier.impropers
         improper_indices = param_resolver.resolve_impropers(
-            res_names[improper_atom_indices[:, 2]],  # use atm3 for resid
-            atom_names[improper_atom_indices[:, 0]],
-            atom_names[improper_atom_indices[:, 1]],
-            atom_names[improper_atom_indices[:, 2]],
-            atom_names[improper_atom_indices[:, 3]],
+            res_names[improper_atom_indices[:, :, 2]],  # use atm3 for resid
+            atom_names[improper_atom_indices[:, :, 0]],
+            atom_names[improper_atom_indices[:, :, 1]],
+            atom_names[improper_atom_indices[:, :, 2]],
+            atom_names[improper_atom_indices[:, :, 3]],
         )
-        improper_defined = improper_indices != -1
+        improper_defined = improper_indices[0] != -1
 
         timproper_indices = torch.cat(
             [
-                torch.tensor(improper_atom_indices[improper_defined]),
-                torch.tensor(improper_indices[improper_defined, None]),
+                torch.tensor(improper_atom_indices[:, improper_defined]),
+                torch.tensor(improper_indices[:, improper_defined, None]),
             ],
-            dim=1,
+            dim=2,
         ).to(device=torch_device, dtype=torch.int64)
 
         # hxl torsions
         # combine resolved atom indices and bondangle indices
         hxltorsion_atom_indices = param_identifier.torsions
         hxltorsion_indices = param_resolver.resolve_hxltorsions(
-            res_names[hxltorsion_atom_indices[:, 2]],  # use atm3 for resid
-            atom_names[hxltorsion_atom_indices[:, 0]],
-            atom_names[hxltorsion_atom_indices[:, 1]],
-            atom_names[hxltorsion_atom_indices[:, 2]],
-            atom_names[hxltorsion_atom_indices[:, 3]],
+            res_names[hxltorsion_atom_indices[:, :, 2]],  # use atm3 for resid
+            atom_names[hxltorsion_atom_indices[:, :, 0]],
+            atom_names[hxltorsion_atom_indices[:, :, 1]],
+            atom_names[hxltorsion_atom_indices[:, :, 2]],
+            atom_names[hxltorsion_atom_indices[:, :, 3]],
         )
 
         # remove undefined indices
-        hxltorsion_defined = hxltorsion_indices != -1
+        hxltorsion_defined = hxltorsion_indices[0] != -1
         thxltorsion_indices = torch.cat(
             [
-                torch.tensor(hxltorsion_atom_indices[hxltorsion_defined]),
-                torch.tensor(hxltorsion_indices[hxltorsion_defined, None]),
+                torch.tensor(hxltorsion_atom_indices[:, hxltorsion_defined]),
+                torch.tensor(hxltorsion_indices[:, hxltorsion_defined, None]),
             ],
-            dim=1,
+            dim=2,
         ).to(device=torch_device, dtype=torch.int64)
 
         return cls(
@@ -166,7 +179,7 @@ def test_cartbonded_op(default_database, ubq_system, torch_device):
     op = CartBondedModule(s.param_resolver)
 
     V = op(
-        s.tcoords[0, :],
+        s.tcoords,
         s.tbondlength_indices,
         s.tbondangle_indices,
         s.ttorsion_indices,
@@ -176,7 +189,7 @@ def test_cartbonded_op(default_database, ubq_system, torch_device):
 
     numpy.testing.assert_allclose(
         V.detach().cpu(),
-        [37.78476, 183.578, 50.5842, 9.43055, 47.4197],
+        [[37.78476, 183.578, 50.5842, 9.43055, 47.4197]],
         atol=1e-3,
         rtol=0,
     )
@@ -189,8 +202,8 @@ def test_cartbonded_gradcheck(default_database, ubq_system, torch_device):
     t_atm_indices = torch.arange(24, dtype=torch.long)
 
     def eval_cb(coords_subset):
-        coords = s.tcoords[0, ...].clone()
-        coords[t_atm_indices] = coords_subset
+        coords = s.tcoords.clone()
+        coords[0, t_atm_indices] = coords_subset
         v = op(
             coords,
             s.tbondlength_indices,
