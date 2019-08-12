@@ -1,7 +1,5 @@
 import attr
 
-from typing import Sequence
-
 import numpy
 import pandas
 import torch

@@ -67,9 +67,7 @@ def select_names_from_indices(
     atom_for_resid: int,
 ) -> Tuple[NDArray(object)[:, :], ...]:
     resnames = numpy.full(atom_indices.shape[0:2], None, dtype=object)
-    atnames = []
-    for i in range(atom_indices.shape[2]):
-        atnames.append(numpy.full_like(resnames, None))
+    atnames = [numpy.full_like(resnames, None) for _ in range(atom_indices.shape[2])]
     for i in range(atom_indices.shape[0]):
         nreal = numpy.sum(atom_indices[i, :, 0] >= 0)
         resnames[i, :nreal] = res_names[i, atom_indices[i, :nreal, atom_for_resid]]
