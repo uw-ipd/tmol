@@ -71,7 +71,7 @@ def select_names_from_indices(
     for i in range(atom_indices.shape[2]):
         atnames.append(numpy.full_like(resnames, None))
     for i in range(atom_indices.shape[0]):
-        nreal = numpy.sum(atom_indices[i] >= 0)
+        nreal = numpy.sum(atom_indices[i, :, 0] >= 0)
         resnames[i, :nreal] = res_names[i, atom_indices[i, :nreal, atom_for_resid]]
         for j in range(atom_indices.shape[2]):
             atnames[j][i, :nreal] = atom_names[i, atom_indices[i, :nreal, j]]
