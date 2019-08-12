@@ -27,7 +27,7 @@ from tmol.types.array import NDArray
 class RamaIntraScore(IntraScore):
     @reactive_property
     def total_rama(target):
-        return target.rama_module(target.coords[0, ...])
+        return target.rama_module(target.coords)
 
 
 @score_graph
@@ -54,8 +54,8 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         )
 
     rama_database: RamaDatabase
-    allphis: NDArray(int)[:, 5]
-    allpsis: NDArray(int)[:, 5]
+    allphis: NDArray(int)[:, :, 5]
+    allpsis: NDArray(int)[:, :, 5]
 
     @reactive_property
     @validate_args
@@ -75,38 +75,68 @@ class RamaScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def rama_resolve_indices(
-        res_names: NDArray(object)[...],
+        res_names: NDArray(object)[:, :],
         rama_param_resolver: RamaParamResolver,
-        allphis: NDArray(int)[:, 5],
-        allpsis: NDArray(int)[:, 5],
+        allphis: NDArray(int)[:, :, 5],
+        allpsis: NDArray(int)[:, :, 5],
     ) -> RamaParams:
         # find all phi/psis where BOTH are defined
-        dfphis = pandas.DataFrame(allphis)
-        dfpsis = pandas.DataFrame(allpsis)
-        phipsis = dfphis.merge(
-            dfpsis, left_on=0, right_on=0, suffixes=("_phi", "_psi")
-        ).values[:, 1:]
+        phi_list = []
+        psi_list = []
+        param_inds_list = []
 
-        # resolve parameter indices
-        ramatable_indices = rama_param_resolver.resolve_ramatables(
-            res_names[0, phipsis[:, 5]],  # psi atom 'b'
-            res_names[0, phipsis[:, 7]],  # psi atom 'd'
+        for i in range(allphis.shape[0]):
+
+            dfphis = pandas.DataFrame(allphis[i])
+            dfpsis = pandas.DataFrame(allpsis[i])
+            phipsis = dfphis.merge(
+                dfpsis, left_on=0, right_on=0, suffixes=("_phi", "_psi")
+            ).values[:, 1:]
+
+            # resolve parameter indices
+            ramatable_indices = rama_param_resolver.resolve_ramatables(
+                res_names[i, phipsis[:, 5]],  # psi atom 'b'
+                res_names[i, phipsis[:, 7]],  # psi atom 'd'
+            )
+
+            # remove undefined indices and send to device
+            rama_defined = numpy.all(phipsis != -1, axis=1)
+
+            phi_list.append(phipsis[rama_defined, :4])
+            psi_list.append(phipsis[rama_defined, 4:])
+            param_inds_list.append(ramatable_indices[rama_defined])
+
+        max_size = max(x.shape[0] for x in phi_list)
+        phi_inds = torch.full(
+            (allphis.shape[0], max_size, 4),
+            -1,
+            device=rama_param_resolver.device,
+            dtype=torch.int32,
+        )
+        psi_inds = torch.full(
+            (allphis.shape[0], max_size, 4),
+            -1,
+            device=rama_param_resolver.device,
+            dtype=torch.int32,
+        )
+        param_inds = torch.full(
+            (allphis.shape[0], max_size),
+            -1,
+            device=rama_param_resolver.device,
+            dtype=torch.int32,
         )
 
-        # remove undefined indices and send to device
-        rama_defined = numpy.all(phipsis != -1, axis=1)
-        phi_indices = torch.from_numpy(phipsis[rama_defined, :4]).to(
-            device=rama_param_resolver.device, dtype=torch.int32
-        )
-        psi_indices = torch.from_numpy(phipsis[rama_defined, 4:]).to(
-            device=rama_param_resolver.device, dtype=torch.int32
-        )
-        param_indices = torch.from_numpy(ramatable_indices[rama_defined]).to(
-            device=rama_param_resolver.device, dtype=torch.int32
-        )
+        def copyem(dest, arr, i):
+            iarr = arr[i]
+            dest[i, : iarr.shape[0]] = torch.tensor(
+                iarr, dtype=torch.int32, device=rama_param_resolver.device
+            )
+
+        for i in range(allphis.shape[0]):
+            copyem(phi_inds, phi_list, i)
+            copyem(psi_inds, psi_list, i)
+            copyem(param_inds, param_inds_list, i)
 
         return RamaParams(
-            phi_indices=phi_indices,
-            psi_indices=psi_indices,
-            param_indices=param_indices,
+            phi_indices=phi_inds, psi_indices=psi_inds, param_indices=param_inds
         )

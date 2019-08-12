@@ -31,26 +31,33 @@ template <
     typename Int>
 struct RamaDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<RamaParameters<Int>, 1, D> params,
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<RamaParameters<Int>, 2, D> params,
       TView<Real, 3, D> tables,
       TView<RamaTableParams<Real>, 1, D> table_params)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D>> {
-    auto V_t = TPack<Real, 1, D>::zeros({1});
-    auto dV_dx_t = TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0)});
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>> {
+    int const nstacks = coords.size(0);
+    auto V_t = TPack<Real, 1, D>::zeros({nstacks});
+    auto dV_dx_t = TPack<Vec<Real, 3>, 2, D>::zeros({nstacks, coords.size(1)});
 
     auto V = V_t.view;
     auto dV_dx = dV_dx_t.view;
 
-    auto func = ([=] EIGEN_DEVICE_FUNC(int i) {
+    auto func = ([=] EIGEN_DEVICE_FUNC(int ind) {
+      int stack = ind / params.size(1);
+      int i = ind - stack * params.size(1);
+
+      // if stacks are of different size, then mark the entries that
+      // should not be evaluated with -1
+      Int idx = params[stack][i].table_index;
+      if (idx == -1) return;
+
       CoordQuad phicoords;
       CoordQuad psicoords;
       for (int j = 0; j < 4; ++j) {
-        phicoords.row(j) = coords[params[i].phis[j]];
-        psicoords.row(j) = coords[params[i].psis[j]];
+        phicoords.row(j) = coords[stack][params[stack][i].phis[j]];
+        psicoords.row(j) = coords[stack][params[stack][i].psis[j]];
       }
-
-      Int idx = params[i].table_index;
 
       auto rama = rama_V_dV<D, Real, Int>(
           phicoords,
@@ -59,17 +66,19 @@ struct RamaDispatch {
           Eigen::Map<Vec<Real, 2>>(table_params[idx].bbstarts),
           Eigen::Map<Vec<Real, 2>>(table_params[idx].bbsteps));
 
-      accumulate<D, Real>::add(V[0], common::get<0>(rama));
+      accumulate<D, Real>::add(V[stack], common::get<0>(rama));
       for (int j = 0; j < 4; ++j) {
         accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[params[i].phis[j]], common::get<1>(rama).row(j));
+            dV_dx[stack][params[stack][i].phis[j]],
+            common::get<1>(rama).row(j));
         accumulate<D, Vec<Real, 3>>::add(
-            dV_dx[params[i].psis[j]], common::get<2>(rama).row(j));
+            dV_dx[stack][params[stack][i].psis[j]],
+            common::get<2>(rama).row(j));
       }
     });
 
-    int num_Vs = params.size(0);
-    Dispatch<D>::forall(num_Vs, func);
+    int num_Vs = params.size(1);
+    Dispatch<D>::forall(nstacks * num_Vs, func);
 
     return {V_t, dV_dx_t};
   }
