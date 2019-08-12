@@ -72,10 +72,6 @@ def select_names_from_indices(
         atnames.append(numpy.full_like(resnames, None))
     for i in range(atom_indices.shape[0]):
         nreal = numpy.sum(atom_indices[i] >= 0)
-        print(
-            "atom_indices[i, :nreal, atom_for_resid]",
-            atom_indices[i, :nreal, atom_for_resid].shape,
-        )
         resnames[i, :nreal] = res_names[i, atom_indices[i, :nreal, atom_for_resid]]
         for j in range(atom_indices.shape[2]):
             atnames[j][i, :nreal] = atom_names[i, atom_indices[i, :nreal, j]]
@@ -214,8 +210,6 @@ class CartBondedScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         cartbonded_param_resolver: CartBondedParamResolver,
         cartbonded_param_identifier: CartBondedIdentification,
     ) -> Tensor(torch.int64)[:, :, 3]:
-        print("res_names", res_names.shape)
-        print("atom_names", atom_names.shape)
 
         # combine resolved atom indices and bondlength indices
         bondlength_atom_indices = cartbonded_param_identifier.lengths

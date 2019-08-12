@@ -104,9 +104,7 @@ class CartBondedParamResolver(ValidateAttrs):
         nstacks = resnames.shape[0]
         i = numpy.full((resnames.shape[0], resnames.shape[1]), -9999, dtype=numpy.int64)
         for stack in range(nstacks):
-            print("resnames:", resnames[stack])
             nreal = sum(resnames[stack].astype(bool))
-            print("nreal", nreal)
             real = (stack, slice(nreal))
             # slice i, resnames, atm1s, atm2s, and atm3s
             ist, resnamest, atm1st, atm2st, atm3st = (
@@ -119,15 +117,6 @@ class CartBondedParamResolver(ValidateAttrs):
             ist[:] = self.bondangle_index.get_indexer(
                 [resnamest, atm1st, atm2st, atm3st]
             )
-            print("resolve angles 1", numpy.sum(i >= 0))
-            print(
-                "left out:",
-                resnamest[ist == -1],
-                atm3st[ist == -1],
-                atm2st[ist == -1],
-                atm1st[ist == -1],
-            )
-            print(numpy.nonzero(ist == -1))
             ist[ist == -1] = self.bondangle_index.get_indexer(
                 [
                     resnamest[ist == -1],
@@ -136,14 +125,6 @@ class CartBondedParamResolver(ValidateAttrs):
                     atm1st[ist == -1],
                 ]
             )
-            print(
-                "unresolved!:",
-                resnamest[ist == -1],
-                atm3st[ist == -1],
-                atm2st[ist == -1],
-                atm1st[ist == -1],
-            )
-            print("resolve angles 2", numpy.sum(i >= 0))
             wildcard = numpy.full_like(resnamest, "_")
             ist[ist == -1] = self.bondangle_index.get_indexer(
                 [
@@ -153,7 +134,6 @@ class CartBondedParamResolver(ValidateAttrs):
                     atm3st[ist == -1],
                 ]
             )
-            print("resolve angles 3", numpy.sum(i >= 0))
             ist[ist == -1] = self.bondangle_index.get_indexer(
                 [
                     wildcard[ist == -1],
@@ -162,7 +142,6 @@ class CartBondedParamResolver(ValidateAttrs):
                     atm1st[ist == -1],
                 ]
             )
-        print("resolve angles 4", numpy.sum(i >= 0))
         return i
 
     @validate_args

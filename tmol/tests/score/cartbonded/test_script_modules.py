@@ -29,11 +29,8 @@ class ScoreSetup:
             .to(device=torch_device, dtype=torch.float)
             .requires_grad_(True)
         )[None, :]
-        print("tcoords", tcoords.shape)
 
         system_size = numpy.max(system.bonds) + 1
-        print("system.bond", system.bonds.shape)
-        print("system_size", system_size)
         bonds = numpy.zeros((system.bonds.shape[0], 3), dtype=int)
         bonds[:, 1:] = system.bonds
         indexed_bonds = IndexedBonds.from_bonds(
@@ -49,15 +46,8 @@ class ScoreSetup:
         atom_names = system.atom_metadata["atom_name"].copy()
         res_names = system.atom_metadata["residue_name"].copy()
 
-        print("atom_names shape", atom_names.shape)
-        print("res_names shape", res_names.shape)
-
         # bondlengths
         bondlength_atom_indices = param_identifier.lengths
-        print(
-            "res_names[bondlength_atom_indices[:, :, 0]]",
-            res_names[bondlength_atom_indices[:, :, 0]].shape,
-        )
         bondlength_indices = param_resolver.resolve_lengths(
             res_names[bondlength_atom_indices[:, :, 0]],  # use atm1 for resid
             atom_names[bondlength_atom_indices[:, :, 0]],
@@ -75,25 +65,13 @@ class ScoreSetup:
 
         # bondangles
         bondangle_atom_indices = param_identifier.angles
-        print("bondangle_atom_indices", bondangle_atom_indices.shape)
         bondangle_indices = param_resolver.resolve_angles(
             res_names[bondangle_atom_indices[:, :, 1]],  # use atm2 for resid
             atom_names[bondangle_atom_indices[:, :, 0]],
             atom_names[bondangle_atom_indices[:, :, 1]],
             atom_names[bondangle_atom_indices[:, :, 2]],
         )
-        print("bondangle_indices", bondangle_indices.shape)
         bondangle_defined = bondangle_indices[0] != -1
-        print("bondangle_defined.shape", bondangle_defined.shape)
-
-        print(
-            "bondangle_atom_indices[:, bondangle_defined]",
-            bondangle_atom_indices[:, bondangle_defined].shape,
-        )
-        print(
-            "bondangle_indices[:, bondangle_defined, None]",
-            bondangle_indices[:, bondangle_defined, None].shape,
-        )
 
         tbondangle_indices = torch.cat(
             [
@@ -102,7 +80,6 @@ class ScoreSetup:
             ],
             dim=2,
         ).to(device=torch_device, dtype=torch.int64)
-        print("tbondangle_indices", tbondangle_indices.shape)
 
         # torsions
         torsion_atom_indices = param_identifier.torsions
@@ -203,7 +180,7 @@ def test_cartbonded_gradcheck(default_database, ubq_system, torch_device):
 
     def eval_cb(coords_subset):
         coords = s.tcoords.clone()
-        coords[0, t_atm_indices] = coords_subset
+        coords[0:1, t_atm_indices] = coords_subset
         v = op(
             coords,
             s.tbondlength_indices,
@@ -214,7 +191,7 @@ def test_cartbonded_gradcheck(default_database, ubq_system, torch_device):
         )
         return v
 
-    masked_coords = s.tcoords[0, t_atm_indices]
+    masked_coords = s.tcoords[0:1, t_atm_indices]
     torch.autograd.gradcheck(
         eval_cb, (masked_coords.requires_grad_(True),), eps=1e-2, atol=2e-2
     )

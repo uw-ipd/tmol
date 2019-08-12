@@ -34,7 +34,6 @@ def find_angles(bonds, bond_spans):
                     nangles += 1
         nangles_list[stack] = nangles
     max_nangles = numpy.max(nangles_list)
-    print("find angles", max_nangles)
 
     return angles[:, :max_nangles]
 
@@ -132,10 +131,7 @@ class CartBondedIdentification:
     def setup(
         cls, cartbonded_database: CartBondedDatabase, indexed_bonds: IndexedBonds
     ):
-        print("indexed bonds", indexed_bonds.bonds.shape)
-        print("indexed bonds", indexed_bonds.bond_spans.shape)
         bonds = indexed_bonds.bonds.cpu().numpy()
-        print("bonds", bonds.shape)
         spans = indexed_bonds.bond_spans.cpu().numpy()
 
         selected_bonds = [
@@ -150,11 +146,6 @@ class CartBondedIdentification:
         angles = find_angles(bonds, spans)
         torsions = find_torsions(bonds, spans)
         impropers = find_impropers(bonds, spans)
-
-        print("lengths", lengths.shape)
-        print("angles", angles.shape)
-        print("torsions", torsions.shape)
-        print("impropers", impropers.shape)
 
         return cls(
             lengths=lengths, angles=angles, torsions=torsions, impropers=impropers
