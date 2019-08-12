@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>toolz.functoolz &mdash; TMol 0.0.0-182-gba38a0b1 documentation</title>
+  <title>toolz.functoolz &mdash; TMol 0.0.0-183-g31b3188a documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../',
-              VERSION:'0.0.0-182-gba38a0b1',
+              VERSION:'0.0.0-183-g31b3188a',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-182-gba38a0b1
+                0.0.0-183-g31b3188a
               </div>
             
           
@@ -179,14 +179,17 @@
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">operator</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="k">import</span> <span class="n">attrgetter</span>
+<span class="kn">from</span> <span class="nn">importlib</span> <span class="k">import</span> <span class="n">import_module</span>
 <span class="kn">from</span> <span class="nn">textwrap</span> <span class="k">import</span> <span class="n">dedent</span>
+<span class="kn">from</span> <span class="nn">types</span> <span class="k">import</span> <span class="n">MethodType</span>
 
-<span class="kn">from</span> <span class="nn">.compatibility</span> <span class="k">import</span> <span class="n">PY3</span><span class="p">,</span> <span class="n">PY33</span><span class="p">,</span> <span class="n">PY34</span><span class="p">,</span> <span class="n">PYPY</span><span class="p">,</span> <span class="n">import_module</span>
+<span class="kn">from</span> <span class="nn">.compatibility</span> <span class="k">import</span> <span class="n">PY3</span><span class="p">,</span> <span class="n">PY34</span><span class="p">,</span> <span class="n">PYPY</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="k">import</span> <span class="n">no_default</span>
 
 
-<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;identity&#39;</span><span class="p">,</span> <span class="s1">&#39;thread_first&#39;</span><span class="p">,</span> <span class="s1">&#39;thread_last&#39;</span><span class="p">,</span> <span class="s1">&#39;memoize&#39;</span><span class="p">,</span> <span class="s1">&#39;compose&#39;</span><span class="p">,</span>
-           <span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;complement&#39;</span><span class="p">,</span> <span class="s1">&#39;juxt&#39;</span><span class="p">,</span> <span class="s1">&#39;do&#39;</span><span class="p">,</span> <span class="s1">&#39;curry&#39;</span><span class="p">,</span> <span class="s1">&#39;flip&#39;</span><span class="p">,</span> <span class="s1">&#39;excepts&#39;</span><span class="p">)</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;identity&#39;</span><span class="p">,</span> <span class="s1">&#39;apply&#39;</span><span class="p">,</span> <span class="s1">&#39;thread_first&#39;</span><span class="p">,</span> <span class="s1">&#39;thread_last&#39;</span><span class="p">,</span> <span class="s1">&#39;memoize&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;compose&#39;</span><span class="p">,</span> <span class="s1">&#39;compose_left&#39;</span><span class="p">,</span> <span class="s1">&#39;pipe&#39;</span><span class="p">,</span> <span class="s1">&#39;complement&#39;</span><span class="p">,</span> <span class="s1">&#39;juxt&#39;</span><span class="p">,</span> <span class="s1">&#39;do&#39;</span><span class="p">,</span>
+           <span class="s1">&#39;curry&#39;</span><span class="p">,</span> <span class="s1">&#39;flip&#39;</span><span class="p">,</span> <span class="s1">&#39;excepts&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">identity</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -196,6 +199,23 @@
 <span class="sd">    3</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">x</span>
+
+
+<span class="k">def</span> <span class="nf">apply</span><span class="p">(</span><span class="o">*</span><span class="n">func_and_args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Applies a function and returns the results</span>
+
+<span class="sd">    &gt;&gt;&gt; def double(x): return 2*x</span>
+<span class="sd">    &gt;&gt;&gt; def inc(x):    return x + 1</span>
+<span class="sd">    &gt;&gt;&gt; apply(double, 5)</span>
+<span class="sd">    10</span>
+
+<span class="sd">    &gt;&gt;&gt; tuple(map(apply, [double, inc, double], [10, 500, 8000]))</span>
+<span class="sd">    (20, 501, 16000)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">func_and_args</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;func argument is required&#39;</span><span class="p">)</span>
+    <span class="n">func</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">func_and_args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">func_and_args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">thread_first</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="o">*</span><span class="n">forms</span><span class="p">):</span>
@@ -528,7 +548,7 @@
                          <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;_partial&#39;</span><span class="p">,</span> <span class="s1">&#39;_sigspec&#39;</span><span class="p">))</span>
         <span class="n">state</span> <span class="o">=</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">,</span> <span class="n">userdict</span><span class="p">,</span>
                  <span class="n">is_decorated</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">_restore_curry</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_restore_curry</span><span class="p">,</span> <span class="n">state</span>
 
 
 <span class="k">def</span> <span class="nf">_restore_curry</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">userdict</span><span class="p">,</span> <span class="n">is_decorated</span><span class="p">):</span>
@@ -675,10 +695,49 @@
     <span class="k">def</span> <span class="nf">__name__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="s1">&#39;_of_&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">f</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">,)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">)</span>
+                <span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="vm">__name__</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">,)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">))</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;{.__class__.__name__}</span><span class="si">{!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">reversed</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">,</span> <span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Compose</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">first</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">first</span> <span class="ow">and</span> <span class="n">other</span><span class="o">.</span><span class="n">funcs</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">funcs</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="nf">__ne__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="n">equality</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">NotImplemented</span> <span class="k">if</span> <span class="n">equality</span> <span class="ow">is</span> <span class="bp">NotImplemented</span> <span class="k">else</span> <span class="ow">not</span> <span class="n">equality</span>
+
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">)</span> <span class="o">^</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">)</span>
+
+    <span class="c1"># Mimic the descriptor behavior of python functions.</span>
+    <span class="c1"># i.e. let Compose be called as a method when bound to a class.</span>
+    <span class="k">if</span> <span class="n">PY3</span><span class="p">:</span>  <span class="c1"># pragma: py2 no cover</span>
+        <span class="c1"># adapted from</span>
+        <span class="c1"># docs.python.org/3/howto/descriptor.html#functions-and-methods</span>
+        <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">objtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">MethodType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># pragma: py3 no cover</span>
+        <span class="c1"># adapted from</span>
+        <span class="c1"># docs.python.org/2/howto/descriptor.html#functions-and-methods</span>
+        <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">objtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span> <span class="k">if</span> <span class="n">obj</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">MethodType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">objtype</span><span class="p">)</span>
+
+    <span class="c1"># introspection with Signature is only possible from py3.3+</span>
+    <span class="k">if</span> <span class="n">PY3</span><span class="p">:</span>  <span class="c1"># pragma: py2 no cover</span>
+        <span class="nd">@instanceproperty</span>
+        <span class="k">def</span> <span class="nf">__signature__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">)</span>
+            <span class="n">last</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">funcs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">base</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">return_annotation</span><span class="o">=</span><span class="n">last</span><span class="o">.</span><span class="n">return_annotation</span><span class="p">)</span>
+
+    <span class="n">__wrapped__</span> <span class="o">=</span> <span class="n">instanceproperty</span><span class="p">(</span><span class="n">attrgetter</span><span class="p">(</span><span class="s1">&#39;first&#39;</span><span class="p">))</span>
 
 
 <span class="k">def</span> <span class="nf">compose</span><span class="p">(</span><span class="o">*</span><span class="n">funcs</span><span class="p">):</span>
@@ -696,6 +755,7 @@
 <span class="sd">    &#39;4&#39;</span>
 
 <span class="sd">    See Also:</span>
+<span class="sd">        compose_left</span>
 <span class="sd">        pipe</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">funcs</span><span class="p">:</span>
@@ -704,6 +764,27 @@
         <span class="k">return</span> <span class="n">funcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Compose</span><span class="p">(</span><span class="n">funcs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">compose_left</span><span class="p">(</span><span class="o">*</span><span class="n">funcs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Compose functions to operate in series.</span>
+
+<span class="sd">    Returns a function that applies other functions in sequence.</span>
+
+<span class="sd">    Functions are applied from left to right so that</span>
+<span class="sd">    ``compose_left(f, g, h)(x, y)`` is the same as ``h(g(f(x, y)))``.</span>
+
+<span class="sd">    If no arguments are provided, the identity function (f(x) = x) is returned.</span>
+
+<span class="sd">    &gt;&gt;&gt; inc = lambda i: i + 1</span>
+<span class="sd">    &gt;&gt;&gt; compose_left(inc, str)(3)</span>
+<span class="sd">    &#39;4&#39;</span>
+
+<span class="sd">    See Also:</span>
+<span class="sd">        compose</span>
+<span class="sd">        pipe</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">compose</span><span class="p">(</span><span class="o">*</span><span class="nb">reversed</span><span class="p">(</span><span class="n">funcs</span><span class="p">))</span>
 
 
 <span class="k">def</span> <span class="nf">pipe</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">funcs</span><span class="p">):</span>
@@ -722,6 +803,7 @@
 
 <span class="sd">    See Also:</span>
 <span class="sd">        compose</span>
+<span class="sd">        compose_left</span>
 <span class="sd">        thread_first</span>
 <span class="sd">        thread_last</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -935,11 +1017,6 @@
                 <span class="ow">and</span> <span class="p">((</span>
                     <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__signature__&#39;</span><span class="p">)</span>
                     <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">__signature__</span><span class="p">,</span> <span class="s1">&#39;__get__&#39;</span><span class="p">)</span>
-                <span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
-                    <span class="n">PY33</span>
-                    <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="s1">&#39;__wrapped__&#39;</span><span class="p">)</span>
-                    <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">__wrapped__</span><span class="p">,</span> <span class="s1">&#39;__get__&#39;</span><span class="p">)</span>
-                    <span class="ow">and</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">__wrapped__</span><span class="p">)</span>
                 <span class="p">))</span>
             <span class="p">):</span>  <span class="c1"># pragma: no cover (not covered in Python 3.4)</span>
                 <span class="n">val</span> <span class="o">=</span> <span class="n">builtin_func</span><span class="p">(</span><span class="o">*</span><span class="n">builtin_args</span><span class="p">)</span>
