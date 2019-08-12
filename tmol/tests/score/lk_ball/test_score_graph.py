@@ -29,14 +29,14 @@ def test_lkball_w_twoubq_stacks(ubq_system, torch_device):
     torch.sum(tot).backward()
 
 
-def test_jagged_scoring(ubq_res, default_database):
+def test_jagged_scoring(ubq_res, default_database, torch_device):
     ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
     ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
     twoubq = PackedResidueSystemStack((ubq40, ubq60))
 
-    score40 = LKBGraph.build_for(ubq40)
-    score60 = LKBGraph.build_for(ubq60)
-    score_both = LKBGraph.build_for(twoubq)
+    score40 = LKBGraph.build_for(ubq40, device=torch_device)
+    score60 = LKBGraph.build_for(ubq60, device=torch_device)
+    score_both = LKBGraph.build_for(twoubq, device=torch_device)
 
     total40 = score40.intra_score().total_lk_ball
     total60 = score60.intra_score().total_lk_ball

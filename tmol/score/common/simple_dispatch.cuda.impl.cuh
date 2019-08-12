@@ -150,7 +150,7 @@ struct AABBDispatch<tmol::Device::CUDA> {
             f(stack, i, j);
           }
         },
-        n_i * n_j,
+        n_stacks * n_i * n_j,
         context);
   }
 };
