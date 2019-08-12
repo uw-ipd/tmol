@@ -31,6 +31,7 @@ class LJIntraScore(IntraScore):
             target.coords, target.ljlk_atom_types, target.bonded_path_length
         )
 
+
 @reactive_attrs
 class LKIntraScore(IntraScore):
     @reactive_property

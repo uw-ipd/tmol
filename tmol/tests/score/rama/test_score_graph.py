@@ -24,7 +24,7 @@ def test_rama_smoke(ubq_system, torch_device):
     rama_graph = RamaGraph.build_for(ubq_system, device=torch_device)
     assert rama_graph.allphis.shape == (1, 76, 5)
     assert rama_graph.allpsis.shape == (1, 76, 5)
-    
+
 
 def test_rama_w_twoubq_stacks(ubq_system, torch_device):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
@@ -44,10 +44,10 @@ def test_jagged_scoring(ubq_res, default_database):
     score40 = RamaGraph.build_for(ubq40)
     score60 = RamaGraph.build_for(ubq60)
     score_both = RamaGraph.build_for(twoubq)
-    
+
     total40 = score40.intra_score().total
     total60 = score60.intra_score().total
     total_both = score_both.intra_score().total
-    
+
     assert total_both[0].item() == pytest.approx(total40[0].item())
     assert total_both[1].item() == pytest.approx(total60[0].item())
