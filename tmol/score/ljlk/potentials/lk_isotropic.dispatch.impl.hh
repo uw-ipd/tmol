@@ -24,7 +24,12 @@ namespace potentials {
 template <typename Real, int N>
 using Vec = Eigen::Matrix<Real, N, 1>;
 
-template <template <tmol::Device> class Dispatch, tmol::Device D, typename Real, typename Int>
+template <
+    template <tmol::Device>
+    class Dispatch,
+    tmol::Device D,
+    typename Real,
+    typename Int>
 auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 2, D> coords_i,
     TView<Int, 2, D> atom_type_i,
@@ -35,8 +40,11 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
     TView<Real, 3, D> bonded_path_lengths,
 
     TView<LKTypeParams<Real>, 1, D> type_params,
-    TView<LJGlobalParams<Real>, 1, D> global_params) -> std::
-    tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D>, TPack<Vec<Real, 3>, 2, D>> {
+    TView<LJGlobalParams<Real>, 1, D> global_params)
+    -> std::tuple<
+        TPack<Real, 1, D>,
+        TPack<Vec<Real, 3>, 2, D>,
+        TPack<Vec<Real, 3>, 2, D>> {
   nvtx_range_push(__FUNCTION__);
 
   nvtx_range_push("output_allocate");
