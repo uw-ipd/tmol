@@ -17,10 +17,7 @@ def test_cartbonded_baseline_comparison(ubq_system, torch_device):
     )
 
     intra_container = test_graph.intra_score()
-    print(
-        "intra_container.total_cartbonded_length",
-        intra_container.total_cartbonded_length,
-    )
+
     assert float(intra_container.total_cartbonded_length[0]) == approx(
         37.7848, rel=1e-3
     )
