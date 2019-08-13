@@ -68,24 +68,15 @@ def select_names_from_indices(
 ) -> Tuple[NDArray(object)[:, :], ...]:
     resnames = numpy.full(atom_indices.shape[0:2], None, dtype=object)
     atnames = [numpy.full_like(resnames, None) for _ in range(atom_indices.shape[2])]
-    for i in range(atom_indices.shape[0]):
-        nreal = numpy.sum(atom_indices[i, :, 0] >= 0)
-        resnames[i, :nreal] = res_names[i, atom_indices[i, :nreal, atom_for_resid]]
-        for j in range(atom_indices.shape[2]):
-            atnames[j][i, :nreal] = atom_names[i, atom_indices[i, :nreal, j]]
+    real = atom_indices[:,:,0] >= 0
+    nz = numpy.nonzero(real)
+
+    # masked assignment; nz[0] is the stack index, nz[1] is the torsion index
+    resnames[real] = res_names[nz[0], atom_indices[nz[0], nz[1], atom_for_resid]]
+    for i in range(atom_indices.shape[2]):
+        atnames[i][real] = atom_names[nz[0], atom_indices[nz[0], nz[1], i]]
+
     return (resnames,) + tuple(atnames)
-
-    # resnames = numpy.full_like(bondlength_atom_indices, None, dtype=object)
-    # at1names = numpy.full_like(bondlength_atom_indices, None, dtype=object)
-    # at2names = numpy.full_like(bondlength_atom_indices, None, dtype=object)
-    #
-    # nstacks = bondlength_atom_indices.shape[0]
-    # for i in range(nstacks):
-    #     nreal = numpy.sum(bondlength_atom_indices[i] > 0)
-    #     resnames[i, :nreal] = res_names[i, bondlength_atom_indices[i, :nreal]]
-    #     at1names[i, :nreal] = atom_names[i, bondlength_atom_indices[i, :nreal, 0]]
-    #     at2names[i, :nreal] = atom_names[i, bondlength_atom_indices[i, :nreal, 1]]
-
 
 @validate_args
 def remove_undefined_indices(
