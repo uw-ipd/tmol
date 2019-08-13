@@ -48,6 +48,15 @@ steps:
     << : *test_agent
     << : *cpu_container
 
+  ### Run tests w/o numba jitting and generate coverage reports
+  - label: ':shrug: Testing - CPU w/o jit'
+    command: .buildkite/bin/testing_no_jit --cov=./tmol --junitxml=testing.cpu.junit.xml
+    artifact_paths:
+      - testing.cpunojit.junit.xml
+      - .coverage
+    << : *test_agent
+    << : *cpu_container
+
   ### Generate project documentation
   - label: ':open_book: Docs'
     command: .buildkite/bin/docs
