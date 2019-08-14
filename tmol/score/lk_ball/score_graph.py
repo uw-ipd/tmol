@@ -54,6 +54,28 @@ class LKBallIntraScore(IntraScore):
         return lkball_score[:, 3]
 
 
+def condense_inds(selection: Tensor(bool)[:, :], device: torch.device):
+    """Given a two dimensional boolean tensor, create
+    an output tensor holding the column indices of the non-zero
+    entries for each row. Pad out the extra entries
+    in any given row that do not correspond to a selected
+    entry with a sentinel of -1.
+    """
+
+    nstacks = selection.shape[0]
+    nz_selection = torch.nonzero(selection)
+    nkeep = torch.sum(selection, dim=1).view((nstacks, 1))
+    max_keep = torch.max(nkeep)
+    inds = torch.full((nstacks, max_keep), -1, dtype=torch.int64, device=device)
+    counts = torch.arange(max_keep, dtype=torch.int64, device=device).view(
+        (1, max_keep)
+    )
+    lowinds = counts < nkeep
+
+    inds[lowinds] = nz_selection[:, 1]
+    return inds
+
+
 @score_graph
 class LKBallScoreGraph(_LJLKCommonScoreGraph):
     @staticmethod
@@ -95,34 +117,14 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
         LK-Ball is only dispatched over polar:heavyatom pairs
         """
 
-        nstacks = ljlk_atom_types.shape[0]
-
-        polars_list = [
-            torch.nonzero(
-                atom_type_params.params.is_acceptor[ljlk_atom_types[i]]
-                + atom_type_params.params.is_donor[ljlk_atom_types[i]]
-            ).reshape(-1)
-            for i in range(nstacks)
-        ]
-        occluders_list = [
-            torch.nonzero(
-                1 - atom_type_params.params.is_hydrogen[ljlk_atom_types[i]]
-            ).reshape(-1)
-            for i in range(nstacks)
-        ]
-
-        max_polars = max(len(pols) for pols in polars_list)
-        max_occluders = max(len(occs) for occs in occluders_list)
-
-        polars = torch.full(
-            (nstacks, max_polars), -9999, dtype=torch.int64, device=device
+        are_polars = (
+            atom_type_params.params.is_acceptor[ljlk_atom_types]
+            + atom_type_params.params.is_donor[ljlk_atom_types]
+            > 0
         )
-        occluders = torch.full(
-            (nstacks, max_occluders), -9999, dtype=torch.int64, device=device
-        )
+        are_occluders = 1 - atom_type_params.params.is_hydrogen[ljlk_atom_types]
 
-        for i in range(nstacks):
-            polars[i, : polars_list[i].shape[0]] = polars_list[i]
-            occluders[i, : occluders_list[i].shape[0]] = occluders_list[i]
+        polars = condense_inds(are_polars, device)
+        occluders = condense_inds(are_occluders, device)
 
         return LKBallPairs(polars=polars, occluders=occluders)
