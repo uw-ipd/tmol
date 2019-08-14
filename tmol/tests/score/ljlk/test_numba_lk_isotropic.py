@@ -80,6 +80,7 @@ def test_lk_isotropic_gradcheck(params, iname, jname, bonded_path_length):
 def test_lk_isotropic_spotcheck(params, iname, jname):
     from tmol.score.ljlk.numba.lk_isotropic import f_desolv
     from tmol.score.ljlk.numba.common import lj_sigma
+    from tmol.score.ljlk.numba.vectorized import lk_isotropic
 
     iidx, jidx = params.type_idx([iname, jname])
     i = params.type_params[iidx]

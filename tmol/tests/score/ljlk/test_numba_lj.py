@@ -68,6 +68,7 @@ def test_lj_gradcheck(params, bonded_path_length):
 @requires_numba_jit
 def test_lj_spotcheck(params):
     from tmol.score.ljlk.numba.lj import f_vdw, f_vdw_d_dist
+    from tmol.score.ljlk.numba.vectorized import lj, d_lj_d_dist
 
     i = params.type_params[0]
     j = params.type_params[2]
