@@ -66,15 +66,23 @@ class CartBondedParamResolver(ValidateAttrs):
         assert resnames.shape[1] == atm1s.shape[1]
         assert resnames.shape[1] == atm2s.shape[1]
 
-        inds = numpy.full((resnames.shape[0], resnames.shape[1]), -9999, dtype=numpy.int64)
+        inds = numpy.full(
+            (resnames.shape[0], resnames.shape[1]), -9999, dtype=numpy.int64
+        )
         real = resnames.astype(bool)
-        inds[real] = self.bondlength_index.get_indexer([resnames[real], atm1s[real], atm2s[real]])
-        inds[inds == -1] = self.bondlength_index.get_indexer([resnames[inds==-1], atm2s[inds==-1], atm1s[inds==-1]])
+        inds[real] = self.bondlength_index.get_indexer(
+            [resnames[real], atm1s[real], atm2s[real]]
+        )
+        inds[inds == -1] = self.bondlength_index.get_indexer(
+            [resnames[inds == -1], atm2s[inds == -1], atm1s[inds == -1]]
+        )
         wildcard = numpy.full_like(resnames, "_")
         inds[inds == -1] = self.bondlength_index.get_indexer(
-            [wildcard[inds == -1], atm1s[inds == -1], atm2s[inds == -1]])
+            [wildcard[inds == -1], atm1s[inds == -1], atm2s[inds == -1]]
+        )
         inds[inds == -1] = self.bondlength_index.get_indexer(
-            [wildcard[inds == -1], atm2s[inds == -1], atm1s[inds == -1]])
+            [wildcard[inds == -1], atm2s[inds == -1], atm1s[inds == -1]]
+        )
         inds[inds == -9999] = -1
 
         return inds
@@ -91,7 +99,9 @@ class CartBondedParamResolver(ValidateAttrs):
 
         inds = numpy.full(resnames.shape[0:2], -9999, dtype=numpy.int64)
         real = resnames.astype(bool)
-        inds[real] = self.bondangle_index.get_indexer([resnames[real], atm1s[real], atm2s[real], atm3s[real]])
+        inds[real] = self.bondangle_index.get_indexer(
+            [resnames[real], atm1s[real], atm2s[real], atm3s[real]]
+        )
         inds[inds == -1] = self.bondangle_index.get_indexer(
             [
                 resnames[inds == -1],

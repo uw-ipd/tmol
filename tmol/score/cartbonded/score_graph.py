@@ -68,7 +68,7 @@ def select_names_from_indices(
 ) -> Tuple[NDArray(object)[:, :], ...]:
     resnames = numpy.full(atom_indices.shape[0:2], None, dtype=object)
     atnames = [numpy.full_like(resnames, None) for _ in range(atom_indices.shape[2])]
-    real = atom_indices[:,:,0] >= 0
+    real = atom_indices[:, :, 0] >= 0
     nz = numpy.nonzero(real)
 
     # masked assignment; nz[0] is the stack index, nz[1] is the torsion index
@@ -77,6 +77,7 @@ def select_names_from_indices(
         atnames[i][real] = atom_names[nz[0], atom_indices[nz[0], nz[1], i]]
 
     return (resnames,) + tuple(atnames)
+
 
 @validate_args
 def remove_undefined_indices(
@@ -100,22 +101,35 @@ def remove_undefined_indices(
     assert atom_inds.shape[0] == param_inds.shape[0]
     assert atom_inds.shape[1] == param_inds.shape[1]
 
+    # Find the non-negative set of parameter indices -- these correspond to
+    # atom-tuples that should be scored, ie the real set.
+    # Collapse these real atoms+parameters into the lowest entries
+    # of an output tensor.
+
     nstacks = atom_inds.shape[0]
-    stack_keep = []
-    for i in range(nstacks):
-        keep = param_inds[i] >= 0
-        stack_keep.append(keep)
-    max_keep = max(numpy.sum(keep) for keep in stack_keep)
-    cb_inds = torch.full(
+    real = torch.tensor(param_inds, dtype=torch.int32) >= 0
+    nzreal = torch.nonzero(real)  # nz --> the indices of the real entries
+
+    # how many for each stack should we keep?
+    nkeep = torch.sum(real, dim=1).view((atom_inds.shape[0], 1))
+    max_keep = torch.max(nkeep)
+    cb_inds2 = torch.full(
         (nstacks, max_keep, atom_inds.shape[2] + 1), -9999, dtype=torch.int64
     )
-    for i in range(nstacks):
-        keep = stack_keep[i]
-        nkeep = numpy.sum(keep)
-        cb_inds[i, :nkeep, :-1] = torch.tensor(atom_inds[i, keep], dtype=torch.int64)
-        cb_inds[i, :nkeep, -1] = torch.tensor(param_inds[i, keep], dtype=torch.int64)
 
-    return cb_inds.to(device=device)
+    # get the output-tensor indices for each stack that we should write to
+    counts = torch.arange(max_keep, dtype=torch.int64).view((1, max_keep))
+    lowinds = counts < nkeep
+    nzlow = torch.nonzero(lowinds)
+
+    cb_inds2[nzlow[:, 0], nzlow[:, 1], :-1] = torch.tensor(
+        atom_inds, dtype=torch.int64
+    )[nzreal[:, 0], nzreal[:, 1]]
+    cb_inds2[nzlow[:, 0], nzlow[:, 1], -1] = torch.tensor(
+        param_inds, dtype=torch.int64
+    )[nzreal[:, 0], nzreal[:, 1]]
+
+    return cb_inds2.to(device=device)
 
 
 @score_graph
