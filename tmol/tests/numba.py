@@ -7,12 +7,16 @@ import numba.cuda
 
 import contextlib
 
-def is_jit_available() :
+
+def is_jit_available():
     import os
-    return os.environ["NUMBA_DISABLE_JIT"] == 0
+
+    return os.environ.get("NUMBA_DISABLE_JIT", 0) == 0
+
 
 jit_available = is_jit_available()
 requires_numba_jit = pytest.mark.skipif(not jit_available, reason="Requires JIT")
+
 
 @contextlib.contextmanager
 def with_cudasim():

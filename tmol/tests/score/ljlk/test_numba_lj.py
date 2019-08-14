@@ -9,6 +9,7 @@ import scipy.optimize
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.tests.numba import requires_numba_jit
 
+
 @pytest.fixture
 def params(default_database):
     return LJLKParamResolver.from_database(
