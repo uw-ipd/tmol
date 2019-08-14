@@ -9,13 +9,10 @@ import torch
 import numpy
 import scipy.optimize
 
-from tmol.score.ljlk.numba.lk_isotropic import f_desolv
-from tmol.score.ljlk.numba.common import lj_sigma
-from tmol.score.ljlk.numba.vectorized import lk_isotropic, d_lk_isotropic_d_dist
 from tmol.utility.args import ignore_unused_kwargs
-
-
 from tmol.score.ljlk.params import LJLKParamResolver
+from tmol.tests.numba import requires_numba_jit
+
 
 # TODO add lj_sigma spot check
 parametrize_atom_pairs = pytest.mark.parametrize(
@@ -47,9 +44,12 @@ def params(default_database):
     )
 
 
+@requires_numba_jit
 @pytest.mark.parametrize("bonded_path_length", [2, 4, 5])
 @parametrize_atom_pairs
 def test_lk_isotropic_gradcheck(params, iname, jname, bonded_path_length):
+    from tmol.score.ljlk.numba.vectorized import lk_isotropic, d_lk_isotropic_d_dist
+
     iidx, jidx = params.type_idx([iname, jname])
     i = params.type_params[iidx]
     j = params.type_params[jidx]
@@ -75,8 +75,12 @@ def test_lk_isotropic_gradcheck(params, iname, jname, bonded_path_length):
     numpy.testing.assert_allclose(grad_errors, 0, atol=1e-7)
 
 
+@requires_numba_jit
 @parametrize_atom_pairs
 def test_lk_isotropic_spotcheck(params, iname, jname):
+    from tmol.score.ljlk.numba.lk_isotropic import f_desolv
+    from tmol.score.ljlk.numba.common import lj_sigma
+
     iidx, jidx = params.type_idx([iname, jname])
     i = params.type_params[iidx]
     j = params.type_params[jidx]
