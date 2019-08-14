@@ -96,7 +96,16 @@ def remove_undefined_indices(
     [ nstacks x max-non-zero-params-per-stack x natoms-per-entry+1 ]
     where a sentinel value of -1 will be present
     if either the param- or the atom index represents
-    a non-existent atom set."""
+    a non-existent atom set.
+
+    This code will "condense" an array with entries I'm not interested in
+    into a smaller array so that fire up the minimum number of threads on
+    the GPU that have no work to perform
+
+    It will also "left shift" the valid entries so that the threads
+    that do have no work do to are next to each other, thereby ensuring
+    the highest warp coherency
+    """
 
     assert atom_inds.shape[0] == param_inds.shape[0]
     assert atom_inds.shape[1] == param_inds.shape[1]
