@@ -4,7 +4,6 @@ import attr
 import numpy
 import torch
 
-from tmol.score.ljlk.numba.vectorized import lj, lk_isotropic
 from tmol.score.bonded_atom import bonded_path_length
 
 import tmol.database
@@ -13,6 +12,7 @@ from tmol.utility.args import ignore_unused_kwargs
 from tmol.tests.autograd import gradcheck
 
 from tmol.tests.benchmark import subfixture
+from tmol.tests.numba import requires_numba_jit
 
 from tmol.score.ljlk.script_modules import (
     LJIntraModule,
@@ -67,10 +67,12 @@ class ScoreSetup:
 
 
 def _dense_lj(coords, atom_type_idx, atom_pair_bpl, param_resolver):
+    from tmol.score.ljlk.numba.vectorized import lj
     return _dense_potential(lj, coords, atom_type_idx, atom_pair_bpl, param_resolver)
 
 
 def _dense_lk(coords, atom_type_idx, atom_pair_bpl, param_resolver):
+    from tmol.score.ljlk.numba.vectorized import lk_isotropic
     return _dense_potential(
         lk_isotropic, coords, atom_type_idx, atom_pair_bpl, param_resolver
     )
@@ -98,7 +100,7 @@ def _dense_potential(potential, coords, atom_type_idx, atom_pair_bpl, param_reso
         ),
     )
 
-
+@requires_numba_jit
 def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     """LJIntraModule returns sum of triu entries of the dense lj score matrix."""
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
@@ -142,6 +144,7 @@ def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
     gradcheck(op_subset, (s.tcoords[:, subind].requires_grad_(True),), eps=1e-3)
 
 
+@requires_numba_jit
 def test_lj_intra_op_stacked(benchmark, default_database, torch_device, ubq_system):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
 
@@ -167,7 +170,7 @@ def test_lj_intra_op_stacked(benchmark, default_database, torch_device, ubq_syst
         torch.tensor(expected_dense).to(torch_device).sum().unsqueeze(0).repeat(2),
     )
 
-
+@requires_numba_jit
 def test_lj_inter_op(default_database, torch_device, ubq_system):
     """LJInterModule returns sum of the dense lj score matrix."""
 
@@ -211,6 +214,7 @@ def test_lj_inter_op(default_database, torch_device, ubq_system):
     gradcheck(op_subset, (s.tcoords[:, subind].requires_grad_(True),), eps=1e-3)
 
 
+@requires_numba_jit
 def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
     """LKIsotropicIntraModule returns sum of triu entries of the dense
     lk_isotropic score matrix."""
@@ -256,6 +260,7 @@ def test_lk_intra_op(benchmark, default_database, ubq_system, torch_device):
     gradcheck(op_subset, (s.tcoords[:, subind].requires_grad_(True),), eps=1e-3)
 
 
+@requires_numba_jit
 def test_lk_inter_op(default_database, torch_device, ubq_system):
     """LKIsotropicInterModule returns sum of the dense lj score matrix."""
 
