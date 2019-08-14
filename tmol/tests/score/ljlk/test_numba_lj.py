@@ -5,11 +5,9 @@ import torch
 import numpy
 import scipy.optimize
 
-from tmol.score.ljlk.numba.lj import f_vdw, f_vdw_d_dist
-from tmol.score.ljlk.numba.vectorized import lj, d_lj_d_dist
 
 from tmol.score.ljlk.params import LJLKParamResolver
-
+from tmol.tests.numba import requires_numba_jit
 
 @pytest.fixture
 def params(default_database):
@@ -18,8 +16,12 @@ def params(default_database):
     )
 
 
+@requires_numba_jit
 @pytest.mark.parametrize("bonded_path_length", [2, 4, 5])
 def test_lj_gradcheck(params, bonded_path_length):
+
+    from tmol.score.ljlk.numba.vectorized import lj, d_lj_d_dist
+
     i = params.type_params[0]
     j = params.type_params[2]
     g = params.global_params
@@ -62,7 +64,10 @@ def test_lj_gradcheck(params, bonded_path_length):
     numpy.testing.assert_allclose(grad_errors[ds > sigma], 0, atol=1e-6)
 
 
+@requires_numba_jit
 def test_lj_spotcheck(params):
+    from tmol.score.ljlk.numba.lj import f_vdw, f_vdw_d_dist
+
     i = params.type_params[0]
     j = params.type_params[2]
     g = params.global_params
