@@ -11,6 +11,28 @@ import numpy
 from numba import jit
 
 
+def find_lengths(bonds):
+    """find the non-redundant set of bonds, assuming that
+    there are no duplicate rows in the bonds tensor, but
+    that perhaps the bond between i & j is also listed as
+    a bond between j & i.
+    """
+    selected_bonds = bonds[:, :, 0] < bonds[:, :, 1]
+
+    nstacks = bonds.shape[0]
+    nbonds_per_stack = numpy.sum(selected_bonds, axis=1).reshape(nstacks, 1)
+    max_bonds = numpy.max(nbonds_per_stack)
+
+    lengths = numpy.full((nstacks, max_bonds, 2), -1, dtype=int)
+
+    # get the output-tensor indices for each stack that we should write to
+    counts = numpy.arange(max_bonds, dtype=int).reshape(1, max_bonds)
+    lowinds = counts < nbonds_per_stack
+    nzlow = numpy.nonzero(lowinds)
+    lengths[nzlow[0], nzlow[1]] = bonds[selected_bonds]
+    return lengths
+
+
 # traverse bond graph, generate angles
 @jit(nopython=True)
 def find_angles(bonds, bond_spans):
@@ -134,15 +156,7 @@ class CartBondedIdentification:
         bonds = indexed_bonds.bonds.cpu().numpy()
         spans = indexed_bonds.bond_spans.cpu().numpy()
 
-        selected_bonds = [
-            bonds[i, :, 0] < bonds[i, :, 1] for i in range(bonds.shape[0])
-        ]
-        max_bonds = max(numpy.sum(selected) for selected in selected_bonds)
-        lengths = numpy.full((bonds.shape[0], max_bonds, 2), -1, dtype=int)
-        for i in range(bonds.shape[0]):
-            ireal = numpy.sum(selected_bonds[i])
-            lengths[i, :ireal, :] = bonds[i, selected_bonds[i], :]
-
+        lengths = find_lengths(bonds)
         angles = find_angles(bonds, spans)
         torsions = find_torsions(bonds, spans)
         impropers = find_impropers(bonds, spans)

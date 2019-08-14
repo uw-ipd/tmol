@@ -94,7 +94,7 @@ def remove_undefined_indices(
     [ nstacks x nentries ].
     The output tensor will be
     [ nstacks x max-non-zero-params-per-stack x natoms-per-entry+1 ]
-    where a sentinel value of -9999 will be present
+    where a sentinel value of -1 will be present
     if either the param- or the atom index represents
     a non-existent atom set."""
 
@@ -113,8 +113,8 @@ def remove_undefined_indices(
     # how many for each stack should we keep?
     nkeep = torch.sum(real, dim=1).view((atom_inds.shape[0], 1))
     max_keep = torch.max(nkeep)
-    cb_inds2 = torch.full(
-        (nstacks, max_keep, atom_inds.shape[2] + 1), -9999, dtype=torch.int64
+    cb_inds = torch.full(
+        (nstacks, max_keep, atom_inds.shape[2] + 1), -1, dtype=torch.int64
     )
 
     # get the output-tensor indices for each stack that we should write to
@@ -122,14 +122,14 @@ def remove_undefined_indices(
     lowinds = counts < nkeep
     nzlow = torch.nonzero(lowinds)
 
-    cb_inds2[nzlow[:, 0], nzlow[:, 1], :-1] = torch.tensor(
-        atom_inds, dtype=torch.int64
-    )[nzreal[:, 0], nzreal[:, 1]]
-    cb_inds2[nzlow[:, 0], nzlow[:, 1], -1] = torch.tensor(
-        param_inds, dtype=torch.int64
-    )[nzreal[:, 0], nzreal[:, 1]]
+    cb_inds[nzlow[:, 0], nzlow[:, 1], :-1] = torch.tensor(atom_inds, dtype=torch.int64)[
+        nzreal[:, 0], nzreal[:, 1]
+    ]
+    cb_inds[nzlow[:, 0], nzlow[:, 1], -1] = torch.tensor(param_inds, dtype=torch.int64)[
+        nzreal[:, 0], nzreal[:, 1]
+    ]
 
-    return cb_inds2.to(device=device)
+    return cb_inds.to(device=device)
 
 
 @score_graph
