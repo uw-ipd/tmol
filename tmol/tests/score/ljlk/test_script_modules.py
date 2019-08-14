@@ -68,11 +68,13 @@ class ScoreSetup:
 
 def _dense_lj(coords, atom_type_idx, atom_pair_bpl, param_resolver):
     from tmol.score.ljlk.numba.vectorized import lj
+
     return _dense_potential(lj, coords, atom_type_idx, atom_pair_bpl, param_resolver)
 
 
 def _dense_lk(coords, atom_type_idx, atom_pair_bpl, param_resolver):
     from tmol.score.ljlk.numba.vectorized import lk_isotropic
+
     return _dense_potential(
         lk_isotropic, coords, atom_type_idx, atom_pair_bpl, param_resolver
     )
@@ -99,6 +101,7 @@ def _dense_potential(potential, coords, atom_type_idx, atom_pair_bpl, param_reso
             ),
         ),
     )
+
 
 @requires_numba_jit
 def test_lj_intra_op(benchmark, default_database, ubq_system, torch_device):
@@ -169,6 +172,7 @@ def test_lj_intra_op_stacked(benchmark, default_database, torch_device, ubq_syst
         op_val,
         torch.tensor(expected_dense).to(torch_device).sum().unsqueeze(0).repeat(2),
     )
+
 
 @requires_numba_jit
 def test_lj_inter_op(default_database, torch_device, ubq_system):
