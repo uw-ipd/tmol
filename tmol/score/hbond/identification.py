@@ -6,6 +6,7 @@ from tmol.types.attrs import ValidateAttrs
 from tmol.types.array import NDArray
 
 import numpy
+import pandas
 
 from tmol.database.chemical import ChemicalDatabase
 from tmol.database.scoring import HBondDatabase
@@ -56,22 +57,46 @@ class HBondElementAnalysis(ValidateAttrs):
 
         nstacks = atom_types.shape[0]
 
-        atom_acceptor_type = numpy.array(
-            [
-                [atom_type_acceptor_type.get(at, None) for at in atom_types[stack]]
-                for stack in range(nstacks)
-            ]
-        )
-        atom_donor_type = numpy.array(
-            [
-                [atom_type_donor_type.get(at, None) for at in atom_types[stack]]
-                for stack in range(nstacks)
-            ]
-        )
-        # print("atom_types")
-        # print(atom_types)
-        # print("atom_donor_type")
-        # print(atom_donor_type)
+        # print("atom_acceptor_type")
+        # for at in atom_types[0]:
+        #     acc_type = atom_type_acceptor_type.get(at, None)
+        #     if acc_type is not None:
+        #         print("at", at)
+        #         print("acc_type", acc_type)
+        #         break
+
+        # atom_acceptor_type = numpy.array(
+        #     [
+        #         [atom_type_acceptor_type.get(at, None) for at in atom_types[stack]]
+        #         for stack in range(nstacks)
+        #     ]
+        # )
+        # atom_donor_type = numpy.array(
+        #     [
+        #         [atom_type_donor_type.get(at, None) for at in atom_types[stack]]
+        #         for stack in range(nstacks)
+        #     ]
+        # )
+
+        # print("atom_types", atom_types)
+        # print("hbond_database.acceptor_type_mapper", hbond_database.acceptor_type_mapper)
+
+        real = atom_types.astype(bool)
+
+        def map_names(mapper, col_name):
+            hbtypes = numpy.full_like(atom_types, None, dtype=object)
+            try:
+                # if there are no atoms that register as acceptors/donors,
+                # pandas will throw a KeyError (annoying!)
+                hbtypes_df = mapper.loc[atom_types[real].ravel()][col_name]
+                hbtypes_df = hbtypes_df.where((pandas.notnull(hbtypes_df)), None)
+                hbtypes[real] = numpy.array(hbtypes_df)
+            except KeyError:
+                pass
+            return hbtypes
+
+        atom_acceptor_type = map_names(hbond_database.acceptor_type_mapper, "acc_type")
+        atom_donor_type = map_names(hbond_database.donor_type_mapper, "don_type")
 
         # Get the acceptor indicies and allocate base idx buffers
         A_idx_list = [
