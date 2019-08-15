@@ -86,7 +86,7 @@ class HBondElementAnalysis(ValidateAttrs):
             numpy.logical_and(A_idx != -1, B_idx == -1)
         ), "Invalid acceptor atom type."
 
-        acceptors = numpy.full(A_idx.shape, -9999, dtype=acceptor_dtype)
+        acceptors = numpy.full(A_idx.shape, -1, dtype=acceptor_dtype)
         acceptors["a"] = A_idx
         acceptors["b"] = B_idx
         acceptors["b0"] = B0_idx
@@ -94,11 +94,6 @@ class HBondElementAnalysis(ValidateAttrs):
         nz = numpy.nonzero(is_definitely_acceptor)
         acceptors["acceptor_type"][real_acceptors] = atom_acceptor_type[nz[0], nz[1]]
         acceptors["acceptor_type"][numpy.invert(real_acceptors)] = None
-
-        # Identify donor groups via donor-hydrogen bonds.
-        atom_type_donor_type = {
-            p.d: p.donor_type for p in hbond_database.donor_atom_types
-        }
 
         # copy the bonds array that can be indexed with safely, where
         # invalid bonds can be found where the first atom in the bond
@@ -130,7 +125,7 @@ class HBondElementAnalysis(ValidateAttrs):
         max_donors = numpy.max(nkeep)
         counts = numpy.arange(max_donors, dtype=int).reshape((1, max_donors))
         lowinds = counts < nkeep
-        donor_pair_idx = numpy.full((nstacks, max_donors, 2), -9999, dtype=int)
+        donor_pair_idx = numpy.full((nstacks, max_donors, 2), -1, dtype=int)
         donor_pair_idx[:, :, 0][lowinds] = indexable_bonds[:, :, 0][bond_bw_don_and_h]
         donor_pair_idx[:, :, 1][lowinds] = indexable_bonds[:, :, 1][bond_bw_don_and_h]
 
