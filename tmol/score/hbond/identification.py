@@ -103,50 +103,27 @@ class HBondElementAnalysis(ValidateAttrs):
         # copy the bonds array that can be indexed with safely, where
         # invalid bonds can be found where the first atom in the bond
         # is the same as the second atom
-
-        real_bonds = bonds.bonds[:, :, 0] >= 0
-        indexed_bonds = numpy.zeros_like(bonds.bonds)
-        indexed_bonds2 = numpy.zeros_like(bonds.bonds)
-        # print("indexed_bonds", indexed_bonds.shape)
-        # print("real_bonds", real_bonds.shape)
-        # print("real_bonds", real_bonds)
-        # print("bonds.bonds[:,:,0]", bonds.bonds[:,:,0].shape)
-        # print("bonds.bonds[:,:,0][real_bonds]", bonds.bonds[:,:,0][real_bonds])
-        # print("indexed_bonds[:,:,0]", indexed_bonds[:,:,0].shape)
-        # print("indexed_bonds[:,:,0][real_bonds]", indexed_bonds[:,:,0][real_bonds])
-        nz = numpy.nonzero(real_bonds)
-        numpy.set_printoptions(threshold=10000)
-        print("nz", nz)
-        # indexed_bonds[:,:,0][real_bonds] = bonds.bonds[:,:,0][real_bonds]
-        # indexed_bonds[:,:,1][real_bonds] = bonds.bonds[:,:,1][real_bonds]
-        indexed_bonds2[nz[0], nz[1], :] = bonds.bonds[nz[0], nz[1], :]
-
-        for i in range(nstacks):
-            n_real = torch.sum(bonds.bonds[i, :, 0] >= 0)
-            indexed_bonds[i, :n_real, :] = bonds.bonds[i, :n_real, :]
-
-        print("indexed_bonds", indexed_bonds)
-        print("indexed_bonds2", indexed_bonds2)
-        numpy.testing.assert_equal(indexed_bonds, indexed_bonds2)
+        indexable_bonds = numpy.copy(bonds.bonds.numpy())
+        indexable_bonds[indexable_bonds < 0] = 0
 
         # make an array that indexes the stack dimension of the
-        # indexed_bonds array so that you can then index into another
+        # indexable_bonds array so that you can then index into another
         # array, e.g. atom_is_donor
-        rb_stack = (
-            numpy.arange(indexed_bonds.shape[0] * indexed_bonds.shape[1])
-            / indexed_bonds.shape[1]
+        ib_stack = (
+            numpy.arange(indexable_bonds.shape[0] * indexable_bonds.shape[1])
+            / indexable_bonds.shape[1]
         )
-        rb_stack = rb_stack.astype(int)  # round down to a lower integer
+        ib_stack = ib_stack.astype(int)  # round down to a lower integer
 
-        rb01 = indexed_bonds.shape[0:2]
+        ib01 = indexable_bonds.shape[0:2]
 
         bond_bw_don_and_h = (
-            numpy.not_equal(indexed_bonds[:, :, 0], indexed_bonds[:, :, 1])
-            & atom_is_donor[rb_stack, indexed_bonds[:, :, 0].ravel()].reshape(rb01)
-            & atom_donor_type[rb_stack, indexed_bonds[:, :, 0].ravel()]
-            .reshape(rb01)
+            numpy.not_equal(indexable_bonds[:, :, 0], indexable_bonds[:, :, 1])
+            & atom_is_donor[ib_stack, indexable_bonds[:, :, 0].ravel()].reshape(ib01)
+            & atom_donor_type[ib_stack, indexable_bonds[:, :, 0].ravel()]
+            .reshape(ib01)
             .astype(bool)
-            & atom_is_hydrogen[rb_stack, indexed_bonds[:, :, 1].ravel()].reshape(rb01)
+            & atom_is_hydrogen[ib_stack, indexable_bonds[:, :, 1].ravel()].reshape(ib01)
         )
 
         nkeep = numpy.sum(bond_bw_don_and_h, axis=1).reshape((nstacks, 1))
@@ -154,8 +131,8 @@ class HBondElementAnalysis(ValidateAttrs):
         counts = numpy.arange(max_donors, dtype=int).reshape((1, max_donors))
         lowinds = counts < nkeep
         donor_pair_idx = numpy.full((nstacks, max_donors, 2), -9999, dtype=int)
-        donor_pair_idx[:, :, 0][lowinds] = indexed_bonds[:, :, 0][bond_bw_don_and_h]
-        donor_pair_idx[:, :, 1][lowinds] = indexed_bonds[:, :, 1][bond_bw_don_and_h]
+        donor_pair_idx[:, :, 0][lowinds] = indexable_bonds[:, :, 0][bond_bw_don_and_h]
+        donor_pair_idx[:, :, 1][lowinds] = indexable_bonds[:, :, 1][bond_bw_don_and_h]
 
         donors = numpy.empty(
             (donor_pair_idx.shape[0], donor_pair_idx.shape[1]), dtype=donor_dtype
@@ -164,7 +141,7 @@ class HBondElementAnalysis(ValidateAttrs):
         donors["h"] = donor_pair_idx[:, :, 1]
         nz = numpy.nonzero(bond_bw_don_and_h)
         donors["donor_type"][lowinds] = atom_donor_type[
-            nz[0], indexed_bonds[nz[0], nz[1], 0]
+            nz[0], indexable_bonds[nz[0], nz[1], 0]
         ]
         donors["donor_type"][numpy.invert(lowinds)] = None
 
