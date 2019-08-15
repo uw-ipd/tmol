@@ -52,12 +52,6 @@ struct ScoreOpBackward : public torch::autograd::Function {
     variable_list result;
     result.reserve(saved_grads.size());
 
-    // std::cout << " cart bonded backwards in_grads[0]";
-    // for (int i = 0; i < in_grads[0].dim(); ++i){
-    //   std::cout << " " << in_grads[0].size(i);
-    // }
-    // std::cout << "\n";
-
     for (auto& saved_grad : saved_grads) {
       auto x = saved_grad.unpack();
       std::vector<int64_t> newdims(x.dim(), 1);

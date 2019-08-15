@@ -35,14 +35,6 @@ class IndexedBonds:
 
         uniq_bonds, src_index = numpy.unique(src_bonds, axis=0, return_index=True)
 
-        # import sys
-        # numpy.set_printoptions(threshold=sys.maxsize)
-        #
-        # print("src_bonds", src_bonds)
-        # print("src_bonds", src_bonds.shape)
-        # print("uniq_bonds", uniq_bonds)
-        # print("uniq_bonds", uniq_bonds.shape)
-
         nstacks = numpy.max(uniq_bonds[:, 0]) + 1
 
         if not minlength:
