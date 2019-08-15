@@ -12,6 +12,7 @@ from .script_modules import LKBallIntraModule
 
 from tmol.score.ljlk.params import LJLKParamResolver
 from tmol.score.chemical_database import AtomTypeParamResolver
+from tmol.score.common.stack_condense import condense_torch_inds
 
 from tmol.types.torch import Tensor
 
@@ -52,28 +53,6 @@ class LKBallIntraScore(IntraScore):
     @reactive_property
     def total_lk_ball_bridge_uncpl(lkball_score):
         return lkball_score[:, 3]
-
-
-def condense_inds(selection: Tensor(bool)[:, :], device: torch.device):
-    """Given a two dimensional boolean tensor, create
-    an output tensor holding the column indices of the non-zero
-    entries for each row. Pad out the extra entries
-    in any given row that do not correspond to a selected
-    entry with a sentinel of -1.
-    """
-
-    nstacks = selection.shape[0]
-    nz_selection = torch.nonzero(selection)
-    nkeep = torch.sum(selection, dim=1).view((nstacks, 1))
-    max_keep = torch.max(nkeep)
-    inds = torch.full((nstacks, max_keep), -1, dtype=torch.int64, device=device)
-    counts = torch.arange(max_keep, dtype=torch.int64, device=device).view(
-        (1, max_keep)
-    )
-    lowinds = counts < nkeep
-
-    inds[lowinds] = nz_selection[:, 1]
-    return inds
 
 
 @score_graph
@@ -124,7 +103,7 @@ class LKBallScoreGraph(_LJLKCommonScoreGraph):
         )
         are_occluders = 1 - atom_type_params.params.is_hydrogen[ljlk_atom_types]
 
-        polars = condense_inds(are_polars, device)
-        occluders = condense_inds(are_occluders, device)
+        polars = condense_torch_inds(are_polars, device)
+        occluders = condense_torch_inds(are_occluders, device)
 
         return LKBallPairs(polars=polars, occluders=occluders)

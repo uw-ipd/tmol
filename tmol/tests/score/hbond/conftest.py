@@ -3,6 +3,7 @@ import pytest
 import cattr
 import yaml
 
+import tmol.database
 from tmol.database.scoring.hbond import HBondDatabase, HBondDatabaseRaw
 
 bb_hbond_config = """
