@@ -17,14 +17,11 @@ def condense_numpy_inds(selection: NDArray(bool)[:, :]):
     nkeep = numpy.sum(selection, axis=1).reshape((nstacks, 1))
     max_keep = numpy.max(nkeep)
     inds = numpy.full((nstacks, max_keep), -1, dtype=int)
-    counts = numpy.arange(max_keep, dtype=int).reshape(
-        (1, max_keep)
-    )
+    counts = numpy.arange(max_keep, dtype=int).reshape((1, max_keep))
     lowinds = counts < nkeep
 
     inds[lowinds] = nz_selection[1]
     return inds
-
 
 
 def condense_torch_inds(selection: Tensor(bool)[:, :], device: torch.device):
@@ -47,5 +44,3 @@ def condense_torch_inds(selection: Tensor(bool)[:, :], device: torch.device):
 
     inds[lowinds] = nz_selection[:, 1]
     return inds
-
-
