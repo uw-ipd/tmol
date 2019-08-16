@@ -42,7 +42,7 @@ class ElecParamResolver(ValidateAttrs):
     partial_charges: dict
 
     def resolve_partial_charge(
-        self, res_names: NDArray(object)[...], atom_names: NDArray(object)[...]
+        self, res_names: NDArray(object)[:, :], atom_names: NDArray(object)[:, :]
     ) -> NDArray("f")[...]:
         """Convert array of atom type names to partial charges.
         """
