@@ -32,10 +32,120 @@ template <
     int MAX_WATER>
 struct GenerateWaters {
   static def forward(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<Int, 1, D> atom_types,
-      TView<Vec<Int, 2>, 1, D> indexed_bond_bonds,
-      TView<Vec<Int, 2>, 1, D> indexed_bond_spans,
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<Int, 2, D> atom_types,
+      TView<Vec<Int, 2>, 2, D> indexed_bond_bonds,
+      TView<Vec<Int, 2>, 2, D> indexed_bond_spans,
+      TView<LKBallWaterGenTypeParams<Int>, 1, D> type_params,
+      TView<LKBallWaterGenGlobalParams<Real>, 1, D> global_params,
+      TView<Real, 1, D> sp2_water_tors,
+      TView<Real, 1, D> sp3_water_tors,
+      TView<Real, 1, D> ring_water_tors)
+      ->TPack<Vec<Real, 3>, 3, D> {
+    NVTXRange _function(__FUNCTION__);
+
+    using tmol::score::hbond::AcceptorBases;
+    using tmol::score::hbond::AcceptorHybridization;
+
+    int const num_Vs = coords.size(1);
+    int const nstacks = coords.size(0);
+
+    nvtx_range_push("watergen::setup");
+    auto waters_t =
+        TPack<Vec<Real, 3>, 3, D>::empty({nstacks, num_Vs, MAX_WATER});
+    auto waters = waters_t.view;
+
+    int nsp2wats = sp2_water_tors.size(0);
+    int nsp3wats = sp3_water_tors.size(0);
+    int nringwats = ring_water_tors.size(0);
+    nvtx_range_pop();
+
+    nvtx_range_push("watergen::gen");
+    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int stack, int j) {
+      return (bool)type_params[atom_types[stack][j]].is_hydrogen;
+    });
+
+    auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int idx) {
+      Int stack = idx / coords.size(1);
+      Int i = idx - stack * coords.size(1);
+      Int ati = atom_types[stack][i];  // atom type of -1 means not an atom.
+      int wi = 0;
+
+      if (ati >= 0) {
+        tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
+        indexed_bonds.bonds = indexed_bond_bonds[stack];
+        indexed_bonds.bond_spans = indexed_bond_spans[stack];
+
+        if (type_params[ati].is_acceptor) {
+          Int hyb = type_params[ati].acceptor_hybridization;
+
+          auto bases = AcceptorBases<Int>::for_acceptor(
+              stack, i, hyb, indexed_bonds, is_hydrogen);
+
+          Vec<Real, 3> XA = coords[stack][bases.A];
+          Vec<Real, 3> XB = coords[stack][bases.B];
+          Vec<Real, 3> XB0 = coords[stack][bases.B0];
+
+          Real dist;
+          Real angle;
+          Real *tors;
+          Int ntors;
+
+          if (hyb == AcceptorHybridization::sp2) {
+            dist = global_params[0].lkb_water_dist;
+            angle = global_params[0].lkb_water_angle_sp2;
+            ntors = nsp2wats;
+            tors = sp2_water_tors.data();
+          } else if (hyb == AcceptorHybridization::sp3) {
+            dist = global_params[0].lkb_water_dist;
+            angle = global_params[0].lkb_water_angle_sp3;
+            ntors = nsp3wats;
+            tors = sp3_water_tors.data();
+          } else if (hyb == AcceptorHybridization::ring) {
+            dist = global_params[0].lkb_water_dist;
+            angle = global_params[0].lkb_water_angle_ring;
+            ntors = nringwats;
+            tors = ring_water_tors.data();
+            XB = 0.5 * (XB + XB0);
+          }
+
+          for (int ti = 0; ti < ntors; ti++) {
+            waters[stack][i][wi] =
+                build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
+            wi++;
+          }
+        }
+
+        if (type_params[ati].is_donor) {
+          for (int other_atom : indexed_bonds.bound_to(i)) {
+            if (is_hydrogen(stack, other_atom)) {
+              waters[stack][i][wi] = build_don_water<Real>::V(
+                  coords[stack][i],
+                  coords[stack][other_atom],
+                  global_params[0].lkb_water_dist);
+              wi++;
+            };
+          }
+        }
+      }
+
+      for (; wi < MAX_WATER; wi++) {
+        waters[stack][i][wi] = Vec<Real, 3>::Constant(NAN);
+      }
+    });
+
+    Dispatch<D>::forall(nstacks * num_Vs, f_watergen);
+    nvtx_range_pop();
+
+    return waters_t;
+  };
+
+  static def backward(
+      TView<Vec<Real, 3>, 3, D> dE_dW,
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<Int, 2, D> atom_types,
+      TView<Vec<Int, 2>, 2, D> indexed_bond_bonds,
+      TView<Vec<Int, 2>, 2, D> indexed_bond_spans,
       TView<LKBallWaterGenTypeParams<Int>, 1, D> type_params,
       TView<LKBallWaterGenGlobalParams<Real>, 1, D> global_params,
       TView<Real, 1, D> sp2_water_tors,
@@ -44,123 +154,17 @@ struct GenerateWaters {
       ->TPack<Vec<Real, 3>, 2, D> {
     NVTXRange _function(__FUNCTION__);
 
-    using tmol::score::hbond::AcceptorBases;
-    using tmol::score::hbond::AcceptorHybridization;
-
-    int num_Vs = coords.size(0);
-
-    nvtx_range_push("watergen::setup");
-    auto waters_t =
-        TPack<Vec<Real, 3>, 2, D>::empty({coords.size(0), MAX_WATER});
-    auto waters = waters_t.view;
-
-    tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
-    indexed_bonds.bonds = indexed_bond_bonds;
-    indexed_bonds.bond_spans = indexed_bond_spans;
-
-    int nsp2wats = sp2_water_tors.size(0);
-    int nsp3wats = sp3_water_tors.size(0);
-    int nringwats = ring_water_tors.size(0);
-    nvtx_range_pop();
-
-    nvtx_range_push("watergen::gen");
-    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
-      return (bool)type_params[atom_types[j]].is_hydrogen;
-    });
-
-    auto f_watergen = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atom_types[i];
-      int wi = 0;
-
-      if (type_params[ati].is_acceptor) {
-        Int hyb = type_params[ati].acceptor_hybridization;
-
-        auto bases = AcceptorBases<Int>::for_acceptor(
-            i, hyb, indexed_bonds, is_hydrogen);
-
-        Vec<Real, 3> XA = coords[bases.A];
-        Vec<Real, 3> XB = coords[bases.B];
-        Vec<Real, 3> XB0 = coords[bases.B0];
-
-        Real dist;
-        Real angle;
-        Real *tors;
-        Int ntors;
-
-        if (hyb == AcceptorHybridization::sp2) {
-          dist = global_params[0].lkb_water_dist;
-          angle = global_params[0].lkb_water_angle_sp2;
-          ntors = nsp2wats;
-          tors = sp2_water_tors.data();
-        } else if (hyb == AcceptorHybridization::sp3) {
-          dist = global_params[0].lkb_water_dist;
-          angle = global_params[0].lkb_water_angle_sp3;
-          ntors = nsp3wats;
-          tors = sp3_water_tors.data();
-        } else if (hyb == AcceptorHybridization::ring) {
-          dist = global_params[0].lkb_water_dist;
-          angle = global_params[0].lkb_water_angle_ring;
-          ntors = nringwats;
-          tors = ring_water_tors.data();
-          XB = 0.5 * (XB + XB0);
-        }
-
-        for (int ti = 0; ti < ntors; ti++) {
-          waters[i][wi] =
-              build_acc_water<Real>::V(XA, XB, XB0, dist, angle, tors[ti]);
-          wi++;
-        }
-      }
-
-      if (type_params[ati].is_donor) {
-        for (int other_atom : indexed_bonds.bound_to(i)) {
-          if (is_hydrogen(other_atom)) {
-            waters[i][wi] = build_don_water<Real>::V(
-                coords[i], coords[other_atom], global_params[0].lkb_water_dist);
-            wi++;
-          };
-        }
-      }
-
-      for (; wi < MAX_WATER; wi++) {
-        waters[i][wi] = Vec<Real, 3>::Constant(NAN);
-      }
-    });
-
-    Dispatch<D>::forall(num_Vs, f_watergen);
-    nvtx_range_pop();
-
-    return waters_t;
-  };
-
-  static def backward(
-      TView<Vec<Real, 3>, 2, D> dE_dW,
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<Int, 1, D> atom_types,
-      TView<Vec<Int, 2>, 1, D> indexed_bond_bonds,
-      TView<Vec<Int, 2>, 1, D> indexed_bond_spans,
-      TView<LKBallWaterGenTypeParams<Int>, 1, D> type_params,
-      TView<LKBallWaterGenGlobalParams<Real>, 1, D> global_params,
-      TView<Real, 1, D> sp2_water_tors,
-      TView<Real, 1, D> sp3_water_tors,
-      TView<Real, 1, D> ring_water_tors)
-      ->TPack<Vec<Real, 3>, 1, D> {
-    NVTXRange _function(__FUNCTION__);
-
     nvtx_range_push("watergen::dsetup");
 
     using tmol::score::hbond::AcceptorBases;
     using tmol::score::hbond::AcceptorHybridization;
 
-    int num_Vs = coords.size(0);
+    int nstacks = coords.size(0);
+    int num_Vs = coords.size(1);
 
     auto dE_d_coord_t =
-        TPack<Vec<Real, 3>, 1, D>::zeros({coords.size(0), MAX_WATER});
+        TPack<Vec<Real, 3>, 2, D>::zeros({nstacks, num_Vs, MAX_WATER});
     auto dE_d_coord = dE_d_coord_t.view;
-
-    tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
-    indexed_bonds.bonds = indexed_bond_bonds;
-    indexed_bonds.bond_spans = indexed_bond_spans;
 
     int nsp2wats = sp2_water_tors.size(0);
     int nsp3wats = sp3_water_tors.size(0);
@@ -168,96 +172,109 @@ struct GenerateWaters {
     nvtx_range_pop();
 
     nvtx_range_push("watergen::dgen");
-    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int j) {
-      return (bool)type_params[atom_types[j]].is_hydrogen;
+    auto is_hydrogen = ([=] EIGEN_DEVICE_FUNC(int stack, int j) {
+      return (bool)type_params[atom_types[stack][j]].is_hydrogen;
     });
 
-    auto df_watergen = ([=] EIGEN_DEVICE_FUNC(int i) {
-      Int ati = atom_types[i];
+    auto df_watergen = ([=] EIGEN_DEVICE_FUNC(int idx) {
+      Int stack = idx / coords.size(1);
+      Int i = idx - stack * coords.size(1);
+      Int ati = atom_types[stack][i];  // atom type of -1 means not an atom.
       int wi = 0;
 
-      if (type_params[ati].is_acceptor) {
-        Int hyb = type_params[ati].acceptor_hybridization;
+      if (ati >= 0) {
+        tmol::score::bonded_atom::IndexedBonds<Int, D> indexed_bonds;
+        indexed_bonds.bonds = indexed_bond_bonds[stack];
+        indexed_bonds.bond_spans = indexed_bond_spans[stack];
 
-        auto bases = AcceptorBases<Int>::for_acceptor(
-            i, hyb, indexed_bonds, is_hydrogen);
+        if (type_params[ati].is_acceptor) {
+          Int hyb = type_params[ati].acceptor_hybridization;
 
-        Vec<Real, 3> XA = coords[bases.A];
-        Vec<Real, 3> XB = coords[bases.B];
-        Vec<Real, 3> XB0 = coords[bases.B0];
+          auto bases = AcceptorBases<Int>::for_acceptor(
+              stack, i, hyb, indexed_bonds, is_hydrogen);
 
-        Vec<Real, 3> dE_dXA = Vec<Real, 3>::Zero();
-        Vec<Real, 3> dE_dXB = Vec<Real, 3>::Zero();
-        Vec<Real, 3> dE_dXB0 = Vec<Real, 3>::Zero();
+          Vec<Real, 3> XA = coords[stack][bases.A];
+          Vec<Real, 3> XB = coords[stack][bases.B];
+          Vec<Real, 3> XB0 = coords[stack][bases.B0];
 
-        Real dist;
-        Real angle;
-        Real *tors;
-        Int ntors;
+          Vec<Real, 3> dE_dXA = Vec<Real, 3>::Zero();
+          Vec<Real, 3> dE_dXB = Vec<Real, 3>::Zero();
+          Vec<Real, 3> dE_dXB0 = Vec<Real, 3>::Zero();
 
-        if (hyb == AcceptorHybridization::sp2) {
-          dist = global_params[0].lkb_water_dist;
-          angle = global_params[0].lkb_water_angle_sp2;
-          ntors = nsp2wats;
-          tors = sp2_water_tors.data();
-        } else if (hyb == AcceptorHybridization::sp3) {
-          dist = global_params[0].lkb_water_dist;
-          angle = global_params[0].lkb_water_angle_sp3;
-          ntors = nsp3wats;
-          tors = sp3_water_tors.data();
-        } else if (hyb == AcceptorHybridization::ring) {
-          dist = global_params[0].lkb_water_dist;
-          angle = global_params[0].lkb_water_angle_ring;
-          ntors = nringwats;
-          tors = ring_water_tors.data();
-          XB = 0.5 * (XB + XB0);
-        }
+          Real dist;
+          Real angle;
+          Real *tors;
+          Int ntors;
 
-        for (int ti = 0; ti < ntors; ti++) {
-          auto dW =
-              build_acc_water<Real>::dV(XA, XB, XB0, dist, angle, tors[ti]);
-          auto dE_dWi = dE_dW[i][wi];
+          if (hyb == AcceptorHybridization::sp2) {
+            dist = global_params[0].lkb_water_dist;
+            angle = global_params[0].lkb_water_angle_sp2;
+            ntors = nsp2wats;
+            tors = sp2_water_tors.data();
+          } else if (hyb == AcceptorHybridization::sp3) {
+            dist = global_params[0].lkb_water_dist;
+            angle = global_params[0].lkb_water_angle_sp3;
+            ntors = nsp3wats;
+            tors = sp3_water_tors.data();
+          } else if (hyb == AcceptorHybridization::ring) {
+            dist = global_params[0].lkb_water_dist;
+            angle = global_params[0].lkb_water_angle_ring;
+            ntors = nringwats;
+            tors = ring_water_tors.data();
+            XB = 0.5 * (XB + XB0);
+          }
 
-          dE_dXA += dW.dA * dE_dWi;
-          dE_dXB += dW.dB * dE_dWi;
-          dE_dXB0 += dW.dB0 * dE_dWi;
+          for (int ti = 0; ti < ntors; ti++) {
+            auto dW =
+                build_acc_water<Real>::dV(XA, XB, XB0, dist, angle, tors[ti]);
+            auto dE_dWi = dE_dW[stack][i][wi];
 
-          wi++;
-        }
-
-        common::accumulate<D, Vec<Real, 3>>::add(dE_d_coord[bases.A], dE_dXA);
-
-        if (hyb == AcceptorHybridization::ring) {
-          common::accumulate<D, Vec<Real, 3>>::add(
-              dE_d_coord[bases.B], dE_dXB / 2.0);
-          common::accumulate<D, Vec<Real, 3>>::add(
-              dE_d_coord[bases.B0], dE_dXB / 2.0);
-        } else {
-          common::accumulate<D, Vec<Real, 3>>::add(dE_d_coord[bases.B], dE_dXB);
-        }
-
-        common::accumulate<D, Vec<Real, 3>>::add(dE_d_coord[bases.B0], dE_dXB0);
-      }
-
-      if (type_params[ati].is_donor) {
-        for (int other_atom : indexed_bonds.bound_to(i)) {
-          if (is_hydrogen(other_atom)) {
-            auto dE_dWi = dE_dW[i][wi];
-            auto dW = build_don_water<Real>::dV(
-                coords[i], coords[other_atom], global_params[0].lkb_water_dist);
-
-            common::accumulate<D, Vec<Real, 3>>::add(
-                dE_d_coord[i], dW.dD * dE_dWi);
-            common::accumulate<D, Vec<Real, 3>>::add(
-                dE_d_coord[other_atom], dW.dH * dE_dWi);
+            dE_dXA += dW.dA * dE_dWi;
+            dE_dXB += dW.dB * dE_dWi;
+            dE_dXB0 += dW.dB0 * dE_dWi;
 
             wi++;
-          };
+          }
+
+          common::accumulate<D, Vec<Real, 3>>::add(
+              dE_d_coord[stack][bases.A], dE_dXA);
+
+          if (hyb == AcceptorHybridization::ring) {
+            common::accumulate<D, Vec<Real, 3>>::add(
+                dE_d_coord[stack][bases.B], dE_dXB / 2.0);
+            common::accumulate<D, Vec<Real, 3>>::add(
+                dE_d_coord[stack][bases.B0], dE_dXB / 2.0);
+          } else {
+            common::accumulate<D, Vec<Real, 3>>::add(
+                dE_d_coord[stack][bases.B], dE_dXB);
+          }
+
+          common::accumulate<D, Vec<Real, 3>>::add(
+              dE_d_coord[stack][bases.B0], dE_dXB0);
+        }
+
+        if (type_params[ati].is_donor) {
+          for (int other_atom : indexed_bonds.bound_to(i)) {
+            if (is_hydrogen(stack, other_atom)) {
+              auto dE_dWi = dE_dW[stack][i][wi];
+              auto dW = build_don_water<Real>::dV(
+                  coords[stack][i],
+                  coords[stack][other_atom],
+                  global_params[0].lkb_water_dist);
+
+              common::accumulate<D, Vec<Real, 3>>::add(
+                  dE_d_coord[stack][i], dW.dD * dE_dWi);
+              common::accumulate<D, Vec<Real, 3>>::add(
+                  dE_d_coord[stack][other_atom], dW.dH * dE_dWi);
+
+              wi++;
+            };
+          }
         }
       }
     });
 
-    Dispatch<D>::forall(num_Vs, df_watergen);
+    Dispatch<D>::forall(nstacks * num_Vs, df_watergen);
     nvtx_range_pop();
 
     return dE_d_coord_t;

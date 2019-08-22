@@ -54,7 +54,13 @@ struct ScoreOpBackward : public torch::autograd::Function {
 
     for (auto& saved_grad : saved_grads) {
       auto x = saved_grad.unpack();
-      result.emplace_back( (x * in_grads[0].unsqueeze(1)).sum(1) );
+      std::vector<int64_t> newdims(x.dim(), 1);
+      newdims[0] = in_grads[0].size(0);
+      newdims[2] = in_grads[0].size(1);
+      c10::IntList newdims_il(&newdims[0], x.dim());
+      auto ingrad = in_grads[0].view(newdims_il);
+      result.emplace_back((saved_grad.unpack() * ingrad).sum(2));
+      // result.emplace_back( (x * in_grads[0].unsqueeze(1)).sum(1) );
     }
 
     return result;

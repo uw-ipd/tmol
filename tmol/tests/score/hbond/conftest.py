@@ -3,7 +3,8 @@ import pytest
 import cattr
 import yaml
 
-import tmol.database.scoring
+import tmol.database
+from tmol.database.scoring.hbond import HBondDatabase, HBondDatabaseRaw
 
 bb_hbond_config = """
     global_parameters:
@@ -88,8 +89,8 @@ bb_hbond_config = """
 
 @pytest.fixture
 def bb_hbond_database():
-    return cattr.structure(
-        yaml.safe_load(bb_hbond_config), tmol.database.scoring.HBondDatabase
+    return HBondDatabase.from_raw_hbond_db(
+        cattr.structure(yaml.safe_load(bb_hbond_config), HBondDatabaseRaw)
     )
 
 

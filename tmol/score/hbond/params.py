@@ -1,13 +1,12 @@
 import attr
 
-from typing import Sequence
-
 import numpy
 import pandas
 import torch
 
 import toolz
 
+from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 from tmol.types.attrs import ValidateAttrs, ConvertAttrs
@@ -84,17 +83,29 @@ class HBondParamResolver(ValidateAttrs):
     pair_params: HBondPairParams = attr.ib()
     device: torch.device = attr.ib()
 
-    def resolve_donor_type(self, donor_types: Sequence[str]) -> torch.Tensor:
+    @validate_args
+    def resolve_donor_type(self, donor_types: NDArray(object)[:, :]) -> torch.Tensor:
         """Resolve string donor type name into integer type index."""
-        i = self.donor_type_index.get_indexer(donor_types)
-        assert not numpy.any(i == -1), "donor type not present in index"
-        return torch.from_numpy(i).to(device=self.device)
+        inds = numpy.full(donor_types.shape, -9999, dtype=numpy.int64)
+        for i in range(donor_types.shape[0]):
+            n_real = numpy.sum(donor_types[i].astype(bool))
+            i_inds = self.donor_type_index.get_indexer(donor_types[i, :n_real])
+            assert not numpy.any(i_inds == -1), "donor type not present in index"
+            inds[i, :n_real] = i_inds
+        return torch.from_numpy(inds).to(device=self.device)
 
-    def resolve_acceptor_type(self, acceptor_types: Sequence[str]) -> torch.Tensor:
+    @validate_args
+    def resolve_acceptor_type(
+        self, acceptor_types: NDArray(object)[:, :]
+    ) -> torch.Tensor:
         """Resolve string acceptor type name into integer type index."""
-        i = self.acceptor_type_index.get_indexer(acceptor_types)
-        assert not numpy.any(i == -1), "acceptor type not present in index"
-        return torch.from_numpy(i).to(device=self.device)
+        inds = numpy.full(acceptor_types.shape, -9999, dtype=numpy.int64)
+        for i in range(acceptor_types.shape[0]):
+            n_real = numpy.sum(acceptor_types[i].astype(bool))
+            i_inds = self.acceptor_type_index.get_indexer(acceptor_types[i, :n_real])
+            assert not numpy.any(i_inds == -1), "acceptor type not present in index"
+            inds[i, :n_real] = i_inds
+        return torch.from_numpy(inds).to(device=self.device)
 
     @classmethod
     @validate_args

@@ -26,25 +26,25 @@ template <
     typename Int>
 struct HBondDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, Dev> donor_coords,
-      TView<Vec<Real, 3>, 1, Dev> acceptor_coords,
+      TView<Vec<Real, 3>, 2, Dev> donor_coords,
+      TView<Vec<Real, 3>, 2, Dev> acceptor_coords,
 
-      TView<int64_t, 1, Dev> D,
-      TView<int64_t, 1, Dev> H,
-      TView<Int, 1, Dev> donor_type,
+      TView<int64_t, 2, Dev> D,
+      TView<int64_t, 2, Dev> H,
+      TView<Int, 2, Dev> donor_type,
 
-      TView<int64_t, 1, Dev> A,
-      TView<int64_t, 1, Dev> B,
-      TView<int64_t, 1, Dev> B0,
-      TView<Int, 1, Dev> acceptor_type,
+      TView<int64_t, 2, Dev> A,
+      TView<int64_t, 2, Dev> B,
+      TView<int64_t, 2, Dev> B0,
+      TView<Int, 2, Dev> acceptor_type,
 
       TView<HBondPairParams<Real>, 2, Dev> pair_params,
       TView<HBondPolynomials<double>, 2, Dev> pair_polynomials,
       TView<HBondGlobalParams<Real>, 1, Dev> global_params)
       -> std::tuple<
           TPack<Real, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>,
-          TPack<Vec<Real, 3>, 1, Dev>>;
+          TPack<Vec<Real, 3>, 2, Dev>,
+          TPack<Vec<Real, 3>, 2, Dev>>;
 };
 
 }  // namespace potentials

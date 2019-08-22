@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from tmol.database import ParameterDatabase
-from tmol.system.packed import PackedResidueSystem
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider
 from tmol.score.hbond import HBondScoreGraph
@@ -100,3 +100,20 @@ def test_hbond_score_gradcheck(ubq_res, torch_device):
     assert torch.autograd.gradcheck(
         total_score, (start_coords,), eps=2e-3, rtol=5e-4, atol=5e-2
     )
+
+
+def test_jagged_scoring(ubq_res, default_database):
+    ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
+    ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
+    twoubq = PackedResidueSystemStack((ubq40, ubq60))
+
+    score40 = HBGraph.build_for(ubq40)
+    score60 = HBGraph.build_for(ubq60)
+    score_both = HBGraph.build_for(twoubq)
+
+    total40 = score40.intra_score().total
+    total60 = score60.intra_score().total
+    total_both = score_both.intra_score().total
+
+    assert total_both[0].item() == pytest.approx(total40[0].item())
+    assert total_both[1].item() == pytest.approx(total60[0].item())

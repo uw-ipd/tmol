@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from tmol.score.hbond.identification import HBondElementAnalysis
 from tmol.score.hbond.params import HBondParamResolver, CompactedHBondDatabase
@@ -14,19 +15,19 @@ def _setup_inputs(coords, params, donors, acceptors, torch_device):
         return t
 
     return dict(
-        donor_coords=_t(coords),
-        acceptor_coords=_t(coords),
+        donor_coords=_t(coords)[None, :],
+        acceptor_coords=_t(coords)[None, :],
         D=_t(donors["d"]),
         H=_t(donors["h"]),
-        donor_type=_t(params.donor_type_index.get_indexer(donors["donor_type"])).to(
+        donor_type=_t(params.donor_type_index.get_indexer(donors["donor_type"][0])).to(
             torch.int32
-        ),
+        )[None, :],
         A=_t(acceptors["a"]),
         B=_t(acceptors["b"]),
         B0=_t(acceptors["b0"]),
         acceptor_type=_t(
-            params.acceptor_type_index.get_indexer(acceptors["acceptor_type"])
-        ).to(torch.int32),
+            params.acceptor_type_index.get_indexer(acceptors["acceptor_type"][0])
+        ).to(torch.int32)[None, :],
     )
 
 
@@ -48,7 +49,8 @@ def test_script_module_scores(default_database, ubq_system, torch_device):
     # Load coordinates and types from standard test system
 
     atom_types = system.atom_metadata["atom_type"].copy()
-    bonds = system.bonds.copy()
+    bonds = numpy.zeros((system.bonds.shape[0], 3), dtype=numpy.int64)
+    bonds[:, 1:] = system.bonds
     coords = system.coords.copy()
 
     # Run donor/acceptor identification over system
@@ -56,7 +58,7 @@ def test_script_module_scores(default_database, ubq_system, torch_device):
     hbond_elements = HBondElementAnalysis.setup_from_database(
         chemical_database=default_database.chemical,
         hbond_database=default_database.scoring.hbond,
-        atom_types=atom_types,
+        atom_types=atom_types[None, :],
         bonds=bonds,
     )
 
