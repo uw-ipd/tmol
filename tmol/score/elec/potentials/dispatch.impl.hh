@@ -26,7 +26,9 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -39,23 +41,27 @@ struct ElecDispatch {
       TView<Real, 3, Dev> bonded_path_lengths,
       TView<ElecGlobalParams<float>, 1, Dev> global_params)
       -> std::tuple<
-          TPack<Real, 1, Dev>,
+          TPack<Real, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>> {
     int nstacks = coords_i.size(0);
-    auto Vs_t = TPack<Real, 1, Dev>::zeros({nstacks});
+    auto Vs_t = TPack<Real, 2, Dev>::zeros({nstacks, 2});
+    auto Vs_i_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_i.size(1), 2});
+    auto Vs_j_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_j.size(1), 2});
     auto dVs_dI_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_i.size(1)});
     auto dVs_dJ_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_j.size(1)});
 
     auto Vs = Vs_t.view;
+    auto Vs_i_ats = Vs_i_ats_t.view;
+    auto Vs_j_ats = Vs_j_ats_t.view;
     auto dVs_dI = dVs_dI_t.view;
     auto dVs_dJ = dVs_dJ_t.view;
 
     Real threshold_distance = 6.0;  // fd  make this a parameter...
 
-    Dispatch<Dev>::forall_stacked_pairs(
+    PairDispatch<Dev>::forall_stacked_pairs(
         threshold_distance,
         coords_i,
         coords_j,
@@ -78,12 +84,29 @@ struct ElecDispatch {
               global_params[0].min_dis,
               global_params[0].max_dis);
 
-          accumulate<Dev, Real>::add(Vs[stack], V);
+	  if ( V < 0 ) {
+	    accumulate<Dev, Real>::add(Vs[stack][0], V);
+	    accumulate<Dev, Real>::add(Vs_i_ats[stack][i][0], V);
+	    accumulate<Dev, Real>::add(Vs_j_ats[stack][j][0], V);
+	  } else {
+	    accumulate<Dev, Real>::add(Vs[stack][1], V);
+	    accumulate<Dev, Real>::add(Vs_i_ats[stack][i][1], V);
+	    accumulate<Dev, Real>::add(Vs_j_ats[stack][j][1], V);
+	  }
+
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dI[stack][i], dV_dDist * ddist_dI);
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dJ[stack][j], dV_dDist * ddist_dJ);
         });
+
+    // auto print_at_vals = [=] EIGEN_DEVICE_FUNC(int stack, int i) {
+    //   printf(" at %5d %5d %16.10f %16.10f\n", stack, i,
+    // 	Vs_i_ats[stack][i][0]+Vs_j_ats[stack][i][0],
+    // 	Vs_i_ats[stack][i][1]+Vs_j_ats[stack][i][1]);
+    // };
+    // 
+    // SingleDispatch<Dev>::forall_stacks(nstacks, (int) coords_i.size(1), print_at_vals);
 
     return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }

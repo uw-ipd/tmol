@@ -46,6 +46,9 @@ class ElecInterModule(_ElecScoreModule):
 class ElecIntraModule(_ElecScoreModule):
     @torch.jit.script_method
     def forward(self, I, atom_type_I, bonded_path_lengths):
+        # print("I", I.shape)
+        # print("atom_type_I", atom_type_I.shape)
+        # print("bonded_path_lengths", bonded_path_lengths.shape)
         return torch.ops.tmol.score_elec_triu(
             I, atom_type_I, I, atom_type_I, bonded_path_lengths, self.global_params
         )
