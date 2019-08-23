@@ -1,4 +1,5 @@
 import torch
+import numpy
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 from tmol.system.score_support import stacked_bonded_atoms_for_system
@@ -68,7 +69,6 @@ def test_jagged_parameter_resolution_rbpl(ubq_res, default_database, torch_devic
     )
     torch.testing.assert_allclose(ub60_rbpl, tubq_rbpl[1:2, :])
 
-
 def test_jagged_parameter_resolution_part_charges(
     ubq_res, default_database, torch_device
 ):
@@ -98,3 +98,5 @@ def test_jagged_parameter_resolution_part_charges(
 
     torch.testing.assert_allclose(ub40_pcs, tubq_pcs[0:1, : ub40_pcs.shape[1]])
     torch.testing.assert_allclose(ub60_pcs, tubq_pcs[1:2, :])
+
+    

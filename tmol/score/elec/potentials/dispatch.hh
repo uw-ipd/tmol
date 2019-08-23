@@ -18,7 +18,9 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -31,7 +33,7 @@ struct ElecDispatch {
       TView<Real, 3, Dev> bonded_path_lengths,
       TView<ElecGlobalParams<float>, 1, Dev> global_params)
       -> std::tuple<
-          TPack<Real, 1, Dev>,
+          TPack<Real, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev> >;
 };

@@ -27,9 +27,11 @@ class ElecIntraScore(IntraScore):
     @reactive_property
     # @validate_args
     def total_elec(target):
-        return target.elec_intra_module(
+        V = target.elec_intra_module(
             target.coords, target.elec_partial_charges, target.repatm_bonded_path_length
         )
+        # print("V", V)
+        return V[:,0] + V[:,1]
 
 
 @score_graph
