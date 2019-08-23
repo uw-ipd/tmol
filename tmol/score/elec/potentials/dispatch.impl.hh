@@ -41,11 +41,11 @@ struct ElecDispatch {
       TView<Real, 3, Dev> bonded_path_lengths,
       TView<ElecGlobalParams<float>, 1, Dev> global_params)
       -> std::tuple<
-          TPack<Real, 1, Dev>,
+          TPack<float, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>> {
     int nstacks = coords_i.size(0);
-    auto Vs_t = TPack<Real, 1, Dev>::zeros({nstacks});
+    auto Vs_t = TPack<float, 2, Dev>::zeros({nstacks, 2});
     //auto Vs_i_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_i.size(1), 2});
     //auto Vs_j_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_j.size(1), 2});
     auto dVs_dI_t =
@@ -85,7 +85,7 @@ struct ElecDispatch {
               global_params[0].max_dis);
 
 	  // Kahan summation to reduce numerical noise
-	  accumulate<Dev, Real>::add(Vs[stack], V);
+	  accumulate_kahan<Dev, float>::add(&Vs[stack][0], V);
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dI[stack][i], dV_dDist * ddist_dI);
           accumulate<Dev, Vec<Real, 3>>::add(
