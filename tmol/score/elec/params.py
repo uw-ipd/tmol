@@ -74,7 +74,7 @@ class ElecParamResolver(ValidateAttrs):
             natms = len(res_names[i, ...])
             mapped_indices = numpy.vectorize(
                 lambda a, b, c: c
-                if numpy.isnan(a)
+                if a is None or numpy.isnan(a)
                 else (
                     numpy.where((res_indices[i, ...] == a) & (atom_names[i, ...] == b))[
                         0
