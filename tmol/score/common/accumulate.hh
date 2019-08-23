@@ -11,13 +11,25 @@ namespace common {
 template <tmol::Device D, typename T, class Enable = void>
 struct accumulate {};
 
+template <tmol::Device D, typename T>
+struct accumulate_kahan {};
+
 template <typename T>
 struct accumulate<
     tmol::Device::CPU,
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T& target, const T& val)->void { target += val; }
-  static def add_kahan(T * target, const T& val)->void {
+
+};
+
+
+template <typename T>
+struct accumulate_kahan<
+    tmol::Device::CPU,
+    T
+  > {
+  static def add(T * target, const T & val)->void {
     // from wikipedia
     // https://en.wikipedia.org/wiki/Kahan_summation_algorithm
     T y = val - target[1];
@@ -26,7 +38,8 @@ struct accumulate<
     target[0] = t;
   }
 
-};  // namespace potentials
+};
+
 
 template <tmol::Device D, int N, typename T>
 struct accumulate<
@@ -43,6 +56,9 @@ struct accumulate<
   }
 };  // namespace potentials
 
+
+
+
 #ifdef __CUDACC__
 
 template <typename T>
@@ -51,15 +67,49 @@ struct accumulate<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T& target, const T& val)->void { atomicAdd(&target, val); }
-  static def add_kahan(T * target, const T& val)->void {
-    // from https://devtalk.nvidia.com/default/topic/817899/atomicadd-kahan-summation/
-    T oldacc = atomicAdd(target,val);
-    T newacc = oldacc + val;
-    T r = val - (newacc - oldacc);
-    atomicAdd(&target[1], r);
-  }
+  // static def add_kahan(T * target, const T& val)->void {
+  //   // from https://devtalk.nvidia.com/default/topic/817899/atomicadd-kahan-summation/
+  //   T oldacc = atomicAdd(target,val);
+  //   T newacc = oldacc + val;
+  //   T r = val - (newacc - oldacc);
+  //   atomicAdd(&target[1], r);
+  // }
 
 };
+
+
+union float2UllUnion {
+  float2 f;
+  unsigned long long int ull;
+};
+
+template <typename T>
+struct accumulate_kahan<
+    tmol::Device::CUDA, T> {
+
+  static
+  def
+  add(T * address, const T & val)->void {
+    unsigned long long int* address_as_ull = (unsigned long long int*)address;
+    float2UllUnion old, assumed, tmp;
+    old.ull = *address_as_ull;
+    do {
+        assumed = old;
+        tmp = assumed;
+        // kahan summation
+        const T y = val - tmp.f.y;
+        const T t = tmp.f.x + y;
+        tmp.f.y = (t - tmp.f.x) - y;
+        tmp.f.x = t;
+
+#ifdef __CUDA_ARCH__
+        old.ull = atomicCAS(address_as_ull, assumed.ull, tmp.ull);
+#endif
+
+    } while (assumed.ull != old.ull);
+  }
+};
+
 
 #endif
 
