@@ -68,9 +68,23 @@ def test_jagged_scoring(ubq_res, default_database, torch_device):
     total60 = score60.intra_score().total
     total_both = score_both.intra_score().total
 
-    print("total40", total40)
-    print("total60", total60)
-    print("total_both", total_both)
     
     assert total_both[0].item() == pytest.approx(total40[0].item())
     assert total_both[1].item() == pytest.approx(total60[0].item())
+
+def test_jagged_scoring2(ubq_res, default_database, torch_device):
+    ubq1050 = PackedResidueSystem.from_residues(ubq_res[10:50])
+    ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
+    twoubq = PackedResidueSystemStack((ubq1050, ubq60))
+
+    score1050 = ElecGraph.build_for(ubq1050, device=torch_device)
+    score60 = ElecGraph.build_for(ubq60, device=torch_device)
+    score_both = ElecGraph.build_for(twoubq, device=torch_device)
+
+    total1050 = score1050.intra_score().total
+    total60 = score60.intra_score().total
+    total_both = score_both.intra_score().total
+
+    assert total_both[0].item() == total1050[0].item()
+    assert total_both[1].item() == total60[0].item()
+
