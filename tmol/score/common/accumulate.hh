@@ -17,6 +17,15 @@ struct accumulate<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T& target, const T& val)->void { target += val; }
+  static def add_kahan(T * target, const T& val)->void {
+    // from wikipedia
+    // https://en.wikipedia.org/wiki/Kahan_summation_algorithm
+    T y = val - target[1];
+    T t = target[0] + y;
+    target[1] = (t - target[0]) - y;
+    target[0] = t;
+  }
+
 };  // namespace potentials
 
 template <tmol::Device D, int N, typename T>
@@ -42,6 +51,14 @@ struct accumulate<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T& target, const T& val)->void { atomicAdd(&target, val); }
+  static def add_kahan(T * target, const T& val)->void {
+    // from https://devtalk.nvidia.com/default/topic/817899/atomicadd-kahan-summation/
+    T oldacc = atomicAdd(target,val);
+    T newacc = oldacc + val;
+    T r = val - (newacc - oldacc);
+    atomicAdd(&target[1], r);
+  }
+
 };
 
 #endif
