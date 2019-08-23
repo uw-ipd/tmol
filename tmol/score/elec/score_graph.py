@@ -30,8 +30,7 @@ class ElecIntraScore(IntraScore):
         V = target.elec_intra_module(
             target.coords, target.elec_partial_charges, target.repatm_bonded_path_length
         )
-        # print("V", V)
-        return V[:,0] + V[:,1]
+        return V
 
 
 @score_graph

@@ -41,21 +41,21 @@ struct ElecDispatch {
       TView<Real, 3, Dev> bonded_path_lengths,
       TView<ElecGlobalParams<float>, 1, Dev> global_params)
       -> std::tuple<
-          TPack<Real, 2, Dev>,
+          TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>> {
     int nstacks = coords_i.size(0);
-    auto Vs_t = TPack<Real, 2, Dev>::zeros({nstacks, 2});
-    auto Vs_i_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_i.size(1), 2});
-    auto Vs_j_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_j.size(1), 2});
+    auto Vs_t = TPack<Real, 1, Dev>::zeros({nstacks});
+    //auto Vs_i_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_i.size(1), 2});
+    //auto Vs_j_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_j.size(1), 2});
     auto dVs_dI_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_i.size(1)});
     auto dVs_dJ_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_j.size(1)});
 
     auto Vs = Vs_t.view;
-    auto Vs_i_ats = Vs_i_ats_t.view;
-    auto Vs_j_ats = Vs_j_ats_t.view;
+    //auto Vs_i_ats = Vs_i_ats_t.view;
+    //auto Vs_j_ats = Vs_j_ats_t.view;
     auto dVs_dI = dVs_dI_t.view;
     auto dVs_dJ = dVs_dJ_t.view;
 
@@ -84,16 +84,8 @@ struct ElecDispatch {
               global_params[0].min_dis,
               global_params[0].max_dis);
 
-	  if ( V < 0 ) {
-	    accumulate<Dev, Real>::add(Vs[stack][0], V);
-	    accumulate<Dev, Real>::add(Vs_i_ats[stack][i][0], V);
-	    accumulate<Dev, Real>::add(Vs_j_ats[stack][j][0], V);
-	  } else {
-	    accumulate<Dev, Real>::add(Vs[stack][1], V);
-	    accumulate<Dev, Real>::add(Vs_i_ats[stack][i][1], V);
-	    accumulate<Dev, Real>::add(Vs_j_ats[stack][j][1], V);
-	  }
-
+	  // Kahan summation to reduce numerical noise
+	  accumulate<Dev, Real>::add(Vs[stack], V);
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dI[stack][i], dV_dDist * ddist_dI);
           accumulate<Dev, Vec<Real, 3>>::add(
