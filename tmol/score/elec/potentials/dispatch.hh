@@ -18,9 +18,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class SingleDispatch,
-    template <tmol::Device>
-    class PairDispatch,
+    class Dispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>

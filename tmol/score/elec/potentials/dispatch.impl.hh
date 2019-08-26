@@ -26,9 +26,7 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class SingleDispatch,
-    template <tmol::Device>
-    class PairDispatch,
+    class Dispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -46,9 +44,10 @@ struct ElecDispatch {
           TPack<Vec<Real, 3>, 2, Dev>> {
     int nstacks = coords_i.size(0);
     auto Vs_t = TPack<float, 1, Dev>::zeros({nstacks});
+
+    // for use with Kahan summation; need space for both the sum and the truncation
     auto Vs_accum_t = TPack<float, 2, Dev>::zeros({nstacks, 2});
-    //auto Vs_i_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_i.size(1), 2});
-    //auto Vs_j_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_j.size(1), 2});
+
     auto dVs_dI_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_i.size(1)});
     auto dVs_dJ_t =
@@ -56,14 +55,12 @@ struct ElecDispatch {
 
     auto Vs = Vs_t.view;
     auto Vs_accum = Vs_accum_t.view;
-    //auto Vs_i_ats = Vs_i_ats_t.view;
-    //auto Vs_j_ats = Vs_j_ats_t.view;
     auto dVs_dI = dVs_dI_t.view;
     auto dVs_dJ = dVs_dJ_t.view;
 
     Real threshold_distance = 6.0;  // fd  make this a parameter...
 
-    PairDispatch<Dev>::forall_stacked_pairs(
+    Dispatch<Dev>::forall_stacked_pairs(
         threshold_distance,
         coords_i,
         coords_j,
@@ -92,6 +89,7 @@ struct ElecDispatch {
 	  // after accumulating, copy over the result into the output
 	  // tensor; the last thread to complete this will have it right
 	  Vs[stack] = Vs_accum[stack][0];
+
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dI[stack][i], dV_dDist * ddist_dI);
           accumulate<Dev, Vec<Real, 3>>::add(
