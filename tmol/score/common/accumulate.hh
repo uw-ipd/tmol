@@ -76,15 +76,22 @@ __device__ float reduce_sum_tile_shfl(
 
   // First: have the lower threads shuffle from the
   // threads that hang off the end of g.size() / 2
-  int biggest_pow2_base = (g.size() == 32 ? 32 : (g.size() >= 16 ? 16 : (g.size() >= 8 ? 8 : (g.size() >= 4 ? 4 : g.size() >= 2 ? 2 : 1))));
+  int biggest_pow2_base =
+      (g.size() == 32
+           ? 32
+           : (g.size() >= 16
+                  ? 16
+                  : (g.size() >= 8
+                         ? 8
+                         : (g.size() >= 4 ? 4 : g.size() >= 2 ? 2 : 1))));
   int overhang = g.size() - biggest_pow2_base;
-  if ( overhang > 0 ) {
+  if (overhang > 0) {
     float overhang_val = g.shfl_down(val, biggest_pow2_base);
     if (g.thread_rank() < overhang) {
       val += overhang_val;
     }
   }
-  
+
   // Now perform the ln(n) reduction
   for (int i = biggest_pow2_base / 2; i > 0; i /= 2) {
     val += g.shfl_down(val, i);

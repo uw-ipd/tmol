@@ -45,7 +45,8 @@ struct ElecDispatch {
     int nstacks = coords_i.size(0);
     auto Vs_t = TPack<float, 1, Dev>::zeros({nstacks});
 
-    // for use with Kahan summation; need space for both the sum and the truncation
+    // for use with Kahan summation; need space for both the sum and the
+    // truncation
     auto Vs_accum_t = TPack<float, 2, Dev>::zeros({nstacks, 2});
 
     auto dVs_dI_t =
@@ -83,12 +84,12 @@ struct ElecDispatch {
               global_params[0].min_dis,
               global_params[0].max_dis);
 
-	  // Kahan summation to reduce numerical noise
-	  accumulate_kahan<Dev, float>::add(&Vs_accum[stack][0], V);
+          // Kahan summation to reduce numerical noise
+          accumulate_kahan<Dev, float>::add(&Vs_accum[stack][0], V);
 
-	  // after accumulating, copy over the result into the output
-	  // tensor; the last thread to complete this will have it right
-	  Vs[stack] = Vs_accum[stack][0];
+          // after accumulating, copy over the result into the output
+          // tensor; the last thread to complete this will have it right
+          Vs[stack] = Vs_accum[stack][0];
 
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dI[stack][i], dV_dDist * ddist_dI);
