@@ -2,6 +2,10 @@
 
 #include <Eigen/Core>
 
+#ifdef __CUDACC__
+#include <cooperative_groups.h>
+#endif
+
 namespace tmol {
 namespace score {
 namespace common {
@@ -20,16 +24,11 @@ struct accumulate<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T& target, const T& val)->void { target += val; }
-
 };
 
-
 template <typename T>
-struct accumulate_kahan<
-    tmol::Device::CPU,
-    T
-  > {
-  static def add(T * target, const T & val)->void {
+struct accumulate_kahan<tmol::Device::CPU, T> {
+  static def add(T* target, const T& val)->void {
     // from wikipedia
     // https://en.wikipedia.org/wiki/Kahan_summation_algorithm
     T y = val - target[1];
@@ -37,9 +36,7 @@ struct accumulate_kahan<
     target[1] = (t - target[0]) - y;
     target[0] = t;
   }
-
 };
-
 
 template <tmol::Device D, int N, typename T>
 struct accumulate<
@@ -56,9 +53,6 @@ struct accumulate<
   }
 };  // namespace potentials
 
-
-
-
 #ifdef __CUDACC__
 
 template <typename T>
@@ -67,49 +61,74 @@ struct accumulate<
     T,
     typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T& target, const T& val)->void { atomicAdd(&target, val); }
-  // static def add_kahan(T * target, const T& val)->void {
-  //   // from https://devtalk.nvidia.com/default/topic/817899/atomicadd-kahan-summation/
-  //   T oldacc = atomicAdd(target,val);
-  //   T newacc = oldacc + val;
-  //   T r = val - (newacc - oldacc);
-  //   atomicAdd(&target[1], r);
-  // }
-
 };
-
 
 union float2UllUnion {
   float2 f;
   unsigned long long int ull;
 };
 
-template <typename T>
-struct accumulate_kahan<
-    tmol::Device::CUDA, T> {
+__device__ float reduce_sum_tile_shfl(
+    cooperative_groups::coalesced_group g, float val) {
+  // Adapted from https://devblogs.nvidia.com/cooperative-groups/
+  // Each iteration halves the number of active threads
+  // Each thread adds its partial sum[i] to sum[lane+i]
 
-  static
-  def
-  add(T * address, const T & val)->void {
-    unsigned long long int* address_as_ull = (unsigned long long int*)address;
-    float2UllUnion old, assumed, tmp;
-    old.ull = *address_as_ull;
-    do {
+  // First: have the lower threads shuffle from the
+  // threads that hang off the end of g.size() / 2
+  int biggest_pow2_base = (g.size() == 32 ? 32 : (g.size() >= 16 ? 16 : (g.size() >= 8 ? 8 : (g.size() >= 4 ? 4 : g.size() >= 2 ? 2 : 1))));
+  int overhang = g.size() - biggest_pow2_base;
+  if ( overhang > 0 ) {
+    float overhang_val = g.shfl_down(val, biggest_pow2_base);
+    if (g.thread_rank() < overhang) {
+      val += overhang_val;
+    }
+  }
+  
+  // Now perform the ln(n) reduction
+  for (int i = biggest_pow2_base / 2; i > 0; i /= 2) {
+    val += g.shfl_down(val, i);
+  }
+
+  return val;  // note: only thread 0 will return full sum
+}
+
+// Note T must be 32 bits. Either integer or float will do, but double will not.
+template <typename T>
+struct accumulate_kahan<tmol::Device::CUDA, T> {
+  static def add(T* address, const T& val)->void {
+#ifdef __CUDA_ARCH__
+    // Neither atomicCAS nor reduce_sum_tile_shfl can be
+    // called from a host/device function -- only from a
+    // device function. This function isn't truly
+    // host/device function as it will never be invoked
+    // from a host. Indeed, the whole lambda model for
+    // our functions
+
+    auto g = cooperative_groups::coalesced_threads();
+
+    T warp_sum = reduce_sum_tile_shfl(g, val);
+
+    if (g.thread_rank() == 0) {
+      unsigned long long int* address_as_ull = (unsigned long long int*)address;
+      float2UllUnion old, assumed, tmp;
+      old.ull = *address_as_ull;
+      do {
         assumed = old;
         tmp = assumed;
         // kahan summation
-        const T y = val - tmp.f.y;
+        const T y = warp_sum - tmp.f.y;
         const T t = tmp.f.x + y;
         tmp.f.y = (t - tmp.f.x) - y;
         tmp.f.x = t;
 
-#ifdef __CUDA_ARCH__
         old.ull = atomicCAS(address_as_ull, assumed.ull, tmp.ull);
-#endif
 
-    } while (assumed.ull != old.ull);
+      } while (assumed.ull != old.ull);
+    }
+#endif
   }
 };
-
 
 #endif
 

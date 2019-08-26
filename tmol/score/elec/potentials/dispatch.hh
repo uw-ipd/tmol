@@ -33,7 +33,7 @@ struct ElecDispatch {
       TView<Real, 3, Dev> bonded_path_lengths,
       TView<ElecGlobalParams<float>, 1, Dev> global_params)
       -> std::tuple<
-          TPack<float, 2, Dev>,
+          TPack<float, 1, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev> >;
 };

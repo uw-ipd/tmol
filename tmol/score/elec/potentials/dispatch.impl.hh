@@ -41,11 +41,12 @@ struct ElecDispatch {
       TView<Real, 3, Dev> bonded_path_lengths,
       TView<ElecGlobalParams<float>, 1, Dev> global_params)
       -> std::tuple<
-          TPack<float, 2, Dev>,
+          TPack<float, 1, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>> {
     int nstacks = coords_i.size(0);
-    auto Vs_t = TPack<float, 2, Dev>::zeros({nstacks, 2});
+    auto Vs_t = TPack<float, 1, Dev>::zeros({nstacks});
+    auto Vs_accum_t = TPack<float, 2, Dev>::zeros({nstacks, 2});
     //auto Vs_i_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_i.size(1), 2});
     //auto Vs_j_ats_t = TPack<Real, 3, Dev>::zeros({nstacks, coords_j.size(1), 2});
     auto dVs_dI_t =
@@ -54,6 +55,7 @@ struct ElecDispatch {
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_j.size(1)});
 
     auto Vs = Vs_t.view;
+    auto Vs_accum = Vs_accum_t.view;
     //auto Vs_i_ats = Vs_i_ats_t.view;
     //auto Vs_j_ats = Vs_j_ats_t.view;
     auto dVs_dI = dVs_dI_t.view;
@@ -85,20 +87,16 @@ struct ElecDispatch {
               global_params[0].max_dis);
 
 	  // Kahan summation to reduce numerical noise
-	  accumulate_kahan<Dev, float>::add(&Vs[stack][0], V);
+	  accumulate_kahan<Dev, float>::add(&Vs_accum[stack][0], V);
+
+	  // after accumulating, copy over the result into the output
+	  // tensor; the last thread to complete this will have it right
+	  Vs[stack] = Vs_accum[stack][0];
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dI[stack][i], dV_dDist * ddist_dI);
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dJ[stack][j], dV_dDist * ddist_dJ);
         });
-
-    // auto print_at_vals = [=] EIGEN_DEVICE_FUNC(int stack, int i) {
-    //   printf(" at %5d %5d %16.10f %16.10f\n", stack, i,
-    // 	Vs_i_ats[stack][i][0]+Vs_j_ats[stack][i][0],
-    // 	Vs_i_ats[stack][i][1]+Vs_j_ats[stack][i][1]);
-    // };
-    // 
-    // SingleDispatch<Dev>::forall_stacks(nstacks, (int) coords_i.size(1), print_at_vals);
 
     return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }
