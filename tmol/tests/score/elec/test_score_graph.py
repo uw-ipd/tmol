@@ -74,6 +74,6 @@ def test_jagged_scoring2(ubq_res, default_database, torch_device):
     total60 = score60.intra_score().total
     total_both = score_both.intra_score().total
 
-    assert total_both[0].item() == total1050[0].item()
-    assert total_both[1].item() == total60[0].item()
+    assert total_both[0].item() == pytest.approx(total1050[0].item())
+    assert total_both[1].item() == pytest.approx(total60[0].item())
 
