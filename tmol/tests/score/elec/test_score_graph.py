@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-from tmol.database import ParameterDatabase
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 
 from tmol.score.coordinates import CartesianAtomicCoordinateProvider

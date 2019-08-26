@@ -1,12 +1,9 @@
 import torch
-import numpy
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 from tmol.system.score_support import stacked_bonded_atoms_for_system
 from tmol.score.elec.params import ElecParamResolver
 from tmol.score.bonded_atom import bonded_path_length, bonded_path_length_stacked
-
-from tmol.database.scoring.elec import ElecDatabase
 
 
 def test_resolve_elec_params(default_database, ubq_system, torch_device):
