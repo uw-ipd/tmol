@@ -7,7 +7,7 @@ tmol.score.cartbonded.identification
 .. currentmodule:: tmol.score.cartbonded.identification
 
 .. automodule:: tmol.score.cartbonded.identification
-    :members: CartBondedIdentification, find_angles, find_impropers, find_torsions
+    :members: CartBondedIdentification, find_angles, find_impropers, find_lengths, find_torsions
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -22,6 +22,14 @@ tmol.score.cartbonded.identification
         :nosignatures:
 
         CartBondedIdentification
+
+    Functions
+    ~~~~~~~~~
+    
+    .. autosummary::
+        :nosignatures:
+
+        find_lengths
 
 
 

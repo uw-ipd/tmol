@@ -7,7 +7,7 @@ tmol.score.cartbonded.score_graph
 .. currentmodule:: tmol.score.cartbonded.score_graph
 
 .. automodule:: tmol.score.cartbonded.score_graph
-    :members: CartBondedIntraScore, CartBondedScoreGraph
+    :members: CartBondedIntraScore, CartBondedScoreGraph, remove_undefined_indices, select_names_from_indices
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -23,6 +23,15 @@ tmol.score.cartbonded.score_graph
 
         CartBondedIntraScore
         CartBondedScoreGraph
+
+    Functions
+    ~~~~~~~~~
+    
+    .. autosummary::
+        :nosignatures:
+
+        remove_undefined_indices
+        select_names_from_indices
 
 
 

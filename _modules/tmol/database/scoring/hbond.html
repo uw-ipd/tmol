@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring.hbond &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.database.scoring.hbond &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -182,6 +182,7 @@
 <span></span><span class="kn">import</span> <span class="nn">attr</span>
 <span class="kn">import</span> <span class="nn">cattr</span>
 <span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Tuple</span>
 
@@ -250,8 +251,8 @@
     <span class="n">cosAHD</span><span class="p">:</span> <span class="nb">str</span></div>
 
 
-<div class="viewcode-block" id="HBondDatabase"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">HBondDatabase</span><span class="p">:</span>
+<div class="viewcode-block" id="HBondDatabaseRaw"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">HBondDatabaseRaw</span><span class="p">:</span>
     <span class="n">global_parameters</span><span class="p">:</span> <span class="n">GlobalParams</span>
     <span class="n">donor_atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DonorAtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">donor_type_params</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DonorTypeParam</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
@@ -262,11 +263,55 @@
     <span class="n">pair_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PairParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="n">polynomial_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PolynomialParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
 
-<div class="viewcode-block" id="HBondDatabase.from_file"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.from_file">[docs]</a>    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="HBondDatabaseRaw.from_file"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.from_file">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
             <span class="n">raw</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">cattr</span><span class="o">.</span><span class="n">structure</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="HBondDatabase"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">HBondDatabase</span><span class="p">:</span>
+    <span class="n">global_parameters</span><span class="p">:</span> <span class="n">GlobalParams</span>
+    <span class="n">donor_atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DonorAtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">donor_type_params</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">DonorTypeParam</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">donor_type_mapper</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>
+
+    <span class="n">acceptor_atom_types</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorAtomType</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">acceptor_type_params</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">AcceptorTypeParam</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">acceptor_type_mapper</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span>
+
+    <span class="n">pair_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PairParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">polynomial_parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">PolynomialParameters</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+<div class="viewcode-block" id="HBondDatabase.from_raw_hbond_db"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.from_raw_hbond_db">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_raw_hbond_db</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">hbr</span><span class="p">):</span>
+        <span class="n">acc_ind</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">a</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hbr</span><span class="o">.</span><span class="n">acceptor_atom_types</span><span class="p">])</span>
+        <span class="n">don_ind</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Index</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">d</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hbr</span><span class="o">.</span><span class="n">donor_atom_types</span><span class="p">])</span>
+
+        <span class="n">atypes</span><span class="p">,</span> <span class="n">acctypes</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">([(</span><span class="n">x</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">acceptor_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hbr</span><span class="o">.</span><span class="n">acceptor_atom_types</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">dtypes</span><span class="p">,</span> <span class="n">dontypes</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">([(</span><span class="n">x</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">donor_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hbr</span><span class="o">.</span><span class="n">donor_atom_types</span><span class="p">]))</span>
+        <span class="n">acc_df</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="n">atypes</span><span class="p">,</span> <span class="s2">&quot;acc_type&quot;</span><span class="p">:</span> <span class="n">acctypes</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">acc_ind</span><span class="p">)</span>
+        <span class="n">don_df</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="n">dtypes</span><span class="p">,</span> <span class="s2">&quot;don_type&quot;</span><span class="p">:</span> <span class="n">dontypes</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">don_ind</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">global_parameters</span><span class="o">=</span><span class="n">hbr</span><span class="o">.</span><span class="n">global_parameters</span><span class="p">,</span>
+            <span class="n">donor_atom_types</span><span class="o">=</span><span class="n">hbr</span><span class="o">.</span><span class="n">donor_atom_types</span><span class="p">,</span>
+            <span class="n">donor_type_params</span><span class="o">=</span><span class="n">hbr</span><span class="o">.</span><span class="n">donor_type_params</span><span class="p">,</span>
+            <span class="n">donor_type_mapper</span><span class="o">=</span><span class="n">don_df</span><span class="p">,</span>
+            <span class="n">acceptor_atom_types</span><span class="o">=</span><span class="n">hbr</span><span class="o">.</span><span class="n">acceptor_atom_types</span><span class="p">,</span>
+            <span class="n">acceptor_type_params</span><span class="o">=</span><span class="n">hbr</span><span class="o">.</span><span class="n">acceptor_type_params</span><span class="p">,</span>
+            <span class="n">acceptor_type_mapper</span><span class="o">=</span><span class="n">acc_df</span><span class="p">,</span>
+            <span class="n">pair_parameters</span><span class="o">=</span><span class="n">hbr</span><span class="o">.</span><span class="n">pair_parameters</span><span class="p">,</span>
+            <span class="n">polynomial_parameters</span><span class="o">=</span><span class="n">hbr</span><span class="o">.</span><span class="n">polynomial_parameters</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="HBondDatabase.from_file"><a class="viewcode-back" href="../../../../apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.from_file">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="n">hbr</span> <span class="o">=</span> <span class="n">HBondDatabaseRaw</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_raw_hbond_db</span><span class="p">(</span><span class="n">hbr</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.params &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.score.cartbonded.params &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -382,19 +382,19 @@
 
 <dl class="method">
 <dt id="tmol.score.cartbonded.params.CartBondedParamResolver.resolve_lengths">
-<code class="descname">resolve_lengths</code><span class="sig-paren">(</span><em>resnames: NDArray(dtype('O'))[...], atm1s: NDArray(dtype('O'))[...], atm2s: NDArray(dtype('O'))[...]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('int64'))[...]<a class="reference internal" href="../_modules/tmol/score/cartbonded/params.html#CartBondedParamResolver.resolve_lengths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_lengths" title="Permalink to this definition">¶</a></dt>
+<code class="descname">resolve_lengths</code><span class="sig-paren">(</span><em>resnames: NDArray(dtype('O'))[:,:], atm1s: NDArray(dtype('O'))[:,:], atm2s: NDArray(dtype('O'))[:,:]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('int64'))[...]<a class="reference internal" href="../_modules/tmol/score/cartbonded/params.html#CartBondedParamResolver.resolve_lengths"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_lengths" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolve string triplets into integer bondlength parameter indices.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tmol.score.cartbonded.params.CartBondedParamResolver.resolve_angles">
-<code class="descname">resolve_angles</code><span class="sig-paren">(</span><em>resnames: NDArray(dtype('O'))[...], atm1s: NDArray(dtype('O'))[...], atm2s: NDArray(dtype('O'))[...], atm3s: NDArray(dtype('O'))[...]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('int64'))[...]<a class="reference internal" href="../_modules/tmol/score/cartbonded/params.html#CartBondedParamResolver.resolve_angles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_angles" title="Permalink to this definition">¶</a></dt>
+<code class="descname">resolve_angles</code><span class="sig-paren">(</span><em>resnames: NDArray(dtype('O'))[:,:], atm1s: NDArray(dtype('O'))[:,:], atm2s: NDArray(dtype('O'))[:,:], atm3s: NDArray(dtype('O'))[:,:]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('int64'))[...]<a class="reference internal" href="../_modules/tmol/score/cartbonded/params.html#CartBondedParamResolver.resolve_angles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_angles" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolve string quads into integer bondangle parameter indices.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="tmol.score.cartbonded.params.CartBondedParamResolver.resolve_torsions">
-<code class="descname">resolve_torsions</code><span class="sig-paren">(</span><em>resnames: NDArray(dtype('O'))[...], atm1s: NDArray(dtype('O'))[...], atm2s: NDArray(dtype('O'))[...], atm3s: NDArray(dtype('O'))[...], atm4s: NDArray(dtype('O'))[...]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('int64'))[...]<a class="reference internal" href="../_modules/tmol/score/cartbonded/params.html#CartBondedParamResolver.resolve_torsions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_torsions" title="Permalink to this definition">¶</a></dt>
+<code class="descname">resolve_torsions</code><span class="sig-paren">(</span><em>resnames: NDArray(dtype('O'))[:,:], atm1s: NDArray(dtype('O'))[:,:], atm2s: NDArray(dtype('O'))[:,:], atm3s: NDArray(dtype('O'))[:,:], atm4s: NDArray(dtype('O'))[:,:]</em><span class="sig-paren">)</span> &#x2192; NDArray(dtype('int64'))[...]<a class="reference internal" href="../_modules/tmol/score/cartbonded/params.html#CartBondedParamResolver.resolve_torsions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_torsions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resolve string quints into integer torsion parameter indices.</p>
 </dd></dl>
 

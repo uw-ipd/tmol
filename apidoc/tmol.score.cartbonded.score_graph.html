@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -239,6 +239,23 @@
 </tbody>
 </table>
 </div>
+<div class="section" id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.cartbonded.score_graph.remove_undefined_indices" title="tmol.score.cartbonded.score_graph.remove_undefined_indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_undefined_indices</span></code></a></td>
+<td>Prune out the below-zero entries from the param inds tensor and concatenate the remaining entries with the corresponding entries from the atom-inds tensor.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.cartbonded.score_graph.select_names_from_indices" title="tmol.score.cartbonded.score_graph.select_names_from_indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">select_names_from_indices</span></code></a></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
@@ -276,6 +293,34 @@
 <code class="descname">total_cartbonded_hxltorsion</code><a class="headerlink" href="#tmol.score.cartbonded.score_graph.CartBondedIntraScore.total_cartbonded_hxltorsion" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="tmol.score.cartbonded.score_graph.select_names_from_indices">
+<code class="descclassname">tmol.score.cartbonded.score_graph.</code><code class="descname">select_names_from_indices</code><span class="sig-paren">(</span><em>res_names: NDArray(dtype('O'))[:,:], atom_names: NDArray(dtype('O'))[:,:], atom_indices: NDArray(dtype('int64'))[:,:,:], atom_for_resid: int</em><span class="sig-paren">)</span> &#x2192; Tuple[NDArray(dtype('O'))[:,:], ...]<a class="reference internal" href="../_modules/tmol/score/cartbonded/score_graph.html#select_names_from_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.score_graph.select_names_from_indices" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="tmol.score.cartbonded.score_graph.remove_undefined_indices">
+<code class="descclassname">tmol.score.cartbonded.score_graph.</code><code class="descname">remove_undefined_indices</code><span class="sig-paren">(</span><em>atom_inds: NDArray(dtype('int64'))[:,:,:], param_inds: NDArray(dtype('int64'))[:,:], device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int64)[:,:,:]<a class="reference internal" href="../_modules/tmol/score/cartbonded/score_graph.html#remove_undefined_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.cartbonded.score_graph.remove_undefined_indices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prune out the below-zero entries from the param inds
+tensor and concatenate the remaining entries with the
+corresponding entries from the atom-inds tensor. The
+atom_inds tensor should be
+[ nstacks x nentries x natoms-per-entry ].
+The param_inds tensor should be
+[ nstacks x nentries ].
+The output tensor will be
+[ nstacks x max-non-zero-params-per-stack x natoms-per-entry+1 ]
+where a sentinel value of -1 will be present
+if either the param- or the atom index represents
+a non-existent atom set.</p>
+<p>This code will “condense” an array with entries I’m not interested in
+into a smaller array so that fire up the minimum number of threads on
+the GPU that have no work to perform</p>
+<p>It will also “left shift” the valid entries so that the threads
+that do have no work do to are next to each other, thereby ensuring
+the highest warp coherency</p>
 </dd></dl>
 
 <dl class="class">

@@ -12,6 +12,7 @@ tmol.score.common
        :maxdepth: 1
   
        tmol.score.common.cubic_hermite_polynomial
+       tmol.score.common.stack_condense
   
 
 

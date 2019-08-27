@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.database.scoring.hbond &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.database.scoring.hbond &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -232,10 +232,13 @@
 <tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.HBondDatabase" title="tmol.database.scoring.hbond.HBondDatabase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondDatabase</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.PairParameters" title="tmol.database.scoring.hbond.PairParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PairParameters</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.HBondDatabaseRaw" title="tmol.database.scoring.hbond.HBondDatabaseRaw"><code class="xref py py-obj docutils literal notranslate"><span class="pre">HBondDatabaseRaw</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.PolynomialParameters" title="tmol.database.scoring.hbond.PolynomialParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PolynomialParameters</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.database.scoring.hbond.PairParameters" title="tmol.database.scoring.hbond.PairParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PairParameters</span></code></a></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.database.scoring.hbond.PolynomialParameters" title="tmol.database.scoring.hbond.PolynomialParameters"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PolynomialParameters</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -467,8 +470,54 @@
 </dd></dl>
 
 <dl class="class">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw">
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">HBondDatabaseRaw</code><span class="sig-paren">(</span><em>global_parameters: tmol.database.scoring.hbond.GlobalParams, donor_atom_types: Tuple[tmol.database.scoring.hbond.DonorAtomType, ...], donor_type_params: Tuple[tmol.database.scoring.hbond.DonorTypeParam, ...], acceptor_atom_types: Tuple[tmol.database.scoring.hbond.AcceptorAtomType, ...], acceptor_type_params: Tuple[tmol.database.scoring.hbond.AcceptorTypeParam, ...], pair_parameters: Tuple[tmol.database.scoring.hbond.PairParameters, ...], polynomial_parameters: Tuple[tmol.database.scoring.hbond.PolynomialParameters, ...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#HBondDatabaseRaw"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw.global_parameters">
+<code class="descname">global_parameters</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw.global_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw.donor_atom_types">
+<code class="descname">donor_atom_types</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw.donor_atom_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw.donor_type_params">
+<code class="descname">donor_type_params</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw.donor_type_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw.acceptor_atom_types">
+<code class="descname">acceptor_atom_types</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw.acceptor_atom_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw.acceptor_type_params">
+<code class="descname">acceptor_type_params</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw.acceptor_type_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw.pair_parameters">
+<code class="descname">pair_parameters</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw.pair_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw.polynomial_parameters">
+<code class="descname">polynomial_parameters</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw.polynomial_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.database.scoring.hbond.HBondDatabaseRaw.from_file">
+<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#HBondDatabaseRaw.from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabaseRaw.from_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="tmol.database.scoring.hbond.HBondDatabase">
-<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">HBondDatabase</code><span class="sig-paren">(</span><em>global_parameters: tmol.database.scoring.hbond.GlobalParams, donor_atom_types: Tuple[tmol.database.scoring.hbond.DonorAtomType, ...], donor_type_params: Tuple[tmol.database.scoring.hbond.DonorTypeParam, ...], acceptor_atom_types: Tuple[tmol.database.scoring.hbond.AcceptorAtomType, ...], acceptor_type_params: Tuple[tmol.database.scoring.hbond.AcceptorTypeParam, ...], pair_parameters: Tuple[tmol.database.scoring.hbond.PairParameters, ...], polynomial_parameters: Tuple[tmol.database.scoring.hbond.PolynomialParameters, ...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#HBondDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.database.scoring.hbond.</code><code class="descname">HBondDatabase</code><span class="sig-paren">(</span><em>global_parameters: tmol.database.scoring.hbond.GlobalParams, donor_atom_types: Tuple[tmol.database.scoring.hbond.DonorAtomType, ...], donor_type_params: Tuple[tmol.database.scoring.hbond.DonorTypeParam, ...], donor_type_mapper: pandas.core.frame.DataFrame, acceptor_atom_types: Tuple[tmol.database.scoring.hbond.AcceptorAtomType, ...], acceptor_type_params: Tuple[tmol.database.scoring.hbond.AcceptorTypeParam, ...], acceptor_type_mapper: pandas.core.frame.DataFrame, pair_parameters: Tuple[tmol.database.scoring.hbond.PairParameters, ...], polynomial_parameters: Tuple[tmol.database.scoring.hbond.PolynomialParameters, ...]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#HBondDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.database.scoring.hbond.HBondDatabase.global_parameters">
@@ -486,6 +535,11 @@
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabase.donor_type_mapper">
+<code class="descname">donor_type_mapper</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.donor_type_mapper" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="tmol.database.scoring.hbond.HBondDatabase.acceptor_atom_types">
 <code class="descname">acceptor_atom_types</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.acceptor_atom_types" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -496,6 +550,11 @@
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="tmol.database.scoring.hbond.HBondDatabase.acceptor_type_mapper">
+<code class="descname">acceptor_type_mapper</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.acceptor_type_mapper" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="tmol.database.scoring.hbond.HBondDatabase.pair_parameters">
 <code class="descname">pair_parameters</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.pair_parameters" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -503,6 +562,11 @@
 <dl class="attribute">
 <dt id="tmol.database.scoring.hbond.HBondDatabase.polynomial_parameters">
 <code class="descname">polynomial_parameters</code><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.polynomial_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="tmol.database.scoring.hbond.HBondDatabase.from_raw_hbond_db">
+<em class="property">classmethod </em><code class="descname">from_raw_hbond_db</code><span class="sig-paren">(</span><em>hbr</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/database/scoring/hbond.html#HBondDatabase.from_raw_hbond_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.database.scoring.hbond.HBondDatabase.from_raw_hbond_db" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">

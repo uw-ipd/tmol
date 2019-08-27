@@ -9,7 +9,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>Index &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -26,7 +26,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'./',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -71,7 +71,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -629,7 +629,11 @@
 </li>
       </ul></li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.acceptor_atom_types">acceptor_atom_types (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.acceptor_atom_types">(tmol.database.scoring.hbond.HBondDatabaseRaw attribute)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.database.chemical.html#tmol.database.chemical.AtomType.acceptor_hybridization">acceptor_hybridization (tmol.database.chemical.AtomType attribute)</a>
 
       <ul>
@@ -648,8 +652,14 @@
       </ul></li>
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondParamResolver.acceptor_type_index">acceptor_type_index (tmol.score.hbond.params.HBondParamResolver attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.acceptor_type_params">acceptor_type_params (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
+      <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.acceptor_type_mapper">acceptor_type_mapper (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
 </li>
+      <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.acceptor_type_params">acceptor_type_params (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.acceptor_type_params">(tmol.database.scoring.hbond.HBondDatabaseRaw attribute)</a>
+</li>
+      </ul></li>
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondPairParams.acceptor_weight">acceptor_weight (tmol.score.hbond.params.HBondPairParams attribute)</a>
 </li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.AcceptorAtomType">AcceptorAtomType (class in tmol.database.scoring.hbond)</a>
@@ -1022,14 +1032,14 @@
 </li>
       <li><a href="apidoc/tmol.kinematics.datatypes.html#tmol.kinematics.datatypes.KinDOF.clone">clone() (tmol.kinematics.datatypes.KinDOF method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.numeric.bspline.html#tmol.numeric.bspline.BSplineInterpolation.coeffs">coeffs (tmol.numeric.bspline.BSplineInterpolation attribute)</a>
 
       <ul>
         <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondPolyParams.coeffs">(tmol.score.hbond.params.HBondPolyParams attribute)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondScoreGraph.compacted_hbond_database">compacted_hbond_database (tmol.score.hbond.score_graph.HBondScoreGraph attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.CompactedHBondDatabase">CompactedHBondDatabase (class in tmol.score.hbond.params)</a>
@@ -1037,6 +1047,10 @@
       <li><a href="apidoc/tmol.kinematics.builder.html#tmol.kinematics.builder.KinematicBuilder.component_for_prioritized_bonds">component_for_prioritized_bonds() (tmol.kinematics.builder.KinematicBuilder class method)</a>
 </li>
       <li><a href="apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.compute_rotprob_coeffs">compute_rotprob_coeffs() (tmol.score.dunbrack.params.DunbrackParamResolver class method)</a>
+</li>
+      <li><a href="apidoc/tmol.score.common.stack_condense.html#tmol.score.common.stack_condense.condense_numpy_inds">condense_numpy_inds() (in module tmol.score.common.stack_condense)</a>
+</li>
+      <li><a href="apidoc/tmol.score.common.stack_condense.html#tmol.score.common.stack_condense.condense_torch_inds">condense_torch_inds() (in module tmol.score.common.stack_condense)</a>
 </li>
       <li><a href="apidoc/tmol.database.chemical.html#tmol.database.chemical.ConnectedAtom">ConnectedAtom (class in tmol.database.chemical)</a>
 </li>
@@ -1198,14 +1212,18 @@
 </li>
       <li><a href="apidoc/tmol.kinematics.metadata.html#tmol.kinematics.metadata.DOFMetadata.dof_type">dof_type (tmol.kinematics.metadata.DOFMetadata attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.kinematics.metadata.html#tmol.kinematics.metadata.DOFMetadata">DOFMetadata (class in tmol.kinematics.metadata)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="apidoc/tmol.kinematics.metadata.html#tmol.kinematics.metadata.DOFTypes">DOFTypes (class in tmol.kinematics.metadata)</a>
 </li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.donor_atom_types">donor_atom_types (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.donor_atom_types">(tmol.database.scoring.hbond.HBondDatabaseRaw attribute)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.DonorAtomType.donor_type">donor_type (tmol.database.scoring.hbond.DonorAtomType attribute)</a>
 
       <ul>
@@ -1214,8 +1232,14 @@
       </ul></li>
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondParamResolver.donor_type_index">donor_type_index (tmol.score.hbond.params.HBondParamResolver attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.donor_type_params">donor_type_params (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
+      <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.donor_type_mapper">donor_type_mapper (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
 </li>
+      <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.donor_type_params">donor_type_params (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.donor_type_params">(tmol.database.scoring.hbond.HBondDatabaseRaw attribute)</a>
+</li>
+      </ul></li>
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondPairParams.donor_weight">donor_weight (tmol.score.hbond.params.HBondPairParams attribute)</a>
 </li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.DonorAtomType">DonorAtomType (class in tmol.database.scoring.hbond)</a>
@@ -1396,6 +1420,8 @@
 </li>
       <li><a href="apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.find_impropers">find_impropers (in module tmol.score.cartbonded.identification)</a>
 </li>
+      <li><a href="apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.find_lengths">find_lengths() (in module tmol.score.cartbonded.identification)</a>
+</li>
       <li><a href="apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.find_rotres2resid">find_rotres2resid() (tmol.score.dunbrack.params.DunbrackParamResolver method)</a>
 </li>
       <li><a href="apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.find_torsions">find_torsions (in module tmol.score.cartbonded.identification)</a>
@@ -1477,6 +1503,8 @@
 </li>
         <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.from_file">(tmol.database.scoring.hbond.HBondDatabase class method)</a>
 </li>
+        <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.from_file">(tmol.database.scoring.hbond.HBondDatabaseRaw class method)</a>
+</li>
         <li><a href="apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKDatabase.from_file">(tmol.database.scoring.ljlk.LJLKDatabase class method)</a>
 </li>
       </ul></li>
@@ -1491,6 +1519,8 @@
       <li><a href="apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.PoseScoreWrapper.from_pdbstring">from_pdbstring() (tmol.support.scoring.rosetta.PoseScoreWrapper class method)</a>
 </li>
       <li><a href="apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.PoseScoreWrapper.from_pose">from_pose() (tmol.support.scoring.rosetta.PoseScoreWrapper class method)</a>
+</li>
+      <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.from_raw_hbond_db">from_raw_hbond_db() (tmol.database.scoring.hbond.HBondDatabase class method)</a>
 </li>
       <li><a href="apidoc/tmol.system.packed.html#tmol.system.packed.PackedResidueSystem.from_residues">from_residues() (tmol.system.packed.PackedResidueSystem class method)</a>
 </li>
@@ -1547,6 +1577,8 @@
       <ul>
         <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.global_parameters">(tmol.database.scoring.hbond.HBondDatabase attribute)</a>
 </li>
+        <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.global_parameters">(tmol.database.scoring.hbond.HBondDatabaseRaw attribute)</a>
+</li>
         <li><a href="apidoc/tmol.database.scoring.ljlk.html#tmol.database.scoring.ljlk.LJLKDatabase.global_parameters">(tmol.database.scoring.ljlk.LJLKDatabase attribute)</a>
 </li>
       </ul></li>
@@ -1598,10 +1630,12 @@
 </li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase">HBondDatabase (class in tmol.database.scoring.hbond)</a>
 </li>
-      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondDescr">HBondDescr (class in tmol.score.hbond.score_graph)</a>
+      <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw">HBondDatabaseRaw (class in tmol.database.scoring.hbond)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondDescr">HBondDescr (class in tmol.score.hbond.score_graph)</a>
+</li>
       <li><a href="apidoc/tmol.score.hbond.score_graph.html#tmol.score.hbond.score_graph.HBondDonorIndices">HBondDonorIndices (class in tmol.score.hbond.score_graph)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.identification.html#tmol.score.hbond.identification.HBondElementAnalysis">HBondElementAnalysis (class in tmol.score.hbond.identification)</a>
@@ -2351,7 +2385,11 @@
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.CompactedHBondDatabase.pair_param_table">pair_param_table (tmol.score.hbond.params.CompactedHBondDatabase attribute)</a>
 </li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.pair_parameters">pair_parameters (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.pair_parameters">(tmol.database.scoring.hbond.HBondDatabaseRaw attribute)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.HBondParamResolver.pair_params">pair_params (tmol.score.hbond.params.HBondParamResolver attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.hbond.params.html#tmol.score.hbond.params.CompactedHBondDatabase.pair_poly_table">pair_poly_table (tmol.score.hbond.params.CompactedHBondDatabase attribute)</a>
@@ -2445,7 +2483,11 @@
       <li><a href="apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.PoseScoreWrapper.pickled_pose">pickled_pose (tmol.support.scoring.rosetta.PoseScoreWrapper attribute)</a>
 </li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabase.polynomial_parameters">polynomial_parameters (tmol.database.scoring.hbond.HBondDatabase attribute)</a>
+
+      <ul>
+        <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.HBondDatabaseRaw.polynomial_parameters">(tmol.database.scoring.hbond.HBondDatabaseRaw attribute)</a>
 </li>
+      </ul></li>
       <li><a href="apidoc/tmol.database.scoring.hbond.html#tmol.database.scoring.hbond.PolynomialParameters">PolynomialParameters (class in tmol.database.scoring.hbond)</a>
 </li>
       <li><a href="apidoc/tmol.support.scoring.rosetta.html#tmol.support.scoring.rosetta.PoseScoreWrapper.pose">pose (tmol.support.scoring.rosetta.PoseScoreWrapper attribute)</a>
@@ -2590,6 +2632,8 @@
 </li>
       <li><a href="apidoc/tmol.score.elec.params.html#tmol.score.elec.params.ElecParamResolver.remap_bonded_path_lengths">remap_bonded_path_lengths() (tmol.score.elec.params.ElecParamResolver method)</a>
 </li>
+      <li><a href="apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.remove_undefined_indices">remove_undefined_indices() (in module tmol.score.cartbonded.score_graph)</a>
+</li>
       <li><a href="apidoc/tmol.score.elec.score_graph.html#tmol.score.elec.score_graph.ElecScoreGraph.repatm_bonded_path_length">repatm_bonded_path_length (tmol.score.elec.score_graph.ElecScoreGraph attribute)</a>
 </li>
       <li><a href="apidoc/tmol.database.scoring.cartbonded.html#tmol.database.scoring.cartbonded.AngleGroup.res">res (tmol.database.scoring.cartbonded.AngleGroup attribute)</a>
@@ -2612,10 +2656,10 @@
 </li>
       <li><a href="apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.BondedAtomScoreGraph.res_names">res_names (tmol.score.bonded_atom.BondedAtomScoreGraph attribute)</a>
 </li>
-      <li><a href="apidoc/tmol.system.packed.html#tmol.system.packed.PackedResidueSystem.res_start_ind">res_start_ind (tmol.system.packed.PackedResidueSystem attribute)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/tmol.system.packed.html#tmol.system.packed.PackedResidueSystem.res_start_ind">res_start_ind (tmol.system.packed.PackedResidueSystem attribute)</a>
+</li>
       <li><a href="apidoc/tmol.database.scoring.rama.html#tmol.database.scoring.rama.RamaMappingParams.res_upper">res_upper (tmol.database.scoring.rama.RamaMappingParams attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.coordinates.html#tmol.score.coordinates.CartesianAtomicCoordinateProvider.reset_coords">reset_coords() (tmol.score.coordinates.CartesianAtomicCoordinateProvider method)</a>
@@ -2770,6 +2814,8 @@
 </li>
       <li><a href="apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.select_chi">select_chi() (tmol.score.dunbrack.params.DunbrackParamResolver method)</a>
 </li>
+      <li><a href="apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.select_names_from_indices">select_names_from_indices() (in module tmol.score.cartbonded.score_graph)</a>
+</li>
       <li><a href="apidoc/tmol.database.scoring.dunbrack_libraries.html#tmol.database.scoring.dunbrack_libraries.DunbrackRotamerLibrary.semi_rotameric_libraries">semi_rotameric_libraries (tmol.database.scoring.dunbrack_libraries.DunbrackRotamerLibrary attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.PackedDunbrackDatabase.semirot_periodicity">semirot_periodicity (tmol.score.dunbrack.params.PackedDunbrackDatabase attribute)</a>
@@ -2802,10 +2848,10 @@
       </ul></li>
       <li><a href="apidoc/tmol.score.hbond.identification.html#tmol.score.hbond.identification.HBondElementAnalysis.setup_from_database">setup_from_database() (tmol.score.hbond.identification.HBondElementAnalysis class method)</a>
 </li>
-      <li><a href="apidoc/tmol.types.shape.html#tmol.types.shape.Shape">Shape (class in tmol.types.shape)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="apidoc/tmol.types.shape.html#tmol.types.shape.Shape">Shape (class in tmol.types.shape)</a>
+</li>
       <li><a href="apidoc/tmol.types.tensor.html#tmol.types.tensor.TensorGroup.shape">shape (tmol.types.tensor.TensorGroup attribute)</a>
 </li>
       <li><a href="apidoc/tmol.types.shape.html#tmol.types.shape.Shape.Factory">Shape.Factory (class in tmol.types.shape)</a>
@@ -2833,8 +2879,6 @@
 </li>
       </ul></li>
       <li><a href="apidoc/tmol.score.omega.score_graph.html#tmol.score.omega.score_graph.OmegaScoreGraph.spring_constant">spring_constant (tmol.score.omega.score_graph.OmegaScoreGraph attribute)</a>
-</li>
-      <li><a href="apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.IndexedBonds.src_index">src_index (tmol.score.bonded_atom.IndexedBonds attribute)</a>
 </li>
       <li><a href="apidoc/tmol.score.stacked_system.html#tmol.score.stacked_system.StackedSystem.stack_depth">stack_depth (tmol.score.stacked_system.StackedSystem attribute)</a>
 </li>
@@ -2989,6 +3033,8 @@
       <li><a href="apidoc/tmol.score.common.html#module-tmol.score.common">tmol.score.common (module)</a>
 </li>
       <li><a href="apidoc/tmol.score.common.cubic_hermite_polynomial.html#module-tmol.score.common.cubic_hermite_polynomial">tmol.score.common.cubic_hermite_polynomial (module)</a>
+</li>
+      <li><a href="apidoc/tmol.score.common.stack_condense.html#module-tmol.score.common.stack_condense">tmol.score.common.stack_condense (module)</a>
 </li>
       <li><a href="apidoc/tmol.score.coordinates.html#module-tmol.score.coordinates">tmol.score.coordinates (module)</a>
 </li>

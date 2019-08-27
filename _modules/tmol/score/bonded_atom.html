@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -203,46 +203,85 @@
 
 <div class="viewcode-block" id="IndexedBonds"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.IndexedBonds">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">IndexedBonds</span><span class="p">:</span>
-    <span class="n">bonds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="n">bond_spans</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="n">src_index</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:]</span>
+    <span class="c1"># bonds = [ nstacks x nbonds x 2 ]</span>
+    <span class="c1">#   with 2 = (atom1ind atom2ind)</span>
+    <span class="c1"># bond_spans = [ nstacks x max-natoms x 2 ]</span>
+    <span class="c1">#   with 2 = (bond start ind, bond end ind + 1)</span>
+    <span class="n">bonds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">bond_spans</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
 
 <div class="viewcode-block" id="IndexedBonds.from_bonds"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.IndexedBonds.from_bonds">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">from_bonds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_bonds</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
-        <span class="c1"># Convert undirected (i, j) bond index tuples into sorted, indexed list.</span>
+        <span class="c1"># Convert undirected (stack, i, j) bond index tuples into sorted, indexed list.</span>
 
-        <span class="n">bonds</span><span class="p">,</span> <span class="n">src_index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">src_bonds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">uniq_bonds</span><span class="p">,</span> <span class="n">src_index</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">src_bonds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">nstacks</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">uniq_bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="n">minlength</span><span class="p">:</span>
-            <span class="n">minlength</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span>
+            <span class="n">minlength</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">uniq_bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:])</span> <span class="o">+</span> <span class="mi">1</span>
 
-        <span class="c1"># Generate [start_idx, end_idx) spans for contiguous [(i, j_n)...]</span>
-        <span class="c1"># blocks in the sorted bond table indexed by i</span>
-        <span class="n">num_bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">minlength</span><span class="o">=</span><span class="n">minlength</span><span class="p">))</span>
+        <span class="n">bond_counts_per_stack</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span>
+            <span class="n">uniq_bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">minlength</span><span class="o">=</span><span class="n">nstacks</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">max_nbonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">bond_counts_per_stack</span><span class="p">)</span>
 
-        <span class="n">bond_spans</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">num_bonds</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-        <span class="n">bond_spans</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="n">bond_spans</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_bonds</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">bond_spans</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_bonds</span>
+        <span class="n">bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_nbonds</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_nbonds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_nbonds</span><span class="p">))</span>
+        <span class="n">lowinds</span> <span class="o">=</span> <span class="n">counts</span> <span class="o">&lt;</span> <span class="n">bond_counts_per_stack</span>
+        <span class="n">nz</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">lowinds</span><span class="p">)</span>
+        <span class="n">bonds</span><span class="p">[</span><span class="n">nz</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nz</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">uniq_bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+
+        <span class="n">bond_spans</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">minlength</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="c1"># bond spans: the starting and stoping index for every bond for an atom;</span>
+        <span class="c1"># created using the cumsum function after counting how many bonds each</span>
+        <span class="c1"># atom has, using the bincount function.</span>
+        <span class="c1">#</span>
+        <span class="c1"># To use the bincount function, we need to ravel the 1st-atom-in-bond</span>
+        <span class="c1"># array, and we need to assign atoms in separate stacks to diferent</span>
+        <span class="c1"># integers (which is what max_atom_offsets is for). We also need to</span>
+        <span class="c1"># set all of the negative bond inds to an out-of-range value (like</span>
+        <span class="c1"># (maxats+1)*nstacks -1) and then, after performing the bincount,</span>
+        <span class="c1"># slice off the part of the array that carries its counts.</span>
+
+        <span class="n">max_atom_offsets</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">minlength</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">)</span>
+        <span class="n">first_at_shifted</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>
+        <span class="n">first_at_shifted</span><span class="p">[</span><span class="n">first_at_shifted</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">minlength</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nstacks</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">first_at_shifted</span> <span class="o">=</span> <span class="p">(</span><span class="n">first_at_shifted</span> <span class="o">+</span> <span class="n">max_atom_offsets</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">bincounts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span>
+            <span class="n">first_at_shifted</span><span class="p">,</span> <span class="n">minlength</span><span class="o">=</span><span class="p">((</span><span class="n">minlength</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">nstacks</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[:,</span> <span class="p">:</span><span class="n">minlength</span><span class="p">]</span>
+        <span class="n">bonds_cumsum</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">bincounts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">bond_spans</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">bond_spans</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="n">minlength</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">bonds_cumsum</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">bond_spans</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="n">minlength</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">bonds_cumsum</span>
 
         <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-            <span class="n">bonds</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">bonds</span><span class="p">),</span>
-            <span class="n">bond_spans</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">),</span>
-            <span class="n">src_index</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">src_index</span><span class="p">),</span>
+            <span class="n">bonds</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">bonds</span><span class="p">),</span> <span class="n">bond_spans</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">)</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="IndexedBonds.to_directed"><a class="viewcode-back" href="../../../apidoc/tmol.score.bonded_atom.html#tmol.score.bonded_atom.IndexedBonds.to_directed">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">to_directed</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_bonds</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Convert a potentially-undirected bond-table into dense, directed bonds.</span>
+<span class="sd">        The input &quot;bonds&quot; tensor is a two dimensional array of nbonds x 3,</span>
+<span class="sd">        where the 2nd dimension holds [stack index, atom 1 index, atom 2 index].</span>
 
-<span class="sd">        Eg. Converts [[0, 1], [0, 2]] into [[0, 1], [1, 0], [0, 1], [2, 0]]</span>
+<span class="sd">        Eg. Converts</span>
+<span class="sd">        [[0, 0, 1], [0, 0, 2]]</span>
+<span class="sd">        into</span>
+<span class="sd">        [[0, 0, 1], [0, 1, 0], [0, 0, 2], [0, 2, 0]]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
             <span class="p">(</span>
                 <span class="n">src_bonds</span><span class="p">,</span>
-                <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">src_bonds</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:],</span> <span class="n">src_bonds</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">src_bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">src_bonds</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:],</span> <span class="n">src_bonds</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span>
+                <span class="p">),</span>
             <span class="p">),</span>
             <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span></div>
@@ -309,13 +348,12 @@
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">indexed_bonds</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">system_size</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Sorted, constant time access to bond graph.&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">numpy</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">bonds</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
         <span class="k">assert</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
 
         <span class="c1">## fd lkball needs this on the device</span>
         <span class="n">ibonds</span> <span class="o">=</span> <span class="n">IndexedBonds</span><span class="o">.</span><span class="n">from_bonds</span><span class="p">(</span>
-            <span class="n">IndexedBonds</span><span class="o">.</span><span class="n">to_directed</span><span class="p">(</span><span class="n">bonds</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]),</span> <span class="n">minlength</span><span class="o">=</span><span class="n">system_size</span>
+            <span class="n">IndexedBonds</span><span class="o">.</span><span class="n">to_directed</span><span class="p">(</span><span class="n">bonds</span><span class="p">),</span> <span class="n">minlength</span><span class="o">=</span><span class="n">system_size</span>
         <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">ibonds</span>

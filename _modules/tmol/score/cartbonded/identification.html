@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.identification &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.score.cartbonded.identification &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -190,54 +190,91 @@
 <span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
 
 
+<div class="viewcode-block" id="find_lengths"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.find_lengths">[docs]</a><span class="k">def</span> <span class="nf">find_lengths</span><span class="p">(</span><span class="n">bonds</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;find the non-redundant set of bonds, assuming that</span>
+<span class="sd">    there are no duplicate rows in the bonds tensor, but</span>
+<span class="sd">    that perhaps the bond between i &amp; j is also listed as</span>
+<span class="sd">    a bond between j &amp; i.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">selected_bonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">nstacks</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nbonds_per_stack</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">selected_bonds</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">max_bonds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nbonds_per_stack</span><span class="p">)</span>
+
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_bonds</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="c1"># get the output-tensor indices for each stack that we should write to</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_bonds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_bonds</span><span class="p">)</span>
+    <span class="n">lowinds</span> <span class="o">=</span> <span class="n">counts</span> <span class="o">&lt;</span> <span class="n">nbonds_per_stack</span>
+    <span class="n">nzlow</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">lowinds</span><span class="p">)</span>
+    <span class="n">lengths</span><span class="p">[</span><span class="n">nzlow</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nzlow</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">selected_bonds</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">lengths</span></div>
+
+
 <span class="c1"># traverse bond graph, generate angles</span>
 <div class="viewcode-block" id="find_angles"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.find_angles">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">find_angles</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">bond_spans</span><span class="p">):</span>
-    <span class="n">nbonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nstacks</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nbonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">max_angles</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nbonds</span> <span class="o">*</span> <span class="mi">3</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># assumes each node has at most 4 connections</span>
-    <span class="n">angles</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">max_angles</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="n">nangles</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">angles</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_angles</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
     <span class="c1"># use atm1:atm3 ordering to ensure no duplication</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbonds</span><span class="p">):</span>
-        <span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">atm2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">atm2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
-            <span class="n">atm3</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">atm3</span> <span class="o">&gt;</span> <span class="n">atm1</span><span class="p">:</span>
-                <span class="n">angles</span><span class="p">[</span><span class="n">nangles</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="n">atm3</span><span class="p">]</span>
-                <span class="n">nangles</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">nangles_list</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">stack</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstacks</span><span class="p">):</span>
+        <span class="n">nangles</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbonds</span><span class="p">):</span>
+            <span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">atm1</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">atm2</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
+                <span class="n">atm3</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">atm3</span> <span class="o">&gt;</span> <span class="n">atm1</span><span class="p">:</span>
+                    <span class="n">angles</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">nangles</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="n">atm3</span><span class="p">]</span>
+                    <span class="n">nangles</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">nangles_list</span><span class="p">[</span><span class="n">stack</span><span class="p">]</span> <span class="o">=</span> <span class="n">nangles</span>
+    <span class="n">max_nangles</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nangles_list</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">angles</span><span class="p">[:</span><span class="n">nangles</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="n">angles</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_nangles</span><span class="p">]</span></div>
 
 
 <span class="c1"># traverse bond graph, generate torsions</span>
 <div class="viewcode-block" id="find_torsions"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.find_torsions">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">find_torsions</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">bond_spans</span><span class="p">):</span>
-    <span class="n">nbonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nstacks</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nbonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">max_torsions</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nbonds</span> <span class="o">*</span> <span class="mi">9</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># assumes each node has at most 4 connections</span>
-    <span class="n">torsions</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">max_torsions</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="n">ntorsions</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">torsions</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_torsions</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
     <span class="c1"># use atm0:atm3 ordering to ensure no duplication</span>
     <span class="c1"># note: cycles like A-B-C-A are valid!</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbonds</span><span class="p">):</span>
-        <span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">atm2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">atm2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
-            <span class="n">atm3</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">atm3</span> <span class="o">==</span> <span class="n">atm1</span><span class="p">:</span>
+    <span class="n">ntorsions_list</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">stack</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstacks</span><span class="p">):</span>
+        <span class="n">ntorsions</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbonds</span><span class="p">):</span>
+            <span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">atm1</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">atm2</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">continue</span>
 
-            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">atm1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">atm1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
-                <span class="n">atm0</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">atm0</span> <span class="o">==</span> <span class="n">atm2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
+                <span class="n">atm3</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">atm3</span> <span class="o">==</span> <span class="n">atm1</span><span class="p">:</span>
                     <span class="k">continue</span>
 
-                <span class="k">if</span> <span class="p">(</span><span class="n">atm0</span> <span class="o">&lt;</span> <span class="n">atm3</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">atm0</span> <span class="o">==</span> <span class="n">atm3</span> <span class="ow">and</span> <span class="n">atm1</span> <span class="o">&lt;</span> <span class="n">atm2</span><span class="p">):</span>
-                    <span class="n">torsions</span><span class="p">[</span><span class="n">ntorsions</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">atm0</span><span class="p">,</span> <span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="n">atm3</span><span class="p">]</span>
-                    <span class="n">ntorsions</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">atm0</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">atm0</span> <span class="o">==</span> <span class="n">atm2</span><span class="p">:</span>
+                        <span class="k">continue</span>
 
-    <span class="k">return</span> <span class="n">torsions</span><span class="p">[:</span><span class="n">ntorsions</span><span class="p">]</span></div>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">atm0</span> <span class="o">&lt;</span> <span class="n">atm3</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">atm0</span> <span class="o">==</span> <span class="n">atm3</span> <span class="ow">and</span> <span class="n">atm1</span> <span class="o">&lt;</span> <span class="n">atm2</span><span class="p">):</span>
+                        <span class="n">torsions</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">ntorsions</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">atm0</span><span class="p">,</span> <span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="n">atm3</span><span class="p">]</span>
+                        <span class="n">ntorsions</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">ntorsions_list</span><span class="p">[</span><span class="n">stack</span><span class="p">]</span> <span class="o">=</span> <span class="n">ntorsions</span>
+    <span class="n">max_ntorsions</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ntorsions_list</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">torsions</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_ntorsions</span><span class="p">]</span></div>
 
 
 <span class="c1"># traverse bond graph, generate improper torsions</span>
@@ -249,28 +286,35 @@
 <span class="c1">#         B</span>
 <div class="viewcode-block" id="find_impropers"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.find_impropers">[docs]</a><span class="nd">@jit</span><span class="p">(</span><span class="n">nopython</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">def</span> <span class="nf">find_impropers</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">bond_spans</span><span class="p">):</span>
-    <span class="n">nbonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nstacks</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nbonds</span> <span class="o">=</span> <span class="n">bonds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">max_impropers</span> <span class="o">=</span> <span class="n">nbonds</span> <span class="o">*</span> <span class="mi">6</span>  <span class="c1"># assumes each node has at most 4 connections</span>
-    <span class="n">improper</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">max_impropers</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-    <span class="n">nimproper</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">improper</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_impropers</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
     <span class="c1"># note: ABCD and BACD are considered separate terms</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbonds</span><span class="p">):</span>
-        <span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-
-        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">atm2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">atm2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
-            <span class="n">atm3</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">atm3</span> <span class="o">==</span> <span class="n">atm1</span><span class="p">:</span>
+    <span class="n">nimproper_list</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">stack</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstacks</span><span class="p">):</span>
+        <span class="n">nimproper</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nbonds</span><span class="p">):</span>
+            <span class="n">atm1</span><span class="p">,</span> <span class="n">atm2</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">atm1</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">atm2</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">continue</span>
-            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">atm2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">atm2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
-                <span class="n">atm4</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">atm4</span> <span class="o">==</span> <span class="n">atm1</span> <span class="ow">or</span> <span class="n">atm4</span> <span class="o">==</span> <span class="n">atm3</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
+                <span class="n">atm3</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">atm3</span> <span class="o">==</span> <span class="n">atm1</span><span class="p">:</span>
                     <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">bond_spans</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]):</span>
+                    <span class="n">atm4</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">atm4</span> <span class="o">==</span> <span class="n">atm1</span> <span class="ow">or</span> <span class="n">atm4</span> <span class="o">==</span> <span class="n">atm3</span><span class="p">:</span>
+                        <span class="k">continue</span>
 
-                <span class="n">improper</span><span class="p">[</span><span class="n">nimproper</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">atm4</span><span class="p">,</span> <span class="n">atm3</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="n">atm1</span><span class="p">]</span>
-                <span class="n">nimproper</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">improper</span><span class="p">[</span><span class="n">stack</span><span class="p">,</span> <span class="n">nimproper</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">atm4</span><span class="p">,</span> <span class="n">atm3</span><span class="p">,</span> <span class="n">atm2</span><span class="p">,</span> <span class="n">atm1</span><span class="p">]</span>
+                    <span class="n">nimproper</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">nimproper_list</span><span class="p">[</span><span class="n">stack</span><span class="p">]</span> <span class="o">=</span> <span class="n">nimproper</span>
+    <span class="n">max_nimproper</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nimproper_list</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">improper</span><span class="p">[:</span><span class="n">nimproper</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="n">improper</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_nimproper</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="CartBondedIdentification"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.CartBondedIdentification">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -278,10 +322,10 @@
     <span class="sd">&quot;&quot;&quot;Expands a bondgraph to export all bondangles and bondlengths</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">lengths</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="n">angles</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">torsions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">]</span>
-    <span class="n">impropers</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">]</span>
+    <span class="n">lengths</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">angles</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">torsions</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]</span>
+    <span class="n">impropers</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]</span>
 
 <div class="viewcode-block" id="CartBondedIdentification.setup"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.identification.html#tmol.score.cartbonded.identification.CartBondedIdentification.setup">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@convert_args</span>
@@ -290,9 +334,8 @@
     <span class="p">):</span>
         <span class="n">bonds</span> <span class="o">=</span> <span class="n">indexed_bonds</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="n">spans</span> <span class="o">=</span> <span class="n">indexed_bonds</span><span class="o">.</span><span class="n">bond_spans</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="n">bond_selector</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">bonds</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
 
-        <span class="n">lengths</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">bond_selector</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">lengths</span> <span class="o">=</span> <span class="n">find_lengths</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span>
         <span class="n">angles</span> <span class="o">=</span> <span class="n">find_angles</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">spans</span><span class="p">)</span>
         <span class="n">torsions</span> <span class="o">=</span> <span class="n">find_torsions</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">spans</span><span class="p">)</span>
         <span class="n">impropers</span> <span class="o">=</span> <span class="n">find_impropers</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">spans</span><span class="p">)</span>

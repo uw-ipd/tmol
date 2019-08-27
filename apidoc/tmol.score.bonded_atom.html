@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.score.bonded_atom &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -256,7 +256,7 @@
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="tmol.score.bonded_atom.IndexedBonds">
-<em class="property">class </em><code class="descclassname">tmol.score.bonded_atom.</code><code class="descname">IndexedBonds</code><span class="sig-paren">(</span><em>bonds: Tensor(torch.int64)[:,2], bond_spans: Tensor(torch.int64)[:,2], src_index: Tensor(torch.int64)[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/bonded_atom.html#IndexedBonds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.bonded_atom.IndexedBonds" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.bonded_atom.</code><code class="descname">IndexedBonds</code><span class="sig-paren">(</span><em>bonds: Tensor(torch.int64)[:,:,2], bond_spans: Tensor(torch.int64)[:,:,2]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/bonded_atom.html#IndexedBonds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.bonded_atom.IndexedBonds" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="attribute">
 <dt id="tmol.score.bonded_atom.IndexedBonds.bonds">
@@ -268,11 +268,6 @@
 <code class="descname">bond_spans</code><a class="headerlink" href="#tmol.score.bonded_atom.IndexedBonds.bond_spans" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="tmol.score.bonded_atom.IndexedBonds.src_index">
-<code class="descname">src_index</code><a class="headerlink" href="#tmol.score.bonded_atom.IndexedBonds.src_index" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="classmethod">
 <dt id="tmol.score.bonded_atom.IndexedBonds.from_bonds">
 <em class="property">classmethod </em><code class="descname">from_bonds</code><span class="sig-paren">(</span><em>src_bonds</em>, <em>minlength=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/bonded_atom.html#IndexedBonds.from_bonds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.bonded_atom.IndexedBonds.from_bonds" title="Permalink to this definition">¶</a></dt>
@@ -281,8 +276,13 @@
 <dl class="classmethod">
 <dt id="tmol.score.bonded_atom.IndexedBonds.to_directed">
 <em class="property">classmethod </em><code class="descname">to_directed</code><span class="sig-paren">(</span><em>src_bonds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/bonded_atom.html#IndexedBonds.to_directed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.bonded_atom.IndexedBonds.to_directed" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert a potentially-undirected bond-table into dense, directed bonds.</p>
-<p>Eg. Converts [[0, 1], [0, 2]] into [[0, 1], [1, 0], [0, 1], [2, 0]]</p>
+<dd><p>Convert a potentially-undirected bond-table into dense, directed bonds.
+The input “bonds” tensor is a two dimensional array of nbonds x 3,
+where the 2nd dimension holds [stack index, atom 1 index, atom 2 index].</p>
+<p>Eg. Converts
+[[0, 0, 1], [0, 0, 2]]
+into
+[[0, 0, 1], [0, 1, 0], [0, 0, 2], [0, 2, 0]]</p>
 </dd></dl>
 
 <dl class="method">

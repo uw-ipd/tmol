@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.params &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.score.cartbonded.params &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -232,85 +232,134 @@
 
     <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
 
-<div class="viewcode-block" id="CartBondedParamResolver.resolve_lengths"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_lengths">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_lengths</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span> <span class="n">atm1s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span> <span class="n">atm2s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
+<div class="viewcode-block" id="CartBondedParamResolver.resolve_lengths"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_lengths">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">resolve_lengths</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm1s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm2s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Resolve string triplets into integer bondlength parameter indices.&quot;&quot;&quot;</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">resnames</span><span class="p">,</span> <span class="n">atm1s</span><span class="p">,</span> <span class="n">atm2s</span><span class="p">])</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">resnames</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="k">assert</span> <span class="n">resnames</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">atm1s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">resnames</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">atm2s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">resnames</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">atm1s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">resnames</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">atm2s</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">resnames</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resnames</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="o">-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span>
+        <span class="p">)</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="n">resnames</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">real</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">resnames</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">real</span><span class="p">]]</span>
+        <span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">resnames</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
         <span class="p">)</span>
         <span class="n">wildcard</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
         <span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondlength_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">i</span></div>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
 
-<div class="viewcode-block" id="CartBondedParamResolver.resolve_angles"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_angles">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_angles</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">inds</span></div>
+
+<div class="viewcode-block" id="CartBondedParamResolver.resolve_angles"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_angles">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">resolve_angles</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
-        <span class="n">atm1s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
-        <span class="n">atm2s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
-        <span class="n">atm3s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
+        <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm1s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm2s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm3s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Resolve string quads into integer bondangle parameter indices.&quot;&quot;&quot;</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">resnames</span><span class="p">,</span> <span class="n">atm1s</span><span class="p">,</span> <span class="n">atm2s</span><span class="p">,</span> <span class="n">atm3s</span><span class="p">])</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">resnames</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">resnames</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="o">-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="n">resnames</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">real</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">resnames</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm3s</span><span class="p">[</span><span class="n">real</span><span class="p">]]</span>
+        <span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">resnames</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">]</span>
         <span class="p">)</span>
         <span class="n">wildcard</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">]</span>
         <span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondangle_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">]</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">i</span></div>
 
-<div class="viewcode-block" id="CartBondedParamResolver.resolve_torsions"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_torsions">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_torsions</span><span class="p">(</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">inds</span></div>
+
+<div class="viewcode-block" id="CartBondedParamResolver.resolve_torsions"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_torsions">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">resolve_torsions</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
-        <span class="n">atm1s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
-        <span class="n">atm2s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
-        <span class="n">atm3s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
-        <span class="n">atm4s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
+        <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm1s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm2s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm3s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atm4s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Resolve string quints into integer torsion parameter indices.&quot;&quot;&quot;</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">resnames</span><span class="p">,</span> <span class="n">atm1s</span><span class="p">,</span> <span class="n">atm2s</span><span class="p">,</span> <span class="n">atm3s</span><span class="p">,</span> <span class="n">atm4s</span><span class="p">])</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="o">-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="n">resnames</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">real</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">resnames</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm3s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm4s</span><span class="p">[</span><span class="n">real</span><span class="p">]]</span>
+        <span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="n">resnames</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm4s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">resnames</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm4s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
         <span class="n">wildcard</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm4s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm4s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">torsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm4s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm4s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">i</span></div>
 
-<div class="viewcode-block" id="CartBondedParamResolver.resolve_impropers"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_impropers">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_impropers</span><span class="p">(</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">inds</span></div>
+
+<div class="viewcode-block" id="CartBondedParamResolver.resolve_impropers"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_impropers">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">resolve_impropers</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
         <span class="n">atm1s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
@@ -320,20 +369,29 @@
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Resolve string quints into integer improper torsion parameter indices.&quot;&quot;&quot;</span>
         <span class="c1"># impropers have a defined ordering</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">resnames</span><span class="p">,</span> <span class="n">atm1s</span><span class="p">,</span> <span class="n">atm2s</span><span class="p">,</span> <span class="n">atm3s</span><span class="p">,</span> <span class="n">atm4s</span><span class="p">])</span>
+
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="o">-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="n">resnames</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+
+        <span class="n">inds</span><span class="p">[</span><span class="n">real</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">resnames</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm3s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm4s</span><span class="p">[</span><span class="n">real</span><span class="p">]]</span>
+        <span class="p">)</span>
         <span class="n">wildcard</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">improper_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm4s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm4s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">i</span></div>
 
-<div class="viewcode-block" id="CartBondedParamResolver.resolve_hxltorsions"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_hxltorsions">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_hxltorsions</span><span class="p">(</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">inds</span></div>
+
+<div class="viewcode-block" id="CartBondedParamResolver.resolve_hxltorsions"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.resolve_hxltorsions">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">resolve_hxltorsions</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
         <span class="n">atm1s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
@@ -342,36 +400,42 @@
         <span class="n">atm4s</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NDArray</span><span class="p">(</span><span class="s2">&quot;i8&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Resolve string quints into integer hydroxyl torsion parameter indices.&quot;&quot;&quot;</span>
-        <span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">([</span><span class="n">resnames</span><span class="p">,</span> <span class="n">atm1s</span><span class="p">,</span> <span class="n">atm2s</span><span class="p">,</span> <span class="n">atm3s</span><span class="p">,</span> <span class="n">atm4s</span><span class="p">])</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="o">-</span><span class="mi">9999</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">real</span> <span class="o">=</span> <span class="n">resnames</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">real</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">resnames</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm1s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm2s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm3s</span><span class="p">[</span><span class="n">real</span><span class="p">],</span> <span class="n">atm4s</span><span class="p">[</span><span class="n">real</span><span class="p">]]</span>
+        <span class="p">)</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="n">resnames</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm4s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">resnames</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm4s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
         <span class="n">wildcard</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm4s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm4s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="n">i</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hxltorsion_index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span>
             <span class="p">[</span>
-                <span class="n">wildcard</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm4s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm3s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm2s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-                <span class="n">atm1s</span><span class="p">[</span><span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">wildcard</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm4s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm3s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm2s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">atm1s</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">i</span></div>
+
+        <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">==</span> <span class="o">-</span><span class="mi">9999</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">inds</span></div>
 
 <div class="viewcode-block" id="CartBondedParamResolver.from_database"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.params.html#tmol.score.cartbonded.params.CartBondedParamResolver.from_database">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="nd">@validate_args</span>

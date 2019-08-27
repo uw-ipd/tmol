@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-184-g80795773 documentation</title>
+  <title>tmol.score.cartbonded.score_graph &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-184-g80795773',
+              VERSION:'0.0.0-185-g432b4a98',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-184-g80795773
+                0.0.0-185-g432b4a98
               </div>
             
           
@@ -177,9 +177,10 @@
            <div itemprop="articleBody">
             
   <h1>Source code for tmol.score.cartbonded.score_graph</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
 
 <span class="kn">from</span> <span class="nn">..database</span> <span class="k">import</span> <span class="n">ParamDB</span>
 <span class="kn">from</span> <span class="nn">..device</span> <span class="k">import</span> <span class="n">TorchDevice</span>
@@ -195,6 +196,7 @@
 
 
 <span class="kn">from</span> <span class="nn">tmol.utility.reactive</span> <span class="k">import</span> <span class="n">reactive_attrs</span><span class="p">,</span> <span class="n">reactive_property</span>
+<span class="kn">from</span> <span class="nn">tmol.types.functional</span> <span class="k">import</span> <span class="n">validate_args</span>
 
 <span class="kn">from</span> <span class="nn">tmol.types.array</span> <span class="k">import</span> <span class="n">NDArray</span>
 
@@ -207,7 +209,7 @@
     <span class="c1"># @validate_args</span>
     <span class="k">def</span> <span class="nf">cartbonded_score</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_module</span><span class="p">(</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_lengths</span><span class="p">,</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_angles</span><span class="p">,</span>
             <span class="n">target</span><span class="o">.</span><span class="n">cartbonded_torsions</span><span class="p">,</span>
@@ -217,23 +219,105 @@
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_length</span><span class="p">(</span><span class="n">cartbonded_score</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_angle</span><span class="p">(</span><span class="n">cartbonded_score</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_torsion</span><span class="p">(</span><span class="n">cartbonded_score</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_improper</span><span class="p">(</span><span class="n">cartbonded_score</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">total_cartbonded_hxltorsion</span><span class="p">(</span><span class="n">cartbonded_score</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="n">cartbonded_score</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="select_names_from_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.select_names_from_indices">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">select_names_from_indices</span><span class="p">(</span>
+    <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+    <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+    <span class="n">atom_indices</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">int</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:],</span>
+    <span class="n">atom_for_resid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="o">...</span><span class="p">]:</span>
+    <span class="n">resnames</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">atom_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+    <span class="n">atnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">resnames</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">atom_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">atom_indices</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">nz</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real</span><span class="p">)</span>
+
+    <span class="c1"># masked assignment; nz[0] is the stack index, nz[1] is the torsion index</span>
+    <span class="n">resnames</span><span class="p">[</span><span class="n">real</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_names</span><span class="p">[</span><span class="n">nz</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">atom_indices</span><span class="p">[</span><span class="n">nz</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nz</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">atom_for_resid</span><span class="p">]]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">atom_indices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+        <span class="n">atnames</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">real</span><span class="p">]</span> <span class="o">=</span> <span class="n">atom_names</span><span class="p">[</span><span class="n">nz</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">atom_indices</span><span class="p">[</span><span class="n">nz</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">nz</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">i</span><span class="p">]]</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">resnames</span><span class="p">,)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">atnames</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="remove_undefined_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.remove_undefined_indices">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">remove_undefined_indices</span><span class="p">(</span>
+    <span class="n">atom_inds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:],</span>
+    <span class="n">param_inds</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span>
+    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
+    <span class="sd">&quot;&quot;&quot;Prune out the below-zero entries from the param inds</span>
+<span class="sd">    tensor and concatenate the remaining entries with the</span>
+<span class="sd">    corresponding entries from the atom-inds tensor. The</span>
+<span class="sd">    atom_inds tensor should be</span>
+<span class="sd">    [ nstacks x nentries x natoms-per-entry ].</span>
+<span class="sd">    The param_inds tensor should be</span>
+<span class="sd">    [ nstacks x nentries ].</span>
+<span class="sd">    The output tensor will be</span>
+<span class="sd">    [ nstacks x max-non-zero-params-per-stack x natoms-per-entry+1 ]</span>
+<span class="sd">    where a sentinel value of -1 will be present</span>
+<span class="sd">    if either the param- or the atom index represents</span>
+<span class="sd">    a non-existent atom set.</span>
+
+<span class="sd">    This code will &quot;condense&quot; an array with entries I&#39;m not interested in</span>
+<span class="sd">    into a smaller array so that fire up the minimum number of threads on</span>
+<span class="sd">    the GPU that have no work to perform</span>
+
+<span class="sd">    It will also &quot;left shift&quot; the valid entries so that the threads</span>
+<span class="sd">    that do have no work do to are next to each other, thereby ensuring</span>
+<span class="sd">    the highest warp coherency</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">assert</span> <span class="n">atom_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">param_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">atom_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">param_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Find the non-negative set of parameter indices -- these correspond to</span>
+    <span class="c1"># atom-tuples that should be scored, ie the real set.</span>
+    <span class="c1"># Collapse these real atoms+parameters into the lowest entries</span>
+    <span class="c1"># of an output tensor.</span>
+
+    <span class="n">nstacks</span> <span class="o">=</span> <span class="n">atom_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">param_inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">nzreal</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real</span><span class="p">)</span>  <span class="c1"># nz --&gt; the indices of the real entries</span>
+
+    <span class="c1"># how many for each stack should we keep?</span>
+    <span class="n">nkeep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">real</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">((</span><span class="n">atom_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">max_keep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nkeep</span><span class="p">)</span>
+    <span class="n">cb_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_keep</span><span class="p">,</span> <span class="n">atom_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span>
+    <span class="p">)</span>
+
+    <span class="c1"># get the output-tensor indices for each stack that we should write to</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">max_keep</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_keep</span><span class="p">))</span>
+    <span class="n">lowinds</span> <span class="o">=</span> <span class="n">counts</span> <span class="o">&lt;</span> <span class="n">nkeep</span>
+    <span class="n">nzlow</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">lowinds</span><span class="p">)</span>
+
+    <span class="n">cb_inds</span><span class="p">[</span><span class="n">nzlow</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nzlow</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">atom_inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span>
+        <span class="n">nzreal</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nzreal</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">]</span>
+    <span class="n">cb_inds</span><span class="p">[</span><span class="n">nzlow</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nzlow</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">param_inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span>
+        <span class="n">nzreal</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nzreal</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">cb_inds</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CartBondedScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.cartbonded.score_graph.html#tmol.score.cartbonded.score_graph.CartBondedScoreGraph">[docs]</a><span class="nd">@score_graph</span>
@@ -316,27 +400,22 @@
         <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
         <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
         <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]:</span>
+
         <span class="c1"># combine resolved atom indices and bondlength indices</span>
         <span class="n">bondlength_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">lengths</span>
-        <span class="n">bondlength_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_lengths</span><span class="p">(</span>
-            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondlength_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>  <span class="c1"># use atm1 for resid</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondlength_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondlength_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
+
+        <span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span> <span class="o">=</span> <span class="n">select_names_from_indices</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">,</span> <span class="n">bondlength_atom_indices</span><span class="p">,</span> <span class="n">atom_for_resid</span><span class="o">=</span><span class="mi">0</span>
         <span class="p">)</span>
 
-        <span class="c1"># remove undefined indices</span>
-        <span class="n">bondlength_defined</span> <span class="o">=</span> <span class="n">bondlength_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">bondlength_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_lengths</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">)</span>
 
-        <span class="n">cbl</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">bondlength_atom_indices</span><span class="p">[</span><span class="n">bondlength_defined</span><span class="p">]),</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">bondlength_indices</span><span class="p">[</span><span class="n">bondlength_defined</span><span class="p">,</span> <span class="kc">None</span><span class="p">]),</span>
-            <span class="p">],</span>
-            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">cbl</span>
+        <span class="k">return</span> <span class="n">remove_undefined_indices</span><span class="p">(</span>
+            <span class="n">bondlength_atom_indices</span><span class="p">,</span>
+            <span class="n">bondlength_indices</span><span class="p">,</span>
+            <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">cartbonded_angles</span><span class="p">(</span>
@@ -345,28 +424,19 @@
         <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
         <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
         <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]:</span>
         <span class="c1"># combine resolved atom indices and bondangle indices</span>
         <span class="n">bondangle_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">angles</span>
-        <span class="n">bondangle_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_angles</span><span class="p">(</span>
-            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>  <span class="c1"># use atm2 for resid</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>
+
+        <span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">,</span> <span class="n">at3</span> <span class="o">=</span> <span class="n">select_names_from_indices</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">,</span> <span class="n">bondangle_atom_indices</span><span class="p">,</span> <span class="n">atom_for_resid</span><span class="o">=</span><span class="mi">1</span>
         <span class="p">)</span>
 
-        <span class="c1"># remove undefined indices</span>
-        <span class="n">bondangle_defined</span> <span class="o">=</span> <span class="n">bondangle_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">bondangle_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_angles</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">,</span> <span class="n">at3</span><span class="p">)</span>
 
-        <span class="n">cba</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">bondangle_atom_indices</span><span class="p">[</span><span class="n">bondangle_defined</span><span class="p">]),</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">bondangle_indices</span><span class="p">[</span><span class="n">bondangle_defined</span><span class="p">,</span> <span class="kc">None</span><span class="p">]),</span>
-            <span class="p">],</span>
-            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">cba</span>
+        <span class="k">return</span> <span class="n">remove_undefined_indices</span><span class="p">(</span>
+            <span class="n">bondangle_atom_indices</span><span class="p">,</span> <span class="n">bondangle_indices</span><span class="p">,</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">cartbonded_torsions</span><span class="p">(</span>
@@ -375,29 +445,19 @@
         <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
         <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
         <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">5</span><span class="p">]:</span>
         <span class="c1"># combine resolved atom indices and bondangle indices</span>
         <span class="n">torsion_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">torsions</span>
-        <span class="n">torsion_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_torsions</span><span class="p">(</span>
-            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>  <span class="c1"># use atm2 for resid</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]],</span>
+        <span class="c1"># use atm2 for resid</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">,</span> <span class="n">at3</span><span class="p">,</span> <span class="n">at4</span> <span class="o">=</span> <span class="n">select_names_from_indices</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">,</span> <span class="n">torsion_atom_indices</span><span class="p">,</span> <span class="n">atom_for_resid</span><span class="o">=</span><span class="mi">1</span>
         <span class="p">)</span>
-
-        <span class="c1"># remove undefined indices</span>
-        <span class="n">torsion_defined</span> <span class="o">=</span> <span class="n">torsion_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-
-        <span class="n">cbt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">torsion_atom_indices</span><span class="p">[</span><span class="n">torsion_defined</span><span class="p">]),</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">torsion_indices</span><span class="p">[</span><span class="n">torsion_defined</span><span class="p">,</span> <span class="kc">None</span><span class="p">]),</span>
-            <span class="p">],</span>
-            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">cbt</span>
+        <span class="n">torsion_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_torsions</span><span class="p">(</span>
+            <span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">,</span> <span class="n">at3</span><span class="p">,</span> <span class="n">at4</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">remove_undefined_indices</span><span class="p">(</span>
+            <span class="n">torsion_atom_indices</span><span class="p">,</span> <span class="n">torsion_indices</span><span class="p">,</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">cartbonded_impropers</span><span class="p">(</span>
@@ -406,29 +466,22 @@
         <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
         <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
         <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">5</span><span class="p">]:</span>
         <span class="c1"># combine resolved atom indices and bondangle indices</span>
         <span class="n">improper_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">impropers</span>
+        <span class="c1"># use atm3 for resid</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">,</span> <span class="n">at3</span><span class="p">,</span> <span class="n">at4</span> <span class="o">=</span> <span class="n">select_names_from_indices</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">,</span> <span class="n">atom_for_resid</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
         <span class="n">improper_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_impropers</span><span class="p">(</span>
-            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>  <span class="c1"># use atm3 for resid</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">improper_atom_indices</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]],</span>
+            <span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">,</span> <span class="n">at3</span><span class="p">,</span> <span class="n">at4</span>
         <span class="p">)</span>
 
-        <span class="c1"># remove undefined indices</span>
-        <span class="n">improper_defined</span> <span class="o">=</span> <span class="n">improper_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-
-        <span class="n">cbi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">improper_atom_indices</span><span class="p">[</span><span class="n">improper_defined</span><span class="p">]),</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">improper_indices</span><span class="p">[</span><span class="n">improper_defined</span><span class="p">,</span> <span class="kc">None</span><span class="p">]),</span>
-            <span class="p">],</span>
-            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">cbi</span>
+        <span class="k">return</span> <span class="n">remove_undefined_indices</span><span class="p">(</span>
+            <span class="n">improper_atom_indices</span><span class="p">,</span>
+            <span class="n">improper_indices</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="nd">@reactive_property</span>
     <span class="k">def</span> <span class="nf">cartbonded_hxltorsions</span><span class="p">(</span>
@@ -437,29 +490,21 @@
         <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
         <span class="n">cartbonded_param_resolver</span><span class="p">:</span> <span class="n">CartBondedParamResolver</span><span class="p">,</span>
         <span class="n">cartbonded_param_identifier</span><span class="p">:</span> <span class="n">CartBondedIdentification</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">5</span><span class="p">]:</span>
         <span class="c1"># same identification as regular torsions, but resolved against a different DB</span>
         <span class="n">hxltorsion_atom_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_identifier</span><span class="o">.</span><span class="n">torsions</span>
+        <span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">,</span> <span class="n">at3</span><span class="p">,</span> <span class="n">at4</span> <span class="o">=</span> <span class="n">select_names_from_indices</span><span class="p">(</span>
+            <span class="n">res_names</span><span class="p">,</span> <span class="n">atom_names</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">,</span> <span class="n">atom_for_resid</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
         <span class="n">hxltorsion_indices</span> <span class="o">=</span> <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">resolve_hxltorsions</span><span class="p">(</span>
-            <span class="n">res_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>  <span class="c1"># use atm3 for resid</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]],</span>
-            <span class="n">atom_names</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">hxltorsion_atom_indices</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]],</span>
+            <span class="n">res</span><span class="p">,</span> <span class="n">at1</span><span class="p">,</span> <span class="n">at2</span><span class="p">,</span> <span class="n">at3</span><span class="p">,</span> <span class="n">at4</span>
         <span class="p">)</span>
 
-        <span class="c1"># remove undefined indices</span>
-        <span class="n">hxltorsion_defined</span> <span class="o">=</span> <span class="n">hxltorsion_indices</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
-
-        <span class="n">cbht</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">hxltorsion_atom_indices</span><span class="p">[</span><span class="n">hxltorsion_defined</span><span class="p">]),</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">hxltorsion_indices</span><span class="p">[</span><span class="n">hxltorsion_defined</span><span class="p">,</span> <span class="kc">None</span><span class="p">]),</span>
-            <span class="p">],</span>
-            <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">cbht</span></div>
+        <span class="k">return</span> <span class="n">remove_undefined_indices</span><span class="p">(</span>
+            <span class="n">hxltorsion_atom_indices</span><span class="p">,</span>
+            <span class="n">hxltorsion_indices</span><span class="p">,</span>
+            <span class="n">cartbonded_param_resolver</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span></div>
 </pre></div>
 
            </div>
