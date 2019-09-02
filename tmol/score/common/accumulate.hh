@@ -3,6 +3,7 @@
 #include <Eigen/Core>
 
 #ifdef __CUDACC__
+#include <tmol/numeric/log2.hh>
 #include <cooperative_groups.h>
 #endif
 
@@ -15,7 +16,7 @@ namespace common {
 template <tmol::Device D, typename T, class Enable = void>
 struct accumulate {};
 
-template <tmol::Device D, typename T>
+template <tmol::Device D, typename T, class Enable = void>
 struct accumulate_kahan {};
 
 template <typename T>
@@ -27,7 +28,10 @@ struct accumulate<
 };
 
 template <typename T>
-struct accumulate_kahan<tmol::Device::CPU, T> {
+struct accumulate_kahan<
+  tmol::Device::CPU,
+  T,
+  typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T* target, const T& val)->void {
     // from wikipedia
     // https://en.wikipedia.org/wiki/Kahan_summation_algorithm
@@ -68,42 +72,48 @@ union float2UllUnion {
   unsigned long long int ull;
 };
 
-__device__ float reduce_sum_tile_shfl(
-    cooperative_groups::coalesced_group g, float val) {
-  // Adapted from https://devblogs.nvidia.com/cooperative-groups/
-  // Each iteration halves the number of active threads
-  // Each thread adds its partial sum[i] to sum[lane+i]
-
-  // First: have the lower threads shuffle from the
-  // threads that hang off the end of g.size() / 2
-  int biggest_pow2_base =
-      (g.size() == 32
-           ? 32
-           : (g.size() >= 16
-                  ? 16
-                  : (g.size() >= 8
-                         ? 8
-                         : (g.size() >= 4 ? 4 : g.size() >= 2 ? 2 : 1))));
-  int overhang = g.size() - biggest_pow2_base;
-  if (overhang > 0) {
-    float overhang_val = g.shfl_down(val, biggest_pow2_base);
-    if (g.thread_rank() < overhang) {
-      val += overhang_val;
-    }
-  }
-
-  // Now perform the ln(n) reduction
-  for (int i = biggest_pow2_base / 2; i > 0; i /= 2) {
-    val += g.shfl_down(val, i);
-  }
-
-  return val;  // note: only thread 0 will return full sum
-}
 
 // Note T must be 32 bits. Either integer or float will do, but double will not.
-template <typename T>
-struct accumulate_kahan<tmol::Device::CUDA, T> {
-  static def add(T* address, const T& val)->void {
+template <>
+struct accumulate_kahan<
+  tmol::Device::CUDA, float,
+  typename std::enable_if<std::is_arithmetic<float>::value>::type> {
+
+#ifdef __CUDA_ARCH__
+  // This function could be moved into a different class.
+  static
+  __device__
+  __inline__
+  float reduce_sum_tile_shfl(
+      cooperative_groups::coalesced_group g, float val) {
+    // Adapted from https://devblogs.nvidia.com/cooperative-groups/
+
+    // First: have the lower threads shuffle from the
+    // threads that hang off the end of g.size() / 2
+    // effectively int(floor(log2(g.size()))), but avoiding
+    // the transcendental function.
+
+    unsigned int biggest_pow2_base = numeric::most_sig_bit128(g.size());
+    unsigned int overhang = g.size() - biggest_pow2_base;
+    if (overhang > 0) {
+      float overhang_val = g.shfl_down(val, biggest_pow2_base);
+      if (g.thread_rank() < overhang) {
+        val += overhang_val;
+      }
+    }
+
+    // Each iteration halves the number of active threads
+    // Each thread adds its partial sum[i] to sum[lane+i]
+    for (int i = biggest_pow2_base / 2; i > 0; i /= 2) {
+      val += g.shfl_down(val, i);
+    }
+
+    return val;  // note: only thread 0 will return full sum
+  }
+#endif
+
+
+  static def add(float* address, const float& val)->void {
 #ifdef __CUDA_ARCH__
     // Neither atomicCAS nor reduce_sum_tile_shfl can be
     // called from a host/device function -- only from a
@@ -114,7 +124,7 @@ struct accumulate_kahan<tmol::Device::CUDA, T> {
 
     auto g = cooperative_groups::coalesced_threads();
 
-    T warp_sum = reduce_sum_tile_shfl(g, val);
+    float warp_sum = reduce_sum_tile_shfl(g, val);
 
     if (g.thread_rank() == 0) {
       unsigned long long int* address_as_ull = (unsigned long long int*)address;
@@ -124,8 +134,8 @@ struct accumulate_kahan<tmol::Device::CUDA, T> {
         assumed = old;
         tmp = assumed;
         // kahan summation
-        const T y = warp_sum - tmp.f.y;
-        const T t = tmp.f.x + y;
+        const float y = warp_sum - tmp.f.y;
+        const float t = tmp.f.x + y;
         tmp.f.y = (t - tmp.f.x) - y;
         tmp.f.x = t;
 
@@ -134,6 +144,18 @@ struct accumulate_kahan<tmol::Device::CUDA, T> {
       } while (assumed.ull != old.ull);
     }
 #endif
+  }
+};
+
+template <>
+struct accumulate_kahan<
+  tmol::Device::CUDA, double,
+  typename std::enable_if<std::is_arithmetic<double>::value>::type> {
+
+  static def add(double* address, const double& val)->void {
+    // Kahan summation cannot be performed at double precision
+    // so just perform standard double-precision atomic addition.
+    atomicAdd(address, val);
   }
 };
 

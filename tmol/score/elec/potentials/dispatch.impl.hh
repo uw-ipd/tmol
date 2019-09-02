@@ -37,17 +37,17 @@ struct ElecDispatch {
       TView<Vec<Real, 3>, 2, Dev> coords_j,
       TView<Real, 2, Dev> e_j,
       TView<Real, 3, Dev> bonded_path_lengths,
-      TView<ElecGlobalParams<float>, 1, Dev> global_params)
+      TView<ElecGlobalParams<Real>, 1, Dev> global_params)
       -> std::tuple<
-          TPack<float, 1, Dev>,
+          TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>> {
     int nstacks = coords_i.size(0);
-    auto Vs_t = TPack<float, 1, Dev>::zeros({nstacks});
+    auto Vs_t = TPack<Real, 1, Dev>::zeros({nstacks});
 
     // for use with Kahan summation; need space for both the sum and the
     // truncation
-    auto Vs_accum_t = TPack<float, 2, Dev>::zeros({nstacks, 2});
+    auto Vs_accum_t = TPack<Real, 2, Dev>::zeros({nstacks, 2});
 
     auto dVs_dI_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_i.size(1)});
@@ -85,7 +85,7 @@ struct ElecDispatch {
               global_params[0].max_dis);
 
           // Kahan summation to reduce numerical noise
-          accumulate_kahan<Dev, float>::add(&Vs_accum[stack][0], V);
+          accumulate_kahan<Dev, Real>::add(&Vs_accum[stack][0], V);
 
           // after accumulating, copy over the result into the output
           // tensor; the last thread to complete this will have it right
