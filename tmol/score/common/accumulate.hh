@@ -93,10 +93,12 @@ struct accumulate_kahan<
     // effectively int(floor(log2(g.size()))), but avoiding
     // the transcendental function.
 
-    unsigned int biggest_pow2_base = numeric::most_sig_bit128(g.size());
-    unsigned int overhang = g.size() - biggest_pow2_base;
+    unsigned int const gsize = g.size();
+    unsigned int const biggest_pow2_base = numeric::most_sig_bit128(gsize);
+    
+    unsigned int const overhang = gsize - biggest_pow2_base;
     if (overhang > 0) {
-      float overhang_val = g.shfl_down(val, biggest_pow2_base);
+      float const overhang_val = g.shfl_down(val, biggest_pow2_base);
       if (g.thread_rank() < overhang) {
         val += overhang_val;
       }
@@ -155,7 +157,11 @@ struct accumulate_kahan<
   static def add(double* address, const double& val)->void {
     // Kahan summation cannot be performed at double precision
     // so just perform standard double-precision atomic addition.
+    // TO DO: figure out Alex's magic to avoid the error about
+    // invoking atomic operations from a __host__ __device__ function.
+#ifdef __CUDA_ARCH__
     atomicAdd(address, val);
+#endif
   }
 };
 

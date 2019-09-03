@@ -26,7 +26,9 @@ using Vec = Eigen::Matrix<Real, N, 1>;
 
 template <
     template <tmol::Device>
-    class Dispatch,
+    class SingleDispatch,
+    template <tmol::Device>
+    class PairDispatch,
     tmol::Device Dev,
     typename Real,
     typename Int>
@@ -37,7 +39,7 @@ struct ElecDispatch {
       TView<Vec<Real, 3>, 2, Dev> coords_j,
       TView<Real, 2, Dev> e_j,
       TView<Real, 3, Dev> bonded_path_lengths,
-      TView<ElecGlobalParams<Real>, 1, Dev> global_params)
+      TView<ElecGlobalParams<float>, 1, Dev> global_params)
       -> std::tuple<
           TPack<Real, 1, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>,
@@ -61,7 +63,7 @@ struct ElecDispatch {
 
     Real threshold_distance = 6.0;  // fd  make this a parameter...
 
-    Dispatch<Dev>::forall_stacked_pairs(
+    PairDispatch<Dev>::forall_stacked_pairs(
         threshold_distance,
         coords_i,
         coords_j,
@@ -89,7 +91,7 @@ struct ElecDispatch {
 
           // after accumulating, copy over the result into the output
           // tensor; the last thread to complete this will have it right
-          Vs[stack] = Vs_accum[stack][0];
+          // TEMP ! Vs[stack] = Vs_accum[stack][0];
 
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dI[stack][i], dV_dDist * ddist_dI);
@@ -97,6 +99,11 @@ struct ElecDispatch {
               dVs_dJ[stack][j], dV_dDist * ddist_dJ);
         });
 
+    // skip the torch slicing
+    SingleDispatch<Dev>::forall(nstacks, [=] EIGEN_DEVICE_FUNC(int i) {
+	Vs[i] = Vs_accum[i][0];
+      });
+    
     return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }
 };
