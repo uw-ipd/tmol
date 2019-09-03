@@ -72,23 +72,30 @@ union float2UllUnion {
   unsigned long long int ull;
 };
 
-// Note T must be 32 bits. Either integer or float will do, but double will not.
+// Kahan summation on the GPU:
+// 1. Perform a reduction on the active threads (the coalesced group)
+// 2. Thread 0 then performs the Kahan summation with the sum
+//    by spinning on calls to atomicCAS until the summation goes
+//    trough.
+// Note that the input desination pointer must be to an array of
+// floats of size 2; contiguity is necessary for the atomicCAS
+// to work.
 template <>
 struct accumulate_kahan<
     tmol::Device::CUDA,
     float,
     typename std::enable_if<std::is_arithmetic<float>::value>::type> {
 #ifdef __CUDA_ARCH__
-  // This function could be moved into a different class.
+
+  // Perform reduction (sum) within the active threads.
+  // This function could/should be moved elsewhere.
   static __device__ __inline__ float reduce_sum_tile_shfl(
       cooperative_groups::coalesced_group g, float val) {
     // Adapted from https://devblogs.nvidia.com/cooperative-groups/
 
     // First: have the lower threads shuffle from the
-    // threads that hang off the end of g.size() / 2
-    // effectively int(floor(log2(g.size()))), but avoiding
-    // the transcendental function.
-
+    // threads that hang off the end of the largest-power-of-2
+    // less than or equal to the number of active threads.
     unsigned int const gsize = g.size();
     unsigned int const biggest_pow2_base = numeric::most_sig_bit128(gsize);
 
@@ -100,8 +107,10 @@ struct accumulate_kahan<
       }
     }
 
-    // Each iteration halves the number of active threads
-    // Each thread adds its partial sum[i] to sum[lane+i]
+    // Second: perform a canonical reduction with the group of
+    // active threads; the number of iterations would otherwise
+    // have missed the "overhang" set if the first shfl_down
+    // above had not been performed.
     for (int i = biggest_pow2_base / 2; i > 0; i /= 2) {
       val += g.shfl_down(val, i);
     }
