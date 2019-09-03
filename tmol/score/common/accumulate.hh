@@ -3,8 +3,8 @@
 #include <Eigen/Core>
 
 #ifdef __CUDACC__
-#include <tmol/numeric/log2.hh>
 #include <cooperative_groups.h>
+#include <tmol/numeric/log2.hh>
 #endif
 
 namespace tmol {
@@ -29,9 +29,9 @@ struct accumulate<
 
 template <typename T>
 struct accumulate_kahan<
-  tmol::Device::CPU,
-  T,
-  typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+    tmol::Device::CPU,
+    T,
+    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
   static def add(T* target, const T& val)->void {
     // from wikipedia
     // https://en.wikipedia.org/wiki/Kahan_summation_algorithm
@@ -72,19 +72,15 @@ union float2UllUnion {
   unsigned long long int ull;
 };
 
-
 // Note T must be 32 bits. Either integer or float will do, but double will not.
 template <>
 struct accumulate_kahan<
-  tmol::Device::CUDA, float,
-  typename std::enable_if<std::is_arithmetic<float>::value>::type> {
-
+    tmol::Device::CUDA,
+    float,
+    typename std::enable_if<std::is_arithmetic<float>::value>::type> {
 #ifdef __CUDA_ARCH__
   // This function could be moved into a different class.
-  static
-  __device__
-  __inline__
-  float reduce_sum_tile_shfl(
+  static __device__ __inline__ float reduce_sum_tile_shfl(
       cooperative_groups::coalesced_group g, float val) {
     // Adapted from https://devblogs.nvidia.com/cooperative-groups/
 
@@ -95,7 +91,7 @@ struct accumulate_kahan<
 
     unsigned int const gsize = g.size();
     unsigned int const biggest_pow2_base = numeric::most_sig_bit128(gsize);
-    
+
     unsigned int const overhang = gsize - biggest_pow2_base;
     if (overhang > 0) {
       float const overhang_val = g.shfl_down(val, biggest_pow2_base);
@@ -113,7 +109,6 @@ struct accumulate_kahan<
     return val;  // note: only thread 0 will return full sum
   }
 #endif
-
 
   static def add(float* address, const float& val)->void {
 #ifdef __CUDA_ARCH__
@@ -151,9 +146,9 @@ struct accumulate_kahan<
 
 template <>
 struct accumulate_kahan<
-  tmol::Device::CUDA, double,
-  typename std::enable_if<std::is_arithmetic<double>::value>::type> {
-
+    tmol::Device::CUDA,
+    double,
+    typename std::enable_if<std::is_arithmetic<double>::value>::type> {
   static def add(double* address, const double& val)->void {
     // Kahan summation cannot be performed at double precision
     // so just perform standard double-precision atomic addition.

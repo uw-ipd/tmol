@@ -100,10 +100,9 @@ struct ElecDispatch {
         });
 
     // skip the torch slicing
-    SingleDispatch<Dev>::forall(nstacks, [=] EIGEN_DEVICE_FUNC(int i) {
-	Vs[i] = Vs_accum[i][0];
-      });
-    
+    SingleDispatch<Dev>::forall(
+        nstacks, [=] EIGEN_DEVICE_FUNC(int i) { Vs[i] = Vs_accum[i][0]; });
+
     return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }
 };
