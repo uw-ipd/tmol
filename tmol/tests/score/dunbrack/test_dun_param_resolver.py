@@ -396,3 +396,113 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
     numpy.testing.assert_array_equal(
         semirotameric_chi_desc_gold, dun_params.semirotameric_chi_desc.cpu().numpy()
     )
+
+
+def stack_system_depth2(torch_device):
+    example_names = numpy.array(
+        [
+            ["ALA", "PHE", "ARG", "LEU", "GLY", "GLU", "MET"],
+            ["ALA", "PHE", "ARG", "LEU", "THR", None, None],
+        ]
+    )
+
+    phis = torch.tensor(
+        [
+            [
+                [0, 1, 2, 3, 4],
+                [1, 2, 3, 4, 5],
+                [2, 3, 4, 5, 6],
+                [3, 4, 5, 6, 7],
+                [4, 5, 6, 7, 8],
+                [5, 6, 7, 8, 9],
+                [6, 7, 8, 9, 10],
+            ],
+            [
+                [0, 1, 2, 3, 4],
+                [1, 2, 3, 4, 5],
+                [2, 3, 4, 5, 6],
+                [3, 4, 5, 6, 7],
+                [4, 5, 6, 7, 8],
+                [-1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1],
+            ],
+        ],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    psis = torch.tensor(
+        [
+            [
+                [0, 2, 2, 3, 4],
+                [1, 3, 3, 4, 5],
+                [2, 4, 4, 5, 6],
+                [3, 5, 5, 6, 7],
+                [4, 6, 6, 7, 8],
+                [5, 7, 7, 8, 9],
+                [6, 8, 8, 9, 10],
+            ],
+            [
+                [0, 2, 2, 3, 4],
+                [1, 3, 3, 4, 5],
+                [2, 4, 4, 5, 6],
+                [3, 5, 5, 6, 7],
+                [4, 6, 6, 7, 8],
+                [-1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1],
+            ],
+        ],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    chi = torch.tensor(
+        [
+            [
+                [1, 0, 3, 5, 7, 9],
+                [1, 1, 5, 7, 9, 11],
+                [2, 0, 9, 11, 13, 15],
+                [2, 1, 11, 13, 15, 17],
+                [2, 2, 13, 15, 17, 19],
+                [2, 3, 15, 17, 19, 21],
+                [3, 0, 17, 19, 21, 23],
+                [3, 1, 19, 21, 23, 25],
+                [5, 0, 31, 33, 35, 37],
+                [5, 1, 33, 35, 37, 39],
+                [5, 2, 35, 36, 37, 39],
+                [6, 0, 41, 42, 43, 44],
+                [6, 1, 42, 43, 44, 45],
+                [6, 2, 43, 44, 45, 46],
+            ],
+            [
+                [1, 0, 3, 5, 7, 9],
+                [1, 1, 5, 7, 9, 11],
+                [2, 0, 9, 11, 13, 15],
+                [2, 1, 11, 13, 15, 17],
+                [2, 2, 13, 15, 17, 19],
+                [2, 3, 15, 17, 19, 21],
+                [3, 0, 17, 19, 21, 23],
+                [3, 1, 19, 21, 23, 25],
+                [4, 0, 44, 45, 46, 47],
+                [4, 1, 45, 46, 47, 48],
+                [-1, -1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1, -1],
+                [-1, -1, -1, -1, -1, -1],
+            ],
+        ],
+        dtype=torch.int32,
+        device=torch_device,
+    )
+    return example_names, phis, psis, chi
+
+
+def test_stacked_dun_param_resolver_construction(default_database):  # , torch_device):
+
+    torch_device = torch.device("cpu")
+    resolver = DunbrackParamResolver.from_database(
+        default_database.scoring.dun, torch_device
+    )
+    example_names, phis, psis, chi = stack_system_depth2(torch_device)
+
+    dun_params = resolver.resolve_dunbrack_parameters(
+        example_names, phis, psis, chi, torch_device
+    )
