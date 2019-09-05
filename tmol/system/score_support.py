@@ -377,11 +377,40 @@ def dunbrack_graph_inputs(
     sort_inds = numpy.lexsort((chi_inds, chi_res))
     dun_chi = join_chi[sort_inds, :]
 
-    numpy.set_printoptions(threshold=100000)
-
     return dict(
-        dun_phi=torch.tensor(dun_phi, dtype=torch.int32, device=device),
-        dun_psi=torch.tensor(dun_psi, dtype=torch.int32, device=device),
-        dun_chi=torch.tensor(dun_chi, dtype=torch.int32, device=device),
+        dun_phi=torch.tensor(dun_phi[None, :], dtype=torch.int32, device=device),
+        dun_psi=torch.tensor(dun_psi[None, :], dtype=torch.int32, device=device),
+        dun_chi=torch.tensor(dun_chi[None, :], dtype=torch.int32, device=device),
         dun_database=parameter_database.scoring.dun,
     )
+
+@DunbrackScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def dunbrack_graph_for_stack(
+    system: PackedResidueSystemStack,
+    parameter_database: ParameterDatabase,
+    device: torch.device,
+    **_,
+):
+    params = [
+        dunbrack_graph_inputs(sys, parameter_database, device)
+        for sys in system.systems
+    ]
+
+    max_nres = max(d["dun_phi"].shape[1] for d in params)
+
+    def expand_dihe(t):
+        ext = torch.full((1, max_nres, t.shape[2]), -1, dtype=torch.int32, device=t.device)
+        ext[0, : t.shape[1], :] = t[0]
+        return ext
+
+    def stack_dihe(key):
+        return torch.concatenate([expand_bb(d[key]) for d in params])
+
+    return dict(
+        dun_phi=stack_dihe("dun_phi"),
+        dun_psi=stack_dihe("dun_psi"),
+        dun_chi=stack_dihe("dun_chi"),
+        dun_database=params[0]["dun_database"],
+    )
+            

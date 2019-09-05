@@ -27,7 +27,7 @@ template <
     typename Int>
 struct DunbrackDispatch {
   static auto forward(
-      TView<Vec<Real, 3>, 1, D> coords,
+      TView<Vec<Real, 3>, 2, D> coords,
 
       TView<Real, 3, D> rotameric_prob_tables,
       TView<Real, 3, D> rotameric_neglnprob_tables,
@@ -49,44 +49,44 @@ struct DunbrackDispatch {
       TView<Int, 1, D> rotameric_rotind2tableind,
       TView<Int, 1, D> semirotameric_rotind2tableind,
 
-      TView<Int, 1, D> ndihe_for_res,               // nres x 1
-      TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
-      TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
+      TView<Int, 2, D> ndihe_for_res,               // nres x 1
+      TView<Int, 2, D> dihedral_offset_for_res,     // nres x 1
+      TView<Vec<Int, 4>, 2, D> dihedral_atom_inds,  // ndihe x 4
 
-      TView<Int, 1, D> rottable_set_for_res,              // nres x 1
-      TView<Int, 1, D> nchi_for_res,                      // nres x 1
-      TView<Int, 1, D> nrotameric_chi_for_res,            // nres x 1
-      TView<Int, 1, D> rotres2resid,                      // nres x 1
-      TView<Int, 1, D> prob_table_offset_for_rotresidue,  // n-rotameric-res x 1
-      TView<Int, 1, D> rotind2tableind_offset_for_res,    // n-res x 1
+      TView<Int, 2, D> rottable_set_for_res,              // nres x 1
+      TView<Int, 2, D> nchi_for_res,                      // nres x 1
+      TView<Int, 2, D> nrotameric_chi_for_res,            // nres x 1
+      TView<Int, 2, D> rotres2resid,                      // nres x 1
+      TView<Int, 2, D> prob_table_offset_for_rotresidue,  // n-rotameric-res x 1
+      TView<Int, 2, D> rotind2tableind_offset_for_res,    // n-res x 1
 
-      TView<Int, 1, D> rotmean_table_offset_for_residue,  // n-res x 1
+      TView<Int, 2, D> rotmean_table_offset_for_residue,  // n-res x 1
 
-      TView<Int, 2, D> rotameric_chi_desc,  // n-rotameric-chi x 2
-      // rotchi_desc[:,0] == residue index for this chi
-      // rotchi_desc[:,1] == chi_dihedral_index for res
+      TView<Int, 3, D> rotameric_chi_desc,  // n-rotameric-chi x 2
+      // rotchi_desc[:,:,0] == residue index for this chi
+      // rotchi_desc[:,:,1] == chi_dihedral_index for res
 
-      TView<Int, 2, D> semirotameric_chi_desc,  // n-semirotameric-residues x 4
-      // semirotchi_desc[:,0] == residue index
-      // semirotchi_desc[:,1] == semirotchi_dihedral_index res
-      // semirotchi_desc[:,2] == semirot_table_offset
-      // semirotchi_desc[:,3] == semirot_table_set (e.g. 0-7)
+      TView<Int, 3, D> semirotameric_chi_desc,  // n-semirotameric-residues x 4
+      // semirotchi_desc[:,:,0] == residue index
+      // semirotchi_desc[:,:,1] == semirotchi_dihedral_index res
+      // semirotchi_desc[:,:,2] == semirot_table_offset
+      // semirotchi_desc[:,:,3] == semirot_table_set (e.g. 0-7)
 
       // scratch space, perhaps does not belong as an input parameter?
-      TView<Real, 1, D> dihedrals,                        // ndihe x 1
-      TView<Eigen::Matrix<Real, 4, 3>, 1, D> ddihe_dxyz,  // ndihe x 3
+      TView<Real, 2, D> dihedrals,                        // nstacks x ndihe x 1
+      TView<Eigen::Matrix<Real, 4, 3>, 2, D> ddihe_dxyz,  // nstacks x ndihe x 3
       // TView<Real, 1, D> rotchi_devpen,                    // n-rotameric-chi
       // x 1 TView<Real, 2, D> ddevpen_dbb,  // Where d chimean/d dbbdihe is
       //                                // stored, nscdihe x 2
-      TView<Int, 1, D> rotameric_rottable_assignment,     // nres x 1
-      TView<Int, 1, D> semirotameric_rottable_assignment  // nres x 1
+      TView<Int, 2, D> rotameric_rottable_assignment,     // nstacks x nres x 1
+      TView<Int, 2, D> semirotameric_rottable_assignment  // nstacks x nres x 1
 
       )
       -> std::tuple<
-          TPack<Real, 1, D>,       // sum (energies) [rot, dev, semi]
-          TPack<CoordQuad, 2, D>,  // d(-ln(prob_rotameric)) / dbb atoms
-          TPack<CoordQuad, 2, D>,  // ddevpen_dtor_xyz -- nrotchi x (nbb+1)
-          TPack<CoordQuad, 2, D>>  // d(-ln(prob_nonrotameric)) / dtor --
+          TPack<Real, 2, D>,       // sum (energies) [rot, dev, semi]
+          TPack<CoordQuad, 3, D>,  // d(-ln(prob_rotameric)) / dbb atoms
+          TPack<CoordQuad, 3, D>,  // ddevpen_dtor_xyz -- nrotchi x (nbb+1)
+          TPack<CoordQuad, 3, D>>  // d(-ln(prob_nonrotameric)) / dtor --
       ;                            // nsemirot-res x 3
 
   static auto backward(
