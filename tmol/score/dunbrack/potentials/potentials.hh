@@ -319,6 +319,7 @@ def deviation_penalty_for_chi(
   int ires = rotameric_chi_desc[i][0];
   int ichi_ind = rotameric_chi_desc[i][1];
   int inchi = nchi_for_res[ires];
+
   Real devpen, dpen_dchi;
   Eigen::Matrix<Real, 2, 1> dpen_dbb;
 
@@ -340,6 +341,7 @@ def deviation_penalty_for_chi(
       rotameric_rottable_assignment);
 
   int ires_dihe_offset = dihedral_offset_for_res[ires];
+
   for (int ii = 0; ii < NbbP1 - 1 + 1; ++ii) {
     int tor_ind =
         ires_dihe_offset + (ii == NbbP1 - 1 ? (NbbP1 - 1 + ichi_ind) : ii);

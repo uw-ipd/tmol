@@ -119,8 +119,6 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
         dun_res_names[dun_at2_real] = res_names[
             nz_at2_real[0], dun_at2_inds[dun_at2_real]
         ]
-        print("dun_res_names")
-        print(dun_res_names)
 
         return dun_param_resolver.resolve_dunbrack_parameters(
             dun_res_names, dun_phi, dun_psi, dun_chi, device

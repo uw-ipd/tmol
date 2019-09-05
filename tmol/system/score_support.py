@@ -398,20 +398,21 @@ def dunbrack_graph_for_stack(
     ]
 
     max_nres = max(d["dun_phi"].shape[1] for d in params)
+    max_nchi = max(d["dun_chi"].shape[1] for d in params)
 
-    def expand_dihe(t):
+    def expand_dihe(t, max_size):
         ext = torch.full(
-            (1, max_nres, t.shape[2]), -1, dtype=torch.int32, device=t.device
+            (1, max_size, t.shape[2]), -1, dtype=torch.int32, device=t.device
         )
         ext[0, : t.shape[1], :] = t[0]
         return ext
 
-    def stack_dihe(key):
-        return torch.concatenate([expand_bb(d[key]) for d in params])
-
+    def stack_dihe(key, max_size):
+        return torch.cat([expand_dihe(d[key], max_size) for d in params])
+    
     return dict(
-        dun_phi=stack_dihe("dun_phi"),
-        dun_psi=stack_dihe("dun_psi"),
-        dun_chi=stack_dihe("dun_chi"),
+        dun_phi=stack_dihe("dun_phi", max_nres),
+        dun_psi=stack_dihe("dun_psi", max_nres),
+        dun_chi=stack_dihe("dun_chi", max_nchi),
         dun_database=params[0]["dun_database"],
     )

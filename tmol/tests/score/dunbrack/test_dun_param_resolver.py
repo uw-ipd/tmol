@@ -646,9 +646,8 @@ def expected_stacked_parameters():
     )
 
 
-def test_stacked_dun_param_resolver_construction(default_database):  # , torch_device):
+def test_stacked_dun_param_resolver_construction(default_database, torch_device):
 
-    torch_device = torch.device("cpu")
     resolver = DunbrackParamResolver.from_database(
         default_database.scoring.dun, torch_device
     )
@@ -700,3 +699,4 @@ def test_stacked_dun_param_resolver_construction(default_database):  # , torch_d
     torch.testing.assert_allclose(
         expected["semirotameric_chi_desc"], dun_params.semirotameric_chi_desc.to("cpu")
     )
+        

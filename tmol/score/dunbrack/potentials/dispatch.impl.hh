@@ -173,7 +173,7 @@ struct DunbrackDispatch {
 
     // 3.
     auto func_rotameric_prob = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
-      if (rottable_set_for_res[stack][i] >= 0) {
+      if (rotres2resid[stack][i] >= 0) {
         auto Erot = rotameric_chi_probability_for_res(
             rotameric_neglnprob_tables,
             rotprob_table_sizes,

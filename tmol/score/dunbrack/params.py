@@ -744,6 +744,19 @@ class DunbrackParamResolver(ValidateAttrs):
             s_inds, dihedral_offset_for_res, nchi_for_res, torch_device
         )
 
+        # print("ndihe_for_res", ndihe_for_res)
+        # print("dihedral_offset_for_res", dihedral_offset_for_res)
+        # print("dihedral_atom_inds", dihedral_atom_inds)
+        print("rottable_set_for_res", rottable_set_for_res)
+        # print("nchi_for_res", nchi_for_res)
+        # print("nrotameric_chi_for_res", nrotameric_chi_for_res)
+        # print("rotres2resid", rotres2resid)
+        # print("prob_table_offset_for_rotresidue", prob_table_offset_for_rotresidue)
+        # print("rotmean_table_offset_for_residue", rotmean_table_offset_for_residue)
+        # print("rotind2tableind_offset_for_res", rotind2tableind_offset_for_res)
+        # print("rotameric_chi_desc", rotameric_chi_desc)
+        # print("semirotameric_chi_desc", semirotameric_chi_desc)
+        
         return DunbrackParams(
             ndihe_for_res=ndihe_for_res,
             dihedral_offset_for_res=dihedral_offset_for_res,
@@ -860,7 +873,7 @@ class DunbrackParamResolver(ValidateAttrs):
             dtype=torch.int64,
             device=chi.device,
         )
-        nz_chi = torch.nonzero(chi64_in_range)
+        nz_chi = torch.nonzero(chi_to_keep >= 0)
         selected_chi[nz_chi[:, 0], nz_chi[:, 1], :] = (
             chi[nz_chi[:, 0], chi_to_keep[chi_to_keep >= 0].view(-1), :]
         ).to(torch.int64)
@@ -985,7 +998,9 @@ class DunbrackParamResolver(ValidateAttrs):
         """
 
         nstacks = rns_inds.shape[0]
-        nrotameric_chi = torch.sum(nrotameric_chi_for_res, dim=1)
+        nrotameric_chi_for_res_zero = nrotameric_chi_for_res.clone()
+        nrotameric_chi_for_res_zero[nrotameric_chi_for_res < 0] = 0
+        nrotameric_chi = torch.sum(nrotameric_chi_for_res_zero, dim=1)
         max_nrotameric_chi = torch.max(nrotameric_chi)
         nrotameric_chi_for_res_offsets = exclusive_cumsum2d(nrotameric_chi_for_res)
 
@@ -1064,8 +1079,6 @@ class DunbrackParamResolver(ValidateAttrs):
         sres_keep = condense_torch_inds(real_sres, torch_device)
         nz_sres_keep = torch.nonzero(sres_keep != -1)
 
-        # n_semirotameric_res = torch.sum(s_inds != -1, dim=1)
-        # max_n_semirotameric_res = torch.max(n_semirotameric_res)
         semirotameric_chi_desc = torch.full(
             (nstacks, sres_keep.shape[1], 4), -1, dtype=torch.int32, device=torch_device
         )
