@@ -156,8 +156,8 @@ struct DunbrackDispatch {
 	    dihedral_offset_for_res[stack],
 	    nrotameric_chi_for_res[stack],
 	    rotind2tableind_offset_for_res[stack],
-	    rotameric_rotind2tableind[stack],
-	    semirotameric_rotind2tableind[stack],
+	    rotameric_rotind2tableind,
+	    semirotameric_rotind2tableind,
 	    rotameric_rottable_assignment[stack],
 	    semirotameric_rottable_assignment[stack],
 	    i);
@@ -216,7 +216,7 @@ struct DunbrackDispatch {
     Dispatch<D>::forall_stacks(nstacks, n_rotameric_chi, func_chidevpen);
 
     // 5.
-    auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int nstacks, int i) {
+    auto func_semirot = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
       if (semirotameric_chi_desc[stack][i][0] >= 0) {
         auto Esemi = semirotameric_energy(
             semirotameric_tables,
@@ -261,7 +261,7 @@ struct DunbrackDispatch {
     int n_rotameric_chi = rotameric_chi_desc.size(1);
     int n_semirotameric_res = semirotameric_chi_desc.size(1);
 
-    auto dE_dxyz_tpack = TPack<Real3, 2, D>::zeros(nstacks, natoms);
+    auto dE_dxyz_tpack = TPack<Real3, 2, D>::zeros({nstacks, natoms});
     auto dE_dxyz = dE_dxyz_tpack.view;
 
     auto func_accum_rotnlp = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {

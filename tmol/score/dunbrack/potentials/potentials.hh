@@ -125,8 +125,8 @@ def classify_rotamer_for_res(
     TensorAccessor<Int, 1, D> dihedral_offset_for_res,
     TensorAccessor<Int, 1, D> nrotameric_chi_for_res,
     TensorAccessor<Int, 1, D> rotind2tableind_offset_for_res,
-    TensorAccessor<Int, 1, D> rotameric_rotind2tableind,
-    TensorAccessor<Int, 1, D> semirotameric_rotind2tableind,
+    TView<Int, 1, D> rotameric_rotind2tableind,
+    TView<Int, 1, D> semirotameric_rotind2tableind,
     TensorAccessor<Int, 1, D> rotameric_rottable_assignment,
     TensorAccessor<Int, 1, D> semirotameric_rottable_assignment,
     int i)
@@ -148,13 +148,13 @@ def classify_rotamer_for_res(
 // dihedral angles.
 template <size_t NbbP1, typename Real, typename Int, tmol::Device D>
 def interpolate_rotameric_tables(
-    TensorAccessor<Real, NbbP1, D> rotameric_mean_tables,
-    TensorAccessor<Real, NbbP1, D> rotameric_sdev_tables,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_sizes,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_strides,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_start,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_step,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_periodicity,
+    TView<Real, NbbP1, D> rotameric_mean_tables,
+    TView<Real, NbbP1, D> rotameric_sdev_tables,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_sizes,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_strides,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_start,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_step,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_periodicity,
     int residue_ind,
     int residue_nchi,
     int chi_dihe_for_residue,
@@ -226,13 +226,13 @@ def interpolate_rotameric_tables(
 
 template <size_t NbbP1, typename Real, typename Int, tmol::Device D>
 def chi_deviation_penalty(
-    TensorAccessor<Real, NbbP1, D> rotameric_mean_tables,
-    TensorAccessor<Real, NbbP1, D> rotameric_sdev_tables,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_sizes,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_strides,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_start,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_step,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_periodicity,
+    TView<Real, NbbP1, D> rotameric_mean_tables,
+    TView<Real, NbbP1, D> rotameric_sdev_tables,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_sizes,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_strides,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_start,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_step,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_periodicity,
     int residue_ind,
     int residue_nchi,
     int chi_dihe_for_residue,
@@ -298,13 +298,13 @@ def chi_deviation_penalty(
 
 template <size_t NbbP1, typename Real, typename Int, tmol::Device D>
 def deviation_penalty_for_chi(
-    TensorAccessor<Real, NbbP1, D> rotameric_mean_tables,
-    TensorAccessor<Real, NbbP1, D> rotameric_sdev_tables,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_sizes,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_strides,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_start,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_step,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_periodicity,
+    TView<Real, NbbP1, D> rotameric_mean_tables,
+    TView<Real, NbbP1, D> rotameric_sdev_tables,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_sizes,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotmean_table_strides,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_start,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_step,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> const& rotameric_bb_periodicity,
     TensorAccessor<Real, 1, D> dihedrals,
     TensorAccessor<Int, 1, D> dihedral_offset_for_res,
     TensorAccessor<Int, 1, D> rottable_set_for_res,
@@ -357,12 +357,12 @@ def deviation_penalty_for_chi(
 
 template <size_t NbbP1, typename Real, typename Int, tmol::Device D>
 def rotameric_chi_probability(
-    TensorAccessor<Real, NbbP1, D> rotameric_neglnprob_tables,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotprob_table_sizes,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotprob_table_strides,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_start,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_step,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_periodicity,
+    TView<Real, NbbP1, D> rotameric_neglnprob_tables,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotprob_table_sizes,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotprob_table_strides,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_start,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_step,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_periodicity,
     TensorAccessor<Int, 1, D> prob_table_offset_for_rotresidue,
     int residue_ind,
     int rotresidue_ind,
@@ -413,12 +413,12 @@ def rotameric_chi_probability(
 
 template <size_t NbbP1, typename Real, typename Int, tmol::Device D>
 def rotameric_chi_probability_for_res(
-    TensorAccessor<Real, NbbP1, D> rotameric_neglnprob_tables,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotprob_table_sizes,
-    TensorAccessor<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotprob_table_strides,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_start,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_step,
-    TensorAccessor<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_periodicity,
+    TView<Real, NbbP1, D> rotameric_neglnprob_tables,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotprob_table_sizes,
+    TView<Vec<int64_t, (int)NbbP1 - 1>, 1, D> rotprob_table_strides,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_start,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_step,
+    TView<Vec<Real, (int)NbbP1 - 1>, 1, D> rotameric_bb_periodicity,
     TensorAccessor<Int, 1, D> prob_table_offset_for_rotresidue,
     TensorAccessor<Real, 1, D> dihedrals,
     TensorAccessor<Int, 1, D> dihedral_offset_for_res,
@@ -462,12 +462,12 @@ def rotameric_chi_probability_for_res(
 
 template <size_t NbbP2, typename Real, typename Int, tmol::Device D>
 def semirotameric_energy(
-    TensorAccessor<Real, NbbP2, D> semirotameric_tables,
-    TensorAccessor<Vec<int64_t, (int)NbbP2 - 1>, 1, D> semirot_table_sizes,
-    TensorAccessor<Vec<int64_t, (int)NbbP2 - 1>, 1, D> semirot_table_strides,
-    TensorAccessor<Vec<Real, (int)NbbP2 - 1>, 1, D> semirot_start,
-    TensorAccessor<Vec<Real, (int)NbbP2 - 1>, 1, D> semirot_step,
-    TensorAccessor<Vec<Real, (int)NbbP2 - 1>, 1, D> semirot_periodicity,
+    TView<Real, NbbP2, D> semirotameric_tables,
+    TView<Vec<int64_t, (int)NbbP2 - 1>, 1, D> semirot_table_sizes,
+    TView<Vec<int64_t, (int)NbbP2 - 1>, 1, D> semirot_table_strides,
+    TView<Vec<Real, (int)NbbP2 - 1>, 1, D> semirot_start,
+    TView<Vec<Real, (int)NbbP2 - 1>, 1, D> semirot_step,
+    TView<Vec<Real, (int)NbbP2 - 1>, 1, D> semirot_periodicity,
     TensorAccessor<Int, 1, D> dihedral_offset_for_res,
     TensorAccessor<Real, 1, D> dihedrals,
     TensorAccessor<Int, 1, D> semirotameric_rottable_assignment,
