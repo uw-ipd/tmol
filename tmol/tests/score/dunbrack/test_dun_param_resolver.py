@@ -495,6 +495,138 @@ def stack_system_depth2(torch_device):
     return example_names, phis, psis, chi
 
 
+def expected_stacked_parameters():
+    ndihe_for_res = torch.tensor([[4, 6, 4, 5, 5], [4, 6, 4, 3, -1]], dtype=torch.int32)
+    dihedral_offset_for_res = torch.tensor(
+        [[0, 4, 10, 14, 19], [0, 4, 10, 14, 17]], dtype=torch.int32
+    )
+    dihedral_atom_inds = torch.tensor(
+        [
+            [
+                [2, 3, 4, 5],
+                [3, 3, 4, 5],
+                [3, 5, 7, 9],
+                [5, 7, 9, 11],
+                [3, 4, 5, 6],
+                [4, 4, 5, 6],
+                [9, 11, 13, 15],
+                [11, 13, 15, 17],
+                [13, 15, 17, 19],
+                [15, 17, 19, 21],
+                [4, 5, 6, 7],
+                [5, 5, 6, 7],
+                [17, 19, 21, 23],
+                [19, 21, 23, 25],
+                [6, 7, 8, 9],
+                [7, 7, 8, 9],
+                [31, 33, 35, 37],
+                [33, 35, 37, 39],
+                [35, 36, 37, 39],
+                [7, 8, 9, 10],
+                [8, 8, 9, 10],
+                [41, 42, 43, 44],
+                [42, 43, 44, 45],
+                [43, 44, 45, 46],
+            ],
+            [
+                [2, 3, 4, 5],
+                [3, 3, 4, 5],
+                [3, 5, 7, 9],
+                [5, 7, 9, 11],
+                [3, 4, 5, 6],
+                [4, 4, 5, 6],
+                [9, 11, 13, 15],
+                [11, 13, 15, 17],
+                [13, 15, 17, 19],
+                [15, 17, 19, 21],
+                [4, 5, 6, 7],
+                [5, 5, 6, 7],
+                [17, 19, 21, 23],
+                [19, 21, 23, 25],
+                [5, 6, 7, 8],
+                [6, 6, 7, 8],
+                [44, 45, 46, 47],
+                [-1, -1, -1, -1],
+                [-1, -1, -1, -1],
+                [-1, -1, -1, -1],
+                [-1, -1, -1, -1],
+                [-1, -1, -1, -1],
+                [-1, -1, -1, -1],
+                [-1, -1, -1, -1],
+            ],
+        ],
+        dtype=torch.int32,
+    )
+    rottable_set_for_res = torch.tensor(
+        [[12, 6, 3, 11, 4], [12, 6, 3, 8, -1]], dtype=torch.int32
+    )
+    nchi_for_res = torch.tensor([[2, 4, 2, 3, 3], [2, 4, 2, 1, -1]], dtype=torch.int32)
+    nrotameric_chi_for_res = torch.tensor(
+        [[1, 4, 2, 2, 3], [1, 4, 2, 1, -1]], dtype=torch.int32
+    )
+    rotres2resid = torch.tensor([[1, 2, 4], [1, 2, 3]], dtype=torch.int32)
+    prob_table_offset_for_rotresidue = torch.tensor(
+        [[123, 85, 94], [123, 85, 201]], dtype=torch.int32
+    )
+    rotmean_table_offset_for_residue = torch.tensor(
+        [[925, 418, 313, 763, 331], [925, 418, 313, 721, -1]], dtype=torch.int32
+    )
+    rotind2tableind_offset_for_res = torch.tensor(
+        [[258, 156, 93, 249, 102], [258, 156, 93, 240, -1]], dtype=torch.int32
+    )
+    rotameric_chi_desc = torch.tensor(
+        [
+            [
+                [0, 0],
+                [1, 0],
+                [1, 1],
+                [1, 2],
+                [1, 3],
+                [2, 0],
+                [2, 1],
+                [3, 0],
+                [3, 1],
+                [4, 0],
+                [4, 1],
+                [4, 2],
+            ],
+            [
+                [0, 0],
+                [1, 0],
+                [1, 1],
+                [1, 2],
+                [1, 3],
+                [2, 0],
+                [2, 1],
+                [-1, -1],
+                [-1, -1],
+                [-1, -1],
+                [-1, -1],
+                [-1, -1],
+            ],
+        ],
+        dtype=torch.int32,
+    )
+    semirotameric_chi_desc = torch.tensor(
+        [[[0, 3, 12, 2], [3, 18, 3, 1]], [[0, 3, 12, 2], [-1, -1, -1, -1]]],
+        dtype=torch.int32,
+    )
+    return dict(
+        ndihe_for_res=ndihe_for_res,
+        dihedral_offset_for_res=dihedral_offset_for_res,
+        dihedral_atom_inds=dihedral_atom_inds,
+        rottable_set_for_res=rottable_set_for_res,
+        nchi_for_res=nchi_for_res,
+        nrotameric_chi_for_res=nrotameric_chi_for_res,
+        rotres2resid=rotres2resid,
+        prob_table_offset_for_rotresidue=prob_table_offset_for_rotresidue,
+        rotmean_table_offset_for_residue=rotmean_table_offset_for_residue,
+        rotind2tableind_offset_for_res=rotind2tableind_offset_for_res,
+        rotameric_chi_desc=rotameric_chi_desc,
+        semirotameric_chi_desc=semirotameric_chi_desc,
+    )
+
+
 def test_stacked_dun_param_resolver_construction(default_database):  # , torch_device):
 
     torch_device = torch.device("cpu")
@@ -505,4 +637,46 @@ def test_stacked_dun_param_resolver_construction(default_database):  # , torch_d
 
     dun_params = resolver.resolve_dunbrack_parameters(
         example_names, phis, psis, chi, torch_device
+    )
+
+    expected = expected_stacked_parameters()
+
+    torch.testing.assert_allclose(
+        expected["ndihe_for_res"], dun_params.ndihe_for_res.to("cpu")
+    )
+    torch.testing.assert_allclose(
+        expected["dihedral_offset_for_res"], dun_params.dihedral_offset_for_res.to("cpu")
+    )
+    torch.testing.assert_allclose(
+        expected["dihedral_atom_inds"], dun_params.dihedral_atom_inds.to("cpu")
+    )
+    torch.testing.assert_allclose(
+        expected["rottable_set_for_res"], dun_params.rottable_set_for_res.to("cpu")
+    )
+    torch.testing.assert_allclose(
+        expected["nchi_for_res"], dun_params.nchi_for_res.to("cpu")
+    )
+    torch.testing.assert_allclose(
+        expected["nrotameric_chi_for_res"], dun_params.nrotameric_chi_for_res.to("cpu")
+    )
+    torch.testing.assert_allclose(
+        expected["rotres2resid"], dun_params.rotres2resid.to("cpu")
+    )
+    torch.testing.assert_allclose(
+        expected["prob_table_offset_for_rotresidue"],
+        dun_params.prob_table_offset_for_rotresidue.to("cpu"),
+    )
+    torch.testing.assert_allclose(
+        expected["rotmean_table_offset_for_residue"],
+        dun_params.rotmean_table_offset_for_residue.to("cpu"),
+    )
+    torch.testing.assert_allclose(
+        expected["rotind2tableind_offset_for_res"],
+        dun_params.rotind2tableind_offset_for_res.to("cpu"),
+    )
+    torch.testing.assert_allclose(
+        expected["rotameric_chi_desc"], dun_params.rotameric_chi_desc.to("cpu")
+    )
+    torch.testing.assert_allclose(
+        expected["semirotameric_chi_desc"], dun_params.semirotameric_chi_desc.to("cpu")
     )
