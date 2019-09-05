@@ -222,7 +222,6 @@ def test_setup_params_for_jagged_system(ubq_res, default_database, torch_device)
 
 
 def test_jagged_scoring(ubq_res, default_database, torch_device):
-    # torch_device = torch.device("cpu")
     ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
     ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
     twoubq = PackedResidueSystemStack((ubq40, ubq60))
@@ -240,7 +239,6 @@ def test_jagged_scoring(ubq_res, default_database, torch_device):
 
 
 def test_jagged_scoring2(ubq_res, default_database, torch_device):
-    # torch_device = torch.device("cpu")
     ubq1050 = PackedResidueSystem.from_residues(ubq_res[10:50])
     ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
     ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
