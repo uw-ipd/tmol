@@ -204,9 +204,10 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
         default_database.scoring.dun, torch_device
     )
 
-    example_names = numpy.array(["ALA", "PHE", "ARG", "LEU", "GLY", "GLU", "MET"])
+    example_names = numpy.array([["ALA", "PHE", "ARG", "LEU", "GLY", "GLU", "MET"]], dtype=object)
 
     phis = torch.tensor(
+        [
         [
             [0, 1, 2, 3, 4],
             [1, 2, 3, 4, 5],
@@ -215,12 +216,12 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
             [4, 5, 6, 7, 8],
             [5, 6, 7, 8, 9],
             [6, 7, 8, 9, 10],
-        ],
+        ]],
         dtype=torch.int32,
         device=torch_device,
     )
     psis = torch.tensor(
-        [
+        [[
             [0, 2, 2, 3, 4],
             [1, 3, 3, 4, 5],
             [2, 4, 4, 5, 6],
@@ -228,12 +229,12 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
             [4, 6, 6, 7, 8],
             [5, 7, 7, 8, 9],
             [6, 8, 8, 9, 10],
-        ],
+        ]],
         dtype=torch.int32,
         device=torch_device,
     )
     chi = torch.tensor(
-        [
+        [[
             [1, 0, 3, 5, 7, 9],
             [1, 1, 5, 7, 9, 11],
             [2, 0, 9, 11, 13, 15],
@@ -248,7 +249,7 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
             [6, 0, 41, 42, 43, 44],
             [6, 1, 42, 43, 44, 45],
             [6, 2, 43, 44, 45, 46],
-        ],
+        ]],
         dtype=torch.int32,
         device=torch_device,
     )
@@ -257,18 +258,18 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
         example_names, phis, psis, chi, torch_device
     )
 
-    ndihe_for_res_gold = numpy.array([4, 6, 4, 5, 5], dtype=int)
+    ndihe_for_res_gold = numpy.array([[4, 6, 4, 5, 5]], dtype=int)
     numpy.testing.assert_array_equal(
         ndihe_for_res_gold, dun_params.ndihe_for_res.cpu().numpy()
     )
 
-    dihedral_offsets_gold = numpy.array([0, 4, 10, 14, 19], dtype=int)
+    dihedral_offsets_gold = numpy.array([[0, 4, 10, 14, 19]], dtype=int)
     numpy.testing.assert_array_equal(
         dihedral_offsets_gold, dun_params.dihedral_offset_for_res.cpu().numpy()
     )
 
     dihedral_atom_indices_gold = numpy.array(
-        [
+        [[
             [2, 3, 4, 5],
             [3, 3, 4, 5],
             [3, 5, 7, 9],
@@ -293,45 +294,46 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
             [41, 42, 43, 44],
             [42, 43, 44, 45],
             [43, 44, 45, 46],
-        ]
+        ]]
     )
     numpy.testing.assert_array_equal(
         dihedral_atom_indices_gold, dun_params.dihedral_atom_inds.cpu().numpy()
     )
 
-    rns_inds = resolver.all_table_indices.index.get_indexer(example_names)
+    rns_inds = resolver.all_table_indices.index.get_indexer(example_names.ravel())
     rns_inds[rns_inds != -1] = resolver.all_table_indices.iloc[
         rns_inds[rns_inds != -1]
     ]["dun_table_name"].values
-    rottable_set_for_res_gold = rns_inds[rns_inds != -1]
+    rottable_set_for_res_gold = rns_inds[rns_inds != -1].reshape(1,-1)
     numpy.testing.assert_array_equal(
         rottable_set_for_res_gold, dun_params.rottable_set_for_res.cpu().numpy()
     )
 
-    nchi_for_res_gold = numpy.array([2, 4, 2, 3, 3], dtype=int)
+    nchi_for_res_gold = numpy.array([[2, 4, 2, 3, 3]], dtype=int)
     numpy.testing.assert_array_equal(
         nchi_for_res_gold, dun_params.nchi_for_res.cpu().numpy()
     )
 
-    nrotameric_chi_for_res_gold = numpy.array([1, 4, 2, 2, 3], dtype=int)
+    nrotameric_chi_for_res_gold = numpy.array([[1, 4, 2, 2, 3]], dtype=int)
     numpy.testing.assert_array_equal(
         nrotameric_chi_for_res_gold, dun_params.nrotameric_chi_for_res.cpu().numpy()
     )
 
-    rotres2resid_gold = numpy.array([1, 2, 4])
+    rotres2resid_gold = numpy.array([[1, 2, 4]])
     numpy.testing.assert_array_equal(
         rotres2resid_gold, dun_params.rotres2resid.cpu().numpy()
     )
 
-    # prob_table_offset_for_rotresidue_gold = ptofrr_gold
+    # prob_table_offset_for_rotresidue_gold => ptofrr_gold
     # annoyingly had to be renamed because flake8 and black couldn't
     # agree on how to treat a long line
     ptofrr_gold = (
         resolver.packed_db_aux.rotameric_prob_tableset_offsets[
-            rottable_set_for_res_gold[dun_params.rotres2resid.cpu().numpy()]
+            rottable_set_for_res_gold[0,dun_params.rotres2resid.cpu().numpy()]
         ]
         .cpu()
         .numpy()
+        .reshape(1,-1)
     )
     numpy.testing.assert_array_equal(
         ptofrr_gold, dun_params.prob_table_offset_for_rotresidue.cpu().numpy()
@@ -344,6 +346,7 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
         ]
         .cpu()
         .numpy()
+        .reshape(1,-1)
     )
     numpy.testing.assert_array_equal(
         rmtofr_gold, dun_params.rotmean_table_offset_for_residue.cpu().numpy()
@@ -354,13 +357,14 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
         resolver.packed_db_aux.rotind2tableind_offsets[rottable_set_for_res_gold]
         .cpu()
         .numpy()
+        .reshape(1,-1)
     )
     numpy.testing.assert_array_equal(
         ri2tiofr_gold, dun_params.rotind2tableind_offset_for_res.cpu().numpy()
     )
 
     rotameric_chi_desc_gold = numpy.array(
-        [
+        [[
             [0, 0],
             [1, 0],
             [1, 1],
@@ -373,22 +377,22 @@ def test_dun_param_resolver_construction2(default_database, torch_device):
             [4, 0],
             [4, 1],
             [4, 2],
-        ],
+        ]],
         dtype=int,
     )
     numpy.testing.assert_array_equal(
         rotameric_chi_desc_gold, dun_params.rotameric_chi_desc.cpu().numpy()
     )
 
-    s_inds = resolver.semirotameric_table_indices.index.get_indexer(example_names)
+    s_inds = resolver.semirotameric_table_indices.index.get_indexer(example_names.ravel())
     s_inds[s_inds != -1] = resolver.semirotameric_table_indices.iloc[
         s_inds[s_inds != -1]
     ]["dun_table_name"].values
     semirot_res_inds = s_inds[s_inds != -1]
 
-    semirotameric_chi_desc_gold = numpy.array([[0, 3, 0, 0], [3, 18, 0, 0]], dtype=int)
-    semirotameric_chi_desc_gold[:, 3] = semirot_res_inds
-    semirotameric_chi_desc_gold[:, 2] = (
+    semirotameric_chi_desc_gold = numpy.array([[[0, 3, 0, 0], [3, 18, 0, 0]]], dtype=int)
+    semirotameric_chi_desc_gold[:, :, 3] = semirot_res_inds
+    semirotameric_chi_desc_gold[:, :, 2] = (
         resolver.packed_db_aux.semirotameric_tableset_offsets[semirot_res_inds]
         .cpu()
         .numpy()

@@ -90,17 +90,17 @@ struct DunbrackDispatch {
       ;                            // nsemirot-res x 3
 
   static auto backward(
-      TView<Real, 1, D> dTdV,
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<CoordQuad, 2, D> drot_nlp_dbb_xyz,  // n-rotameric-res x 2
-      TView<CoordQuad, 2, D> ddevpen_dtor_xyz,  // n-rotameric-chi x 3
-      TView<CoordQuad, 2, D> dnonrot_nlp_dtor_xyz,
-      TView<Int, 1, D> dihedral_offset_for_res,     // nres x 1
-      TView<Vec<Int, 4>, 1, D> dihedral_atom_inds,  // ndihe x 4
-      TView<Int, 1, D> rotres2resid,                // nres x 1
-      TView<Int, 2, D> rotameric_chi_desc,          // n-rotameric-chi x 2
-      TView<Int, 2, D> semirotameric_chi_desc  // n-semirotameric-residues x 4
-      ) -> TPack<Vec<Real, 3>, 1, D>;
+      TView<Real, 2, D> dTdV,
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<CoordQuad, 3, D> drot_nlp_dbb_xyz,  // n-rotameric-res x 2
+      TView<CoordQuad, 3, D> ddevpen_dtor_xyz,  // n-rotameric-chi x 3
+      TView<CoordQuad, 3, D> dnonrot_nlp_dtor_xyz,
+      TView<Int, 2, D> dihedral_offset_for_res,     // nres x 1
+      TView<Vec<Int, 4>, 2, D> dihedral_atom_inds,  // ndihe x 4
+      TView<Int, 2, D> rotres2resid,                // nres x 1
+      TView<Int, 3, D> rotameric_chi_desc,          // n-rotameric-chi x 2
+      TView<Int, 3, D> semirotameric_chi_desc  // n-semirotameric-residues x 4
+      ) -> TPack<Vec<Real, 3>, 2, D>;
 };
 
 #undef CoordQuad
