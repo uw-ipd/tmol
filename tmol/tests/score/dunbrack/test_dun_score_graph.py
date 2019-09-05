@@ -239,6 +239,28 @@ def test_jagged_scoring(ubq_res, default_database, torch_device):
     torch.testing.assert_allclose(total_both[1], total60[0])
 
 
+def test_jagged_scoring2(ubq_res, default_database, torch_device):
+    # torch_device = torch.device("cpu")
+    ubq1050 = PackedResidueSystem.from_residues(ubq_res[10:50])
+    ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
+    ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
+    threeubq = PackedResidueSystemStack((ubq1050, ubq60, ubq40))
+
+    score1050 = CartDunbrackGraph.build_for(ubq1050, device=torch_device)
+    score40 = CartDunbrackGraph.build_for(ubq40, device=torch_device)
+    score60 = CartDunbrackGraph.build_for(ubq60, device=torch_device)
+    score_all = CartDunbrackGraph.build_for(threeubq, device=torch_device)
+
+    total1050 = score1050.intra_score().dun_score
+    total60 = score60.intra_score().dun_score
+    total40 = score40.intra_score().dun_score
+    total_all = score_all.intra_score().dun_score
+
+    torch.testing.assert_allclose(total_all[0], total1050[0])
+    torch.testing.assert_allclose(total_all[1], total60[0])
+    torch.testing.assert_allclose(total_all[2], total40[0])
+
+
 def test_cartesian_space_dun_gradcheck(ubq_res, torch_device):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
     real_space = CartDunbrackGraph.build_for(test_system, device=torch_device)
