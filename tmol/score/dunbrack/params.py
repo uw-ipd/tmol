@@ -747,7 +747,7 @@ class DunbrackParamResolver(ValidateAttrs):
         # print("ndihe_for_res", ndihe_for_res)
         # print("dihedral_offset_for_res", dihedral_offset_for_res)
         # print("dihedral_atom_inds", dihedral_atom_inds)
-        print("rottable_set_for_res", rottable_set_for_res)
+        # print("rottable_set_for_res", rottable_set_for_res)
         # print("nchi_for_res", nchi_for_res)
         # print("nrotameric_chi_for_res", nrotameric_chi_for_res)
         # print("rotres2resid", rotres2resid)
@@ -756,7 +756,7 @@ class DunbrackParamResolver(ValidateAttrs):
         # print("rotind2tableind_offset_for_res", rotind2tableind_offset_for_res)
         # print("rotameric_chi_desc", rotameric_chi_desc)
         # print("semirotameric_chi_desc", semirotameric_chi_desc)
-        
+
         return DunbrackParams(
             ndihe_for_res=ndihe_for_res,
             dihedral_offset_for_res=dihedral_offset_for_res,

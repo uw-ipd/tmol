@@ -699,4 +699,3 @@ def test_stacked_dun_param_resolver_construction(default_database, torch_device)
     torch.testing.assert_allclose(
         expected["semirotameric_chi_desc"], dun_params.semirotameric_chi_desc.to("cpu")
     )
-        

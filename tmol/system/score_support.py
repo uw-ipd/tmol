@@ -409,7 +409,7 @@ def dunbrack_graph_for_stack(
 
     def stack_dihe(key, max_size):
         return torch.cat([expand_dihe(d[key], max_size) for d in params])
-    
+
     return dict(
         dun_phi=stack_dihe("dun_phi", max_nres),
         dun_psi=stack_dihe("dun_psi", max_nres),

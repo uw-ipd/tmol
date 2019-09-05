@@ -31,82 +31,86 @@ def test_dunbrack_score_graph_smoke(ubq_system, default_database, torch_device):
         ubq_system, device=torch_device, parameter_database=default_database
     )
 
+
 def expected_ndihe_from_test_dunbrack_score_setup():
     ndihe_gold = numpy.array(
-        [[
-            5,
-            5,
-            4,
-            4,
-            3,
-            6,
-            3,
-            4,
-            3,
-            6,
-            3,
-            4,
-            3,
-            4,
-            5,
-            3,
-            5,
-            5,
-            3,
-            4,
-            3,
-            4,
-            5,
-            4,
-            3,
-            6,
-            6,
-            4,
-            5,
-            4,
-            6,
-            5,
-            4,
-            5,
-            5,
-            4,
-            5,
-            5,
-            6,
-            4,
-            4,
-            4,
-            6,
-            5,
-            4,
-            5,
-            4,
-            6,
-            3,
-            4,
-            3,
-            4,
-            4,
-            4,
-            4,
-            5,
-            6,
-            5,
-            3,
-            3,
-            4,
-            4,
-            4,
-            3,
-            4,
-            6,
-            4,
-            6,
-        ]],
+        [
+            [
+                5,
+                5,
+                4,
+                4,
+                3,
+                6,
+                3,
+                4,
+                3,
+                6,
+                3,
+                4,
+                3,
+                4,
+                5,
+                3,
+                5,
+                5,
+                3,
+                4,
+                3,
+                4,
+                5,
+                4,
+                3,
+                6,
+                6,
+                4,
+                5,
+                4,
+                6,
+                5,
+                4,
+                5,
+                5,
+                4,
+                5,
+                5,
+                6,
+                4,
+                4,
+                4,
+                6,
+                5,
+                4,
+                5,
+                4,
+                6,
+                3,
+                4,
+                3,
+                4,
+                4,
+                4,
+                4,
+                5,
+                6,
+                5,
+                3,
+                3,
+                4,
+                4,
+                4,
+                3,
+                4,
+                6,
+                4,
+                6,
+            ]
+        ],
         dtype=int,
     )
     return ndihe_gold
-    
+
+
 def test_dunbrack_score_setup(ubq_system, default_database, torch_device):
     dunbrack_graph = CartDunbrackGraph.build_for(
         ubq_system, device=torch_device, parameter_database=default_database
@@ -126,6 +130,7 @@ def test_dunbrack_score(ubq_system, torch_device, default_database):
     e_dun_gold = torch.Tensor([[70.6497, 240.3100, 99.6609]])
     torch.testing.assert_allclose(e_dun_gold, e_dun_tot.cpu())
 
+
 def test_dunbrack_w_twoubq_stacks(ubq_system, torch_device, default_database):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
     dunbrack_graph = CartDunbrackGraph.build_for(
@@ -133,7 +138,9 @@ def test_dunbrack_w_twoubq_stacks(ubq_system, torch_device, default_database):
     )
     intra_graph = dunbrack_graph.intra_score()
     e_dun_tot = intra_graph.dun_score
-    e_dun_gold = torch.Tensor([[70.6497, 240.3100, 99.6609], [70.6497, 240.3100, 99.6609]])
+    e_dun_gold = torch.Tensor(
+        [[70.6497, 240.3100, 99.6609], [70.6497, 240.3100, 99.6609]]
+    )
     torch.testing.assert_allclose(e_dun_gold, e_dun_tot.cpu())
 
 
@@ -150,22 +157,70 @@ def test_setup_params_for_jagged_system(ubq_res, default_database, torch_device)
     params60 = score60.dun_resolve_indices
     params_both = score_both.dun_resolve_indices
 
-    for i, params in enumerate([params40, params60]) :
-    
-        torch.testing.assert_allclose(params_both.ndihe_for_res[i,:params.ndihe_for_res.shape[1]], params.ndihe_for_res[0])
-        torch.testing.assert_allclose(params_both.dihedral_offset_for_res[i, :params.dihedral_offset_for_res.shape[1]], params.dihedral_offset_for_res[0])
-        torch.testing.assert_allclose(params_both.dihedral_atom_inds[i,:params.dihedral_atom_inds.shape[1]], params.dihedral_atom_inds[0])
-        torch.testing.assert_allclose(params_both.rottable_set_for_res[i, :params.rottable_set_for_res.shape[1]], params.rottable_set_for_res[0])
-        torch.testing.assert_allclose(params_both.nchi_for_res[i, :params.nchi_for_res.shape[1]], params.nchi_for_res[0])
-        torch.testing.assert_allclose(params_both.nrotameric_chi_for_res[i, :params.nrotameric_chi_for_res.shape[1]], params.nrotameric_chi_for_res[0])
-        torch.testing.assert_allclose(params_both.rotres2resid[i, :params.rotres2resid.shape[1]], params.rotres2resid[0])
-        torch.testing.assert_allclose(params_both.prob_table_offset_for_rotresidue[i, :params.prob_table_offset_for_rotresidue.shape[1]], params.prob_table_offset_for_rotresidue[0])
-        torch.testing.assert_allclose(params_both.rotmean_table_offset_for_residue[i, :params.rotmean_table_offset_for_residue.shape[1]], params.rotmean_table_offset_for_residue[0])
-        torch.testing.assert_allclose(params_both.rotind2tableind_offset_for_res[i, :params.rotind2tableind_offset_for_res.shape[1]], params.rotind2tableind_offset_for_res[0])
-        torch.testing.assert_allclose(params_both.rotameric_chi_desc[i, :params.rotameric_chi_desc.shape[1]], params.rotameric_chi_desc[0])
-        torch.testing.assert_allclose(params_both.semirotameric_chi_desc[i, :params.semirotameric_chi_desc.shape[1]], params.semirotameric_chi_desc[0])
+    for i, params in enumerate([params40, params60]):
 
-        
+        torch.testing.assert_allclose(
+            params_both.ndihe_for_res[i, : params.ndihe_for_res.shape[1]],
+            params.ndihe_for_res[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.dihedral_offset_for_res[
+                i, : params.dihedral_offset_for_res.shape[1]
+            ],
+            params.dihedral_offset_for_res[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.dihedral_atom_inds[i, : params.dihedral_atom_inds.shape[1]],
+            params.dihedral_atom_inds[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.rottable_set_for_res[i, : params.rottable_set_for_res.shape[1]],
+            params.rottable_set_for_res[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.nchi_for_res[i, : params.nchi_for_res.shape[1]],
+            params.nchi_for_res[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.nrotameric_chi_for_res[
+                i, : params.nrotameric_chi_for_res.shape[1]
+            ],
+            params.nrotameric_chi_for_res[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.rotres2resid[i, : params.rotres2resid.shape[1]],
+            params.rotres2resid[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.prob_table_offset_for_rotresidue[
+                i, : params.prob_table_offset_for_rotresidue.shape[1]
+            ],
+            params.prob_table_offset_for_rotresidue[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.rotmean_table_offset_for_residue[
+                i, : params.rotmean_table_offset_for_residue.shape[1]
+            ],
+            params.rotmean_table_offset_for_residue[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.rotind2tableind_offset_for_res[
+                i, : params.rotind2tableind_offset_for_res.shape[1]
+            ],
+            params.rotind2tableind_offset_for_res[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.rotameric_chi_desc[i, : params.rotameric_chi_desc.shape[1]],
+            params.rotameric_chi_desc[0],
+        )
+        torch.testing.assert_allclose(
+            params_both.semirotameric_chi_desc[
+                i, : params.semirotameric_chi_desc.shape[1]
+            ],
+            params.semirotameric_chi_desc[0],
+        )
+
+
 def test_jagged_scoring(ubq_res, default_database):
     torch_device = torch.device("cpu")
     ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
@@ -183,7 +238,6 @@ def test_jagged_scoring(ubq_res, default_database):
     torch.testing.assert_allclose(total_both[0], total40[0])
     torch.testing.assert_allclose(total_both[1], total60[0])
 
-    
 
 def test_cartesian_space_dun_gradcheck(ubq_res, torch_device):
     test_system = PackedResidueSystem.from_residues(ubq_res[:6])
