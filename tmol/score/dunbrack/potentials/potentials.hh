@@ -495,6 +495,7 @@ def semirotameric_energy(
   Int res_dihedral_offset = dihedral_offset_for_res[resid];
   Int table_ind =
       semirotameric_rottable_assignment[resid] + semirot_table_offset;
+
   for (int ii = 0; ii < NbbP2 - 1; ++ii) {
     int ii_dihe_ind =
         ii == NbbP2 - 2 ? semirot_dihedral_index : (res_dihedral_offset + ii);
