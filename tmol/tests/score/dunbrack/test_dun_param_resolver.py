@@ -645,7 +645,8 @@ def test_stacked_dun_param_resolver_construction(default_database):  # , torch_d
         expected["ndihe_for_res"], dun_params.ndihe_for_res.to("cpu")
     )
     torch.testing.assert_allclose(
-        expected["dihedral_offset_for_res"], dun_params.dihedral_offset_for_res.to("cpu")
+        expected["dihedral_offset_for_res"],
+        dun_params.dihedral_offset_for_res.to("cpu"),
     )
     torch.testing.assert_allclose(
         expected["dihedral_atom_inds"], dun_params.dihedral_atom_inds.to("cpu")

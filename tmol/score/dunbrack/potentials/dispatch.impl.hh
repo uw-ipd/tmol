@@ -106,18 +106,20 @@ struct DunbrackDispatch {
     auto V_tpack = TPack<Real, 2, D>::zeros({nstacks, 3});
     auto V = V_tpack.view;
 
-    // auto neglnprob_rot_tpack = TPack<Real, 2, D>::zeros(nstacks, n_rotameric_res);
+    // auto neglnprob_rot_tpack = TPack<Real, 2, D>::zeros(nstacks,
+    // n_rotameric_res);
     auto dneglnprob_rot_dbb_xyz_tpack =
-      TPack<CoordQuad, 3, D>::zeros({nstacks, n_rotameric_res, 2});
+        TPack<CoordQuad, 3, D>::zeros({nstacks, n_rotameric_res, 2});
 
-    // auto rotchi_devpen_tpack = TPack<Real, 2, D>::zeros(nstacks, n_rotameric_chi);
+    // auto rotchi_devpen_tpack = TPack<Real, 2, D>::zeros(nstacks,
+    // n_rotameric_chi);
     auto drotchi_devpen_dtor_xyz_tpack =
-      TPack<CoordQuad, 3, D>::zeros({nstacks, n_rotameric_chi, 3});
+        TPack<CoordQuad, 3, D>::zeros({nstacks, n_rotameric_chi, 3});
 
     // auto neglnprob_nonrot_tpack = TPack<Real, 1,
     // D>::zeros(n_semirotameric_res);
     auto dneglnprob_nonrot_dtor_xyz_tpack =
-      TPack<CoordQuad, 3, D>::zeros({nstacks, n_semirotameric_res, 3});
+        TPack<CoordQuad, 3, D>::zeros({nstacks, n_semirotameric_res, 3});
 
     // auto neglnprob_rot = neglnprob_rot_tpack.view;
     auto dneglnprob_rot_dbb_xyz = dneglnprob_rot_dbb_xyz_tpack.view;
@@ -142,26 +144,30 @@ struct DunbrackDispatch {
 
     // 1.
     auto func_dihe = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
-	measure_dihedrals_V_dV(
-	  coords[stack], i, dihedral_atom_inds[stack], dihedrals[stack], ddihe_dxyz[stack]);
+      measure_dihedrals_V_dV(
+          coords[stack],
+          i,
+          dihedral_atom_inds[stack],
+          dihedrals[stack],
+          ddihe_dxyz[stack]);
     });
     Dispatch<D>::forall_stacks(nstacks, n_dihedrals, func_dihe);
 
     // 2.
     auto func_rot = ([=] EIGEN_DEVICE_FUNC(int stack, int i) {
       // Templated on there being 2 backbone dihedrals for canonical aas.
-	if ( nrotameric_chi_for_res[stack][i] >= 0) {
-	  classify_rotamer_for_res<2>(
-	    dihedrals[stack],
-	    dihedral_offset_for_res[stack],
-	    nrotameric_chi_for_res[stack],
-	    rotind2tableind_offset_for_res[stack],
-	    rotameric_rotind2tableind,
-	    semirotameric_rotind2tableind,
-	    rotameric_rottable_assignment[stack],
-	    semirotameric_rottable_assignment[stack],
-	    i);
-	}
+      if (nrotameric_chi_for_res[stack][i] >= 0) {
+        classify_rotamer_for_res<2>(
+            dihedrals[stack],
+            dihedral_offset_for_res[stack],
+            nrotameric_chi_for_res[stack],
+            rotind2tableind_offset_for_res[stack],
+            rotameric_rotind2tableind,
+            semirotameric_rotind2tableind,
+            rotameric_rottable_assignment[stack],
+            semirotameric_rottable_assignment[stack],
+            i);
+      }
     });
     Dispatch<D>::forall_stacks(nstacks, nres, func_rot);
 
@@ -270,10 +276,12 @@ struct DunbrackDispatch {
         int ires_dihe_offset = dihedral_offset_for_res[stack][ires];
         for (int ii = 0; ii < 2; ++ii) {
           for (int jj = 0; jj < 4; ++jj) {
-            int const jj_at = dihedral_atom_inds[stack][ires_dihe_offset + ii](jj);
+            int const jj_at =
+                dihedral_atom_inds[stack][ires_dihe_offset + ii](jj);
             if (jj_at >= 0) {
               accumulate<D, Vec<Real, 3>>::add(
-                  dE_dxyz[stack][jj_at], dTdV[stack][0] * drot_nlp_dbb_xyz[stack][i][ii].row(jj));
+                  dE_dxyz[stack][jj_at],
+                  dTdV[stack][0] * drot_nlp_dbb_xyz[stack][i][ii].row(jj));
             }
           }
         }
@@ -286,7 +294,7 @@ struct DunbrackDispatch {
       if (ires >= 0) {
         int ires_dihe_offset = dihedral_offset_for_res[stack][ires];
         int ichi_ind = rotameric_chi_desc[stack][i][1];
-  
+
         for (int ii = 0; ii < 3; ++ii) {
           int tor_ind = ires_dihe_offset + (ii == 2 ? (2 + ichi_ind) : ii);
           for (int jj = 0; jj < 4; ++jj) {
@@ -318,7 +326,8 @@ struct DunbrackDispatch {
         }
       }
     });
-    Dispatch<D>::forall_stacks(nstacks, n_semirotameric_res, func_accum_nonrotnlp);
+    Dispatch<D>::forall_stacks(
+        nstacks, n_semirotameric_res, func_accum_nonrotnlp);
 
     return dE_dxyz_tpack;
   }

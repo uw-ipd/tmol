@@ -384,6 +384,7 @@ def dunbrack_graph_inputs(
         dun_database=parameter_database.scoring.dun,
     )
 
+
 @DunbrackScoreGraph.factory_for.register(PackedResidueSystemStack)
 @validate_args
 def dunbrack_graph_for_stack(
@@ -393,14 +394,15 @@ def dunbrack_graph_for_stack(
     **_,
 ):
     params = [
-        dunbrack_graph_inputs(sys, parameter_database, device)
-        for sys in system.systems
+        dunbrack_graph_inputs(sys, parameter_database, device) for sys in system.systems
     ]
 
     max_nres = max(d["dun_phi"].shape[1] for d in params)
 
     def expand_dihe(t):
-        ext = torch.full((1, max_nres, t.shape[2]), -1, dtype=torch.int32, device=t.device)
+        ext = torch.full(
+            (1, max_nres, t.shape[2]), -1, dtype=torch.int32, device=t.device
+        )
         ext[0, : t.shape[1], :] = t[0]
         return ext
 
@@ -413,4 +415,3 @@ def dunbrack_graph_for_stack(
         dun_chi=stack_dihe("dun_chi"),
         dun_database=params[0]["dun_database"],
     )
-            
