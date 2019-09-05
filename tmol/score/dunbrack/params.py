@@ -665,8 +665,12 @@ class DunbrackParamResolver(ValidateAttrs):
 
         # dun_residues = torch.unique(chi_selected[:, :, 0], sorted=True, dim=0).type(torch.int64)
         # n_dun_residues = dun_residues.shape[0]
-        r_inds2 = torch.full(rns_inds_to_keep.shape, -1, dtype=torch.int64, device=torch_device)
-        s_inds2 = torch.full(rns_inds_to_keep.shape, -1, dtype=torch.int64, device=torch_device)
+        r_inds2 = torch.full(
+            rns_inds_to_keep.shape, -1, dtype=torch.int64, device=torch_device
+        )
+        s_inds2 = torch.full(
+            rns_inds_to_keep.shape, -1, dtype=torch.int64, device=torch_device
+        )
 
         r_inds2[rns_inds_to_keep != -1] = r_inds[rns_inds != -1]
         s_inds2[rns_inds_to_keep != -1] = s_inds[rns_inds != -1]
@@ -674,7 +678,9 @@ class DunbrackParamResolver(ValidateAttrs):
         r_inds = r_inds2
         s_inds = s_inds2
 
-        ndihe_for_res = torch.full(nchi_for_res.shape, -1, dtype=torch.int32, device=torch_device)
+        ndihe_for_res = torch.full(
+            nchi_for_res.shape, -1, dtype=torch.int32, device=torch_device
+        )
         ndihe_for_res[nchi_for_res != -1] = 2 + nchi_for_res[nchi_for_res != -1]
         dihedral_offset_for_res = exclusive_cumsum2d(ndihe_for_res)
 
@@ -762,13 +768,15 @@ class DunbrackParamResolver(ValidateAttrs):
         nres = params.ndihe_for_res.shape[1]
         device = params.dihedral_atom_inds.device
 
-        dihedrals = torch.zeros((nstacks, ndihe,), dtype=torch.float, device=device)
-        ddihe_dxyz = torch.zeros((nstacks, ndihe, 4, 3), dtype=torch.float, device=device)
+        dihedrals = torch.zeros((nstacks, ndihe), dtype=torch.float, device=device)
+        ddihe_dxyz = torch.zeros(
+            (nstacks, ndihe, 4, 3), dtype=torch.float, device=device
+        )
         rotameric_rottable_assignment = torch.zeros(
-            (nstacks, nres,), dtype=torch.int32, device=device
+            (nstacks, nres), dtype=torch.int32, device=device
         )
         semirotameric_rottable_assignment = torch.zeros(
-            (nstacks, nres,), dtype=torch.int32, device=device
+            (nstacks, nres), dtype=torch.int32, device=device
         )
 
         return DunbrackScratch(
@@ -822,7 +830,9 @@ class DunbrackParamResolver(ValidateAttrs):
             rns_inds_flat[rns_inds_flat != -1]
         ]
 
-        nchi_for_res = torch.full(rns_inds_to_keep.shape, -1, dtype=torch.int32, device=rns_inds.device)
+        nchi_for_res = torch.full(
+            rns_inds_to_keep.shape, -1, dtype=torch.int32, device=rns_inds.device
+        )
         nchi_for_res[rns_inds_to_keep != -1] = nchi_for_res_flat
 
         nchi_for_pose_res[rns_inds != -1] = nchi_for_res_flat.type(torch.int64)
@@ -845,7 +855,9 @@ class DunbrackParamResolver(ValidateAttrs):
         ).view((chi.shape[0], chi.shape[1]))
         chi_to_keep = condense_torch_inds(chi64_in_range, device=chi.device)
         selected_chi = torch.full(
-            (chi_to_keep.shape[0], chi_to_keep.shape[1], 6), -1, dtype=torch.int64,
+            (chi_to_keep.shape[0], chi_to_keep.shape[1], 6),
+            -1,
+            dtype=torch.int64,
             device=chi.device,
         )
         nz_chi = torch.nonzero(chi64_in_range)
@@ -865,7 +877,7 @@ class DunbrackParamResolver(ValidateAttrs):
             (rns_inds_to_keep.shape[0], rns_inds_to_keep.shape[1], 4),
             -1,
             dtype=torch.int32,
-            device=bbdihe.device
+            device=bbdihe.device,
         )
         bb_wanted[nz_rns_inds[:, 0], nz_rns_inds[:, 1], :] = bbdihe[
             nz_rns_inds[:, 0], rns_inds_to_keep[rns_inds_to_keep != -1], 1:
