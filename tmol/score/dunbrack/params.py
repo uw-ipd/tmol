@@ -20,7 +20,11 @@ from tmol.numeric.bspline import BSplineInterpolation
 
 from tmol.database.scoring.dunbrack_libraries import DunbrackRotamerLibrary
 
-from tmol.score.common.stack_condense import condense_torch_inds
+from tmol.score.common.stack_condense import (
+    condense_torch_inds,
+    condense_subset,
+    take_values_w_sentineled_index,
+)
 
 
 @validate_args
@@ -638,17 +642,20 @@ class DunbrackParamResolver(ValidateAttrs):
         rns_inds_to_keep = condense_torch_inds(rns_inds != -1, torch_device)
         nz_rns_inds = torch.nonzero(rns_inds_to_keep != -1)
 
+        rottable_set_for_res64 = self.take_dun_table_index_subset(
+            rns_inds, rns_inds_to_keep, rns_inds
+        )
+        rottable_set_for_res = rottable_set_for_res64.type(torch.int32)
+
         # the "pose" residues are indexed by the info in phi/psi/chi tensors
-        nchi_for_pose_res, nchi_for_res = self.determine_nchi_for_res(
-            res_names.shape[0],
-            res_names.shape[1],
-            rns_inds,
-            rns_inds_to_keep,
-            torch_device,
+        nchi_for_pose_res = take_values_w_sentineled_index(
+            self.packed_db_aux.nchi_for_table_set, rns_inds
+        ).type(torch.int64)
+        nchi_for_res = take_values_w_sentineled_index(
+            self.packed_db_aux.nchi_for_table_set, rottable_set_for_res64
         )
 
-        chi_selected = self.select_chi(chi, nchi_for_pose_res)
-        chi_selected = chi_selected.type(torch.int32)
+        chi_selected = self.select_chi(chi, nchi_for_pose_res).type(torch.int32)
 
         phi_wanted = self.wanted_bb_dihedrals(phi, rns_inds_to_keep, nz_rns_inds)
         psi_wanted = self.wanted_bb_dihedrals(psi, rns_inds_to_keep, nz_rns_inds)
@@ -663,23 +670,10 @@ class DunbrackParamResolver(ValidateAttrs):
         # talk about which residues are rotameric and which residues
         # are semi-rotameric.
 
-        r_inds2 = torch.full(
-            rns_inds_to_keep.shape, -1, dtype=torch.int64, device=torch_device
-        )
-        s_inds2 = torch.full(
-            rns_inds_to_keep.shape, -1, dtype=torch.int64, device=torch_device
-        )
+        r_inds = self.take_dun_table_index_subset(rns_inds, rns_inds_to_keep, r_inds)
+        s_inds = self.take_dun_table_index_subset(rns_inds, rns_inds_to_keep, s_inds)
 
-        r_inds2[rns_inds_to_keep != -1] = r_inds[rns_inds != -1]
-        s_inds2[rns_inds_to_keep != -1] = s_inds[rns_inds != -1]
-
-        r_inds = r_inds2
-        s_inds = s_inds2
-
-        ndihe_for_res = torch.full(
-            nchi_for_res.shape, -1, dtype=torch.int32, device=torch_device
-        )
-        ndihe_for_res[nchi_for_res != -1] = 2 + nchi_for_res[nchi_for_res != -1]
+        ndihe_for_res = self.calc_ndihe_for_res(nchi_for_res, torch_device)
         dihedral_offset_for_res = exclusive_cumsum2d(ndihe_for_res)
 
         dihedral_atom_inds = self.merge_dihedral_atom_indices(
@@ -692,42 +686,24 @@ class DunbrackParamResolver(ValidateAttrs):
             torch_device,
         )
 
-        rottable_set_for_res64 = torch.full(
-            rns_inds_to_keep.shape, -1, dtype=torch.int64, device=torch_device
-        )
-        rottable_set_for_res64[rns_inds_to_keep != -1] = rns_inds[rns_inds != -1]
-        # rottable_set_for_res64 = rns_inds[dun_residues]
-        rottable_set_for_res = rottable_set_for_res64.type(torch.int32)
+        # rottable_set_for_res64 represents the table indices of residues
+        # that will be scored by the dunbrack library; we will hold on to
+        # `rns_inds` as these are the indices of the pose-residues
 
         nrotameric_chi_for_res = self.get_nrotameric_chi_for_res(nchi_for_res, s_inds)
         rotres2resid = self.find_rotres2resid(r_inds, torch_device)
 
-        # n_rotameric_res = dun_rotres.shape[0]
         db_aux = self.packed_db_aux
-        prob_table_offset_for_rotresidue = torch.full(
-            rotres2resid.shape, -1, dtype=torch.int32, device=torch_device
+        prob_table_offset_for_rotresidue = self.get_prob_table_offsets_for_rotresidues(
+            db_aux, rotres2resid, r_inds
         )
-        prob_table_offset_for_rotresidue[
-            rotres2resid != -1
-        ] = db_aux.rotameric_prob_tableset_offsets[r_inds[r_inds != -1]]
 
-        rotmean_table_offset_for_residue = torch.full(
-            rottable_set_for_res64.shape, -1, dtype=torch.int32, device=torch_device
+        rotmean_table_offset_for_residue = take_values_w_sentineled_index(
+            db_aux.rotameric_meansdev_tableset_offsets, rottable_set_for_res64
         )
-        rotmean_table_offset_for_residue[
-            rottable_set_for_res64 != -1
-        ] = db_aux.rotameric_meansdev_tableset_offsets[
-            rottable_set_for_res64[rottable_set_for_res64 != -1]
-        ]
-
-        rotind2tableind_offset_for_res = torch.full(
-            rottable_set_for_res64.shape, -1, dtype=torch.int32, device=torch_device
+        rotind2tableind_offset_for_res = take_values_w_sentineled_index(
+            db_aux.rotind2tableind_offsets, rottable_set_for_res64
         )
-        rotind2tableind_offset_for_res[
-            rottable_set_for_res64 != -1
-        ] = db_aux.rotind2tableind_offsets[
-            rottable_set_for_res64[rottable_set_for_res64 != -1]
-        ]
 
         rotameric_chi_desc = self.create_rotameric_chi_descriptors(
             nrotameric_chi_for_res,
@@ -784,12 +760,13 @@ class DunbrackParamResolver(ValidateAttrs):
             semirotameric_rottable_assignment=semirotameric_rottable_assignment,
         )
 
+    @validate_args
     def indices_from_names(
         self,
         dataframe: pandas.DataFrame,
         names: NDArray(object)[:, :],
         device: torch.device,
-    ):
+    ) -> Tensor(torch.int64)[:, :]:
         names_flat = names.ravel()
         inds = dataframe.index.get_indexer(names_flat)
         inds[inds != -1] = dataframe.iloc[inds[inds != -1]]["dun_table_name"].values
@@ -811,32 +788,6 @@ class DunbrackParamResolver(ValidateAttrs):
         return rns_inds, r_inds, s_inds
 
     @validate_args
-    def determine_nchi_for_res(
-        self,
-        nstacks,
-        nres,
-        rns_inds: Tensor(torch.int64)[:, :],
-        rns_inds_to_keep: Tensor(torch.int64)[:, :],
-        torch_device: torch.device,
-    ) -> Tuple[Tensor(torch.int64)[:, :], Tensor(torch.int32)[:, :]]:
-        nchi_for_pose_res = -1 * torch.ones(
-            (nstacks, nres), dtype=torch.int64, device=torch_device
-        )
-        rns_inds_flat = rns_inds.view(-1)
-        # DunbrackParams #5
-        nchi_for_res_flat = self.packed_db_aux.nchi_for_table_set[
-            rns_inds_flat[rns_inds_flat != -1]
-        ]
-
-        nchi_for_res = torch.full(
-            rns_inds_to_keep.shape, -1, dtype=torch.int32, device=rns_inds.device
-        )
-        nchi_for_res[rns_inds_to_keep != -1] = nchi_for_res_flat
-
-        nchi_for_pose_res[rns_inds != -1] = nchi_for_res_flat.type(torch.int64)
-        return nchi_for_pose_res, nchi_for_res
-
-    @validate_args
     def select_chi(
         self,
         chi: Tensor(torch.int32)[:, :, 6],
@@ -851,18 +802,19 @@ class DunbrackParamResolver(ValidateAttrs):
         chi64_in_range = (
             chi64[:, :, 1].view(-1) < nchi_for_pose_res[stack_inds, chi64_res]
         ).view((chi.shape[0], chi.shape[1]))
-        chi_to_keep = condense_torch_inds(chi64_in_range, device=chi.device)
-        selected_chi = torch.full(
-            (chi_to_keep.shape[0], chi_to_keep.shape[1], 6),
-            -1,
-            dtype=torch.int64,
-            device=chi.device,
-        )
-        nz_chi = torch.nonzero(chi_to_keep >= 0)
-        selected_chi[nz_chi[:, 0], nz_chi[:, 1], :] = (
-            chi[nz_chi[:, 0], chi_to_keep[chi_to_keep >= 0].view(-1), :]
-        ).to(torch.int64)
-        return selected_chi
+        # chi_to_keep = condense_torch_inds(chi64_in_range, device=chi.device)
+        # selected_chi = torch.full(
+        #     (chi_to_keep.shape[0], chi_to_keep.shape[1], 6),
+        #     -1,
+        #     dtype=torch.int64,
+        #     device=chi.device,
+        # )
+        # nz_chi = torch.nonzero(chi_to_keep >= 0)
+        # selected_chi[nz_chi[:, 0], nz_chi[:, 1], :] = (
+        #     chi[nz_chi[:, 0], chi_to_keep[chi_to_keep >= 0].view(-1), :]
+        # ).to(torch.int64)
+
+        return condense_subset(chi64, chi64_in_range)
 
     @validate_args
     def wanted_bb_dihedrals(
@@ -881,6 +833,31 @@ class DunbrackParamResolver(ValidateAttrs):
             nz_rns_inds[:, 0], rns_inds_to_keep[rns_inds_to_keep != -1], 1:
         ]
         return bb_wanted
+
+    @validate_args
+    def take_dun_table_index_subset(
+        self,
+        rns_inds: Tensor(torch.int64)[:, :],
+        rns_inds_to_keep: Tensor(torch.int64)[:, :],
+        table_indices: Tensor(torch.int64)[:, :],
+    ) -> Tensor(torch.int64)[:, :]:
+        new_table_indices = torch.full(
+            rns_inds_to_keep.shape, -1, dtype=torch.int64, device=table_indices.device
+        )
+        new_table_indices[rns_inds_to_keep != -1] = table_indices[rns_inds != -1]
+        return new_table_indices
+
+    @validate_args
+    def calc_ndihe_for_res(
+        self, nchi_for_res: Tensor(torch.int32)[:, :], torch_device: torch.device
+    ) -> Tensor(torch.int32)[:, :]:
+        """There are two more dihedrals for each residue than there are chi; these
+        are the backbone phi/psi dihedrals"""
+        ndihe_for_res = torch.full(
+            nchi_for_res.shape, -1, dtype=torch.int32, device=torch_device
+        )
+        ndihe_for_res[nchi_for_res != -1] = 2 + nchi_for_res[nchi_for_res != -1]
+        return ndihe_for_res
 
     @validate_args
     def merge_dihedral_atom_indices(
@@ -964,6 +941,21 @@ class DunbrackParamResolver(ValidateAttrs):
             .view(r_inds.shape)[r_inds != -1]
         )
         return rotres2resid
+
+    @validate_args
+    def get_prob_table_offsets_for_rotresidues(
+        self,
+        db_aux: PackedDunbrackDatabaseAux,
+        rotres2resid: Tensor(torch.int32)[:, :],
+        r_inds: Tensor(torch.int64)[:, :],
+    ) -> Tensor(torch.int32):
+        prob_table_offset_for_rotresidue = torch.full(
+            rotres2resid.shape, -1, dtype=torch.int32, device=r_inds.device
+        )
+        prob_table_offset_for_rotresidue[
+            rotres2resid != -1
+        ] = db_aux.rotameric_prob_tableset_offsets[r_inds[r_inds != -1]]
+        return prob_table_offset_for_rotresidue
 
     @validate_args
     def create_rotameric_chi_descriptors(

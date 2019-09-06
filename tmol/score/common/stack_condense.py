@@ -3,6 +3,8 @@ import numpy
 from tmol.types.torch import Tensor
 from tmol.types.array import NDArray
 
+from tmol.types.functional import validate_args
+
 
 def condense_numpy_inds(selection: NDArray(bool)[:, :]):
     """Given a two dimensional boolean tensor, create
@@ -44,3 +46,50 @@ def condense_torch_inds(selection: Tensor(bool)[:, :], device: torch.device):
 
     inds[lowinds] = nz_selection[:, 1]
     return inds
+
+
+@validate_args
+def take_values_w_sentineled_index(
+    value_tensor, sentineled_index_tensor: Tensor(torch.int64)[:, :], default_fill=-1
+):
+    """The sentinel in the sentineled_index_tensor is -1: the positions
+    with the sentinel value should not be used as an index into the
+    value tensor. This function returns a tensor of the same shape as
+    the sentineled_index_tensor with a dtype of the value tensor."""
+    assert len(value_tensor.shape) == 1
+
+    output_value_tensor = torch.full(
+        sentineled_index_tensor.shape,
+        default_fill,
+        dtype=value_tensor.dtype,
+        device=value_tensor.device,
+    )
+    output_value_tensor[sentineled_index_tensor != -1] = value_tensor[
+        sentineled_index_tensor[sentineled_index_tensor != -1]
+    ]
+    return output_value_tensor
+
+
+def condense_subset(
+    values,  # three dimensional tensor of values
+    values_to_keep,  # two dimensional tensor
+    default_fill=-1,
+):
+    """Take the values for the third dimension of the 3D `values` tensor,
+    (condensing them), corresponding to the positions indicated by
+    the values_to_keep tensor"""
+    assert len(values.shape) == 3
+    assert len(values_to_keep.shape) == 2
+    assert values.shape[:2] == values_to_keep.shape
+    cinds = condense_torch_inds(values_to_keep, values_to_keep.device)
+    selected_values = torch.full(
+        (cinds.shape[0], cinds.shape[1], values.shape[2]),
+        default_fill,
+        dtype=values.dtype,
+        device=values.device,
+    )
+    nz_cinds = torch.nonzero(cinds >= 0)
+    selected_values[nz_cinds[:, 0], nz_cinds[:, 1], :] = values[
+        nz_cinds[:, 0], cinds[cinds >= 0].view(-1), :
+    ]
+    return selected_values
