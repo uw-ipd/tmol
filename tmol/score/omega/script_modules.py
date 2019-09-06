@@ -13,7 +13,10 @@ class OmegaScoreModule(torch.jit.ScriptModule):
             return tuple(map(lambda t: t.to(torch.float), ts))
 
         self.params = torch.nn.Parameter(
-            torch.cat(_tfloat([indices, K.expand((indices.shape[0], 1))]), dim=1),
+            torch.cat(
+                _tfloat([indices, K.expand((indices.shape[0], indices.shape[1], 1))]),
+                dim=2,
+            ),
             requires_grad=False,
         )
 

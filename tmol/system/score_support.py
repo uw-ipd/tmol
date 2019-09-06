@@ -269,7 +269,22 @@ def omega_graph_inputs(system: PackedResidueSystem, **_):
         ]
     )
 
-    return dict(allomegas=omegas)
+    return dict(allomegas=omegas[None, :])
+
+
+@OmegaScoreGraph.factory_for.register(PackedResidueSystemStack)
+@validate_args
+def omega_graph_for_stack(system: PackedResidueSystemStack, **_):
+    params = [omega_graph_inputs(sys) for sys in system.systems]
+
+    max_omegas = max(d["allomegas"].shape[1] for d in params)
+
+    def expand(t):
+        ext = numpy.full((1, max_omegas, 4), -1, dtype=int)
+        ext[0, : t.shape[1], :] = t
+        return ext
+
+    return dict(allomegas=numpy.concatenate([expand(d["allomegas"]) for d in params]))
 
 
 @DunbrackScoreGraph.factory_for.register(PackedResidueSystem)
