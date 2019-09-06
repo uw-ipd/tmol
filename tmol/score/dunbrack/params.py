@@ -655,7 +655,7 @@ class DunbrackParamResolver(ValidateAttrs):
 
         phi = self.clone_and_mark_missing_bb_atoms(phi, -1)
         psi = self.clone_and_mark_missing_bb_atoms(psi, -2)
-        
+
         phi_wanted = self.wanted_bb_dihedrals(phi, rns_inds_to_keep, nz_rns_inds)
         psi_wanted = self.wanted_bb_dihedrals(psi, rns_inds_to_keep, nz_rns_inds)
 
@@ -812,14 +812,12 @@ class DunbrackParamResolver(ValidateAttrs):
 
     @validate_args
     def clone_and_mark_missing_bb_atoms(
-            self,
-            bb_ats: Tensor(torch.int32)[:,:,5],
-            undefined_val: int
-    ) -> Tensor(torch.int32)[:,:,5]:
+        self, bb_ats: Tensor(torch.int32)[:, :, 5], undefined_val: int
+    ) -> Tensor(torch.int32)[:, :, 5]:
         bb_ats = bb_ats.clone()
         ats_not_defined = (bb_ats == -1).byte().any(2)
         nz_not_defined = torch.nonzero(ats_not_defined)
-        bb_ats[nz_not_defined[:,0], nz_not_defined[:,1], :] = undefined_val
+        bb_ats[nz_not_defined[:, 0], nz_not_defined[:, 1], :] = undefined_val
         return bb_ats
 
     @validate_args
