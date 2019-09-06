@@ -110,9 +110,10 @@ class DunbrackScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
             (dun_phi.shape[0], dun_phi.shape[1]), None, dtype=object
         )
 
-        # select the name for each residue that potentially qualifies for dunbrack scoring
-        # by using the 2nd atom that defines the phi torsion. This atom will be non-negative
-        # even if other atoms that define phi are negative.
+        # select the name for each residue that potentially qualifies
+        # for dunbrack scoring by using the 2nd atom that defines the
+        # phi torsion. This atom will be non-negative even if other
+        # atoms that define phi are negative.
         dun_at2_inds = dun_phi[:, :, 2].cpu().numpy()
         dun_at2_real = dun_at2_inds != -1
         nz_at2_real = numpy.nonzero(dun_at2_real)

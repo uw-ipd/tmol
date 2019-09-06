@@ -1,6 +1,5 @@
 import numpy
 import torch
-import pytest
 
 from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
 from tmol.score.coordinates import (
@@ -282,15 +281,17 @@ def test_cartesian_space_dun_gradcheck(ubq_res, torch_device):
     result = total_score(start_coords)
 
     # Extract results from torch/autograd/gradcheck.py
-    from torch.autograd.gradcheck import get_numerical_jacobian, get_analytical_jacobian
-
-    (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
-        (start_coords,), result
-    )
-    numerical = get_numerical_jacobian(total_score, start_coords, start_coords, 2e-3)
-
-    a = analytical
-    n = numerical
+    # from torch.autograd.gradcheck import (
+    #   get_numerical_jacobian, get_analytical_jacobian )
+    #
+    # (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
+    #     (start_coords,), result
+    # )
+    # numerical = get_numerical_jacobian(
+    #     total_score, start_coords, start_coords, 2e-3)
+    #
+    # a = analytical
+    # n = numerical
 
     # print(a.t())
     # print(n.t())

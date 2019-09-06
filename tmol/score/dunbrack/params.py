@@ -655,7 +655,7 @@ class DunbrackParamResolver(ValidateAttrs):
 
         # ok, at this point a subset of the residues in the Pose are
         # going to be scored by the dunbrack score. This subset
-        # is what we're going to consider when we talk about residues
+        # is what we're going to consider when we talk about "residues"
         # by index. So, e.g., if the first residue to be scored is
         # pose-residue 1, then we'll treat that as dunbrack-residue 0.
         # So we need to remap pose-residue indices into
@@ -663,8 +663,6 @@ class DunbrackParamResolver(ValidateAttrs):
         # talk about which residues are rotameric and which residues
         # are semi-rotameric.
 
-        # dun_residues = torch.unique(chi_selected[:, :, 0], sorted=True, dim=0).type(torch.int64)
-        # n_dun_residues = dun_residues.shape[0]
         r_inds2 = torch.full(
             rns_inds_to_keep.shape, -1, dtype=torch.int64, device=torch_device
         )
@@ -743,19 +741,6 @@ class DunbrackParamResolver(ValidateAttrs):
         semirotameric_chi_desc = self.create_semirotameric_chi_descriptors(
             s_inds, dihedral_offset_for_res, nchi_for_res, torch_device
         )
-
-        # print("ndihe_for_res", ndihe_for_res)
-        # print("dihedral_offset_for_res", dihedral_offset_for_res)
-        # print("dihedral_atom_inds", dihedral_atom_inds)
-        # print("rottable_set_for_res", rottable_set_for_res)
-        # print("nchi_for_res", nchi_for_res)
-        # print("nrotameric_chi_for_res", nrotameric_chi_for_res)
-        # print("rotres2resid", rotres2resid)
-        # print("prob_table_offset_for_rotresidue", prob_table_offset_for_rotresidue)
-        # print("rotmean_table_offset_for_residue", rotmean_table_offset_for_residue)
-        # print("rotind2tableind_offset_for_res", rotind2tableind_offset_for_res)
-        # print("rotameric_chi_desc", rotameric_chi_desc)
-        # print("semirotameric_chi_desc", semirotameric_chi_desc)
 
         return DunbrackParams(
             ndihe_for_res=ndihe_for_res,
@@ -911,7 +896,6 @@ class DunbrackParamResolver(ValidateAttrs):
         dihedral_offset_for_res64 = dihedral_offset_for_res.type(torch.int64)
 
         nstacks = ndihe_for_res.shape[0]
-        n_dun_residues = ndihe_for_res.shape[1]
 
         ndihe_for_res_w_zeros = ndihe_for_res.clone()
         ndihe_for_res_w_zeros[ndihe_for_res_w_zeros == -1] = 0
@@ -1075,7 +1059,6 @@ class DunbrackParamResolver(ValidateAttrs):
 
         nstacks = s_inds.shape[0]
         real_sres = s_inds != -1
-        nz_real_sres = torch.nonzero(real_sres)
         sres_keep = condense_torch_inds(real_sres, torch_device)
         nz_sres_keep = torch.nonzero(sres_keep != -1)
 
