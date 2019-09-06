@@ -69,6 +69,34 @@ def take_values_w_sentineled_index(
     ]
     return output_value_tensor
 
+@validate_args
+def take_values_w_sentineled_index_and_dest(
+    value_tensor, sentineled_index_tensor: Tensor(torch.int64)[:, :], sentineled_dest_tensor, default_fill=-1
+):
+    """The sentinel in the sentineled_index_tensor is -1: the positions
+    with the sentinel value should not be used as an index into the
+    value tensor. The sentinel in the sentineled_dest_tensor is also
+    -1: the positions with the sentinel value should not be written
+    to in the output tensor. This function returns a tensor of the
+    same shape as the sentineled_dest_tensor with a dtype of the
+    value tensor, which is indexed into using the
+    sentineled_index_tensor. The values in the sentineled_dest_tensor
+    do not matter except where they are -1."""
+
+    assert len(value_tensor.shape) == 1
+    assert len(sentineled_dest_tensor.shape) == 2
+
+    output_value_tensor = torch.full(
+        sentineled_dest_tensor.shape,
+        default_fill,
+        dtype=value_tensor.dtype,
+        device=value_tensor.device,
+    )
+    output_value_tensor[sentineled_dest_tensor != -1] = value_tensor[
+        sentineled_index_tensor[sentineled_index_tensor != -1]
+    ]
+    return output_value_tensor
+
 
 def condense_subset(
     values,  # three dimensional tensor of values

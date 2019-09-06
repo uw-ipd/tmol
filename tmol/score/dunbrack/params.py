@@ -24,6 +24,7 @@ from tmol.score.common.stack_condense import (
     condense_torch_inds,
     condense_subset,
     take_values_w_sentineled_index,
+    take_values_w_sentineled_index_and_dest,
 )
 
 
@@ -793,7 +794,16 @@ class DunbrackParamResolver(ValidateAttrs):
         chi: Tensor(torch.int32)[:, :, 6],
         nchi_for_pose_res: Tensor(torch.int64)[:, :],
     ) -> Tensor(torch.int64)[:, :, 6]:
+        """Not all chi in a residue are used in the dunbrack energy
+        calculation, e.g. THR chi2. So, select the subset of chi
+        that will be used. The nchi_for_pose array already contains
+        the number of chi used by each residue; we compare the index
+        of each chi dihedral (column 1) against the number stored
+        in the nchi_for_pose array using the residue index (column 0)
+        """
         chi64 = chi.type(torch.int64)
+        # get the stack indices for each of the chi once we have
+        # made a 1-dimensional view.
         stack_inds = (
             torch.arange(chi.shape[0] * chi.shape[1], dtype=torch.int64) / chi.shape[1]
         )
@@ -802,6 +812,8 @@ class DunbrackParamResolver(ValidateAttrs):
         chi64_in_range = (
             chi64[:, :, 1].view(-1) < nchi_for_pose_res[stack_inds, chi64_res]
         ).view((chi.shape[0], chi.shape[1]))
+
+        # now take a subset of the chi and condense them
         return condense_subset(chi64, chi64_in_range)
 
     @validate_args
@@ -923,11 +935,7 @@ class DunbrackParamResolver(ValidateAttrs):
         rotres2resid = torch.full(
             r_inds_condensed.shape, -1, dtype=torch.int32, device=torch_device
         )
-        rotres2resid[r_inds_condensed != -1] = (
-            torch.arange(r_inds.shape[1], dtype=torch.int32, device=torch_device)
-            .repeat(r_inds.shape[0])
-            .view(r_inds.shape)[r_inds != -1]
-        )
+        rotres2resid[r_inds_condensed != -1] = torch.nonzero(r_inds != -1)[:,1].type(torch.int32)
         return rotres2resid
 
     @validate_args
@@ -937,13 +945,10 @@ class DunbrackParamResolver(ValidateAttrs):
         rotres2resid: Tensor(torch.int32)[:, :],
         r_inds: Tensor(torch.int64)[:, :],
     ) -> Tensor(torch.int32):
-        prob_table_offset_for_rotresidue = torch.full(
-            rotres2resid.shape, -1, dtype=torch.int32, device=r_inds.device
-        )
-        prob_table_offset_for_rotresidue[
-            rotres2resid != -1
-        ] = db_aux.rotameric_prob_tableset_offsets[r_inds[r_inds != -1]]
-        return prob_table_offset_for_rotresidue
+        return take_values_w_sentineled_index_and_dest(
+            db_aux.rotameric_prob_tableset_offsets,
+            r_inds,
+            rotres2resid)
 
     @validate_args
     def create_rotameric_chi_descriptors(
@@ -962,9 +967,13 @@ class DunbrackParamResolver(ValidateAttrs):
         """
 
         nstacks = rns_inds.shape[0]
-        nrotameric_chi_for_res_zero = nrotameric_chi_for_res.clone()
-        nrotameric_chi_for_res_zero[nrotameric_chi_for_res < 0] = 0
-        nrotameric_chi = torch.sum(nrotameric_chi_for_res_zero, dim=1)
+        nrotameric_chi_for_res_w_zeros = nrotameric_chi_for_res.clone()
+        nrotameric_chi_for_res_w_zeros[nrotameric_chi_for_res < 0] = 0
+
+        # for each stack, how many rotameric chi are there to score?
+        nrotameric_chi = torch.sum(nrotameric_chi_for_res_w_zeros, dim=1)
+
+        # what is the largest number of rotameric chi across all stacks?
         max_nrotameric_chi = torch.max(nrotameric_chi)
         nrotameric_chi_for_res_offsets = exclusive_cumsum2d(nrotameric_chi_for_res)
 
@@ -1006,16 +1015,10 @@ class DunbrackParamResolver(ValidateAttrs):
         offsets_for_chi = nrotameric_chi_for_res_offsets[
             nz_real_chi[:, 0], res_for_chi[real_chi]
         ]
-        # 1D array of the per-stack index of each of the real rotameric chi
-        real_rotchi_index = (
-            torch.arange(max_nrotameric_chi, dtype=torch.int32, device=torch_device)
-            .repeat(nstacks)
-            .view((nstacks, max_nrotameric_chi))[real_chi]
-        )
 
         # now, store the per-residue index for each of the rotameric chi
         rotameric_chi_desc[nz_real_chi[:, 0], nz_real_chi[:, 1], 1] = (
-            real_rotchi_index - offsets_for_chi
+            nz_real_chi[:, 1].type(torch.int32) - offsets_for_chi
         )
 
         return rotameric_chi_desc
