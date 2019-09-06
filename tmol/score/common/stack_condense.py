@@ -206,7 +206,7 @@ def take_values_w_sentineled_dest(
 
 def condense_subset(
     values,  # three dimensional tensor of values
-    values_to_keep,  # two dimensional tensor
+    values_to_keep,  # two dimensional boolean tensor
     default_fill=-1,
 ):
     """Take the values for the third dimension of the 3D "values" tensor,
