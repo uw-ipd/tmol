@@ -629,19 +629,14 @@ class DunbrackParamResolver(ValidateAttrs):
         assert psi.shape[0] == nstacks
         assert chi.shape[0] == nstacks
 
-        phi = phi.clone()
-        psi = psi.clone()
-        phi_not_defined = (phi == -1).byte().any(2)
-        nz_phi_nd = torch.nonzero(phi_not_defined)
-        phi[nz_phi_nd[:, 0], nz_phi_nd[:, 1], 1:] = -1
-        psi_not_defined = (psi == -1).byte().any(2)
-        nz_psi_nd = torch.nonzero(psi_not_defined)
-        psi[nz_psi_nd[:, 0], nz_psi_nd[:, 1], 1:] = -2
-
         rns_inds, r_inds, s_inds = self.resolve_dun_indices(res_names, torch_device)
 
         rns_inds_to_keep = condense_torch_inds(rns_inds != -1, torch_device)
         nz_rns_inds = torch.nonzero(rns_inds_to_keep != -1)
+
+        # rottable_set_for_res64 represents the table indices of residues
+        # that will be scored by the dunbrack library; we will hold on to
+        # `rns_inds` as these are the indices of the pose-residues
 
         rottable_set_for_res64 = self.take_dun_table_index_subset(
             rns_inds, rns_inds_to_keep, rns_inds
@@ -658,6 +653,9 @@ class DunbrackParamResolver(ValidateAttrs):
 
         chi_selected = self.select_chi(chi, nchi_for_pose_res).type(torch.int32)
 
+        phi = self.clone_and_mark_missing_bb_atoms(phi, -1)
+        psi = self.clone_and_mark_missing_bb_atoms(psi, -2)
+        
         phi_wanted = self.wanted_bb_dihedrals(phi, rns_inds_to_keep, nz_rns_inds)
         psi_wanted = self.wanted_bb_dihedrals(psi, rns_inds_to_keep, nz_rns_inds)
 
@@ -686,10 +684,6 @@ class DunbrackParamResolver(ValidateAttrs):
             chi_selected,
             torch_device,
         )
-
-        # rottable_set_for_res64 represents the table indices of residues
-        # that will be scored by the dunbrack library; we will hold on to
-        # `rns_inds` as these are the indices of the pose-residues
 
         nrotameric_chi_for_res = self.get_nrotameric_chi_for_res(nchi_for_res, s_inds)
         rotres2resid = self.find_rotres2resid(r_inds, torch_device)
@@ -815,6 +809,18 @@ class DunbrackParamResolver(ValidateAttrs):
 
         # now take a subset of the chi and condense them
         return condense_subset(chi64, chi64_in_range)
+
+    @validate_args
+    def clone_and_mark_missing_bb_atoms(
+            self,
+            bb_ats: Tensor(torch.int32)[:,:,5],
+            undefined_val: int
+    ) -> Tensor(torch.int32)[:,:,5]:
+        bb_ats = bb_ats.clone()
+        ats_not_defined = (bb_ats == -1).byte().any(2)
+        nz_not_defined = torch.nonzero(ats_not_defined)
+        bb_ats[nz_not_defined[:,0], nz_not_defined[:,1], :] = undefined_val
+        return bb_ats
 
     @validate_args
     def wanted_bb_dihedrals(
