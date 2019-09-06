@@ -935,7 +935,9 @@ class DunbrackParamResolver(ValidateAttrs):
         rotres2resid = torch.full(
             r_inds_condensed.shape, -1, dtype=torch.int32, device=torch_device
         )
-        rotres2resid[r_inds_condensed != -1] = torch.nonzero(r_inds != -1)[:,1].type(torch.int32)
+        rotres2resid[r_inds_condensed != -1] = torch.nonzero(r_inds != -1)[:, 1].type(
+            torch.int32
+        )
         return rotres2resid
 
     @validate_args
@@ -946,9 +948,8 @@ class DunbrackParamResolver(ValidateAttrs):
         r_inds: Tensor(torch.int64)[:, :],
     ) -> Tensor(torch.int32):
         return take_values_w_sentineled_index_and_dest(
-            db_aux.rotameric_prob_tableset_offsets,
-            r_inds,
-            rotres2resid)
+            db_aux.rotameric_prob_tableset_offsets, r_inds, rotres2resid
+        )
 
     @validate_args
     def create_rotameric_chi_descriptors(

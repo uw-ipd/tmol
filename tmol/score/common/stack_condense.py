@@ -69,9 +69,13 @@ def take_values_w_sentineled_index(
     ]
     return output_value_tensor
 
+
 @validate_args
 def take_values_w_sentineled_index_and_dest(
-    value_tensor, sentineled_index_tensor: Tensor(torch.int64)[:, :], sentineled_dest_tensor, default_fill=-1
+    value_tensor,
+    sentineled_index_tensor: Tensor(torch.int64)[:, :],
+    sentineled_dest_tensor,
+    default_fill=-1,
 ):
     """The sentinel in the sentineled_index_tensor is -1: the positions
     with the sentinel value should not be used as an index into the
