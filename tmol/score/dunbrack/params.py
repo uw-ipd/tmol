@@ -802,18 +802,6 @@ class DunbrackParamResolver(ValidateAttrs):
         chi64_in_range = (
             chi64[:, :, 1].view(-1) < nchi_for_pose_res[stack_inds, chi64_res]
         ).view((chi.shape[0], chi.shape[1]))
-        # chi_to_keep = condense_torch_inds(chi64_in_range, device=chi.device)
-        # selected_chi = torch.full(
-        #     (chi_to_keep.shape[0], chi_to_keep.shape[1], 6),
-        #     -1,
-        #     dtype=torch.int64,
-        #     device=chi.device,
-        # )
-        # nz_chi = torch.nonzero(chi_to_keep >= 0)
-        # selected_chi[nz_chi[:, 0], nz_chi[:, 1], :] = (
-        #     chi[nz_chi[:, 0], chi_to_keep[chi_to_keep >= 0].view(-1), :]
-        # ).to(torch.int64)
-
         return condense_subset(chi64, chi64_in_range)
 
     @validate_args
