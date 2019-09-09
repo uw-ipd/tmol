@@ -1,6 +1,10 @@
 import pytest
+import tmol
+import torch
 
 from tmol.utility.reactive import reactive_property
+
+from tmol.system.packed import PackedResidueSystemStack
 
 from tmol.score import TotalScoreGraph
 
@@ -110,7 +114,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
             total = score_graph.intra_score().total
             total.backward()
 
-            float(total)
+            float(torch.sum(total))
 
             return total
 
@@ -122,7 +126,7 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 
             total = score_graph.intra_score().total
 
-            float(total)
+            float(torch.sum(total))
 
             return total
 
@@ -179,6 +183,66 @@ def test_end_to_end_score_graph(
 
     score_graph = graph_class.build_for(
         target_system, requires_grad=True, device=torch_device
+    )
+
+    run = benchmark_score_pass(benchmark, score_graph, benchmark_pass)
+
+    assert run.device == torch_device
+
+
+@pytest.mark.parametrize(
+    "term_to_exclude",
+    [
+        HBondScoreGraph,
+        ElecScoreGraph,
+        RamaScoreGraph,
+        OmegaScoreGraph,
+        DunbrackScoreGraph,
+        CartBondedScoreGraph,
+        LJScoreGraph,
+        LKScoreGraph,
+        LKBallScoreGraph,
+    ],
+    ids=[
+        "hbond",
+        "elec",
+        "rama",
+        "omega",
+        "dun",
+        "cartbonded",
+        "lj",
+        "lk",
+        "lk_ball",
+    ],
+)
+@pytest.mark.parametrize("benchmark_pass", ["forward"])
+@pytest.mark.benchmark(group="score_wo_component")
+def test_exclude_term_from_score_graph(
+    benchmark, benchmark_pass, term_to_exclude, torch_device, ubq_system
+):
+    stack = PackedResidueSystemStack((ubq_system,) * 30)
+
+    base_classes = [
+        CartesianAtomicCoordinateProvider,
+        LJScoreGraph,
+        LKScoreGraph,
+        LKBallScoreGraph,
+        HBondScoreGraph,
+        DunbrackScoreGraph,
+        RamaScoreGraph,
+        OmegaScoreGraph,
+        ElecScoreGraph,
+        CartBondedScoreGraph,
+    ]
+
+    base_classes.remove(term_to_exclude)
+    base_classes = tuple(base_classes)
+
+    graph_class = type("TempGraph", base_classes, {})
+    graph_class = tmol.score.score_graph.score_graph(graph_class)
+    
+    score_graph = graph_class.build_for(
+        stack, requires_grad=True, device=torch_device
     )
 
     run = benchmark_score_pass(benchmark, score_graph, benchmark_pass)
