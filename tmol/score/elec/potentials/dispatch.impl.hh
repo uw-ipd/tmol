@@ -49,7 +49,7 @@ struct ElecDispatch {
 
     // for use with Kahan summation; need space for both the sum and the
     // truncation
-    auto Vs_accum_t = TPack<Real, 2, Dev>::zeros({nstacks, 2});
+    auto Vs_accum_t = TPack<double, 1, Dev>::zeros({nstacks});
 
     auto dVs_dI_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_i.size(1)});
@@ -87,7 +87,7 @@ struct ElecDispatch {
               global_params[0].max_dis);
 
           // Kahan summation to reduce numerical noise
-          accumulate_kahan<Dev, Real>::add(&Vs_accum[stack][0], V);
+          accumulate<Dev, double>::add(Vs_accum[stack], (double) V);
 
           // after accumulating, copy over the result into the output
           // tensor; the last thread to complete this will have it right
@@ -100,8 +100,9 @@ struct ElecDispatch {
         });
 
     // skip the torch slicing
+    // cast down from double to Real
     SingleDispatch<Dev>::forall(
-        nstacks, [=] EIGEN_DEVICE_FUNC(int i) { Vs[i] = Vs_accum[i][0]; });
+         nstacks, [=] EIGEN_DEVICE_FUNC(int i) { Vs[i] = Vs_accum[i]; });
 
     return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }
