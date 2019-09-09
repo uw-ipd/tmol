@@ -27,10 +27,11 @@ class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice
 @score_graph
 class StackScoreGraph(
     CartesianAtomicCoordinateProvider,
-    LJScoreGraph,
-    LKScoreGraph,
-    LKBallScoreGraph,
-    RamaScoreGraph,
+    # LJScoreGraph,
+    # LKScoreGraph,
+    # LKBallScoreGraph,
+    # RamaScoreGraph,
+    TotalScoreGraph,
     TorchDevice,
 ):
     pass
@@ -124,8 +125,8 @@ def test_stacked_full(
     def forward_backward():
         score_graph.reset_coords()
         total = score_graph.intra_score().total
-        tsum = torch.sum(total)
-        tsum.backward(retain_graph=True)
+        # tsum = torch.sum(total)
+        # tsum.backward(retain_graph=True)
         return total
 
     forward_backward
