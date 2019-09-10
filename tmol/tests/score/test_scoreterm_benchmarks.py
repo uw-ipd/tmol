@@ -103,7 +103,7 @@ class LKBallScore(CartesianAtomicCoordinateProvider, LKBallScoreGraph, TorchDevi
 
 def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
     # Score once to prep graph
-    total = score_graph.intra_score().total
+    total = torch.sum(score_graph.intra_score().total)
 
     if benchmark_pass == "full":
 
@@ -111,10 +111,10 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
         def run():
             score_graph.reset_coords()
 
-            total = score_graph.intra_score().total
-            total.backward()
+            total = torch.sum(score_graph.intra_score().total)
+            total.backward(retain_graph=True) # it's not clear to me why I need to add this
 
-            float(torch.sum(total))
+            float(total)
 
             return total
 
@@ -146,32 +146,32 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 @pytest.mark.parametrize(
     "graph_class",
     [
-        TotalScore,
-        DofSpaceTotal,
-        HBondScore,
-        ElecScore,
-        RamaScore,
-        OmegaScore,
-        DunbrackScore,
-        CartBondedScore,
+        # TotalScore,
+        # DofSpaceTotal,
+        # HBondScore,
+        # ElecScore,
+        # RamaScore,
+        # OmegaScore,
+        # DunbrackScore,
+        # CartBondedScore,
         LJScore,
         LKScore,
-        LKBallScore,
-        DofSpaceDummy,
+        # LKBallScore,
+        # DofSpaceDummy,
     ],
     ids=[
-        "total_cart",
-        "total_torsion",
-        "hbond",
-        "elec",
-        "rama",
-        "omega",
-        "dun",
-        "cartbonded",
+        # "total_cart",
+        # "total_torsion",
+        # "hbond",
+        # "elec",
+        # "rama",
+        # "omega",
+        # "dun",
+        # "cartbonded",
         "lj",
         "lk",
-        "lk_ball",
-        "kinematics",
+        # "lk_ball",
+        # "kinematics",
     ],
 )
 @pytest.mark.parametrize("benchmark_pass", ["full", "forward", "backward"])
@@ -179,10 +179,12 @@ def benchmark_score_pass(benchmark, score_graph, benchmark_pass):
 def test_end_to_end_score_graph(
     benchmark, benchmark_pass, graph_class, torch_device, ubq_system
 ):
-    target_system = ubq_system
+
+    #target_system = ubq_system
+    stack = PackedResidueSystemStack((ubq_system,) * 30)
 
     score_graph = graph_class.build_for(
-        target_system, requires_grad=True, device=torch_device
+        stack, requires_grad=True, device=torch_device
     )
 
     run = benchmark_score_pass(benchmark, score_graph, benchmark_pass)

@@ -70,13 +70,15 @@ struct f_desolv {
       ->Real {
     using std::exp;
     using std::pow;
-    const Real pi = EIGEN_PI;
-
+    static const Real pi = EIGEN_PI;
+    static const Real pi_pow1p5 = 5.56832799683f; // pow(pi,3.0/2.0);
+    
+    
     // clang-format off
     return (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * fastpow(pi, 3.0 / 2.0) * lk_lambda_i)
+      / (2 * pi_pow1p5 * lk_lambda_i)
       / (dist * dist)
       * fastexp(-fastpow((dist - lj_radius_i) / lk_lambda_i, 2))
     );
@@ -92,13 +94,14 @@ struct f_desolv {
       ->V_dV_t {
     using std::exp;
     using std::pow;
-    const Real pi = EIGEN_PI;
+    static const Real pi = EIGEN_PI;
+    static const Real pi_pow1p5 = 5.56832799683f; // pow(pi,3.0/2.0);
 
     // clang-format off
     Real desolv = (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * fastpow(pi, 3.0 / 2.0) * lk_lambda_i)
+      / (2 * pi_pow1p5 * lk_lambda_i)
       / (dist * dist)
       * fastexp(-fastpow((dist - lj_radius_i) / lk_lambda_i, 2))
     );
@@ -106,7 +109,7 @@ struct f_desolv {
     Real d_desolv_d_dist = (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * fastpow(pi, 3.0 / 2.0) * lk_lambda_i)
+      / (2 * pi_pow1p5 * lk_lambda_i)
       * ((  // (f * fastexp(g))' = f' * fastexp(g) + f g' fastexp(g)
           -2 / (dist * dist * dist)
           * fastexp(-fastpow(dist - lj_radius_i, 2) / fastpow(lk_lambda_i, 2))

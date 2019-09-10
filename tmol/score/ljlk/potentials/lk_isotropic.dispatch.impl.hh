@@ -33,9 +33,11 @@ template <
 auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
     TView<Vec<Real, 3>, 2, D> coords_i,
     TView<Int, 2, D> atom_type_i,
+    TView<Int, 2, D> heavyatom_inds_i,
 
     TView<Vec<Real, 3>, 2, D> coords_j,
     TView<Int, 2, D> atom_type_j,
+    TView<Int, 2, D> heavyatom_inds_j,
 
     TView<Real, 3, D> bonded_path_lengths,
 
@@ -63,11 +65,16 @@ auto LKIsotropicDispatch<Dispatch, D, Real, Int>::f(
 
   nvtx_range_push("dispatch::score");
   Real threshold_distance = 6.0;
-  Dispatch<D>::forall_stacked_pairs(
+  Dispatch<D>::forall_stacked_idx_pairs(
       threshold_distance,
       coords_i,
       coords_j,
-      [=] EIGEN_DEVICE_FUNC(int stack, int i, int j) {
+      heavyatom_inds_i,
+      heavyatom_inds_j,
+      [=] EIGEN_DEVICE_FUNC(int stack, int i_idx, int j_idx) {
+	Int i = heavyatom_inds_i[stack][i_idx];
+	Int j = heavyatom_inds_j[stack][j_idx];
+	  
         Int ati = atom_type_i[stack][i];
         Int atj = atom_type_j[stack][j];
 
