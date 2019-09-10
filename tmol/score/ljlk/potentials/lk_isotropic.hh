@@ -80,7 +80,7 @@ struct f_desolv {
       * lk_dgfree_i
       / (2 * pi_pow1p5 * lk_lambda_i)
       / (dist * dist)
-      * fastexp(-fastpow((dist - lj_radius_i) / lk_lambda_i, 2))
+      * exp(-1 * (dist - lj_radius_i) * (dist - lj_radius_i) / (lk_lambda_i * lk_lambda_i))
     );
     // clang-format on
   }
@@ -97,27 +97,28 @@ struct f_desolv {
     static const Real pi = EIGEN_PI;
     static const Real pi_pow1p5 = 5.56832799683f; // pow(pi,3.0/2.0);
 
+    Real const exp_val = exp(-1 * (dist - lj_radius_i) * (dist - lj_radius_i)/ (lk_lambda_i * lk_lambda_i));
+
     // clang-format off
     Real desolv = (
       -lk_volume_j
       * lk_dgfree_i
       / (2 * pi_pow1p5 * lk_lambda_i)
       / (dist * dist)
-      * fastexp(-fastpow((dist - lj_radius_i) / lk_lambda_i, 2))
+      * exp_val
     );
 
     Real d_desolv_d_dist = (
       -lk_volume_j
       * lk_dgfree_i
       / (2 * pi_pow1p5 * lk_lambda_i)
-      * ((  // (f * fastexp(g))' = f' * fastexp(g) + f g' fastexp(g)
+      * exp_val
+      * ((  // (f * exp(g))' = f' * exp(g) + f g' exp(g)
           -2 / (dist * dist * dist)
-          * fastexp(-fastpow(dist - lj_radius_i, 2) / fastpow(lk_lambda_i, 2))
         ) + (
           1 / (dist * dist)
           * -(2 * dist - 2 * lj_radius_i)
           / (lk_lambda_i * lk_lambda_i)
-          * fastexp(-pow(dist - lj_radius_i, 2) / fastpow(lk_lambda_i, 2))
         )
       )
     );
