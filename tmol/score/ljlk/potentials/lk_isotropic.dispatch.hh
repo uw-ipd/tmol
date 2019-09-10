@@ -29,9 +29,11 @@ struct LKIsotropicDispatch {
   static auto f(
       TView<Vec<Real, 3>, 2, D> coords_i,
       TView<Int, 2, D> atom_type_i,
+      TView<Int, 2, D> heavyatom_inds_i,
 
       TView<Vec<Real, 3>, 2, D> coords_j,
       TView<Int, 2, D> atom_type_j,
+      TView<Int, 2, D> heavyatom_inds_j,
 
       TView<Real, 3, D> bonded_path_lengths,
 

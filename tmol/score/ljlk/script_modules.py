@@ -85,7 +85,7 @@ class LJIntraModule(_LJScoreModule):
 
 class LJInterModule(_LJScoreModule):
     @torch.jit.script_method
-    def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+    def forward(self, I, atom_type_I,  J, atom_type_J, bonded_path_lengths):
         return torch.ops.tmol.score_ljlk_lj(
             I,
             atom_type_I,
@@ -140,7 +140,7 @@ class _LKIsotropicScoreModule(torch.jit.ScriptModule):
                 dim=1,
             )
         )
-
+        
         self.global_params = _p(
             torch.stack(
                 _t(
@@ -157,12 +157,14 @@ class _LKIsotropicScoreModule(torch.jit.ScriptModule):
 
 class LKIsotropicIntraModule(_LKIsotropicScoreModule):
     @torch.jit.script_method
-    def forward(self, I, atom_type_I, bonded_path_lengths):
+    def forward(self, I, atom_type_I, heavyat_inds_I, bonded_path_lengths):
         return torch.ops.tmol.score_ljlk_lk_isotropic_triu(
             I,
             atom_type_I,
+            heavyat_inds_I,
             I,
             atom_type_I,
+            heavyat_inds_I,
             bonded_path_lengths,
             self.type_params,
             self.global_params,
@@ -171,12 +173,14 @@ class LKIsotropicIntraModule(_LKIsotropicScoreModule):
 
 class LKIsotropicInterModule(_LKIsotropicScoreModule):
     @torch.jit.script_method
-    def forward(self, I, atom_type_I, J, atom_type_J, bonded_path_lengths):
+    def forward(self, I, atom_type_I, heavyat_inds_I, J, atom_type_J, heavyat_inds_J, bonded_path_lengths):
         return torch.ops.tmol.score_ljlk_lk_isotropic(
             I,
             atom_type_I,
+            heavyat_inds_I,
             J,
             atom_type_J,
+            heavyat_inds_J,
             bonded_path_lengths,
             self.type_params,
             self.global_params,
