@@ -15,7 +15,40 @@ namespace score {
 namespace ljlk {
 namespace potentials {
 
+
+
 #define def auto EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+
+
+
+// fast math -- from https://code.google.com/p/fastapprox/downloads/detail?name=fastapprox-0.3.2.tar.gz
+
+def
+fastpow2 (float p) -> float {
+        float offset = (p < 0.0) ? 1.0f : 0.0f;
+        float clipp = (p < -126.0) ? -126.0f : p;
+        auto w = (int)(clipp);
+        float z = clipp - (float)(w) + offset;
+        union { uint32_t i; float f; } v = { (uint32_t) ( (1 << 23) * (clipp + 121.2740575f + 27.7280233f / (4.84252568f - z) - 1.49012907f * z) ) };
+
+        return v.f;
+}
+
+def
+fastlog2 (float x) -> float {
+        union { float f; uint32_t i; } vx = { x };
+        union { uint32_t i; float f; } mx = { (vx.i & 0x007FFFFF) | 0x3f000000 };
+        float y = vx.i;
+        y *= 1.1920928955078125e-7f;
+
+        return y - 124.22551499f
+                - 1.498030302f * mx.f
+                - 1.72587999f / (0.3520887068f + mx.f);
+}
+
+def fastexp (float p) -> float { return fastpow2 (1.442695040f * p); }
+def fastpow (float x, float p) -> float { return fastpow2 (p * fastlog2 (x)); }
+
 
 using namespace tmol::score::common;
 
@@ -43,9 +76,9 @@ struct f_desolv {
     return (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
+      / (2 * fastpow(pi, 3.0 / 2.0) * lk_lambda_i)
       / (dist * dist)
-      * exp(-pow((dist - lj_radius_i) / lk_lambda_i, 2))
+      * fastexp(-fastpow((dist - lj_radius_i) / lk_lambda_i, 2))
     );
     // clang-format on
   }
@@ -65,23 +98,23 @@ struct f_desolv {
     Real desolv = (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
+      / (2 * fastpow(pi, 3.0 / 2.0) * lk_lambda_i)
       / (dist * dist)
-      * exp(-pow((dist - lj_radius_i) / lk_lambda_i, 2))
+      * fastexp(-fastpow((dist - lj_radius_i) / lk_lambda_i, 2))
     );
 
     Real d_desolv_d_dist = (
       -lk_volume_j
       * lk_dgfree_i
-      / (2 * pow(pi, 3.0 / 2.0) * lk_lambda_i)
-      * ((  // (f * exp(g))' = f' * exp(g) + f g' exp(g)
+      / (2 * fastpow(pi, 3.0 / 2.0) * lk_lambda_i)
+      * ((  // (f * fastexp(g))' = f' * fastexp(g) + f g' fastexp(g)
           -2 / (dist * dist * dist)
-          * exp(-pow(dist - lj_radius_i, 2) / pow(lk_lambda_i, 2))
+          * fastexp(-fastpow(dist - lj_radius_i, 2) / fastpow(lk_lambda_i, 2))
         ) + (
           1 / (dist * dist)
           * -(2 * dist - 2 * lj_radius_i)
           / (lk_lambda_i * lk_lambda_i)
-          * exp(-pow(dist - lj_radius_i, 2) / pow(lk_lambda_i, 2))
+          * fastexp(-pow(dist - lj_radius_i, 2) / fastpow(lk_lambda_i, 2))
         )
       )
     );
