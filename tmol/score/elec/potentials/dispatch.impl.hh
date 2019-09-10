@@ -87,7 +87,7 @@ struct ElecDispatch {
               global_params[0].max_dis);
 
           // Kahan summation to reduce numerical noise
-          accumulate<Dev, double>::add(Vs_accum[stack], (double) V);
+          accumulate<Dev, double>::add_one_dst(Vs_accum, stack, (double) V);
 
           // after accumulating, copy over the result into the output
           // tensor; the last thread to complete this will have it right
