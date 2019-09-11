@@ -128,12 +128,14 @@ struct accumulate<
   }
 
   // If all threads are going to write to only a small number of addresses
-  // iterate across the range of addresses that will be written to,
-  // reduce the value being summed into, and then have thread 0
-  // do the writing
+  // iterate across the range of addresses that will be written to (first
+  // figuring out the range with a min- and max- reduction and two shuffles),
+  // reduce the value being summed into the iterated dest, and then have
+  // thread 0 do the writing
   template<typename A>
   static def add_one_dst(A& target, int ind, const T& val)->void {
 #ifdef __CUDA_ARCH__
+    
 
     auto g = cooperative_groups::coalesced_threads();
 
