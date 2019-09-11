@@ -138,16 +138,30 @@ class TViewBase {
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
-  AT_HOST TViewBase() : data_(NULL) {
+  AT_HOST_DEVICE TViewBase() : data_(NULL) {
+#ifdef __CUDA_ARCH__
+    for (int i = 0; i < N; ++i) {
+      this->sizes_[i] = 0;
+      this->strides_[i] = 0;
+    }
+#else
     std::fill(sizes_, sizes_ + N, 0);
     std::fill(strides_, strides_ + N, 0);
+#endif
   }
 
-  AT_HOST TViewBase(
+  AT_HOST_DEVICE TViewBase(
       PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : data_(data_) {
+#ifdef __CUDA_ARCH__
+    for (int i = 0; i < N; ++i) {
+      this->sizes_[i] = sizes_[i];
+      this->strides_[i] = strides_[i];
+    }
+#else
     std::copy(sizes_, sizes_ + N, std::begin(this->sizes_));
     std::copy(strides_, strides_ + N, std::begin(this->strides_));
+#endif
   }
 
   AT_HOST_DEVICE operator TensorAccessor<T, N, D, P>() const {
@@ -161,7 +175,7 @@ class TViewBase {
 
   AT_HOST_DEVICE PtrType data() { return data_; }
   AT_HOST_DEVICE const PtrType data() const { return data_; }
-
+ 
  protected:
   PtrType data_;
   int64_t sizes_[N];
@@ -173,10 +187,10 @@ class TView : public TViewBase<T, N, D, P> {
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
-  AT_HOST TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
+  AT_HOST_DEVICE TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : TViewBase<T, N, D, P>(data_, sizes_, strides_){};
 
-  AT_HOST TView() : TViewBase<T, N, D, P>(){};
+  AT_HOST_DEVICE TView() : TViewBase<T, N, D, P>(){};
 
   AT_HOST_DEVICE TensorAccessor<T, N - 1, D, P> operator[](int64_t i) {
     int64_t* new_sizes = this->sizes_ + 1;
@@ -192,6 +206,26 @@ class TView : public TViewBase<T, N, D, P> {
     return TensorAccessor<T, N - 1, D, P>(
         this->data_ + this->strides_[0] * i, new_sizes, new_strides);
   }
+
+ AT_HOST_DEVICE
+ TView<T, N-1, D, P>
+ slice_one(
+   int dim,
+   int val
+ ) const {
+   int64_t new_sizes[N-1];
+   int64_t new_strides[N-1];
+   int count = 0;
+   for (int i = 0; i < N; ++i) {
+     if (i != dim) {
+       new_sizes[count] = this->sizes_[i];
+       new_strides[count] = this->strides_[i];
+       ++count;
+     }
+   }
+   return TView<T, N-1, D, P>(this->data_ + this->strides_[dim] * val, new_sizes, new_strides);
+ }
+
 };
 
 template <typename T, Device D, PtrTag P>
@@ -199,10 +233,10 @@ class TView<T, 1, D, P> : public TViewBase<T, 1, D, P> {
  public:
   typedef typename PtrTraits<T, P>::PtrType PtrType;
 
-  AT_HOST TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
+  AT_HOST_DEVICE TView(PtrType data_, const int64_t* sizes_, const int64_t* strides_)
       : TViewBase<T, 1, D, P>(data_, sizes_, strides_){};
 
-  AT_HOST TView() : TViewBase<T, 1, D, P>(){};
+  AT_HOST_DEVICE TView() : TViewBase<T, 1, D, P>(){};
 
   AT_HOST_DEVICE T& operator[](int64_t i) {
     return this->data_[this->strides_[0] * i];
