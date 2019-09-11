@@ -16,16 +16,17 @@ namespace common {
 
 #ifdef __CUDA_ARCH__
 
-// Perform reduction (sum) within the active threads.
+// Perform reduction within the active threads.
+// F is a functor that needs to be associative and
+// commutative
 // This function could/should be moved elsewhere.
-// F is a functor
-template <typename Real, typename F>
+template <typename T, typename F>
 __device__
 __inline__
-Real
+T
 reduce_tile_shfl(
     cooperative_groups::coalesced_group g,
-    Real val,
+    T val,
     F f
 ) {
   // Adapted from https://devblogs.nvidia.com/cooperative-groups/
@@ -34,11 +35,11 @@ reduce_tile_shfl(
   // threads that hang off the end of the largest-power-of-2
   // less than or equal to the number of active threads.
   unsigned int const gsize = g.size();
-  unsigned int const biggest_pow2_base = numeric::most_sig_bit128(gsize);
+  unsigned int const biggest_pow2_base = numeric::most_sig_bit(gsize);
 
   unsigned int const overhang = gsize - biggest_pow2_base;
   if (overhang > 0) {
-    Real const overhang_val = g.shfl_down(val, biggest_pow2_base);
+    T const overhang_val = g.shfl_down(val, biggest_pow2_base);
     if (g.thread_rank() < overhang) {
       val = f(val, overhang_val);
     }
@@ -49,7 +50,7 @@ reduce_tile_shfl(
   // have missed the "overhang" set if the first shfl_down
   // above had not been performed.
   for (int i = biggest_pow2_base / 2; i > 0; i /= 2) {
-    Real const shfl_val = g.shfl_down(val, i);
+    T const shfl_val = g.shfl_down(val, i);
     val = f(val, shfl_val);
   }
 
@@ -127,15 +128,23 @@ struct accumulate<
     atomicAdd(&target, val);
   }
 
-  // If all threads are going to write to only a small number of addresses
-  // iterate across the range of addresses that will be written to (first
-  // figuring out the range with a min- and max- reduction and two shuffles),
-  // reduce the value being summed into the iterated dest, and then have
-  // thread 0 do the writing
+  // Use this function to accummulate into an array, target, at a position,
+  // ind, when most threads in a warp are going to write to the same
+  // address to reduce the number of calls to atomicAdd and the
+  // serialization this function creates.
+  //
+  // This function will iterate across the range of indices in the target
+  // that will be written to (first figuring out this range with a min-
+  // and max- reduction and two shuffles), reduce the values being summed
+  // into the iterated dest within the coallesced group that wants to
+  // write to that index, and then have thread 0 of the group perform
+  // the single atomicAdd.
+  //
+  // A is an array-like class that will be indexed by [ind].
+  // "ind" is the index that this thread should write to.
   template<typename A>
   static def add_one_dst(A& target, int ind, const T& val)->void {
 #ifdef __CUDA_ARCH__
-    
 
     auto g = cooperative_groups::coalesced_threads();
 
@@ -148,7 +157,7 @@ struct accumulate<
       if (iter_ind == ind) {
 	auto g2 = cooperative_groups::coalesced_threads();
 	T warp_sum = reduce_tile_shfl(g2, val, mgpu::plus_t<T>());
-	if (g2.thread_rank() == 0) {
+	if (g2.thread_rank() == 0 && warp_sum != 0) {
 	  atomicAdd(&target[ind], warp_sum);
 	}
       }
