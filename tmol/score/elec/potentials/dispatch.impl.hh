@@ -45,11 +45,13 @@ struct ElecDispatch {
           TPack<Vec<Real, 3>, 2, Dev>,
           TPack<Vec<Real, 3>, 2, Dev>> {
     int nstacks = coords_i.size(0);
+
+    // output energy totals, in Real (usually single) precision
     auto Vs_t = TPack<Real, 1, Dev>::zeros({nstacks});
 
-    // for use with Kahan summation; need space for both the sum and the
-    // truncation
-    auto Vs_accum_t = TPack<Real, 2, Dev>::zeros({nstacks, 2});
+    // accumulate the total at double precision and then truncate
+    // to single precision after the summation has complete
+    auto Vs_accum_t = TPack<double, 1, Dev>::zeros({nstacks});
 
     auto dVs_dI_t =
         TPack<Vec<Real, 3>, 2, Dev>::zeros({nstacks, coords_i.size(1)});
@@ -86,22 +88,22 @@ struct ElecDispatch {
               global_params[0].min_dis,
               global_params[0].max_dis);
 
-          // Kahan summation to reduce numerical noise
-          accumulate_kahan<Dev, Real>::add(&Vs_accum[stack][0], V);
+          // accumulate the stack total at double precision
+          accumulate<Dev, double>::add(Vs_accum[stack], (double)V);
 
-          // after accumulating, copy over the result into the output
-          // tensor; the last thread to complete this will have it right
-          // TEMP ! Vs[stack] = Vs_accum[stack][0];
-
+          // fewer threads accumulate into the derivative arrays,
+          // therefore less numerical error accumulates there.
+          // Perform these simply at single precision (Real precision).
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dI[stack][i], dV_dDist * ddist_dI);
           accumulate<Dev, Vec<Real, 3>>::add(
               dVs_dJ[stack][j], dV_dDist * ddist_dJ);
         });
 
-    // skip the torch slicing
+    // Truncate from double to Real after the previous kernel
+    // has completed
     SingleDispatch<Dev>::forall(
-        nstacks, [=] EIGEN_DEVICE_FUNC(int i) { Vs[i] = Vs_accum[i][0]; });
+        nstacks, [=] EIGEN_DEVICE_FUNC(int i) { Vs[i] = Vs_accum[i]; });
 
     return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }
