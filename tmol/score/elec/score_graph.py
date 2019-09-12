@@ -27,11 +27,10 @@ class ElecIntraScore(IntraScore):
     @reactive_property
     # @validate_args
     def total_elec(target):
-        return target.elec_intra_module(
-            target.coords[0],
-            target.elec_partial_charges[0],
-            target.repatm_bonded_path_length[0],
+        V = target.elec_intra_module(
+            target.coords, target.elec_partial_charges, target.repatm_bonded_path_length
         )
+        return V
 
 
 @score_graph
@@ -78,12 +77,12 @@ class ElecScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     # @validate_args
     def repatm_bonded_path_length(
-        bonded_path_length: Tensor("f4")[...],
-        res_names: NDArray(object)[...],
-        res_indices: NDArray(float)[...],
-        atom_names: NDArray(object)[...],
+        bonded_path_length: Tensor("f4")[:, :, :],
+        res_names: NDArray(object)[:, :],
+        res_indices: NDArray(float)[:, :],
+        atom_names: NDArray(object)[:, :],
         elec_param_resolver: ElecParamResolver,
-    ) -> Tensor(torch.float32)[:, :]:
+    ) -> Tensor(torch.float32)[:, :, :]:
         bpl = bonded_path_length.cpu().numpy()
         return torch.from_numpy(
             elec_param_resolver.remap_bonded_path_lengths(
@@ -94,8 +93,8 @@ class ElecScoreGraph(BondedAtomScoreGraph, ParamDB, TorchDevice):
     @reactive_property
     @validate_args
     def elec_partial_charges(
-        res_names: NDArray(object)[...],
-        atom_names: NDArray(object)[...],
+        res_names: NDArray(object)[:, :],
+        atom_names: NDArray(object)[:, :],
         elec_param_resolver: ElecParamResolver,
     ) -> Tensor(torch.float32)[:, :]:
         """Pair parameter tensors for all atoms within system."""

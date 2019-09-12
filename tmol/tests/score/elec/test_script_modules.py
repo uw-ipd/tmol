@@ -50,9 +50,9 @@ class ScoreSetup:
 
 # sweep fa_elec in 0.1A intervals from 0 to 6A & compare to reference
 def test_elec_sweep(default_database, torch_device):
-    coords = numpy.zeros((2, 3))
-    bpl = numpy.array([[0.0, 6.0], [6.0, 0.0]])
-    pcs = numpy.array([1.0, 1.0])
+    coords = numpy.zeros((1, 2, 3))
+    bpl = numpy.array([[[0.0, 6.0], [6.0, 0.0]]])
+    pcs = numpy.array([[1.0, 1.0]])
 
     tcoords = torch.from_numpy(coords).to(torch_device).requires_grad_(True)
     tbpl = torch.from_numpy(bpl).to(torch_device, tcoords.dtype)
@@ -127,7 +127,7 @@ def test_elec_sweep(default_database, torch_device):
     scores = numpy.zeros(60)
     globals = torch.tensor([[D, D0, S, min_dis, max_dis]]).to(torch_device, torch.float)
     for i in range(60):
-        tcoords[1, 2] = i / 10.0
+        tcoords[0, 1, 2] = i / 10.0
         batch_scores = torch.ops.tmol.score_elec_triu(
             tcoords, tpcs, tcoords, tpcs, tbpl, globals
         )
@@ -140,7 +140,7 @@ def test_elec_intra(default_database, ubq_system, torch_device):
     s = ScoreSetup.from_fixture(default_database, ubq_system, torch_device)
     op = ElecIntraModule(s.param_resolver)
 
-    val = op(s.tcoords[0, :], s.tpcs[0, :], s.trbpl[0, :])
+    val = op(s.tcoords, s.tpcs, s.trbpl)
 
     torch.testing.assert_allclose(val.cpu(), -131.9225, atol=1e-4, rtol=1e-2)
 
@@ -153,10 +153,10 @@ def test_elec_intra_gradcheck(default_database, ubq_system, torch_device):
     natoms = 32
 
     def eval_intra(coords):
-        val = op(coords, s.tpcs[0, :natoms], s.trbpl[0, :natoms, :natoms])
+        val = op(coords, s.tpcs[:, :natoms], s.trbpl[:, :natoms, :natoms])
         return val
 
-    coords = s.tcoords[0, :natoms]
+    coords = s.tcoords[:, :natoms]
     torch.autograd.gradcheck(eval_intra, (coords.requires_grad_(True),), eps=1e-4)
 
 
@@ -168,11 +168,11 @@ def test_elec_inter(default_database, ubq_system, torch_device):
     part = ubq_system.system_size // 2
 
     val = op(
-        s.tcoords[0, :part],
-        s.tpcs[0, :part],
-        s.tcoords[0, part:],
-        s.tpcs[0, part:],
-        s.trbpl[0, :part, part:],
+        s.tcoords[:, :part],
+        s.tpcs[:, :part],
+        s.tcoords[:, part:],
+        s.tpcs[:, part:],
+        s.trbpl[:, :part, part:],
     )
 
     torch.testing.assert_allclose(val.cpu(), -44.6776, atol=1e-4, rtol=1e-2)
