@@ -24,14 +24,14 @@ most_sig_bit128(unsigned int x) {
   // URL={http://aggregate.org/MAGIC/}
   // }
   // Date fetched: 2019/9/2
-	
+
   x |= x >> 1;
   x |= x >> 2;
   x |= x >> 4;
   x |= x >> 8;
   x |= x >> 16;
   return x & ~(x >> 1);
-	
+
 #endif
 }
 
