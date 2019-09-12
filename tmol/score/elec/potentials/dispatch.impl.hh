@@ -87,7 +87,7 @@ struct ElecDispatch {
               global_params[0].max_dis);
 
           // Kahan summation to reduce numerical noise
-          accumulate<Dev, double>::add(Vs_accum[stack], (double) V);
+          accumulate<Dev, double>::add(Vs_accum[stack], (double)V);
 
           // after accumulating, copy over the result into the output
           // tensor; the last thread to complete this will have it right
@@ -102,7 +102,7 @@ struct ElecDispatch {
     // skip the torch slicing
     // cast down from double to Real
     SingleDispatch<Dev>::forall(
-         nstacks, [=] EIGEN_DEVICE_FUNC(int i) { Vs[i] = Vs_accum[i]; });
+        nstacks, [=] EIGEN_DEVICE_FUNC(int i) { Vs[i] = Vs_accum[i]; });
 
     return {Vs_t, dVs_dI_t, dVs_dJ_t};
   }
