@@ -124,7 +124,7 @@ def condense_subset(
     values_to_keep,  # two dimensional tensor
     default_fill=-1,
 ):
-    """Take the values for the third dimension of the 3D `values` tensor,
+    """Take the values for the third dimension of the 3D "values" tensor,
     (condensing them), corresponding to the positions indicated by
     the values_to_keep tensor"""
     assert len(values.shape) == 3
@@ -151,18 +151,18 @@ def take_condensed_3d_subset(
     condensed_dst_inds: Tensor(torch.int64)[:, 2],
     default_fill=-1,
 ):
-    """Take the values for the third dimension of the 3D `values` tensor,
-    at the positions indicated by the `condensed_inds_to_keep` tensor,
-    and writing them to the indices indicated by the `condensed_dst_inds`.
-    This function is equivalent to the above `condense_subset` function
-    if that function's `values_to_keep` tensor is converted to the
+    """Take the values for the third dimension of the 3D "values" tensor,
+    at the positions indicated by the "condensed_inds_to_keep" tensor,
+    and writing them to the indices indicated by the "condensed_dst_inds".
+    This function is equivalent to the above "condense_subset" function
+    if that function's "values_to_keep" tensor is converted to the
     inputs to this function with the following operations:
 
-    `condensed_inds_to_keep = condense_torch_inds(values_to_keep != -1, device)`
-    `condensed_dst_inds = torch.nonzero(inds_to_keep != -1)`.
+    condensed_inds_to_keep = condense_torch_inds(values_to_keep != -1, device)
+    condensed_dst_inds = torch.nonzero(inds_to_keep != -1)
 
     This function is more efficient if you intend to use the
-    `condensed_inds_to_keep` or the `condensed_dst_inds` tensors multiple
+    "condensed_inds_to_keep" or the "condensed_dst_inds" tensors multiple
     times.
     """
     assert len(values.shape) == 3
