@@ -102,6 +102,23 @@ def take_values_w_sentineled_index_and_dest(
     return output_value_tensor
 
 
+def take_values_w_sentineled_dest(
+    value_tensor,
+    values_to_take,  # boolean mask tensor
+    sentineled_dest_tensor,
+    default_fill=-1,
+):
+    assert value_tensor.shape == values_to_take.shape
+    output_value_tensor = torch.full(
+        sentineled_dest_tensor.shape,
+        default_fill,
+        dtype=value_tensor.dtype,
+        device=value_tensor.device,
+    )
+    output_value_tensor[sentineled_dest_tensor != -1] = value_tensor[values_to_take]
+    return output_value_tensor
+
+
 def condense_subset(
     values,  # three dimensional tensor of values
     values_to_keep,  # two dimensional tensor
@@ -125,3 +142,39 @@ def condense_subset(
         nz_cinds[:, 0], cinds[cinds >= 0].view(-1), :
     ]
     return selected_values
+
+
+@validate_args
+def take_condensed_3d_subset(
+    values,  # 3D Tensor of arbitrary dtype
+    condensed_inds_to_keep: Tensor(torch.int64)[:, :],
+    condensed_dst_inds: Tensor(torch.int64)[:, 2],
+    default_fill=-1,
+):
+    """Take the values for the third dimension of the 3D `values` tensor,
+    at the positions indicated by the `condensed_inds_to_keep` tensor,
+    and writing them to the indices indicated by the `condensed_dst_inds`.
+    This function is equivalent to the above `condense_subset` function
+    if that function's `values_to_keep` tensor is converted to the
+    inputs to this function with the following operations:
+
+    `condensed_inds_to_keep = condense_torch_inds(values_to_keep != -1, device)`
+    `condensed_dst_inds = torch.nonzero(inds_to_keep != -1)`.
+
+    This function is more efficient if you intend to use the
+    `condensed_inds_to_keep` or the `condensed_dst_inds` tensors multiple
+    times.
+    """
+    assert len(values.shape) == 3
+
+    keep = condensed_inds_to_keep
+    dst = condensed_dst_inds
+
+    subset = torch.full(
+        (keep.shape + values.shape[2:3]),
+        default_fill,
+        dtype=values.dtype,
+        device=values.device,
+    )
+    subset[dst[:, 0], dst[:, 1], :] = values[dst[:, 0], keep[keep != -1], :]
+    return subset
