@@ -51,29 +51,6 @@ def exclusive_cumsum2d(inds: Tensor(torch.int32)[:, :]) -> Tensor(torch.int32)[:
     )
 
 
-def print_row_numbered_tensor(tensor):
-    if len(tensor.shape) == 1:
-        print(
-            torch.cat(
-                (
-                    torch.arange(tensor.shape[0], dtype=tensor.dtype).reshape(-1, 1),
-                    tensor.reshape(-1, 1),
-                ),
-                1,
-            )
-        )
-    else:
-        print(
-            torch.cat(
-                (
-                    torch.arange(tensor.shape[0], dtype=tensor.dtype).reshape(-1, 1),
-                    tensor,
-                ),
-                1,
-            )
-        )
-
-
 # @validate_args
 def nplus1d_tensor_from_list(
     tensors: List
