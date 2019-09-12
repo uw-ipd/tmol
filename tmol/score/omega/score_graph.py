@@ -1,4 +1,3 @@
-import numpy
 import attr
 
 from functools import singledispatch
