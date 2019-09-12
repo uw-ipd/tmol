@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.elec.score_graph &mdash; TMol 0.0.0-185-g432b4a98 documentation</title>
+  <title>tmol.score.elec.score_graph &mdash; TMol 0.0.0-186-g84d7b560 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-185-g432b4a98',
+              VERSION:'0.0.0-186-g84d7b560',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-185-g432b4a98
+                0.0.0-186-g84d7b560
               </div>
             
           
@@ -206,11 +206,10 @@
     <span class="nd">@reactive_property</span>
     <span class="c1"># @validate_args</span>
     <span class="k">def</span> <span class="nf">total_elec</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">target</span><span class="o">.</span><span class="n">elec_intra_module</span><span class="p">(</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">elec_partial_charges</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">target</span><span class="o">.</span><span class="n">repatm_bonded_path_length</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="p">)</span></div>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">elec_intra_module</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">elec_partial_charges</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">repatm_bonded_path_length</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">V</span></div>
 
 
 <div class="viewcode-block" id="ElecScoreGraph"><a class="viewcode-back" href="../../../../apidoc/tmol.score.elec.score_graph.html#tmol.score.elec.score_graph.ElecScoreGraph">[docs]</a><span class="nd">@score_graph</span>
@@ -257,12 +256,12 @@
     <span class="nd">@reactive_property</span>
     <span class="c1"># @validate_args</span>
     <span class="k">def</span> <span class="nf">repatm_bonded_path_length</span><span class="p">(</span>
-        <span class="n">bonded_path_length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
-        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
-        <span class="n">res_indices</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
-        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">bonded_path_length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="s2">&quot;f4&quot;</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:],</span>
+        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">res_indices</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">float</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
         <span class="n">elec_param_resolver</span><span class="p">:</span> <span class="n">ElecParamResolver</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)[:,</span> <span class="p">:]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="p">:]:</span>
         <span class="n">bpl</span> <span class="o">=</span> <span class="n">bonded_path_length</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
             <span class="n">elec_param_resolver</span><span class="o">.</span><span class="n">remap_bonded_path_lengths</span><span class="p">(</span>
@@ -273,8 +272,8 @@
     <span class="nd">@reactive_property</span>
     <span class="nd">@validate_args</span>
     <span class="k">def</span> <span class="nf">elec_partial_charges</span><span class="p">(</span>
-        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
-        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[</span><span class="o">...</span><span class="p">],</span>
+        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">atom_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
         <span class="n">elec_param_resolver</span><span class="p">:</span> <span class="n">ElecParamResolver</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)[:,</span> <span class="p">:]:</span>
         <span class="sd">&quot;&quot;&quot;Pair parameter tensors for all atoms within system.&quot;&quot;&quot;</span>
