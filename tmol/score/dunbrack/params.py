@@ -196,41 +196,41 @@ class DunbrackParamResolver(ValidateAttrs):
             )
         ]
 
-        all_table_indices = cls.create_all_table_indices(
+        all_table_indices = cls._create_all_table_indices(
             [x.table_name for x in all_rotlibs], dun_database.dun_lookup
         )
-        rotameric_table_indices = cls.create_rotameric_indices(dun_database)
-        semirotameric_table_indices = cls.create_semirotameric_indices(dun_database)
-        nchi_for_table_set = cls.create_nchi_for_table_set(all_rotlibs, device)
+        rotameric_table_indices = cls._create_rotameric_indices(dun_database)
+        semirotameric_table_indices = cls._create_semirotameric_indices(dun_database)
+        nchi_for_table_set = cls._create_nchi_for_table_set(all_rotlibs, device)
 
-        prob_table_offsets = cls.create_prob_table_offsets(all_rotlibs, device)
-        p_coeffs, pc_sizes, pc_strides, nlp_coeffs = cls.compute_rotprob_coeffs(
+        prob_table_offsets = cls._create_prob_table_offsets(all_rotlibs, device)
+        p_coeffs, pc_sizes, pc_strides, nlp_coeffs = cls._compute_rotprob_coeffs(
             all_rotlibs, device
         )
 
-        rotameric_mean_offsets = cls.create_rot_mean_offsets(all_rotlibs, device)
+        rotameric_mean_offsets = cls._create_rot_mean_offsets(all_rotlibs, device)
 
-        mean_coeffs, mc_sizes, mc_strides = cls.calculate_rot_mean_coeffs(
+        mean_coeffs, mc_sizes, mc_strides = cls._calculate_rot_mean_coeffs(
             all_rotlibs, device
         )
-        sdev_coeffs = cls.calculate_rot_sdev_coeffs(all_rotlibs, device)
+        sdev_coeffs = cls._calculate_rot_sdev_coeffs(all_rotlibs, device)
 
-        rot_bb_start, rot_bb_step, rot_bb_per = cls.create_rot_periodicities(
+        rot_bb_start, rot_bb_step, rot_bb_per = cls._create_rot_periodicities(
             all_rotlibs, device
         )
 
-        rot_ri2ti, semirot_ri2ti = cls.create_rotind2tableinds(dun_database, device)
+        rot_ri2ti, semirot_ri2ti = cls._create_rotind2tableinds(dun_database, device)
 
-        rotind2tableind_offsets = cls.create_rotameric_rotind2tableind_offsets(
+        rotind2tableind_offsets = cls._create_rotameric_rotind2tableind_offsets(
             dun_database, device
         )
 
-        sr_coeffs, sr_sizes, sr_strides = cls.calc_semirot_coeffs(dun_database, device)
+        sr_coeffs, sr_sizes, sr_strides = cls._calc_semirot_coeffs(dun_database, device)
 
-        sr_start, sr_step, sr_periodicity = cls.create_semirot_periodicity(
+        sr_start, sr_step, sr_periodicity = cls._create_semirot_periodicity(
             dun_database, device
         )
-        sr_tableset_offsets = cls.create_semirot_offsets(dun_database, device)
+        sr_tableset_offsets = cls._create_semirot_offsets(dun_database, device)
 
         packed_db = PackedDunbrackDatabase(
             rotameric_prob_tables=p_coeffs,
@@ -271,7 +271,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
     @classmethod
-    def create_all_table_indices(cls, all_table_names, dun_lookup):
+    def _create_all_table_indices(cls, all_table_names, dun_lookup):
         # all_table_names = [x.table_name for x in all_rotlibs]
         all_table_lookup = pandas.DataFrame.from_records(
             cattr.unstructure(dun_lookup)
@@ -283,7 +283,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return all_table_lookup
 
     @classmethod
-    def create_rotameric_indices(cls, dun_database):
+    def _create_rotameric_indices(cls, dun_database):
         rotameric_table_names = [x.table_name for x in dun_database.rotameric_libraries]
         rotameric_table_lookup = pandas.DataFrame.from_records(
             cattr.unstructure(dun_database.dun_lookup)
@@ -295,7 +295,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return rotameric_table_lookup
 
     @classmethod
-    def create_semirotameric_indices(cls, dun_database):
+    def _create_semirotameric_indices(cls, dun_database):
         semirotameric_table_names = [
             x.table_name for x in dun_database.semi_rotameric_libraries
         ]
@@ -309,7 +309,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return semirotameric_table_lookup
 
     @classmethod
-    def create_nchi_for_table_set(cls, all_rotlibs, device):
+    def _create_nchi_for_table_set(cls, all_rotlibs, device):
         return torch.tensor(
             [rotlib.rotameric_data.rotamers.shape[1] for rotlib in all_rotlibs],
             dtype=torch.int32,
@@ -317,7 +317,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
     @classmethod
-    def create_prob_table_offsets(cls, all_rotlibs, device):
+    def _create_prob_table_offsets(cls, all_rotlibs, device):
         prob_table_nrots = torch.tensor(
             [
                 rotlib.rotameric_data.rotamer_probabilities.shape[0]
@@ -329,7 +329,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return exclusive_cumsum1d(prob_table_nrots)
 
     @classmethod
-    def compute_rotprob_coeffs(cls, all_rotlibs, device):
+    def _compute_rotprob_coeffs(cls, all_rotlibs, device):
         rotameric_prob_tables = [
             rotlib.rotameric_data.rotamer_probabilities[i, :, :].clone().detach()
             for rotlib in all_rotlibs
@@ -357,7 +357,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return prob_coeffs, prob_coeffs_sizes, prob_coeffs_strides, neglnprob_coeffs
 
     @classmethod
-    def create_rot_mean_offsets(cls, all_rotlibs, device):
+    def _create_rot_mean_offsets(cls, all_rotlibs, device):
         mean_table_n_entries = [0] + [
             rotlib.rotameric_data.rotamer_means.shape[0]
             * rotlib.rotameric_data.rotamer_means.shape[3]
@@ -368,7 +368,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
     @classmethod
-    def calculate_rot_mean_coeffs(cls, all_rotlibs, device):
+    def _calculate_rot_mean_coeffs(cls, all_rotlibs, device):
         rotameric_mean_tables = [
             rotlib.rotameric_data.rotamer_means[i, :, :, j].clone().detach()
             for rotlib in all_rotlibs
@@ -392,7 +392,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return mean_coeffs, mean_coeffs_sizes, mean_coeffs_strides
 
     @classmethod
-    def calculate_rot_sdev_coeffs(cls, all_rotlibs, device):
+    def _calculate_rot_sdev_coeffs(cls, all_rotlibs, device):
         rotameric_sdev_tables = [
             rotlib.rotameric_data.rotamer_stdvs[i, :, :, j].clone().detach()
             * numpy.pi
@@ -410,7 +410,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return sdev_coeffs
 
     @classmethod
-    def create_rot_periodicities(cls, all_rotlibs, device):
+    def _create_rot_periodicities(cls, all_rotlibs, device):
         rotameric_bb_start = torch.tensor(
             [
                 list(rotlib.rotameric_data.backbone_dihedral_start)
@@ -435,7 +435,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return rotameric_bb_start, rotameric_bb_step, rotameric_bb_periodicity
 
     @classmethod
-    def create_rotind2tableinds(cls, dun_database, device):
+    def _create_rotind2tableinds(cls, dun_database, device):
         rotameric_rotind2tableind = []
         semirotameric_rotind2tableind = []
         ntablerots = [0]
@@ -514,7 +514,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return rotameric_rotind2tableind, semirotameric_rotind2tableind
 
     @classmethod
-    def create_rotameric_rotind2tableind_offsets(cls, dun_database, device):
+    def _create_rotameric_rotind2tableind_offsets(cls, dun_database, device):
         rotamer_sets = [
             rotlib.rotameric_data.rotamers
             for rotlib in dun_database.rotameric_libraries
@@ -534,7 +534,7 @@ class DunbrackParamResolver(ValidateAttrs):
         )
 
     @classmethod
-    def calc_semirot_coeffs(cls, dun_database, device):
+    def _calc_semirot_coeffs(cls, dun_database, device):
         semirotameric_prob_tables = [
             rotlib.nonrotameric_chi_probabilities[i, :, :, :].clone().detach()
             for rotlib in dun_database.semi_rotameric_libraries
@@ -553,7 +553,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return nplus1d_tensor_from_list(semirot_coeffs)
 
     @classmethod
-    def create_semirot_periodicity(cls, dun_database, device):
+    def _create_semirot_periodicity(cls, dun_database, device):
         semirot_start = torch.zeros(
             (len(dun_database.semi_rotameric_libraries), 3),
             dtype=torch.float,
@@ -607,7 +607,7 @@ class DunbrackParamResolver(ValidateAttrs):
         return semirot_start, semirot_step, semirot_periodicity
 
     @classmethod
-    def create_semirot_offsets(cls, dun_database, device):
+    def _create_semirot_offsets(cls, dun_database, device):
         nsemirot_rotamers = [0] + [
             rotlib.nonrotameric_chi_probabilities.shape[0]
             for rotlib in dun_database.semi_rotameric_libraries
