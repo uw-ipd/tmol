@@ -12,6 +12,13 @@ def condense_numpy_inds(selection: NDArray(bool)[:, :]):
     entries for each row. Pad out the extra entries
     in any given row that do not correspond to a selected
     entry with a sentinel of -1.
+
+    e.g. if the input is
+    [[ 0  1  0  1]
+     [ 1  1  0  1]]
+    then the output will be
+    [[ 1  3 -1]
+     [ 0  1  3]]
     """
 
     nstacks = selection.shape[0]
@@ -32,6 +39,13 @@ def condense_torch_inds(selection: Tensor(bool)[:, :], device: torch.device):
     entries for each row. Pad out the extra entries
     in any given row that do not correspond to a selected
     entry with a sentinel of -1.
+
+    e.g. if the input is
+    [[ 0  1  0  1]
+     [ 1  1  0  1]]
+    then the output will be
+    [[ 1  3 -1]
+     [ 0  1  3]]
     """
 
     nstacks = selection.shape[0]
@@ -55,7 +69,16 @@ def take_values_w_sentineled_index(
     """The sentinel in the sentineled_index_tensor is -1: the positions
     with the sentinel value should not be used as an index into the
     value tensor. This function returns a tensor of the same shape as
-    the sentineled_index_tensor with a dtype of the value tensor."""
+    the sentineled_index_tensor with a dtype of the value tensor.
+
+    E.g. if the value tensor is [10 11 12 13 14 15]
+    and the sentineled_index_tensor is
+    [[ 2 1 2 5 -1]
+     [ 1 4 1 5  2]]
+    then the output tensor will be
+    [[ 12 11 12 15 -1]
+     [ 11 14 11 15  12]]
+    """
     assert len(value_tensor.shape) == 1
 
     output_value_tensor = torch.full(
@@ -85,7 +108,20 @@ def take_values_w_sentineled_index_and_dest(
     same shape as the sentineled_dest_tensor with a dtype of the
     value tensor, which is indexed into using the
     sentineled_index_tensor. The values in the sentineled_dest_tensor
-    do not matter except where they are -1."""
+    do not matter except where they are -1.
+
+    E.g. if the value tensor is [10 11 12 13 14 15],
+    the sentineled_index_tensor is
+    [[ 2 -1  2  5 -1]
+     [ 1  4 -1  5  2]],
+    and the sentineled_dest_tensor is
+    [[ 1  1  1 -1]
+     [ 1  1  1  1]]
+
+    then the output tensor will be
+    [[ 12 12 15 -1]
+     [ 11 14 15 12]]
+    """
 
     assert len(value_tensor.shape) == 1
     assert len(sentineled_dest_tensor.shape) == 2
@@ -108,6 +144,27 @@ def take_values_w_sentineled_dest(
     sentineled_dest_tensor,
     default_fill=-1,
 ):
+    """Take a subset of the values from the value_tensor indicated by
+    the boolean values_to_take tensor, and write them into an output
+    tensor in a shape with non-negative-one values in the
+    sentineled_dest_tensor. There need to be as many "true" values in
+    the values_to_take tensor as they are non-negative-one values
+    in the sentineled_dest_tensor.
+
+    E.g. if the value tensor is
+    [[10 11 12 13 14],
+     [20 21 22 23 24]]
+    the values_to_take tensor is
+    [[ 1  0  1  1  0]
+     [ 1  1  0  1  1]],
+    and the sentineled_dest_tensor is
+    [[ 1  1  1 -1]
+     [ 1  1  1  1]]
+
+    then the output tensor will be
+    [[10 12 13 -1]
+     [20 21 23 24]]
+    """
     assert value_tensor.shape == values_to_take.shape
     output_value_tensor = torch.full(
         sentineled_dest_tensor.shape,
@@ -126,7 +183,19 @@ def condense_subset(
 ):
     """Take the values for the third dimension of the 3D "values" tensor,
     (condensing them), corresponding to the positions indicated by
-    the values_to_keep tensor"""
+    the values_to_keep tensor.
+
+    E.g. if the values tensor is
+    [[[10 10] [11 11] [12 12] [13 13] [14 14]],
+     [[20 20] [21 21] [22 22] [23 23] [24 24]]]
+    the values_to_keep tensor is
+    [[1 0 1 1 0]
+     [1 1 0 1 1]]
+
+    then the output tensor will be
+    [[ [10 10] [12 12] [13 13] [ -1 -1]]
+     [ [20 20] [21 21] [23 23] [24 24]]]
+    """
     assert len(values.shape) == 3
     assert len(values_to_keep.shape) == 2
     assert values.shape[:2] == values_to_keep.shape
@@ -164,6 +233,25 @@ def take_condensed_3d_subset(
     This function is more efficient if you intend to use the
     "condensed_inds_to_keep" or the "condensed_dst_inds" tensors multiple
     times.
+
+    E.g. if the values tensor is
+    [[[10 10] [11 11] [12 12] [13 13] [14 14]],
+     [[20 20] [21 21] [22 22] [23 23] [24 24]]]
+    the condensed_inds_to_keep tensor is
+    [[ 0 -1  2  3]
+     [ 4  3  2  4]],
+    and the condensed_dest_tensor is
+    [[ 0 0]
+     [ 0 1]
+     [ 0 2]
+     [ 1 0]
+     [ 1 1]
+     [ 1 2]
+     [ 1 3]]
+
+    then the output tensor will be
+    [[ [10 10] [12 12] [13 13] [ -1 -1]]
+     [ [24 24] [23 23] [22 22] [24 24]]]
     """
     assert len(values.shape) == 3
 
