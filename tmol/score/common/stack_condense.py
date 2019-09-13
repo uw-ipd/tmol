@@ -5,6 +5,26 @@ from tmol.types.array import NDArray
 
 from tmol.types.functional import validate_args
 
+##################################################################
+# For operations on stacked systems, we have to deal with the fact
+# that systems will almost always be of different sizes. The
+# operations in this file aim to shuffle data into a form where
+# the entries that "hand off the end" of a row in a stack (but
+# which have to be there because another row of a stack is
+# longer) are shifted to the higher indices (the "right" if you
+# draw the stack on paper) and the entries that correspond
+# to real data are all shifted to the lower indices (the "left").
+#
+# Call tensors that arrange their data this way "condensed."
+#
+# The convention used here is to mark all non-real entries
+# with a sentinel of -1
+#
+# The functions here will help:
+# 1. map a 2D tensor with sporadically placed sentineled entries
+#    into a condensed tensor, and
+# 2. index into one tensor into a condensed output tensor
+
 
 def condense_numpy_inds(selection: NDArray(bool)[:, :]):
     """Given a two dimensional boolean tensor, create

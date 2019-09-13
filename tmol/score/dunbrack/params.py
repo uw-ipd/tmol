@@ -608,9 +608,26 @@ class DunbrackParamResolver(ValidateAttrs):
         assert psi.shape[0] == nstacks
         assert chi.shape[0] == nstacks
 
+        # rns_inds: the table indices for the pose residues
+        #           (both Rotameric aNd Semirotameric) that
+        #           will be scored by the dunbrack library,
+        #           with a sentinel of -1 for pose residues
+        #           that will not be scored
+        # r_inds: the table indices for the rotameric res
+        # s_inds: the table indices for the semirotameric res
         rns_inds, r_inds, s_inds = self._resolve_dun_indices(res_names, torch_device)
 
         rns_inds_real = rns_inds != -1
+
+        # rns_inds_to_keep: the condensed pose-residue-indices
+        # nz_rns_inds: the result of calling torch.nonzero (nz) on the
+        #              non-sentineled entries in the condensed
+        #              rns-residues stack; i.e. the indices of entries
+        #              in a condensed stack that should be written
+        #              to.
+        #              This tensor will let us condense other data,
+        #              e.g. chi/phi/psi, which enters this function
+        #              not condensed.
         rns_inds_to_keep = condense_torch_inds(rns_inds_real, torch_device)
         nz_rns_inds = torch.nonzero(rns_inds_to_keep != -1)
 

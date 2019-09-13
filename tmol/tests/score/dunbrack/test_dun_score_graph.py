@@ -275,28 +275,6 @@ def test_cartesian_space_dun_gradcheck(ubq_res, torch_device):
         total_score, (start_coords,), eps=2e-3, atol=5e-2, raise_exception=False
     )
 
-    if result:
-        return
-
-    result = total_score(start_coords)
-
-    # Extract results from torch/autograd/gradcheck.py
-    # from torch.autograd.gradcheck import (
-    #   get_numerical_jacobian, get_analytical_jacobian )
-    #
-    # (analytical,), reentrant, correct_grad_sizes = get_analytical_jacobian(
-    #     (start_coords,), result
-    # )
-    # numerical = get_numerical_jacobian(
-    #     total_score, start_coords, start_coords, 2e-3)
-    #
-    # a = analytical
-    # n = numerical
-
-    # print(a.t())
-    # print(n.t())
-    # assert False
-
 
 # Only run the CPU version of this test, since on the GPU
 #     f1s = torch.cross(Xs, Xs - dsc_dx)
