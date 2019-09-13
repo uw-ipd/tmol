@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.dunbrack.params &mdash; TMol 0.0.0-186-g84d7b560 documentation</title>
+  <title>tmol.score.dunbrack.params &mdash; TMol 0.0.0-187-g4c860a97 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-186-g84d7b560',
+              VERSION:'0.0.0-187-g4c860a97',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-186-g84d7b560
+                0.0.0-187-g4c860a97
               </div>
             
           
@@ -254,13 +254,13 @@
 <col width="90%" />
 </colgroup>
 <tbody valign="top">
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.dunbrack.params.exclusive_cumsum" title="tmol.score.dunbrack.params.exclusive_cumsum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exclusive_cumsum</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.dunbrack.params.exclusive_cumsum1d" title="tmol.score.dunbrack.params.exclusive_cumsum1d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exclusive_cumsum1d</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-even"><td><a class="reference internal" href="#tmol.score.dunbrack.params.nplus1d_tensor_from_list" title="tmol.score.dunbrack.params.nplus1d_tensor_from_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nplus1d_tensor_from_list</span></code></a></td>
+<tr class="row-even"><td><a class="reference internal" href="#tmol.score.dunbrack.params.exclusive_cumsum2d" title="tmol.score.dunbrack.params.exclusive_cumsum2d"><code class="xref py py-obj docutils literal notranslate"><span class="pre">exclusive_cumsum2d</span></code></a></td>
 <td></td>
 </tr>
-<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.dunbrack.params.print_row_numbered_tensor" title="tmol.score.dunbrack.params.print_row_numbered_tensor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">print_row_numbered_tensor</span></code></a></td>
+<tr class="row-odd"><td><a class="reference internal" href="#tmol.score.dunbrack.params.nplus1d_tensor_from_list" title="tmol.score.dunbrack.params.nplus1d_tensor_from_list"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nplus1d_tensor_from_list</span></code></a></td>
 <td></td>
 </tr>
 </tbody>
@@ -270,13 +270,13 @@
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
-<dt id="tmol.score.dunbrack.params.exclusive_cumsum">
-<code class="descclassname">tmol.score.dunbrack.params.</code><code class="descname">exclusive_cumsum</code><span class="sig-paren">(</span><em>inds: Tensor(torch.int32)[:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#exclusive_cumsum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.exclusive_cumsum" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.exclusive_cumsum1d">
+<code class="descclassname">tmol.score.dunbrack.params.</code><code class="descname">exclusive_cumsum1d</code><span class="sig-paren">(</span><em>inds: Tensor(torch.int32)[:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#exclusive_cumsum1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.exclusive_cumsum1d" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="tmol.score.dunbrack.params.print_row_numbered_tensor">
-<code class="descclassname">tmol.score.dunbrack.params.</code><code class="descname">print_row_numbered_tensor</code><span class="sig-paren">(</span><em>tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#print_row_numbered_tensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.print_row_numbered_tensor" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.exclusive_cumsum2d">
+<code class="descclassname">tmol.score.dunbrack.params.</code><code class="descname">exclusive_cumsum2d</code><span class="sig-paren">(</span><em>inds: Tensor(torch.int32)[:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:,:]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#exclusive_cumsum2d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.exclusive_cumsum2d" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -286,13 +286,13 @@
 
 <dl class="class">
 <dt id="tmol.score.dunbrack.params.DunbrackParams">
-<em class="property">class </em><code class="descclassname">tmol.score.dunbrack.params.</code><code class="descname">DunbrackParams</code><span class="sig-paren">(</span><em>ndihe_for_res: Tensor(torch.int32)[:], dihedral_offset_for_res: Tensor(torch.int32)[:], dihedral_atom_inds: Tensor(torch.int32)[...,4], rottable_set_for_res: Tensor(torch.int32)[:], nchi_for_res: Tensor(torch.int32)[:], nrotameric_chi_for_res: Tensor(torch.int32)[:], rotres2resid: Tensor(torch.int32)[:], prob_table_offset_for_rotresidue: Tensor(torch.int32)[:], rotmean_table_offset_for_residue: Tensor(torch.int32)[:], rotind2tableind_offset_for_res: Tensor(torch.int32)[:], rotameric_chi_desc: Tensor(torch.int32)[:,2], semirotameric_chi_desc: Tensor(torch.int32)[:,4]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.dunbrack.params.</code><code class="descname">DunbrackParams</code><span class="sig-paren">(</span><em>ndihe_for_res: Tensor(torch.int32)[:,:], dihedral_offset_for_res: Tensor(torch.int32)[:,:], dihedral_atom_inds: Tensor(torch.int32)[:,:,4], rottable_set_for_res: Tensor(torch.int32)[:,:], nchi_for_res: Tensor(torch.int32)[:,:], nrotameric_chi_for_res: Tensor(torch.int32)[:,:], rotres2resid: Tensor(torch.int32)[:,:], prob_table_offset_for_rotresidue: Tensor(torch.int32)[:,:], rotmean_table_offset_for_residue: Tensor(torch.int32)[:,:], rotind2tableind_offset_for_res: Tensor(torch.int32)[:,:], rotameric_chi_desc: Tensor(torch.int32)[:,:,2], semirotameric_chi_desc: Tensor(torch.int32)[:,:,4]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="tmol.score.dunbrack.params.DunbrackScratch">
-<em class="property">class </em><code class="descclassname">tmol.score.dunbrack.params.</code><code class="descname">DunbrackScratch</code><span class="sig-paren">(</span><em>dihedrals: Tensor(torch.float32)[:], ddihe_dxyz: Tensor(torch.float32)[:,4,3], rotameric_rottable_assignment: Tensor(torch.int32)[:], semirotameric_rottable_assignment: Tensor(torch.int32)[:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackScratch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackScratch" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">tmol.score.dunbrack.params.</code><code class="descname">DunbrackScratch</code><span class="sig-paren">(</span><em>dihedrals: Tensor(torch.float32)[:,:], ddihe_dxyz: Tensor(torch.float32)[:,:,4,3], rotameric_rottable_assignment: Tensor(torch.int32)[:,:], semirotameric_rottable_assignment: Tensor(torch.int32)[:,:]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackScratch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackScratch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="tmol.types.tensor.html#tmol.types.tensor.TensorGroup" title="tmol.types.tensor.TensorGroup"><code class="xref py py-class docutils literal notranslate"><span class="pre">tmol.types.tensor.TensorGroup</span></code></a></p>
 </dd></dl>
 
@@ -473,83 +473,83 @@
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_all_table_indices">
-<em class="property">classmethod </em><code class="descname">create_all_table_indices</code><span class="sig-paren">(</span><em>all_table_names</em>, <em>dun_lookup</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_all_table_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_all_table_indices" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_all_table_indices">
+<em class="property">classmethod </em><code class="descname">_create_all_table_indices</code><span class="sig-paren">(</span><em>all_table_names</em>, <em>dun_lookup</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_all_table_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_all_table_indices" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_indices">
-<em class="property">classmethod </em><code class="descname">create_rotameric_indices</code><span class="sig-paren">(</span><em>dun_database</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_rotameric_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_indices" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_indices">
+<em class="property">classmethod </em><code class="descname">_create_rotameric_indices</code><span class="sig-paren">(</span><em>dun_database</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_rotameric_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_indices" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_semirotameric_indices">
-<em class="property">classmethod </em><code class="descname">create_semirotameric_indices</code><span class="sig-paren">(</span><em>dun_database</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_semirotameric_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_semirotameric_indices" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_semirotameric_indices">
+<em class="property">classmethod </em><code class="descname">_create_semirotameric_indices</code><span class="sig-paren">(</span><em>dun_database</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_semirotameric_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_semirotameric_indices" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_nchi_for_table_set">
-<em class="property">classmethod </em><code class="descname">create_nchi_for_table_set</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_nchi_for_table_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_nchi_for_table_set" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_nchi_for_table_set">
+<em class="property">classmethod </em><code class="descname">_create_nchi_for_table_set</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_nchi_for_table_set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_nchi_for_table_set" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_prob_table_offsets">
-<em class="property">classmethod </em><code class="descname">create_prob_table_offsets</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_prob_table_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_prob_table_offsets" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_prob_table_offsets">
+<em class="property">classmethod </em><code class="descname">_create_prob_table_offsets</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_prob_table_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_prob_table_offsets" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.compute_rotprob_coeffs">
-<em class="property">classmethod </em><code class="descname">compute_rotprob_coeffs</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.compute_rotprob_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.compute_rotprob_coeffs" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._compute_rotprob_coeffs">
+<em class="property">classmethod </em><code class="descname">_compute_rotprob_coeffs</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._compute_rotprob_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._compute_rotprob_coeffs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_rot_mean_offsets">
-<em class="property">classmethod </em><code class="descname">create_rot_mean_offsets</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_rot_mean_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_rot_mean_offsets" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_rot_mean_offsets">
+<em class="property">classmethod </em><code class="descname">_create_rot_mean_offsets</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_rot_mean_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_rot_mean_offsets" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.calculate_rot_mean_coeffs">
-<em class="property">classmethod </em><code class="descname">calculate_rot_mean_coeffs</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.calculate_rot_mean_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.calculate_rot_mean_coeffs" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._calculate_rot_mean_coeffs">
+<em class="property">classmethod </em><code class="descname">_calculate_rot_mean_coeffs</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._calculate_rot_mean_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._calculate_rot_mean_coeffs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.calculate_rot_sdev_coeffs">
-<em class="property">classmethod </em><code class="descname">calculate_rot_sdev_coeffs</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.calculate_rot_sdev_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.calculate_rot_sdev_coeffs" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._calculate_rot_sdev_coeffs">
+<em class="property">classmethod </em><code class="descname">_calculate_rot_sdev_coeffs</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._calculate_rot_sdev_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._calculate_rot_sdev_coeffs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_rot_periodicities">
-<em class="property">classmethod </em><code class="descname">create_rot_periodicities</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_rot_periodicities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_rot_periodicities" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_rot_periodicities">
+<em class="property">classmethod </em><code class="descname">_create_rot_periodicities</code><span class="sig-paren">(</span><em>all_rotlibs</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_rot_periodicities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_rot_periodicities" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_rotind2tableinds">
-<em class="property">classmethod </em><code class="descname">create_rotind2tableinds</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_rotind2tableinds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotind2tableinds" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_rotind2tableinds">
+<em class="property">classmethod </em><code class="descname">_create_rotind2tableinds</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_rotind2tableinds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_rotind2tableinds" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_rotind2tableind_offsets">
-<em class="property">classmethod </em><code class="descname">create_rotameric_rotind2tableind_offsets</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_rotameric_rotind2tableind_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_rotind2tableind_offsets" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_rotind2tableind_offsets">
+<em class="property">classmethod </em><code class="descname">_create_rotameric_rotind2tableind_offsets</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_rotameric_rotind2tableind_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_rotind2tableind_offsets" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.calc_semirot_coeffs">
-<em class="property">classmethod </em><code class="descname">calc_semirot_coeffs</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.calc_semirot_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.calc_semirot_coeffs" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._calc_semirot_coeffs">
+<em class="property">classmethod </em><code class="descname">_calc_semirot_coeffs</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._calc_semirot_coeffs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._calc_semirot_coeffs" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_semirot_periodicity">
-<em class="property">classmethod </em><code class="descname">create_semirot_periodicity</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_semirot_periodicity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_semirot_periodicity" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_semirot_periodicity">
+<em class="property">classmethod </em><code class="descname">_create_semirot_periodicity</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_semirot_periodicity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_semirot_periodicity" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="classmethod">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_semirot_offsets">
-<em class="property">classmethod </em><code class="descname">create_semirot_offsets</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_semirot_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_semirot_offsets" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_semirot_offsets">
+<em class="property">classmethod </em><code class="descname">_create_semirot_offsets</code><span class="sig-paren">(</span><em>dun_database</em>, <em>device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_semirot_offsets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_semirot_offsets" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="tmol.score.dunbrack.params.DunbrackParamResolver.resolve_dunbrack_parameters">
-<code class="descname">resolve_dunbrack_parameters</code><span class="sig-paren">(</span><em>res_names: NDArray(dtype('O'))[:], phi: Tensor(torch.int32)[:,5], psi: Tensor(torch.int32)[:,5], chi: Tensor(torch.int32)[:,6], torch_device: torch.device</em><span class="sig-paren">)</span> &#x2192; tmol.score.dunbrack.params.DunbrackParams<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.resolve_dunbrack_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.resolve_dunbrack_parameters" title="Permalink to this definition">¶</a></dt>
+<code class="descname">resolve_dunbrack_parameters</code><span class="sig-paren">(</span><em>res_names: NDArray(dtype('O'))[:,:], phi: Tensor(torch.int32)[:,:,5], psi: Tensor(torch.int32)[:,:,5], chi: Tensor(torch.int32)[:,:,6], torch_device: torch.device</em><span class="sig-paren">)</span> &#x2192; tmol.score.dunbrack.params.DunbrackParams<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.resolve_dunbrack_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.resolve_dunbrack_parameters" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -558,48 +558,70 @@
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.indices_from_names">
-<code class="descname">indices_from_names</code><span class="sig-paren">(</span><em>dataframe: pandas.core.frame.DataFrame, names: NDArray(dtype('O'))[...], device: torch.device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.indices_from_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.indices_from_names" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._indices_from_names">
+<code class="descname">_indices_from_names</code><span class="sig-paren">(</span><em>dataframe: pandas.core.frame.DataFrame, names: NDArray(dtype('O'))[:,:], device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int64)[:,:]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._indices_from_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._indices_from_names" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.resolve_dun_indices">
-<code class="descname">resolve_dun_indices</code><span class="sig-paren">(</span><em>resnames: NDArray(dtype('O'))[...], device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tuple[Tensor(torch.int32)[:], Tensor(torch.int32)[:], Tensor(torch.int32)[:]]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.resolve_dun_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.resolve_dun_indices" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._resolve_dun_indices">
+<code class="descname">_resolve_dun_indices</code><span class="sig-paren">(</span><em>resnames: NDArray(dtype('O'))[:,:], device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tuple[Tensor(torch.int64)[:,:], Tensor(torch.int64)[:,:], Tensor(torch.int64)[:,:]]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._resolve_dun_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._resolve_dun_indices" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.determine_nchi_for_res">
-<code class="descname">determine_nchi_for_res</code><span class="sig-paren">(</span><em>nres</em>, <em>rns_inds</em>, <em>torch_device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.determine_nchi_for_res"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.determine_nchi_for_res" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._select_chi">
+<code class="descname">_select_chi</code><span class="sig-paren">(</span><em>chi: Tensor(torch.int32)[:,:,6], nchi_for_pose_res: Tensor(torch.int64)[:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int64)[:,:,6]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._select_chi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._select_chi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Not all chi in a residue are used in the dunbrack energy
+calculation, e.g. THR chi2. So, select the subset of chi
+that will be used. The nchi_for_pose array already contains
+the number of chi used by each residue; we compare the index
+of each chi dihedral (column 1) against the number stored
+in the nchi_for_pose array using the residue index (column 0)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._clone_and_mark_missing_bb_atoms">
+<code class="descname">_clone_and_mark_missing_bb_atoms</code><span class="sig-paren">(</span><em>bb_ats: Tensor(torch.int32)[:,:,5], undefined_val: int</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:,:,5]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._clone_and_mark_missing_bb_atoms"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._clone_and_mark_missing_bb_atoms" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.select_chi">
-<code class="descname">select_chi</code><span class="sig-paren">(</span><em>chi</em>, <em>nchi_for_pose_res</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.select_chi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.select_chi" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._calc_ndihe_for_res">
+<code class="descname">_calc_ndihe_for_res</code><span class="sig-paren">(</span><em>nchi_for_res: Tensor(torch.int32)[:,:], torch_device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:,:]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._calc_ndihe_for_res"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._calc_ndihe_for_res" title="Permalink to this definition">¶</a></dt>
+<dd><p>There are two more dihedrals for each residue than there are chi; these
+are the backbone phi/psi dihedrals</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._merge_dihedral_atom_indices">
+<code class="descname">_merge_dihedral_atom_indices</code><span class="sig-paren">(</span><em>ndihe_for_res: Tensor(torch.int32)[:,:], dihedral_offset_for_res: Tensor(torch.int32)[:,:], nchi_for_res: Tensor(torch.int32)[:,:], phi_wanted: Tensor(torch.int32)[:,:,4], psi_wanted: Tensor(torch.int32)[:,:,4], chi_selected: Tensor(torch.int32)[:,:,6], torch_device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:,:,4]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._merge_dihedral_atom_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._merge_dihedral_atom_indices" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.merge_dihedral_atom_indices">
-<code class="descname">merge_dihedral_atom_indices</code><span class="sig-paren">(</span><em>ndihe_for_res</em>, <em>dihedral_offset_for_res</em>, <em>nchi_for_res</em>, <em>phi_wanted</em>, <em>psi_wanted</em>, <em>chi_selected</em>, <em>torch_device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.merge_dihedral_atom_indices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.merge_dihedral_atom_indices" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._get_nrotameric_chi_for_res">
+<code class="descname">_get_nrotameric_chi_for_res</code><span class="sig-paren">(</span><em>nchi_for_res: Tensor(torch.int32)[:,:], s_inds: Tensor(torch.int64)[:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:,:]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._get_nrotameric_chi_for_res"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._get_nrotameric_chi_for_res" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.get_nrotameric_chi_for_res">
-<code class="descname">get_nrotameric_chi_for_res</code><span class="sig-paren">(</span><em>nchi_for_res</em>, <em>s_inds</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.get_nrotameric_chi_for_res"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.get_nrotameric_chi_for_res" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._find_rotres2resid">
+<code class="descname">_find_rotres2resid</code><span class="sig-paren">(</span><em>r_inds: Tensor(torch.int64)[:,:], torch_device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:,:]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._find_rotres2resid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._find_rotres2resid" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.find_rotres2resid">
-<code class="descname">find_rotres2resid</code><span class="sig-paren">(</span><em>nres</em>, <em>r_inds</em>, <em>torch_device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.find_rotres2resid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.find_rotres2resid" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._get_prob_table_offsets_for_rotresidues">
+<code class="descname">_get_prob_table_offsets_for_rotresidues</code><span class="sig-paren">(</span><em>db_aux: tmol.score.dunbrack.params.PackedDunbrackDatabaseAux, rotres2resid: Tensor(torch.int32)[:,:], r_inds: Tensor(torch.int64)[:,:]</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[...]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._get_prob_table_offsets_for_rotresidues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._get_prob_table_offsets_for_rotresidues" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_chi_descriptors">
-<code class="descname">create_rotameric_chi_descriptors</code><span class="sig-paren">(</span><em>nrotameric_chi_for_res</em>, <em>rns_inds</em>, <em>rotres2resid</em>, <em>torch_device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_rotameric_chi_descriptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_chi_descriptors" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_chi_descriptors">
+<code class="descname">_create_rotameric_chi_descriptors</code><span class="sig-paren">(</span><em>nrotameric_chi_for_res: Tensor(torch.int32)[:,:], rns_inds: Tensor(torch.int64)[:,:], rns_inds_to_keep: Tensor(torch.int64)[:,:], nz_rns_inds: Tensor(torch.int64)[:,:], rotres2resid: Tensor(torch.int32)[:,:], torch_device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:,:,2]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_rotameric_chi_descriptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_chi_descriptors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the array that says for each of the rotameric chi
+0: what (dunbrack) residue (i.e. not Pose residue) does it belong to, and
+1: which chi for that residue is it (i.e. the 1st chi (0), 2nd chi (1) etc).
+A sentinel value of -1 is used for chi that are not real.</p>
+</dd></dl>
 
 <dl class="method">
-<dt id="tmol.score.dunbrack.params.DunbrackParamResolver.create_semirotameric_chi_descriptors">
-<code class="descname">create_semirotameric_chi_descriptors</code><span class="sig-paren">(</span><em>s_inds</em>, <em>dihedral_offset_for_res</em>, <em>nchi_for_res</em>, <em>torch_device</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver.create_semirotameric_chi_descriptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver.create_semirotameric_chi_descriptors" title="Permalink to this definition">¶</a></dt>
+<dt id="tmol.score.dunbrack.params.DunbrackParamResolver._create_semirotameric_chi_descriptors">
+<code class="descname">_create_semirotameric_chi_descriptors</code><span class="sig-paren">(</span><em>s_inds: Tensor(torch.int64)[:,:], dihedral_offset_for_res: Tensor(torch.int32)[:,:], nchi_for_res: Tensor(torch.int32)[...], torch_device: torch.device</em><span class="sig-paren">)</span> &#x2192; Tensor(torch.int32)[:,:,4]<a class="reference internal" href="../_modules/tmol/score/dunbrack/params.html#DunbrackParamResolver._create_semirotameric_chi_descriptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.score.dunbrack.params.DunbrackParamResolver._create_semirotameric_chi_descriptors" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

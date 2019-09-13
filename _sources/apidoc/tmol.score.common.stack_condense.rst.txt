@@ -7,7 +7,7 @@ tmol.score.common.stack_condense
 .. currentmodule:: tmol.score.common.stack_condense
 
 .. automodule:: tmol.score.common.stack_condense
-    :members: condense_numpy_inds, condense_torch_inds
+    :members: condense_numpy_inds, condense_subset, condense_torch_inds, take_condensed_3d_subset, take_values_w_sentineled_dest, take_values_w_sentineled_index, take_values_w_sentineled_index_and_dest
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -22,7 +22,12 @@ tmol.score.common.stack_condense
         :nosignatures:
 
         condense_numpy_inds
+        condense_subset
         condense_torch_inds
+        take_condensed_3d_subset
+        take_values_w_sentineled_dest
+        take_values_w_sentineled_index
+        take_values_w_sentineled_index_and_dest
 
 
 

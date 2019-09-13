@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.score.dunbrack.params &mdash; TMol 0.0.0-186-g84d7b560 documentation</title>
+  <title>tmol.score.dunbrack.params &mdash; TMol 0.0.0-187-g4c860a97 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../../../../',
-              VERSION:'0.0.0-186-g84d7b560',
+              VERSION:'0.0.0-187-g4c860a97',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -70,7 +70,7 @@
             
             
               <div class="version">
-                0.0.0-186-g84d7b560
+                0.0.0-187-g4c860a97
               </div>
             
           
@@ -199,8 +199,18 @@
 
 <span class="kn">from</span> <span class="nn">tmol.database.scoring.dunbrack_libraries</span> <span class="k">import</span> <span class="n">DunbrackRotamerLibrary</span>
 
+<span class="kn">from</span> <span class="nn">tmol.score.common.stack_condense</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">condense_torch_inds</span><span class="p">,</span>
+    <span class="n">condense_subset</span><span class="p">,</span>
+    <span class="n">take_condensed_3d_subset</span><span class="p">,</span>
+    <span class="n">take_values_w_sentineled_index</span><span class="p">,</span>
+    <span class="n">take_values_w_sentineled_index_and_dest</span><span class="p">,</span>
+    <span class="n">take_values_w_sentineled_dest</span><span class="p">,</span>
+<span class="p">)</span>
 
-<div class="viewcode-block" id="exclusive_cumsum"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.exclusive_cumsum">[docs]</a><span class="k">def</span> <span class="nf">exclusive_cumsum</span><span class="p">(</span><span class="n">inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]:</span>
+
+<div class="viewcode-block" id="exclusive_cumsum1d"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.exclusive_cumsum1d">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">exclusive_cumsum1d</span><span class="p">(</span><span class="n">inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]:</span>
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
         <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">inds</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
@@ -209,27 +219,15 @@
     <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="print_row_numbered_tensor"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.print_row_numbered_tensor">[docs]</a><span class="k">def</span> <span class="nf">print_row_numbered_tensor</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-                <span class="p">(</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-                    <span class="n">tensor</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-                <span class="p">),</span>
-                <span class="mi">1</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
-                <span class="p">(</span>
-                    <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensor</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-                    <span class="n">tensor</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="mi">1</span><span class="p">,</span>
-            <span class="p">)</span>
-        <span class="p">)</span></div>
+<div class="viewcode-block" id="exclusive_cumsum2d"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.exclusive_cumsum2d">[docs]</a><span class="nd">@validate_args</span>
+<span class="k">def</span> <span class="nf">exclusive_cumsum2d</span><span class="p">(</span><span class="n">inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]:</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">inds</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="p">),</span>
+        <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 
 <span class="c1"># @validate_args</span>
@@ -266,26 +264,26 @@
 
 <div class="viewcode-block" id="DunbrackParams"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParams">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">DunbrackParams</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
-    <span class="n">ndihe_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>
-    <span class="n">dihedral_offset_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>  <span class="c1"># prev dihedral_offsets</span>
-    <span class="n">dihedral_atom_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>  <span class="c1"># prev dihedral_atom_indices</span>
-    <span class="n">rottable_set_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>
-    <span class="n">nchi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>
-    <span class="n">nrotameric_chi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>  <span class="c1"># ??needed??</span>
-    <span class="n">rotres2resid</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>
-    <span class="n">prob_table_offset_for_rotresidue</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>
-    <span class="n">rotmean_table_offset_for_residue</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>
-    <span class="n">rotind2tableind_offset_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>
-    <span class="n">rotameric_chi_desc</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="mi">2</span><span class="p">]</span>
-    <span class="n">semirotameric_chi_desc</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">]</span></div>
+    <span class="n">ndihe_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">dihedral_offset_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>  <span class="c1"># prev dihedral_offsets</span>
+    <span class="n">dihedral_atom_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]</span>  <span class="c1"># prev dihedral_atom_indices</span>
+    <span class="n">rottable_set_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">nchi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">nrotameric_chi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>  <span class="c1"># ??needed??</span>
+    <span class="n">rotres2resid</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">prob_table_offset_for_rotresidue</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">rotmean_table_offset_for_residue</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">rotind2tableind_offset_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">rotameric_chi_desc</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">semirotameric_chi_desc</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="DunbrackScratch"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackScratch">[docs]</a><span class="nd">@attr</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">auto_attribs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">DunbrackScratch</span><span class="p">(</span><span class="n">TensorGroup</span><span class="p">):</span>
-    <span class="n">dihedrals</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:]</span>
-    <span class="n">ddihe_dxyz</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
-    <span class="n">rotameric_rottable_assignment</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span>
-    <span class="n">semirotameric_rottable_assignment</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]</span></div>
+    <span class="n">dihedrals</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">ddihe_dxyz</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+    <span class="n">rotameric_rottable_assignment</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="n">semirotameric_rottable_assignment</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]</span></div>
 
 
 <span class="c1"># the rama database on the device</span>
@@ -354,41 +352,41 @@
             <span class="p">)</span>
         <span class="p">]</span>
 
-        <span class="n">all_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_all_table_indices</span><span class="p">(</span>
+        <span class="n">all_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_all_table_indices</span><span class="p">(</span>
             <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">table_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">all_rotlibs</span><span class="p">],</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">dun_lookup</span>
         <span class="p">)</span>
-        <span class="n">rotameric_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_rotameric_indices</span><span class="p">(</span><span class="n">dun_database</span><span class="p">)</span>
-        <span class="n">semirotameric_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_semirotameric_indices</span><span class="p">(</span><span class="n">dun_database</span><span class="p">)</span>
-        <span class="n">nchi_for_table_set</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_nchi_for_table_set</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">rotameric_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rotameric_indices</span><span class="p">(</span><span class="n">dun_database</span><span class="p">)</span>
+        <span class="n">semirotameric_table_indices</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_semirotameric_indices</span><span class="p">(</span><span class="n">dun_database</span><span class="p">)</span>
+        <span class="n">nchi_for_table_set</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_nchi_for_table_set</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
-        <span class="n">prob_table_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_prob_table_offsets</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-        <span class="n">p_coeffs</span><span class="p">,</span> <span class="n">pc_sizes</span><span class="p">,</span> <span class="n">pc_strides</span><span class="p">,</span> <span class="n">nlp_coeffs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">compute_rotprob_coeffs</span><span class="p">(</span>
+        <span class="n">prob_table_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_prob_table_offsets</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">p_coeffs</span><span class="p">,</span> <span class="n">pc_sizes</span><span class="p">,</span> <span class="n">pc_strides</span><span class="p">,</span> <span class="n">nlp_coeffs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_compute_rotprob_coeffs</span><span class="p">(</span>
             <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
 
-        <span class="n">rotameric_mean_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_rot_mean_offsets</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">rotameric_mean_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rot_mean_offsets</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
-        <span class="n">mean_coeffs</span><span class="p">,</span> <span class="n">mc_sizes</span><span class="p">,</span> <span class="n">mc_strides</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">calculate_rot_mean_coeffs</span><span class="p">(</span>
+        <span class="n">mean_coeffs</span><span class="p">,</span> <span class="n">mc_sizes</span><span class="p">,</span> <span class="n">mc_strides</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_rot_mean_coeffs</span><span class="p">(</span>
             <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
-        <span class="n">sdev_coeffs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">calculate_rot_sdev_coeffs</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">sdev_coeffs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calculate_rot_sdev_coeffs</span><span class="p">(</span><span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
-        <span class="n">rot_bb_start</span><span class="p">,</span> <span class="n">rot_bb_step</span><span class="p">,</span> <span class="n">rot_bb_per</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_rot_periodicities</span><span class="p">(</span>
+        <span class="n">rot_bb_start</span><span class="p">,</span> <span class="n">rot_bb_step</span><span class="p">,</span> <span class="n">rot_bb_per</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rot_periodicities</span><span class="p">(</span>
             <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
 
-        <span class="n">rot_ri2ti</span><span class="p">,</span> <span class="n">semirot_ri2ti</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_rotind2tableinds</span><span class="p">(</span><span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">rot_ri2ti</span><span class="p">,</span> <span class="n">semirot_ri2ti</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rotind2tableinds</span><span class="p">(</span><span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
-        <span class="n">rotind2tableind_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_rotameric_rotind2tableind_offsets</span><span class="p">(</span>
+        <span class="n">rotind2tableind_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_rotameric_rotind2tableind_offsets</span><span class="p">(</span>
             <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
 
-        <span class="n">sr_coeffs</span><span class="p">,</span> <span class="n">sr_sizes</span><span class="p">,</span> <span class="n">sr_strides</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">calc_semirot_coeffs</span><span class="p">(</span><span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">sr_coeffs</span><span class="p">,</span> <span class="n">sr_sizes</span><span class="p">,</span> <span class="n">sr_strides</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_calc_semirot_coeffs</span><span class="p">(</span><span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
-        <span class="n">sr_start</span><span class="p">,</span> <span class="n">sr_step</span><span class="p">,</span> <span class="n">sr_periodicity</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_semirot_periodicity</span><span class="p">(</span>
+        <span class="n">sr_start</span><span class="p">,</span> <span class="n">sr_step</span><span class="p">,</span> <span class="n">sr_periodicity</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_semirot_periodicity</span><span class="p">(</span>
             <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
-        <span class="n">sr_tableset_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">create_semirot_offsets</span><span class="p">(</span><span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">sr_tableset_offsets</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_create_semirot_offsets</span><span class="p">(</span><span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
 
         <span class="n">packed_db</span> <span class="o">=</span> <span class="n">PackedDunbrackDatabase</span><span class="p">(</span>
             <span class="n">rotameric_prob_tables</span><span class="o">=</span><span class="n">p_coeffs</span><span class="p">,</span>
@@ -428,8 +426,8 @@
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_all_table_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_all_table_indices">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_all_table_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_table_names</span><span class="p">,</span> <span class="n">dun_lookup</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_all_table_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_all_table_indices">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_all_table_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_table_names</span><span class="p">,</span> <span class="n">dun_lookup</span><span class="p">):</span>
         <span class="c1"># all_table_names = [x.table_name for x in all_rotlibs]</span>
         <span class="n">all_table_lookup</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
             <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">dun_lookup</span><span class="p">)</span>
@@ -440,8 +438,8 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">all_table_lookup</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_rotameric_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_indices">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_rotameric_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_rotameric_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_indices">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_rotameric_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">):</span>
         <span class="n">rotameric_table_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">table_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">rotameric_libraries</span><span class="p">]</span>
         <span class="n">rotameric_table_lookup</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span>
             <span class="n">cattr</span><span class="o">.</span><span class="n">unstructure</span><span class="p">(</span><span class="n">dun_database</span><span class="o">.</span><span class="n">dun_lookup</span><span class="p">)</span>
@@ -452,8 +450,8 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">rotameric_table_lookup</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_semirotameric_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_semirotameric_indices">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_semirotameric_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_semirotameric_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_semirotameric_indices">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_semirotameric_indices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">):</span>
         <span class="n">semirotameric_table_names</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">x</span><span class="o">.</span><span class="n">table_name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
         <span class="p">]</span>
@@ -466,16 +464,16 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">semirotameric_table_lookup</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_nchi_for_table_set"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_nchi_for_table_set">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_nchi_for_table_set</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_nchi_for_table_set"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_nchi_for_table_set">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_nchi_for_table_set</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span><span class="p">],</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_prob_table_offsets"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_prob_table_offsets">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_prob_table_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_prob_table_offsets"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_prob_table_offsets">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_prob_table_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">prob_table_nrots</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -484,10 +482,10 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="k">return</span> <span class="n">exclusive_cumsum</span><span class="p">(</span><span class="n">prob_table_nrots</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">exclusive_cumsum1d</span><span class="p">(</span><span class="n">prob_table_nrots</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.compute_rotprob_coeffs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.compute_rotprob_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">compute_rotprob_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._compute_rotprob_coeffs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._compute_rotprob_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_compute_rotprob_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">rotameric_prob_tables</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_probabilities</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
@@ -514,8 +512,8 @@
         <span class="n">neglnprob_coeffs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_2</span> <span class="o">=</span> <span class="n">nplus1d_tensor_from_list</span><span class="p">(</span><span class="n">neglnprob_coeffs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">prob_coeffs</span><span class="p">,</span> <span class="n">prob_coeffs_sizes</span><span class="p">,</span> <span class="n">prob_coeffs_strides</span><span class="p">,</span> <span class="n">neglnprob_coeffs</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_rot_mean_offsets"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_rot_mean_offsets">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_rot_mean_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_rot_mean_offsets"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_rot_mean_offsets">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_rot_mean_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">mean_table_n_entries</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
             <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="o">*</span> <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_means</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
@@ -525,8 +523,8 @@
             <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">mean_table_n_entries</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span> <span class="mi">0</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.calculate_rot_mean_coeffs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.calculate_rot_mean_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">calculate_rot_mean_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._calculate_rot_mean_coeffs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._calculate_rot_mean_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_calculate_rot_mean_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">rotameric_mean_tables</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_means</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">all_rotlibs</span>
@@ -549,8 +547,8 @@
 
         <span class="k">return</span> <span class="n">mean_coeffs</span><span class="p">,</span> <span class="n">mean_coeffs_sizes</span><span class="p">,</span> <span class="n">mean_coeffs_strides</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.calculate_rot_sdev_coeffs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.calculate_rot_sdev_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">calculate_rot_sdev_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._calculate_rot_sdev_coeffs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._calculate_rot_sdev_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_calculate_rot_sdev_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">rotameric_sdev_tables</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamer_stdvs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
             <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pi</span>
@@ -567,8 +565,8 @@
         <span class="n">sdev_coeffs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_2</span> <span class="o">=</span> <span class="n">nplus1d_tensor_from_list</span><span class="p">(</span><span class="n">sdev_coeffs</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">sdev_coeffs</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_rot_periodicities"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_rot_periodicities">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_rot_periodicities</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_rot_periodicities"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_rot_periodicities">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_rot_periodicities</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">all_rotlibs</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">rotameric_bb_start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="nb">list</span><span class="p">(</span><span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">backbone_dihedral_start</span><span class="p">)</span>
@@ -592,8 +590,8 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">rotameric_bb_start</span><span class="p">,</span> <span class="n">rotameric_bb_step</span><span class="p">,</span> <span class="n">rotameric_bb_periodicity</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_rotind2tableinds"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotind2tableinds">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_rotind2tableinds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_rotind2tableinds"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_rotind2tableinds">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_rotind2tableinds</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">rotameric_rotind2tableind</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">semirotameric_rotind2tableind</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">ntablerots</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -671,8 +669,8 @@
         <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">,))</span>
         <span class="k">return</span> <span class="n">rotameric_rotind2tableind</span><span class="p">,</span> <span class="n">semirotameric_rotind2tableind</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_rotameric_rotind2tableind_offsets"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_rotind2tableind_offsets">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_rotameric_rotind2tableind_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_rotameric_rotind2tableind_offsets"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_rotind2tableind_offsets">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_rotameric_rotind2tableind_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">rotamer_sets</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">rotlib</span><span class="o">.</span><span class="n">rotameric_data</span><span class="o">.</span><span class="n">rotamers</span>
             <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">rotameric_libraries</span>
@@ -691,8 +689,8 @@
             <span class="mi">0</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.calc_semirot_coeffs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.calc_semirot_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">calc_semirot_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._calc_semirot_coeffs"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._calc_semirot_coeffs">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_calc_semirot_coeffs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">semirotameric_prob_tables</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">rotlib</span><span class="o">.</span><span class="n">nonrotameric_chi_probabilities</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
@@ -710,8 +708,8 @@
         <span class="p">]</span>
         <span class="k">return</span> <span class="n">nplus1d_tensor_from_list</span><span class="p">(</span><span class="n">semirot_coeffs</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_semirot_periodicity"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_semirot_periodicity">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_semirot_periodicity</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_semirot_periodicity"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_semirot_periodicity">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_semirot_periodicity</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">semirot_start</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
             <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span><span class="p">),</span> <span class="mi">3</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
@@ -764,8 +762,8 @@
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">semirot_start</span><span class="p">,</span> <span class="n">semirot_step</span><span class="p">,</span> <span class="n">semirot_periodicity</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_semirot_offsets"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_semirot_offsets">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">create_semirot_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_semirot_offsets"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_semirot_offsets">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_create_semirot_offsets</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dun_database</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
         <span class="n">nsemirot_rotamers</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
             <span class="n">rotlib</span><span class="o">.</span><span class="n">nonrotameric_chi_probabilities</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">rotlib</span> <span class="ow">in</span> <span class="n">dun_database</span><span class="o">.</span><span class="n">semi_rotameric_libraries</span>
@@ -777,35 +775,72 @@
     <span class="c1"># @validate_args</span>
 <div class="viewcode-block" id="DunbrackParamResolver.resolve_dunbrack_parameters"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.resolve_dunbrack_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_dunbrack_parameters</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:],</span>
-        <span class="n">phi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="mi">5</span><span class="p">],</span>
-        <span class="n">psi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="mi">5</span><span class="p">],</span>
-        <span class="n">chi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="mi">6</span><span class="p">],</span>
+        <span class="n">res_names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">phi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">5</span><span class="p">],</span>
+        <span class="n">psi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">5</span><span class="p">],</span>
+        <span class="n">chi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">6</span><span class="p">],</span>
         <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DunbrackParams</span><span class="p">:</span>
 
-        <span class="n">phi</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-        <span class="n">psi</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-        <span class="n">phi_not_defined</span> <span class="o">=</span> <span class="p">(</span><span class="n">phi</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">byte</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">phi</span><span class="p">[</span><span class="n">phi_not_defined</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="n">psi_not_defined</span> <span class="o">=</span> <span class="p">(</span><span class="n">psi</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">byte</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">psi</span><span class="p">[</span><span class="n">psi_not_defined</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span>
+        <span class="n">nstacks</span> <span class="o">=</span> <span class="n">res_names</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">phi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">nstacks</span>
+        <span class="k">assert</span> <span class="n">psi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">nstacks</span>
+        <span class="k">assert</span> <span class="n">chi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">nstacks</span>
 
-        <span class="n">rns_inds</span><span class="p">,</span> <span class="n">r_inds</span><span class="p">,</span> <span class="n">s_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_dun_indices</span><span class="p">(</span><span class="n">res_names</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+        <span class="c1"># rns_inds: the table indices for the pose residues</span>
+        <span class="c1">#           (both Rotameric aNd Semirotameric) that</span>
+        <span class="c1">#           will be scored by the dunbrack library,</span>
+        <span class="c1">#           with a sentinel of -1 for pose residues</span>
+        <span class="c1">#           that will not be scored</span>
+        <span class="c1"># r_inds: the table indices for the rotameric res</span>
+        <span class="c1"># s_inds: the table indices for the semirotameric res</span>
+        <span class="n">rns_inds</span><span class="p">,</span> <span class="n">r_inds</span><span class="p">,</span> <span class="n">s_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_dun_indices</span><span class="p">(</span><span class="n">res_names</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+
+        <span class="n">rns_inds_real</span> <span class="o">=</span> <span class="n">rns_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># rns_inds_to_keep: the condensed pose-residue-indices</span>
+        <span class="c1"># nz_rns_inds: the result of calling torch.nonzero (nz) on the</span>
+        <span class="c1">#              non-sentineled entries in the condensed</span>
+        <span class="c1">#              rns-residues stack; i.e. the indices of entries</span>
+        <span class="c1">#              in a condensed stack that should be written</span>
+        <span class="c1">#              to.</span>
+        <span class="c1">#              This tensor will let us condense other data,</span>
+        <span class="c1">#              e.g. chi/phi/psi, which enters this function</span>
+        <span class="c1">#              not condensed.</span>
+        <span class="n">rns_inds_to_keep</span> <span class="o">=</span> <span class="n">condense_torch_inds</span><span class="p">(</span><span class="n">rns_inds_real</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+        <span class="n">nz_rns_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">rns_inds_to_keep</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># rottable_set_for_res64 represents the table indices of residues</span>
+        <span class="c1"># that will be scored by the dunbrack library; we will hold on to</span>
+        <span class="c1"># `rns_inds` as these are the indices of the pose-residues</span>
+        <span class="n">rottable_set_for_res64</span> <span class="o">=</span> <span class="n">take_values_w_sentineled_dest</span><span class="p">(</span>
+            <span class="n">rns_inds</span><span class="p">,</span> <span class="n">rns_inds_real</span><span class="p">,</span> <span class="n">rns_inds_to_keep</span>
+        <span class="p">)</span>
+        <span class="n">rottable_set_for_res</span> <span class="o">=</span> <span class="n">rottable_set_for_res64</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
         <span class="c1"># the &quot;pose&quot; residues are indexed by the info in phi/psi/chi tensors</span>
-        <span class="n">nchi_for_pose_res</span><span class="p">,</span> <span class="n">nchi_for_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">determine_nchi_for_res</span><span class="p">(</span>
-            <span class="nb">len</span><span class="p">(</span><span class="n">res_names</span><span class="p">),</span> <span class="n">rns_inds</span><span class="p">,</span> <span class="n">torch_device</span>
+        <span class="n">nchi_for_pose_res</span> <span class="o">=</span> <span class="n">take_values_w_sentineled_index</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packed_db_aux</span><span class="o">.</span><span class="n">nchi_for_table_set</span><span class="p">,</span> <span class="n">rns_inds</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">nchi_for_res</span> <span class="o">=</span> <span class="n">take_values_w_sentineled_index</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packed_db_aux</span><span class="o">.</span><span class="n">nchi_for_table_set</span><span class="p">,</span> <span class="n">rottable_set_for_res64</span>
         <span class="p">)</span>
 
-        <span class="n">chi_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select_chi</span><span class="p">(</span><span class="n">chi</span><span class="p">,</span> <span class="n">nchi_for_pose_res</span><span class="p">)</span>
-        <span class="n">chi_selected</span> <span class="o">=</span> <span class="n">chi_selected</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">phi_wanted</span> <span class="o">=</span> <span class="n">phi</span><span class="p">[</span><span class="n">rns_inds</span><span class="p">[</span><span class="n">phi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:]</span>
-        <span class="n">psi_wanted</span> <span class="o">=</span> <span class="n">psi</span><span class="p">[</span><span class="n">rns_inds</span><span class="p">[</span><span class="n">psi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:]</span>
+        <span class="n">chi_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_chi</span><span class="p">(</span><span class="n">chi</span><span class="p">,</span> <span class="n">nchi_for_pose_res</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="n">phi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clone_and_mark_missing_bb_atoms</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">psi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clone_and_mark_missing_bb_atoms</span><span class="p">(</span><span class="n">psi</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">phi_wanted</span> <span class="o">=</span> <span class="n">take_condensed_3d_subset</span><span class="p">(</span>
+            <span class="n">phi</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:],</span> <span class="n">rns_inds_to_keep</span><span class="p">,</span> <span class="n">nz_rns_inds</span>
+        <span class="p">)</span>
+        <span class="n">psi_wanted</span> <span class="o">=</span> <span class="n">take_condensed_3d_subset</span><span class="p">(</span>
+            <span class="n">psi</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:],</span> <span class="n">rns_inds_to_keep</span><span class="p">,</span> <span class="n">nz_rns_inds</span>
+        <span class="p">)</span>
 
         <span class="c1"># ok, at this point a subset of the residues in the Pose are</span>
         <span class="c1"># going to be scored by the dunbrack score. This subset</span>
-        <span class="c1"># is what we&#39;re going to consider when we talk about residues</span>
+        <span class="c1"># is what we&#39;re going to consider when we talk about &quot;residues&quot;</span>
         <span class="c1"># by index. So, e.g., if the first residue to be scored is</span>
         <span class="c1"># pose-residue 1, then we&#39;ll treat that as dunbrack-residue 0.</span>
         <span class="c1"># So we need to remap pose-residue indices into</span>
@@ -813,14 +848,13 @@
         <span class="c1"># talk about which residues are rotameric and which residues</span>
         <span class="c1"># are semi-rotameric.</span>
 
-        <span class="n">dun_residues</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">chi_selected</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="c1"># n_dun_residues = dun_residues.shape[0]</span>
-        <span class="n">r_inds</span> <span class="o">=</span> <span class="n">r_inds</span><span class="p">[</span><span class="n">dun_residues</span><span class="p">]</span>
-        <span class="n">s_inds</span> <span class="o">=</span> <span class="n">s_inds</span><span class="p">[</span><span class="n">dun_residues</span><span class="p">]</span>
+        <span class="n">r_inds</span> <span class="o">=</span> <span class="n">take_values_w_sentineled_dest</span><span class="p">(</span><span class="n">r_inds</span><span class="p">,</span> <span class="n">rns_inds_real</span><span class="p">,</span> <span class="n">rns_inds_to_keep</span><span class="p">)</span>
+        <span class="n">s_inds</span> <span class="o">=</span> <span class="n">take_values_w_sentineled_dest</span><span class="p">(</span><span class="n">s_inds</span><span class="p">,</span> <span class="n">rns_inds_real</span><span class="p">,</span> <span class="n">rns_inds_to_keep</span><span class="p">)</span>
 
-        <span class="n">ndihe_for_res</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">nchi_for_res</span>
-        <span class="n">dihedral_offset_for_res</span> <span class="o">=</span> <span class="n">exclusive_cumsum</span><span class="p">(</span><span class="n">ndihe_for_res</span><span class="p">)</span>
-        <span class="n">dihedral_atom_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">merge_dihedral_atom_indices</span><span class="p">(</span>
+        <span class="n">ndihe_for_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_ndihe_for_res</span><span class="p">(</span><span class="n">nchi_for_res</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+        <span class="n">dihedral_offset_for_res</span> <span class="o">=</span> <span class="n">exclusive_cumsum2d</span><span class="p">(</span><span class="n">ndihe_for_res</span><span class="p">)</span>
+
+        <span class="n">dihedral_atom_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merge_dihedral_atom_indices</span><span class="p">(</span>
             <span class="n">ndihe_for_res</span><span class="p">,</span>
             <span class="n">dihedral_offset_for_res</span><span class="p">,</span>
             <span class="n">nchi_for_res</span><span class="p">,</span>
@@ -830,33 +864,31 @@
             <span class="n">torch_device</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="n">rottable_set_for_res64</span> <span class="o">=</span> <span class="n">rns_inds</span><span class="p">[</span><span class="n">dun_residues</span><span class="p">]</span>
-        <span class="n">rottable_set_for_res</span> <span class="o">=</span> <span class="n">rottable_set_for_res64</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">nrotameric_chi_for_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_nrotameric_chi_for_res</span><span class="p">(</span><span class="n">nchi_for_res</span><span class="p">,</span> <span class="n">s_inds</span><span class="p">)</span>
+        <span class="n">rotres2resid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_rotres2resid</span><span class="p">(</span><span class="n">r_inds</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
 
-        <span class="n">nrotameric_chi_for_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nrotameric_chi_for_res</span><span class="p">(</span><span class="n">nchi_for_res</span><span class="p">,</span> <span class="n">s_inds</span><span class="p">)</span>
-        <span class="n">rotres2resid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_rotres2resid</span><span class="p">(</span>
-            <span class="n">ndihe_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r_inds</span><span class="p">,</span> <span class="n">torch_device</span>
-        <span class="p">)</span>
-
-        <span class="n">dun_rotres</span> <span class="o">=</span> <span class="n">r_inds</span><span class="p">[</span><span class="n">r_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="c1"># n_rotameric_res = dun_rotres.shape[0]</span>
         <span class="n">db_aux</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">packed_db_aux</span>
-        <span class="n">prob_table_offset_for_rotresidue</span> <span class="o">=</span> <span class="n">db_aux</span><span class="o">.</span><span class="n">rotameric_prob_tableset_offsets</span><span class="p">[</span>
-            <span class="n">dun_rotres</span>
-        <span class="p">]</span>
-        <span class="n">rotmean_table_offset_for_residue</span> <span class="o">=</span> <span class="n">db_aux</span><span class="o">.</span><span class="n">rotameric_meansdev_tableset_offsets</span><span class="p">[</span>
-            <span class="n">rottable_set_for_res64</span>
-        <span class="p">]</span>
-
-        <span class="n">rotind2tableind_offset_for_res</span> <span class="o">=</span> <span class="n">db_aux</span><span class="o">.</span><span class="n">rotind2tableind_offsets</span><span class="p">[</span>
-            <span class="n">rottable_set_for_res64</span>
-        <span class="p">]</span>
-
-        <span class="n">rotameric_chi_desc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_rotameric_chi_descriptors</span><span class="p">(</span>
-            <span class="n">nrotameric_chi_for_res</span><span class="p">,</span> <span class="n">rns_inds</span><span class="p">,</span> <span class="n">rotres2resid</span><span class="p">,</span> <span class="n">torch_device</span>
+        <span class="n">prob_table_offset_for_rotresidue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_prob_table_offsets_for_rotresidues</span><span class="p">(</span>
+            <span class="n">db_aux</span><span class="p">,</span> <span class="n">rotres2resid</span><span class="p">,</span> <span class="n">r_inds</span>
         <span class="p">)</span>
 
-        <span class="n">semirotameric_chi_desc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_semirotameric_chi_descriptors</span><span class="p">(</span>
+        <span class="n">rotmean_table_offset_for_residue</span> <span class="o">=</span> <span class="n">take_values_w_sentineled_index</span><span class="p">(</span>
+            <span class="n">db_aux</span><span class="o">.</span><span class="n">rotameric_meansdev_tableset_offsets</span><span class="p">,</span> <span class="n">rottable_set_for_res64</span>
+        <span class="p">)</span>
+        <span class="n">rotind2tableind_offset_for_res</span> <span class="o">=</span> <span class="n">take_values_w_sentineled_index</span><span class="p">(</span>
+            <span class="n">db_aux</span><span class="o">.</span><span class="n">rotind2tableind_offsets</span><span class="p">,</span> <span class="n">rottable_set_for_res64</span>
+        <span class="p">)</span>
+
+        <span class="n">rotameric_chi_desc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_rotameric_chi_descriptors</span><span class="p">(</span>
+            <span class="n">nrotameric_chi_for_res</span><span class="p">,</span>
+            <span class="n">rns_inds</span><span class="p">,</span>
+            <span class="n">rns_inds_to_keep</span><span class="p">,</span>
+            <span class="n">nz_rns_inds</span><span class="p">,</span>
+            <span class="n">rotres2resid</span><span class="p">,</span>
+            <span class="n">torch_device</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">semirotameric_chi_desc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_semirotameric_chi_descriptors</span><span class="p">(</span>
             <span class="n">s_inds</span><span class="p">,</span> <span class="n">dihedral_offset_for_res</span><span class="p">,</span> <span class="n">nchi_for_res</span><span class="p">,</span> <span class="n">torch_device</span>
         <span class="p">)</span>
 
@@ -879,17 +911,20 @@
     <span class="k">def</span> <span class="nf">allocate_dunbrack_scratch_space</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="n">DunbrackParams</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DunbrackScratch</span><span class="p">:</span>
-        <span class="n">ndihe</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">dihedral_atom_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">nres</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">ndihe_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">nstacks</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">ndihe_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ndihe</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">dihedral_atom_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">nres</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">ndihe_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">dihedral_atom_inds</span><span class="o">.</span><span class="n">device</span>
 
-        <span class="n">dihedrals</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ndihe</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">ddihe_dxyz</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ndihe</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">dihedrals</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">ndihe</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">ddihe_dxyz</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">ndihe</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+        <span class="p">)</span>
         <span class="n">rotameric_rottable_assignment</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">nres</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">nres</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
         <span class="p">)</span>
         <span class="n">semirotameric_rottable_assignment</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">nres</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">nres</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">DunbrackScratch</span><span class="p">(</span>
@@ -899,138 +934,288 @@
             <span class="n">semirotameric_rottable_assignment</span><span class="o">=</span><span class="n">semirotameric_rottable_assignment</span><span class="p">,</span>
         <span class="p">)</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.indices_from_names"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.indices_from_names">[docs]</a>    <span class="k">def</span> <span class="nf">indices_from_names</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">dataframe</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
-    <span class="p">):</span>
-        <span class="n">inds</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+<div class="viewcode-block" id="DunbrackParamResolver._indices_from_names"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._indices_from_names">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_indices_from_names</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dataframe</span><span class="p">:</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">names</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:]:</span>
+        <span class="n">names_flat</span> <span class="o">=</span> <span class="n">names</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get_indexer</span><span class="p">(</span><span class="n">names_flat</span><span class="p">)</span>
         <span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]][</span><span class="s2">&quot;dun_table_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="n">inds</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">names</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">inds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.resolve_dun_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.resolve_dun_indices">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_dun_indices</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">),</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:],</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:],</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:]]:</span>
+<div class="viewcode-block" id="DunbrackParamResolver._resolve_dun_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._resolve_dun_indices">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_resolve_dun_indices</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">resnames</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">(</span><span class="nb">object</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span>
+        <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="p">]:</span>
 
-        <span class="n">rns_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices_from_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_table_indices</span><span class="p">,</span> <span class="n">resnames</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-        <span class="n">r_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices_from_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rotameric_table_indices</span><span class="p">,</span> <span class="n">resnames</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-        <span class="n">s_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">indices_from_names</span><span class="p">(</span>
+        <span class="n">rns_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indices_from_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_table_indices</span><span class="p">,</span> <span class="n">resnames</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">r_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indices_from_names</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rotameric_table_indices</span><span class="p">,</span> <span class="n">resnames</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+        <span class="n">s_inds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indices_from_names</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">semirotameric_table_indices</span><span class="p">,</span> <span class="n">resnames</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">rns_inds</span><span class="p">,</span> <span class="n">r_inds</span><span class="p">,</span> <span class="n">s_inds</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.determine_nchi_for_res"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.determine_nchi_for_res">[docs]</a>    <span class="k">def</span> <span class="nf">determine_nchi_for_res</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nres</span><span class="p">,</span> <span class="n">rns_inds</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">):</span>
-        <span class="n">nchi_for_pose_res</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">nres</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
-        <span class="p">)</span>
-        <span class="c1"># DunbrackParams #5</span>
-        <span class="n">nchi_for_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">packed_db_aux</span><span class="o">.</span><span class="n">nchi_for_table_set</span><span class="p">[</span><span class="n">rns_inds</span><span class="p">[</span><span class="n">rns_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
-
-        <span class="n">nchi_for_pose_res</span><span class="p">[</span><span class="n">rns_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">nchi_for_res</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">nchi_for_pose_res</span><span class="p">,</span> <span class="n">nchi_for_res</span></div>
-
-<div class="viewcode-block" id="DunbrackParamResolver.select_chi"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.select_chi">[docs]</a>    <span class="k">def</span> <span class="nf">select_chi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="n">nchi_for_pose_res</span><span class="p">):</span>
-        <span class="n">chi64</span> <span class="o">=</span> <span class="n">chi</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">chi</span><span class="p">[</span><span class="n">chi64</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">nchi_for_pose_res</span><span class="p">[</span><span class="n">chi64</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]],</span> <span class="p">:]</span></div>
-
-<div class="viewcode-block" id="DunbrackParamResolver.merge_dihedral_atom_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.merge_dihedral_atom_indices">[docs]</a>    <span class="k">def</span> <span class="nf">merge_dihedral_atom_indices</span><span class="p">(</span>
+<div class="viewcode-block" id="DunbrackParamResolver._select_chi"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._select_chi">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_select_chi</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">ndihe_for_res</span><span class="p">,</span>
-        <span class="n">dihedral_offset_for_res</span><span class="p">,</span>
-        <span class="n">nchi_for_res</span><span class="p">,</span>
-        <span class="n">phi_wanted</span><span class="p">,</span>
-        <span class="n">psi_wanted</span><span class="p">,</span>
-        <span class="n">chi_selected</span><span class="p">,</span>
-        <span class="n">torch_device</span><span class="p">,</span>
-    <span class="p">):</span>
+        <span class="n">chi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">6</span><span class="p">],</span>
+        <span class="n">nchi_for_pose_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">6</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Not all chi in a residue are used in the dunbrack energy</span>
+<span class="sd">        calculation, e.g. THR chi2. So, select the subset of chi</span>
+<span class="sd">        that will be used. The nchi_for_pose array already contains</span>
+<span class="sd">        the number of chi used by each residue; we compare the index</span>
+<span class="sd">        of each chi dihedral (column 1) against the number stored</span>
+<span class="sd">        in the nchi_for_pose array using the residue index (column 0)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">chi64</span> <span class="o">=</span> <span class="n">chi</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="c1"># get the stack indices for each of the chi once we have</span>
+        <span class="c1"># made a 1-dimensional view.</span>
+        <span class="n">stack_inds</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">chi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">chi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">/</span> <span class="n">chi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">chi64_res</span> <span class="o">=</span> <span class="n">chi64</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">chi64_in_range</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">chi64</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">nchi_for_pose_res</span><span class="p">[</span><span class="n">stack_inds</span><span class="p">,</span> <span class="n">chi64_res</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">((</span><span class="n">chi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">chi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+        <span class="c1"># now take a subset of the chi and condense them</span>
+        <span class="k">return</span> <span class="n">condense_subset</span><span class="p">(</span><span class="n">chi64</span><span class="p">,</span> <span class="n">chi64_in_range</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DunbrackParamResolver._clone_and_mark_missing_bb_atoms"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._clone_and_mark_missing_bb_atoms">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_clone_and_mark_missing_bb_atoms</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">bb_ats</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">5</span><span class="p">],</span> <span class="n">undefined_val</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">5</span><span class="p">]:</span>
+        <span class="n">bb_ats</span> <span class="o">=</span> <span class="n">bb_ats</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">ats_not_defined</span> <span class="o">=</span> <span class="p">(</span><span class="n">bb_ats</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">byte</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">nz_not_defined</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">ats_not_defined</span><span class="p">)</span>
+        <span class="n">bb_ats</span><span class="p">[</span><span class="n">nz_not_defined</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_not_defined</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">undefined_val</span>
+        <span class="k">return</span> <span class="n">bb_ats</span></div>
+
+<div class="viewcode-block" id="DunbrackParamResolver._calc_ndihe_for_res"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._calc_ndihe_for_res">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_calc_ndihe_for_res</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">nchi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]:</span>
+        <span class="sd">&quot;&quot;&quot;There are two more dihedrals for each residue than there are chi; these</span>
+<span class="sd">        are the backbone phi/psi dihedrals&quot;&quot;&quot;</span>
+        <span class="n">ndihe_for_res</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="n">nchi_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
+        <span class="p">)</span>
+        <span class="n">ndihe_for_res</span><span class="p">[</span><span class="n">nchi_for_res</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">nchi_for_res</span><span class="p">[</span><span class="n">nchi_for_res</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ndihe_for_res</span></div>
+
+<div class="viewcode-block" id="DunbrackParamResolver._merge_dihedral_atom_indices"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._merge_dihedral_atom_indices">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_merge_dihedral_atom_indices</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ndihe_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">dihedral_offset_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">nchi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">phi_wanted</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">],</span>
+        <span class="n">psi_wanted</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">],</span>
+        <span class="n">chi_selected</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">6</span><span class="p">],</span>
+        <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]:</span>
         <span class="n">dihedral_offset_for_res64</span> <span class="o">=</span> <span class="n">dihedral_offset_for_res</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">n_dun_residues</span> <span class="o">=</span> <span class="n">ndihe_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">dihedral_atom_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ndihe_for_res</span><span class="p">),</span> <span class="mi">4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
-        <span class="p">)</span>
-        <span class="n">dihedral_atom_inds</span><span class="p">[</span><span class="n">dihedral_offset_for_res64</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">phi_wanted</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-        <span class="n">dihedral_atom_inds</span><span class="p">[</span><span class="n">dihedral_offset_for_res64</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">psi_wanted</span><span class="o">.</span><span class="n">type</span><span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+
+        <span class="n">nstacks</span> <span class="o">=</span> <span class="n">ndihe_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">ndihe_for_res_w_zeros</span> <span class="o">=</span> <span class="n">ndihe_for_res</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">ndihe_for_res_w_zeros</span><span class="p">[</span><span class="n">ndihe_for_res_w_zeros</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">max_ndihe</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ndihe_for_res_w_zeros</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">dihedral_atom_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_ndihe</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
         <span class="p">)</span>
 
-        <span class="n">nchi_offsets</span> <span class="o">=</span> <span class="n">exclusive_cumsum</span><span class="p">(</span><span class="n">nchi_for_res</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">real_res</span> <span class="o">=</span> <span class="n">ndihe_for_res</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">nz_real_res</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real_res</span><span class="p">)</span>
+
+        <span class="n">dihedral_atom_inds</span><span class="p">[</span>
+            <span class="n">nz_real_res</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">dihedral_offset_for_res64</span><span class="p">[</span><span class="n">real_res</span><span class="p">],</span> <span class="p">:</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">phi_wanted</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="n">real_res</span><span class="p">]</span>
+        <span class="n">dihedral_atom_inds</span><span class="p">[</span>
+            <span class="n">nz_real_res</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">dihedral_offset_for_res64</span><span class="p">[</span><span class="n">real_res</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">psi_wanted</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[</span><span class="n">real_res</span><span class="p">]</span>
+
+        <span class="n">nchi_offsets</span> <span class="o">=</span> <span class="n">exclusive_cumsum2d</span><span class="p">(</span><span class="n">nchi_for_res</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="n">chi_is_first</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">chi_selected</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
+            <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">chi_selected</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
         <span class="p">)</span>
-        <span class="n">chi_is_first</span><span class="p">[</span><span class="n">nchi_offsets</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_dun_residues</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
-        <span class="p">)</span>
-        <span class="n">res_for_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">chi_is_first</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="n">res_for_chi64</span> <span class="o">=</span> <span class="n">res_for_chi</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">offsets_for_chi</span> <span class="o">=</span> <span class="n">dihedral_offset_for_res64</span><span class="p">[</span><span class="n">res_for_chi64</span><span class="p">]</span>
+        <span class="n">chi_is_first</span><span class="p">[</span><span class="n">nz_real_res</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nchi_offsets</span><span class="p">[</span><span class="n">real_res</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">res_for_chi64</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">chi_is_first</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
 
-        <span class="n">chi_sel_ats</span> <span class="o">=</span> <span class="n">chi_selected</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span>
+        <span class="n">offsets_for_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">chi_selected</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
+        <span class="p">)</span>
+
+        <span class="n">real_chi</span> <span class="o">=</span> <span class="n">chi_selected</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+        <span class="n">nz_real_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real_chi</span><span class="p">)</span>
+        <span class="n">offsets_for_chi</span><span class="p">[</span>
+            <span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">dihedral_offset_for_res64</span><span class="p">[</span><span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">res_for_chi64</span><span class="p">[</span><span class="n">real_chi</span><span class="p">]]</span>
+
+        <span class="n">chi_sel_ats</span> <span class="o">=</span> <span class="n">chi_selected</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">:]</span>
         <span class="n">chi_selected64</span> <span class="o">=</span> <span class="n">chi_selected</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">dihedral_atom_inds</span><span class="p">[</span><span class="n">chi_selected64</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offsets_for_chi</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">chi_sel_ats</span>
+        <span class="n">dihedral_atom_inds</span><span class="p">[</span>
+            <span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">chi_selected64</span><span class="p">[</span><span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">offsets_for_chi</span><span class="p">[</span><span class="n">real_chi</span><span class="p">]</span>
+            <span class="o">+</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">chi_sel_ats</span><span class="p">[</span><span class="n">real_chi</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="n">dihedral_atom_inds</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.get_nrotameric_chi_for_res"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.get_nrotameric_chi_for_res">[docs]</a>    <span class="k">def</span> <span class="nf">get_nrotameric_chi_for_res</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nchi_for_res</span><span class="p">,</span> <span class="n">s_inds</span><span class="p">):</span>
+<div class="viewcode-block" id="DunbrackParamResolver._get_nrotameric_chi_for_res"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._get_nrotameric_chi_for_res">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_get_nrotameric_chi_for_res</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">nchi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">s_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]:</span>
         <span class="n">nrotameric_chi_for_res</span> <span class="o">=</span> <span class="n">nchi_for_res</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
         <span class="n">nrotameric_chi_for_res</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">nrotameric_chi_for_res</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="k">return</span> <span class="n">nrotameric_chi_for_res</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.find_rotres2resid"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.find_rotres2resid">[docs]</a>    <span class="k">def</span> <span class="nf">find_rotres2resid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nres</span><span class="p">,</span> <span class="n">r_inds</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nres</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)[</span><span class="n">r_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="DunbrackParamResolver.create_rotameric_chi_descriptors"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_rotameric_chi_descriptors">[docs]</a>    <span class="k">def</span> <span class="nf">create_rotameric_chi_descriptors</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">nrotameric_chi_for_res</span><span class="p">,</span> <span class="n">rns_inds</span><span class="p">,</span> <span class="n">rotres2resid</span><span class="p">,</span> <span class="n">torch_device</span>
-    <span class="p">):</span>
-        <span class="n">nrotameric_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nrotameric_chi_for_res</span><span class="p">)</span>
-        <span class="n">nrotameric_chi_for_res_offsets</span> <span class="o">=</span> <span class="n">exclusive_cumsum</span><span class="p">(</span><span class="n">nrotameric_chi_for_res</span><span class="p">)</span>
-
-        <span class="n">rotameric_chi_desc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">nrotameric_chi</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
+<div class="viewcode-block" id="DunbrackParamResolver._find_rotres2resid"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._find_rotres2resid">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_find_rotres2resid</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">r_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span> <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:]:</span>
+        <span class="n">r_inds_condensed</span> <span class="o">=</span> <span class="n">condense_torch_inds</span><span class="p">(</span><span class="n">r_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+        <span class="n">rotres2resid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="n">r_inds_condensed</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
         <span class="p">)</span>
+        <span class="n">rotres2resid</span><span class="p">[</span><span class="n">r_inds_condensed</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">r_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">int32</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">rotres2resid</span></div>
+
+<div class="viewcode-block" id="DunbrackParamResolver._get_prob_table_offsets_for_rotresidues"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._get_prob_table_offsets_for_rotresidues">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_get_prob_table_offsets_for_rotresidues</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">db_aux</span><span class="p">:</span> <span class="n">PackedDunbrackDatabaseAux</span><span class="p">,</span>
+        <span class="n">rotres2resid</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">r_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">take_values_w_sentineled_index_and_dest</span><span class="p">(</span>
+            <span class="n">db_aux</span><span class="o">.</span><span class="n">rotameric_prob_tableset_offsets</span><span class="p">,</span> <span class="n">r_inds</span><span class="p">,</span> <span class="n">rotres2resid</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DunbrackParamResolver._create_rotameric_chi_descriptors"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_rotameric_chi_descriptors">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_create_rotameric_chi_descriptors</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">nrotameric_chi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">rns_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">rns_inds_to_keep</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">nz_rns_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">rotres2resid</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Create the array that says for each of the rotameric chi</span>
+<span class="sd">        0: what (dunbrack) residue (i.e. not Pose residue) does it belong to, and</span>
+<span class="sd">        1: which chi for that residue is it (i.e. the 1st chi (0), 2nd chi (1) etc).</span>
+<span class="sd">        A sentinel value of -1 is used for chi that are not real.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">nstacks</span> <span class="o">=</span> <span class="n">rns_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">nrotameric_chi_for_res_w_zeros</span> <span class="o">=</span> <span class="n">nrotameric_chi_for_res</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">nrotameric_chi_for_res_w_zeros</span><span class="p">[</span><span class="n">nrotameric_chi_for_res</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># for each stack, how many rotameric chi are there to score?</span>
+        <span class="n">nrotameric_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">nrotameric_chi_for_res_w_zeros</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># what is the largest number of rotameric chi across all stacks?</span>
+        <span class="n">max_nrotameric_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">nrotameric_chi</span><span class="p">)</span>
+        <span class="n">nrotameric_chi_for_res_offsets</span> <span class="o">=</span> <span class="n">exclusive_cumsum2d</span><span class="p">(</span><span class="n">nrotameric_chi_for_res</span><span class="p">)</span>
+
+        <span class="c1"># the tensor returned by this function</span>
+        <span class="n">rotameric_chi_desc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_nrotameric_chi</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
+        <span class="p">)</span>
+
+        <span class="n">nrotchi_offsets64</span> <span class="o">=</span> <span class="n">nrotameric_chi_for_res_offsets</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">real_res</span> <span class="o">=</span> <span class="n">rns_inds_to_keep</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">nz_real_res</span> <span class="o">=</span> <span class="n">nz_rns_inds</span>
+
+        <span class="c1"># the subset of the output tensor that are real; e.g. if stack 0</span>
+        <span class="c1"># has 4 rotameric chi and stack 1 has 5, then the entry</span>
+        <span class="c1"># rotameric_chi_desc[0,4,:] will be [-1,-1]</span>
+        <span class="c1"># the &quot;real_chi&quot; tensor is a boolean mask of the chi that are real</span>
+        <span class="c1"># compare the count from 0..max_nrotameric_chi-1 to the number of chi</span>
+        <span class="c1"># for the corresponding stack</span>
+        <span class="n">real_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">max_nrotameric_chi</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">nstacks</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">((</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">max_nrotameric_chi</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">nrotameric_chi</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">nz_real_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">real_chi</span><span class="p">)</span>
 
         <span class="n">chi_is_first</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">nrotameric_chi</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
+            <span class="p">(</span><span class="n">rns_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">max_nrotameric_chi</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="n">chi_is_first</span><span class="p">[</span><span class="n">nrotameric_chi_for_res_offsets</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">nrotameric_chi_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
-        <span class="p">)</span>
-        <span class="n">res_for_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">chi_is_first</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="n">rotameric_chi_desc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-            <span class="n">rns_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
-        <span class="p">)[</span><span class="n">res_for_chi</span><span class="p">]</span>
+        <span class="n">chi_is_first</span><span class="p">[</span><span class="n">nz_real_res</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nrotchi_offsets64</span><span class="p">[</span><span class="n">real_res</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">res_for_chi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">chi_is_first</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
 
-        <span class="n">offsets_for_chi</span> <span class="o">=</span> <span class="n">nrotameric_chi_for_res_offsets</span><span class="p">[</span><span class="n">res_for_chi</span><span class="p">]</span>
+        <span class="n">rotameric_chi_desc</span><span class="p">[</span><span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">res_for_chi</span><span class="p">[</span>
+            <span class="n">real_chi</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
-        <span class="n">rotameric_chi_desc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nrotameric_chi</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span><span class="p">)</span>
-            <span class="o">-</span> <span class="n">offsets_for_chi</span>
+        <span class="c1"># 1D array for the real chi of the offset for their residue</span>
+        <span class="n">offsets_for_chi</span> <span class="o">=</span> <span class="n">nrotameric_chi_for_res_offsets</span><span class="p">[</span>
+            <span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">res_for_chi</span><span class="p">[</span><span class="n">real_chi</span><span class="p">]</span>
+        <span class="p">]</span>
+
+        <span class="c1"># now, store the per-residue index for each of the rotameric chi</span>
+        <span class="n">rotameric_chi_desc</span><span class="p">[</span><span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">nz_real_chi</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">-</span> <span class="n">offsets_for_chi</span>
         <span class="p">)</span>
+
         <span class="k">return</span> <span class="n">rotameric_chi_desc</span></div>
 
-<div class="viewcode-block" id="DunbrackParamResolver.create_semirotameric_chi_descriptors"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver.create_semirotameric_chi_descriptors">[docs]</a>    <span class="k">def</span> <span class="nf">create_semirotameric_chi_descriptors</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">s_inds</span><span class="p">,</span> <span class="n">dihedral_offset_for_res</span><span class="p">,</span> <span class="n">nchi_for_res</span><span class="p">,</span> <span class="n">torch_device</span>
-    <span class="p">):</span>
-        <span class="c1"># semirotchi_desc[:,0] == residue index</span>
-        <span class="c1"># semirotchi_desc[:,1] == semirotchi_dihedral_index res</span>
-        <span class="c1"># semirotchi_desc[:,2] == semirot_table_offset</span>
-        <span class="c1"># semirotchi_desc[:,3] == semirot_table_set (in the range 0-7</span>
-        <span class="c1">#                         for the 8 semirot aas)</span>
+<div class="viewcode-block" id="DunbrackParamResolver._create_semirotameric_chi_descriptors"><a class="viewcode-back" href="../../../../apidoc/tmol.score.dunbrack.params.html#tmol.score.dunbrack.params.DunbrackParamResolver._create_semirotameric_chi_descriptors">[docs]</a>    <span class="nd">@validate_args</span>
+    <span class="k">def</span> <span class="nf">_create_semirotameric_chi_descriptors</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">s_inds</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">dihedral_offset_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:],</span>
+        <span class="n">nchi_for_res</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+        <span class="n">torch_device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)[:,</span> <span class="p">:,</span> <span class="mi">4</span><span class="p">]:</span>
+        <span class="c1"># semirotchi_desc[:, :,0] == residue index</span>
+        <span class="c1"># semirotchi_desc[:, :,1] == semirotchi_dihedral_index res</span>
+        <span class="c1"># semirotchi_desc[:, :,2] == semirot_table_offset</span>
+        <span class="c1"># semirotchi_desc[:, :,3] == semirot_table_set (in the range 0-7</span>
+        <span class="c1">#                            for the 8 semirot aas)</span>
 
-        <span class="n">n_semirotameric_res</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">semirotameric_chi_desc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">n_semirotameric_res</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
+        <span class="c1"># s_inds.shape[1] is the number of dunbrack residues</span>
+        <span class="k">assert</span> <span class="n">s_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">dihedral_offset_for_res</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">nstacks</span> <span class="o">=</span> <span class="n">s_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">real_sres</span> <span class="o">=</span> <span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">sres_keep</span> <span class="o">=</span> <span class="n">condense_torch_inds</span><span class="p">(</span><span class="n">real_sres</span><span class="p">,</span> <span class="n">torch_device</span><span class="p">)</span>
+        <span class="n">nz_sres_keep</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">sres_keep</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">semirotameric_chi_desc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">nstacks</span><span class="p">,</span> <span class="n">sres_keep</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">4</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
         <span class="p">)</span>
-        <span class="n">semirotameric_chi_desc</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-            <span class="n">s_inds</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">torch_device</span>
-        <span class="p">)[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">semirotameric_chi_desc</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sres_keep</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
         <span class="c1"># the semirotameric chi is the last chi, so, from the residue&#39;s dihedral offset</span>
         <span class="c1"># add 2 for the two backbone dihedrals and (the number of chi - 1)</span>
-        <span class="n">semirotameric_chi_desc</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">semirotameric_chi_desc</span><span class="p">[</span><span class="n">nz_sres_keep</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_sres_keep</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">dihedral_offset_for_res</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">nchi_for_res</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="n">semirotameric_chi_desc</span><span class="p">[</span>
-            <span class="p">:,</span> <span class="mi">2</span>
+            <span class="n">nz_sres_keep</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_sres_keep</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">2</span>
         <span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">packed_db_aux</span><span class="o">.</span><span class="n">semirotameric_tableset_offsets</span><span class="p">[</span><span class="n">s_inds</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
-        <span class="n">semirotameric_chi_desc</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">s_inds</span><span class="p">[</span><span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">semirotameric_chi_desc</span><span class="p">[</span><span class="n">nz_sres_keep</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">nz_sres_keep</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">s_inds</span><span class="p">[</span>
+            <span class="n">s_inds</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">semirotameric_chi_desc</span></div></div>
 </pre></div>

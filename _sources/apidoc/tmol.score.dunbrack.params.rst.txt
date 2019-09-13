@@ -7,7 +7,7 @@ tmol.score.dunbrack.params
 .. currentmodule:: tmol.score.dunbrack.params
 
 .. automodule:: tmol.score.dunbrack.params
-    :members: DunbrackParamResolver, DunbrackParams, DunbrackScratch, PackedDunbrackDatabase, PackedDunbrackDatabaseAux, exclusive_cumsum, nplus1d_tensor_from_list, print_row_numbered_tensor
+    :members: DunbrackParamResolver, DunbrackParams, DunbrackScratch, PackedDunbrackDatabase, PackedDunbrackDatabaseAux, exclusive_cumsum1d, exclusive_cumsum2d, nplus1d_tensor_from_list
     :undoc-members:
     :show-inheritance:
     :member-order: bysource
@@ -33,9 +33,9 @@ tmol.score.dunbrack.params
     .. autosummary::
         :nosignatures:
 
-        exclusive_cumsum
+        exclusive_cumsum1d
+        exclusive_cumsum2d
         nplus1d_tensor_from_list
-        print_row_numbered_tensor
 
 
 
