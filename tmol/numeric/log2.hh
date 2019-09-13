@@ -14,7 +14,7 @@ most_sig_bit128(unsigned int x) {
   return 1 << (31 - __clz(x));
 #else
 
-  // Adapted from the "Most Significant 1 Bit" function from:
+  // From the "Most Significant 1 Bit" function from:
   //
   // @techreport{magicalgorithms,
   // author={Henry Gordon Dietz},
@@ -25,11 +25,11 @@ most_sig_bit128(unsigned int x) {
   // }
   // Date fetched: 2019/9/2
 
-  x |= x >> 1;
-  x |= x >> 2;
-  x |= x >> 4;
-  x |= x >> 8;
-  x |= x >> 16;
+  x |= (x >> 1);
+  x |= (x >> 2);
+  x |= (x >> 4);
+  x |= (x >> 8);
+  x |= (x >> 16);
   return x & ~(x >> 1);
 
 #endif
