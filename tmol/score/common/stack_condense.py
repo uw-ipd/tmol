@@ -34,9 +34,12 @@ def condense_numpy_inds(selection: NDArray(bool)[:, :]):
     entry with a sentinel of -1.
 
     e.g. if the input is
+
     [[ 0  1  0  1]
     [  1  1  0  1]]
+
     then the output will be
+
     [[ 1  3 -1]
     [  0  1  3]]
     """
@@ -93,9 +96,12 @@ def take_values_w_sentineled_index(
 
     E.g. if the value tensor is [10 11 12 13 14 15]
     and the sentineled_index_tensor is
+
     [[ 2 1 2 5 -1]
     [  1 4 1 5  2]]
+
     then the output tensor will be
+
     [[ 12 11 12 15 -1]
     [  11 14 11 15  12]]
     """
@@ -174,7 +180,7 @@ def take_values_w_sentineled_dest(
 
     E.g. if the value tensor is
     [[10 11 12 13 14],
-     [20 21 22 23 24]]
+    [ 20 21 22 23 24]]
     the values_to_take tensor is
     [[ 1  0  1  1  0]
     [  1  1  0  1  1]],
@@ -184,7 +190,7 @@ def take_values_w_sentineled_dest(
 
     then the output tensor will be
     [[10 12 13 -1]
-     [20 21 23 24]]
+    [ 20 21 23 24]]
     """
 
     assert value_tensor.shape == values_to_take.shape
@@ -209,10 +215,10 @@ def condense_subset(
 
     E.g. if the values tensor is
     [[[10 10] [11 11] [12 12] [13 13] [14 14]],
-     [[20 20] [21 21] [22 22] [23 23] [24 24]]]
+    [ [20 20] [21 21] [22 22] [23 23] [24 24]]]
     the values_to_keep tensor is
     [[1 0 1 1 0]
-     [1 1 0 1 1]]
+    [ 1 1 0 1 1]]
 
     then the output tensor will be
     [[ [10 10] [12 12] [13 13] [ -1 -1]]
@@ -259,7 +265,7 @@ def take_condensed_3d_subset(
 
     E.g. if the values tensor is
     [[[10 10] [11 11] [12 12] [13 13] [14 14]],
-     [[20 20] [21 21] [22 22] [23 23] [24 24]]]
+    [ [20 20] [21 21] [22 22] [23 23] [24 24]]]
     the condensed_inds_to_keep tensor is
     [[ 0 -1  2  3]
     [  4  3  2  4]],
