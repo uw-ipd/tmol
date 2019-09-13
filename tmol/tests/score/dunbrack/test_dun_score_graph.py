@@ -271,7 +271,7 @@ def test_cartesian_space_dun_gradcheck(ubq_res, torch_device):
         real_space.coords = state_coords
         return real_space.intra_score().total
 
-    result = torch.autograd.gradcheck(
+    torch.autograd.gradcheck(
         total_score, (start_coords,), eps=2e-3, atol=5e-2, raise_exception=False
     )
 
