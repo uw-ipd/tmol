@@ -1,8 +1,11 @@
 import numpy
 import torch
+import pandas
 
 from tmol.kinematics.operations import inverseKin, forwardKin
 from tmol.kinematics.builder import KinematicBuilder
+from tmol.system.packed import PackedResidueSystem, PackedResidueSystemStack
+from tmol.score.bonded_atom import BondedAtomScoreGraph
 
 
 def test_builder_refold(ubq_system):
@@ -79,3 +82,34 @@ def test_builder_framing(ubq_system):
         kintree.frame_z[normal_atoms],
         kintree.parent[kintree.parent[normal_atoms].to(dtype=torch.long)],
     )
+
+def test_build_two_system_kinematics(ubq_system):
+    natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq_system.coords[:,0])))
+    
+    dev_cpu = torch.device("cpu") # temp
+    twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
+    bonds = BondedAtomScoreGraph.build_for(twoubq, device=dev_cpu)
+    roots = numpy.array((0, twoubq.systems[0].system_size), dtype=int)
+    
+    ids, parents = KinematicBuilder.bonds_to_connected_component(
+        roots=roots,
+        bonds=bonds.bonds,
+        system_size=int(twoubq.systems[0].system_size),
+    )
+
+    id_index = pandas.Index(ids)
+    root_index = id_index.get_indexer(roots)
+
+    builder = KinematicBuilder()
+    builder2 = builder.append_connected_components(
+        roots=roots,
+        ids=ids,
+        parent_ids=parents,
+    )
+
+    tree = builder2.kintree
+    assert tree.id.shape[0] == 2 * natoms + 1
+    assert tree.id[1] == 0
+    assert tree.parent[1 + root_index[0]] == root_index[0]
+    assert tree.parent[1 + root_index[1]] == root_index[1]
+
