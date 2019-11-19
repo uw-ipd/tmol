@@ -11,15 +11,10 @@ from tmol.score.bonded_atom import BondedAtomScoreGraph
 def test_builder_refold(ubq_system):
     tsys = ubq_system
 
-    bonds = numpy.concatenate(
-        (numpy.zeros((tsys.bonds.shape[0],1),dtype=int), tsys.bonds),
-        axis=1
-    )
-
     kintree = (
         KinematicBuilder()
         .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, bonds)
+            *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
         )
         .kintree
     )
@@ -39,14 +34,10 @@ def test_builder_refold(ubq_system):
 def test_builder_framing(ubq_system):
     """Test first-three-atom framing logic in kinematic builder."""
     tsys = ubq_system
-    bonds = numpy.concatenate(
-        (numpy.zeros((tsys.bonds.shape[0],1),dtype=int), tsys.bonds),
-        axis=1
-    )
     kintree = (
         KinematicBuilder()
         .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, bonds)
+            *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
         )
         .kintree
     )
