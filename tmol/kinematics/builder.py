@@ -90,31 +90,54 @@ class KinematicBuilder:
         )
         return bonds_csr
 
+    @classmethod
+    @validate_args
+    def faux_bonds_between_roots(
+        cls,
+        roots: NDArray(int)[:],
+        natoms_total: int
+    ) -> Union[sparse.spmatrix, int]:
+        """Construct a csgraph with edges from the first root to all
+        other roots, if there are other roots. Otherwise, return 0.
+        The size of this csgraph should be the total number of
+        atoms in all stacks.
+        """
+        if roots.shape[0] > 1:
+            root_faux_bonds = numpy.full((roots.shape[0]-1, 3), roots[0], dtype=int)
+            root_faux_bonds[:,0] = 0
+            root_faux_bonds[:,1] = roots[1:]
+            return cls.bonds_to_csgraph(
+                root_faux_bonds,
+                system_size=natoms_total
+            )
+        else:
+            return 0
 
     @classmethod
     @validate_args
     def bonds_to_connected_component(
         cls,
-        roots: NDArray(int)[:],
+        roots: Union[NDArray(int)[:], int],
         bonds: Union[NDArray(int)[:, 3], sparse.spmatrix],
-        system_size: int
+        system_size: int = -1
     ) -> ChildParentTuple:
+        if system_size < 0:
+            system_size = max(bonds[:,1].max(), bonds[:,2].max()) + 1
+
+        if not isinstance(roots, numpy.ndarray):
+            # create a numpy array from the integer input
+            roots = numpy.array([roots], dtype=int)
+
         if isinstance(bonds, numpy.ndarray):
             # Bonds are a non-prioritized set of edges, assume arbitrary
             # connectivity from the root is allowed.
-            bond_graph = cls.bonds_to_csgraph(bonds, system_size=system_size)
-        
-            if roots.shape[0] > 1:
-                root_faux_bonds = numpy.full((roots.shape[0]-1, 3), roots[0], dtype=int)
-                root_faux_bonds[:,0] = 0
-                root_faux_bonds[:,1] = roots[1:]
-                bond_graph = (
-                    bond_graph +
-                     cls.bonds_to_csgraph(
-                         root_faux_bonds,
-                         system_size=system_size*(1+bonds[:,0].max())
-                     )
+            bond_graph = (
+                cls.bonds_to_csgraph(bonds, system_size=system_size) +
+                cls.faux_bonds_between_roots(
+                    roots=roots,
+                    natoms_total=int(system_size*(1+bonds[:,0].max()))
                 )
+            )
         else:
             # Sparse graph with per-bond weights, generate the minimum
             # spanning tree of the connections before traversing from
@@ -166,20 +189,24 @@ class KinematicBuilder:
         kin_stree.frame_x[:] = torch.arange(len(ids)) + kin_start
         kin_stree.frame_y[:] = parent_indices + kin_start
         kin_stree.frame_z[:] = grandparent_indices + kin_start
-        
-        # Go back and rewrite the entries for the roots and their children
-        # Define the jump DOF of the root, connecting back into existing kintree
-        for i, root in enumerate(root_indices):
-            kin_stree.doftype[root] = NodeType.jump
-            kin_stree.parent[root] = root + component_parent
 
-            # Fixup the orientation frame of the root and its children.
-            # The root is self-parented, so drop the first match.
+        # Go back and rewrite the entries for the roots and their children.
+        # Define the jump DOF of the root, connecting back into existing
+        # kintree.
+        kin_stree.doftype[root_indices] = NodeType.jump
+        kin_stree.parent[root_indices] = component_parent
+
+        # Fixup the orientation frames of the root and its children.
+        # The root is self-parented, so drop the first match.
+        # I feel like this loop will be slow when building trees
+        # for rotamers, where (nroots x natoms) is large.
+        for root in root_indices:
+
             int_root, *root_children = [int(i) for i in torch.nonzero(parent_indices == root)]
             assert len(root_children) >= 2, "root of bonded tree must have two children"
             assert root == int_root
             root_c1, *root_sibs = root_children
-            root_sibs = torch.LongTensor(root_sibs)
+            root_sibs = torch. LongTensor(root_sibs)
 
             kin_stree.frame_x[[int_root, root_c1]] = root_c1 + kin_start
             kin_stree.frame_y[[int_root, root_c1]] = int_root + kin_start
@@ -193,75 +220,79 @@ class KinematicBuilder:
 
         return attr.evolve(self, kintree=cat((self.kintree, kin_stree)))
 
-            
+
     @convert_args
     def append_connected_component(
         self, ids: Tensor(int)[:], parent_ids: Tensor(int)[:], component_parent=0
     ):
-        assert (
-            ids.shape == parent_ids.shape
-        ), "elements and parents must be of same length"
-        assert len(ids) > 3, "Bonded ktree must have at least three entries"
-        assert component_parent < len(self.kintree) and component_parent >= -1
-
-        # Assert that there is a single connected component?
-
-        # Root node is self-parented for the purpose of verifying the
-        # connected component tree structure, will be rewritten with jump to
-        # the component root frame.
-        parent_ids[0] = ids[0]
-
-        # Create an index of all component ids in the graph and get component
-        # parent and parent-parent indices
-        id_index = pandas.Index(ids)
-        parent_indices = torch.LongTensor(id_index.get_indexer(parent_ids))
-        grandparent_indices = parent_indices[parent_indices]
-
-        # Verify that ids are unique and that all parent references are valid,
-        # get_indexer returns -1 if a target value is not present in index.
-        assert not id_index.has_duplicates, "Duplicated id in component"
-        assert numpy.all(parent_indices >= 0), "Parent id not present in component."
-
-        # Allocate entries for the new subtree and store the provided ids in
-        # the kintree id column. All internal kintree references,
-        # (parent/frame) will be wrt kinetree indices, not ids.
-        kin_stree = KinTree.full(len(ids), 0)
-        kin_stree.id[:] = ids
-
-        # Calculate the start index of the kinematic tree block this new
-        # subtree will occupy, construct all parent & frame references wrt this
-        # start index.
-        kin_start = len(self.kintree)
-
-        # Start by writing the the standard, non-root entries of the graph.
-        kin_stree.doftype[:] = NodeType.bond
-        kin_stree.parent[:] = parent_indices + kin_start
-        kin_stree.frame_x[:] = torch.arange(len(ids)) + kin_start
-        kin_stree.frame_y[:] = parent_indices + kin_start
-        kin_stree.frame_z[:] = grandparent_indices + kin_start
-
-        # Go back and rewrite the entries for the root and its children
-        # Define the jump DOF of the root, connecting back into existing kintree
-        kin_stree.doftype[0] = NodeType.jump
-        kin_stree.parent[0] = component_parent
-
-        # Fixup the orientation frame of the root and its children.
-        # The root is self-parented at zero, so drop the first match.
-        root, *root_children = [int(i) for i in torch.nonzero(parent_indices == 0)]
-        assert len(root_children) >= 2, "root of bonded tree must have two children"
-        assert root == 0, "root must be self parented, was set above"
-        root_c1, *root_sibs = root_children
-        root_sibs = torch.LongTensor(root_sibs)
-
-        kin_stree.frame_x[[root, root_c1]] = root_c1 + kin_start
-        kin_stree.frame_y[[root, root_c1]] = root + kin_start
-        kin_stree.frame_z[[root, root_c1]] = (
-            first(root_sibs).to(dtype=torch.int) + kin_start
-        )
-
-        kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
-        kin_stree.frame_y[root_sibs] = root + kin_start
-        kin_stree.frame_z[root_sibs] = root_c1 + kin_start
-
-        # Append the subtree onto the kintree.
-        return attr.evolve(self, kintree=cat((self.kintree, kin_stree)))
+        return self.append_connected_components(
+            roots=torch.zeros((1,), dtype=torch.int32),
+            ids=ids, parent_ids=parent_ids,
+            component_parent=component_parent )
+        #  assert (
+        #      ids.shape == parent_ids.shape
+        #  ), "elements and parents must be of same length"
+        #  assert len(ids) > 3, "Bonded ktree must have at least three entries"
+        #  assert component_parent < len(self.kintree) and component_parent >= -1
+        #  
+        #  # Assert that there is a single connected component?
+        #  
+        #  # Root node is self-parented for the purpose of verifying the
+        #  # connected component tree structure, will be rewritten with jump to
+        #  # the component root frame.
+        #  parent_ids[0] = ids[0]
+        #  
+        #  # Create an index of all component ids in the graph and get component
+        #  # parent and parent-parent indices
+        #  id_index = pandas.Index(ids)
+        #  parent_indices = torch.LongTensor(id_index.get_indexer(parent_ids))
+        #  grandparent_indices = parent_indices[parent_indices]
+        #  
+        #  # Verify that ids are unique and that all parent references are valid,
+        #  # get_indexer returns -1 if a target value is not present in index.
+        #  assert not id_index.has_duplicates, "Duplicated id in component"
+        #  assert numpy.all(parent_indices >= 0), "Parent id not present in component."
+        #  
+        #  # Allocate entries for the new subtree and store the provided ids in
+        #  # the kintree id column. All internal kintree references,
+        #  # (parent/frame) will be wrt kinetree indices, not ids.
+        #  kin_stree = KinTree.full(len(ids), 0)
+        #  kin_stree.id[:] = ids
+        #  
+        #  # Calculate the start index of the kinematic tree block this new
+        #  # subtree will occupy, construct all parent & frame references wrt this
+        #  # start index.
+        #  kin_start = len(self.kintree)
+        #  
+        #  # Start by writing the the standard, non-root entries of the graph.
+        #  kin_stree.doftype[:] = NodeType.bond
+        #  kin_stree.parent[:] = parent_indices + kin_start
+        #  kin_stree.frame_x[:] = torch.arange(len(ids)) + kin_start
+        #  kin_stree.frame_y[:] = parent_indices + kin_start
+        #  kin_stree.frame_z[:] = grandparent_indices + kin_start
+        #  
+        #  # Go back and rewrite the entries for the root and its children
+        #  # Define the jump DOF of the root, connecting back into existing kintree
+        #  kin_stree.doftype[0] = NodeType.jump
+        #  kin_stree.parent[0] = component_parent
+        #  
+        #  # Fixup the orientation frame of the root and its children.
+        #  # The root is self-parented at zero, so drop the first match.
+        #  root, *root_children = [int(i) for i in torch.nonzero(parent_indices == 0)]
+        #  assert len(root_children) >= 2, "root of bonded tree must have two children"
+        #  assert root == 0, "root must be self parented, was set above"
+        #  root_c1, *root_sibs = root_children
+        #  root_sibs = torch.LongTensor(root_sibs)
+        #  
+        #  kin_stree.frame_x[[root, root_c1]] = root_c1 + kin_start
+        #  kin_stree.frame_y[[root, root_c1]] = root + kin_start
+        #  kin_stree.frame_z[[root, root_c1]] = (
+        #      first(root_sibs).to(dtype=torch.int) + kin_start
+        #  )
+        #  
+        #  kin_stree.frame_x[root_sibs] = root_sibs.to(dtype=torch.int) + kin_start
+        #  kin_stree.frame_y[root_sibs] = root + kin_start
+        #  kin_stree.frame_z[root_sibs] = root_c1 + kin_start
+        #  
+        #  # Append the subtree onto the kintree.
+        #  return attr.evolve(self, kintree=cat((self.kintree, kin_stree)))
