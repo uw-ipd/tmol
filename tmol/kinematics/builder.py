@@ -42,11 +42,27 @@ class KinematicBuilder:
     @convert_args
     def component_for_prioritized_bonds(
         cls,
-        roots: NDArray(int)[:],
-        mandatory_bonds: NDArray(int)[:, 3],
-        all_bonds: NDArray(int)[:, 3],
+        roots: Union[NDArray(int)[:], int],
+        mandatory_bonds: Union[NDArray(int)[:, 3], NDArray(int)[:, 2]],
+        all_bonds: Union[NDArray(int)[:, 3], NDArray(int)[:, 2]],
     ) -> ChildParentTuple:
-        system_size = max(mandatory_bonds[1:3].max(), all_bonds[1:3].max()) + 1
+        assert mandatory_bonds.shape[1] == all_bonds.shape[1]
+        if not isinstance(roots, numpy.ndarray):
+            # create array from the single integer root input
+            roots = numpy.array([roots], dtype=int)
+
+        # interpret an Nx2 bonds array as representing a single stack
+        if mandatory_bonds.shape[1] == 2:
+            mandatory_bonds = numpy.concatenate(
+                (numpy.zeros((mandatory_bonds.shape[0],1),dtype=int), mandatory_bonds),
+                axis=1
+            )
+            all_bonds = numpy.concatenate(
+                (numpy.zeros((all_bonds.shape[0],1),dtype=int), all_bonds),
+                axis=1
+            )
+
+        system_size = max(mandatory_bonds[:, 1:3].max(), all_bonds[:, 1:3].max()) + 1
 
         weighted_bonds = (
             # All entries must be non-zero or sparse graph tools will entries.
@@ -54,14 +70,14 @@ class KinematicBuilder:
             + cls.bonds_to_csgraph(mandatory_bonds, [-1e-5], system_size)
         )
 
-        ids, parents = cls.bonds_to_connected_component(root, weighted_bonds)
+        ids, parents = cls.bonds_to_connected_component(roots, weighted_bonds)
 
         # Verify construction
         component_bond_graph = cls.bonds_to_csgraph(
             numpy.block([[parents[1:], ids[1:]], [ids[1:], parents[1:]]]).T
         )
         bond_present = component_bond_graph[
-            mandatory_bonds[:, 0], mandatory_bonds[:, 1]
+            mandatory_bonds[:, 1], mandatory_bonds[:, 2]
         ]
         assert numpy.all(
             bond_present
@@ -73,10 +89,18 @@ class KinematicBuilder:
     @convert_args
     def bonds_to_csgraph(
         cls,
-        bonds: NDArray(int)[:, 3],
+        bonds: Union[NDArray(int)[:, 3], NDArray(int)[:,2]],
         weights: NDArray(float)[:] = numpy.ones(1),  # noqa
         system_size: Optional[int] = None,
     ) -> sparse.csr_matrix:
+
+        # interpret an Nx2 bonds array as representing a single stack
+        if bonds.shape[1] == 2:
+            bonds = numpy.concatenate(
+                (numpy.zeros((bonds.shape[0],1),dtype=int), bonds),
+                axis=1
+            )
+
         if not system_size:
             system_size = (bonds[:,1:3].max() + 1)
 
@@ -118,11 +142,9 @@ class KinematicBuilder:
     def bonds_to_connected_component(
         cls,
         roots: Union[NDArray(int)[:], int],
-        bonds: Union[NDArray(int)[:, 3], sparse.spmatrix],
-        system_size: int = -1
+        bonds: Union[NDArray(int)[:, 3], NDArray(int)[:, 2], sparse.spmatrix],
+        system_size: Optional[int] = None
     ) -> ChildParentTuple:
-        if system_size < 0:
-            system_size = max(bonds[:,1].max(), bonds[:,2].max()) + 1
 
         if not isinstance(roots, numpy.ndarray):
             # create a numpy array from the integer input
@@ -131,6 +153,14 @@ class KinematicBuilder:
         if isinstance(bonds, numpy.ndarray):
             # Bonds are a non-prioritized set of edges, assume arbitrary
             # connectivity from the root is allowed.
+            if bonds.shape[1] == 2:
+                bonds = numpy.concatenate(
+                    (numpy.zeros((bonds.shape[0],1),dtype=int), bonds),
+                    axis=1
+                )
+            if system_size is None:
+                system_size = max(bonds[:,1].max(), bonds[:,2].max()) + 1
+
             bond_graph = (
                 cls.bonds_to_csgraph(bonds, system_size=system_size) +
                 cls.faux_bonds_between_roots(

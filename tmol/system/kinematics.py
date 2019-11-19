@@ -35,14 +35,24 @@ class KinematicDescription:
         coordinate. Note that this is a covering of indices within the system
         "non-atom" ids are not present in the tree.
         """
+
+        # right-pad with zeros to denote all bonds within a single system
+        bonds = numpy.concatenate(
+            (numpy.zeros((bonds.shape[0],1),dtype=int), bonds),
+            axis=1
+        )
         torsion_pairs = numpy.block(
             [[torsion_metadata["atom_index_b"]], [torsion_metadata["atom_index_c"]]]
         ).T
         torsion_bonds = torsion_pairs[numpy.all(torsion_pairs > 0, axis=-1)]
+        torsion_bonds = numpy.concatenate(
+            (numpy.zeros((torsion_bonds.shape[0],1), dtype=int), torsion_bonds),
+             axis=1
+        )
 
         builder = KinematicBuilder().append_connected_component(
             *KinematicBuilder.component_for_prioritized_bonds(
-                root=0, mandatory_bonds=torsion_bonds, all_bonds=bonds
+                roots=0, mandatory_bonds=torsion_bonds, all_bonds=bonds
             )
         )
 

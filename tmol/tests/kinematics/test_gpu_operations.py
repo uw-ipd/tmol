@@ -10,10 +10,15 @@ from tmol.tests.torch import requires_cuda
 
 
 def system_kintree(target_system):
+    tsys = target_system
+    bonds = numpy.concatenate(
+        (numpy.zeros((tsys.bonds.shape[0],1),dtype=int), tsys.bonds),
+        axis=1
+    )    
     return (
         KinematicBuilder()
         .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, target_system.bonds)
+            *KinematicBuilder.bonds_to_connected_component(0, bonds)
         )
         .kintree
     )
