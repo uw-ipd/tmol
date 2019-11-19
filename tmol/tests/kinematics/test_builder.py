@@ -11,10 +11,15 @@ from tmol.score.bonded_atom import BondedAtomScoreGraph
 def test_builder_refold(ubq_system):
     tsys = ubq_system
 
+    bonds = numpy.concatenate(
+        (numpy.zeros((tsys.bonds.shape[0],1),dtype=int), tsys.bonds),
+        axis=1
+    )
+
     kintree = (
         KinematicBuilder()
         .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
+            *KinematicBuilder.bonds_to_connected_component(0, bonds)
         )
         .kintree
     )
@@ -34,10 +39,14 @@ def test_builder_refold(ubq_system):
 def test_builder_framing(ubq_system):
     """Test first-three-atom framing logic in kinematic builder."""
     tsys = ubq_system
+    bonds = numpy.concatenate(
+        (numpy.zeros((tsys.bonds.shape[0],1),dtype=int), tsys.bonds),
+        axis=1
+    )
     kintree = (
         KinematicBuilder()
         .append_connected_component(
-            *KinematicBuilder.bonds_to_connected_component(0, tsys.bonds)
+            *KinematicBuilder.bonds_to_connected_component(0, bonds)
         )
         .kintree
     )
@@ -89,20 +98,20 @@ def test_build_two_system_kinematics(ubq_system):
     dev_cpu = torch.device("cpu") # temp
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
     bonds = BondedAtomScoreGraph.build_for(twoubq, device=dev_cpu)
-    roots = numpy.array((0, twoubq.systems[0].system_size), dtype=int)
+    tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=int)
     
     ids, parents = KinematicBuilder.bonds_to_connected_component(
-        roots=roots,
+        roots=tworoots,
         bonds=bonds.bonds,
         system_size=int(twoubq.systems[0].system_size),
     )
 
     id_index = pandas.Index(ids)
-    root_index = id_index.get_indexer(roots)
+    root_index = id_index.get_indexer(tworoots)
 
     builder = KinematicBuilder()
     builder2 = builder.append_connected_components(
-        roots=roots,
+        roots=tworoots,
         ids=ids,
         parent_ids=parents,
     )
@@ -110,6 +119,6 @@ def test_build_two_system_kinematics(ubq_system):
     tree = builder2.kintree
     assert tree.id.shape[0] == 2 * natoms + 1
     assert tree.id[1] == 0
-    assert tree.parent[1 + root_index[0]] == root_index[0]
-    assert tree.parent[1 + root_index[1]] == root_index[1]
+    assert tree.parent[1 + root_index[0]] == 0
+    assert tree.parent[1 + root_index[1]] == 0
 
