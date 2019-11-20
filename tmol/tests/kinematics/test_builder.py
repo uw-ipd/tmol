@@ -83,14 +83,13 @@ def test_builder_framing(ubq_system):
         kintree.parent[kintree.parent[normal_atoms].to(dtype=torch.long)],
     )
 
-def test_build_two_system_kinematics(ubq_system):
+def test_build_two_system_kinematics(ubq_system, torch_device):
     natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq_system.coords[:,0])))
-    
-    dev_cpu = torch.device("cpu") # temp
+
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
-    bonds = BondedAtomScoreGraph.build_for(twoubq, device=dev_cpu)
+    bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
     tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=int)
-    
+
     ids, parents = KinematicBuilder.bonds_to_connected_component(
         roots=tworoots,
         bonds=bonds.bonds,
@@ -101,15 +100,45 @@ def test_build_two_system_kinematics(ubq_system):
     root_index = id_index.get_indexer(tworoots)
 
     builder = KinematicBuilder()
-    builder2 = builder.append_connected_components(
+    tree = builder.append_connected_components(
         roots=tworoots,
         ids=ids,
         parent_ids=parents,
-    )
+    ).kintree
 
-    tree = builder2.kintree
     assert tree.id.shape[0] == 2 * natoms + 1
     assert tree.id[1] == 0
     assert tree.parent[1 + root_index[0]] == 0
     assert tree.parent[1 + root_index[1]] == 0
 
+def test_build_jagged_system(ubq_res, torch_device):
+    ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
+    ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
+    natoms = (
+        numpy.sum(numpy.logical_not(numpy.isnan(ubq40.coords[:,0]))) +
+        numpy.sum(numpy.logical_not(numpy.isnan(ubq60.coords[:,0])))
+    )
+    twoubq = PackedResidueSystemStack((ubq40, ubq60))
+    bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
+    tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=int)
+
+    ids, parents = KinematicBuilder.bonds_to_connected_component(
+        roots=tworoots,
+        bonds=bonds.bonds,
+        system_size=int(twoubq.systems[1].system_size),
+    )
+
+    id_index = pandas.Index(ids)
+    root_index = id_index.get_indexer(tworoots)
+
+    builder = KinematicBuilder()
+    tree = builder.append_connected_components(
+        roots=tworoots,
+        ids=ids,
+        parent_ids=parents,
+    ).kintree
+
+    assert tree.id.shape[0] == natoms + 1
+    assert tree.id[1] == 0
+    assert tree.parent[1 + root_index[0]] == 0
+    assert tree.parent[1 + root_index[1]] == 0
