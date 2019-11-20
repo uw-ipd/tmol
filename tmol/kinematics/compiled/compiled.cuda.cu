@@ -165,7 +165,6 @@ struct ForwardKinDispatch {
     using tmol::score::common::tie;
     typedef typename mgpu::launch_params_t<128, 2> launch_t;
     constexpr int nt = launch_t::nt, vt = launch_t::vt;
-
     auto num_atoms = dofs.size(0);
 
     nvtx_range_push("dispatch::alloc");
