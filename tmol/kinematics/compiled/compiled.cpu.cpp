@@ -90,6 +90,8 @@ struct InverseKinDispatch {
       TView<Int, 1, D> doftype
   ) -> TPack<KintreeDof, 1, D> {
     auto num_atoms = coords.size(0);
+    //auto num_atoms = parent.size(0);
+    auto num_nodes = parent.size(0);
 
     //fd: we could eliminate HT allocation and calculate on the fly
     auto HTs_t = TPack<HomogeneousTransform, 1, D>::empty({num_atoms});
@@ -98,40 +100,40 @@ struct InverseKinDispatch {
     auto dofs = dofs_t.view;
 
     auto k_coords2hts = ([=] EIGEN_DEVICE_FUNC(int i) {
-		if (i==0) {
-			HTs[i] = HomogeneousTransform::Identity();
-		} else {
-			HTs[i] = common<D,Real,Int>::hts_from_frames( 
-				coords[i], 
-                coords[frame_x[i]], coords[frame_y[i]], coords[frame_z[i]]
-            );
-		}
-	});
+      if (i==0) {
+        HTs[i] = HomogeneousTransform::Identity();
+      } else {
+        HTs[i] = common<D,Real,Int>::hts_from_frames(
+          coords[i],
+          coords[frame_x[i]], coords[frame_y[i]], coords[frame_z[i]]
+        );
+      }
+    });
 
     for (int i = 0; i < num_atoms; i++) {
       k_coords2hts(i);
-    }	
+    }
 
     auto k_hts2dofs = ([=] EIGEN_DEVICE_FUNC(int i) {
-	  HomogeneousTransform lclHT;
-	  if (doftype[i] == ROOT) {
+      HomogeneousTransform lclHT;
+      if (doftype[i] == ROOT) {
         dofs[i] = KintreeDof::Constant(0); // for num deriv check
       } else {
-		lclHT = HTs[i] * common<D,Real,Int>::ht_inv( HTs[parent[i]] );
+        lclHT = HTs[i] * common<D,Real,Int>::ht_inv( HTs[parent[i]] );
 
         if (doftype[i] == JUMP) {
           dofs[i] = common<D,Real,Int>::invJumpTransform(lclHT);
         } else if (doftype[i] == BOND) {
           dofs[i] = common<D,Real,Int>::invBondTransform(lclHT);
         }
-	  }
-	});
+      }
+    });
 
     for (int i = 0; i < num_atoms; i++) {
       k_hts2dofs(i);
     }
 
-	return dofs_t;
+    return dofs_t;
   }
 };
 
@@ -170,7 +172,7 @@ struct KinDerivDispatch {
         f1f2s[i] = f1f2s[i] + f1f2s[p];
     });
 
-    // note: if this is parallelized (over j/k) 
+    // note: if this is parallelized (over j/k)
     //   then k_compose needs to be atomic
     int ngens = gens.size(0) - 1;
     for (int gen = 0; gen < ngens; gen++) { // loop over generations
