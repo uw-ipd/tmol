@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>tmol.utility.reactive &mdash; TMol 0.0.0-187-g4c860a97 documentation</title>
+  <title>tmol.utility.reactive &mdash; TMol 0.0.0-188-g8e0dc953 documentation</title>
   
 
   
@@ -25,7 +25,7 @@
       <script type="text/javascript">
           var DOCUMENTATION_OPTIONS = {
               URL_ROOT:'../',
-              VERSION:'0.0.0-187-g4c860a97',
+              VERSION:'0.0.0-188-g8e0dc953',
               LANGUAGE:'None',
               COLLAPSE_INDEX:false,
               FILE_SUFFIX:'.html',
@@ -72,7 +72,7 @@
             
             
               <div class="version">
-                0.0.0-187-g4c860a97
+                0.0.0-188-g8e0dc953
               </div>
             
           
@@ -265,8 +265,8 @@ caching.</p>
 <div class="section" id="argument-resolution">
 <h3>Argument Resolution<a class="headerlink" href="#argument-resolution" title="Permalink to this headline">¶</a></h3>
 <p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> organizes a computation by binding input data and function results
-as <a class="reference external" href="http://www.attrs.org/en/stable/overview.html" title="(in attrs v19.1)"><code class="xref any docutils literal notranslate"><span class="pre">attributes</span></code></a> of a “reactive object”. Function <em>inputs</em> are
-resolved on-demand by keyword argument name via <a class="reference external" href="https://docs.python.org/3/library/functions.html#getattr" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">getattr</span></code></a> from reactive object
+as <a class="reference external" href="http://www.attrs.org/en/stable/overview.html" title="(in attrs v19.3)"><code class="xref any docutils literal notranslate"><span class="pre">attributes</span></code></a> of a “reactive object”. Function <em>inputs</em> are
+resolved on-demand by keyword argument name via <a class="reference external" href="https://docs.python.org/3/library/functions.html#getattr" title="(in Python v3.8)"><code class="xref any docutils literal notranslate"><span class="pre">getattr</span></code></a> from reactive object
 properties.  By eschewing <a class="reference external" href="https://docs.scipy.org/doc/numpy-1.14.5/glossary.html#term-self" title="(in NumPy v1.14)"><code class="xref any docutils literal notranslate"><span class="pre">self</span></code></a>, <a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> allows direct declaration of
 inter-function dependencies.</p>
 <p>For example, <code class="docutils literal notranslate"><span class="pre">FactionalAnalysis</span></code> results in the dependency graph:</p>
@@ -356,7 +356,7 @@ model, in which updating an attribute value results in the selective
 invalidation of its full direct and indirect dependencies.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> only tracks modification of attribute values by <a class="reference external" href="https://docs.python.org/3/library/functions.html#setattr" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">setattr</span></code></a>,
+<p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> only tracks modification of attribute values by <a class="reference external" href="https://docs.python.org/3/library/functions.html#setattr" title="(in Python v3.8)"><code class="xref any docutils literal notranslate"><span class="pre">setattr</span></code></a>,
 and does <em>not</em> track internal modification of attribute values. Updates to
 attributes must be propogated by property reassignment. Eg:</p>
 <div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Possible, modify and assign</span>
@@ -420,7 +420,7 @@ attributes must be propogated by property reassignment. Eg:</p>
 <div class="section" id="class-composition">
 <h3>Class Composition<a class="headerlink" href="#class-composition" title="Permalink to this headline">¶</a></h3>
 <p><a class="reference internal" href="#module-tmol.utility.reactive" title="tmol.utility.reactive"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">reactive</span></code></a> classes can be combined via standard inheritance, with cross class
-dependencies are resolved via by the standard <a class="reference external" href="https://docs.python.org/3/glossary.html#term-method-resolution-order" title="(in Python v3.7)"><span class="xref std std-term">method resolution order</span></a>. This enables a robust mixin-based
+dependencies are resolved via by the standard <a class="reference external" href="https://docs.python.org/3/glossary.html#term-method-resolution-order" title="(in Python v3.8)"><span class="xref std std-term">method resolution order</span></a>. This enables a robust mixin-based
 composition model in which function inputs are passed, by name, between loosely
 coupled components.</p>
 <p>For example, consider an extension of <code class="docutils literal notranslate"><span class="pre">FactionalAnalysis</span></code> to incorporate an
@@ -565,8 +565,8 @@ additional form of sentiment analysis:</p>
 <p>Forward-invalidation can be customized on a per-property basis via an optional
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">should_invalidate()</span></code> function. The function is provided (a) the current
 reactive property value, (b) the name of the changed input value and (c) the
-updated input parameter value, returning <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> if the reactive property should
-be invalidated in response to the change and <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a> if the reactive value
+updated input parameter value, returning <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.8)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> if the reactive property should
+be invalidated in response to the change and <a class="reference external" href="https://docs.python.org/3/library/constants.html#False" title="(in Python v3.8)"><code class="xref any docutils literal notranslate"><span class="pre">False</span></code></a> if the reactive value
 should be preserved.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -578,7 +578,7 @@ property.</p>
 </div>
 <div class="section" id="parameters">
 <h3>** Parameters<a class="headerlink" href="#parameters" title="Permalink to this headline">¶</a></h3>
-<p>Functions with <a class="reference external" href="https://docs.python.org/3/glossary.html#term-parameter" title="(in Python v3.7)"><span class="xref std std-term">**keyword parameters</span></a> <em>must</em>
+<p>Functions with <a class="reference external" href="https://docs.python.org/3/glossary.html#term-parameter" title="(in Python v3.8)"><span class="xref std std-term">**keyword parameters</span></a> <em>must</em>
 specify a set of expected argument names when added as a <a class="reference internal" href="#tmol.utility.reactive.reactive_property" title="tmol.utility.reactive.reactive_property"><code class="xref any py py-func docutils literal notranslate"><span class="pre">reactive_property</span></code></a>.</p>
 </div>
 </div>
@@ -658,11 +658,11 @@ type.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>func</strong> – The target function. The reactive property name and
 dependencies will be inferred from the function name and signature.</li>
-<li><strong>should_invalidate</strong> – A <a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.7)"><code class="xref py py-func docutils literal notranslate"><span class="pre">callable()</span></code></a> controlling selective
+<li><strong>should_invalidate</strong> – A <a class="reference external" href="https://docs.python.org/3/library/functions.html#callable" title="(in Python v3.8)"><code class="xref py py-func docutils literal notranslate"><span class="pre">callable()</span></code></a> controlling selective
 invalidation of the reactive property in response to dependency
 changes.</li>
 <li><strong>kwargs</strong> – Name of expected keyword parameters iff <code class="docutils literal notranslate"><span class="pre">func</span></code> accepts
-<a class="reference external" href="https://docs.python.org/3/glossary.html#term-parameter" title="(in Python v3.7)"><span class="xref std std-term">**keyword parameters</span></a>.</li>
+<a class="reference external" href="https://docs.python.org/3/glossary.html#term-parameter" title="(in Python v3.8)"><span class="xref std std-term">**keyword parameters</span></a>.</li>
 </ul>
 </td>
 </tr>
@@ -673,10 +673,10 @@ changes.</li>
 <dl class="class">
 <dt id="tmol.utility.reactive.ReactiveProperty">
 <em class="property">class </em><code class="descclassname">tmol.utility.reactive.</code><code class="descname">ReactiveProperty</code><span class="sig-paren">(</span><em>name: str, f: Callable, parameters: Tuple[str, ...], should_invalidate: Union[typing.Callable[[typing.Any, str, typing.Any], bool], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#ReactiveProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive.ReactiveProperty" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">property</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">property</span></code></a></p>
 <p>Post-init property managing a reactive property.</p>
-<p><a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">property</span></code></a> subclass representing a reactive property within a reactive
-class. This is a standard <a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.7)"><code class="xref any docutils literal notranslate"><span class="pre">property</span></code></a> with fget &amp; fdel methods and
+<p><a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.8)"><code class="xref any docutils literal notranslate"><span class="pre">property</span></code></a> subclass representing a reactive property within a reactive
+class. This is a standard <a class="reference external" href="https://docs.python.org/3/library/functions.html#property" title="(in Python v3.8)"><code class="xref any docutils literal notranslate"><span class="pre">property</span></code></a> with fget &amp; fdel methods and
 reactive-level metadata.</p>
 <dl class="attribute">
 <dt id="tmol.utility.reactive.ReactiveProperty.name">
@@ -731,7 +731,7 @@ name in class construction</p>
 <dl class="class">
 <dt id="tmol.utility.reactive._ReactiveProperty">
 <em class="property">class </em><code class="descclassname">tmol.utility.reactive.</code><code class="descname">_ReactiveProperty</code><span class="sig-paren">(</span><em>f: Callable, parameters: Tuple[str, ...], should_invalidate: Union[typing.Callable[[typing.Any, str, typing.Any], bool], NoneType] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tmol/utility/reactive.html#_ReactiveProperty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tmol.utility.reactive._ReactiveProperty" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Pre-init representation of a reactive property.</p>
 <p>Stub representation of a reactive property before a reactive class is
 processed to generate the reactive property graph.</p>
