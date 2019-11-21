@@ -18,7 +18,7 @@ class ScoreSetup:
             torch.from_numpy(coords)
             .to(device=torch_device, dtype=torch.float)
             .requires_grad_(True)
-        )
+        )[None, :]
 
         omegas = numpy.array(
             [
@@ -37,7 +37,7 @@ class ScoreSetup:
         omega_defined = numpy.all(omegas != -1, axis=1)
         tomega_atom_indices = torch.from_numpy(omegas[omega_defined, :]).to(
             device=torch_device, dtype=torch.int32
-        )
+        )[None, :]
         tK = torch.tensor(32.8, device=torch_device, dtype=torch.float)
 
         return cls(tcoords=tcoords, tomega_atom_indices=tomega_atom_indices, tK=tK)
@@ -67,11 +67,11 @@ def test_omega_intra_gradcheck(default_database, ubq_system, torch_device):
 
     def eval_omega(coords_subset):
         coords = s.tcoords.clone()
-        coords[t_atm_indices] = coords_subset
+        coords[:, t_atm_indices] = coords_subset
         v = op(coords)
         return v
 
-    masked_coords = s.tcoords[t_atm_indices]
+    masked_coords = s.tcoords[:, t_atm_indices]
     torch.autograd.gradcheck(
         eval_omega, (masked_coords.requires_grad_(True),), eps=1e-3, atol=1e-2
     )

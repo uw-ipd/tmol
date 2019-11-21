@@ -1,4 +1,3 @@
-import numpy
 import attr
 
 from functools import singledispatch
@@ -20,17 +19,19 @@ from tmol.types.array import NDArray
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup
 
+from tmol.score.common.stack_condense import condense_subset
+
 
 @attr.s(auto_attribs=True)
 class OmegaParams(TensorGroup):
-    omega_indices: Tensor(torch.int32)[..., 4]
+    omega_indices: Tensor(torch.int32)[:, :, 4]
 
 
 @reactive_attrs
 class OmegaIntraScore(IntraScore):
     @reactive_property
     def total_omega(target):
-        return target.omega_module(target.coords[0, ...])
+        return target.omega_module(target.coords)
 
 
 @score_graph
@@ -46,7 +47,7 @@ class OmegaScoreGraph(BondedAtomScoreGraph, TorchDevice):
     def factory_for(val, device: torch.device, **_):
         return dict(allomegas=val.allomegas, device=device)
 
-    allomegas: NDArray(int)[:, 4]
+    allomegas: NDArray(int)[:, :, 4]
     device: torch.device
 
     @reactive_property
@@ -65,12 +66,11 @@ class OmegaScoreGraph(BondedAtomScoreGraph, TorchDevice):
     @reactive_property
     @validate_args
     def omega_resolve_indices(
-        device: torch.device, allomegas: NDArray(int)[:, 4]
+        device: torch.device, allomegas: NDArray(int)[:, :, 4]
     ) -> OmegaParams:
         # remove undefined indices and send to device
-        omega_defined = numpy.all(allomegas != -1, axis=1)
-        omega_indices = torch.from_numpy(allomegas[omega_defined, :]).to(
-            device=device, dtype=torch.int32
-        )
+        allomegas = torch.tensor(allomegas, device=device)
+        omega_defined = torch.all(allomegas != -1, dim=2)
+        omega_indices = condense_subset(allomegas, omega_defined).to(torch.int32)
 
         return OmegaParams(omega_indices=omega_indices)

@@ -26,9 +26,9 @@ template <
     typename Int>
 struct OmegaDispatch {
   static auto f(
-      TView<Vec<Real, 3>, 1, D> coords,
-      TView<OmegaParameters<Real>, 1, D> omega_indices)
-      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 1, D> >;
+      TView<Vec<Real, 3>, 2, D> coords,
+      TView<OmegaParameters<Real>, 2, D> omega_indices)
+      -> std::tuple<TPack<Real, 1, D>, TPack<Vec<Real, 3>, 2, D> >;
 };
 
 }  // namespace potentials
