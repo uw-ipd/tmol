@@ -63,9 +63,6 @@ reduce_tile_shfl(
 template <tmol::Device D, typename T, class Enable = void>
 struct accumulate {};
 
-template <tmol::Device D, typename T, class Enable = void>
-struct accumulate_kahan {};
-
 template <typename T>
 struct accumulate<
     tmol::Device::CPU,
@@ -76,22 +73,6 @@ struct accumulate<
   // This is safe to use when all threads are going to write to the same address
   template <class A>
   static def add_one_dst(A& target, int ind, const T& val)->void { target[ind] += val; }
-};
-
-template <typename T>
-struct accumulate_kahan<
-    tmol::Device::CPU,
-    T,
-    typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  static def add(T* target, const T& val)->void {
-    // from wikipedia
-    // https://en.wikipedia.org/wiki/Kahan_summation_algorithm
-    T y = val - target[1];
-    T t = target[0] + y;
-    target[1] = (t - target[0]) - y;
-    target[0] = t;
-  }
-
 };
 
 template <tmol::Device D, int N, typename T>
@@ -167,74 +148,6 @@ struct accumulate<
   }
 };
 
-union float2UllUnion {
-  float2 f;
-  unsigned long long int ull;
-};
-
-// Kahan summation on the GPU:
-// 1. Perform a reduction on the active threads (the coalesced group)
-// 2. Thread 0 then performs the Kahan summation with the sum
-//    by spinning on calls to atomicCAS until the summation goes
-//    trough.
-// Note that the input desination pointer must be to an array of
-// floats of size 2; contiguity is necessary for the atomicCAS
-// to work.
-template <>
-struct accumulate_kahan<
-    tmol::Device::CUDA,
-    float,
-    typename std::enable_if<std::is_arithmetic<float>::value>::type> {
-
-  static def add(float* address, const float& val)->void {
-#ifdef __CUDA_ARCH__
-    // Neither atomicCAS nor reduce_tile_shfl can be
-    // called from a host/device function -- only from a
-    // device function. This function isn't truly
-    // host/device function as it will never be invoked
-    // from a host. Indeed, the whole lambda model for
-    // our functions
-
-    auto g = cooperative_groups::coalesced_threads();
-
-    float warp_sum = reduce_tile_shfl(g, val, mgpu::plus_t<float>());
-
-    if (g.thread_rank() == 0) {
-      unsigned long long int* address_as_ull = (unsigned long long int*)address;
-      float2UllUnion old, assumed, tmp;
-      old.ull = *address_as_ull;
-      do {
-        assumed = old;
-        tmp = assumed;
-        // kahan summation
-        const float y = warp_sum - tmp.f.y;
-        const float t = tmp.f.x + y;
-        tmp.f.y = (t - tmp.f.x) - y;
-        tmp.f.x = t;
-
-        old.ull = atomicCAS(address_as_ull, assumed.ull, tmp.ull);
-
-      } while (assumed.ull != old.ull);
-    }
-#endif
-  }
-};
-
-template <>
-struct accumulate_kahan<
-    tmol::Device::CUDA,
-    double,
-    typename std::enable_if<std::is_arithmetic<double>::value>::type> {
-  static def add(double* address, const double& val)->void {
-    // Kahan summation cannot be performed at double precision
-    // so just perform standard double-precision atomic addition.
-    // TO DO: figure out Alex's magic to avoid the error about
-    // invoking atomic operations from a __host__ __device__ function.
-#ifdef __CUDA_ARCH__
-    atomicAdd(address, val);
-#endif
-  }
-};
 
 #endif
 

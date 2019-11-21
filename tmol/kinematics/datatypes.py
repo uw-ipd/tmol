@@ -27,7 +27,7 @@ class KinTree(TensorGroup, ConvertAttrs):
     corresponds to a derived orientation, which an atomic coordinate at the
     center of the frame.
 
-    Each node is the tree is connected by one of two "node types":
+    Each node in the tree is connected by one of two "node types":
 
     1) Jump nodes, representing an arbitrary rigid body transform between two
     reference frames via six degrees of freedom, 3 translational and
@@ -37,13 +37,13 @@ class KinTree(TensorGroup, ConvertAttrs):
     frames via three bond degrees of freedom, bond axis translation, bond axis
     rotation about the parent-grandparent bond and change of bond axis with
     respect to the bond. Bond nodes include an additional, redundent,
-    degree of free representing concerted rotation of all downstream bonds
+    degree of freedom representing concerted rotation of all downstream bonds
     about the parent-self bond.
 
     The `KinTree` data structure itself is frozen and can not be modified post
     construction. The `KinematicBuilder` factory class is responsible for
     construction of a `KinTree` with valid internal structure for atomic
-    system.
+    systems.
 
     Indices::
         id = index for kin-atom in the target coordinate system

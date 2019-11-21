@@ -12,6 +12,26 @@ unsigned int EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
 most_sig_bit(unsigned int x) {
 #ifdef __CUDA_ARCH__
   return 1 << (31 - __clz(x));
+#else
+
+  // From the "Most Significant 1 Bit" function from:
+  //
+  // @techreport{magicalgorithms,
+  // author={Henry Gordon Dietz},
+  // title={{The Aggregate Magic Algorithms}},
+  // institution={University of Kentucky},
+  // howpublished={Aggregate.Org online technical report},
+  // URL={http://aggregate.org/MAGIC/}
+  // }
+  // Date fetched: 2019/9/2
+
+  x |= (x >> 1);
+  x |= (x >> 2);
+  x |= (x >> 4);
+  x |= (x >> 8);
+  x |= (x >> 16);
+  return x & ~(x >> 1);
+
 #endif
 }
 

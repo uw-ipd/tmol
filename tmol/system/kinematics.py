@@ -1,3 +1,4 @@
+from typing import Tuple, Union
 import attr
 
 import torch
@@ -25,8 +26,9 @@ class KinematicDescription:
     @validate_args
     def for_system(
         cls,
-        bonds: NDArray(int)[:, 2],
-        torsion_metadata: NDArray(torsion_metadata_dtype)[:],
+        system_size: int,
+        bonds: Union[ NDArray(int)[:, 3], NDArray(int)[:, 2]],
+        torsion_metadata: Tuple[NDArray(torsion_metadata_dtype)[:], ...],
     ):
         """Generate kinematics for system atoms and named torsions.
 
@@ -35,14 +37,40 @@ class KinematicDescription:
         coordinate. Note that this is a covering of indices within the system
         "non-atom" ids are not present in the tree.
         """
-        torsion_pairs = numpy.block(
-            [[torsion_metadata["atom_index_b"]], [torsion_metadata["atom_index_c"]]]
-        ).T
-        torsion_bonds = torsion_pairs[numpy.all(torsion_pairs > 0, axis=-1)]
 
-        builder = KinematicBuilder().append_connected_component(
+        if bonds.shape[1] == 2:
+            # right-pad with zeros to denote all bonds within a single system
+            bonds = numpy.concatenate(
+                (numpy.zeros((bonds.shape[0],1),dtype=int), bonds),
+                axis=1
+            )
+
+        # root all the kintrees at the first atom in each system
+        roots = system_size * numpy.arange(1+bonds[:,0].max(), dtype=int)
+
+        # construct torsion_bonds by merging the list of b-c atoms from each
+        # torsion_metadata list and marking each one by the system from
+        # which it originates.
+        torsion_bonds_list = []
+        for tmet in torsion_metadata:
+            torsion_pairs = numpy.block(
+                [[tmet["atom_index_b"]], [tmet["atom_index_c"]]]
+            ).T
+            torsion_bonds_list.append(torsion_pairs[numpy.all(torsion_pairs > 0, axis=-1)])
+        torsion_bonds = numpy.zeros((sum(t.shape[0] for t in torsion_bonds_list), 3), dtype=int)
+        start = numpy.cumsum(numpy.array([t.shape[0] for t in torsion_bonds_list], dtype=int))
+        for i, tbonds in enumerate(torsion_bonds_list):
+            range = slice(
+                0 if i == 0 else start[i-1],
+                start[i])
+            torsion_bonds[range,0] = i
+            torsion_bonds[range,1:3] = tbonds
+
+        builder = KinematicBuilder().append_connected_components(
+            roots,
             *KinematicBuilder.component_for_prioritized_bonds(
-                root=0, mandatory_bonds=torsion_bonds, all_bonds=bonds
+                roots=roots, mandatory_bonds=torsion_bonds, all_bonds=bonds,
+                system_size=system_size,
             )
         )
 
@@ -53,7 +81,7 @@ class KinematicDescription:
         )
 
     def extract_kincoords(
-        self, coords: NDArray(float)[:, 3]
+        self, coords: NDArray(float)[:, :, 3]
     ) -> Tensor(torch.double)[:, 3]:
         """Extract the kinematic-derived coordinates from system coords.
 
@@ -62,7 +90,8 @@ class KinematicDescription:
         """
 
         # Extract current state coordinates to render current dofs
-        kincoords = torch.from_numpy(coords)[self.kintree.id.to(torch.long)]
+        tcoords_flat = torch.from_numpy(coords).reshape(-1,3)
+        kincoords = tcoords_flat[self.kintree.id.to(torch.long)]
 
         # Convert the -1 origin, a nan-coord, to zero
         assert self.kintree.id[0] == -1
