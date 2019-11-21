@@ -45,6 +45,7 @@ class KinematicBuilder:
         roots: Union[NDArray(int)[:], int],
         mandatory_bonds: Union[NDArray(int)[:, 3], NDArray(int)[:, 2]],
         all_bonds: Union[NDArray(int)[:, 3], NDArray(int)[:, 2]],
+        system_size: Optional[int] = None
     ) -> ChildParentTuple:
         assert mandatory_bonds.shape[1] == all_bonds.shape[1]
         if not isinstance(roots, numpy.ndarray):
@@ -62,12 +63,18 @@ class KinematicBuilder:
                 axis=1
             )
 
-        system_size = max(mandatory_bonds[:, 1:3].max(), all_bonds[:, 1:3].max()) + 1
+        if not system_size:
+            system_size = max(mandatory_bonds[:, 1:3].max(), all_bonds[:, 1:3].max()) + 1
 
         weighted_bonds = (
             # All entries must be non-zero or sparse graph tools will entries.
             cls.bonds_to_csgraph(all_bonds, [-1], system_size)
             + cls.bonds_to_csgraph(mandatory_bonds, [-1e-5], system_size)
+            + cls.faux_bonds_between_roots(
+                roots=roots,
+                weights=[-1],
+                natoms_total=system_size*roots.shape[0],
+            )
         )
 
         ids, parents = cls.bonds_to_connected_component(roots, weighted_bonds)
@@ -77,8 +84,11 @@ class KinematicBuilder:
             numpy.block([[parents[1:], ids[1:]], [ids[1:], parents[1:]]]).T
         )
         bond_present = component_bond_graph[
-            mandatory_bonds[:, 1], mandatory_bonds[:, 2]
+            system_size*mandatory_bonds[:, 0] + mandatory_bonds[:, 1],
+            system_size*mandatory_bonds[:, 0] + mandatory_bonds[:, 2]
         ]
+        bond_absent = numpy.array((bond_present == 0), dtype=bool)
+
         assert numpy.all(
             bond_present
         ), "Unable to generate component containing all mandatory bonds."
@@ -115,10 +125,11 @@ class KinematicBuilder:
         return bonds_csr
 
     @classmethod
-    @validate_args
+    @convert_args
     def faux_bonds_between_roots(
         cls,
         roots: NDArray(int)[:],
+        weights: NDArray(float)[:],
         natoms_total: int
     ) -> Union[sparse.spmatrix, int]:
         """Construct a csgraph with edges from the first root to all
@@ -132,6 +143,7 @@ class KinematicBuilder:
             root_faux_bonds[:,1] = roots[1:]
             return cls.bonds_to_csgraph(
                 root_faux_bonds,
+                weights=weights,
                 system_size=natoms_total
             )
         else:
@@ -165,6 +177,7 @@ class KinematicBuilder:
                 cls.bonds_to_csgraph(bonds, system_size=system_size) +
                 cls.faux_bonds_between_roots(
                     roots=roots,
+                    weights=[1],
                     natoms_total=int(system_size*(1+bonds[:,0].max()))
                 )
             )
