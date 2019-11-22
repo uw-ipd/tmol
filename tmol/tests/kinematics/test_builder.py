@@ -83,8 +83,9 @@ def test_builder_framing(ubq_system):
         kintree.parent[kintree.parent[normal_atoms].to(dtype=torch.long)],
     )
 
+
 def test_build_two_system_kinematics(ubq_system, torch_device):
-    natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq_system.coords[:,0])))
+    natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq_system.coords[:, 0])))
 
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
     bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
@@ -101,9 +102,7 @@ def test_build_two_system_kinematics(ubq_system, torch_device):
 
     builder = KinematicBuilder()
     tree = builder.append_connected_components(
-        roots=tworoots,
-        ids=ids,
-        parent_ids=parents,
+        roots=tworoots, ids=ids, parent_ids=parents
     ).kintree
 
     assert tree.id.shape[0] == 2 * natoms + 1
@@ -111,12 +110,12 @@ def test_build_two_system_kinematics(ubq_system, torch_device):
     assert tree.parent[1 + root_index[0]] == 0
     assert tree.parent[1 + root_index[1]] == 0
 
+
 def test_build_jagged_system(ubq_res, torch_device):
     ubq40 = PackedResidueSystem.from_residues(ubq_res[:40])
     ubq60 = PackedResidueSystem.from_residues(ubq_res[:60])
-    natoms = (
-        numpy.sum(numpy.logical_not(numpy.isnan(ubq40.coords[:,0]))) +
-        numpy.sum(numpy.logical_not(numpy.isnan(ubq60.coords[:,0])))
+    natoms = numpy.sum(numpy.logical_not(numpy.isnan(ubq40.coords[:, 0]))) + numpy.sum(
+        numpy.logical_not(numpy.isnan(ubq60.coords[:, 0]))
     )
     twoubq = PackedResidueSystemStack((ubq40, ubq60))
     bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
@@ -133,9 +132,7 @@ def test_build_jagged_system(ubq_res, torch_device):
 
     builder = KinematicBuilder()
     tree = builder.append_connected_components(
-        roots=tworoots,
-        ids=ids,
-        parent_ids=parents,
+        roots=tworoots, ids=ids, parent_ids=parents
     ).kintree
 
     assert tree.id.shape[0] == natoms + 1

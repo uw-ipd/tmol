@@ -161,15 +161,13 @@ def system_torsion_graph_inputs(
 
     # Initialize kinematic tree for the system
     sys_kin = KinematicDescription.for_system(
-        int(system.system_size),
-        system.bonds,
-        (system.torsion_metadata,),
+        int(system.system_size), system.bonds, (system.torsion_metadata,)
     )
     tkintree = sys_kin.kintree.to(device)
     tdofmetadata = sys_kin.dof_metadata.to(device)
 
     # compute dofs from xyzs
-    kincoords = sys_kin.extract_kincoords(system.coords.reshape(1,-1,3)).to(device)
+    kincoords = sys_kin.extract_kincoords(system.coords.reshape(1, -1, 3)).to(device)
     bkin = inverseKin(tkintree, kincoords)
 
     # dof mask
@@ -180,6 +178,7 @@ def system_torsion_graph_inputs(
         dofmetadata=tdofmetadata,
     )
 
+
 @KinematicAtomicCoordinateProvider.factory_for.register(PackedResidueSystemStack)
 @validate_args
 def stacked_system_torsion_graph_inputs(
@@ -189,7 +188,7 @@ def stacked_system_torsion_graph_inputs(
     bonds: NDArray(int)[:, 3],
     device: torch.device,
     requires_grad: bool = True,
-    **_
+    **_,
 ):
     """Constructor parameters for torsion space scoring.
 
@@ -201,18 +200,14 @@ def stacked_system_torsion_graph_inputs(
 
     torsion_metadata = tuple(sys.torsion_metadata for sys in system.systems)
     # Initialize kinematic tree for the system
-    sys_kin = KinematicDescription.for_system(
-        system_size,
-        bonds,
-        torsion_metadata,
-    )
+    sys_kin = KinematicDescription.for_system(system_size, bonds, torsion_metadata)
     tkintree = sys_kin.kintree.to(device)
     tdofmetadata = sys_kin.dof_metadata.to(device)
 
     # compute dofs from xyzs
     coords = numpy.full((stack_depth, system_size, 3), numpy.nan, dtype=numpy.float64)
     for i, sys in enumerate(system.systems):
-        coords[i, :sys.coords.shape[0], :] = sys.coords
+        coords[i, : sys.coords.shape[0], :] = sys.coords
     kincoords = sys_kin.extract_kincoords(coords).to(device)
     bkin = inverseKin(tkintree, kincoords)
 
@@ -223,6 +218,7 @@ def stacked_system_torsion_graph_inputs(
         kintree=tkintree,
         dofmetadata=tdofmetadata,
     )
+
 
 @RamaScoreGraph.factory_for.register(PackedResidueSystem)
 @validate_args

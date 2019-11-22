@@ -258,33 +258,41 @@ def compute_verify_derivs(kintree, coords):
 
     torch.testing.assert_allclose(analytical, numerical)
 
+
 def test_forward_refold_two_systems(ubq_system, torch_device):
     twoubq = PackedResidueSystemStack((ubq_system, ubq_system))
     bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
     tworoots = numpy.array((0, twoubq.systems[0].system_size), dtype=int)
 
-    coords_raw = torch.tensor(numpy.concatenate(
-        (twoubq.systems[0].coords, twoubq.systems[1].coords), axis=0
-    ), dtype=torch.float64, device=torch_device )
+    coords_raw = torch.tensor(
+        numpy.concatenate((twoubq.systems[0].coords, twoubq.systems[1].coords), axis=0),
+        dtype=torch.float64,
+        device=torch_device,
+    )
 
-    kintree = KinematicBuilder().append_connected_components(
-        tworoots,
-        *KinematicBuilder.bonds_to_connected_component(
-            roots=tworoots,
-            bonds=bonds.bonds,
-            system_size=int(twoubq.systems[0].system_size),
-        ),
-    ).kintree.to(torch_device)
+    kintree = (
+        KinematicBuilder()
+        .append_connected_components(
+            tworoots,
+            *KinematicBuilder.bonds_to_connected_component(
+                roots=tworoots,
+                bonds=bonds.bonds,
+                system_size=int(twoubq.systems[0].system_size),
+            ),
+        )
+        .kintree.to(torch_device)
+    )
 
     ids = kintree.id.type(torch.long)
     coords = coords_raw[ids]
-    coords[0,:] = 0
+    coords[0, :] = 0
 
     dofs = inverseKin(kintree, coords)
     refold_kincoords = forwardKin(kintree, dofs)
-    refold_kincoords[0,:] = 0
+    refold_kincoords[0, :] = 0
 
     numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)
+
 
 def test_forward_refold_w_jagged_system(ubq_res, torch_device):
     # torch_device = torch.device("cpu")
@@ -296,26 +304,34 @@ def test_forward_refold_w_jagged_system(ubq_res, torch_device):
     bonds = BondedAtomScoreGraph.build_for(twoubq, device=torch_device)
     tworoots = numpy.array((0, twoubq.systems[1].system_size), dtype=int)
 
-    coords_raw = torch.zeros((2, system_size, 3), dtype=torch.float64, device=torch_device)
-    coords_raw[0,0:ubq40.system_size,:] = torch.tensor(ubq40.coords, dtype=torch.float64, device=torch_device)
-    coords_raw[1,0:ubq60.system_size,:] = torch.tensor(ubq60.coords, dtype=torch.float64, device=torch_device)
-    coords_raw = coords_raw.reshape(2*system_size, 3)
+    coords_raw = torch.zeros(
+        (2, system_size, 3), dtype=torch.float64, device=torch_device
+    )
+    coords_raw[0, 0 : ubq40.system_size, :] = torch.tensor(
+        ubq40.coords, dtype=torch.float64, device=torch_device
+    )
+    coords_raw[1, 0 : ubq60.system_size, :] = torch.tensor(
+        ubq60.coords, dtype=torch.float64, device=torch_device
+    )
+    coords_raw = coords_raw.reshape(2 * system_size, 3)
 
-    kintree = KinematicBuilder().append_connected_components(
-        tworoots,
-        *KinematicBuilder.bonds_to_connected_component(
-            roots=tworoots,
-            bonds=bonds.bonds,
-            system_size=int(system_size),
-        ),
-    ).kintree.to(torch_device)
+    kintree = (
+        KinematicBuilder()
+        .append_connected_components(
+            tworoots,
+            *KinematicBuilder.bonds_to_connected_component(
+                roots=tworoots, bonds=bonds.bonds, system_size=int(system_size)
+            ),
+        )
+        .kintree.to(torch_device)
+    )
 
     ids = kintree.id.type(torch.long)
-    coords = coords_raw[ids,:]
-    coords[0,:] = 0
+    coords = coords_raw[ids, :]
+    coords[0, :] = 0
 
     dofs = inverseKin(kintree, coords)
     refold_kincoords = forwardKin(kintree, dofs)
-    refold_kincoords[0,:] = 0
+    refold_kincoords[0, :] = 0
 
     numpy.testing.assert_allclose(coords.cpu(), refold_kincoords.cpu(), atol=1e-6)

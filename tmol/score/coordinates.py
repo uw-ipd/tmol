@@ -44,7 +44,9 @@ class CartesianAtomicCoordinateProvider(StackedSystem, TorchDevice):
 
 
 @score_graph
-class KinematicAtomicCoordinateProvider(BondedAtomScoreGraph, StackedSystem, TorchDevice):
+class KinematicAtomicCoordinateProvider(
+    BondedAtomScoreGraph, StackedSystem, TorchDevice
+):
     @staticmethod
     @singledispatch
     def factory_for(
@@ -98,7 +100,7 @@ class KinematicAtomicCoordinateProvider(BondedAtomScoreGraph, StackedSystem, Tor
             device=dofs.device,
             requires_grad=False,
         )
-        coords_flat = coords.reshape((-1,3))
+        coords_flat = coords.reshape((-1, 3))
 
         idIdx = kintree.id[1:].to(dtype=torch.long)
         coords_flat[idIdx] = kincoords[1:]
