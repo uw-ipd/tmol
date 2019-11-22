@@ -31,9 +31,7 @@ def test_system_kinematics(ubq_system):
     tsys = ubq_system
 
     tsys_kinematics = KinematicDescription.for_system(
-        tsys.system_size,
-        ubq_system.bonds,
-        (ubq_system.torsion_metadata,),
+        tsys.system_size, ubq_system.bonds, (ubq_system.torsion_metadata,)
     )
 
     kinematic_tree_results = report_tree_coverage(tsys, tsys_kinematics.kintree)
