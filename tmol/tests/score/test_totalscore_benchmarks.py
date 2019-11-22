@@ -12,28 +12,24 @@ from tmol.score.coordinates import (
     CartesianAtomicCoordinateProvider,
 )
 
-from tmol.score.ljlk.score_graph import LJScoreGraph, LKScoreGraph
-from tmol.score.lk_ball.score_graph import LKBallScoreGraph
-from tmol.score.rama.score_graph import RamaScoreGraph
+# from tmol.score.ljlk.score_graph import LJScoreGraph, LKScoreGraph
+# from tmol.score.lk_ball.score_graph import LKBallScoreGraph
+# from tmol.score.rama.score_graph import RamaScoreGraph
 from tmol.system.packed import PackedResidueSystemStack
 
 
 @score_graph
-class TotalScore(KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice):
+class TotalScoreAtomTree(
+    KinematicAtomicCoordinateProvider, TotalScoreGraph, TorchDevice
+):
     pass
 
 
-# the
-# @score_graph
-# class StackScoreGraph(
-#     CartesianAtomicCoordinateProvider,
-#     LJScoreGraph,
-#     LKScoreGraph,
-#     LKBallScoreGraph,
-#     RamaScoreGraph,
-#     TorchDevice,
-# ):
-#     pass
+@score_graph
+class TotalScoreCartesian(
+    CartesianAtomicCoordinateProvider, TotalScoreGraph, TorchDevice
+):
+    pass
 
 
 @pytest.fixture
@@ -71,7 +67,7 @@ def test_setup(
 ):
     @benchmark
     def setup():
-        score_graph = TotalScore.build_for(
+        score_graph = TotalScoreAtomTree.build_for(
             systems_bysize[system_size],
             requires_grad=True,
             device=torch_device,
@@ -88,7 +84,7 @@ def test_setup(
 def test_full(
     benchmark, systems_bysize, system_size, torch_device, default_component_weights
 ):
-    score_graph = TotalScore.build_for(
+    score_graph = TotalScoreAtomTree.build_for(
         systems_bysize[system_size],
         requires_grad=True,
         device=torch_device,
@@ -106,13 +102,38 @@ def test_full(
     forward_backward
 
 
-@pytest.mark.benchmark(group="stacked_totalscore_onepass")
+@pytest.mark.benchmark(group="stacked_totalscore_atomtree")
 @pytest.mark.parametrize("nstacks", [1, 3, 10, 30, 100])
-def test_stacked_full(
+def test_stacked_total_score_atom_tree(
     benchmark, ubq_system, nstacks, torch_device, default_component_weights
 ):
     stack = PackedResidueSystemStack((ubq_system,) * nstacks)
-    score_graph = TotalScore.build_for(
+    score_graph = TotalScoreAtomTree.build_for(
+        stack,
+        requires_grad=True,
+        device=torch_device,
+        component_weights=default_component_weights,
+    )
+    score_graph.intra_score().total
+
+    @benchmark
+    def forward_backward():
+        score_graph.reset_coords()
+        total = score_graph.intra_score().total
+        tsum = torch.sum(total)
+        tsum.backward(retain_graph=True)
+        return total
+
+    forward_backward
+
+
+@pytest.mark.benchmark(group="stacked_totalscore_cartesian")
+@pytest.mark.parametrize("nstacks", [1, 3, 10, 30, 100])
+def test_stacked_total_score_cartesian(
+    benchmark, ubq_system, nstacks, torch_device, default_component_weights
+):
+    stack = PackedResidueSystemStack((ubq_system,) * nstacks)
+    score_graph = TotalScoreCartesian.build_for(
         stack,
         requires_grad=True,
         device=torch_device,

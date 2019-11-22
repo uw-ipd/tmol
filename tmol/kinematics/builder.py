@@ -89,7 +89,6 @@ class KinematicBuilder:
             system_size * mandatory_bonds[:, 0] + mandatory_bonds[:, 1],
             system_size * mandatory_bonds[:, 0] + mandatory_bonds[:, 2],
         ]
-        bond_absent = numpy.array((bond_present == 0), dtype=bool)
 
         assert numpy.all(
             bond_present
@@ -200,8 +199,7 @@ class KinematicBuilder:
         parent_ids: Tensor(int)[:],
         component_parent=0,
     ):
-        assert (
-            ids.shape == parent_ids.shape,
+        assert ids.shape == parent_ids.shape, (
             "elements and parents must be of same length",
         )
         assert len(ids) > 3, "Bonded ktree must have at least three entries"
