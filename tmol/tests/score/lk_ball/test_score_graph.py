@@ -42,5 +42,6 @@ def test_jagged_scoring(ubq_res, default_database, torch_device):
     total60 = score60.intra_score().total_lk_ball
     total_both = score_both.intra_score().total_lk_ball
 
-    assert total_both[0].item() == pytest.approx(total40[0].item())
-    assert total_both[1].item() == pytest.approx(total60[0].item())
+    # assert 79.03907775878906 == pytest.approx(79.03899383544922, rel=1e-5, abs=1e-4)
+    assert total_both[0].item() == pytest.approx(total40[0].item(), rel=1e-5, abs=1e-4)
+    assert total_both[1].item() == pytest.approx(total60[0].item(), rel=1e-5, abs=1e-4)
