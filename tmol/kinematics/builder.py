@@ -47,28 +47,54 @@ class KinematicBuilder:
         all_bonds: Union[NDArray(int)[:, 3], NDArray(int)[:, 2]],
         system_size: Optional[int] = None,
     ) -> ChildParentTuple:
+        """Build an id/parent tuple describing a kinematic tree, presenting
+        the chemical bonds (all_bonds) and the special subset of these bonds
+        (mandatory_bonds) that must be present in the tree.
+        This function accepts two classes of inputs for the
+        mandatory_bonds and all_bonds tensors:
+        1) where the second dimension's size is 2, and each row
+        holds a pair of atom indices for bonded atoms within
+        a single (connected) system.
+        2) where the second dimension's size is 3, and each row
+        holds a) the stack index, b) atom-1 index, c) atom-2 index.
+        """
         assert mandatory_bonds.shape[1] == all_bonds.shape[1]
         if not isinstance(roots, numpy.ndarray):
             # create array from the single integer root input
             roots = numpy.array([roots], dtype=int)
 
-        # interpret an Nx2 bonds array as representing a single stack
-        if mandatory_bonds.shape[1] == 2:
-            mandatory_bonds = numpy.concatenate(
-                (
-                    numpy.zeros((mandatory_bonds.shape[0], 1), dtype=int),
-                    mandatory_bonds,
-                ),
-                axis=1,
-            )
-            all_bonds = numpy.concatenate(
-                (numpy.zeros((all_bonds.shape[0], 1), dtype=int), all_bonds), axis=1
-            )
+        all_bonds = cls.bonds_to_sysbonds(all_bonds)
+        mandatory_bonds = cls.bonds_to_sysbonds(mandatory_bonds)
 
         if not system_size:
+            assert all_bonds[:, 0].max() == 0, (
+                "System size must be provided if more than "
+                + "one stack's worth of bonds is provided"
+            )
+            assert mandatory_bonds[:, 0].max() == 0, (
+                "System size must be provided if more than "
+                + "one stack's worth of bonds is provided"
+            )
             system_size = (
                 max(mandatory_bonds[:, 1:3].max(), all_bonds[:, 1:3].max()) + 1
             )
+
+        # Construct a graph which will be used by a minimum weighted spanning tree
+        # algorithm to find a tree. The chemical bonds are assigned a weight of -1;
+        # the "mandatory bonds" are assigned a weight of -1e-5. Therefore an edge
+        # that is both a chemical bond and a mandatory bond will have a weight of
+        # -1.00001, and will be preferred by the spanning tree algorithm over a
+        # bond edge that has a weight of -1. Furthermore, an edge that is a
+        # mandatory edge and is not a chemical bond will not be selected by the
+        # minimum spanning tree unless the this is the only edge that spans
+        # two connected components in the graph.
+        #
+        # NOTE: This weighting will be problematic if a jump/cut pair is
+        # added to a single-polymer chain fold tree, since even when a cut
+        # is added to the fold tree, the two residues that the cut separates
+        # remain bonded for the sake of "count pair" logic.
+        #
+        # Additionally add edges between the roots of the stacks using.
 
         weighted_bonds = (
             # All entries must be non-zero or sparse graph tools will entries.
@@ -81,7 +107,7 @@ class KinematicBuilder:
 
         ids, parents = cls.bonds_to_connected_component(roots, weighted_bonds)
 
-        # Verify construction
+        # Verify that the mandatory bonds are all in the spanning tree
         component_bond_graph = cls.bonds_to_csgraph(
             numpy.block([[parents[1:], ids[1:]], [ids[1:], parents[1:]]]).T
         )
@@ -104,14 +130,21 @@ class KinematicBuilder:
         weights: NDArray(float)[:] = numpy.ones(1),  # noqa
         system_size: Optional[int] = None,
     ) -> sparse.csr_matrix:
+        """This function accepts two variations on the bonds array:
+        1) where the second dimension's size is 2, and each row
+        holds a pair of atom indices for bonded atoms within
+        a single (connected) system.
+        2) where the second dimension's size is 3, and each row
+        holds a) the stack index, b) atom-1 index, c) atom-2 index.
+        """
 
         # interpret an Nx2 bonds array as representing a single stack
-        if bonds.shape[1] == 2:
-            bonds = numpy.concatenate(
-                (numpy.zeros((bonds.shape[0], 1), dtype=int), bonds), axis=1
-            )
-
+        bonds = cls.bonds_to_sysbonds(bonds)
         if not system_size:
+            assert bonds[:, 0].max() == 0, (
+                "System size must be provided if more than "
+                + "one stack's worth of bonds is provided"
+            )
             system_size = bonds[:, 1:3].max() + 1
 
         bonds_reindexed = system_size * bonds[:, 0][:, None] + bonds[:, 1:3]
@@ -160,11 +193,13 @@ class KinematicBuilder:
         if isinstance(bonds, numpy.ndarray):
             # Bonds are a non-prioritized set of edges, assume arbitrary
             # connectivity from the root is allowed.
-            if bonds.shape[1] == 2:
-                bonds = numpy.concatenate(
-                    (numpy.zeros((bonds.shape[0], 1), dtype=int), bonds), axis=1
-                )
+            bonds = cls.bonds_to_sysbonds(bonds)
+
             if system_size is None:
+                assert bonds[:, 0].max() == 0, (
+                    "System size must be provided if more than "
+                    + "one stack's worth of bonds is provided"
+                )
                 system_size = max(bonds[:, 1].max(), bonds[:, 2].max()) + 1
 
             bond_graph = cls.bonds_to_csgraph(
@@ -334,3 +369,19 @@ class KinematicBuilder:
         #
         #  # Append the subtree onto the kintree.
         #  return attr.evolve(self, kintree=cat((self.kintree, kin_stree)))
+
+    @classmethod
+    @convert_args
+    def bonds_to_sysbonds(
+        cls, bonds: Union[NDArray(int)[:, 3], NDArray(int)[:, 2]]
+    ) -> NDArray(int)[:, 3]:
+        """The "sysbonds" format has a size of 3 for its second dimension.
+        If a bonds array's second dimension has size 2, then intrepret it
+        as coming from a single system. Therefore the "sysbonds" should have
+        zeros for the (new) first dimension.
+        """
+        if bonds.shape[1] == 2:
+            bonds = numpy.concatenate(
+                (numpy.zeros((bonds.shape[0], 1), dtype=int), bonds), axis=1
+            )
+        return bonds
