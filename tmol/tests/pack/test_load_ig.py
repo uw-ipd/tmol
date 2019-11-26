@@ -4,6 +4,7 @@ import torch
 import attr
 
 from tmol.pack.datatypes import PackerEnergyTables
+from tmol.pack.simulated_annealing import run_simulated_annealing
 from tmol.utility.cumsum import exclusive_cumsum
 
 
@@ -118,3 +119,9 @@ def test_energy_table_construction():
             ]
             assert ij_energy == ji_energy # exact equality ok since they are copies
 
+def test_run_sim_annealing():
+    fname = "1ubq_ig"
+    oneb, twob = load_ig_from_file(fname)
+    et = create_twobody_energy_table(oneb, twob)
+
+    scores, rotamer_assignments = run_simulated_annealing(et)

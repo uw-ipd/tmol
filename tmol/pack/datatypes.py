@@ -1,4 +1,5 @@
 import torch
+import attr
 
 from tmol.types.torch import Tensor
 from tmol.types.tensor import TensorGroup

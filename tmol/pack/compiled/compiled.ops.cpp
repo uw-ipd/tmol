@@ -1,4 +1,9 @@
 #include <torch/script.h>
+#include <ATen/core/ivalue.h>
+#include <torch/csrc/autograd/function.h> // ??
+#include <torch/csrc/autograd/saved_variable.h> // ??
+#include <torch/types.h>
+
 #include <tmol/utility/autograd.hh>
 
 #include <tmol/utility/tensor/TensorCast.h>
@@ -12,9 +17,9 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
+using torch::Tensor;
 
-template < template <tmol::Device> class DispatchMethod >
-std::tuple<Tensor, Tensor>
+std::vector< Tensor >
 anneal(
   Tensor nrotamers_for_res,
   Tensor oneb_offsets,
@@ -30,11 +35,10 @@ anneal(
   at::Tensor rotamer_assignments;
 
   TMOL_DISPATCH_FLOATING_DEVICE(
-    coords.type(), "pack_anneal", ([&] {
-      using Real = scalar_t;
-      constexptr tmol::Device Dev = device_t;
+    energy1b.type(), "pack_anneal", ([&] {
+      constexpr tmol::Device Dev = device_t;
 
-      auto result = AnnealerDispatch<DispatchMethod, Dev, Real, Int>::forward(
+      auto result = AnnealerDispatch<Dev>::forward(
 	TCAST(nrotamers_for_res),
 	TCAST(oneb_offsets),
 	TCAST(res_for_rot),
@@ -45,12 +49,14 @@ anneal(
       scores = std::get<0>(result).tensor;
       rotamer_assignments = std::get<0>(result).tensor;
       }));
-  return {scores, rotamer_assignments};
+
+  std::vector< torch::Tensor > result({scores, rotamer_assignments});
+  return result;
 }
 
 static auto registry =
   torch::jit::RegisterOperators()
-  .op("tmol::pack_anneal", &anneal<common::ForallDispatch>);
+  .op("tmol::pack_anneal", &anneal);
 
 }
 }

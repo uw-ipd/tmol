@@ -9,12 +9,13 @@ bool
 pass_metropolis(
   float const kT,
   float const uniform_random,
-  float const deltaE
+  float const deltaE,
+  bool const quench
 )
 {
-  if ( deltaE < 0 ) {
-    return true;
-  }
+  if ( deltaE < 0 ) return true;
+  if (quench) return false;
+
   float prob_pass = std::exp( -1 * deltaE / kT );
   return uniform_random < prob_pass;
 }
@@ -24,13 +25,13 @@ template<
   typename Real,
   typename Int
 >
-float
-total_energy_for_asignment(
+Real
+total_energy_for_assignment(
   TView<Int, 1, D> nrotamers_for_res,
   TView<Int, 1, D> oneb_offsets,
   TView<Int, 1, D> res_for_rot,
-  TView<Int, 1, D> nenergies,
-  TView<Int, 1, D> twob_offsets,
+  TView<Int, 2, D> nenergies,
+  TView<Int, 2, D> twob_offsets,
   TView<Real, 1, D> energy1b,
   TView<Real, 1, D> energy2b,
   TensorAccessor<Int, 1, D> rotamer_assignment
