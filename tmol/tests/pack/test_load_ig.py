@@ -120,12 +120,38 @@ def test_energy_table_construction():
             assert ij_energy == ji_energy # exact equality ok since they are copies
 
 def test_run_sim_annealing(torch_device):
+    # torch_device = torch.device("cpu")
+
     fname = "1ubq_ig"
     oneb, twob = load_ig_from_file(fname)
     et = create_twobody_energy_table(oneb, twob)
-    et = et.to(torch_device)
+    et_dev = et.to(torch_device)
 
-    scores, rotamer_assignments = run_simulated_annealing(et)
-    scores = scores.cpu()
-    print("scores", scores)
+    scores, rotamer_assignments = run_simulated_annealing(et_dev)
+
+    sort_scores, sort_inds = scores.sort()
+    nkeep = min(scores.shape[0], 100)
+    best_scores = sort_scores[0:nkeep]
+    best_score_inds = sort_inds[0:nkeep]
+    best_rot_assignments = rotamer_assignments[:,best_score_inds]
     
+    scores = best_scores.cpu()
+
+    rotamer_assignments = best_rot_assignments.cpu()
+    print("scores", scores.shape)
+    print("rotamer_assignments", rotamer_assignments.shape)
+
+
+    validated_scores = torch.ops.tmol.validate_energies(
+        et.nrotamers_for_res,
+        et.oneb_offsets,
+        et.res_for_rot,
+        et.nenergies,
+        et.twob_offsets,
+        et.energy1b,
+        et.energy2b,
+        rotamer_assignments)
+
+    print("validated scores?", validated_scores)
+    torch.testing.assert_allclose(scores, validated_scores)
+

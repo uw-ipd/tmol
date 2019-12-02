@@ -109,7 +109,7 @@ struct AnnealerDispatch
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    int n_simA_runs = 32 * 1;
+    int n_simA_runs = 32 * 100;
     
     auto scores_t = TPack<float, 1, D>::zeros({n_simA_runs});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
@@ -170,10 +170,10 @@ struct AnnealerDispatch
       );
       float current_total_energy = best_energy;
       int ntrials = 0;
-      for (int i = 0; i < 20; ++i) {
+      for (int i = 0; i < 12; ++i) {
 
         bool quench = false;
-        if (i == 19) {
+        if (i >= 10) {
 	  quench = true;
 	  temperature = 0;
 	  for (int j = 0; j < nres; ++j) {
@@ -185,7 +185,7 @@ struct AnnealerDispatch
 	  );
         }
 
-        for (int j = 0; j < 20*nrotamers; ++j) {
+        for (int j = 0; j < nrotamers; ++j) {
 
 	  int ran_rot;
 	  float accept_prob(0);
@@ -263,7 +263,7 @@ struct AnnealerDispatch
     };
 
     mgpu::standard_context_t context;
-    mgpu::transform(run_simulated_annealing, 32, context);
+    mgpu::transform(run_simulated_annealing, n_simA_runs, context);
 
     cudaDeviceSynchronize();
     clock_t stop = clock();

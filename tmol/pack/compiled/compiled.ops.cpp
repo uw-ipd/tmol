@@ -12,6 +12,7 @@
 #include <tmol/score/common/forall_dispatch.hh>
 
 #include "annealer.hh"
+#include "simulated_annealing.hh"
 
 namespace tmol {
 namespace pack {
@@ -47,16 +48,69 @@ anneal(
 	TCAST(energy1b),
 	TCAST(energy2b));
       scores = std::get<0>(result).tensor;
-      rotamer_assignments = std::get<0>(result).tensor;
+      rotamer_assignments = std::get<1>(result).tensor;
       }));
 
   std::vector< torch::Tensor > result({scores, rotamer_assignments});
   return result;
 }
 
+
+TPack<float, 1, tmol::Device::CPU>
+compute_energies_for_assignments(
+  TView<int, 1, tmol::Device::CPU> nrotamers_for_res,
+  TView<int, 1, tmol::Device::CPU> oneb_offsets,
+  TView<int, 1, tmol::Device::CPU> res_for_rot,
+  TView<int, 2, tmol::Device::CPU> nenergies,
+  TView<int, 2, tmol::Device::CPU> twob_offsets,
+  TView<float, 1, tmol::Device::CPU> energy1b,
+  TView<float, 1, tmol::Device::CPU> energy2b,
+  TView<int, 2, tmol::Device::CPU> rotamer_assignments
+)
+{
+  int n_assignments = rotamer_assignments.size(1);
+  auto scores_t = TPack<float, 1, tmol::Device::CPU>::zeros({n_assignments});
+  auto scores = scores_t.view;
+  for (int i = 0; i < n_assignments; ++i) {
+    scores[i] = total_energy_for_assignment(nrotamers_for_res,
+      oneb_offsets, res_for_rot, nenergies, twob_offsets, energy1b,
+      energy2b, rotamer_assignments, i
+    );
+  }
+  return scores_t;
+}
+
+
+torch::Tensor
+validate_energies(
+  Tensor nrotamers_for_res,
+  Tensor oneb_offsets,
+  Tensor res_for_rot,
+  Tensor nenergies,
+  Tensor twob_offsets,
+  Tensor energy1b,
+  Tensor energy2b,
+  Tensor rotamer_assignments
+)
+{
+  auto result = compute_energies_for_assignments(
+    TCAST(nrotamers_for_res),
+    TCAST(oneb_offsets),
+    TCAST(res_for_rot),
+    TCAST(nenergies),
+    TCAST(twob_offsets),
+    TCAST(energy1b),
+    TCAST(energy2b),
+    TCAST(rotamer_assignments)
+  );
+  return result.tensor;
+}
+
+
 static auto registry =
   torch::jit::RegisterOperators()
-  .op("tmol::pack_anneal", &anneal);
+  .op("tmol::pack_anneal", &anneal)
+  .op("tmol::validate_energies", &validate_energies);
 
 }
 }
