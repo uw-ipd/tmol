@@ -17,7 +17,7 @@
 #include <curand_kernel.h>
 #include <curand_philox4x32_x.h>
 
-
+#include <ctime>
 
 
 // Stolen from torch, v1.0.0
@@ -64,7 +64,8 @@ inline
 __device__
 void
 set_quench_order(
-  TensorAccessor<int, 1, D> quench_order,
+  TView<int, 2, D> quench_order,
+  int dim1_ind,
   curandStatePhilox4_32_10_t * state
 ){
   // Create a random permutation of all the rotamers
@@ -72,15 +73,15 @@ set_quench_order(
   // are seen during the quench step
   int const nrots = quench_order.size(0);
   for (int i = 0; i < nrots; ++i) {
-    quench_order[i] = i;
+    quench_order[i][dim1_ind] = i;
   }
   for (int i = 0; i <= nrots-2; ++i) {
     int rand_offset = curand_in_range(state, nrots-i);
     int j = i + rand_offset;
     // swap i and j;
-    int jval = quench_order[j];
-    quench_order[j] = quench_order[i];
-    quench_order[i] = jval;
+    int jval = quench_order[j][dim1_ind];
+    quench_order[j][dim1_ind] = quench_order[i][dim1_ind];
+    quench_order[i][dim1_ind] = jval;
   }
 }
 
@@ -102,15 +103,19 @@ struct AnnealerDispatch
       TPack<float, 1, D>,
       TPack<int, 2, D> >
   {
+    clock_t start = clock();
+
     // No Frills Simulated Annealing!
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    auto scores_t = TPack<float, 1, D>::zeros({32});
-    auto rotamer_assignments_t = TPack<int, 2, D>::zeros({32,nres});
-    auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({32,nres});
+    int n_simA_runs = 32 * 1;
+    
+    auto scores_t = TPack<float, 1, D>::zeros({n_simA_runs});
+    auto rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
+    auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
 
-    auto quench_order_t = TPack<int, 2, D>::zeros({32, nrotamers});
+    auto quench_order_t = TPack<int, 2, D>::zeros({nrotamers, n_simA_runs});
 
     auto scores = scores_t.view;
     auto rotamer_assignments = rotamer_assignments_t.view;
@@ -147,20 +152,22 @@ struct AnnealerDispatch
 	philox_seed.second,
 	&state);
 
-      auto my_quench_order = quench_order[thread_id];
-      auto my_rotamer_assignment = rotamer_assignments[thread_id];
-      auto my_best_rotamer_assignment = rotamer_assignments[thread_id];
+      // auto my_quench_order = quench_order[thread_id];
+      // auto my_rotamer_assignment = rotamer_assignments[thread_id];
+      // auto my_best_rotamer_assignment = rotamer_assignments[thread_id];
 
       for (int i = 0; i < nres; ++i) {
         int const i_nrots = nrotamers_for_res[i];
 	int chosen = int(curand_uniform(&state) * i_nrots) % i_nrots;
-	my_rotamer_assignment[i] = chosen;
-        my_best_rotamer_assignment[i] = chosen;
+	rotamer_assignments[i][thread_id] = chosen;
+        best_rotamer_assignments[i][thread_id] = chosen;
       }
 
       float temperature = 100;
       float best_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-        res_for_rot, nenergies, twob_offsets, energy1b, energy2b, my_rotamer_assignment);
+        res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
+	thread_id
+      );
       float current_total_energy = best_energy;
       int ntrials = 0;
       for (int i = 0; i < 20; ++i) {
@@ -170,10 +177,12 @@ struct AnnealerDispatch
 	  quench = true;
 	  temperature = 0;
 	  for (int j = 0; j < nres; ++j) {
-	    my_rotamer_assignment[j] = my_best_rotamer_assignment[j];
+	    rotamer_assignments[j][thread_id] = best_rotamer_assignments[j][thread_id];
 	  }
 	  current_total_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-	    res_for_rot, nenergies, twob_offsets, energy1b, energy2b, my_rotamer_assignment);
+	    res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
+	    thread_id
+	  );
         }
 
         for (int j = 0; j < 20*nrotamers; ++j) {
@@ -182,16 +191,16 @@ struct AnnealerDispatch
 	  float accept_prob(0);
 	  if (quench) {
 	    if (j % nrotamers == 0) {
-	      set_quench_order(quench_order[thread_id], &state);
+	      set_quench_order(quench_order, thread_id, &state);
 	    }
-	    ran_rot = quench_order[thread_id][j%nrotamers];
+	    ran_rot = quench_order[j%nrotamers][thread_id];
 	  } else {
 	    float4 four_rands = curand_uniform4(&state);
 	    ran_rot = int(four_rands.x * nrotamers) % nrotamers;
 	    accept_prob = four_rands.y;
 	  }
 	  int const ran_res = res_for_rot[ran_rot];
-	  int const local_prev_rot = my_rotamer_assignment[ran_res];
+	  int const local_prev_rot = rotamer_assignments[ran_res][thread_id];
 	  int const ran_res_nrots = nrotamers_for_res[ran_res];
 	  int const local_ran_rot = ran_rot - oneb_offsets[ran_res];
 	  int const prev_rot = local_prev_rot + ran_res_nrots;
@@ -206,7 +215,7 @@ struct AnnealerDispatch
 	  for (int k=0; k < nres; ++k) {
 	    if (k == ran_res) continue;
 	    if (nenergies[ran_res][k] == 0) continue;
-	    int const local_k_rot = my_rotamer_assignment[k];
+	    int const local_k_rot = rotamer_assignments[k][thread_id];
 
 	    //int const ran_k_offset = twob_offsets[ran_res][k];
 	    int const k_ran_offset = twob_offsets[k][ran_res];
@@ -218,11 +227,11 @@ struct AnnealerDispatch
 
 	  float const deltaE = new_e - prev_e;
 	  if (local_prev_rot < 0 || pass_metropolis(temperature, accept_prob, deltaE, quench)) {
-	    my_rotamer_assignment[ran_res] = local_ran_rot;
+	    rotamer_assignments[ran_res][thread_id] = local_ran_rot;
 	    current_total_energy = current_total_energy + deltaE;
 	    if (current_total_energy < best_energy) {
 	      for (int k=0; k < nres; ++k) {
-		my_best_rotamer_assignment[k] = my_rotamer_assignment[k];
+		best_rotamer_assignments[k][thread_id] = rotamer_assignments[k][thread_id];
 	      }
 	      best_energy = current_total_energy;
 	    }
@@ -235,7 +244,7 @@ struct AnnealerDispatch
 	    current_total_energy = total_energy_for_assignment(
 	      nrotamers_for_res, oneb_offsets, res_for_rot,
 	      nenergies, twob_offsets, energy1b, energy2b,
-	      my_rotamer_assignment);
+	      rotamer_assignments, thread_id);
 	  }
 
 	  // geometric cooling toward 0.3
@@ -248,11 +257,18 @@ struct AnnealerDispatch
 
 
       scores[thread_id] = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-        res_for_rot, nenergies, twob_offsets, energy1b, energy2b, my_rotamer_assignment);
+        res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
+	thread_id
+      );
     };
 
     mgpu::standard_context_t context;
     mgpu::transform(run_simulated_annealing, 32, context);
+
+    cudaDeviceSynchronize();
+    clock_t stop = clock();
+    std::cout << "Simulated annealing completed in " <<
+      ((double) stop - start)/CLOCKS_PER_SEC << std::endl;
 
     return {scores_t, rotamer_assignments_t};
   }

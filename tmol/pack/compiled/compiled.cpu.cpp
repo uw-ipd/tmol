@@ -4,6 +4,9 @@
 // ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
 
+#include <ctime>
+
+
 namespace tmol {
 namespace pack {
 namespace compiled {
@@ -47,14 +50,16 @@ struct AnnealerDispatch
       TPack<float, 1, D>,
       TPack<int, 2, D> >
   {
+
+    clock_t start = clock();
     
     // No Frills Simulated Annealing!
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
     auto scores_t = TPack<float, 1, D>::zeros({1});
-    auto rotamer_assignments_t = TPack<int, 2, D>::zeros({1,nres});
-    auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({1,nres});
+    auto rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, 1});
+    auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, 1});
 
     auto quench_order_t = TPack<int, 1, D>::zeros({nrotamers});
 
@@ -63,19 +68,16 @@ struct AnnealerDispatch
     auto best_rotamer_assignments = rotamer_assignments_t.view;
     auto quench_order = quench_order_t.view;
 
-    // TEMP!
-    return {scores_t,rotamer_assignments_t};
-    
     for (int i = 0; i < nres; ++i) {
       int const i_nrots = nrotamers_for_res[i];
-      rotamer_assignments[0][i] = rand() % i_nrots;
-      best_rotamer_assignments[0][i] = rand() % i_nrots;
+      rotamer_assignments[i][0] = rand() % i_nrots;
+      best_rotamer_assignments[i][0] = rand() % i_nrots;
       //std::cout << "Assigning random rotamer " << rotamer_assignments[0][i] << " of " << i_nrots << std::endl;
     }
 
     float temperature = 100;
     float best_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-      res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments[0]);
+      res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, 0);
     float current_total_energy = best_energy;
     int naccepts = 0;
     for (int i = 0; i < 20; ++i) {
@@ -85,10 +87,10 @@ struct AnnealerDispatch
 	quench = true;
 	temperature = 0;
 	for (int j = 0; j < nres; ++j) {
-	  rotamer_assignments[0][j] = best_rotamer_assignments[0][j];
+	  rotamer_assignments[j][0] = best_rotamer_assignments[j][0];
 	}
 	current_total_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-	  res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments[0]);
+	  res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, 0);
       }
 
       for (int j = 0; j < 20*nrotamers; ++j) {
@@ -102,7 +104,7 @@ struct AnnealerDispatch
 	  ran_rot = rand() % nrotamers;
 	}
 	int const ran_res = res_for_rot[ran_rot];
-	int const local_prev_rot = rotamer_assignments[0][ran_res];
+	int const local_prev_rot = rotamer_assignments[ran_res][0];
 	int const ran_res_nrots = nrotamers_for_res[ran_res];
 	int const local_ran_rot = ran_rot - oneb_offsets[ran_res];
 	int const prev_rot = local_prev_rot + ran_res_nrots;
@@ -117,7 +119,7 @@ struct AnnealerDispatch
 	for (int k=0; k < nres; ++k) {
 	  if (k == ran_res) continue;
 	  if (nenergies[ran_res][k] == 0) continue;
-	  int const local_k_rot = rotamer_assignments[0][k];
+	  int const local_k_rot = rotamer_assignments[k][0];
 
 
 	  //int const ran_k_offset = twob_offsets[ran_res][k];
@@ -131,7 +133,7 @@ struct AnnealerDispatch
 	float const uniform_random = random();
 	float const deltaE = new_e - prev_e;
 	if (local_prev_rot < 0 || pass_metropolis(temperature, uniform_random, deltaE, quench)) {
-	  rotamer_assignments[0][ran_res] = local_ran_rot;
+	  rotamer_assignments[ran_res][0] = local_ran_rot;
 	  current_total_energy = current_total_energy + deltaE;
 	  ++naccepts;
 	  if (naccepts > 1000) {
@@ -139,11 +141,11 @@ struct AnnealerDispatch
 	    current_total_energy = total_energy_for_assignment(
 	      nrotamers_for_res, oneb_offsets, res_for_rot,
 	      nenergies, twob_offsets, energy1b, energy2b,
-	      rotamer_assignments[0]);
+	      rotamer_assignments, 0);
 	  }
 	  if (current_total_energy < best_energy) {
 	    for (int k=0; k < nres; ++k) {
-	      best_rotamer_assignments[0][k] = rotamer_assignments[0][k];
+	      best_rotamer_assignments[k][0] = rotamer_assignments[k][0];
 	    }
 	    best_energy = current_total_energy;
 	  }
@@ -152,14 +154,20 @@ struct AnnealerDispatch
       // geometric cooling toward 0.3
       std::cout << "temperature " << temperature << " energy " <<
 	total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-	  res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments[0]) << std::endl;
+	  res_for_rot, nenergies, twob_offsets, energy1b, energy2b,
+	  rotamer_assignments, 0) <<
+	std::endl;
       temperature = 0.35 * (temperature - 0.3) + 0.3;
     }
 
     
     scores[0] = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
-      res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments[0]);
+      res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, 0);
 
+    clock_t stop = clock();
+    std::cout << "Simulated annealing achieved a score of " << scores[0] << " in " <<
+      ((double) stop - start)/CLOCKS_PER_SEC << std::endl;
+    
     return {scores_t, rotamer_assignments_t};
   }
 
