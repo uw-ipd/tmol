@@ -109,7 +109,7 @@ struct AnnealerDispatch
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    int n_simA_runs = 32 * 1000;
+    int n_simA_runs = 32 * 100;
     
     auto scores_t = TPack<float, 1, D>::zeros({n_simA_runs});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
