@@ -114,8 +114,8 @@ struct AnnealerDispatch
     auto scores_t = TPack<float, 1, D>::zeros({n_simA_runs});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
     auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
-    auto curr_pair_energies_t = TPack<float, 3, D>::zeros({nres, nres, n_simA_runs});
-    auto alt_energies_t = TPack<float, 2, D>::zeros({nres, n_simA_runs});
+    // auto curr_pair_energies_t = TPack<float, 3, D>::zeros({nres, nres, n_simA_runs});
+    // auto alt_energies_t = TPack<float, 2, D>::zeros({nres, n_simA_runs});
 
     auto quench_order_t = TPack<int, 2, D>::zeros({nrotamers, n_simA_runs});
 
@@ -123,8 +123,8 @@ struct AnnealerDispatch
     auto rotamer_assignments = rotamer_assignments_t.view;
     auto best_rotamer_assignments = rotamer_assignments_t.view;
     auto quench_order = quench_order_t.view;
-    auto curr_pair_energies = curr_pair_energies_t.view;
-    auto alt_energies = alt_energies_t.view;
+    // auto curr_pair_energies = curr_pair_energies_t.view;
+    // auto alt_energies = alt_energies_t.view;
 
     // This code will work for future versions of the torch/aten libraries, but not
     // this one.
@@ -169,7 +169,7 @@ struct AnnealerDispatch
       float temperature = 100;
       float best_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
         res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
-	curr_pair_energies, thread_id
+	thread_id
       );
       float current_total_energy = best_energy;
       int ntrials = 0;
@@ -184,7 +184,7 @@ struct AnnealerDispatch
 	  }
 	  current_total_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
 	    res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
-	    curr_pair_energies, thread_id
+	    thread_id
 	  );
         }
 
@@ -228,20 +228,20 @@ struct AnnealerDispatch
 	    //new_e += energy2b[ran_k_offset + kres_nrots * local_ran_rot + local_k_rot];
 	    float alt_energy = energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_ran_rot];
 	    new_e += alt_energy;
-	    alt_energies[k][thread_id] = alt_energy;
-	    //prev_e += energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_prev_rot];
-	    prev_e += curr_pair_energies[ran_res][k][thread_id];
+	    // alt_energies[k][thread_id] = alt_energy;
+	    prev_e += energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_prev_rot];
+	    // prev_e += curr_pair_energies[ran_res][k][thread_id];
 	  }
 
 	  float const deltaE = new_e - prev_e;
 	  if (pass_metropolis(temperature, accept_prob, deltaE, quench)) {
 	    rotamer_assignments[ran_res][thread_id] = local_ran_rot;
 	    current_total_energy = current_total_energy + deltaE;
-	    for (int k=0; k < nres; ++k) {
-	      float k_energy = alt_energies[k][thread_id];
-	      curr_pair_energies[ran_res][k][thread_id] = k_energy;
-	      curr_pair_energies[k][ran_res][thread_id] = k_energy;
-	    }
+	    // for (int k=0; k < nres; ++k) {
+	    //   float k_energy = alt_energies[k][thread_id];
+	    //   curr_pair_energies[ran_res][k][thread_id] = k_energy;
+	    //   curr_pair_energies[k][ran_res][thread_id] = k_energy;
+	    // }
 	    if (current_total_energy < best_energy) {
 	      for (int k=0; k < nres; ++k) {
 		best_rotamer_assignments[k][thread_id] = rotamer_assignments[k][thread_id];
@@ -249,7 +249,6 @@ struct AnnealerDispatch
 	      best_energy = current_total_energy;
 	    }
       	  }
-
 
 	  ++ntrials;
 	  if (ntrials > 10000) {
