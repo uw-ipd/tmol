@@ -21,6 +21,8 @@
 
 
 // Stolen from torch, v1.0.0
+// Expose part of the torch library that otherwise is
+// not part of the API.
 THCGenerator* THCRandom_getGenerator(THCState* state);
 
 // Stolen from torch, v1.0.0;
@@ -124,11 +126,18 @@ struct AnnealerDispatch
     // at::CUDAGenerator * gen = at::cuda::detail::getDefaultCUDAGenerator();
     // {
     //   std::lock_guard<std::mutex> lock(gen->mutex_);
-    //   rng_engine_inputs = gen->philox_engine_inputs(20);
+    //   rng_engine_inputs = gen->philox_engine_inputs(nrotamers * 400 + nres);
     // }
 
-    // ok, the cuda generator
-    auto philox_seed = next_philox_seed( 2 * nrotamers * 400 );
+    // Increment the seed (and capture the current seed) for the
+    // cuda generator. The number of calls to curand must be known
+    // by this statement.
+    // 1: nrotmaers*400 = 20 outer loop * nrotamers * 20 inner loop
+    // calls to either curand_uniform or curand_uniform4 in either
+    // the quench / non-quench cycles +
+    // 2: nres = the initial seed state of the system is created by
+    // picking a single random rotamer per residue.
+    auto philox_seed = next_philox_seed( nrotamers * 400 + nres);
 
     auto run_simulated_annealing = [=] __device__ (int thread_id){
       curandStatePhilox4_32_10_t state;
