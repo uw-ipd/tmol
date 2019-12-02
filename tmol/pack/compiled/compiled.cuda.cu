@@ -109,7 +109,7 @@ struct AnnealerDispatch
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    int n_simA_runs = 32 * 100;
+    int n_simA_runs = 32 * 1000;
     
     auto scores_t = TPack<float, 1, D>::zeros({n_simA_runs});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
@@ -170,10 +170,10 @@ struct AnnealerDispatch
       );
       float current_total_energy = best_energy;
       int ntrials = 0;
-      for (int i = 0; i < 12; ++i) {
+      for (int i = 0; i < 6; ++i) {
 
         bool quench = false;
-        if (i >= 10) {
+        if (i == 5) {
 	  quench = true;
 	  temperature = 0;
 	  for (int j = 0; j < nres; ++j) {
@@ -251,7 +251,7 @@ struct AnnealerDispatch
 	  // std::cout << "temperature " << temperature << " energy " <<
 	  //  total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
 	  //    res_for_rot, nenergies, twob_offsets, energy1b, energy2b, my_rotamer_assignment) << std::endl;
-	  temperature = 0.35 * (temperature - 0.3) + 0.3;
+	  temperature = 0.25 * (temperature - 0.3) + 0.3;
 	}
       }
 
