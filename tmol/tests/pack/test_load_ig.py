@@ -119,9 +119,13 @@ def test_energy_table_construction():
             ]
             assert ij_energy == ji_energy # exact equality ok since they are copies
 
-def test_run_sim_annealing():
+def test_run_sim_annealing(torch_device):
     fname = "1ubq_ig"
     oneb, twob = load_ig_from_file(fname)
     et = create_twobody_energy_table(oneb, twob)
+    et = et.to(torch_device)
 
     scores, rotamer_assignments = run_simulated_annealing(et)
+    scores = scores.cpu()
+    print("scores", scores)
+    

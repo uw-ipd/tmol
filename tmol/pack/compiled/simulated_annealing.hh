@@ -4,6 +4,9 @@ namespace tmol {
 namespace pack {
 namespace compiled {
 
+#ifdef __CUDACC__
+__device__
+#endif
 inline
 bool
 pass_metropolis(
@@ -25,6 +28,10 @@ template<
   typename Real,
   typename Int
 >
+inline
+#ifdef __CUDACC__
+__device__
+#endif
 Real
 total_energy_for_assignment(
   TView<Int, 1, D> nrotamers_for_res,

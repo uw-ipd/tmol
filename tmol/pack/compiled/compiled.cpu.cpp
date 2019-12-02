@@ -47,6 +47,7 @@ struct AnnealerDispatch
       TPack<float, 1, D>,
       TPack<int, 2, D> >
   {
+    
     // No Frills Simulated Annealing!
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
@@ -62,6 +63,9 @@ struct AnnealerDispatch
     auto best_rotamer_assignments = rotamer_assignments_t.view;
     auto quench_order = quench_order_t.view;
 
+    // TEMP!
+    return {scores_t,rotamer_assignments_t};
+    
     for (int i = 0; i < nres; ++i) {
       int const i_nrots = nrotamers_for_res[i];
       rotamer_assignments[0][i] = rand() % i_nrots;
