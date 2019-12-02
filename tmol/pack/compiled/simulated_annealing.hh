@@ -41,7 +41,8 @@ total_energy_for_assignment(
   TView<Int, 2, D> twob_offsets,
   TView<Real, 1, D> energy1b,
   TView<Real, 1, D> energy2b,
-  TView<Int, 2, D> rotamer_assignment,
+  TView<Int, 2, D> rotamer_assignment, 
+  TView<float, 3, D> pair_energies,
   int rotassign_dim1 // i.e. thread_id
 )
 {
@@ -54,12 +55,64 @@ total_energy_for_assignment(
     totalE += energy1b[irot_global];
     for (int j = i+1; j < nres; ++j) {
       int const jrot_local = rotamer_assignment[j][rotassign_dim1];
-      if (nenergies[i][j] == 0) continue;
-      totalE += energy2b[
+      if (nenergies[i][j] == 0) {
+	pair_energies[i][j][rotassign_dim1] = 0;
+	pair_energies[j][i][rotassign_dim1] = 0;
+	continue;
+      }
+      float ij_energy = energy2b[
 	twob_offsets[i][j]
 	+ nrotamers_for_res[j] * irot_local
 	+ jrot_local
       ];
+      totalE += ij_energy;
+      pair_energies[i][j][rotassign_dim1] = ij_energy;
+      pair_energies[j][i][rotassign_dim1] = ij_energy;
+    }
+  }
+  return totalE;
+}
+
+template<
+  tmol::Device D,
+  typename Real,
+  typename Int
+>
+inline
+#ifdef __CUDACC__
+__device__
+#endif
+Real
+total_energy_for_assignment(
+  TView<Int, 1, D> nrotamers_for_res,
+  TView<Int, 1, D> oneb_offsets,
+  TView<Int, 1, D> res_for_rot,
+  TView<Int, 2, D> nenergies,
+  TView<Int, 2, D> twob_offsets,
+  TView<Real, 1, D> energy1b,
+  TView<Real, 1, D> energy2b,
+  TView<Int, 2, D> rotamer_assignment, 
+  int rotassign_dim1 // i.e. thread_id
+)
+{
+  Real totalE = 0;
+  int const nres = nrotamers_for_res.size(0);
+  for (int i = 1; i < nres; ++i) {
+    int const irot_local = rotamer_assignment[i][rotassign_dim1];
+    int const irot_global = irot_local + oneb_offsets[i];
+    
+    totalE += energy1b[irot_global];
+    for (int j = i+1; j < nres; ++j) {
+      int const jrot_local = rotamer_assignment[j][rotassign_dim1];
+      if (nenergies[i][j] == 0) {
+	continue;
+      }
+      float ij_energy = energy2b[
+	twob_offsets[i][j]
+	+ nrotamers_for_res[j] * irot_local
+	+ jrot_local
+      ];
+      totalE += ij_energy;
     }
   }
   return totalE;

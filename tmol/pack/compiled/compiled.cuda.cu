@@ -114,6 +114,8 @@ struct AnnealerDispatch
     auto scores_t = TPack<float, 1, D>::zeros({n_simA_runs});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
     auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, n_simA_runs});
+    auto curr_pair_energies_t = TPack<float, 3, D>::zeros({nres, nres, n_simA_runs});
+    auto alt_energies_t = TPack<float, 2, D>::zeros({nres, n_simA_runs});
 
     auto quench_order_t = TPack<int, 2, D>::zeros({nrotamers, n_simA_runs});
 
@@ -121,7 +123,8 @@ struct AnnealerDispatch
     auto rotamer_assignments = rotamer_assignments_t.view;
     auto best_rotamer_assignments = rotamer_assignments_t.view;
     auto quench_order = quench_order_t.view;
-
+    auto curr_pair_energies = curr_pair_energies_t.view;
+    auto alt_energies = alt_energies_t.view;
 
     // This code will work for future versions of the torch/aten libraries, but not
     // this one.
@@ -166,7 +169,7 @@ struct AnnealerDispatch
       float temperature = 100;
       float best_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
         res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
-	thread_id
+	curr_pair_energies, thread_id
       );
       float current_total_energy = best_energy;
       int ntrials = 0;
@@ -181,7 +184,7 @@ struct AnnealerDispatch
 	  }
 	  current_total_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
 	    res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments,
-	    thread_id
+	    curr_pair_energies, thread_id
 	  );
         }
 
@@ -207,28 +210,38 @@ struct AnnealerDispatch
 
 	  //std::cout << "Consider substitution " << ran_rot << " " << ran_res << " " << ran_res_nrots << " " << local_prev_rot << " " << local_ran_rot << " " << ran_res_nrots << std::endl;
 
-	  float new_e = energy1b[ran_rot];
+	  float new_e  = energy1b[ran_rot];
 	  float prev_e = energy1b[prev_rot];
 
 	  // Temp: iterate across all residues instead of just the
 	  // neighbors of ran_rot_res
 	  for (int k=0; k < nres; ++k) {
-	    if (k == ran_res) continue;
-	    if (nenergies[ran_res][k] == 0) continue;
+	    if (k == ran_res || nenergies[ran_res][k] == 0) {
+	      alt_energies[k][thread_id] = 0;
+	      continue;
+	    }
 	    int const local_k_rot = rotamer_assignments[k][thread_id];
 
 	    //int const ran_k_offset = twob_offsets[ran_res][k];
 	    int const k_ran_offset = twob_offsets[k][ran_res];
 	    int const kres_nrots = nrotamers_for_res[k];
 	    //new_e += energy2b[ran_k_offset + kres_nrots * local_ran_rot + local_k_rot];
-	    new_e += energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_ran_rot];
-	    prev_e += energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_prev_rot];
+	    float alt_energy = energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_ran_rot];
+	    new_e += alt_energy;
+	    alt_energies[k][thread_id] = alt_energy;
+	    //prev_e += energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_prev_rot];
+	    prev_e += curr_pair_energies[ran_res][k][thread_id];
 	  }
 
 	  float const deltaE = new_e - prev_e;
-	  if (local_prev_rot < 0 || pass_metropolis(temperature, accept_prob, deltaE, quench)) {
+	  if (pass_metropolis(temperature, accept_prob, deltaE, quench)) {
 	    rotamer_assignments[ran_res][thread_id] = local_ran_rot;
 	    current_total_energy = current_total_energy + deltaE;
+	    for (int k=0; k < nres; ++k) {
+	      float k_energy = alt_energies[k][thread_id];
+	      curr_pair_energies[ran_res][k][thread_id] = k_energy;
+	      curr_pair_energies[k][ran_res][thread_id] = k_energy;
+	    }
 	    if (current_total_energy < best_energy) {
 	      for (int k=0; k < nres; ++k) {
 		best_rotamer_assignments[k][thread_id] = rotamer_assignments[k][thread_id];
