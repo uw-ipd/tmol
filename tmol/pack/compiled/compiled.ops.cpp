@@ -68,7 +68,7 @@ compute_energies_for_assignments(
   TView<int, 2, tmol::Device::CPU> rotamer_assignments
 )
 {
-  int n_assignments = rotamer_assignments.size(1);
+  int n_assignments = rotamer_assignments.size(0);
   auto scores_t = TPack<float, 1, tmol::Device::CPU>::zeros({n_assignments});
   auto scores = scores_t.view;
   for (int i = 0; i < n_assignments; ++i) {

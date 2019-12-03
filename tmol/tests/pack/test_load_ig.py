@@ -134,12 +134,12 @@ def test_run_sim_annealing(torch_device):
     nkeep = min(scores.shape[0], 100)
     best_scores = sort_scores[0:nkeep]
     best_score_inds = sort_inds[0:nkeep]
-    best_rot_assignments = rotamer_assignments[:,best_score_inds]
+    best_rot_assignments = rotamer_assignments[best_score_inds, :]
     
     scores = best_scores.cpu()
 
     rotamer_assignments = best_rot_assignments.cpu()
-    print("scores", scores.shape)
+    print("scores", scores)
     print("rotamer_assignments", rotamer_assignments.shape)
 
 

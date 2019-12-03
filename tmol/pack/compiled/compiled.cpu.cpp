@@ -60,9 +60,8 @@ struct AnnealerDispatch
     int ntraj = 5;
 
     auto scores_t = TPack<float, 1, D>::zeros({ntraj});
-    auto rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, ntraj});
-    auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({nres, ntraj});
-
+    auto rotamer_assignments_t = TPack<int, 2, D>::zeros({ntraj, nres});
+    auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({ntraj, nres});
     auto quench_order_t = TPack<int, 1, D>::zeros({nrotamers});
 
     auto scores = scores_t.view;
@@ -74,8 +73,8 @@ struct AnnealerDispatch
 
       for (int i = 0; i < nres; ++i) {
         int const i_nrots = nrotamers_for_res[i];
-        rotamer_assignments[i][traj] = rand() % i_nrots;
-        best_rotamer_assignments[i][traj] = rand() % i_nrots;
+        rotamer_assignments[traj][i] = rand() % i_nrots;
+        best_rotamer_assignments[traj][i] = rand() % i_nrots;
         //std::cout << "Assigning random rotamer " << rotamer_assignments[0][i] << " of " << i_nrots << std::endl;
       }
 
@@ -91,7 +90,7 @@ struct AnnealerDispatch
           quench = true;
           temperature = 0;
           for (int j = 0; j < nres; ++j) {
-            rotamer_assignments[j][traj] = best_rotamer_assignments[j][traj];
+            rotamer_assignments[traj][j] = best_rotamer_assignments[traj][j];
           }
           current_total_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
             res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, traj);
@@ -108,7 +107,7 @@ struct AnnealerDispatch
             ran_rot = rand() % nrotamers;
           }
           int const ran_res = res_for_rot[ran_rot];
-          int const local_prev_rot = rotamer_assignments[ran_res][traj];
+          int const local_prev_rot = rotamer_assignments[traj][ran_res];
           int const ran_res_nrots = nrotamers_for_res[ran_res];
           int const local_ran_rot = ran_rot - oneb_offsets[ran_res];
           int const prev_rot = local_prev_rot + ran_res_nrots;
@@ -123,7 +122,7 @@ struct AnnealerDispatch
           for (int k=0; k < nres; ++k) {
             if (k == ran_res) continue;
             if (nenergies[ran_res][k] == 0) continue;
-            int const local_k_rot = rotamer_assignments[k][traj];
+            int const local_k_rot = rotamer_assignments[traj][k];
 
 
             //int const ran_k_offset = twob_offsets[ran_res][k];
@@ -137,7 +136,7 @@ struct AnnealerDispatch
           float const uniform_random = random();
           float const deltaE = new_e - prev_e;
           if (local_prev_rot < 0 || pass_metropolis(temperature, uniform_random, deltaE, quench)) {
-            rotamer_assignments[ran_res][traj] = local_ran_rot;
+            rotamer_assignments[traj][ran_res] = local_ran_rot;
             current_total_energy = current_total_energy + deltaE;
             ++naccepts;
             if (naccepts > 1000) {
@@ -150,12 +149,14 @@ struct AnnealerDispatch
             }
             if (current_total_energy < best_energy) {
               for (int k=0; k < nres; ++k) {
-                best_rotamer_assignments[k][traj] = rotamer_assignments[k][traj];
+                best_rotamer_assignments[traj][k] = rotamer_assignments[traj][k];
               }
               best_energy = current_total_energy;
             }
           }
-        }
+
+        } // end inner loop
+
         // std::cout << "temperature " << temperature << " energy " <<
         //   total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
         //     res_for_rot, nenergies, twob_offsets, energy1b, energy2b,
@@ -164,13 +165,14 @@ struct AnnealerDispatch
 
         // geometric cooling toward 0.3
         temperature = 0.35 * (temperature - 0.3) + 0.3;
-      }
+
+      } // end outer loop
 
 
       scores[traj] = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
         res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, traj);
       std::cout << "Traj " << traj << " with score " << scores[traj] << std::endl;
-    }
+    } // end trajectory loop
 
     clock_t stop = clock();
     std::cout << "CPU simulated annealing in " << ((double) stop - start)/CLOCKS_PER_SEC <<
