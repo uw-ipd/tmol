@@ -57,7 +57,7 @@ struct AnnealerDispatch
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    int ntraj = 1;
+    int ntraj = 5;
     int const n_outer_iterations = 20;
     int const n_inner_iterations_factor = 20;
     int const n_inner_iterations = n_inner_iterations_factor * nrotamers;
@@ -84,7 +84,6 @@ struct AnnealerDispatch
         int const i_nrots = nrotamers_for_res[i];
         rotamer_assignments[traj][i] = rand() % i_nrots;
         best_rotamer_assignments[traj][i] = rand() % i_nrots;
-        //std::cout << "Assigning random rotamer " << rotamer_assignments[0][i] << " of " << i_nrots << std::endl;
       }
 
       float temperature = high_temp;
@@ -142,42 +141,14 @@ struct AnnealerDispatch
             //new_e += energy2b[ran_k_offset + kres_nrots * local_ran_rot + local_k_rot];
             double k_new_e = energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_ran_rot];
             double k_prev_e = energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_prev_rot];
-	    // double new_e_k = energy2b[ran_k_offset + kres_nrots * local_ran_rot + local_k_rot];
-	    // double prev_e_k = energy2b[ran_k_offset + kres_nrots * local_prev_rot + local_k_rot];
 	    deltaE += k_new_e - k_prev_e;
 	    new_e += k_new_e;
 	    prev_e += k_prev_e;
-	    // if ( k_new_e != new_e_k || k_prev_e != prev_e_k) {
-	    //   std::cout << "energy2b discrepancy! " << ran_res << " and " << k << " new: " << k_new_e << " vs " << new_e_k << " and prev: " << k_prev_e << " vs " << prev_e_k << std::endl;
-	    // }
           }
 
           float const uniform_random = float(rand()) / RAND_MAX;
 
-          //std::cout << "Consider substitution " << ran_rot << " " << ran_res << " " << ran_res_nrots << " " << local_prev_rot << " " << local_ran_rot << " " << ran_res_nrots << " pE " << prev_e << " nE " << new_e << " dE " << deltaE << " " << uniform_random << std::endl;
-
-	  // if (j < 100) {
-	  //   float curr_tot = total_energy_for_assignment(
-          //       nrotamers_for_res, oneb_offsets, res_for_rot,
-          //       nenergies, twob_offsets, energy1b, energy2b,
-          //       rotamer_assignments, traj
-	  //     );
-	  //   rotamer_assignments[traj][ran_res] = local_ran_rot;
-	  //   float alt_tot = total_energy_for_assignment(
-          //       nrotamers_for_res, oneb_offsets, res_for_rot,
-          //       nenergies, twob_offsets, energy1b, energy2b,
-          //       rotamer_assignments, traj
-	  //     );
-	  //   rotamer_assignments[traj][ran_res] = local_prev_rot;
-	  //   float true_delta = alt_tot - curr_tot;
-	  //   if ( std::abs(true_delta - deltaE) > 1e-5) {
-	  //     std::cout << "deltaE miscalculation " << true_delta << " vs " << deltaE << std::endl;
-	  //   }
-	  // }
 	  if (pass_metropolis(temperature, uniform_random, deltaE, prev_e, quench)) {
-	    // if (j < 200) {
-	    //   std::cout << "Accept " << deltaE << " " << prev_e << " " << current_total_energy << " " << temperature << "\n";
-	    // }
             rotamer_assignments[traj][ran_res] = local_ran_rot;
             current_total_energy +=  deltaE;
             ++naccepts;
@@ -188,7 +159,6 @@ struct AnnealerDispatch
                 nenergies, twob_offsets, energy1b, energy2b,
                 rotamer_assignments, traj
 	      );
-	      //std::cout << "Reset total energy " << current_total_energy << " vs " << new_current_total_energy << std::endl;
 	      current_total_energy = new_current_total_energy;
             }
             if (current_total_energy < best_energy) {
@@ -197,11 +167,7 @@ struct AnnealerDispatch
               }
               best_energy = current_total_energy;
             }
-          } else {
-	    // if (j < 200){
-	    //   std::cout << "Reject " << deltaE << " " << prev_e << " " << current_total_energy << " " << temperature << "\n";
-	    // }
-	  }	  
+          }
 
         } // end inner loop
 
