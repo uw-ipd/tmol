@@ -168,7 +168,7 @@ total_energy_for_assignment_parallel(
   TView<Int, 1, D> oneb_offsets,
   TView<Int, 1, D> res_for_rot,
   TView<Int, 2, D> nenergies,
-  TView<Int, 2, D> twob_offsets,
+  TView<int64_t, 2, D> twob_offsets,
   TView<Real, 1, D> energy1b,
   TView<Real, 1, D> energy2b,
   TensorAccessor<Int, 1, D> rotamer_assignment
@@ -214,7 +214,7 @@ struct AnnealerDispatch
     TView<int, 1, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
     TView<int, 2, D> nenergies,
-    TView<int, 2, D> twob_offsets,
+    TView<int64_t, 2, D> twob_offsets,
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b
   )
@@ -227,10 +227,12 @@ struct AnnealerDispatch
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    int const n_blocks = 1000;
+    int const n_blocks = 3000;
     int const n_simA_threads = 32 * n_blocks;
     int const n_outer_iterations = 10;
-    int const n_inner_iterations = nrotamers / 16;
+    int const n_inner_iterations = nrotamers / 10;
+    float const high_temp = 100;
+    float const low_temp = 0.3;
 
     auto scores_t = TPack<float, 1, D>::zeros({n_blocks});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({n_blocks, nres});
@@ -289,7 +291,7 @@ struct AnnealerDispatch
         best_rotamer_assignments[warp_id][i] = chosen;
       }
 
-      float temperature = 100;
+      float temperature = high_temp;
       float best_energy = total_energy_for_assignment_parallel(g,
 	nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
 	energy1b, energy2b, rotamer_assignments[warp_id]
@@ -381,7 +383,7 @@ struct AnnealerDispatch
               }
               int const local_k_rot = rotamer_assignments[warp_id][k];
   
-              int const k_ran_offset = twob_offsets[k][ran_res];
+              int64_t const k_ran_offset = twob_offsets[k][ran_res];
               //int const kres_nrots = nrotamers_for_res[k];
   
               new_e += energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_ran_rot];
@@ -462,7 +464,7 @@ struct AnnealerDispatch
 	// std::cout << "temperature " << temperature << " energy " <<
 	//  total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
 	//    res_for_rot, nenergies, twob_offsets, energy1b, energy2b, my_rotamer_assignment) << std::endl;
-	temperature = 0.35 * (temperature - 0.3) + 0.3;
+	temperature = 0.35 * (temperature - low_temp) + low_temp;
 
       } // end outer loop
 
@@ -482,11 +484,11 @@ struct AnnealerDispatch
 
 
     mgpu::standard_context_t context;
-    mgpu::transform<32, 1>(run_simulated_annealing, n_simA_threads, context);
+    mgpu::transform<128, 1>(run_simulated_annealing, n_simA_threads, context);
 
     cudaDeviceSynchronize();
     clock_t stop = clock();
-    std::cout << "Simulated annealing completed in " <<
+    std::cout << "GPU simulated annealing in " <<
       ((double) stop - start)/CLOCKS_PER_SEC << std::endl;
 
     return {scores_t, rotamer_assignments_t};
