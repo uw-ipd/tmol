@@ -42,7 +42,7 @@ struct AnnealerDispatch
     TView<int, 1, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
     TView<int, 2, D> nenergies,
-    TView<int, 2, D> twob_offsets,
+    TView<int64_t, 2, D> twob_offsets,
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b
   )
@@ -75,16 +75,17 @@ struct AnnealerDispatch
     // auto rotamer_attempts = rotamer_attempts_t.view;
 
     float const high_temp = 100;
-    float const low_temp = 0.3;
+    float const low_temp = 0.2;
     
     for (int traj = 0; traj < ntraj; ++traj) {
+      // std::cout << "Starting trajectory " << traj+1 << std::endl;
 
-      // Assign random rotamers to all residues
       for (int i = 0; i < nres; ++i) {
         int const i_nrots = nrotamers_for_res[i];
         rotamer_assignments[traj][i] = rand() % i_nrots;
         best_rotamer_assignments[traj][i] = rand() % i_nrots;
       }
+      // std::cout << "Assigned random rotamers to all residues" << std::endl;
 
       float temperature = high_temp;
       double best_energy = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
@@ -93,6 +94,7 @@ struct AnnealerDispatch
       int naccepts = 0;
       for (int i = 0; i < n_outer_iterations; ++i) {
 
+	// std::cout << "starting round " << i+1 << std::endl;
         bool quench = false;
         if (i == n_outer_iterations - 1) {
           quench = true;
@@ -136,7 +138,7 @@ struct AnnealerDispatch
             int const local_k_rot = rotamer_assignments[traj][k];
 
             //int const ran_k_offset = twob_offsets[ran_res][k];
-            int const k_ran_offset = twob_offsets[k][ran_res];
+            int64_t const k_ran_offset = twob_offsets[k][ran_res];
             // int const kres_nrots = nrotamers_for_res[k];
             //new_e += energy2b[ran_k_offset + kres_nrots * local_ran_rot + local_k_rot];
             double k_new_e = energy2b[k_ran_offset + ran_res_nrots * local_k_rot + local_ran_rot];
@@ -186,7 +188,7 @@ struct AnnealerDispatch
 
       scores[traj] = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
         res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, traj);
-      std::cout << "Traj " << traj << " with score " << scores[traj] << std::endl;
+      // std::cout << "Traj " << traj << " with score " << scores[traj] << std::endl;
     } // end trajectory loop
 
     // find the stdev of rotamer attempts

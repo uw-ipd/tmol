@@ -19,7 +19,7 @@ struct AnnealerDispatch
     TView<int, 1, D> oneb_offsets,
     TView<int, 1, D> res_for_rot,
     TView<int, 2, D> nenergies,
-    TView<int, 2, D> twob_offsets,
+    TView<int64_t, 2, D> twob_offsets,
     TView<float, 1, D> energy1b,
     TView<float, 1, D> energy2b
   )

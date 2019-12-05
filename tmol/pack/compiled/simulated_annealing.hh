@@ -65,29 +65,27 @@ pass_metropolis(
 // soon }
 
 template<
-  tmol::Device D,
-  typename Real,
-  typename Int
+  tmol::Device D
 >
 inline
 #ifdef __CUDACC__
 __device__
 #endif
-Real
+float
 total_energy_for_assignment(
-  TView<Int, 1, D> nrotamers_for_res,
-  TView<Int, 1, D> oneb_offsets,
-  TView<Int, 1, D> res_for_rot,
-  TView<Int, 2, D> nenergies,
-  TView<Int, 2, D> twob_offsets,
-  TView<Real, 1, D> energy1b,
-  TView<Real, 1, D> energy2b,
-  TView<Int, 2, D> rotamer_assignment, 
+  TView<int, 1, D> nrotamers_for_res,
+  TView<int, 1, D> oneb_offsets,
+  TView<int, 1, D> res_for_rot,
+  TView<int, 2, D> nenergies,
+  TView<int64_t, 2, D> twob_offsets,
+  TView<float, 1, D> energy1b,
+  TView<float, 1, D> energy2b,
+  TView<int, 2, D> rotamer_assignment, 
   TView<float, 3, D> pair_energies,
   int rotassign_dim0 // i.e. thread_id
 )
 {
-  Real totalE = 0;
+  float totalE = 0;
   int const nres = nrotamers_for_res.size(0);
   for (int i = 0; i < nres; ++i) {
     int const irot_local = rotamer_assignment[rotassign_dim0][i];
@@ -115,28 +113,26 @@ total_energy_for_assignment(
 }
 
 template<
-  tmol::Device D,
-  typename Real,
-  typename Int
+  tmol::Device D
 >
 inline
 #ifdef __CUDACC__
 __device__
 #endif
-Real
+float
 total_energy_for_assignment(
-  TView<Int, 1, D> nrotamers_for_res,
-  TView<Int, 1, D> oneb_offsets,
-  TView<Int, 1, D> res_for_rot,
-  TView<Int, 2, D> nenergies,
-  TView<Int, 2, D> twob_offsets,
-  TView<Real, 1, D> energy1b,
-  TView<Real, 1, D> energy2b,
-  TView<Int, 2, D> rotamer_assignment, 
+  TView<int, 1, D> nrotamers_for_res,
+  TView<int, 1, D> oneb_offsets,
+  TView<int, 1, D> res_for_rot,
+  TView<int, 2, D> nenergies,
+  TView<int64_t, 2, D> twob_offsets,
+  TView<float, 1, D> energy1b,
+  TView<float, 1, D> energy2b,
+  TView<int, 2, D> rotamer_assignment, 
   int rotassign_dim0 // i.e. thread_id
 )
 {
-  Real totalE = 0;
+  float totalE = 0;
   int const nres = nrotamers_for_res.size(0);
   for (int i = 0; i < nres; ++i) {
     int const irot_local = rotamer_assignment[rotassign_dim0][i];
@@ -148,11 +144,12 @@ total_energy_for_assignment(
       if (nenergies[i][j] == 0) {
 	continue;
       }
-      float ij_energy = energy2b[
-	twob_offsets[i][j]
+      int64_t index = 	twob_offsets[i][j]
 	+ nrotamers_for_res[j] * irot_local
-	+ jrot_local
-      ];
+	+ jrot_local;
+
+      // std::cout << "twob index " << index << std::endl;
+      float ij_energy = energy2b[index];
       totalE += ij_energy;
     }
   }

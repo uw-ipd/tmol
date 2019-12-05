@@ -38,9 +38,16 @@ def test_load_ig():
                 assert nrots[i] == twob[arrname].shape[0]
                 assert nrots[j] == twob[arrname].shape[1]
 
+def count_table_size(twob):
+    count = 0
+    for tabname in twob:
+        shape = twob[tabname].shape
+        count += shape[0] * shape[1]
+    return count
+                
 def create_twobody_energy_table(oneb, twob):
     nres = len(oneb)
-    offsets = numpy.zeros((nres, nres), dtype=int)
+    offsets = numpy.zeros((nres, nres), dtype=numpy.int64)
     nenergies = numpy.zeros((nres, nres), dtype=int)
     nrotamers_for_res = numpy.array([oneb["{}".format(i+1)].shape[0] for i in range(nres)], dtype=int)
     nrots_total = numpy.sum(nrotamers_for_res)
@@ -131,7 +138,7 @@ def test_run_sim_annealing(torch_device):
     scores, rotamer_assignments = run_simulated_annealing(et_dev)
 
     sort_scores, sort_inds = scores.sort()
-    nkeep = min(scores.shape[0], 100)
+    nkeep = min(scores.shape[0], 20)
     best_scores = sort_scores[0:nkeep]
     best_score_inds = sort_inds[0:nkeep]
     best_rot_assignments = rotamer_assignments[best_score_inds, :]
@@ -153,6 +160,89 @@ def test_run_sim_annealing(torch_device):
         et.energy2b,
         rotamer_assignments)
 
-    print("validated scores?", validated_scores)
+    # print("validated scores?", validated_scores)
     torch.testing.assert_allclose(scores, validated_scores)
 
+
+def test_run_sim_annealing_on_repacking_jobs(torch_device):
+    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    # fnames = ["1u36FHA"]
+    for fname in fnames:
+        path_to_zarr_file = "zarr_igs/repack/" + fname + "_repack.zarr"
+        oneb, twob = load_ig_from_file(path_to_zarr_file)
+        et = create_twobody_energy_table(oneb, twob)
+        print("nrotamers", et.res_for_rot.shape[0])
+        print("table size", count_table_size(twob))
+        et_dev = et.to(torch_device)
+
+        print("running sim annealing on", fname)
+        scores, rotamer_assignments = run_simulated_annealing(et_dev)
+
+        sort_scores, sort_inds = scores.sort()
+        nkeep = min(scores.shape[0], 5)
+        best_scores = sort_scores[0:nkeep]
+        best_score_inds = sort_inds[0:nkeep]
+        best_rot_assignments = rotamer_assignments[best_score_inds, :]
+
+        scores = best_scores.cpu()
+
+        rotamer_assignments = best_rot_assignments.cpu()
+        print("scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])]))
+        
+        
+        validated_scores = torch.ops.tmol.validate_energies(
+            et.nrotamers_for_res,
+            et.oneb_offsets,
+            et.res_for_rot,
+            et.nenergies,
+            et.twob_offsets,
+            et.energy1b,
+            et.energy2b,
+            rotamer_assignments)
+
+        # print("validated scores?", validated_scores)
+        torch.testing.assert_allclose(scores, validated_scores)
+
+def test_run_sim_annealing_on_redes_ex1ex2_jobs():
+    torch_device = torch.device("cuda")
+    fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
+    # fnames = ["1u36FHA"]
+    for fname in fnames:
+        path_to_zarr_file = "zarr_igs/redes_ex1ex2/" + fname + "_redes_ex1ex2.zarr"
+        oneb, twob = load_ig_from_file(path_to_zarr_file)
+        #print("table size", count_table_size(twob))
+        et = create_twobody_energy_table(oneb, twob)
+        #print("energy2b", et.energy2b.shape[0])
+        #print("nrotamers", et.res_for_rot.shape[0])
+        et_dev = et.to(torch_device)
+
+        print("running sim annealing on", fname)
+        scores, rotamer_assignments = run_simulated_annealing(et_dev)
+
+        sort_scores, sort_inds = scores.sort()
+        nkeep = min(scores.shape[0], 5)
+        best_scores = sort_scores[0:nkeep]
+        best_score_inds = sort_inds[0:nkeep]
+        best_rot_assignments = rotamer_assignments[best_score_inds, :]
+
+        scores = best_scores.cpu()
+
+        rotamer_assignments = best_rot_assignments.cpu()
+        print("scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])]))
+        
+        
+        validated_scores = torch.ops.tmol.validate_energies(
+            et.nrotamers_for_res,
+            et.oneb_offsets,
+            et.res_for_rot,
+            et.nenergies,
+            et.twob_offsets,
+            et.energy1b,
+            et.energy2b,
+            rotamer_assignments)
+
+        # print("validated scores?", validated_scores)
+        torch.testing.assert_allclose(scores, validated_scores)
+
+        
+    
