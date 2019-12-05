@@ -62,7 +62,7 @@ compute_energies_for_assignments(
   TView<int, 1, tmol::Device::CPU> oneb_offsets,
   TView<int, 1, tmol::Device::CPU> res_for_rot,
   TView<int, 2, tmol::Device::CPU> nenergies,
-  TView<int, 2, tmol::Device::CPU> twob_offsets,
+  TView<int64_t, 2, tmol::Device::CPU> twob_offsets,
   TView<float, 1, tmol::Device::CPU> energy1b,
   TView<float, 1, tmol::Device::CPU> energy2b,
   TView<int, 2, tmol::Device::CPU> rotamer_assignments
