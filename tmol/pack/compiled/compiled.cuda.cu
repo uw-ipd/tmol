@@ -227,10 +227,10 @@ struct AnnealerDispatch
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    int const n_blocks = 3000;
+    int const n_blocks = 1200;
     int const n_simA_threads = 32 * n_blocks;
     int const n_outer_iterations = 10;
-    int const n_inner_iterations = nrotamers / 10;
+    int const n_inner_iterations = nrotamers / 4;
     float const high_temp = 100;
     float const low_temp = 0.3;
 
