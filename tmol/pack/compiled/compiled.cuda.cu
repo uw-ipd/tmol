@@ -11,6 +11,7 @@
 #include "simulated_annealing.hh"
 
 #include <moderngpu/kernel_compact.hxx>
+#include <moderngpu/kernel_mergesort.hxx>
 #include <moderngpu/transform.hxx>
 #include <cooperative_groups.h>
 
@@ -227,26 +228,39 @@ struct AnnealerDispatch
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    int const n_blocks = 1200;
+    int const n_blocks = 1;
     int const n_simA_threads = 32 * n_blocks;
     int const n_outer_iterations = 10;
-    int const n_inner_iterations = nrotamers / 4;
+    int const n_inner_iterations = nrotamers / 8;
     float const high_temp = 100;
     float const low_temp = 0.3;
 
+    int const n_spbr = 100;
+    int const n_simA_results_to_keep = 1;
+    int const n_simA_expansions_for_faster = 10;
+    int const n_faster_traj = n_simA_results_to_keep * n_simA_expansions_for_faster;
+    int const n_faster_threads = 32 * n_faster_traj;
+    
     auto scores_t = TPack<float, 1, D>::zeros({n_blocks});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({n_blocks, nres});
     auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({n_blocks, nres});
-
+    auto sorted_assignment_inds_t = TPack<int, 1, D>::zeros({n_blocks});
+    auto quench_order_t = TPack<int, 2, D>::zeros({nrotamers, n_blocks});
+    auto sorted_scores_t = TPack<float, 1, D>::zeros({n_blocks});
+    auto faster_rotamer_assignments_t = TPack<int, 2, D>::zeros({n_faster_traj, nres});
+    auto faster_perturbed_assignments_t = TPack<int, 2, D>::zeros({n_faster_traj, nres});
+    
     // auto curr_pair_energies_t = TPack<float, 3, D>::zeros({nres, nres, n_simA_threads});
     // auto alt_energies_t = TPack<float, 2, D>::zeros({nres, n_simA_threads});
-
-    auto quench_order_t = TPack<int, 2, D>::zeros({nrotamers, n_blocks});
 
     auto scores = scores_t.view;
     auto rotamer_assignments = rotamer_assignments_t.view;
     auto best_rotamer_assignments = rotamer_assignments_t.view;
+    auto sorted_assignment_inds = sorted_assignment_inds_t.view;
     auto quench_order = quench_order_t.view;
+    auto sorted_scores = sorted_scores_t.view;
+    auto faster_rotamer_assignments = faster_rotamer_assignments_t.view;
+    auto faster_perturbed_assignments = faster_perturbed_assignments_t.view;
 
     // auto curr_pair_energies = curr_pair_energies_t.view;
     // auto alt_energies = alt_energies_t.view;
@@ -270,7 +284,7 @@ struct AnnealerDispatch
     // the quench / non-quench cycles +
     // 2: nres = the initial seed state of the system is created by
     // picking a single random rotamer per residue.
-    auto philox_seed = next_philox_seed( nrotamers * 400 + nres);
+    auto philox_seed = next_philox_seed( n_outer_iterations * n_inner_iterations + nres);
 
     auto run_simulated_annealing = [=] MGPU_DEVICE (int thread_id){
       curandStatePhilox4_32_10_t state;
@@ -283,6 +297,9 @@ struct AnnealerDispatch
       cooperative_groups::thread_block_tile<32> g = cooperative_groups::tiled_partition<32>(
         cooperative_groups::this_thread_block());
       int const warp_id = thread_id / 32;
+      if (g.thread_rank() == 0) {
+	sorted_assignment_inds[warp_id] = warp_id;
+      }
 
       for (int i = g.thread_rank(); i < nres; i += 32) {
         int const i_nrots = nrotamers_for_res[i];
@@ -469,10 +486,14 @@ struct AnnealerDispatch
       } // end outer loop
 
 
-      scores[warp_id] = total_energy_for_assignment_parallel(g, 
+      float totalE = total_energy_for_assignment_parallel(g, 
 	nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
 	energy1b, energy2b, rotamer_assignments[warp_id]
       );
+      if (g.thread_rank() == 0) {
+	scores[warp_id] = totalE;
+	// printf("pre-sort: warp %d score %f\n", warp_id, totalE);
+      }
     };
 
     // typedef typename conditional_typedef_t<
@@ -482,16 +503,136 @@ struct AnnealerDispatch
     //         arch_35_cta<128, 7, 5>,
     //         arch_52_cta<128, 11, 8> > >::type_t launch_t;
 
+    // auto reindex_rotamer_assignments = [=] MGPU_DEVICE (int thread_id) {
+    //   cooperative_groups::thread_block_tile<32> g = cooperative_groups::tiled_partition<32>(
+    //     cooperative_groups::this_thread_block());
+    //   int const warp_id = thread_id / 32;
+    //   int const input_assignment = sorted_assignment_inds[warp_id];
+    //   for (int i = g.thread_rank(); i < nres; i += 32) {
+    // 	sorted_rotamer_assignments[warp_id][i] =
+    // 	  rotamer_assignments[input_assignment][i];
+    //   }
+    // };
 
+    philox_seed = next_philox_seed(n_spbr);
+
+    auto faster_sPBR = [=] MGPU_DEVICE (int thread_id) {
+      curandStatePhilox4_32_10_t state;
+      curand_init(
+        philox_seed.first,
+        thread_id,
+        philox_seed.second,
+        &state);
+
+      cooperative_groups::thread_block_tile<32> g = cooperative_groups::tiled_partition<32>(
+        cooperative_groups::this_thread_block());
+      int warp_id = thread_id / 32;
+
+      // 1 start from one of the top results of the previous run
+      int prev_run_sorted_id = warp_id / n_simA_expansions_for_faster;
+      int prev_run_id = sorted_assignment_inds[prev_run_sorted_id];
+      for (int i = g.thread_rank(); i < nres; i += 32) {
+	faster_rotamer_assignments[warp_id][i] =
+	  rotamer_assignments[prev_run_id][i];
+      }
+      float energy = total_energy_for_assignment_parallel(g,
+	nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
+	energy1b, energy2b, faster_rotamer_assignments[warp_id]);
+      
+      // 2. iterate
+      for (int spbr_iteration = 0; spbr_iteration < n_spbr; ++spbr_iteration) {
+	// 3. pick a rotamer
+	int ran_rot;
+	if (g.thread_rank() == 0) {
+	  float rand_num = curand_uniform(&state);
+	  ran_rot = int(rand_num * nrotamers) % nrotamers;
+	}
+	ran_rot = g.shfl(ran_rot, 0);
+	int const ran_res = res_for_rot[ran_rot];
+	int const ran_res_nrots = nrotamers_for_res[ran_res];
+	int const ran_rot_local = ran_rot - oneb_offsets[ran_res];
+
+	// initialize the perturbed assignments array for this iteration.
+	// many of these will be overwritten, but for memory access efficiency
+	// copy everything over now.
+	for (int i = g.thread_rank(); i < nres; ++i) {
+	  int irot = i == ran_res ? ran_rot_local :
+	    faster_rotamer_assignments[warp_id][i];
+	  faster_perturbed_assignments[warp_id][i] = irot;
+	}
+
+	// 4. relax the neighbors of this residue
+	for (int i = 0; i < nres; ++i) {
+	  // 4a. Find the lowest energy rotamer for residue i
+	  if (ran_res == i || nenergies[ran_res][i] == 0) {
+	    continue;
+	  }
+
+	  int my_best_rot = 0;
+	  int my_best_rot_E = 1e38; // hack! max float
+	  int i_nrots = nrotamers_for_res[i];
+	  for (int j = g.thread_rank(); j < i_nrots; ++j) {
+	    int const j_global = j + oneb_offsets[i];
+	    float jE = energy1b[j_global];
+	    for (int k = 0; k < nres; ++k) {
+	      if (k == i || nenergies[k][ran_rot] == 0) continue;
+	      
+	      int const k_rotamer = k == ran_res ?
+		ran_rot : faster_rotamer_assignments[warp_id][k];
+	      jE += energy2b[
+		twob_offsets[k][ran_res] +
+		ran_res_nrots * k_rotamer + j];
+	    }
+
+	    if (j == g.thread_rank() || jE < my_best_rot_E) {
+	      my_best_rot = j;
+	      my_best_rot_E = jE;
+	    }
+	  }
+	  // now all threads compare: who has the lowest energy
+	  float best_E = reduce_shfl(g, my_best_rot_E, mgpu::minimum_t<float>());
+	  int mine_is_best = best_E == my_best_rot_E;
+	  int scan_val = inclusive_scan_shfl(g, mine_is_best, mgpu::plus_t<int>());
+	  if (mine_is_best && scan_val == 1) {
+	    // exactly one thread saves the assigned rotamer to the
+	    // faster_perturbed_assignemnt array
+	    faster_perturbed_assignments[warp_id][i] = my_best_rot;
+	  }
+	}
+
+	// 5. compute the new total energy after relaxation
+	float alt_energy = total_energy_for_assignment_parallel(g,
+	  nrotamers_for_res, oneb_offsets, res_for_rot, nenergies, twob_offsets,
+	  energy1b, energy2b, faster_perturbed_assignments[warp_id]);
+
+	// 6. if the energy decreases, accept the new 
+	if (g.thread_rank() == 0) {
+	  printf("prevE %f newE %f\n", energy, alt_energy);
+	}
+	if (alt_energy < energy) {
+	    
+	  energy = alt_energy;
+	  for (int i = g.thread_rank(); i < nres; i += 32) {
+	    faster_rotamer_assignments[warp_id][i] =
+	      faster_perturbed_assignments[warp_id][i];
+	  }	   
+	}
+      }
+    };
+    
     mgpu::standard_context_t context;
-    mgpu::transform<128, 1>(run_simulated_annealing, n_simA_threads, context);
+    mgpu::transform<32, 1>(run_simulated_annealing, n_simA_threads, context);
+    mgpu::mergesort(
+      scores.data(), sorted_assignment_inds.data(), n_blocks, mgpu::less_t<float>(), context);
+    // mgpu::transform<128, 4>(reindex_rotamer_assignments, n_simA_threads, context);
+    mgpu::transform<32, 1>(faster_sPBR, n_faster_threads, context);
 
     cudaDeviceSynchronize();
     clock_t stop = clock();
     std::cout << "GPU simulated annealing in " <<
       ((double) stop - start)/CLOCKS_PER_SEC << std::endl;
 
-    return {scores_t, rotamer_assignments_t};
+    return {scores_t, faster_rotamer_assignments_t};
   }
 
 };

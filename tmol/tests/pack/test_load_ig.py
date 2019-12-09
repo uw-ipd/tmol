@@ -139,17 +139,21 @@ def test_run_sim_annealing(torch_device):
 
     sort_scores, sort_inds = scores.sort()
     nkeep = min(scores.shape[0], 20)
-    best_scores = sort_scores[0:nkeep]
+    best_scores = sort_scores[0:nkeep].cpu()
     best_score_inds = sort_inds[0:nkeep]
-    best_rot_assignments = rotamer_assignments[best_score_inds, :]
-    
+    best_rot_assignments = rotamer_assignments[best_score_inds, :].cpu()
+     
     scores = best_scores.cpu()
-
     rotamer_assignments = best_rot_assignments.cpu()
-    print("scores", scores)
+
+    # scores = scores[0:nkeep].cpu()
+    # rotamer_assignments = rotamer_assignments[0:nkeep, :].cpu()
+
+    print("scores", scores, best_scores)
     print("rotamer_assignments", rotamer_assignments.shape)
-
-
+    print("assignment 0", rotamer_assignments[0,0:20])
+    print("sorted assignment 0", best_rot_assignments[0,0:20])
+    
     validated_scores = torch.ops.tmol.validate_energies(
         et.nrotamers_for_res,
         et.oneb_offsets,
@@ -160,7 +164,7 @@ def test_run_sim_annealing(torch_device):
         et.energy2b,
         rotamer_assignments)
 
-    # print("validated scores?", validated_scores)
+    print("validated scores?", validated_scores)
     torch.testing.assert_allclose(scores, validated_scores)
 
 

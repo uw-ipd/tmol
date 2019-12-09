@@ -57,7 +57,7 @@ struct AnnealerDispatch
     int const nres = nrotamers_for_res.size(0);
     int const nrotamers = res_for_rot.size(0);
 
-    int ntraj = 5;
+    int ntraj = 1;
     int const n_outer_iterations = 20;
     int const n_inner_iterations_factor = 20;
     int const n_inner_iterations = n_inner_iterations_factor * nrotamers;
