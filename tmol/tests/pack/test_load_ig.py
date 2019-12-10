@@ -149,10 +149,10 @@ def test_run_sim_annealing(torch_device):
     # scores = scores[0:nkeep].cpu()
     # rotamer_assignments = rotamer_assignments[0:nkeep, :].cpu()
 
-    print("scores", scores, best_scores)
-    print("rotamer_assignments", rotamer_assignments.shape)
-    print("assignment 0", rotamer_assignments[0,0:20])
-    print("sorted assignment 0", best_rot_assignments[0,0:20])
+    # print("scores", scores, best_scores)
+    # print("rotamer_assignments", rotamer_assignments.shape)
+    #print("assignment 0", rotamer_assignments[0,0:20])
+    #print("sorted assignment 0", best_rot_assignments[0,0:20])
     
     validated_scores = torch.ops.tmol.validate_energies(
         et.nrotamers_for_res,
@@ -175,8 +175,8 @@ def test_run_sim_annealing_on_repacking_jobs(torch_device):
         path_to_zarr_file = "zarr_igs/repack/" + fname + "_repack.zarr"
         oneb, twob = load_ig_from_file(path_to_zarr_file)
         et = create_twobody_energy_table(oneb, twob)
-        print("nrotamers", et.res_for_rot.shape[0])
-        print("table size", count_table_size(twob))
+        # print("nrotamers", et.res_for_rot.shape[0])
+        # print("table size", count_table_size(twob))
         et_dev = et.to(torch_device)
 
         print("running sim annealing on", fname)
