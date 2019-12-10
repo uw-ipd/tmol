@@ -303,9 +303,9 @@ spbr(
 
     // 6. if the energy decreases, accept the perturbed conformation
     if (alt_energy < energy) {
-      if (g.thread_rank() == 0) {
-        printf("%d prevE %f newE %f\n", warp_id, energy, alt_energy);
-      }
+      // if (g.thread_rank() == 0) {
+      //   printf("%d prevE %f newE %f\n", warp_id, energy, alt_energy);
+      // }
 
       energy = alt_energy;
       for (int i = g.thread_rank(); i < nres; i += 32) {
@@ -348,19 +348,21 @@ struct AnnealerDispatch
     float const high_temp = 30;
     float const low_temp = 0.3;
 
-    int const n_spbr = (nrotamers - 1) / 10 + 1;
+    int const n_spbr = 100;
     int const n_ibr = 10;
     int const n_simA_results_to_keep = 1000;
     int const n_simA_expansions_for_ibr = 1;
     int const n_ibr_traj = n_simA_results_to_keep * n_simA_expansions_for_ibr;
     int const n_ibr_threads = 32 * n_ibr_traj;
-    int const n_ibr_results_to_keep = n_simA_results_to_keep / 50;
-    int const n_ibr_expansions_for_spbr = 100;
+    int const n_ibr_results_to_keep = 1000;
+    int const n_ibr_expansions_for_spbr = 10;
     int const n_spbr_traj = n_ibr_results_to_keep * n_ibr_expansions_for_spbr;
     int const n_spbr_threads = n_spbr_traj * 32;
     int const ibr_history_size = 4;
 
-    auto scores_t = TPack<float, 1, D>::zeros({n_blocks});
+    auto scores_sa_t = TPack<float, 1, D>::zeros({n_blocks});
+    auto scores_ibr_t = TPack<float, 1, D>::zeros({n_ibr_traj});
+    auto scores_spbr_t = TPack<float, 1, D>::zeros({n_spbr_traj});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({n_blocks, nres});
     auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({n_blocks, nres});
     auto sorted_assignment_inds_t = TPack<int, 1, D>::zeros({n_blocks});
@@ -371,14 +373,20 @@ struct AnnealerDispatch
     auto best_ibr_rotamer_assignments_t = TPack<int, 2, D>::zeros({n_ibr_traj, nres});
     auto ibr_perturbed_assignments_t = TPack<int, 2, D>::zeros({n_ibr_traj, nres});
     auto ibr_assignment_history_t = TPack<int, 3, D>::zeros({n_ibr_traj, ibr_history_size, nres});
+    auto sorted_ibr_assignment_inds_t = TPack<int, 1, D>::zeros({n_ibr_traj});
 
     auto spbr_rotamer_assignments_t = TPack<int, 2, D>::zeros({n_spbr_traj, nres});
     auto spbr_perturbed_assignments_t = TPack<int, 2, D>::zeros({n_spbr_traj, nres});
+    auto sorted_spbr_assignment_inds_t = TPack<int, 1, D>::zeros({n_spbr_traj});
+    auto spbr_rotamer_assignments2_t = TPack<int, 2, D>::zeros({n_spbr_traj, nres});
+    auto spbr_perturbed_assignments2_t = TPack<int, 2, D>::zeros({n_spbr_traj, nres});
 
     // auto curr_pair_energies_t = TPack<float, 3, D>::zeros({nres, nres, n_simA_threads});
     // auto alt_energies_t = TPack<float, 2, D>::zeros({nres, n_simA_threads});
 
-    auto scores = scores_t.view;
+    auto scores_sa = scores_sa_t.view;
+    auto scores_ibr = scores_ibr_t.view;
+    auto scores_spbr = scores_spbr_t.view;
     auto rotamer_assignments = rotamer_assignments_t.view;
     auto best_rotamer_assignments = rotamer_assignments_t.view;
     auto sorted_assignment_inds = sorted_assignment_inds_t.view;
@@ -388,9 +396,13 @@ struct AnnealerDispatch
     auto best_ibr_rotamer_assignments = best_ibr_rotamer_assignments_t.view;
     auto ibr_perturbed_assignments = ibr_perturbed_assignments_t.view;
     auto ibr_assignment_history = ibr_assignment_history_t.view;
+    auto sorted_ibr_assignment_inds = sorted_ibr_assignment_inds_t.view;
 
     auto spbr_rotamer_assignments = spbr_rotamer_assignments_t.view;
     auto spbr_perturbed_assignments = spbr_perturbed_assignments_t.view;
+    auto sorted_spbr_assignment_inds = sorted_spbr_assignment_inds_t.view;
+    auto spbr_rotamer_assignments2 = spbr_rotamer_assignments2_t.view;
+    auto spbr_perturbed_assignments2 = spbr_perturbed_assignments2_t.view;
 
     // auto curr_pair_energies = curr_pair_energies_t.view;
     // auto alt_energies = alt_energies_t.view;
@@ -622,7 +634,7 @@ struct AnnealerDispatch
         energy1b, energy2b, rotamer_assignments[warp_id]
       );
       if (g.thread_rank() == 0) {
-        scores[warp_id] = totalE;
+        scores_sa[warp_id] = totalE;
         // printf("pre-sort: warp %d score %f\n", warp_id, totalE);
       }
     };
@@ -645,7 +657,6 @@ struct AnnealerDispatch
     //   }
     // };
 
-    philox_seed = next_philox_seed(n_spbr);
 
     auto faster_iBR = [=] MGPU_DEVICE (int thread_id) {
       curandStatePhilox4_32_10_t state;
@@ -788,12 +799,12 @@ struct AnnealerDispatch
 
       } // end for ibr_iterations
       if (g.thread_rank() == 0) {
-        scores[warp_id] = best_energy;
+        scores_ibr[warp_id] = best_energy;
       }
     };
 
-
-    auto faster_sPBR = [=] MGPU_DEVICE (int thread_id) {
+    philox_seed = next_philox_seed(n_spbr);
+    auto faster_sPBR_1 = [=] MGPU_DEVICE (int thread_id) {
       curandStatePhilox4_32_10_t state;
       curand_init(
         philox_seed.first,
@@ -821,7 +832,41 @@ struct AnnealerDispatch
       
       // 2. iterate
       if (g.thread_rank() == 0) {
-        scores[warp_id] = energy;
+        scores_spbr[warp_id] = energy;
+      }
+    };
+
+    philox_seed = next_philox_seed(n_spbr);
+
+    auto faster_sPBR_2 = [=] MGPU_DEVICE (int thread_id) {
+      curandStatePhilox4_32_10_t state;
+      curand_init(
+        philox_seed.first,
+        thread_id,
+        philox_seed.second,
+        &state);
+    
+      cooperative_groups::thread_block_tile<32> g = cooperative_groups::tiled_partition<32>(
+        cooperative_groups::this_thread_block());
+      int warp_id = thread_id / 32;
+    
+      // 1 start from one of the top results of the previous run
+      int prev_run_sorted_id = warp_id / n_ibr_expansions_for_spbr;
+      int prev_run_id = sorted_spbr_assignment_inds[prev_run_sorted_id];
+      for (int i = g.thread_rank(); i < nres; i += 32) {
+            spbr_rotamer_assignments2[warp_id][i] =
+              spbr_rotamer_assignments[prev_run_id][i];
+      }
+
+      float energy = spbr(&state, g, nrotamers_for_res, oneb_offsets, res_for_rot,
+        nenergies, twob_offsets, energy1b, energy2b,
+        warp_id, n_spbr, spbr_rotamer_assignments2,
+	spbr_perturbed_assignments2
+      );
+      
+      // 2. iterate
+      if (g.thread_rank() == 0) {
+        scores_spbr[warp_id] = energy;
       }
     };
 
@@ -829,15 +874,18 @@ struct AnnealerDispatch
     mgpu::transform<32, 1>(run_simulated_annealing, n_simA_threads, context);
     mgpu::transform<32, 1>(faster_iBR, n_ibr_threads, context);
     mgpu::mergesort(
-       scores.data(), sorted_assignment_inds.data(), n_blocks, mgpu::less_t<float>(), context);
-    mgpu::transform<32, 1>(faster_sPBR, n_spbr_threads, context);
+       scores_sa.data(), sorted_assignment_inds.data(), n_blocks, mgpu::less_t<float>(), context);
+    mgpu::transform<32, 1>(faster_sPBR_1, n_spbr_threads, context);
+    mgpu::mergesort(
+       scores_spbr.data(), sorted_spbr_assignment_inds.data(), n_blocks, mgpu::less_t<float>(), context);
+    mgpu::transform<32, 1>(faster_sPBR_2, n_spbr_threads, context);
 
     cudaDeviceSynchronize();
     clock_t stop = clock();
     std::cout << "GPU simulated annealing in " <<
       ((double) stop - start)/CLOCKS_PER_SEC << std::endl;
 
-    return {scores_t, spbr_rotamer_assignments_t};
+    return {scores_spbr_t, spbr_rotamer_assignments2_t};
   }
 
 };
