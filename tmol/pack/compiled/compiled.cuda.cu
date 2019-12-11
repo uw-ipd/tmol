@@ -883,7 +883,7 @@ struct AnnealerDispatch
     cudaDeviceSynchronize();
     clock_t stop = clock();
     std::cout << "GPU simulated annealing in " <<
-      ((double) stop - start)/CLOCKS_PER_SEC << std::endl;
+      ((double) stop - start)/CLOCKS_PER_SEC << " seconds" << std::endl;
 
     return {scores_spbr_t, spbr_rotamer_assignments2_t};
   }
