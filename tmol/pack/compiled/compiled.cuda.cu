@@ -10,6 +10,7 @@
 // ??? #include "annealer.hh"
 #include "simulated_annealing.hh"
 
+#include <moderngpu/cta_reduce.hxx>
 #include <moderngpu/kernel_compact.hxx>
 #include <moderngpu/kernel_mergesort.hxx>
 #include <moderngpu/transform.hxx>
@@ -61,25 +62,37 @@ curand_in_range(
   return int(curand_uniform(state)*n) % n;
 }
 
-template <unsigned int nthreads, typename T, typename F>
+template <unsigned int nthreads, typename T, typename op_t>
 __device__
 __inline__
 T
-reduce_shfl(
+reduce_shfl_and_broadcast(
   cooperative_groups::thread_block_tile<nthreads> g,
   T val,
-  F f
+  op_t op
 )
 {
+  // T val_orig(val);
+  // mgpu::shfl_reduce_t<T, nthreads> reducer;
+  // val = reducer. template reduce<op_t>(
+  //   g.thread_rank(), val, nthreads, op);
+  // 
+  // T hand_rolled_val(val_orig);
   for (unsigned int i = nthreads / 2; i > 0; i /= 2) {
     T const shfl_val = g.shfl_down(val, i);
-    val = f(val, shfl_val);
+    if (g.thread_rank() < 32 - i) {
+      val = op(val, shfl_val);
+    }
   }
-  // thread 0 shares its sum with everyone
+
+  // thread 0 shares its reduced value with everyone
   // so that there is no disagreement on the
   // partition function value
-  val = g.shfl(val, 0);
-  return val;
+  T val_bcast = g.shfl(val, 0);
+
+  // printf("%d %d shfl orig %f reduce %f bcast %f vs %f\n", g.thread_rank(), threadIdx.x, float(val_orig), float(val), float(val_bcast), float(hand_rolled_val));
+
+  return val_bcast;
 }
 
 template <unsigned int nthreads, typename T, typename F>
@@ -200,7 +213,7 @@ total_energy_for_assignment_parallel(
       totalE += ij_energy;
     }
   }
-  totalE = reduce_shfl(g, totalE, mgpu::plus_t<float>());
+  totalE = reduce_shfl_and_broadcast(g, totalE, mgpu::plus_t<float>());
   return totalE;
 }
 
@@ -286,7 +299,10 @@ spbr(
         }
       }
       // now all threads compare: who has the lowest energy
-      float best_rot_E = reduce_shfl(g, my_best_rot_E, mgpu::minimum_t<float>());
+      if (g.thread_rank() == 0) {
+	printf("minimum<float>\n");
+      }
+      float best_rot_E = reduce_shfl_and_broadcast(g, my_best_rot_E, mgpu::minimum_t<float>());
       int mine_is_best = best_rot_E == my_best_rot_E;
       int scan_val = inclusive_scan_shfl(g, mine_is_best, mgpu::plus_t<int>());
       if (mine_is_best && scan_val == 1) {
@@ -343,7 +359,7 @@ struct AnnealerDispatch
 
     int const n_blocks = 1000;
     int const n_simA_threads = 32 * n_blocks;
-    int const n_outer_iterations = 5;
+    int const n_outer_iterations = 10;
     int const n_inner_iterations = nrotamers / 8;
     float const high_temp = 30;
     float const low_temp = 0.3;
@@ -550,14 +566,23 @@ struct AnnealerDispatch
             }
           }
 
-          float const min_e = reduce_shfl(g, new_e, mgpu::minimum_t<float>());
+	  // if (g.thread_rank() == 0) {
+	  //   printf("minimum<float>\n");
+	  // }
+          float const min_e = reduce_shfl_and_broadcast(g, new_e, mgpu::minimum_t<float>());
           // printf("thread %d min_e %f\n", thread_id, min_e);
           float myexp = expf( -1 * ( new_e - min_e ) / temperature );
           // printf("thread %d myexp %f\n", thread_id, myexp);
-          float const partition = reduce_shfl(g, myexp, mgpu::plus_t<float>());
+	  // if (g.thread_rank() == 0) {
+	  //   printf("plus<float>\n");
+	  // }
+          float const partition = reduce_shfl_and_broadcast(g, myexp, mgpu::plus_t<float>());
           // printf("thread %d partition %f\n", thread_id, partition);
           float const myprob = this_thread_active ? myexp / partition : 0;
           // printf("thread %d myprob %f\n", thread_id, myprob);
+	  // if (g.thread_rank() == 0) {
+	  //   printf("inclusive scan plus<float>\n");
+	  // }
           float scan_prob = inclusive_scan_shfl(g, myprob, mgpu::plus_t<float>());
           // printf("thread %d prev rotamer %d new rotamer %d new_e %f active? %d temp %f\n", thread_id, local_prev_rot, local_ran_rot, new_e, this_thread_active, temperature);
            // printf("thread %d myexp %f part %f myprob %f scan_prob %f accept_prob %f\n", thread_id, myexp, partition, myprob, scan_prob, accept_prob);
@@ -569,12 +594,18 @@ struct AnnealerDispatch
           }
           int accept_rank = ( this_thread_active && accept_prob <= scan_prob);
           // printf("thread %d accept_rank %d\n", thread_id, accept_rank);
+	  // if (g.thread_rank() == 0) {
+	  //   printf("inclusive scan plus<int>\n");
+	  // }
           accept_rank = inclusive_scan_shfl(g, accept_rank, mgpu::plus_t<int>());
           // printf("thread %d accept_rank after scan %d\n", thread_id, accept_rank);
 
           bool accept = accept_rank == 1 && this_thread_active;
           // printf("thread %d accept %d\n", thread_id, accept);
-          int const accept_thread = reduce_shfl(g, accept ? g.thread_rank() : -1, mgpu::maximum_t<int>());
+	  // if (g.thread_rank() == 0) {
+	  //   printf("max<int>\n");
+	  // }
+          int const accept_thread = reduce_shfl_and_broadcast(g, accept ? int(g.thread_rank()) : int(-1), mgpu::maximum_t<int>());
           // if (g.thread_rank() == 0) {
           //   printf("thread %d accept_thread %d\n", thread_id, accept_thread);
           // }
@@ -714,7 +745,7 @@ struct AnnealerDispatch
             }
           }
           // now all threads compare: who has the lowest energy
-          float best_rot_E = reduce_shfl(g, my_best_rot_E, mgpu::minimum_t<float>());
+          float best_rot_E = reduce_shfl_and_broadcast(g, my_best_rot_E, mgpu::minimum_t<float>());
           int mine_is_best = best_rot_E == my_best_rot_E;
           int scan_val = inclusive_scan_shfl(g, mine_is_best, mgpu::plus_t<int>());
           //printf("thread %d res %d curr rot %d my best rot %d E %e minebest %d scan %d\n",
@@ -752,7 +783,7 @@ struct AnnealerDispatch
         }
 
         // quit if we have converged
-        int all_converged = reduce_shfl(g, (int) converged, mgpu::minimum_t<int>());
+        int all_converged = reduce_shfl_and_broadcast(g, (int) converged, mgpu::minimum_t<int>());
         if (all_converged) {
           break;
         }
@@ -771,7 +802,7 @@ struct AnnealerDispatch
             // quit early if we found a mismatch, but only if
             // all threads are currently active
             if (j - g.thread_rank() + 32 < nres) {
-              exit_ibr_loop = reduce_shfl(g, exit_ibr_loop, mgpu::minimum_t<bool>());
+              exit_ibr_loop = reduce_shfl_and_broadcast(g, exit_ibr_loop, mgpu::minimum_t<bool>());
               if (! exit_ibr_loop) {
                 break;
               }
@@ -872,13 +903,13 @@ struct AnnealerDispatch
 
     mgpu::standard_context_t context;
     mgpu::transform<32, 1>(run_simulated_annealing, n_simA_threads, context);
-    mgpu::transform<32, 1>(faster_iBR, n_ibr_threads, context);
-    mgpu::mergesort(
-       scores_sa.data(), sorted_assignment_inds.data(), n_blocks, mgpu::less_t<float>(), context);
-    mgpu::transform<32, 1>(faster_sPBR_1, n_spbr_threads, context);
-    mgpu::mergesort(
-       scores_spbr.data(), sorted_spbr_assignment_inds.data(), n_blocks, mgpu::less_t<float>(), context);
-    mgpu::transform<32, 1>(faster_sPBR_2, n_spbr_threads, context);
+    // mgpu::transform<32, 1>(faster_iBR, n_ibr_threads, context);
+    // mgpu::mergesort(
+    //    scores_sa.data(), sorted_assignment_inds.data(), n_blocks, mgpu::less_t<float>(), context);
+    // mgpu::transform<32, 1>(faster_sPBR_1, n_spbr_threads, context);
+    // mgpu::mergesort(
+    //    scores_spbr.data(), sorted_spbr_assignment_inds.data(), n_blocks, mgpu::less_t<float>(), context);
+    // mgpu::transform<32, 1>(faster_sPBR_2, n_spbr_threads, context);
 
     cudaDeviceSynchronize();
     clock_t stop = clock();
