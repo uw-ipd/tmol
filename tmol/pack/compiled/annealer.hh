@@ -24,7 +24,7 @@ struct AnnealerDispatch
     TView<float, 1, D> energy2b
   )
     -> std::tuple<
-      TPack<float, 1, D>,
+      TPack<float, 2, D>,
       TPack<int, 2, D> >;
 };
 

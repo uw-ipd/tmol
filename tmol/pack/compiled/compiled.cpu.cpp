@@ -47,7 +47,7 @@ struct AnnealerDispatch
     TView<float, 1, D> energy2b
   )
     -> std::tuple<
-      TPack<float, 1, D>,
+      TPack<float, 2, D>,
       TPack<int, 2, D> >
   {
 
@@ -62,7 +62,7 @@ struct AnnealerDispatch
     int const n_inner_iterations_factor = 20;
     int const n_inner_iterations = n_inner_iterations_factor * nrotamers;
 
-    auto scores_t = TPack<float, 1, D>::zeros({ntraj});
+    auto scores_t = TPack<float, 2, D>::zeros({1, ntraj});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({ntraj, nres});
     auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({ntraj, nres});
     auto quench_order_t = TPack<int, 1, D>::zeros({nrotamers});
@@ -186,7 +186,7 @@ struct AnnealerDispatch
       } // end outer loop
 
 
-      scores[traj] = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
+      scores[0][traj] = total_energy_for_assignment(nrotamers_for_res, oneb_offsets,
         res_for_rot, nenergies, twob_offsets, energy1b, energy2b, rotamer_assignments, traj);
       // std::cout << "Traj " << traj << " with score " << scores[traj] << std::endl;
     } // end trajectory loop

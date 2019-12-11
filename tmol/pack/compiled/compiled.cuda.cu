@@ -584,7 +584,7 @@ struct AnnealerDispatch
     TView<float, 1, D> energy2b
   )
     -> std::tuple<
-      TPack<float, 1, D>,
+      TPack<float, 2, D>,
       TPack<int, 2, D> >
   {
     clock_t start = clock();
@@ -599,7 +599,7 @@ struct AnnealerDispatch
     float const high_temp = 30;
     float const low_temp = 0.3;
 
-    auto scores_sa_t = TPack<float, 1, D>::zeros({n_blocks});
+    auto scores_sa_t = TPack<float, 2, D>::zeros({2, n_blocks});
     auto rotamer_assignments_t = TPack<int, 2, D>::zeros({n_blocks, nres});
     auto best_rotamer_assignments_t = TPack<int, 2, D>::zeros({n_blocks, nres});
     auto sorted_assignment_inds_t = TPack<int, 1, D>::zeros({n_blocks});
@@ -657,7 +657,7 @@ struct AnnealerDispatch
         best_rotamer_assignments[warp_id][i] = chosen;
       }
 
-      float totalE = warp_wide_sim_annealing(
+      float before_quench_totalE = warp_wide_sim_annealing(
 	&state,
 	g,
 	nrotamers_for_res,
@@ -673,7 +673,29 @@ struct AnnealerDispatch
 	quench_order[warp_id],
 	high_temp,
 	low_temp,
-	n_outer_iterations,
+	n_outer_iterations-1,
+	n_inner_iterations,
+	nrotamers,
+	false
+      );
+
+      float after_quench_totalE = warp_wide_sim_annealing(
+	&state,
+	g,
+	nrotamers_for_res,
+	oneb_offsets,
+	res_for_rot,
+	nenergies,
+	twob_offsets,
+	energy1b,
+	energy2b,
+	warp_id,
+	rotamer_assignments[warp_id],
+	best_rotamer_assignments[warp_id],
+	quench_order[warp_id],
+	high_temp,
+	low_temp,
+	1,
 	n_inner_iterations,
 	nrotamers,
 	true
@@ -681,7 +703,8 @@ struct AnnealerDispatch
 
       
       if (g.thread_rank() == 0) {
-        scores_sa[warp_id] = totalE;
+        scores_sa[0][warp_id] = before_quench_totalE;
+	scores_sa[1][warp_id] = after_quench_totalE;
         // printf("pre-sort: warp %d score %f\n", warp_id, totalE);
       }
 

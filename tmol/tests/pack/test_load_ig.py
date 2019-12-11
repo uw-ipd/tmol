@@ -44,7 +44,7 @@ def count_table_size(twob):
         shape = twob[tabname].shape
         count += shape[0] * shape[1]
     return count
-                
+
 def create_twobody_energy_table(oneb, twob):
     nres = len(oneb)
     offsets = numpy.zeros((nres, nres), dtype=numpy.int64)
@@ -142,7 +142,7 @@ def test_run_sim_annealing(torch_device):
     best_scores = sort_scores[0:nkeep].cpu()
     best_score_inds = sort_inds[0:nkeep]
     best_rot_assignments = rotamer_assignments[best_score_inds, :].cpu()
-     
+
     scores = best_scores.cpu()
     rotamer_assignments = best_rot_assignments.cpu()
 
@@ -153,7 +153,7 @@ def test_run_sim_annealing(torch_device):
     # print("rotamer_assignments", rotamer_assignments.shape)
     #print("assignment 0", rotamer_assignments[0,0:20])
     #print("sorted assignment 0", best_rot_assignments[0,0:20])
-    
+
     validated_scores = torch.ops.tmol.validate_energies(
         et.nrotamers_for_res,
         et.oneb_offsets,
@@ -168,7 +168,8 @@ def test_run_sim_annealing(torch_device):
     torch.testing.assert_allclose(scores, validated_scores)
 
 
-def test_run_sim_annealing_on_repacking_jobs(torch_device):
+def test_run_sim_annealing_on_repacking_jobs():
+    torch_device = torch.device("cuda")
     fnames = ["1wzbFHA", "1qtxFHB", "1kd8FHB", "1ojhFHA", "1ff4FHA", "1vmgFHA", "1u36FHA", "1w0nFHA"]
     # fnames = ["1u36FHA"]
     for fname in fnames:
@@ -179,9 +180,17 @@ def test_run_sim_annealing_on_repacking_jobs(torch_device):
         # print("table size", count_table_size(twob))
         et_dev = et.to(torch_device)
 
-        print("running sim annealing on", fname)
+        # print("running sim annealing on", fname)
         scores, rotamer_assignments = run_simulated_annealing(et_dev)
 
+        scores_temp = scores
+        scores = scores.cpu().numpy()
+        numpy.set_printoptions(threshold=1e5)
+        print("scores", fname)
+        for i in range(scores.shape[1]):
+            print(scores[0,i], scores[1, i])
+
+        scores = scores_temp[1,:]
         sort_scores, sort_inds = scores.sort()
         nkeep = min(scores.shape[0], 5)
         best_scores = sort_scores[0:nkeep]
@@ -191,9 +200,9 @@ def test_run_sim_annealing_on_repacking_jobs(torch_device):
         scores = best_scores.cpu()
 
         rotamer_assignments = best_rot_assignments.cpu()
-        print("scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])]))
-        
-        
+        #print("scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])]))
+
+
         validated_scores = torch.ops.tmol.validate_energies(
             et.nrotamers_for_res,
             et.oneb_offsets,
@@ -223,6 +232,14 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
         print("running sim annealing on", fname)
         scores, rotamer_assignments = run_simulated_annealing(et_dev)
 
+        scores_temp = scores
+        scores = scores.cpu().numpy()
+        numpy.set_printoptions(threshold=1e5)
+        print("scores", fname)
+        for i in range(scores.shape[1]):
+            print(scores[0,i], scores[1, i])
+
+        scores = scores_temp[1,:]
         sort_scores, sort_inds = scores.sort()
         nkeep = min(scores.shape[0], 5)
         best_scores = sort_scores[0:nkeep]
@@ -233,8 +250,8 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
 
         rotamer_assignments = best_rot_assignments.cpu()
         print("scores", " ".join([str(scores[i].item()) for i in range(scores.shape[0])]))
-        
-        
+
+
         validated_scores = torch.ops.tmol.validate_energies(
             et.nrotamers_for_res,
             et.oneb_offsets,
@@ -247,6 +264,3 @@ def test_run_sim_annealing_on_redes_ex1ex2_jobs():
 
         # print("validated scores?", validated_scores)
         torch.testing.assert_allclose(scores, validated_scores)
-
-        
-    
